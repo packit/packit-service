@@ -2,8 +2,8 @@ from flexmock import flexmock
 from flask import Flask, request
 import pytest
 
-from packit.config import Config
-from packit.service.web_hook import _validate_signature
+from packit_service.config import Config
+from packit_service.service.web_hook import _validate_signature
 
 
 @pytest.mark.parametrize(

@@ -19,7 +19,7 @@ RUN cd /src/ \
 COPY setup.py setup.cfg recipe.yaml .git_archival.txt .gitattributes /src/
 # setuptools-scm
 COPY .git /src/.git
-COPY packit/ /src/packit/
+COPY packit_service/ /src/packit_service/
 
 RUN cd /src/ \
     && ansible-playbook -vv -c local -i localhost, recipe.yaml

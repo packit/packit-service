@@ -7,8 +7,7 @@ from typing import List, Optional, Tuple, Dict, Type
 from ogr.abstract import GitProject, GitService
 
 from packit.api import PackitAPI
-from packit.config import JobConfig, JobTriggerType, JobType, PackageConfig, Config
-from packit.config import get_package_config_from_repo
+from packit.config import JobConfig, JobTriggerType, JobType, PackageConfig, Config, get_package_config_from_repo
 from packit.distgit import DistGit
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject

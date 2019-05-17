@@ -22,14 +22,14 @@
 
 import hmac
 import logging
-from hashlib import sha1
 from concurrent.futures.thread import ThreadPoolExecutor
+from hashlib import sha1
 
 from flask import Flask, abort, request, jsonify
-
 from packit.config import Config
-from packit.jobs import SteveJobs
 from packit.utils import set_logging
+
+from packit_service.jobs import SteveJobs
 
 
 class PackitWebhookReceiver(Flask):
@@ -39,7 +39,7 @@ class PackitWebhookReceiver(Flask):
 
 
 app = PackitWebhookReceiver(__name__)
-logger = logging.getLogger("packit")
+logger = logging.getLogger("packit_service")
 threadpool_executor = ThreadPoolExecutor(max_workers=16)
 
 
