@@ -5,14 +5,15 @@ import logging
 from typing import List, Optional, Tuple, Dict, Type
 
 from ogr.abstract import GitProject, GitService
-
+from ogr.services.pagure import PagureService
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobTriggerType, JobType, PackageConfig, Config, get_package_config_from_repo
 from packit.distgit import DistGit
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject
-from packit.ogr_services import PagureService, get_github_project
+from packit.ogr_services import get_github_project
 from packit.utils import nested_get, get_namespace_and_repo_name
+
 
 logger = logging.getLogger(__name__)
 
@@ -385,31 +386,32 @@ class GithubCoprBuildHandler(JobHandler):
                 self.commit_sha, state, self.target_url, description, "packit/rpm-build"
             )
 
-    def handle_release(self):
-        if not self.job.metadata.get("targets"):
-            logger.error(
-                "'targets' value is required in packit config for copr_build job"
-            )
-        tag_name = self.event["release"]["tag_name"]
+    # We do not support this workflow officially
+    # def handle_release(self):
+    #     if not self.job.metadata.get("targets"):
+    #         logger.error(
+    #             "'targets' value is required in packit config for copr_build job"
+    #         )
+    #     tag_name = self.event["release"]["tag_name"]
 
-        local_project = LocalProject(git_project=self.project, ref=tag_name)
-        api = PackitAPI(self.config, self.package_config, local_project)
+    #     local_project = LocalProject(git_project=self.project, ref=tag_name)
+    #     api = PackitAPI(self.config, self.package_config, local_project)
 
-        build_id, repo_url = api.run_copr_build(
-            owner=self.job.metadata.get("owner") or "packit",
-            project=self.job.metadata.get("project")
-            or f"{self.project.namespace}-{self.project.repo}",
-            chroots=self.job.metadata.get("targets"),
-        )
+    #     build_id, repo_url = api.run_copr_build(
+    #         owner=self.job.metadata.get("owner") or "packit",
+    #         project=self.job.metadata.get("project")
+    #         or f"{self.project.namespace}-{self.project.repo}",
+    #         chroots=self.job.metadata.get("targets"),
+    #     )
 
-        # report
-        commit_sha = self.project.get_sha_from_tag(tag_name)
-        r = self.BuildStatusReporter(self.project, commit_sha, build_id, repo_url)
-        timeout = 60 * 60 * 2
-        timeout_config = self.job.metadata.get("timeout")
-        if timeout_config:
-            timeout = int(timeout_config)
-        api.watch_copr_build(build_id, timeout, report_func=r.report)
+    #     # report
+    #     commit_sha = self.project.get_sha_from_tag(tag_name)
+    #     r = self.BuildStatusReporter(self.project, commit_sha, build_id, repo_url)
+    #     timeout = 60 * 60 * 2
+    #     timeout_config = self.job.metadata.get("timeout")
+    #     if timeout_config:
+    #         timeout = int(timeout_config)
+    #     api.watch_copr_build(build_id, timeout, report_func=r.report)
 
     def handle_pull_request(self):
         if not self.job.metadata.get("targets"):
