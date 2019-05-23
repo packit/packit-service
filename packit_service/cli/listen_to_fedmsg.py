@@ -21,11 +21,36 @@
 # SOFTWARE.
 
 """
-A book with our finest spells
+Watch for new upstream releases.
 """
-from pathlib import Path
+import logging
+
+import click
+from packit.config import pass_config
+
+from packit_service.fed_mes_consume import Consumerino
+from packit_service.jobs import SteveJobs
+
+logger = logging.getLogger(__name__)
 
 
-TESTS_DIR = Path(__file__).parent
-DATA_DIR = TESTS_DIR / "data"
-SAVED_HTTPD_REQS = DATA_DIR / "http-requests"
+@click.command("listen-to-fedmsg")
+@click.argument("message-id", nargs=-1)
+@pass_config
+def listen_to_fedmsg(config, message_id):
+    """
+    Listen to events on fedmsg and process them.
+
+    if MESSAGE-ID is specified, process only the selected messages
+    """
+
+    consumerino = Consumerino()
+    steve = SteveJobs(config)
+
+    if message_id:
+        for msg_id in message_id:
+            fedmsg_dict = consumerino.fetch_fedmsg_dict(msg_id)
+            steve.process_message(fedmsg_dict)
+    else:
+        for topic, msg in consumerino.yield_all_messages():
+            steve.process_message(msg, topic=topic)
