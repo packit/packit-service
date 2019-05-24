@@ -1,8 +1,8 @@
 ---
-- name: Install dependencies for packit.
+- name: Install dependencies for packit-service.
   hosts: all
   tasks:
-  - name: Install all RPM packages needed to hack on packit.
+  - name: Install all RPM packages needed to run packit-service.
     dnf:
       name:
       - fedpkg

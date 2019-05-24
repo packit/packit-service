@@ -19,13 +19,3 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-"""
-A book with our finest spells
-"""
-from pathlib import Path
-
-
-TESTS_DIR = Path(__file__).parent
-DATA_DIR = TESTS_DIR / "data"
-SAVED_HTTPD_REQS = DATA_DIR / "http-requests"

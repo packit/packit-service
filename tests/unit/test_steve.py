@@ -27,11 +27,11 @@ import pytest
 from flexmock import flexmock
 from github import Github
 from ogr.services.github import GithubProject
-
 from packit.api import PackitAPI
 from packit.config import Config
-from packit.jobs import SteveJobs
 from packit.local_project import LocalProject
+
+from packit_service.jobs import SteveJobs
 
 
 @pytest.mark.parametrize(

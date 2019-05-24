@@ -64,11 +64,15 @@
     assert:
       that:
       - 'src_path.stat.isdir'
+  - name: Install packit from git master
+    pip:
+      name: git+https://github.com/packit-service/packit.git
+      executable: pip3
   - name: Install ogr from git master
     pip:
       name: git+https://github.com/packit-service/ogr.git
       executable: pip3
-  - name: Install packit from /src
+  - name: Install packit-service from /src
     pip:
       name: /src
       executable: pip3
