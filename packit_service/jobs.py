@@ -375,14 +375,14 @@ class BuildStatusReporter:
         state: str,
         description: str,
         build_id: Optional[str] = None,
-        target_url: str = "",
+        url: str = "",
     ):
         logger.debug(
             f"Reporting state of copr build ID={build_id},"
             f" state={state}, commit={self.commit_sha}"
         )
         self.gh_proj.set_commit_status(
-            self.commit_sha, state, target_url, description, "packit/rpm-build"
+            self.commit_sha, state, url, description, "packit/rpm-build"
         )
 
 
