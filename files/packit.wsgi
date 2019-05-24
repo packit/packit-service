@@ -2,4 +2,4 @@
 import sys
 
 sys.path.insert(0, "/usr/share/packit")
-from packit.service.web_hook import app as application
+from packit_service.service.web_hook import app as application
