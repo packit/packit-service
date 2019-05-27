@@ -26,10 +26,10 @@ Watch for new upstream releases.
 import logging
 
 import click
-from packit.config import pass_config
 
+from packit.config import pass_config
+from packit_service.celerizer import celery_app
 from packit_service.fed_mes_consume import Consumerino
-from packit_service.jobs import SteveJobs
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +45,18 @@ def listen_to_fedmsg(config, message_id):
     """
 
     consumerino = Consumerino()
-    steve = SteveJobs(config)
 
     if message_id:
         for msg_id in message_id:
             fedmsg_dict = consumerino.fetch_fedmsg_dict(msg_id)
-            steve.process_message(fedmsg_dict)
+            logger.debug(f"Processing {fedmsg_dict}")
+            celery_app.send_task(
+                name="task.steve_jobs.process_message", kwargs={"event": fedmsg_dict}
+            )
     else:
         for topic, msg in consumerino.yield_all_messages():
-            steve.process_message(msg, topic=topic)
+            logger.debug(f"Processing topic {topic}, msg {msg}")
+            celery_app.send_task(
+                name="task.steve_jobs.process_message",
+                kwargs={"event": msg, "topic": topic},
+            )
