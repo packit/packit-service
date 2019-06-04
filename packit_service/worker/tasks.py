@@ -21,41 +21,19 @@
 # SOFTWARE.
 
 import logging
-from typing import Iterable, Tuple, Dict, Any
 
-import fedmsg
-import requests
-
-
-logger = logging.getLogger(__name__)
+from packit_service.celerizer import celery_app
+from packit_service.worker.jobs import SteveJobs
 
 
-class Consumerino:
-    """
-    Consume events from fedmsg
-    """
+logger = logging.getLogger("packit_worker")
 
-    def __init__(self, url: str = None) -> None:
-        # TODO: the url template should be configurable
-        self.datagrepper_url = url or (
-            "https://apps.fedoraproject.org/datagrepper/id?id={msg_id}&is_raw=true"
-        )
 
-    @staticmethod
-    def yield_all_messages() -> Iterable[Tuple[str, dict]]:
-        logger.info("listening on fedmsg")
-        for name, endpoint, topic, msg in fedmsg.tail_messages():
-            yield topic, msg
-
-    def fetch_fedmsg_dict(self, msg_id: str) -> Dict[str, Any]:
-        """
-        Fetch selected message from datagrepper
-
-        :param msg_id: str
-        :return: dict, the fedmsg
-        """
-        logger.debug(f"Processing message: {msg_id}")
-        url = self.datagrepper_url.format(msg_id=msg_id)
-        response = requests.get(url)
-        msg_dict = response.json()
-        return msg_dict
+@celery_app.task(name="task.steve_jobs.process_message")
+def process_message(event: dict, topic: str = None):
+    try:
+        steve = SteveJobs()
+        steve.process_message(event=event, topic=topic)
+    except Exception as ex:
+        logger.error("There was an exception while processing the event.")
+        logger.exception(ex)

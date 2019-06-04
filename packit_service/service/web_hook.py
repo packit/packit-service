@@ -22,14 +22,13 @@
 
 import hmac
 import logging
-from concurrent.futures.thread import ThreadPoolExecutor
 from hashlib import sha1
 
 from flask import Flask, abort, request, jsonify
+
 from packit.config import Config
 from packit.utils import set_logging
-
-from packit_service.jobs import SteveJobs
+from packit_service.celerizer import celery_app
 
 
 class PackitWebhookReceiver(Flask):
@@ -39,8 +38,8 @@ class PackitWebhookReceiver(Flask):
 
 
 app = PackitWebhookReceiver(__name__)
+config = Config.get_user_config()
 logger = logging.getLogger("packit_service")
-threadpool_executor = ThreadPoolExecutor(max_workers=16)
 
 
 @app.route("/healthz", methods=["GET", "HEAD", "POST"])
@@ -61,21 +60,16 @@ def github_webhook():
         logger.debug(f"/webhooks/github received ping event: {msg['hook']}")
         return "Pong!"
 
-    config = Config.get_user_config()
-
-    if not _validate_signature(config):
+    if not _validate_signature():
         abort(401)  # Unauthorized
 
-    # GitHub terminates the conn after 10 seconds:
-    # https://developer.github.com/v3/guides/best-practices-for-integrators/#favor-asynchronous-work-over-synchronous
-    # as a temporary workaround, before we start using celery, let's just respond right away
-    # and send github 200 that we got it
-    threadpool_executor.submit(_give_event_to_steve, msg, config)
+    # TODO: define task names at one place
+    celery_app.send_task(name="task.steve_jobs.process_message", kwargs={"event": msg})
 
     return "Webhook accepted. We thank you, Github."
 
 
-def _validate_signature(config: Config) -> bool:
+def _validate_signature() -> bool:
     """
     https://developer.github.com/webhooks/securing/#validating-payloads-from-github
     https://developer.github.com/webhooks/#delivery-headers
@@ -104,12 +98,3 @@ def _validate_signature(config: Config) -> bool:
         logger.warning(f"/webhooks/github payload signature validation failed.")
         logger.debug(f"X-Hub-Signature: {sig!r} != computed: {mac.hexdigest()}")
     return digest_is_valid
-
-
-def _give_event_to_steve(event: dict, config: Config):
-    try:
-        steve = SteveJobs(config)
-        steve.process_message(event)
-    except Exception as ex:
-        logger.error("There was an exception while processing the event.")
-        logger.exception(ex)

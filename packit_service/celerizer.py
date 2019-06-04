@@ -20,42 +20,31 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import logging
-from typing import Iterable, Tuple, Dict, Any
-
-import fedmsg
-import requests
+from celery import Celery
+from os import getenv
 
 
-logger = logging.getLogger(__name__)
+class Celerizer:
+    def __init__(self):
+        self._celery_app = None
+
+    @property
+    def celery_app(self):
+        if self._celery_app is None:
+            redis_host = getenv("REDIS_SERVICE_HOST", "localhost")
+            redis_port = getenv("REDIS_SERVICE_PORT", "6379")
+            redis_db = getenv("REDIS_SERVICE_DB", "0")
+            redis_url = "redis://{host}:{port}/{db}".format(
+                host=redis_host, port=redis_port, db=redis_db
+            )
+
+            # http://docs.celeryproject.org/en/latest/reference/celery.html#celery.Celery
+            self._celery_app = Celery(backend=redis_url, broker=redis_url)
+            # http://docs.celeryproject.org/en/latest/userguide/configuration.html#task-ignore-result
+            self._celery_app.conf.task_ignore_result = True
+            self._celery_app.conf.task_store_errors_even_if_ignored = True
+        return self._celery_app
 
 
-class Consumerino:
-    """
-    Consume events from fedmsg
-    """
-
-    def __init__(self, url: str = None) -> None:
-        # TODO: the url template should be configurable
-        self.datagrepper_url = url or (
-            "https://apps.fedoraproject.org/datagrepper/id?id={msg_id}&is_raw=true"
-        )
-
-    @staticmethod
-    def yield_all_messages() -> Iterable[Tuple[str, dict]]:
-        logger.info("listening on fedmsg")
-        for name, endpoint, topic, msg in fedmsg.tail_messages():
-            yield topic, msg
-
-    def fetch_fedmsg_dict(self, msg_id: str) -> Dict[str, Any]:
-        """
-        Fetch selected message from datagrepper
-
-        :param msg_id: str
-        :return: dict, the fedmsg
-        """
-        logger.debug(f"Processing message: {msg_id}")
-        url = self.datagrepper_url.format(msg_id=msg_id)
-        response = requests.get(url)
-        msg_dict = response.json()
-        return msg_dict
+celerizer = Celerizer()
+celery_app = celerizer.celery_app
