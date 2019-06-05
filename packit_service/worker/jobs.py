@@ -42,11 +42,19 @@ logger = logging.getLogger(__name__)
 
 
 JOB_NAME_HANDLER_MAPPING: Dict[JobType, Type["JobHandler"]] = {}
+PROCESSED_FEDMSG_TOPICS = []
 
 
 def add_to_mapping(kls: Type["JobHandler"]):
     JOB_NAME_HANDLER_MAPPING[kls.name] = kls
+    if issubclass(kls, FedmsgHandler):
+        PROCESSED_FEDMSG_TOPICS.append(kls.topic)
     return kls
+
+
+def do_we_process_fedmsg_topic(topic: str) -> bool:
+    """ do we process selected fedmsg topic? """
+    return topic in PROCESSED_FEDMSG_TOPICS
 
 
 class SteveJobs:
