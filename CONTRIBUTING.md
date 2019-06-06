@@ -57,6 +57,7 @@ When you are contributing to changelog, please follow these suggestions:
   trying to convince the person to use the project and that the changelog
   should help with that.
 
+
 ### Testing
 
 Tests are stored in [tests](/tests) directory.
@@ -67,19 +68,15 @@ Running tests locally:
 make prepare-check && make check
 ```
 
-Running tests in a container (currently broken, PRs are welcome):
-```
-make build-tests && make test-in-container
-```
-
 As a CI we use [CentOS CI](https://ci.centos.org/job/packit-pr/) with a configuration in [Jenkinsfile](Jenkinsfile).
+
 
 ### Makefile
 
 #### Requirements
 
-- [podman](https://github.com/containers/libpod)
 - docker
+- ansible
 
 #### Targets
 
@@ -100,15 +97,6 @@ Run tests locally:
 make check
 ```
 
-Start shell in a container from the image previously built with `make build`:
-```
-make shell
-```
-
-In a container, do basic checks to verify that packit can be distributed, installed and imported:
-```
-make check-pypi-packaging
-```
 
 ### Additional configuration for development purposes
 
@@ -135,6 +123,7 @@ jobs:
 2. Create a new branch just for the bug/feature you are working on.
 3. Once you have completed your work, create a Pull Request, ensuring that it meets the requirements listed below.
 
+
 ### Requirements for Pull Requests
 
 * Please create Pull Requests against the `master` branch.
@@ -143,6 +132,7 @@ jobs:
 * Make sure that new code is covered by a test case (new or existing one).
 * We don't like [spaghetti code](https://en.wikipedia.org/wiki/Spaghetti_code).
 * The tests have to pass.
+
 
 ### Checkers/linters/formatters & pre-commit
 
