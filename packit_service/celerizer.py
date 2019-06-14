@@ -40,9 +40,6 @@ class Celerizer:
 
             # http://docs.celeryproject.org/en/latest/reference/celery.html#celery.Celery
             self._celery_app = Celery(backend=redis_url, broker=redis_url)
-            # http://docs.celeryproject.org/en/latest/userguide/configuration.html#task-ignore-result
-            self._celery_app.conf.task_ignore_result = True
-            self._celery_app.conf.task_store_errors_even_if_ignored = True
         return self._celery_app
 
 
