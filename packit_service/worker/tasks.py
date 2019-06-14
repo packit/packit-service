@@ -20,10 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from typing import Optional
 
 from packit_service.celerizer import celery_app
 from packit_service.worker.jobs import SteveJobs
-
 
 
 @celery_app.task(name="task.steve_jobs.process_message")

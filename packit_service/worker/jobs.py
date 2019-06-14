@@ -27,7 +27,7 @@ We love you, Steve Jobs.
 import logging
 import shutil
 from pathlib import Path
-from typing import List, Optional, Tuple, Dict, Type
+from typing import List, Optional, Tuple, Dict, Type, Any
 
 from ogr.abstract import GitProject, GitService
 from ogr.services.pagure import PagureService
@@ -41,7 +41,7 @@ from packit.config import (
     get_package_config_from_repo,
 )
 from packit.distgit import DistGit
-from packit.exceptions import PackitException, FailedCreateSRPM
+from packit.exceptions import FailedCreateSRPM, PackitException
 from packit.local_project import LocalProject
 from packit.ogr_services import get_github_project
 from packit.utils import nested_get, get_namespace_and_repo_name
@@ -64,6 +64,23 @@ def add_to_mapping(kls: Type["JobHandler"]):
 def do_we_process_fedmsg_topic(topic: str) -> bool:
     """ do we process selected fedmsg topic? """
     return topic in PROCESSED_FEDMSG_TOPICS
+
+
+class HandlerResults(dict):
+    """
+    Job handler results.
+    Inherit from dict to be JSON serializable.
+    """
+
+    def __init__(self, success: bool, details: Dict[str, Any] = None):
+        """
+
+        :param success: has the job handler succeeded
+        :param details: more info from job handler
+                        (optional) 'msg' key contains a message
+                        more keys to be defined
+        """
+        super().__init__(self, success=success, details=details or {})
 
 
 class SteveJobs:
@@ -226,8 +243,11 @@ class SteveJobs:
         package_config: PackageConfig,
         event: dict,
         project: GitProject,
-    ):
-
+    ) -> Dict[str, HandlerResults]:
+        """
+        Run a job handler (if trigger matches) for every job defined in config.
+        """
+        handlers_results = {}
         for job in package_config.jobs:
             if trigger == job.trigger:
                 handler_kls = JOB_NAME_HANDLER_MAPPING.get(job.job, None)
@@ -245,14 +265,15 @@ class SteveJobs:
                     trigger,
                 )
                 try:
-                    handler.run()
+                    handlers_results[job.job.value] = handler.run()
                     # don't break here, other handlers may react to the same event
                 finally:
                     handler.clean()
+        return handlers_results
 
-    def process_message(self, event: dict, topic: str = None):
+    def process_message(self, event: dict, topic: str = None) -> Optional[dict]:
         """
-        this is the entrypoint to processing messages
+        Entrypoint to processing messages.
 
         topic is meant to be a fedmsg topic for the message
         """
@@ -263,16 +284,28 @@ class SteveJobs:
                 getattr(h, "topic", None) for h in JOB_NAME_HANDLER_MAPPING.values()
             ]
             if topic not in topics:
-                return
+                return None
+
         response = self.parse_event(event)
         if not response:
             logger.debug("We don't process this event")
-            return
+            return None
         trigger, package_config, project = response
         if not all([trigger, package_config, project]):
             logger.debug("This project is not using packit.")
-            return
-        self.process_jobs(trigger, package_config, event, project)
+            return None
+
+        jobs_results = self.process_jobs(trigger, package_config, event, project)
+        task_results = {
+            "jobs": jobs_results,
+            "project": project.full_repo_name,
+            "trigger": trigger.value,
+        }
+        if any(not v["success"] for v in jobs_results.values()):
+            # Any job handler failed, mark task state as FAILURE
+            raise PackitException(task_results)
+        # Task state SUCCESS
+        return task_results
 
 
 class JobHandler:
@@ -311,7 +344,7 @@ class JobHandler:
 
         self._clean_workplace()
 
-    def run(self):
+    def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")
 
     def _clean_workplace(self):
@@ -341,6 +374,9 @@ class FedmsgHandler(JobHandler):
 
     topic: str
 
+    def run(self) -> HandlerResults:
+        raise NotImplementedError("This should have been implemented.")
+
 
 @add_to_mapping
 class NewDistGitCommit(FedmsgHandler):
@@ -350,7 +386,7 @@ class NewDistGitCommit(FedmsgHandler):
     name = JobType.sync_from_downstream
     triggers = [JobTriggerType.commit]
 
-    def run(self):
+    def run(self) -> HandlerResults:
         # rev is a commit
         # we use branch on purpose so we get the latest thing
         # TODO: check if rev is HEAD on {branch}, warn then?
@@ -364,8 +400,12 @@ class NewDistGitCommit(FedmsgHandler):
         )
 
         if not self.package_config.upstream_project_url:
-            raise PackitException(
-                "URL in specfile is not set. We don't know where the upstream project lives."
+            return HandlerResults(
+                success=False,
+                details={
+                    "msg": "URL in specfile is not set. "
+                    "We don't know where the upstream project lives."
+                },
             )
 
         n, r = get_namespace_and_repo_name(self.package_config.upstream_project_url)
@@ -379,6 +419,7 @@ class NewDistGitCommit(FedmsgHandler):
             dist_git_branch=branch,
             upstream_branch="master",  # TODO: this should be configurable
         )
+        return HandlerResults(success=True, details={})
 
 
 # @add_to_mapping
@@ -413,7 +454,7 @@ class GithubPullRequestHandler(JobHandler):
     triggers = [JobTriggerType.pull_request]
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
 
-    def run(self):
+    def run(self) -> HandlerResults:
         pr_id = self.event["pull_request"]["number"]
 
         self.local_project = LocalProject(
@@ -427,6 +468,7 @@ class GithubPullRequestHandler(JobHandler):
             dist_git_branch=self.job.metadata.get("dist-git-branch", "master"),
             # TODO: figure out top upstream commit for source-git here
         )
+        return HandlerResults(success=True, details={})
 
 
 @add_to_mapping
@@ -434,7 +476,7 @@ class GithubReleaseHandler(JobHandler):
     name = JobType.propose_downstream
     triggers = [JobTriggerType.release]
 
-    def run(self):
+    def run(self) -> HandlerResults:
         """
         Sync the upstream release to dist-git as a pull request.
         """
@@ -450,6 +492,7 @@ class GithubReleaseHandler(JobHandler):
             dist_git_branch=self.job.metadata.get("dist-git-branch", "master"),
             version=version,
         )
+        return HandlerResults(success=True, details={})
 
 
 class BuildStatusReporter:
@@ -534,8 +577,9 @@ class GithubCoprBuildHandler(JobHandler):
         except SandcastleTimeoutReached:
             msg = "You have reached 10-minute timeout while creating the SRPM."
             self.project.pr_comment(pr_id_int, msg)
-            r.report("failure", "Timeout reached while creating a SRPM.")
-            return
+            msg = "Timeout reached while creating a SRPM."
+            r.report("failure", msg)
+            return HandlerResults(success=False, details={"msg": msg})
         except SandcastleCommandFailed as ex:
             max_log_size = 1024 * 16  # is 16KB enough?
             if len(ex.output) > max_log_size:
@@ -551,11 +595,13 @@ class GithubCoprBuildHandler(JobHandler):
                 f"\nReturn code: {ex.rc}"
             )
             self.project.pr_comment(pr_id_int, msg)
-            r.report("failure", "Failed to create a SRPM.")
-            return
+            msg = "Failed to create a SRPM."
+            r.report("failure", msg)
+            return HandlerResults(success=False, details={"msg": msg})
         except FailedCreateSRPM:
-            r.report("failure", "Failed to create a SRPM.")
-            return
+            msg = "Failed to create a SRPM."
+            r.report("failure", msg)
+            return HandlerResults(success=False, details={"msg": msg})
         timeout = 60 * 60 * 2
         # TODO: document this and enforce int in config
         timeout_config = self.job.metadata.get("timeout")
@@ -574,9 +620,15 @@ class GithubCoprBuildHandler(JobHandler):
                 "\nPlease note that the RPMs should be used only in a testing environment."
             )
             self.project.pr_comment(pr_id_int, msg)
+            return HandlerResults(success=True, details={})
 
-    def run(self):
+    def run(self) -> HandlerResults:
         if self.triggered_by == JobTriggerType.pull_request:
-            self.handle_pull_request()
-        elif self.triggered_by == JobTriggerType.release:
-            self.handle_release()
+            return self.handle_pull_request()
+        # We do not support this workflow officially
+        # elif self.triggered_by == JobTriggerType.release:
+        #     self.handle_release()
+        else:
+            return HandlerResults(
+                success=False, details={"msg": f"No handler for {self.triggered_by}"}
+            )
