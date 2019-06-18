@@ -72,6 +72,10 @@
       src: files/run_worker.sh
       dest: /usr/bin/run_worker.sh
       mode: 0777
+  - name: Install sandcastle
+    pip:
+      name: git+https://github.com/packit-service/sandcastle.git
+      executable: pip3
   - name: Install packit from git master
     pip:
       name: git+https://github.com/packit-service/packit.git

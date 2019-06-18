@@ -25,6 +25,8 @@ We love you, Steve Jobs.
 """
 
 import logging
+import shutil
+from pathlib import Path
 from typing import List, Optional, Tuple, Dict, Type
 
 from ogr.abstract import GitProject, GitService
@@ -242,7 +244,11 @@ class SteveJobs:
                     job,
                     trigger,
                 )
-                handler.run()
+                try:
+                    handler.run()
+                    # don't break here, other handlers may react to the same event
+                finally:
+                    handler.clean()
 
     def process_message(self, event: dict, topic: str = None):
         """
@@ -295,8 +301,36 @@ class JobHandler:
         self.job: JobConfig = job
         self.triggered_by: JobTriggerType = triggered_by
 
+        self.api: Optional[PackitAPI] = None
+        self.local_project: Optional[PackitAPI] = None
+
+        if not config.command_handler_work_dir:
+            raise RuntimeError(
+                "Packit service has to run with command_handler_work_dir set."
+            )
+
+        self._clean_workplace()
+
     def run(self):
         raise NotImplementedError("This should have been implemented.")
+
+    def _clean_workplace(self):
+        logger.debug("remove contents of the PV")
+        p = Path(self.config.command_handler_work_dir)
+        # remove everything in the volume, but not the volume dir
+        globz = list(p.glob("*"))
+        if globz:
+            logger.info("volume was not empty")
+            logger.debug("content of the volume: %s" % globz)
+        for item in globz:
+            shutil.rmtree(item)
+
+    def clean(self):
+        """ clean up the mess once we're done """
+        logger.info("cleaning up the mess")
+        if self.api:
+            self.api.clean()
+        self._clean_workplace()
 
 
 class FedmsgHandler(JobHandler):
@@ -333,12 +367,12 @@ class NewDistGitCommit(FedmsgHandler):
 
         n, r = get_namespace_and_repo_name(self.package_config.upstream_project_url)
         up = self.upstream_service.get_project(repo=r, namespace=n)
-        lp = LocalProject(
-            git_project=up, working_dir=self.config.actions_handler_work_dir
+        self.local_project = LocalProject(
+            git_project=up, working_dir=self.config.command_handler_work_dir
         )
 
-        api = PackitAPI(self.config, self.package_config, lp)
-        api.sync_from_downstream(
+        self.api = PackitAPI(self.config, self.package_config, self.local_project)
+        self.api.sync_from_downstream(
             dist_git_branch=branch,
             upstream_branch="master",  # TODO: this should be configurable
         )
@@ -379,13 +413,13 @@ class GithubPullRequestHandler(JobHandler):
     def run(self):
         pr_id = self.event["pull_request"]["number"]
 
-        local_project = LocalProject(
-            git_project=self.project, working_dir=self.config.actions_handler_work_dir
+        self.local_project = LocalProject(
+            git_project=self.project, working_dir=self.config.command_handler_work_dir
         )
 
-        api = PackitAPI(self.config, self.package_config, local_project)
+        self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
-        api.sync_pr(
+        self.api.sync_pr(
             pr_id=pr_id,
             dist_git_branch=self.job.metadata.get("dist-git-branch", "master"),
             # TODO: figure out top upstream commit for source-git here
@@ -403,13 +437,13 @@ class GithubReleaseHandler(JobHandler):
         """
         version = self.event["release"]["tag_name"]
 
-        local_project = LocalProject(
-            git_project=self.project, working_dir=self.config.actions_handler_work_dir
+        self.local_project = LocalProject(
+            git_project=self.project, working_dir=self.config.command_handler_work_dir
         )
 
-        api = PackitAPI(self.config, self.package_config, local_project)
+        self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
-        api.sync_release(
+        self.api.sync_release(
             dist_git_branch=self.job.metadata.get("dist-git-branch", "master"),
             version=version,
         )
@@ -476,13 +510,13 @@ class GithubCoprBuildHandler(JobHandler):
         pr_id_int = nested_get(self.event, "number")
         pr_id = str(pr_id_int)
 
-        local_project = LocalProject(
+        self.local_project = LocalProject(
             git_project=self.project,
             pr_id=pr_id,
             git_service=self.project.service,
-            working_dir=self.config.actions_handler_work_dir,
+            working_dir=self.config.command_handler_work_dir,
         )
-        api = PackitAPI(self.config, self.package_config, local_project)
+        self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
         default_project_name = f"{self.project.namespace}-{self.project.repo}-{pr_id}"
         owner = self.job.metadata.get("owner") or "packit"
@@ -491,7 +525,7 @@ class GithubCoprBuildHandler(JobHandler):
         r = BuildStatusReporter(self.project, commit_sha)
 
         try:
-            build_id, repo_url = api.run_copr_build(
+            build_id, repo_url = self.api.run_copr_build(
                 owner=owner, project=project, chroots=self.job.metadata.get("targets")
             )
         except FailedCreateSRPM:
@@ -502,7 +536,7 @@ class GithubCoprBuildHandler(JobHandler):
         timeout_config = self.job.metadata.get("timeout")
         if timeout_config:
             timeout = int(timeout_config)
-        build_state = api.watch_copr_build(build_id, timeout, report_func=r.report)
+        build_state = self.api.watch_copr_build(build_id, timeout, report_func=r.report)
         if build_state == "succeeded":
             msg = (
                 f"Congratulations! The build [has finished]({repo_url})"
