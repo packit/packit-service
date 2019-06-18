@@ -21,6 +21,7 @@
 # SOFTWARE.
 # import git
 import pytest
+
 # from flexmock import flexmock
 # from git import Repo
 # from ogr.services.pagure import PagureProject

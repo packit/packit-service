@@ -30,7 +30,14 @@ from typing import List, Optional, Tuple, Dict, Type
 from ogr.abstract import GitProject, GitService
 from ogr.services.pagure import PagureService
 from packit.api import PackitAPI
-from packit.config import JobConfig, JobTriggerType, JobType, PackageConfig, Config, get_package_config_from_repo
+from packit.config import (
+    JobConfig,
+    JobTriggerType,
+    JobType,
+    PackageConfig,
+    Config,
+    get_package_config_from_repo,
+)
 from packit.distgit import DistGit
 from packit.exceptions import PackitException, FailedCreateSRPM
 from packit.local_project import LocalProject
@@ -326,7 +333,9 @@ class NewDistGitCommit(FedmsgHandler):
 
         n, r = get_namespace_and_repo_name(self.package_config.upstream_project_url)
         up = self.upstream_service.get_project(repo=r, namespace=n)
-        lp = LocalProject(git_project=up)
+        lp = LocalProject(
+            git_project=up, working_dir=self.config.actions_handler_work_dir
+        )
 
         api = PackitAPI(self.config, self.package_config, lp)
         api.sync_from_downstream(
@@ -370,7 +379,9 @@ class GithubPullRequestHandler(JobHandler):
     def run(self):
         pr_id = self.event["pull_request"]["number"]
 
-        local_project = LocalProject(git_project=self.project)
+        local_project = LocalProject(
+            git_project=self.project, working_dir=self.config.actions_handler_work_dir
+        )
 
         api = PackitAPI(self.config, self.package_config, local_project)
 
@@ -392,7 +403,9 @@ class GithubReleaseHandler(JobHandler):
         """
         version = self.event["release"]["tag_name"]
 
-        local_project = LocalProject(git_project=self.project)
+        local_project = LocalProject(
+            git_project=self.project, working_dir=self.config.actions_handler_work_dir
+        )
 
         api = PackitAPI(self.config, self.package_config, local_project)
 
@@ -464,7 +477,10 @@ class GithubCoprBuildHandler(JobHandler):
         pr_id = str(pr_id_int)
 
         local_project = LocalProject(
-            git_project=self.project, pr_id=pr_id, git_service=self.project.service
+            git_project=self.project,
+            pr_id=pr_id,
+            git_service=self.project.service,
+            working_dir=self.config.actions_handler_work_dir,
         )
         api = PackitAPI(self.config, self.package_config, local_project)
 
