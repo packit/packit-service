@@ -531,16 +531,21 @@ class GithubCoprBuildHandler(JobHandler):
             build_id, repo_url = self.api.run_copr_build(
                 owner=owner, project=project, chroots=self.job.metadata.get("targets")
             )
-        except SandcastleTimeoutReached as ex:
+        except SandcastleTimeoutReached:
             msg = "You have reached 10-minute timeout while creating the SRPM."
             self.project.pr_comment(pr_id_int, msg)
             r.report("failure", "Timeout reached while creating a SRPM.")
             return
         except SandcastleCommandFailed as ex:
+            max_log_size = 1024 * 16  # is 16KB enough?
+            if len(ex.output) > max_log_size:
+                output = "Earlier output was truncated\n\n" + ex.output[-max_log_size:]
+            else:
+                output = ex.output
             msg = (
                 "There was an error while creating a SRPM.\n"
                 "\nOutput:\n"
-                f"{ex.output}"
+                f"{output}"
                 f"\n\nReturn code: {ex.rc}"
             )
             self.project.pr_comment(pr_id_int, msg)
