@@ -45,7 +45,7 @@ from packit.exceptions import PackitException, FailedCreateSRPM
 from packit.local_project import LocalProject
 from packit.ogr_services import get_github_project
 from packit.utils import nested_get, get_namespace_and_repo_name
-
+from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
 logger = logging.getLogger(__name__)
 
@@ -528,8 +528,25 @@ class GithubCoprBuildHandler(JobHandler):
             build_id, repo_url = self.api.run_copr_build(
                 owner=owner, project=project, chroots=self.job.metadata.get("targets")
             )
+        except SandcastleTimeoutReached as ex:
+            msg = "You have reached 10-minute timeout while creating the SRPM."
+            self.project.pr_comment(pr_id_int, msg)
+            r.report("failure", "Timeout reached while creating a SRPM.")
+            return
+        except SandcastleCommandFailed as ex:
+            msg = (
+                "There was an error while creating a SRPM.\n"
+                "\nOutput:\n"
+                f"{ex.output}"
+                "\nReason:\n"
+                f"{ex.reason}"
+                f"\nReturn code: {ex.rc}"
+            )
+            self.project.pr_comment(pr_id_int, msg)
+            r.report("failure", "Failed to create a SRPM.")
+            return
         except FailedCreateSRPM:
-            r.report("failure", "Failed to create SRPM.")
+            r.report("failure", "Failed to create a SRPM.")
             return
         timeout = 60 * 60 * 2
         # TODO: document this and enforce int in config
