@@ -323,7 +323,10 @@ class JobHandler:
             logger.info("volume was not empty")
             logger.debug("content of the volume: %s" % globz)
         for item in globz:
-            shutil.rmtree(item)
+            if item.is_file():
+                item.unlink()
+            else:
+                shutil.rmtree(item)
 
     def clean(self):
         """ clean up the mess once we're done """
