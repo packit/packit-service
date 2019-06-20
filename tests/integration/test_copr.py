@@ -27,11 +27,7 @@ def test_copr_pr_handle(pr_event, dump_http_com):
     flexmock(PackitAPI).should_receive("run_copr_build").with_args(
         owner="packit",
         project="packit-service-packit-342",
-        chroots=[
-            "fedora-29-x86_64",
-            "fedora-rawhide-x86_64",
-            "fedora-30-x86_64",
-        ]
+        chroots=["fedora-29-x86_64", "fedora-rawhide-x86_64", "fedora-30-x86_64"],
     ).and_return("1", "asd").once()
     flexmock(PackitAPI).should_receive("watch_copr_build").and_return("failed").once()
     s.process_message(pr_event)

@@ -31,7 +31,8 @@ from tests.spellbook import SAVED_HTTPD_REQS
 @pytest.fixture()
 def dump_http_com():
     """
-    This fixture is able to dump whole http traffic of a single test case so that no http comm is happening while testing
+    This fixture is able to dump whole http traffic of a single test case
+    so that no http comm is happening while testing
 
     Usage:
     1. add it to your test case and pass the test path
@@ -42,6 +43,7 @@ def dump_http_com():
     3. Your http communication should now be stored in tests/data/http-requests/{path}
     4. Once you rerun the tests WITHOUT the token, the offline communication should be picked up
     """
+
     def f(path: str):
         """ path points to a file where the http communication will be saved """
         conf = Config()

@@ -25,18 +25,27 @@ We love you, Steve Jobs.
 """
 
 import logging
+import shutil
+from pathlib import Path
 from typing import List, Optional, Tuple, Dict, Type
 
 from ogr.abstract import GitProject, GitService
 from ogr.services.pagure import PagureService
 from packit.api import PackitAPI
-from packit.config import JobConfig, JobTriggerType, JobType, PackageConfig, Config, get_package_config_from_repo
+from packit.config import (
+    JobConfig,
+    JobTriggerType,
+    JobType,
+    PackageConfig,
+    Config,
+    get_package_config_from_repo,
+)
 from packit.distgit import DistGit
 from packit.exceptions import PackitException, FailedCreateSRPM
 from packit.local_project import LocalProject
 from packit.ogr_services import get_github_project
 from packit.utils import nested_get, get_namespace_and_repo_name
-
+from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
 logger = logging.getLogger(__name__)
 
@@ -235,7 +244,11 @@ class SteveJobs:
                     job,
                     trigger,
                 )
-                handler.run()
+                try:
+                    handler.run()
+                    # don't break here, other handlers may react to the same event
+                finally:
+                    handler.clean()
 
     def process_message(self, event: dict, topic: str = None):
         """
@@ -288,8 +301,39 @@ class JobHandler:
         self.job: JobConfig = job
         self.triggered_by: JobTriggerType = triggered_by
 
+        self.api: Optional[PackitAPI] = None
+        self.local_project: Optional[PackitAPI] = None
+
+        if not config.command_handler_work_dir:
+            raise RuntimeError(
+                "Packit service has to run with command_handler_work_dir set."
+            )
+
+        self._clean_workplace()
+
     def run(self):
         raise NotImplementedError("This should have been implemented.")
+
+    def _clean_workplace(self):
+        logger.debug("remove contents of the PV")
+        p = Path(self.config.command_handler_work_dir)
+        # remove everything in the volume, but not the volume dir
+        globz = list(p.glob("*"))
+        if globz:
+            logger.info("volume was not empty")
+            logger.debug("content of the volume: %s" % globz)
+        for item in globz:
+            if item.is_file():
+                item.unlink()
+            else:
+                shutil.rmtree(item)
+
+    def clean(self):
+        """ clean up the mess once we're done """
+        logger.info("cleaning up the mess")
+        if self.api:
+            self.api.clean()
+        self._clean_workplace()
 
 
 class FedmsgHandler(JobHandler):
@@ -326,10 +370,12 @@ class NewDistGitCommit(FedmsgHandler):
 
         n, r = get_namespace_and_repo_name(self.package_config.upstream_project_url)
         up = self.upstream_service.get_project(repo=r, namespace=n)
-        lp = LocalProject(git_project=up)
+        self.local_project = LocalProject(
+            git_project=up, working_dir=self.config.command_handler_work_dir
+        )
 
-        api = PackitAPI(self.config, self.package_config, lp)
-        api.sync_from_downstream(
+        self.api = PackitAPI(self.config, self.package_config, self.local_project)
+        self.api.sync_from_downstream(
             dist_git_branch=branch,
             upstream_branch="master",  # TODO: this should be configurable
         )
@@ -370,11 +416,13 @@ class GithubPullRequestHandler(JobHandler):
     def run(self):
         pr_id = self.event["pull_request"]["number"]
 
-        local_project = LocalProject(git_project=self.project)
+        self.local_project = LocalProject(
+            git_project=self.project, working_dir=self.config.command_handler_work_dir
+        )
 
-        api = PackitAPI(self.config, self.package_config, local_project)
+        self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
-        api.sync_pr(
+        self.api.sync_pr(
             pr_id=pr_id,
             dist_git_branch=self.job.metadata.get("dist-git-branch", "master"),
             # TODO: figure out top upstream commit for source-git here
@@ -392,11 +440,13 @@ class GithubReleaseHandler(JobHandler):
         """
         version = self.event["release"]["tag_name"]
 
-        local_project = LocalProject(git_project=self.project)
+        self.local_project = LocalProject(
+            git_project=self.project, working_dir=self.config.command_handler_work_dir
+        )
 
-        api = PackitAPI(self.config, self.package_config, local_project)
+        self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
-        api.sync_release(
+        self.api.sync_release(
             dist_git_branch=self.job.metadata.get("dist-git-branch", "master"),
             version=version,
         )
@@ -463,10 +513,13 @@ class GithubCoprBuildHandler(JobHandler):
         pr_id_int = nested_get(self.event, "number")
         pr_id = str(pr_id_int)
 
-        local_project = LocalProject(
-            git_project=self.project, pr_id=pr_id, git_service=self.project.service
+        self.local_project = LocalProject(
+            git_project=self.project,
+            pr_id=pr_id,
+            git_service=self.project.service,
+            working_dir=self.config.command_handler_work_dir,
         )
-        api = PackitAPI(self.config, self.package_config, local_project)
+        self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
         default_project_name = f"{self.project.namespace}-{self.project.repo}-{pr_id}"
         owner = self.job.metadata.get("owner") or "packit"
@@ -475,18 +528,40 @@ class GithubCoprBuildHandler(JobHandler):
         r = BuildStatusReporter(self.project, commit_sha)
 
         try:
-            build_id, repo_url = api.run_copr_build(
+            build_id, repo_url = self.api.run_copr_build(
                 owner=owner, project=project, chroots=self.job.metadata.get("targets")
             )
+        except SandcastleTimeoutReached:
+            msg = "You have reached 10-minute timeout while creating the SRPM."
+            self.project.pr_comment(pr_id_int, msg)
+            r.report("failure", "Timeout reached while creating a SRPM.")
+            return
+        except SandcastleCommandFailed as ex:
+            max_log_size = 1024 * 16  # is 16KB enough?
+            if len(ex.output) > max_log_size:
+                output = "Earlier output was truncated\n\n" + ex.output[-max_log_size:]
+            else:
+                output = ex.output
+            msg = (
+                "There was an error while creating a SRPM.\n"
+                "\nOutput:"
+                "\n```\n"
+                f"{output}"
+                "\n```"
+                f"\nReturn code: {ex.rc}"
+            )
+            self.project.pr_comment(pr_id_int, msg)
+            r.report("failure", "Failed to create a SRPM.")
+            return
         except FailedCreateSRPM:
-            r.report("failure", "Failed to create SRPM.")
+            r.report("failure", "Failed to create a SRPM.")
             return
         timeout = 60 * 60 * 2
         # TODO: document this and enforce int in config
         timeout_config = self.job.metadata.get("timeout")
         if timeout_config:
             timeout = int(timeout_config)
-        build_state = api.watch_copr_build(build_id, timeout, report_func=r.report)
+        build_state = self.api.watch_copr_build(build_id, timeout, report_func=r.report)
         if build_state == "succeeded":
             msg = (
                 f"Congratulations! The build [has finished]({repo_url})"
