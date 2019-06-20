@@ -544,9 +544,11 @@ class GithubCoprBuildHandler(JobHandler):
                 output = ex.output
             msg = (
                 "There was an error while creating a SRPM.\n"
-                "\nOutput:\n"
+                "\nOutput:"
+                "\n```\n"
                 f"{output}"
-                f"\n\nReturn code: {ex.rc}"
+                "\n```"
+                f"\nReturn code: {ex.rc}"
             )
             self.project.pr_comment(pr_id_int, msg)
             r.report("failure", "Failed to create a SRPM.")
