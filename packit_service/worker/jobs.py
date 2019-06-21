@@ -47,6 +47,8 @@ from packit.ogr_services import get_github_project
 from packit.utils import nested_get, get_namespace_and_repo_name
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
+from packit_service.worker.whitelist import Whitelist, GithubAppData
+
 logger = logging.getLogger(__name__)
 
 
@@ -182,6 +184,33 @@ class SteveJobs:
             return JobTriggerType.pull_request, package_config, gh_proj
         return None
 
+    def get_job_input_from_github_app_installation(
+            self, event: dict
+    ) -> Optional[JobTriggerType, GithubAppData]:
+        """ look into the provided event and see github app installation details """
+        action = nested_get(event, "action")  # created or deleted
+        logger.debug(f"action = {action}")
+
+        installation_id = event["installation"]["id"]
+
+        if not installation_id:
+            return None
+
+        account_login = event["installation"]["account"]["login"]
+        account_id = event["installation"]["account"]["id"]
+        account_url = event["installation"]["account"]["url"]
+        account_type = event["installation"]["account"]["type"]  # User or Organization
+        created_at = event["installation"]["created_at"]
+
+        sender_id = event["sender"]["id"]
+        sender_login = event["sender"]["login"]
+
+        github_app_data = GithubAppData(installation_id, account_login, account_id,
+                                        account_url, account_type, created_at, sender_id,
+                                        sender_login)
+
+        return JobTriggerType.installation, github_app_data
+
     def get_job_input_from_dist_git_commit(
         self, event: dict
     ) -> Optional[Tuple[JobTriggerType, PackageConfig, GitProject]]:
@@ -235,6 +264,12 @@ class SteveJobs:
             response = self.get_job_input_from_dist_git_commit(event)
             if response:
                 return response
+
+            # app installation
+            response = self.get_job_input_from_github_app_installation(event)
+            if response:
+                return response
+
         return None
 
     def process_jobs(
@@ -324,6 +359,7 @@ class JobHandler:
         upstream_service: GitService,
         job: JobConfig,
         triggered_by: JobTriggerType,
+        github_app: GithubAppData
     ):
         self.config: Config = config
         self.project: GitProject = project
@@ -333,6 +369,7 @@ class JobHandler:
         self.event: dict = event
         self.job: JobConfig = job
         self.triggered_by: JobTriggerType = triggered_by
+        self.github_app = github_app
 
         self.api: Optional[PackitAPI] = None
         self.local_project: Optional[PackitAPI] = None
@@ -493,6 +530,32 @@ class GithubReleaseHandler(JobHandler):
             version=version,
         )
         return HandlerResults(success=True, details={})
+
+
+class GithubAppInstallationHandler(JobHandler):
+    name = JobType.add_to_whitelist
+    triggers = [JobTriggerType.installation]
+
+    def run(self):
+        """
+        Discover information about organization/user which wants to install packit on his repository
+        Try to whitelist automatically if mapping from github username to FAS account can prove that
+        user is a packager.
+        :return:
+        """
+
+        # try to add user to whitelist
+        # if fail send email to user-cont
+
+        whitelist = Whitelist()
+
+        if not whitelist.add_account(self.github_app):
+            # create issue using ogr
+            logger.info("USER NEEDS TO BE WHITELISTED")
+            # subject = "[Packit-Service] User needs to be approved."
+            # receivers = ["user-cont@redhat.com"]
+            # text = EMAIL_TEMPLATE.format(sender_login=self.github_app.sender_login,
+            #                              account_login=self.github_app.account_login)
 
 
 class BuildStatusReporter:
