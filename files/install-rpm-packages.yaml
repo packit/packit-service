@@ -19,6 +19,7 @@
       - python3-ipdb  # for easy debugging
       - python3-jsonschema
       - python3-libpagure
+      - python3-kubernetes
       - python3-mod_wsgi
       - python3-munch
       - python3-ogr

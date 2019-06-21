@@ -17,6 +17,14 @@ run:
 		-v $(CURDIR):/src:Z \
 		$(PACKIT_IMAGE) bash
 
+run-fedmsg:
+	docker run -it --rm --net=host \
+		-u 1000 \
+		-w /src \
+		-v ~/.ssh/:/home/packit/.ssh/:Z \
+		-v $(CURDIR):/src:Z \
+		$(PACKIT_IMAGE) bash
+
 prepare-check:
 	ansible-playbook -b -K -i inventory-local -c local ./recipe-tests.yaml
 
