@@ -26,7 +26,7 @@ before shipping them to your users.
 
 ## Steps how to install Packit-as-a-Service into your projects or organizations
 
-For the installation packit into your project there are available two approaches
+There are two ways to install Packit Service GitHub app into your repository.
 
 ### Install from Packit-as-a-Service page
 1. From the [Packit-service page](https://github.com/organizations/packit-service/settings/apps/packit-as-a-service) page,
