@@ -579,17 +579,10 @@ class GithubAppInstallationHandler(JobHandler):
         """
 
         # try to add user to whitelist
-        # if fail send email to user-cont
-
         whitelist = Whitelist()
-
         if not whitelist.add_account(self.github_app):
             # create issue using ogr
             logger.info("USER NEEDS TO BE WHITELISTED MANUALLY")
-            # subject = "[Packit-Service] User needs to be approved."
-            # receivers = ["user-cont@redhat.com"]
-            # text = EMAIL_TEMPLATE.format(sender_login=self.github_app.sender_login,
-            #                              account_login=self.github_app.account_login)
 
 
 class BuildStatusReporter:
