@@ -11,8 +11,8 @@ def cli():
     pass
 
 
-@click.command('approve')
-@click.argument('account_name', type=str)
+@click.command("approve")
+@click.argument("account_name", type=str)
 def approve(account_name):
     whitelist = Whitelist()
     if whitelist.approve_account(account_name):
@@ -21,8 +21,8 @@ def approve(account_name):
         print(f"Account: {account_name} does not exists or it is already approved")
 
 
-@click.command('remove')
-@click.argument('account_name', type=str)
+@click.command("remove")
+@click.argument("account_name", type=str)
 def remove(account_name):
     whitelist = Whitelist()
 
@@ -35,5 +35,5 @@ def remove(account_name):
 cli.add_command(approve)
 cli.add_command(remove)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()

@@ -185,7 +185,7 @@ class SteveJobs:
         return None
 
     def get_job_input_from_github_app_installation(
-            self, event: dict
+        self, event: dict
     ) -> Optional[Tuple[JobTriggerType, GithubAppData]]:
         """ look into the provided event and see github app installation details """
         action = nested_get(event, "action")  # created or deleted
@@ -204,9 +204,16 @@ class SteveJobs:
         sender_id = event["sender"]["id"]
         sender_login = event["sender"]["login"]
 
-        github_app_data = GithubAppData(installation_id, account_login, account_id,
-                                        account_url, account_type, created_at, sender_id,
-                                        sender_login)
+        github_app_data = GithubAppData(
+            installation_id,
+            account_login,
+            account_id,
+            account_url,
+            account_type,
+            created_at,
+            sender_id,
+            sender_login,
+        )
 
         return JobTriggerType.installation, github_app_data
 
@@ -279,8 +286,10 @@ class SteveJobs:
         handlers_results = {}
 
         # check if it is github event and account is on whitelist
-        if (JobTriggerType == JobTriggerType.pull_request
-                or JobTriggerType == JobTriggerType.release):
+        if (
+            JobTriggerType == JobTriggerType.pull_request
+            or JobTriggerType == JobTriggerType.release
+        ):
             whitelist = Whitelist()
 
             if not whitelist.is_approved(project.namespace):
@@ -303,7 +312,7 @@ class SteveJobs:
                     self.pagure_service,
                     project.service,
                     job,
-                    trigger
+                    trigger,
                 )
                 try:
                     handlers_results[job.job.value] = handler.run()
@@ -329,12 +338,14 @@ class SteveJobs:
 
         # check if it is GitHub app installation
         # TODO: move this functionality into process job once it has more generic interface
-        response = self.get_job_input_from_github_app_installation(event)
-        if response:
-            trigger, github_app = response
+        github_app_response = self.get_job_input_from_github_app_installation(event)
+        if github_app_response:
+            trigger, github_app = github_app_response
 
             if all([trigger, github_app]):
-                handler = GithubAppInstallationHandler(triggered_by=trigger, github_app=github_app)
+                handler = GithubAppInstallationHandler(
+                    triggered_by=trigger, github_app=github_app
+                )
                 handler.run()
 
         response = self.parse_event(event)
@@ -554,8 +565,9 @@ class GithubAppInstallationHandler(JobHandler):
     triggers = [JobTriggerType.installation]
 
     def __init__(self, triggered_by, github_app):
-        super(GithubAppInstallationHandler, self).__init__(None, None, dict(), None, None, None,
-                                                           None, triggered_by=triggered_by)
+        super(GithubAppInstallationHandler, self).__init__(
+            None, None, dict(), None, None, None, None, triggered_by=triggered_by
+        )
         self.github_app = github_app
 
     def run(self):

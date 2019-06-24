@@ -36,9 +36,18 @@ class WhitelistStatus(enum.Enum):
 
 
 class GithubAppData:
-    def __init__(self, installation_id: int, account_login: str, account_id: int,
-                 account_url: str, account_type: str, created_at: int, sender_id: int,
-                 sender_login: str, status: WhitelistStatus = WhitelistStatus.waiting):
+    def __init__(
+        self,
+        installation_id: int,
+        account_login: str,
+        account_id: int,
+        account_url: str,
+        account_type: str,
+        created_at: int,
+        sender_id: int,
+        sender_login: str,
+        status: WhitelistStatus = WhitelistStatus.waiting,
+    ):
         self.installation_id = installation_id
         self.account_login = account_login
         self.account_id = account_id
@@ -57,7 +66,6 @@ class GithubAppData:
 
 
 class Whitelist:
-
     def __init__(self):
         self.db = PersistentDict(hash_name="whitelist")
 
@@ -82,7 +90,9 @@ class Whitelist:
             if "Succesfully completed a koji build." in item.get("description"):
                 logger.info(f"User: {account_login} is a packager in Fedora!")
                 return True
-        logger.info(f"Cannot verify whether user: {account_login} is a packager in Fedora.")
+        logger.info(
+            f"Cannot verify whether user: {account_login} is a packager in Fedora."
+        )
         return False
 
     def add_account(self, github_app: GithubAppData) -> bool:
@@ -102,13 +112,17 @@ class Whitelist:
             logger.info(self.db)
             return True
         else:
-            logger.error("Failed to verify that user is Fedora packager. "
-                         "This could be caused by different github username than FAS username "
-                         "or that user is not a packager.")
+            logger.error(
+                "Failed to verify that user is Fedora packager. "
+                "This could be caused by different github username than FAS username "
+                "or that user is not a packager."
+            )
             github_app.status = WhitelistStatus.waiting
             self.db[github_app.account_login] = github_app.get_dict()
-            logger.info(f"Account {github_app.account_login} inserted "
-                        f"to whitelist with status: waiting for approval")
+            logger.info(
+                f"Account {github_app.account_login} inserted "
+                f"to whitelist with status: waiting for approval"
+            )
             logger.info(self.db)
             return False
 
@@ -134,8 +148,11 @@ class Whitelist:
         :return:
         """
         if account_name in self.db:
-            if (self.db[account_name]["status"] == WhitelistStatus.approved_manually or
-                    self.db[account_name]["status"] == WhitelistStatus.approved_automatically):
+            if (
+                self.db[account_name]["status"] == WhitelistStatus.approved_manually
+                or self.db[account_name]["status"]
+                == WhitelistStatus.approved_automatically
+            ):
                 return True
         return False
 
@@ -156,7 +173,6 @@ class Whitelist:
 
 
 class Blacklist:
-
     def __init__(self):
         self.db = PersistentDict(hash_name="blacklist")
 
