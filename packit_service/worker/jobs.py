@@ -191,11 +191,10 @@ class SteveJobs:
         action = nested_get(event, "action")  # created or deleted
         logger.debug(f"action = {action}")
 
-        installation_id = event["installation"]["id"]
-
-        if not installation_id:
+        if not event.get("installation", None):
             return None
 
+        installation_id = event["installation"]["id"]
         account_login = event["installation"]["account"]["login"]
         account_id = event["installation"]["account"]["id"]
         account_url = event["installation"]["account"]["url"]
@@ -304,7 +303,7 @@ class SteveJobs:
                     self.pagure_service,
                     project.service,
                     job,
-                    trigger,
+                    trigger
                 )
                 try:
                     handlers_results[job.job.value] = handler.run()
@@ -331,12 +330,12 @@ class SteveJobs:
         # check if it is GitHub app installation
         # TODO: move this functionality into process job once it has more generic interface
         response = self.get_job_input_from_github_app_installation(event)
-        trigger, github_app = response
+        if response:
+            trigger, github_app = response
 
-        if all([trigger, github_app]):
-            handler = GithubAppInstallationHandler(None, None, dict(), None, None, None, None,
-                                                   triggered_by=trigger, github_app=github_app)
-            handler.run()
+            if all([trigger, github_app]):
+                handler = GithubAppInstallationHandler(triggered_by=trigger, github_app=github_app)
+                handler.run()
 
         response = self.parse_event(event)
         if not response:
@@ -376,7 +375,6 @@ class JobHandler:
         upstream_service: GitService,
         job: JobConfig,
         triggered_by: JobTriggerType,
-        github_app: GithubAppData
     ):
         self.config: Config = config
         self.project: GitProject = project
@@ -386,7 +384,6 @@ class JobHandler:
         self.event: dict = event
         self.job: JobConfig = job
         self.triggered_by: JobTriggerType = triggered_by
-        self.github_app = github_app
 
         self.api: Optional[PackitAPI] = None
         self.local_project: Optional[PackitAPI] = None
@@ -555,6 +552,11 @@ class GithubReleaseHandler(JobHandler):
 class GithubAppInstallationHandler(JobHandler):
     name = JobType.add_to_whitelist
     triggers = [JobTriggerType.installation]
+
+    def __init__(self, triggered_by, github_app):
+        super(GithubAppInstallationHandler, self).__init__(None, None, dict(), None, None, None,
+                                                           None, triggered_by=triggered_by)
+        self.github_app = github_app
 
     def run(self):
         """

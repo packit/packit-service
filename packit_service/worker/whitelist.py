@@ -119,7 +119,9 @@ class Whitelist:
         :return:
         """
         if account_name in self.db:
-            self.db[account_name]["status"] = WhitelistStatus.approved_manually
+            account = self.db[account_name]
+            account["status"] = str(WhitelistStatus.approved_manually)
+            self.db[account_name] = account
             logger.info(f"Account {account_name} approved successfully")
             return True
         logger.error(f"Account {account_name} is not waiting for approval")
