@@ -186,7 +186,7 @@ class SteveJobs:
 
     def get_job_input_from_github_app_installation(
             self, event: dict
-    ) -> Optional[JobTriggerType, GithubAppData]:
+    ) -> Optional[Tuple[JobTriggerType, GithubAppData]]:
         """ look into the provided event and see github app installation details """
         action = nested_get(event, "action")  # created or deleted
         logger.debug(f"action = {action}")
@@ -265,11 +265,6 @@ class SteveJobs:
             if response:
                 return response
 
-            # app installation
-            response = self.get_job_input_from_github_app_installation(event)
-            if response:
-                return response
-
         return None
 
     def process_jobs(
@@ -283,6 +278,18 @@ class SteveJobs:
         Run a job handler (if trigger matches) for every job defined in config.
         """
         handlers_results = {}
+
+        # check if it is github event and account is on whitelist
+        if (JobTriggerType == JobTriggerType.pull_request
+                or JobTriggerType == JobTriggerType.release):
+            whitelist = Whitelist()
+
+            if not whitelist.is_approved(project.namespace):
+                logger.error("User is not approved on whitelist!")
+                # TODO let user know that he is not whitelisted?
+                # TODO also check blacklist, but for that we need to know who triggered the action
+                return handlers_results
+
         for job in package_config.jobs:
             if trigger == job.trigger:
                 handler_kls = JOB_NAME_HANDLER_MAPPING.get(job.job, None)
@@ -320,6 +327,16 @@ class SteveJobs:
             ]
             if topic not in topics:
                 return None
+
+        # check if it is GitHub app installation
+        # TODO: move this functionality into process job once it has more generic interface
+        response = self.get_job_input_from_github_app_installation(event)
+        trigger, github_app = response
+
+        if all([trigger, github_app]):
+            handler = GithubAppInstallationHandler(None, None, dict(), None, None, None, None,
+                                                   triggered_by=trigger, github_app=github_app)
+            handler.run()
 
         response = self.parse_event(event)
         if not response:
@@ -374,12 +391,14 @@ class JobHandler:
         self.api: Optional[PackitAPI] = None
         self.local_project: Optional[PackitAPI] = None
 
-        if not config.command_handler_work_dir:
-            raise RuntimeError(
-                "Packit service has to run with command_handler_work_dir set."
-            )
+        # FIXME installation workaround, this actions cannot be done because variables are not set
+        if not triggered_by == JobTriggerType.installation:
+            if not config.command_handler_work_dir:
+                raise RuntimeError(
+                    "Packit service has to run with command_handler_work_dir set."
+                )
 
-        self._clean_workplace()
+            self._clean_workplace()
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")
@@ -532,6 +551,7 @@ class GithubReleaseHandler(JobHandler):
         return HandlerResults(success=True, details={})
 
 
+@add_to_mapping
 class GithubAppInstallationHandler(JobHandler):
     name = JobType.add_to_whitelist
     triggers = [JobTriggerType.installation]
@@ -551,7 +571,7 @@ class GithubAppInstallationHandler(JobHandler):
 
         if not whitelist.add_account(self.github_app):
             # create issue using ogr
-            logger.info("USER NEEDS TO BE WHITELISTED")
+            logger.info("USER NEEDS TO BE WHITELISTED MANUALLY")
             # subject = "[Packit-Service] User needs to be approved."
             # receivers = ["user-cont@redhat.com"]
             # text = EMAIL_TEMPLATE.format(sender_login=self.github_app.sender_login,
