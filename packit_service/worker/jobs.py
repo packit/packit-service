@@ -344,7 +344,7 @@ class SteveJobs:
 
             if all([trigger, github_app]):
                 handler = GithubAppInstallationHandler(
-                    triggered_by=trigger, github_app=github_app
+                    triggered_by=trigger, github_app=github_app, config=self.config
                 )
                 handler.run()
 
@@ -564,9 +564,9 @@ class GithubAppInstallationHandler(JobHandler):
     name = JobType.add_to_whitelist
     triggers = [JobTriggerType.installation]
 
-    def __init__(self, triggered_by, github_app):
+    def __init__(self, config, triggered_by, github_app):
         super(GithubAppInstallationHandler, self).__init__(
-            None, None, dict(), None, None, None, None, triggered_by=triggered_by
+            config, None, dict(), None, None, None, None, triggered_by=triggered_by
         )
         self.github_app = github_app
 
@@ -581,8 +581,17 @@ class GithubAppInstallationHandler(JobHandler):
         # try to add user to whitelist
         whitelist = Whitelist()
         if not whitelist.add_account(self.github_app):
-            # create issue using ogr
-            logger.info("USER NEEDS TO BE WHITELISTED MANUALLY")
+
+            # Create an issue in our repository, so we are notified when someone install the app
+            gh_proj = get_github_project(
+                self.config, repo="notifications", namespace="packit-service"
+            )
+            gh_proj.issue_open(
+                title=f"Account: {self.github_app.account_login} needs to be approved.",
+                body=f"Automatic verification of user failed.",
+            )
+
+            logger.info("USER NEEDS TO BE WHITELISTED MANUALLY!")
 
 
 class BuildStatusReporter:

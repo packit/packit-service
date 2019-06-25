@@ -14,6 +14,11 @@ def cli():
 @click.command("approve")
 @click.argument("account_name", type=str)
 def approve(account_name):
+    """
+    Approve user who is waiting on whitelist.
+    :param account_name: github namespace
+    :return:
+    """
     whitelist = Whitelist()
     if whitelist.approve_account(account_name):
         print(f"Account: {account_name} approved successfully")
@@ -24,6 +29,11 @@ def approve(account_name):
 @click.command("remove")
 @click.argument("account_name", type=str)
 def remove(account_name):
+    """
+    Remove account from whitelist
+    :param account_name: github namespace
+    :return:
+    """
     whitelist = Whitelist()
 
     if whitelist.remove_account(account_name):
