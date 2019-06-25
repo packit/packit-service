@@ -109,7 +109,6 @@ class Whitelist:
             github_app.status = WhitelistStatus.approved_automatically
             self.db[github_app.account_login] = github_app.get_dict()
             logger.info(f"Account {github_app.account_login} whitelisted!")
-            logger.info(self.db)
             return True
         else:
             logger.error(
@@ -165,7 +164,7 @@ class Whitelist:
         if account_name in self.db:
             del self.db[account_name]
             # TODO: delete all artifacts from copr
-            logger.info(f"User: {account_name} removed from blacklist!")
+            logger.info(f"User: {account_name} removed from whitelist!")
             return True
         else:
             logger.info(f"User: {account_name} does not exists!")

@@ -591,7 +591,7 @@ class GithubAppInstallationHandler(JobHandler):
                 body=f"Automatic verification of user failed.",
             )
 
-            logger.info("USER NEEDS TO BE WHITELISTED MANUALLY!")
+            logger.warning("Account needs to be approved manually!")
 
 
 class BuildStatusReporter:
