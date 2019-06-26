@@ -9,6 +9,7 @@
       - git
       - mod_md
       - nss_wrapper
+      - origin-clients
       - python3-GitPython
       - python3-gnupg
       - python3-click
