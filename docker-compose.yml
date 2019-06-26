@@ -43,7 +43,10 @@ services:
     environment:
       REDIS_SERVICE_HOST: redis
       APP: packit_service.worker.tasks
-    user: "123123"
+    volumes:
+      - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
+      - ./secrets/packit.yaml:/opt/app-root/src/.config/.packit.yaml:ro,z
+    # user: "123123"
 
   packit-service:
     container_name: packit-service
