@@ -10,11 +10,13 @@ USER 0
 
 # Commented. In httpd:2.4 image /usr/bin/python already exists
 #RUN ln -s /usr/bin/python3 /usr/bin/python && \
-RUN dnf install -y ansible
+RUN dnf install -y ansible \
+    && dnf clean all
 
 # Install packages first and reuse the cache as much as possible
 RUN cd /src/ \
-    && ansible-playbook -vv -c local -i localhost, files/install-rpm-packages.yaml
+    && ansible-playbook -vv -c local -i localhost, files/install-rpm-packages.yaml \
+    && dnf clean all
 
 COPY setup.py setup.cfg recipe.yaml .git_archival.txt .gitattributes /src/
 # setuptools-scm
