@@ -88,3 +88,5 @@
     pip:
       name: /src
       executable: pip3
+  - name: Clean all the cache files (especially pip)
+    shell: rm -rf ~/.cache/*
