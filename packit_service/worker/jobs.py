@@ -586,12 +586,12 @@ class GithubAppInstallationHandler(JobHandler):
             gh_proj = get_github_project(
                 self.config, repo="notifications", namespace="packit-service"
             )
-            gh_proj.issue_open(
+            gh_proj.create_issue(
                 title=f"Account: {self.github_app.account_login} needs to be approved.",
                 body=f"Automatic verification of user failed.",
             )
 
-            logger.warning("Account needs to be approved manually!")
+            logger.info("Account needs to be approved manually!")
 
 
 class BuildStatusReporter:
