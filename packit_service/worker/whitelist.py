@@ -131,14 +131,15 @@ class Whitelist:
         :param account_name: account name for approval
         :return:
         """
-        if account_name in self.db:
+        try:
             account = self.db[account_name]
             account["status"] = str(WhitelistStatus.approved_manually)
             self.db[account_name] = account
             logger.info(f"Account {account_name} approved successfully")
             return True
-        logger.error(f"Account {account_name} is not waiting for approval")
-        return False
+        except KeyError:
+            logger.error(f"Account {account_name} is not waiting for approval")
+            return False
 
     def is_approved(self, account_name: str) -> bool:
         """
@@ -169,6 +170,18 @@ class Whitelist:
         else:
             logger.info(f"User: {account_name} does not exists!")
             return False
+
+    def accounts_waiting(self) -> list:
+        """
+        Get accounts waiting for approval
+        :return: list of accounts waiting for approval
+        """
+
+        return [
+            key
+            for (key, item) in self.db.items()
+            if item["status"] == str(WhitelistStatus.waiting)
+        ]
 
 
 class Blacklist:

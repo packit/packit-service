@@ -42,6 +42,20 @@ def remove(account_name):
         print(f"Account: {account_name} does not exists!")
 
 
+@click.command("waiting")
+def waiting():
+    """
+    Show accounts waiting for approval.
+    :return:
+    """
+    whitelist = Whitelist()
+
+    print(f"Accounts waiting for approval:")
+    for account in whitelist.accounts_waiting():
+        print(f"{account}")
+
+
+cli.add_command(waiting)
 cli.add_command(approve)
 cli.add_command(remove)
 
