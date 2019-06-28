@@ -20,20 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import logging
+from typing import Optional
 
 from packit_service.celerizer import celery_app
 from packit_service.worker.jobs import SteveJobs
 
 
-logger = logging.getLogger("packit_worker")
-
-
 @celery_app.task(name="task.steve_jobs.process_message")
-def process_message(event: dict, topic: str = None):
-    try:
-        steve = SteveJobs()
-        steve.process_message(event=event, topic=topic)
-    except Exception as ex:
-        logger.error("There was an exception while processing the event.")
-        logger.exception(ex)
+def process_message(event: dict, topic: str = None) -> Optional[dict]:
+    return SteveJobs().process_message(event=event, topic=topic)
