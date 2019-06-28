@@ -86,7 +86,7 @@ class Whitelist:
         assertions = data.json().get("assertions")
         if not assertions:
             return False
-        for item in data.json().get("assertions"):
+        for item in assertions:
             if "Succesfully completed a koji build." in item.get("description"):
                 logger.info(f"User: {account_login} is a packager in Fedora!")
                 return True
