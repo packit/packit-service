@@ -148,10 +148,10 @@ class Whitelist:
         :return:
         """
         if account_name in self.db:
-            if (
-                self.db[account_name]["status"] == WhitelistStatus.approved_manually
-                or self.db[account_name]["status"]
-                == WhitelistStatus.approved_automatically
+            if self.db[account_name]["status"] == str(
+                WhitelistStatus.approved_manually
+            ) or self.db[account_name]["status"] == str(
+                WhitelistStatus.approved_automatically
             ):
                 return True
         return False

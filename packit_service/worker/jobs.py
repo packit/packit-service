@@ -194,6 +194,10 @@ class SteveJobs:
         if not event.get("installation", None):
             return None
 
+        # it is not enough to check if installation key in JSON, we have to check the account
+        if not event["installation"].get("account", None):
+            return None
+
         installation_id = event["installation"]["id"]
         account_login = event["installation"]["account"]["login"]
         account_id = event["installation"]["account"]["id"]
@@ -285,21 +289,6 @@ class SteveJobs:
         """
         handlers_results = {}
 
-        # check if it is github event and account is on whitelist
-        if (
-            JobTriggerType == JobTriggerType.pull_request
-            or JobTriggerType == JobTriggerType.release
-        ):
-            whitelist = Whitelist()
-
-            if not whitelist.is_approved(project.namespace):
-                logger.error("User is not approved on whitelist!")
-                # TODO let user know that he is not whitelisted?
-                # TODO also check blacklist, but for that we need to know who triggered the action
-                return HandlerResults(
-                    success=False, details={"msg": "Account is not whitelisted!"}
-                )
-
         for job in package_config.jobs:
             if trigger == job.trigger:
                 handler_kls = JOB_NAME_HANDLER_MAPPING.get(job.job, None)
@@ -317,6 +306,22 @@ class SteveJobs:
                     trigger,
                 )
                 try:
+                    # check whitelist approval for every job to be able to track down which jobs
+                    # failed because of missing whitelist approval
+                    whitelist = Whitelist()
+                    if not whitelist.is_approved(project.namespace):
+                        logger.error(
+                            f"User {project.namespace} is not approved on whitelist!"
+                        )
+                        # TODO let user know that he is not whitelisted?
+                        # TODO also check blacklist,
+                        # but for that we need to know who triggered the action
+                        handlers_results[job.job.value] = HandlerResults(
+                            success=False,
+                            details={"msg": "Account is not whitelisted!"},
+                        )
+                        return handlers_results
+
                     handlers_results[job.job.value] = handler.run()
                     # don't break here, other handlers may react to the same event
                 finally:
