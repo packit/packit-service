@@ -47,6 +47,8 @@ from packit.ogr_services import get_github_project
 from packit.utils import nested_get, get_namespace_and_repo_name
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
+from packit_service.worker.whitelist import Whitelist, GithubAppData
+
 logger = logging.getLogger(__name__)
 
 
@@ -182,6 +184,43 @@ class SteveJobs:
             return JobTriggerType.pull_request, package_config, gh_proj
         return None
 
+    def get_job_input_from_github_app_installation(
+        self, event: dict
+    ) -> Optional[Tuple[JobTriggerType, GithubAppData]]:
+        """ look into the provided event and see github app installation details """
+        action = nested_get(event, "action")  # created or deleted
+        logger.debug(f"action = {action}")
+
+        if not event.get("installation", None):
+            return None
+
+        # it is not enough to check if installation key in JSON, we have to check the account
+        if not event["installation"].get("account", None):
+            return None
+
+        installation_id = event["installation"]["id"]
+        account_login = event["installation"]["account"]["login"]
+        account_id = event["installation"]["account"]["id"]
+        account_url = event["installation"]["account"]["url"]
+        account_type = event["installation"]["account"]["type"]  # User or Organization
+        created_at = event["installation"]["created_at"]
+
+        sender_id = event["sender"]["id"]
+        sender_login = event["sender"]["login"]
+
+        github_app_data = GithubAppData(
+            installation_id,
+            account_login,
+            account_id,
+            account_url,
+            account_type,
+            created_at,
+            sender_id,
+            sender_login,
+        )
+
+        return JobTriggerType.installation, github_app_data
+
     def get_job_input_from_dist_git_commit(
         self, event: dict
     ) -> Optional[Tuple[JobTriggerType, PackageConfig, GitProject]]:
@@ -235,6 +274,7 @@ class SteveJobs:
             response = self.get_job_input_from_dist_git_commit(event)
             if response:
                 return response
+
         return None
 
     def process_jobs(
@@ -248,6 +288,7 @@ class SteveJobs:
         Run a job handler (if trigger matches) for every job defined in config.
         """
         handlers_results = {}
+
         for job in package_config.jobs:
             if trigger == job.trigger:
                 handler_kls = JOB_NAME_HANDLER_MAPPING.get(job.job, None)
@@ -265,6 +306,22 @@ class SteveJobs:
                     trigger,
                 )
                 try:
+                    # check whitelist approval for every job to be able to track down which jobs
+                    # failed because of missing whitelist approval
+                    whitelist = Whitelist()
+                    if not whitelist.is_approved(project.namespace):
+                        logger.error(
+                            f"User {project.namespace} is not approved on whitelist!"
+                        )
+                        # TODO let user know that he is not whitelisted?
+                        # TODO also check blacklist,
+                        # but for that we need to know who triggered the action
+                        handlers_results[job.job.value] = HandlerResults(
+                            success=False,
+                            details={"msg": "Account is not whitelisted!"},
+                        )
+                        return handlers_results
+
                     handlers_results[job.job.value] = handler.run()
                     # don't break here, other handlers may react to the same event
                 finally:
@@ -285,6 +342,18 @@ class SteveJobs:
             ]
             if topic not in topics:
                 return None
+
+        # check if it is GitHub app installation
+        # TODO: move this functionality into process job once it has more generic interface
+        github_app_response = self.get_job_input_from_github_app_installation(event)
+        if github_app_response:
+            trigger, github_app = github_app_response
+
+            if all([trigger, github_app]):
+                handler = GithubAppInstallationHandler(
+                    triggered_by=trigger, github_app=github_app, config=self.config
+                )
+                return handler.run()
 
         response = self.parse_event(event)
         if not response:
@@ -337,12 +406,14 @@ class JobHandler:
         self.api: Optional[PackitAPI] = None
         self.local_project: Optional[PackitAPI] = None
 
-        if not config.command_handler_work_dir:
-            raise RuntimeError(
-                "Packit service has to run with command_handler_work_dir set."
-            )
+        # FIXME installation workaround, this actions cannot be done because variables are not set
+        if not triggered_by == JobTriggerType.installation:
+            if not config.command_handler_work_dir:
+                raise RuntimeError(
+                    "Packit service has to run with command_handler_work_dir set."
+                )
 
-        self._clean_workplace()
+            self._clean_workplace()
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")
@@ -493,6 +564,50 @@ class GithubReleaseHandler(JobHandler):
             version=version,
         )
         return HandlerResults(success=True, details={})
+
+
+@add_to_mapping
+class GithubAppInstallationHandler(JobHandler):
+    name = JobType.add_to_whitelist
+    triggers = [JobTriggerType.installation]
+
+    def __init__(self, config, triggered_by, github_app):
+        super(GithubAppInstallationHandler, self).__init__(
+            config, None, dict(), None, None, None, None, triggered_by=triggered_by
+        )
+        self.github_app = github_app
+
+    def run(self) -> HandlerResults:
+        """
+        Discover information about organization/user which wants to install packit on his repository
+        Try to whitelist automatically if mapping from github username to FAS account can prove that
+        user is a packager.
+        :return:
+        """
+
+        # try to add user to whitelist
+        whitelist = Whitelist()
+        if not whitelist.add_account(self.github_app):
+
+            # Create an issue in our repository, so we are notified when someone install the app
+            gh_proj = get_github_project(
+                self.config, repo="notifications", namespace="packit-service"
+            )
+            gh_proj.create_issue(
+                title=f"Account: {self.github_app.account_login} needs to be approved.",
+                body=f"Automatic verification of user failed.",
+            )
+
+            msg = f"Account: {self.github_app.account_login} needs to be approved manually!"
+            logger.info(msg)
+            return HandlerResults(success=True, details={"msg": msg})
+
+        msg = (
+            f"Account: {self.github_app.account_login} approved automatically,"
+            f" because user: {self.github_app.sender_login}, who installed Packit-as-a-service,"
+            f" is a packager in Fedora."
+        )
+        return HandlerResults(success=True, details={"msg": msg})
 
 
 class BuildStatusReporter:

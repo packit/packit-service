@@ -1,0 +1,69 @@
+{
+  "action": "created",
+  "installation": {
+      "id": 1173510,
+      "account": {
+          "login": "user-cont",
+          "id": 26160778,
+          "node_id": "MDQ6VXNlcjI2MTYwNzc4",
+          "avatar_url": "https://avatars3.githubusercontent.com/u/26160778?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/rpitonak",
+          "html_url": "https://github.com/rpitonak",
+          "followers_url": "https://api.github.com/users/rpitonak/followers",
+          "following_url": "https://api.github.com/users/rpitonak/following{/other_user}",
+          "gists_url": "https://api.github.com/users/rpitonak/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/rpitonak/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/rpitonak/subscriptions",
+          "organizations_url": "https://api.github.com/users/rpitonak/orgs",
+          "repos_url": "https://api.github.com/users/rpitonak/repos",
+          "events_url": "https://api.github.com/users/rpitonak/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/rpitonak/received_events",
+          "type": "User",
+          "site_admin": false
+      },
+      "repository_selection": "selected",
+      "access_tokens_url": "https://api.github.com/app/installations/1173510/access_tokens",
+      "repositories_url": "https://api.github.com/installation/repositories",
+      "html_url": "https://github.com/settings/installations/1173510",
+      "app_id": 33422,
+      "target_id": 26160778,
+      "target_type": "User",
+      "permissions": {
+          "metadata": "read"
+      },
+      "events": [],
+      "created_at": 1560941425,
+      "updated_at": 1560941425,
+      "single_file_name": null
+  },
+  "repositories": [
+      {
+          "id": 181870149,
+          "node_id": "MDEwOlJlcG9zaXRvcnkxODE4NzAxNDk=",
+          "name": "openhouse",
+          "full_name": "rpitonak/openhouse",
+          "private": true
+      }
+  ],
+  "sender": {
+      "login": "rpitonak",
+      "id": 26160778,
+      "node_id": "MDQ6VXNlcjI2MTYwNzc4",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/26160778?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/rpitonak",
+      "html_url": "https://github.com/rpitonak",
+      "followers_url": "https://api.github.com/users/rpitonak/followers",
+      "following_url": "https://api.github.com/users/rpitonak/following{/other_user}",
+      "gists_url": "https://api.github.com/users/rpitonak/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/rpitonak/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/rpitonak/subscriptions",
+      "organizations_url": "https://api.github.com/users/rpitonak/orgs",
+      "repos_url": "https://api.github.com/users/rpitonak/repos",
+      "events_url": "https://api.github.com/users/rpitonak/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/rpitonak/received_events",
+      "type": "User",
+      "site_admin": false
+  }
+}
