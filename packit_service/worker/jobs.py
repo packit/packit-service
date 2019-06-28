@@ -296,7 +296,9 @@ class SteveJobs:
                 logger.error("User is not approved on whitelist!")
                 # TODO let user know that he is not whitelisted?
                 # TODO also check blacklist, but for that we need to know who triggered the action
-                return handlers_results
+                return HandlerResults(
+                    success=False, details={"msg": "Account is not whitelisted!"}
+                )
 
         for job in package_config.jobs:
             if trigger == job.trigger:
@@ -346,7 +348,7 @@ class SteveJobs:
                 handler = GithubAppInstallationHandler(
                     triggered_by=trigger, github_app=github_app, config=self.config
                 )
-                handler.run()
+                return handler.run()
 
         response = self.parse_event(event)
         if not response:
@@ -570,7 +572,7 @@ class GithubAppInstallationHandler(JobHandler):
         )
         self.github_app = github_app
 
-    def run(self):
+    def run(self) -> HandlerResults:
         """
         Discover information about organization/user which wants to install packit on his repository
         Try to whitelist automatically if mapping from github username to FAS account can prove that
@@ -591,7 +593,16 @@ class GithubAppInstallationHandler(JobHandler):
                 body=f"Automatic verification of user failed.",
             )
 
-            logger.info("Account needs to be approved manually!")
+            msg = f"Account: {self.github_app.account_login} needs to be approved manually!"
+            logger.info(msg)
+            return HandlerResults(success=True, details={"msg": msg})
+
+        msg = (
+            f"Account: {self.github_app.account_login} approved automatically,"
+            f" because user: {self.github_app.sender_login}, who installed Packit-as-a-service,"
+            f" is a packager in Fedora."
+        )
+        return HandlerResults(success=True, details={"msg": msg})
 
 
 class BuildStatusReporter:
