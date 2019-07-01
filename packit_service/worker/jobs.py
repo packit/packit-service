@@ -595,7 +595,11 @@ class GithubAppInstallationHandler(JobHandler):
             )
             gh_proj.create_issue(
                 title=f"Account: {self.github_app.account_login} needs to be approved.",
-                body=f"Automatic verification of user failed.",
+                body=(
+                    f"Hi @{self.github_app.account_login}, we need to approve you in "
+                    "order to start using Packit-as-a-Service. Someone from our team will "
+                    "get back to you shortly."
+                ),
             )
 
             msg = f"Account: {self.github_app.account_login} needs to be approved manually!"
