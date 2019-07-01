@@ -131,15 +131,11 @@ class Whitelist:
         :param account_name: account name for approval
         :return:
         """
-        try:
-            account = self.db[account_name]
-            account["status"] = str(WhitelistStatus.approved_manually)
-            self.db[account_name] = account
-            logger.info(f"Account {account_name} approved successfully")
-            return True
-        except KeyError:
-            logger.error(f"Account {account_name} is not waiting for approval")
-            return False
+        account = self.db[account_name] or {}
+        account["status"] = str(WhitelistStatus.approved_manually)
+        self.db[account_name] = account
+        logger.info(f"Account {account_name} approved successfully")
+        return True
 
     def is_approved(self, account_name: str) -> bool:
         """
