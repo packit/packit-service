@@ -47,6 +47,7 @@ from packit.ogr_services import get_github_project
 from packit.utils import nested_get, get_namespace_and_repo_name
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
+from packit_service.constants import FAQ_URL
 from packit_service.worker.whitelist import Whitelist, GithubAppData
 
 logger = logging.getLogger(__name__)
@@ -313,12 +314,16 @@ class SteveJobs:
                         logger.error(
                             f"User {project.namespace} is not approved on whitelist!"
                         )
-                        # TODO let user know that he is not whitelisted?
                         # TODO also check blacklist,
                         # but for that we need to know who triggered the action
+
+                        commit_sha = nested_get(event, "pull_request", "head", "sha")
+                        r = BuildStatusReporter(project, commit_sha)
+                        msg = "Account is not whitelisted!"
+                        r.report("failure", msg, url=FAQ_URL)
+
                         handlers_results[job.job.value] = HandlerResults(
-                            success=False,
-                            details={"msg": "Account is not whitelisted!"},
+                            success=False, details={"msg": msg}
                         )
                         return handlers_results
 
