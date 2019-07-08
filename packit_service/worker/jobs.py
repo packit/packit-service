@@ -662,7 +662,7 @@ class GithubCoprBuildHandler(JobHandler):
     #     api = PackitAPI(self.config, self.package_config, local_project)
 
     #     build_id, repo_url = api.run_copr_build(
-    #         owner=self.job.metadata.get("owner") or "packit",
+    #         owner=self.job.metadata.get("owner") or self.api.copr.config.get("username"),
     #         project=self.job.metadata.get("project")
     #         or f"{self.project.namespace}-{self.project.repo}",
     #         chroots=self.job.metadata.get("targets"),
@@ -682,6 +682,7 @@ class GithubCoprBuildHandler(JobHandler):
             logger.error(
                 "'targets' value is required in packit config for copr_build job"
             )
+
         pr_id_int = nested_get(self.event, "number")
         pr_id = str(pr_id_int)
 
@@ -694,14 +695,14 @@ class GithubCoprBuildHandler(JobHandler):
         self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
         default_project_name = f"{self.project.namespace}-{self.project.repo}-{pr_id}"
-        owner = self.job.metadata.get("owner") or "packit"
         project = self.job.metadata.get("project") or default_project_name
+        owner = self.job.metadata.get("owner") or self.api.copr.config.get("username")
         commit_sha = nested_get(self.event, "pull_request", "head", "sha")
         r = BuildStatusReporter(self.project, commit_sha)
 
         try:
             build_id, repo_url = self.api.run_copr_build(
-                owner=owner, project=project, chroots=self.job.metadata.get("targets")
+                project=project, chroots=self.job.metadata.get("targets"), owner=owner
             )
         except SandcastleTimeoutReached:
             msg = "You have reached 10-minute timeout while creating the SRPM."
@@ -736,11 +737,9 @@ class GithubCoprBuildHandler(JobHandler):
             msg = f"There was an error while running the build: {ex}"
             r.report("failure", msg)
             return HandlerResults(success=False, details={"msg": msg})
-        timeout = 60 * 60 * 2
-        # TODO: document this and enforce int in config
+
         timeout_config = self.job.metadata.get("timeout")
-        if timeout_config:
-            timeout = int(timeout_config)
+        timeout = int(timeout_config) if timeout_config else 60 * 60 * 2
         build_state = self.api.watch_copr_build(build_id, timeout, report_func=r.report)
         if build_state == "succeeded":
             msg = (
