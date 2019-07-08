@@ -87,7 +87,7 @@ Build a container image for packit service:
 make build
 ```
 
-Run [recipe-tests.yaml](recipe-tests.yaml) ansible playbook to install packages needed to run tests:
+Run [recipe-tests.yaml](files/recipe-tests.yaml) ansible playbook to install packages needed to run tests:
 ```
 make prepare-check
 ```

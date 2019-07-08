@@ -1,7 +1,7 @@
 TEST_TARGET := ./tests/
 PACKIT_IMAGE := docker.io/usercont/packit-service:master
 
-build: recipe.yaml files/install-rpm-packages.yaml
+build: files/recipe.yaml files/install-rpm-packages.yaml
 	docker build --rm -t $(PACKIT_IMAGE) .
 
 # we can't use rootless podman here b/c we can't mount ~/.ssh inside (0400)
@@ -26,7 +26,4 @@ run-fedmsg:
 		$(PACKIT_IMAGE) bash
 
 prepare-check:
-	ansible-playbook -b -K -i inventory-local -c local ./recipe-tests.yaml
-
-check:
-	tox
+	ansible-playbook -vv -b -K -i inventory-local -c local, files/recipe-tests.yaml

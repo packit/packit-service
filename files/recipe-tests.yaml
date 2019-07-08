@@ -1,5 +1,5 @@
 ---
-- name: This is a recipe for a container image where packit tests will run
+- name: This is a recipe for a container image where packit-service tests will run
   hosts: all
   vars:
     ansible_bender:
