@@ -68,7 +68,7 @@ Running tests locally:
 make prepare-check && make check
 ```
 
-As a CI we use [CentOS CI](https://ci.centos.org/job/packit-pr/) with a configuration in [Jenkinsfile](Jenkinsfile).
+As a CI we use [CentOS CI](https://ci.centos.org/job/packit-service-pr/) with a configuration in [Jenkinsfile](Jenkinsfile).
 
 
 ### Makefile
