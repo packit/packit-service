@@ -20,7 +20,6 @@
       - python3-ipdb  # for easy debugging
       - python3-jsonschema
       - python3-libpagure
-      - python3-kubernetes
       - python3-mod_wsgi
       - python3-munch
       - python3-ogr
@@ -38,3 +37,22 @@
       - rebase-helper
       - rpm-build
       state: present
+  - name: Install python-kube
+    block:
+    - name: tmpdir
+      tempfile:
+        state: directory
+      register: tmpdir
+    - name: clone to tmpdir
+      git:
+        repo: https://github.com/TomasTomecek/kubernetes-python.git
+        recursive: true
+        dest: '{{ tmpdir.path }}'
+    - name: install
+      pip:
+        executable: /usr/bin/pip3
+        name: 'file://{{ tmpdir.path }}'
+    - name: clean tmpdir
+      file:
+        path: '{{ tmpdir.path }}'
+        state: absent
