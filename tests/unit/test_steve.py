@@ -21,17 +21,19 @@
 # SOFTWARE.
 
 """
-Let's test that Steve as awesome as we think he is.
+Let's test that Steve's as awesome as we think he is.
 """
+from json import dumps
+
 import pytest
 from flexmock import flexmock
 from github import Github
 from ogr.services.github import GithubProject
 from packit.api import PackitAPI
-from packit.config import Config
 from packit.local_project import LocalProject
 
-from packit_service.jobs import SteveJobs
+from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.whitelist import Whitelist
 
 
 @pytest.mark.parametrize(
@@ -51,18 +53,24 @@ from packit_service.jobs import SteveJobs
     ),
 )
 def test_process_message(event):
-    packit_yaml = (
-        "{'specfile_path': '', 'synced_files': []"
-        ", jobs: [{trigger: release, job: propose_downstream}]}"
-    )
+    packit_yaml = {
+        "specfile_path": "",
+        "synced_files": [],
+        "jobs": [{"trigger": "release", "job": "propose_downstream"}],
+    }
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     flexmock(
         GithubProject,
-        get_file_content=lambda path, ref: packit_yaml,
+        get_file_content=lambda path, ref: dumps(packit_yaml),
         full_repo_name="foo/bar",
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(PackitAPI, sync_release=lambda dist_git_branch, version: None)
-    c = Config()
-    s = SteveJobs(c)
-    s.process_message(event)
+    flexmock(PackitAPI).should_receive("sync_release").with_args(
+        dist_git_branch="master", version="1.2.3"
+    ).once()
+    flexmock(Whitelist, is_approved=True)
+
+    results = SteveJobs().process_message(event)
+    assert "propose_downstream" in results.get("jobs", {})
+    assert results["project"] == "foo/bar"
+    assert results["trigger"] == "release"

@@ -28,7 +28,7 @@ run-fedmsg:
 
 check:
 	find . -name "*.pyc" -exec rm {} \;
-	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=yes --verbose --showlocals --cov=packit-service --cov-report=term-missing $(TEST_TARGET)
+	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=yes --verbose --showlocals --cov=packit_service --cov-report=term-missing $(TEST_TARGET)
 
 test_image: files/install-rpm-packages.yaml files/recipe-tests.yaml
 	podman build --rm -t $(TEST_IMAGE) -f Dockerfile.tests .

@@ -60,7 +60,7 @@ def github_webhook():
         logger.debug(f"/webhooks/github received ping event: {msg['hook']}")
         return "Pong!"
 
-    if not _validate_signature():
+    if not validate_signature():
         abort(401)  # Unauthorized
 
     # TODO: define task names at one place
@@ -69,7 +69,7 @@ def github_webhook():
     return "Webhook accepted. We thank you, Github."
 
 
-def _validate_signature() -> bool:
+def validate_signature() -> bool:
     """
     https://developer.github.com/webhooks/securing/#validating-payloads-from-github
     https://developer.github.com/webhooks/#delivery-headers
