@@ -1,4 +1,4 @@
-# Packit Service
+# Packit Service [![Build Status](https://ci.centos.org/job/packit-service-master/badge/icon)](https://ci.centos.org/job/packit-service-master/)
 
 A service which helps you integrate your upstream GitHub project into Fedora
 ecosystem. Think of it as [packit](https://github.com/packit-service/packit) on
@@ -11,7 +11,7 @@ For the run-down of the planned work, please see the task-list below.
 
 * [x] Packit service reacts to Github webhooks.
 * [x] Packit service is scalable. (using celery and running on OpenShift)
-* [ ] Packit service is secure. (by running things in a [sandbox](https://github.com/packit-service/generator))
+* [x] Packit service is secure. (by running things in a [sandbox](https://github.com/packit-service/sandcastle/))
 * [ ] Packit Service GitHub app is placed in GitHub marketplace.
 * [ ] New upstream releases can be proposed as pull requests downstream.
 
