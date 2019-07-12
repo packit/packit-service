@@ -21,7 +21,7 @@
       path: /usr/share/packit
   - name: Copy packit.wsgi file
     copy:
-      src: files/packit.wsgi
+      src: packit.wsgi
       dest: /usr/share/packit/packit.wsgi
       owner: apache
       group: apache
@@ -51,7 +51,7 @@
       mode: 0777
   - name: Copy ssh_config
     copy:
-      src: files/ssh_config
+      src: ssh_config
       dest: /etc/ssh/ssh_config.d/01-packit.conf
   - name: stat /src
     stat:
@@ -61,7 +61,7 @@
     register: src_path
   - name: Copy fedmsg ssl configuration
     copy:
-      src: files/fedmsg-ssl.py
+      src: fedmsg-ssl.py
       dest: /etc/fedmsg.d/ssl.py
   - name: Let's make sure /src is present
     assert:
@@ -69,7 +69,7 @@
       - 'src_path.stat.isdir'
   - name: Copy run_worker.sh
     copy:
-      src: files/run_worker.sh
+      src: run_worker.sh
       dest: /usr/bin/run_worker.sh
       mode: 0777
   - name: Install sandcastle

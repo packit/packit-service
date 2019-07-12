@@ -1,0 +1,36 @@
+---
+- name: This is a recipe for a container image where packit-service tests will run
+  hosts: all
+  tasks:
+  - name: Install RPMs needed to install packitos
+    dnf:
+      name:
+      - python3-devel
+      - krb5-devel
+      - rpm-libs
+      - rpm-devel
+      - redhat-rpm-config
+      - gcc
+      - make
+      state: present
+  - name: Install test RPM dependencies
+    dnf:
+      name:
+      - python3-flexmock
+      - python3-pytest
+      - python3-pytest-cov
+      state: present
+  - name: Install sandcastle
+    pip:
+      name: git+https://github.com/packit-service/sandcastle.git
+  - name: Install packit from git master
+    pip:
+      name: git+https://github.com/packit-service/packit.git
+  - name: Install ogr from git master
+    pip:
+      name: git+https://github.com/packit-service/ogr.git
+  - name: Install frambo from git master
+    pip:
+      name: git+https://github.com/user-cont/frambo.git
+  - name: Clean all the cache files (especially pip)
+    shell: rm -rf ~/.cache/*

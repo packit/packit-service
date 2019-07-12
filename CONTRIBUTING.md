@@ -68,7 +68,7 @@ Running tests locally:
 make prepare-check && make check
 ```
 
-As a CI we use [CentOS CI](https://ci.centos.org/job/packit-pr/) with a configuration in [Jenkinsfile](Jenkinsfile).
+As a CI we use [CentOS CI](https://ci.centos.org/job/packit-service-pr/) with a configuration in [Jenkinsfile](Jenkinsfile).
 
 
 ### Makefile
@@ -87,7 +87,7 @@ Build a container image for packit service:
 make build
 ```
 
-Run [recipe-tests.yaml](recipe-tests.yaml) ansible playbook to install packages needed to run tests:
+Run [recipe-tests.yaml](files/recipe-tests.yaml) ansible playbook to install packages needed to run tests:
 ```
 make prepare-check
 ```

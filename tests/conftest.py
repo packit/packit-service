@@ -37,7 +37,7 @@ def dump_http_com():
     Usage:
     1. add it to your test case and pass the test path
       def test_something(dump_http_com):
-        config = dump_http_com(f"{__file__.rsplit('/', 1)[1]}/pr_handle.yaml")
+        config = dump_http_com(f"{Path(__file__).name}/pr_handle.yaml")
     2. Run your test
       GITHUB_TOKEN=asdqwe pytest-3 -k test_something
     3. Your http communication should now be stored in tests/data/http-requests/{path}

@@ -3,7 +3,13 @@ from flask import Flask, request
 import pytest
 
 from packit.config import Config
-from packit_service.service.web_hook import _validate_signature
+from packit_service.service import web_hook
+
+
+@pytest.fixture()
+def mock_config():
+    web_hook.config = flexmock(Config)
+    web_hook.config.webhook_secret = "testing-secret"
 
 
 @pytest.mark.parametrize(
@@ -14,14 +20,11 @@ from packit_service.service.web_hook import _validate_signature
         ("abcdefghijklmnopqrstuvqxyz", False),
     ],
 )
-def test_validate_signature(digest, is_good):
+def test_validate_signature(mock_config, digest, is_good):
     payload = b'{"zen": "Keep it logically awesome."}'
-    webhook_secret = "testing-secret"
     headers = {"X-Hub-Signature": f"sha1={digest}"}
 
-    config = flexmock(Config)
-    config.webhook_secret = webhook_secret
     with Flask(__name__).test_request_context():
         request._cached_data = request.data = payload
         request.headers = headers
-        assert _validate_signature(config) is is_good
+        assert web_hook.validate_signature() is is_good
