@@ -22,6 +22,7 @@
 
 import hmac
 import logging
+import os
 from hashlib import sha1
 
 from flask import Flask, abort, request, jsonify
@@ -76,7 +77,12 @@ def validate_signature() -> bool:
     """
     if "X-Hub-Signature" not in request.headers:
         # no signature -> no validation
-        return True
+        deployment = os.environ.get("DEPLOYMENT", None)
+        if deployment:
+            if deployment == "dev":  # don't validate signatures when testing locally
+                return True
+
+        return False
 
     sig = request.headers["X-Hub-Signature"]
     if not sig.startswith("sha1="):
