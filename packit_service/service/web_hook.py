@@ -77,12 +77,8 @@ def validate_signature() -> bool:
     """
     if "X-Hub-Signature" not in request.headers:
         # no signature -> no validation
-        deployment = os.environ.get("DEPLOYMENT", None)
-        if deployment:
-            if deployment == "dev":  # don't validate signatures when testing locally
-                return True
-
-        return False
+        # don't validate signatures when testing locally
+        return os.getenv("DEPLOYMENT") == "dev"
 
     sig = request.headers["X-Hub-Signature"]
     if not sig.startswith("sha1="):
@@ -91,9 +87,8 @@ def validate_signature() -> bool:
 
     webhook_secret = config.webhook_secret.encode()
     if not webhook_secret:
-        logger.warning("webhook_secret not specified in config")
-        # For now, don't let this stop us, but long-term return False here
-        return True
+        logger.error("webhook_secret not specified in config")
+        return False
 
     signature = sig.split("=")[1]
     mac = hmac.new(webhook_secret, msg=request.get_data(), digestmod=sha1)
