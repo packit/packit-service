@@ -557,16 +557,18 @@ class GithubReleaseHandler(JobHandler):
         Sync the upstream release to dist-git as a pull request.
         """
         version = self.event["release"]["tag_name"]
-
         self.local_project = LocalProject(
             git_project=self.project, working_dir=self.config.command_handler_work_dir
         )
 
         self.api = PackitAPI(self.config, self.package_config, self.local_project)
-
+        # create_pr is set to False.
+        # Each upstream project decides
+        # if creates PR or pushes directly into dist-git directly from packit.yaml file.
         self.api.sync_release(
             dist_git_branch=self.job.metadata.get("dist-git-branch", "master"),
             version=version,
+            create_pr=False,
         )
         return HandlerResults(success=True, details={})
 
