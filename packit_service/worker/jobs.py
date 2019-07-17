@@ -726,6 +726,11 @@ class GithubCoprBuildHandler(JobHandler):
             msg = "Failed to create a SRPM."
             r.report("failure", msg)
             return HandlerResults(success=False, details={"msg": msg})
+        except Exception as ex:
+            logger.error(f"error while running a copr build: {ex}")
+            msg = f"There was an error while running the build: {ex}"
+            r.report("failure", msg)
+            return HandlerResults(success=False, details={"msg": msg})
         timeout = 60 * 60 * 2
         # TODO: document this and enforce int in config
         timeout_config = self.job.metadata.get("timeout")
