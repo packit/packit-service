@@ -272,6 +272,12 @@ class GithubCoprBuildHandler(JobHandler):
             r.report("failure", msg)
             return HandlerResults(success=False, details={"msg": msg})
 
+        except Exception as ex:
+            logger.error(f"error while running a copr build: {ex}")
+            msg = f"There was an error while running the build: {ex}"
+            r.report("failure", msg)
+            return HandlerResults(success=False, details={"msg": msg})
+
         timeout_config = self.job.metadata.get("timeout")
         timeout = int(timeout_config) if timeout_config else 60 * 60 * 2
         build_state = self.api.watch_copr_build(build_id, timeout, report_func=r.report)
