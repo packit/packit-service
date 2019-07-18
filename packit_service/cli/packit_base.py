@@ -28,6 +28,7 @@ from packit.utils import set_logging
 from pkg_resources import get_distribution
 
 from packit_service.cli.listen_to_fedmsg import listen_to_fedmsg
+from packit_service.cli.listen_to_fedora_messaging import listen_to_fed_mes
 
 logger = logging.getLogger("packit_service")
 
@@ -59,6 +60,7 @@ def version():
 
 
 packit_base.add_command(listen_to_fedmsg)
+packit_base.add_command(listen_to_fed_mes)
 
 if __name__ == "__main__":
     packit_base()
