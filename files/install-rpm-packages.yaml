@@ -6,7 +6,7 @@
     dnf:
       name:
       - fedpkg
-      - git
+      - git-core
       - mod_md
       - nss_wrapper
       - origin-clients
@@ -34,25 +34,26 @@
       - python3-setuptools_scm_git_archive
       - python3-tabulate
       - python3-wheel  # for bdist_wheel
+      - python3-kubernetes
       - rebase-helper
       - rpm-build
       state: present
-  - name: Install python-kube
-    block:
-    - name: tmpdir
-      tempfile:
-        state: directory
-      register: tmpdir
-    - name: clone to tmpdir
-      git:
-        repo: https://github.com/TomasTomecek/kubernetes-python.git
-        recursive: true
-        dest: '{{ tmpdir.path }}'
-    - name: install
-      pip:
-        executable: /usr/bin/pip3
-        name: 'file://{{ tmpdir.path }}'
-    - name: clean tmpdir
-      file:
-        path: '{{ tmpdir.path }}'
-        state: absent
+#  - name: Install python-kube
+#    block:
+#    - name: tmpdir
+#      tempfile:
+#        state: directory
+#      register: tmpdir
+#    - name: clone to tmpdir
+#      git:
+#        repo: https://github.com/TomasTomecek/kubernetes-python.git
+#        recursive: true
+#        dest: '{{ tmpdir.path }}'
+#    - name: install
+#      pip:
+#        executable: /usr/bin/pip3
+#        name: 'file://{{ tmpdir.path }}'
+#    - name: clean tmpdir
+#      file:
+#        path: '{{ tmpdir.path }}'
+#        state: absent
