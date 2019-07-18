@@ -25,7 +25,7 @@ This file defines classes for job handlers specific for Github hooks
 """
 
 import logging
-from typing import Union
+from typing import Union, Any
 
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
@@ -100,7 +100,10 @@ class GithubAppInstallationHandler(JobHandler):
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
 
     def __init__(
-        self, config: Config, job: JobConfig, installation_event: InstallationEvent
+        self,
+        config: Config,
+        job: JobConfig,
+        installation_event: Union[InstallationEvent, Any],
     ):
         super(GithubAppInstallationHandler, self).__init__(config=config, job=job)
 
@@ -228,13 +231,13 @@ class GithubCoprBuildHandler(JobHandler):
         default_project_name = (
             f"{self.project.namespace}-{self.project.repo}-{self.event.pr_id}"
         )
-        owner = self.job.metadata.get("owner") or "packit"
         project = self.job.metadata.get("project") or default_project_name
+        owner = self.job.metadata.get("owner") or self.api.copr.config.get("username")
         r = BuildStatusReporter(self.project, self.event.commit_sha)
 
         try:
             build_id, repo_url = self.api.run_copr_build(
-                owner=owner, project=project, chroots=self.job.metadata.get("targets")
+                project=project, chroots=self.job.metadata.get("targets"), owner=owner
             )
         except SandcastleTimeoutReached:
             msg = "You have reached 10-minute timeout while creating the SRPM."
@@ -264,11 +267,9 @@ class GithubCoprBuildHandler(JobHandler):
             msg = "Failed to create a SRPM."
             r.report("failure", msg)
             return HandlerResults(success=False, details={"msg": msg})
-        timeout = 60 * 60 * 2
-        # TODO: document this and enforce int in config
+
         timeout_config = self.job.metadata.get("timeout")
-        if timeout_config:
-            timeout = int(timeout_config)
+        timeout = int(timeout_config) if timeout_config else 60 * 60 * 2
         build_state = self.api.watch_copr_build(build_id, timeout, report_func=r.report)
         if build_state == "succeeded":
             msg = (
