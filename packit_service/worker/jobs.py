@@ -311,21 +311,24 @@ class SteveJobs:
                     # failed because of missing whitelist approval
                     whitelist = Whitelist()
                     if not whitelist.is_approved(project.namespace):
-                        logger.error(
-                            f"User {project.namespace} is not approved on whitelist!"
-                        )
-                        # TODO also check blacklist,
-                        # but for that we need to know who triggered the action
+                        if trigger == JobTriggerType.pull_request:
+                            logger.error(
+                                f"User {project.namespace} is not approved on whitelist!"
+                            )
+                            # TODO also check blacklist,
+                            # but for that we need to know who triggered the action
 
-                        commit_sha = nested_get(event, "pull_request", "head", "sha")
-                        r = BuildStatusReporter(project, commit_sha)
-                        msg = "Account is not whitelisted!"
-                        r.report("failure", msg, url=FAQ_URL)
+                            commit_sha = nested_get(
+                                event, "pull_request", "head", "sha"
+                            )
+                            r = BuildStatusReporter(project, commit_sha)
+                            msg = "Account is not whitelisted!"
+                            r.report("failure", msg, url=FAQ_URL)
 
-                        handlers_results[job.job.value] = HandlerResults(
-                            success=False, details={"msg": msg}
-                        )
-                        return handlers_results
+                            handlers_results[job.job.value] = HandlerResults(
+                                success=False, details={"msg": msg}
+                            )
+                            return handlers_results
 
                     handlers_results[job.job.value] = handler.run()
                     # don't break here, other handlers may react to the same event
