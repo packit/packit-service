@@ -19,50 +19,25 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import enum
+from typing import Optional, Any
 
 import requests
 import logging
 
 from frambo.dict_in_redis import PersistentDict
+from ogr.abstract import GitProject
+from packit.config import JobTriggerType
+
+from packit_service.constants import FAQ_URL
+from packit_service.service.events import (
+    PullRequestEvent,
+    ReleaseEvent,
+    WhitelistStatus,
+    InstallationEvent,
+)
+from packit_service.worker.handler import BuildStatusReporter
 
 logger = logging.getLogger(__name__)
-
-
-class WhitelistStatus(enum.Enum):
-    approved_automatically = "approved_automatically"
-    waiting = "waiting"
-    approved_manually = "approved_manually"
-
-
-class GithubAppData:
-    def __init__(
-        self,
-        installation_id: int,
-        account_login: str,
-        account_id: int,
-        account_url: str,
-        account_type: str,
-        created_at: int,
-        sender_id: int,
-        sender_login: str,
-        status: WhitelistStatus = WhitelistStatus.waiting,
-    ):
-        self.installation_id = installation_id
-        self.account_login = account_login
-        self.account_id = account_id
-        self.account_url = account_url
-        self.account_type = account_type
-        self.created_at = created_at
-        self.sender_id = sender_id
-        self.sender_login = sender_login
-        self.status = status
-
-    def get_dict(self) -> dict:
-        result = self.__dict__
-        # whole dict have to be JSON serializable because of redis
-        result["status"] = str(result["status"])
-        return result
 
 
 class Whitelist:
@@ -95,7 +70,7 @@ class Whitelist:
         )
         return False
 
-    def add_account(self, github_app: GithubAppData) -> bool:
+    def add_account(self, github_app: InstallationEvent) -> bool:
         """
         Add account to whitelist, if automatic verification of user
         (check if user is packager in fedora) fails, account is still inserted in whitelist
@@ -122,7 +97,6 @@ class Whitelist:
                 f"Account {github_app.account_login} inserted "
                 f"to whitelist with status: waiting for approval"
             )
-            logger.info(self.db)
             return False
 
     def approve_account(self, account_name: str) -> bool:
@@ -132,7 +106,7 @@ class Whitelist:
         :return:
         """
         account = self.db[account_name] or {}
-        account["status"] = str(WhitelistStatus.approved_manually)
+        account["status"] = WhitelistStatus.approved_manually.value
         self.db[account_name] = account
         logger.info(f"Account {account_name} approved successfully")
         return True
@@ -178,6 +152,32 @@ class Whitelist:
             for (key, item) in self.db.items()
             if item["status"] == str(WhitelistStatus.waiting)
         ]
+
+    def check_and_report(self, event: Optional[Any], project: GitProject) -> bool:
+        """
+        Check if account is approved and report status back in case of PR
+        :param event: PullRequest and Release TODO: handle more
+        :param project: GitProject
+        :return:
+        """
+        account_name = None
+        if isinstance(event, PullRequestEvent):
+            account_name = event.base_repo_namespace
+        if isinstance(event, ReleaseEvent):
+            account_name = event.repo_name
+
+        if account_name:
+            if not self.is_approved(account_name):
+                logger.error(f"User {account_name} is not approved on whitelist!")
+                # TODO also check blacklist,
+                # but for that we need to know who triggered the action
+                if event.trigger == JobTriggerType.pull_request:
+                    r = BuildStatusReporter(project, event.commit_sha)
+                    msg = "Account is not whitelisted!"
+                    r.report("failure", msg, url=FAQ_URL)
+                return False
+
+        return True
 
 
 class Blacklist:
