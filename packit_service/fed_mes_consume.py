@@ -23,11 +23,18 @@
 import logging
 from typing import Iterable, Tuple, Dict, Any
 
+from fedora_messaging import api
+from fedora_messaging.message import Message
 import fedmsg
 import requests
 
 
 logger = logging.getLogger(__name__)
+
+
+def accept_fed_mes_message_cb(message: Message):
+    import ipdb; ipdb.set_trace()
+    print(f"{message.topic}: {message.body}")
 
 
 class Consumerino:
@@ -59,3 +66,28 @@ class Consumerino:
         response = requests.get(url)
         msg_dict = response.json()
         return msg_dict
+
+    def consume_from_fed_mes(self):
+        """
+        fedora-messging is written in an async way: callbacks
+        """
+        queue_name = 'prod.packit-service'
+        queues = {
+            queue_name: {
+                'durable': False,  # Delete the queue on broker restart
+                'auto_delete': True,  # Delete the queue when the client terminates
+                'exclusive': False,  # Allow multiple simultaneous consumers
+                'arguments': {},
+            },
+        }
+        binding = {
+            'exchange': 'amq.topic',  # The AMQP exchange to bind our queue to
+            'queue': queue_name,  # The unique name of our queue on the AMQP broker
+            'routing_keys': ['#'],  # The topics that should be delivered to the queue
+        }
+
+        # Start consuming messages using our callback. This call will block until
+        # a KeyboardInterrupt is raised, or the process receives a SIGINT or SIGTERM
+        # signal.
+        import ipdb; ipdb.set_trace()
+        api.consume(accept_fed_mes_message_cb, bindings=binding, queues=queues)
