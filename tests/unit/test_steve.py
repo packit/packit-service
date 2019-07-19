@@ -69,7 +69,7 @@ def test_process_message(event):
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="master", version="1.2.3", create_pr=False
     ).once()
-    flexmock(Whitelist, is_approved=True)
+    flexmock(Whitelist, check_and_report=True)
 
     results = SteveJobs().process_message(event)
     assert "propose_downstream" in results.get("jobs", {})

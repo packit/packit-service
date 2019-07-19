@@ -7,6 +7,7 @@ from github import Github
 from ogr.services.github import GithubProject
 
 from packit.api import PackitAPI
+from packit.config import JobTriggerType
 from packit.local_project import LocalProject
 
 from tests.spellbook import DATA_DIR
@@ -31,11 +32,8 @@ def test_dist_git_push_release_handle(release_event):
         full_repo_name="packit-service/hello-world",
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Whitelist, is_approved=True)
+    flexmock(Whitelist, check_and_report=True)
     steve = SteveJobs()
-    flexmock(SteveJobs).should_receive(
-        "get_job_input_from_github_app_installation"
-    ).and_return(False)
     # it would make sense to make LocalProject offline
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="master", version="0.3.0", create_pr=False
@@ -44,5 +42,4 @@ def test_dist_git_push_release_handle(release_event):
     results = steve.process_message(release_event)
     assert "propose_downstream" in results.get("jobs", {})
     assert results.get("jobs", {}).get("propose_downstream", {}).get("success")
-    assert results["project"] == "packit-service/hello-world"
-    assert results["trigger"] == "release"
+    assert results["trigger"] == str(JobTriggerType.release)

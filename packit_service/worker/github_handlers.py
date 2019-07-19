@@ -174,11 +174,15 @@ class GithubReleaseHandler(JobHandler):
         )
 
         self.api = PackitAPI(self.config, self.package_config, self.local_project)
-
+        # create_pr is set to False.
+        # Each upstream project decides
+        # if creates PR or pushes directly into dist-git directly from packit.yaml file.
         self.api.sync_release(
             dist_git_branch=self.job.metadata.get("dist-git-branch", "master"),
             version=self.release_event.tag_name,
+            create_pr=False,
         )
+
         return HandlerResults(success=True, details={})
 
 
