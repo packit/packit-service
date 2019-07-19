@@ -66,7 +66,7 @@ def test_process_message(event):
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="master", version="1.2.3"
+        dist_git_branch="master", version="1.2.3", create_pr=False
     ).once()
     flexmock(Whitelist, is_approved=True)
 

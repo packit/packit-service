@@ -311,16 +311,19 @@ class SteveJobs:
                     # failed because of missing whitelist approval
                     whitelist = Whitelist()
                     if not whitelist.is_approved(project.namespace):
-                        logger.error(
-                            f"User {project.namespace} is not approved on whitelist!"
-                        )
-                        # TODO also check blacklist,
-                        # but for that we need to know who triggered the action
-
-                        commit_sha = nested_get(event, "pull_request", "head", "sha")
-                        r = BuildStatusReporter(project, commit_sha)
                         msg = "Account is not whitelisted!"
-                        r.report("failure", msg, url=FAQ_URL)
+                        if trigger == JobTriggerType.pull_request:
+                            logger.error(
+                                f"User {project.namespace} is not approved on whitelist!"
+                            )
+                            # TODO also check blacklist,
+                            # but for that we need to know who triggered the action
+
+                            commit_sha = nested_get(
+                                event, "pull_request", "head", "sha"
+                            )
+                            r = BuildStatusReporter(project, commit_sha)
+                            r.report("failure", msg, url=FAQ_URL)
 
                         handlers_results[job.job.value] = HandlerResults(
                             success=False, details={"msg": msg}
@@ -557,16 +560,18 @@ class GithubReleaseHandler(JobHandler):
         Sync the upstream release to dist-git as a pull request.
         """
         version = self.event["release"]["tag_name"]
-
         self.local_project = LocalProject(
             git_project=self.project, working_dir=self.config.command_handler_work_dir
         )
 
         self.api = PackitAPI(self.config, self.package_config, self.local_project)
-
+        # create_pr is set to False.
+        # Each upstream project decides
+        # if creates PR or pushes directly into dist-git directly from packit.yaml file.
         self.api.sync_release(
             dist_git_branch=self.job.metadata.get("dist-git-branch", "master"),
             version=version,
+            create_pr=False,
         )
         return HandlerResults(success=True, details={})
 
