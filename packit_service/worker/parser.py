@@ -33,6 +33,7 @@ from packit_service.service.events import (
     InstallationEvent,
     ReleaseEvent,
     DistGitEvent,
+    PullRequestAction,
 )
 from packit_service.worker.fedmsg_handlers import NewDistGitCommit
 
@@ -110,7 +111,7 @@ class Parser:
             commit_sha = nested_get(event, "pull_request", "head", "sha")
             https_url = event["repository"]["html_url"]
             return PullRequestEvent(
-                action,
+                PullRequestAction[action],
                 pr_id,
                 base_repo_namespace,
                 base_repo_name,
