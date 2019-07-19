@@ -44,10 +44,9 @@ class PullRequestAction(enum.Enum):
 
 
 class FedmsgTopic(enum.Enum):
-
-    receive = "org.fedoraproject.prod.git.receive"
+    dist_git_push = "org.fedoraproject.prod.git.receive"
     copr_build_finished = "org.fedoraproject.prod.copr.build.end"
-    pagure_pr_added = "org.fedoraproject.prod.pagure.pull-request.flag.added"
+    pr_flag_added = "org.fedoraproject.prod.pagure.pull-request.flag.added"
 
 
 class WhitelistStatus(enum.Enum):

@@ -41,6 +41,11 @@ logger = logging.getLogger(__name__)
 
 
 class Parser:
+    """
+    Once we receive a new event (GitHub webhook or Fedmsg event) for every event we need
+    to have method inside the `Parser` class to create objects defined in `events.py`.
+    """
+
     @staticmethod
     def parse_event(
         event: dict
