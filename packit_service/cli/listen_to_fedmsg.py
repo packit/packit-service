@@ -30,7 +30,7 @@ from packit.config import pass_config
 
 from packit_service.celerizer import celery_app
 from packit_service.fed_mes_consume import Consumerino
-from packit_service.worker.jobs import do_we_process_fedmsg_topic
+from packit_service.worker.fedmsg_handlers import do_we_process_fedmsg_topic
 
 logger = logging.getLogger(__name__)
 
