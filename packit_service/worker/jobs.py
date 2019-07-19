@@ -59,7 +59,7 @@ class SteveJobs:
         handlers_results = {}
         package_config = event.get_package_config()
         for job in package_config.jobs:
-            if event.trigger == str(job.trigger):
+            if event.trigger == job.trigger:
                 handler_kls: Any = JOB_NAME_HANDLER_MAPPING.get(job.job, None)
                 if not handler_kls:
                     logger.warning(f"There is no handler for job {job}")
