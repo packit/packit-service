@@ -72,5 +72,4 @@ def test_process_message(event):
 
     results = SteveJobs().process_message(event)
     assert "propose_downstream" in results.get("jobs", {})
-    assert results["project"] == "foo/bar"
     assert results["trigger"] == "release"

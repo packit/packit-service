@@ -27,6 +27,7 @@ Tests for events parsing
 import pytest
 import json
 
+from ogr.services.github import GithubProject, GithubService
 from packit.config import JobTriggerType
 
 from packit_service.service.events import (
@@ -94,3 +95,25 @@ class TestEvents:
         assert event_object.target_repo == "packit-service/packit"
         assert event_object.https_url == "https://github.com/packit-service/packit"
         assert event_object.commit_sha == "528b803be6f93e19ca4130bf4976f2800a3004c4"
+
+    def test_get_project_pr(self, pull_request):
+        event_object = Parser.parse_event(pull_request)
+
+        assert isinstance(event_object, PullRequestEvent)
+
+        project = event_object.get_project()
+        assert isinstance(project, GithubProject)
+        assert isinstance(project.service, GithubService)
+        assert project.namespace == "packit-service"
+        assert project.repo == "packit"
+
+    def test_get_project_release(self, release):
+        event_object = Parser.parse_event(release)
+
+        assert isinstance(event_object, ReleaseEvent)
+
+        project = event_object.get_project()
+        assert isinstance(project, GithubProject)
+        assert isinstance(project.service, GithubService)
+        assert project.namespace == "Codertocat"
+        assert project.repo == "Hello-World"
