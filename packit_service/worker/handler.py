@@ -1,0 +1,121 @@
+# MIT License
+#
+# Copyright (c) 2018-2019 Red Hat, Inc.
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+"""
+This file defines generic job handler
+"""
+import logging
+import shutil
+from pathlib import Path
+from typing import Dict, Any, Optional, Type, List
+
+from ogr.abstract import GitProject
+from packit.api import PackitAPI
+from packit.config import Config, JobConfig, JobTriggerType, JobType
+
+logger = logging.getLogger(__name__)
+
+
+JOB_NAME_HANDLER_MAPPING: Dict[JobType, Type["JobHandler"]] = {}
+
+
+def add_to_mapping(kls: Type["JobHandler"]):
+    JOB_NAME_HANDLER_MAPPING[kls.name] = kls
+    return kls
+
+
+class BuildStatusReporter:
+    def __init__(self, gh_proj: GitProject, commit_sha: str):
+        self.gh_proj = gh_proj
+        self.commit_sha = commit_sha
+
+    def report(
+        self,
+        state: str,
+        description: str,
+        build_id: Optional[str] = None,
+        url: str = "",
+    ):
+        logger.debug(
+            f"Reporting state of copr build ID={build_id},"
+            f" state={state}, commit={self.commit_sha}"
+        )
+        self.gh_proj.set_commit_status(
+            self.commit_sha, state, url, description, "packit/rpm-build"
+        )
+
+
+class HandlerResults(dict):
+    """
+    Job handler results.
+    Inherit from dict to be JSON serializable.
+    """
+
+    def __init__(self, success: bool, details: Dict[str, Any] = None):
+        """
+
+        :param success: has the job handler succeeded
+        :param details: more info from job handler
+                        (optional) 'msg' key contains a message
+                        more keys to be defined
+        """
+        super().__init__(self, success=success, details=details or {})
+
+
+class JobHandler:
+    """ Generic interface to handle different type of inputs """
+
+    name: JobType
+    triggers: List[JobTriggerType]
+
+    def __init__(self, config: Config, job: JobConfig):
+        self.config: Config = config
+        self.job: JobConfig = job
+
+        self.api: Optional[PackitAPI] = None
+        self.local_project: Optional[PackitAPI] = None
+
+        self._clean_workplace()
+
+    def run(self) -> HandlerResults:
+        raise NotImplementedError("This should have been implemented.")
+
+    def _clean_workplace(self):
+        logger.debug("remove contents of the PV")
+        p = Path(self.config.command_handler_work_dir)
+        # remove everything in the volume, but not the volume dir
+        globz = list(p.glob("*"))
+        if globz:
+            logger.info("volume was not empty")
+            logger.debug("content of the volume: %s" % globz)
+        for item in globz:
+            if item.is_file():
+                item.unlink()
+            else:
+                shutil.rmtree(item)
+
+    def clean(self):
+        """ clean up the mess once we're done """
+        logger.info("cleaning up the mess")
+        if self.api:
+            self.api.clean()
+        self._clean_workplace()
