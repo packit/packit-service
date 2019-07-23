@@ -48,6 +48,7 @@ from packit_service.service.events import (
     InstallationEvent,
     ReleaseEvent,
 )
+from packit_service.service.models import Installation, CoprBuild
 from packit_service.worker.handler import (
     JobHandler,
     HandlerResults,
@@ -137,6 +138,10 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
 
         # try to add user to whitelist
         whitelist = Whitelist()
+        Installation.create(
+            installation_id=self.installation_event.installation_id,
+            event=self.installation_event,
+        )
         if not whitelist.add_account(self.installation_event):
             # Create an issue in our repository, so we are notified when someone install the app
             self.project.create_issue(
@@ -250,14 +255,18 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
         collaborators = self.project.who_can_merge_pr()
         project = self.job.metadata.get("project") or default_project_name
         owner = self.job.metadata.get("owner") or self.api.copr.config.get("username")
-        r = BuildStatusReporter(self.project, self.event.commit_sha)
+        chroots = self.job.metadata.get("targets")
+        copr_build_model = CoprBuild.create(
+            project=project, owner=owner, chroots=chroots
+        )
+        r = BuildStatusReporter(self.project, self.event.commit_sha, copr_build_model)
         if self.event.github_login not in collaborators:
             msg = "Only collaborators can trigger Packit-as-a-Service"
             r.set_status("failure", msg)
             return HandlerResults(success=False, details={"msg": msg})
         try:
             build_id, repo_url = self.api.run_copr_build(
-                project=project, chroots=self.job.metadata.get("targets"), owner=owner
+                project=project, chroots=chroots, owner=owner
             )
         except SandcastleTimeoutReached:
             msg = "You have reached 10-minute timeout while creating the SRPM."
@@ -293,6 +302,9 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             msg = f"There was an error while running the build: {ex}"
             r.report("failure", msg)
             return HandlerResults(success=False, details={"msg": msg})
+
+        copr_build_model.build_id = build_id
+        copr_build_model.save()
 
         timeout_config = self.job.metadata.get("timeout")
         timeout = int(timeout_config) if timeout_config else 60 * 60 * 2

@@ -10,6 +10,8 @@ from copr.v3.client import Client as CoprClient
 
 from packit.exceptions import PackitException
 from packit.api import PackitAPI
+
+from packit_service.service.models import Model
 from packit_service.worker import jobs
 from packit_service.worker.handler import BuildStatusReporter
 from packit_service.worker.jobs import SteveJobs
@@ -71,6 +73,7 @@ def test_wrong_collaborator(pr_event):
         CoprClient(copr_dict)
     )
     flexmock(Whitelist, check_and_report=True)
+    flexmock(Model, save=lambda: None)
 
     steve = SteveJobs()
     with pytest.raises(PackitException) as ex:

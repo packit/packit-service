@@ -171,7 +171,7 @@ class Whitelist:
                 # TODO also check blacklist,
                 # but for that we need to know who triggered the action
                 if event.trigger == JobTriggerType.pull_request:
-                    r = BuildStatusReporter(project, event.commit_sha)
+                    r = BuildStatusReporter(project, event.commit_sha, None)
                     msg = "Account is not whitelisted!"
                     r.report("failure", msg, url=FAQ_URL)
                 return False
