@@ -27,8 +27,10 @@ We love you, Steve Jobs.
 import logging
 from typing import Optional, Dict, Any
 
-from packit.config import JobTriggerType, JobType, Config
+from packit.config import JobTriggerType, JobType
 from packit.exceptions import PackitException
+
+from packit_service.config import Config
 from packit_service.worker.github_handlers import GithubAppInstallationHandler
 from packit_service.worker.handler import HandlerResults, JOB_NAME_HANDLER_MAPPING
 from packit_service.worker.parser import Parser
@@ -49,7 +51,7 @@ class SteveJobs:
     @property
     def config(self):
         if self._config is None:
-            self._config = Config.get_user_config()
+            self._config = Config.get_service_config()
         return self._config
 
     def process_jobs(self, event: Optional[Any]) -> Dict[str, HandlerResults]:
