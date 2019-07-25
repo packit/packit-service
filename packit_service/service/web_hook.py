@@ -28,7 +28,7 @@ from flask import Flask, abort, request, jsonify
 
 from packit.utils import set_logging
 from packit_service.celerizer import celery_app
-from packit_service.config import Config, Deployment
+from packit_service.config import Config
 
 
 class PackitWebhookReceiver(Flask):
@@ -77,7 +77,7 @@ def validate_signature() -> bool:
     if "X-Hub-Signature" not in request.headers:
         # no signature -> no validation
         # don't validate signatures when testing locally
-        return config.deployment == Deployment.dev
+        return not config.validate_webhooks
 
     sig = request.headers["X-Hub-Signature"]
     if not sig.startswith("sha1="):

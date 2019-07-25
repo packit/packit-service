@@ -12,3 +12,6 @@ CONFIG_FILE_NAMES = [
     "packit-service.yml",
     "packit-service.json",
 ]
+
+PACKIT_PROD_CHECK = "packit/rpm-build"
+PACKIT_STG_CHECK = "packit-stg/rpm-build"

@@ -33,8 +33,9 @@ from packit.config import (
     JobTriggerType,
     get_package_config_from_repo,
     PackageConfig,
-    Config,
 )
+
+from packit_service.config import Config
 
 
 class PullRequestAction(enum.Enum):
@@ -61,16 +62,16 @@ class Event:
         self._user_config = None
 
     @property
-    def user_config(self) -> Config:
+    def service_config(self) -> Config:
         if not self._user_config:
-            self._user_config = Config.get_user_config()
+            self._user_config = Config.get_service_config()
         return self._user_config
 
 
 class AbstractGithubEvent(Event):
     def __get_private_key(self) -> Optional[str]:
-        if self.user_config.github_app_cert_path:
-            return Path(self.user_config.github_app_cert_path).read_text()
+        if self.service_config.github_app_cert_path:
+            return Path(self.service_config.github_app_cert_path).read_text()
         return None
 
     @property
@@ -215,11 +216,9 @@ class DistGitEvent(Event):
         return get_package_config_from_repo(self.get_project(), self.ref)
 
     def get_project(self) -> GitProject:
-        config = Config.get_user_config()
+        config = Config.get_service_config()
         pagure_service = PagureService(
-            token=config.pagure_user_token,
-            read_only=config.dry_run,
-            # TODO: how do we change to stg here? ideally in self.config
+            token=config.pagure_user_token, read_only=config.dry_run
         )
         return pagure_service.get_project(
             repo=self.repo_name, namespace=self.repo_namespace

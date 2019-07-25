@@ -30,7 +30,11 @@ from typing import Dict, Any, Optional, Type, List
 
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
-from packit.config import Config, JobConfig, JobTriggerType, JobType
+from packit.config import JobConfig, JobTriggerType, JobType
+from packit_service.config import Config, Deployment
+
+
+from packit_service.constants import PACKIT_PROD_CHECK, PACKIT_STG_CHECK
 
 from packit_service.service.models import CoprBuild
 
@@ -62,6 +66,7 @@ class BuildStatusReporter:
         description: str,
         build_id: Optional[str] = None,
         url: str = "",
+        check_name: str = PACKIT_PROD_CHECK,
     ):
         logger.debug(
             f"Reporting state of copr build ID={build_id},"
@@ -70,8 +75,13 @@ class BuildStatusReporter:
         if self.copr_build_model:
             self.copr_build_model.status = state
             self.copr_build_model.save()
+
+        config = Config.get_service_config()
+        if config.deployment == Deployment.stg:
+            check_name = PACKIT_STG_CHECK
+
         self.gh_proj.set_commit_status(
-            self.commit_sha, state, url, description, "packit/rpm-build"
+            self.commit_sha, state, url, description, check_name
         )
 
     def set_status(self, state: str, description: str):
