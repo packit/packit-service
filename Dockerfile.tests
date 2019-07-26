@@ -3,9 +3,9 @@ FROM fedora:30
 RUN dnf -y install ansible
 
 COPY files/install-rpm-packages.yaml ./
-RUN ansible-playbook -vvv -c local -i localhost, ./install-rpm-packages.yaml
+RUN ansible-playbook -vv -c local -i localhost, ./install-rpm-packages.yaml
 
 COPY files/recipe-tests.yaml ./
-RUN ansible-playbook -vvv -c local -i localhost, ./recipe-tests.yaml
+RUN ansible-playbook -vv -c local -i localhost, ./recipe-tests.yaml
 
 WORKDIR /src
