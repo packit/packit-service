@@ -8,6 +8,12 @@ COPY files/ /src/files/
 # We need to install packages. In httpd:2.4 container is user set to 1001
 USER 0
 
+RUN mkdir /home/packit
+COPY files/passwd /home/packit/passwd
+ENV LD_PRELOAD=libnss_wrapper.so
+ENV NSS_WRAPPER_PASSWD=/home/packit/passwd
+ENV NSS_WRAPPER_GROUP=/etc/group
+
 # Install packages first and reuse the cache as much as possible
 RUN dnf install -y ansible \
     && cd /src/ \
@@ -28,5 +34,7 @@ RUN /usr/libexec/httpd-prepare && rpm-file-permissions \
     && chmod -R a+rwx /var/log/httpd
 
 USER 1001
+ENV USER=packit
+ENV HOME=/home/packit
 
 CMD ["/usr/bin/run-httpd"]
