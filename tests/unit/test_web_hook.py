@@ -2,14 +2,14 @@ from flexmock import flexmock
 from flask import Flask, request
 import pytest
 
-from packit.config import Config
-from packit_service.service import web_hook
+from packit_service.config import Config
 
 
 @pytest.fixture()
 def mock_config():
-    web_hook.config = flexmock(Config)
-    web_hook.config.webhook_secret = "testing-secret"
+    config = flexmock(Config)
+    config.webhook_secret = "testing-secret"
+    return config
 
 
 @pytest.mark.parametrize(
@@ -23,6 +23,12 @@ def mock_config():
 def test_validate_signature(mock_config, digest, is_good):
     payload = b'{"zen": "Keep it logically awesome."}'
     headers = {"X-Hub-Signature": f"sha1={digest}"}
+
+    # flexmock config before import as it fails on looking for config
+    flexmock(Config).should_receive("get_service_config").and_return(flexmock(Config))
+    from packit_service.service import web_hook
+
+    web_hook.config = mock_config
 
     with Flask(__name__).test_request_context():
         request._cached_data = request.data = payload

@@ -36,4 +36,5 @@ SERVICE_CONFIG_SCHEMA = {
         "webhook_secret": {"type": "string"},
         "validate_webhooks": {"type": "boolean"},
     },
+    "required": ["deployment", "github_app_id", "github_app_cert_path"],
 }

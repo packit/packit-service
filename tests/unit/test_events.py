@@ -26,9 +26,12 @@ Tests for events parsing
 
 import pytest
 import json
+import flexmock
 
 from ogr.services.github import GithubProject, GithubService
 from packit.config import JobTriggerType
+
+from packit_service.config import Config
 
 from packit_service.service.events import (
     WhitelistStatus,
@@ -56,6 +59,16 @@ class TestEvents:
     def pull_request(self):
         with open(DATA_DIR / "webhooks" / "github_pr_event.json", "r") as outfile:
             return json.load(outfile)
+
+    @pytest.fixture()
+    def mock_config(self):
+        config = flexmock(Config)
+        config.github_app_id = 123123
+        config.github_app_cert_path = None
+        config.github_token = "token"
+        config.dry_run = False
+        config.github_requests_log_path = "/path"
+        config.should_receive("get_service_config").and_return(flexmock(Config))
 
     def test_parse_installation(self, installation):
         event_object = Parser.parse_event(installation)
@@ -96,23 +109,28 @@ class TestEvents:
         assert event_object.https_url == "https://github.com/packit-service/packit"
         assert event_object.commit_sha == "528b803be6f93e19ca4130bf4976f2800a3004c4"
 
-    def test_get_project_pr(self, pull_request):
+    def test_get_project_pr(self, pull_request, mock_config):
         event_object = Parser.parse_event(pull_request)
 
         assert isinstance(event_object, PullRequestEvent)
 
+        flexmock(Config).should_receive("get_service_config").and_return(
+            flexmock(Config)
+        )
         project = event_object.get_project()
+
         assert isinstance(project, GithubProject)
         assert isinstance(project.service, GithubService)
         assert project.namespace == "packit-service"
         assert project.repo == "packit"
 
-    def test_get_project_release(self, release):
+    def test_get_project_release(self, release, mock_config):
         event_object = Parser.parse_event(release)
 
         assert isinstance(event_object, ReleaseEvent)
 
         project = event_object.get_project()
+
         assert isinstance(project, GithubProject)
         assert isinstance(project.service, GithubService)
         assert project.namespace == "Codertocat"
