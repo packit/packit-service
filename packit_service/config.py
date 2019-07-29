@@ -34,7 +34,7 @@ from packit_service.constants import (
     SANDCASTLE_PVC,
     SANDCASTLE_IMAGE,
     SANDCASTLE_DEFAULT_PROJECT,
-    CONFIG_FILE_NAMES,
+    CONFIG_FILE_NAME,
 )
 from packit_service.schema import SERVICE_CONFIG_SCHEMA
 
@@ -45,17 +45,6 @@ class Deployment(enum.Enum):
     dev = "dev"
     stg = "stg"
     prod = "prod"
-
-    @staticmethod
-    def from_str(label):
-        if label == "stg":
-            return Deployment.stg
-        elif label == "prod":
-            return Deployment.prod
-        elif label == "dev":
-            return Deployment.dev
-        else:
-            raise NotImplementedError
 
 
 class Config(BaseConfig):
@@ -111,7 +100,7 @@ class Config(BaseConfig):
         config.github_app_id = raw_dict.get("github_app_id", "")
         config.github_app_cert_path = raw_dict.get("github_app_cert_path", "")
         config.webhook_secret = raw_dict.get("webhook_secret", "")
-        config.deployment = Deployment.from_str(raw_dict.get("deployment", ""))
+        config.deployment = Deployment(raw_dict.get("deployment", ""))
         config.validate_webhooks = raw_dict.get("validate_webhooks", False)
 
         config.command_handler = RunCommandType.local
@@ -136,27 +125,16 @@ class Config(BaseConfig):
 
     @classmethod
     def get_service_config(cls) -> "Config":
-        xdg_config_home = os.getenv("XDG_CONFIG_HOME")
-        if xdg_config_home:
-            directory = Path(xdg_config_home)
-        else:
-            directory = Path.cwd() / ".config"
-
+        directory = Path.cwd() / ".config"
+        config_file_name_full = directory / CONFIG_FILE_NAME
         logger.debug(f"Loading service config from directory: {directory}")
 
-        loaded_config: dict = {}
-        for config_file_name in CONFIG_FILE_NAMES:
-            config_file_name_full = directory / config_file_name
-            logger.debug(f"Trying to load service config from: {config_file_name_full}")
-            if config_file_name_full.is_file():
-                try:
-                    loaded_config = safe_load(open(config_file_name_full))
-                except Exception as ex:
-                    logger.error(
-                        f"Cannot load service config '{config_file_name_full}'."
-                    )
-                    raise PackitException(f"Cannot load service config: {ex}.")
-                break
+        try:
+            loaded_config = safe_load(open(config_file_name_full))
+        except Exception as ex:
+            logger.error(f"Cannot load service config '{config_file_name_full}'.")
+            raise PackitException(f"Cannot load service config: {ex}.")
+
         return Config.get_from_dict(raw_dict=loaded_config)
 
     @property
