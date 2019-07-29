@@ -63,6 +63,12 @@ class BuildStatusReporter:
             self.commit_sha, state, url, description, "packit/rpm-build"
         )
 
+    def reset_status(self, state: str, description: str):
+        logger.debug(description)
+        self.gh_proj.set_commit_status(
+            self.commit_sha, state, "", description, "packit/rpm-build"
+        )
+
 
 class HandlerResults(dict):
     """

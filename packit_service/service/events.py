@@ -121,6 +121,7 @@ class PullRequestEvent(AbstractGithubEvent):
         target_repo: str,
         https_url: str,
         commit_sha: str,
+        github_login: str,
     ):
         super(PullRequestEvent, self).__init__(JobTriggerType.pull_request)
         self.action = action
@@ -131,6 +132,7 @@ class PullRequestEvent(AbstractGithubEvent):
         self.target_repo = target_repo
         self.https_url = https_url
         self.commit_sha = commit_sha
+        self.github_login = github_login
 
     def get_dict(self) -> dict:
         result = self.__dict__

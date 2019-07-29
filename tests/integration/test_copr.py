@@ -2,10 +2,18 @@ import json
 from pathlib import Path
 
 import pytest
+from github import Github
 from flexmock import flexmock
-from packit.api import PackitAPI
+from ogr.services.github import GithubProject
+from packit.local_project import LocalProject
+from copr.v3.client import Client as CoprClient
 
+from packit.exceptions import PackitException
+from packit.api import PackitAPI
 from packit_service.worker import jobs
+from packit_service.worker.handler import BuildStatusReporter
+from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.whitelist import Whitelist
 from tests.spellbook import DATA_DIR
 
 
@@ -33,6 +41,41 @@ def test_copr_pr_handle(pr_event, dump_http_com):
     flexmock(PackitAPI).should_receive("watch_copr_build").and_return("failed").once()
 
     jobs.SteveJobs().process_message(pr_event)
+
+
+def test_wrong_collaborator(pr_event):
+    packit_yaml = (
+        "{'specfile_path': '', 'synced_files': []"
+        ", jobs: [{trigger: pull_request, job: copr_build, metadata: {targets:[]}}]}"
+    )
+    copr_dict = {
+        "login": "stevejobs",
+        "username": "stevejobs",
+        "token": "apple",
+        "copr_url": "https://copr.fedorainfracloud.org",
+    }
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+    flexmock(
+        GithubProject,
+        get_file_content=lambda path, ref: packit_yaml,
+        full_repo_name="packit-service/hello-world",
+    )
+    flexmock(GithubProject).should_receive("who_can_merge_pr").and_return({"foobar"})
+    flexmock(BuildStatusReporter).should_receive("reset_status").and_return(None)
+    flexmock(
+        LocalProject,
+        refresh_the_arguments=lambda: None,
+        checkout_pr=lambda full_name_or_id: None,
+    )
+    flexmock(CoprClient).should_receive("create_from_config_file").and_return(
+        CoprClient(copr_dict)
+    )
+    flexmock(Whitelist, check_and_report=True)
+
+    steve = SteveJobs()
+    with pytest.raises(PackitException) as ex:
+        steve.process_message(pr_event)
+    assert ex
 
 
 # We do not support this workflow officially

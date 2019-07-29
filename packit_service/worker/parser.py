@@ -110,6 +110,10 @@ class Parser:
             if not base_ref:
                 logger.warning("Ref where the PR is coming from is not set.")
                 return None
+            github_login = nested_get(event, "pull_request", "user", "login")
+            if not github_login:
+                logger.warning("We could not figure out GitHub login name from event.")
+                return None
             target_repo = nested_get(event, "repository", "full_name")
             logger.info(f"GitHub pull request {pr_id} event for repo {target_repo}.")
 
@@ -124,6 +128,7 @@ class Parser:
                 target_repo,
                 https_url,
                 commit_sha,
+                github_login,
             )
         return None
 
