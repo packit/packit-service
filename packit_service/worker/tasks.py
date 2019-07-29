@@ -19,7 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
+import logging
 from typing import Optional
 
 from celery.task import Task as CeleryTask
@@ -27,6 +27,9 @@ from celery.task import Task as CeleryTask
 from packit_service.celerizer import celery_app
 from packit_service.service.models import Task
 from packit_service.worker.jobs import SteveJobs
+
+logging.getLogger("requests").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
 @celery_app.task(bind=True, name="task.steve_jobs.process_message")

@@ -26,7 +26,6 @@ Watch for new upstream releases.
 import logging
 
 import click
-from packit.config import pass_config
 
 from packit_service.celerizer import celery_app
 from packit_service.fed_mes_consume import Consumerino
@@ -37,14 +36,12 @@ logger = logging.getLogger(__name__)
 
 @click.command("listen-to-fedmsg")
 @click.argument("message-id", nargs=-1)
-@pass_config
-def listen_to_fedmsg(config, message_id):
+def listen_to_fedmsg(message_id):
     """
     Listen to events on fedmsg and process them.
 
     if MESSAGE-ID is specified, process only the selected messages
     """
-
     consumerino = Consumerino()
 
     if message_id:
