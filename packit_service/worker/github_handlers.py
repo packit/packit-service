@@ -247,10 +247,14 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
         default_project_name = (
             f"{self.project.namespace}-{self.project.repo}-{self.event.pr_id}"
         )
+        collaborators = self.project.who_can_merge_pr()
         project = self.job.metadata.get("project") or default_project_name
         owner = self.job.metadata.get("owner") or self.api.copr.config.get("username")
         r = BuildStatusReporter(self.project, self.event.commit_sha)
-
+        if self.event.github_login not in collaborators:
+            msg = "Only collaborators can trigger Packit-as-a-Service"
+            r.set_status("failure", msg)
+            return HandlerResults(success=False, details={"msg": msg})
         try:
             build_id, repo_url = self.api.run_copr_build(
                 project=project, chroots=self.job.metadata.get("targets"), owner=owner
