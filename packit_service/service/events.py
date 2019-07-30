@@ -29,11 +29,7 @@ from typing import Optional
 
 from ogr import PagureService, GithubService
 from ogr.abstract import GitProject
-from packit.config import (
-    JobTriggerType,
-    get_package_config_from_repo,
-    PackageConfig,
-)
+from packit.config import JobTriggerType, get_package_config_from_repo, PackageConfig
 
 from packit_service.config import Config
 
@@ -59,13 +55,13 @@ class WhitelistStatus(enum.Enum):
 class Event:
     def __init__(self, trigger: JobTriggerType):
         self.trigger: JobTriggerType = trigger
-        self._user_config = None
+        self._service_config: Config = None
 
     @property
     def service_config(self) -> Config:
-        if not self._user_config:
-            self._user_config = Config.get_service_config()
-        return self._user_config
+        if not self._service_config:
+            self._service_config = Config.get_service_config()
+        return self._service_config
 
 
 class AbstractGithubEvent(Event):
@@ -77,8 +73,8 @@ class AbstractGithubEvent(Event):
     @property
     def github_service(self) -> GithubService:
         return GithubService(
-            token=self.user_config.github_token,
-            github_app_id=self.user_config.github_app_id,
+            token=self.service_config.github_token,
+            github_app_id=self.service_config.github_app_id,
             github_app_private_key=self.__get_private_key(),
         )
 
