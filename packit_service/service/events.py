@@ -24,20 +24,19 @@
 This file defines classes for events which are sent by GitHub or FedMsg.
 """
 import enum
+from pathlib import Path
 
+from ogr import PagureService, GithubService
 from ogr.abstract import GitProject
-from ogr.services.pagure import PagureService
 from packit.config import (
     JobTriggerType,
     get_package_config_from_repo,
     PackageConfig,
     Config,
 )
-from packit.ogr_services import get_github_project
 
 
 class PullRequestAction(enum.Enum):
-
     opened = "opened"
     reopened = "reopened"
     synchronize = "synchronize"
@@ -58,9 +57,31 @@ class WhitelistStatus(enum.Enum):
 class Event:
     def __init__(self, trigger: JobTriggerType):
         self.trigger: JobTriggerType = trigger
+        self._user_config = None
+
+    @property
+    def user_config(self):
+        if not self._user_config:
+            self._user_config = Config.get_user_config()
+        return self._user_config
 
 
-class ReleaseEvent(Event):
+class AbstractGithubEvent(Event):
+    def __get_private_key(self):
+        if self.user_config.github_app_cert_path:
+            return Path(self.user_config.github_app_cert_path).read_text()
+        return None
+
+    @property
+    def github_service(self) -> GithubService:
+        return GithubService(
+            token=self.user_config.github_token,
+            github_app_id=self.user_config.github_app_id,
+            github_app_private_key=self.__get_private_key(),
+        )
+
+
+class ReleaseEvent(AbstractGithubEvent):
     def __init__(
         self, repo_namespace: str, repo_name: str, tag_name: str, https_url: str
     ):
@@ -83,12 +104,12 @@ class ReleaseEvent(Event):
         return package_config
 
     def get_project(self) -> GitProject:
-        return get_github_project(
-            Config.get_user_config(), repo=self.repo_name, namespace=self.repo_namespace
+        return self.github_service.get_project(
+            repo=self.repo_name, namespace=self.repo_namespace
         )
 
 
-class PullRequestEvent(Event):
+class PullRequestEvent(AbstractGithubEvent):
     def __init__(
         self,
         action: PullRequestAction,
@@ -125,10 +146,8 @@ class PullRequestEvent(Event):
         return package_config
 
     def get_project(self) -> GitProject:
-        return get_github_project(
-            Config.get_user_config(),
-            repo=self.base_repo_name,
-            namespace=self.base_repo_namespace,
+        return self.github_service.get_project(
+            repo=self.base_repo_name, namespace=self.base_repo_namespace
         )
 
 
@@ -190,7 +209,6 @@ class DistGitEvent(Event):
         return result
 
     def get_package_config(self):
-
         return get_package_config_from_repo(self.get_project(), self.ref)
 
     def get_project(self) -> GitProject:

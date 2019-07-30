@@ -25,8 +25,10 @@ This file defines classes for job handlers specific for Github hooks
 """
 
 import logging
+from pathlib import Path
 from typing import Union, Any
 
+from ogr import GithubService
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import (
@@ -39,7 +41,6 @@ from packit.config import (
 )
 from packit.exceptions import FailedCreateSRPM
 from packit.local_project import LocalProject
-from packit.ogr_services import get_github_project
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
 from packit_service.service.events import (
@@ -58,19 +59,33 @@ from packit_service.worker.whitelist import Whitelist
 logger = logging.getLogger(__name__)
 
 
+class AbstractGithubJobHandler(JobHandler):
+    def __get_private_key(self):
+        if self.config.github_app_cert_path:
+            return Path(self.config.github_app_cert_path).read_text()
+        return None
+
+    @property
+    def github_service(self) -> GithubService:
+        return GithubService(
+            token=self.config.github_token,
+            github_app_id=self.config.github_app_id,
+            github_app_private_key=self.__get_private_key(),
+        )
+
+
 @add_to_mapping
-class GithubPullRequestHandler(JobHandler):
+class GithubPullRequestHandler(AbstractGithubJobHandler):
     name = JobType.check_downstream
     triggers = [JobTriggerType.pull_request]
+
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
 
     def __init__(self, config: Config, job: JobConfig, pr_event: PullRequestEvent):
         super(GithubPullRequestHandler, self).__init__(config=config, job=job)
         self.pr_event = pr_event
-        self.project: GitProject = get_github_project(
-            self.config,
-            repo=pr_event.base_repo_name,
-            namespace=pr_event.base_repo_namespace,
+        self.project: GitProject = self.github_service.get_project(
+            repo=pr_event.base_repo_name, namespace=pr_event.base_repo_namespace
         )
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, pr_event.base_ref
@@ -93,7 +108,7 @@ class GithubPullRequestHandler(JobHandler):
 
 
 @add_to_mapping
-class GithubAppInstallationHandler(JobHandler):
+class GithubAppInstallationHandler(AbstractGithubJobHandler):
     name = JobType.add_to_whitelist
     triggers = [JobTriggerType.installation]
 
@@ -108,8 +123,8 @@ class GithubAppInstallationHandler(JobHandler):
         super(GithubAppInstallationHandler, self).__init__(config=config, job=job)
 
         self.installation_event = installation_event
-        self.project = get_github_project(
-            self.config, repo="notifications", namespace="packit-service"
+        self.project = self.github_service.get_project(
+            repo="notifications", namespace="packit-service"
         )
 
     def run(self) -> HandlerResults:
@@ -123,7 +138,6 @@ class GithubAppInstallationHandler(JobHandler):
         # try to add user to whitelist
         whitelist = Whitelist()
         if not whitelist.add_account(self.installation_event):
-
             # Create an issue in our repository, so we are notified when someone install the app
             self.project.create_issue(
                 title=f"Account: {self.installation_event.account_login} needs to be approved.",
@@ -146,7 +160,7 @@ class GithubAppInstallationHandler(JobHandler):
 
 
 @add_to_mapping
-class GithubReleaseHandler(JobHandler):
+class GithubReleaseHandler(AbstractGithubJobHandler):
     name = JobType.propose_downstream
     triggers = [JobTriggerType.release]
 
@@ -154,10 +168,8 @@ class GithubReleaseHandler(JobHandler):
         super(GithubReleaseHandler, self).__init__(config=config, job=job)
         self.release_event = release_event
 
-        self.project: GitProject = get_github_project(
-            self.config,
-            repo=release_event.repo_name,
-            namespace=release_event.repo_namespace,
+        self.project: GitProject = self.github_service.get_project(
+            repo=release_event.repo_name, namespace=release_event.repo_namespace
         )
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, release_event.tag_name
@@ -187,7 +199,7 @@ class GithubReleaseHandler(JobHandler):
 
 
 @add_to_mapping
-class GithubCoprBuildHandler(JobHandler):
+class GithubCoprBuildHandler(AbstractGithubJobHandler):
     name = JobType.copr_build
     triggers = [JobTriggerType.pull_request, JobTriggerType.release]
 
@@ -210,8 +222,8 @@ class GithubCoprBuildHandler(JobHandler):
             repo_namespace = event.repo_namespace
             base_ref = event.tag_name
 
-        self.project: GitProject = get_github_project(
-            self.config, repo=repo_name, namespace=repo_namespace
+        self.project: GitProject = self.github_service.get_project(
+            repo=repo_name, namespace=repo_namespace
         )
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, base_ref
