@@ -61,7 +61,7 @@ def test_wrong_collaborator(pr_event):
         full_repo_name="packit-service/hello-world",
     )
     flexmock(GithubProject).should_receive("who_can_merge_pr").and_return({"foobar"})
-    flexmock(BuildStatusReporter).should_receive("reset_status").and_return(None)
+    flexmock(BuildStatusReporter).should_receive("set_status").and_return(None)
     flexmock(
         LocalProject,
         refresh_the_arguments=lambda: None,

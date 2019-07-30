@@ -253,7 +253,7 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
         r = BuildStatusReporter(self.project, self.event.commit_sha)
         if self.event.github_login not in collaborators:
             msg = "Only collaborators can trigger Packit-as-a-Service"
-            r.reset_status("failure", msg)
+            r.set_status("failure", msg)
             return HandlerResults(success=False, details={"msg": msg})
         try:
             build_id, repo_url = self.api.run_copr_build(
