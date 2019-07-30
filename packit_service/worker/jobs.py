@@ -60,6 +60,18 @@ class SteveJobs:
         """
         handlers_results = {}
         package_config = event.get_package_config()
+
+        if not package_config:
+            # this happens when service receives fedmsg topic which we process,
+            # but package has no packit.yaml
+            msg = "Failed to obtain package config!"
+            logger.warning(msg)
+            handlers_results[event.trigger.value] = HandlerResults(
+                success=False, details={"msg": msg}
+            )
+
+            return handlers_results
+
         for job in package_config.jobs:
             if event.trigger == job.trigger:
                 handler_kls: Any = JOB_NAME_HANDLER_MAPPING.get(job.job, None)
