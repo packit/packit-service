@@ -164,7 +164,7 @@ class Whitelist:
         if isinstance(event, PullRequestEvent):
             account_name = event.base_repo_namespace
         if isinstance(event, ReleaseEvent):
-            account_name = event.repo_name
+            account_name = event.repo_namespace
 
         if account_name:
             if not self.is_approved(account_name):
