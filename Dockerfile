@@ -8,7 +8,7 @@ COPY files/ /src/files/
 # We need to install packages. In httpd:2.4 container is user set to 1001
 USER 0
 
-RUN mkdir /home/packit
+RUN mkdir /home/packit && chmod 0776 /home/packit
 COPY files/passwd /home/packit/passwd
 ENV LD_PRELOAD=libnss_wrapper.so
 ENV NSS_WRAPPER_PASSWD=/home/packit/passwd
