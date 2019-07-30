@@ -28,7 +28,6 @@ import logging
 from typing import Optional, Dict, Any
 
 from packit.config import JobTriggerType, JobType
-from packit.exceptions import PackitException
 
 from packit_service.config import Config
 from packit_service.worker.github_handlers import GithubAppInstallationHandler
@@ -134,6 +133,6 @@ class SteveJobs:
 
         if any(not v["success"] for v in jobs_results.values()):
             # Any job handler failed, mark task state as FAILURE
-            raise PackitException(task_results)
+            logger.error(task_results)
         # Task state SUCCESS
         return task_results
