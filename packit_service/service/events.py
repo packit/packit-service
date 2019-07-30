@@ -25,6 +25,7 @@ This file defines classes for events which are sent by GitHub or FedMsg.
 """
 import enum
 from pathlib import Path
+from typing import Optional
 
 from ogr import PagureService, GithubService
 from ogr.abstract import GitProject
@@ -60,14 +61,14 @@ class Event:
         self._user_config = None
 
     @property
-    def user_config(self):
+    def user_config(self) -> Config:
         if not self._user_config:
             self._user_config = Config.get_user_config()
         return self._user_config
 
 
 class AbstractGithubEvent(Event):
-    def __get_private_key(self):
+    def __get_private_key(self) -> Optional[str]:
         if self.user_config.github_app_cert_path:
             return Path(self.user_config.github_app_cert_path).read_text()
         return None
