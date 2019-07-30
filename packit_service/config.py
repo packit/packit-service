@@ -143,3 +143,18 @@ class Config(BaseConfig):
         if token:
             return token
         return self._github_token
+
+    @property
+    def pagure_user_token(self) -> str:
+        token = os.getenv("PAGURE_USER_TOKEN", "")
+        if token:
+            return token
+        return self._pagure_user_token
+
+    @property
+    def pagure_fork_token(self) -> str:
+        """ this is needed to create pull requests """
+        token = os.getenv("PAGURE_FORK_TOKEN", "")
+        if token:
+            return token
+        return self._pagure_fork_token
