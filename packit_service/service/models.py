@@ -39,7 +39,7 @@ class Model:
                 last_pk = 0
             self.identifier = last_pk + 1
             db[LAST_PK] = self.identifier
-        self.db()[self.identifier] = self.serialize()
+        db[self.identifier] = self.serialize()
 
     def serialize(self):
         """ convert from python data structure into format acceptable by redis """
