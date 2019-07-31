@@ -32,6 +32,8 @@ from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import Config, JobConfig, JobTriggerType, JobType
 
+from packit_service.service.models import CoprBuild
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,9 +46,15 @@ def add_to_mapping(kls: Type["JobHandler"]):
 
 
 class BuildStatusReporter:
-    def __init__(self, gh_proj: GitProject, commit_sha: str):
+    def __init__(
+        self,
+        gh_proj: GitProject,
+        commit_sha: str,
+        copr_build_model: Optional[CoprBuild] = None,
+    ):
         self.gh_proj = gh_proj
         self.commit_sha = commit_sha
+        self.copr_build_model = copr_build_model
 
     def report(
         self,
@@ -59,6 +67,9 @@ class BuildStatusReporter:
             f"Reporting state of copr build ID={build_id},"
             f" state={state}, commit={self.commit_sha}"
         )
+        if self.copr_build_model:
+            self.copr_build_model.status = state
+            self.copr_build_model.save()
         self.gh_proj.set_commit_status(
             self.commit_sha, state, url, description, "packit/rpm-build"
         )

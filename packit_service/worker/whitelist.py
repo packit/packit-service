@@ -118,12 +118,11 @@ class Whitelist:
         :return:
         """
         if account_name in self.db:
-            if self.db[account_name]["status"] == str(
-                WhitelistStatus.approved_manually
-            ) or self.db[account_name]["status"] == str(
-                WhitelistStatus.approved_automatically
-            ):
-                return True
+            s = WhitelistStatus(self.db[account_name]["status"])
+            return (
+                s == WhitelistStatus.approved_automatically
+                or s == WhitelistStatus.approved_manually
+            )
         return False
 
     def remove_account(self, account_name: str) -> bool:
@@ -150,7 +149,7 @@ class Whitelist:
         return [
             key
             for (key, item) in self.db.items()
-            if item["status"] == str(WhitelistStatus.waiting)
+            if WhitelistStatus(item["status"]) == WhitelistStatus.waiting
         ]
 
     def check_and_report(self, event: Optional[Any], project: GitProject) -> bool:
@@ -172,7 +171,7 @@ class Whitelist:
                 # TODO also check blacklist,
                 # but for that we need to know who triggered the action
                 if event.trigger == JobTriggerType.pull_request:
-                    r = BuildStatusReporter(project, event.commit_sha)
+                    r = BuildStatusReporter(project, event.commit_sha, None)
                     msg = "Account is not whitelisted!"
                     r.report("failure", msg, url=FAQ_URL)
                 return False

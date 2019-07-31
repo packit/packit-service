@@ -182,7 +182,7 @@ class InstallationEvent(Event):
         result = self.__dict__
         # whole dict have to be JSON serializable because of redis
         result["trigger"] = str(result["trigger"])
-        result["status"] = str(result["status"])
+        result["status"] = result["status"].value
         return result
 
 

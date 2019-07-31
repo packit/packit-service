@@ -22,10 +22,15 @@
 
 from typing import Optional
 
+from celery.task import Task as CeleryTask
+
 from packit_service.celerizer import celery_app
+from packit_service.service.models import Task
 from packit_service.worker.jobs import SteveJobs
 
 
-@celery_app.task(name="task.steve_jobs.process_message")
-def process_message(event: dict, topic: str = None) -> Optional[dict]:
+@celery_app.task(bind=True, name="task.steve_jobs.process_message")
+def process_message(self: CeleryTask, event: dict, topic: str = None) -> Optional[dict]:
+    # storing the whole event may be an overkill
+    Task.create(celery_id=self.request.id, metadata=event)
     return SteveJobs().process_message(event=event, topic=topic)
