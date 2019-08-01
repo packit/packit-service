@@ -27,6 +27,7 @@ from packit.config import get_context_settings
 from packit.utils import set_logging
 from pkg_resources import get_distribution
 
+from packit_service.cli.process_message import process_message
 from packit_service.cli.listen_to_fedmsg import listen_to_fedmsg
 from packit_service.config import Config
 
@@ -60,6 +61,7 @@ def version():
 
 
 packit_base.add_command(listen_to_fedmsg)
+packit_base.add_command(process_message)
 
 if __name__ == "__main__":
     packit_base()

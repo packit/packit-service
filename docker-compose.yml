@@ -38,14 +38,19 @@ services:
       dockerfile: Dockerfile
     image: docker.io/usercont/packit-service:master
     command: /usr/bin/run_worker.sh
+    tty: true
     depends_on:
       - redis
     environment:
       REDIS_SERVICE_HOST: redis
       APP: packit_service.worker.tasks
+      KRB5CCNAME: FILE:/tmp/krb5cc_packit
     volumes:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
-      - ./secrets/packit.yaml:/opt/app-root/src/.config/.packit.yaml:ro,z
+      - ./secrets/packit.yaml:/home/packit/.config/.packit.yaml:ro,z
+      - ./secrets:/packit-ssh:ro,z
+      - ./secrets:/secrets:ro,z
+      - .:/src:ro,z
     # user: "123123"
 
   packit-service:

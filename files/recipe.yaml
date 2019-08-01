@@ -18,7 +18,11 @@
   - name: Create /usr/share/packit directory
     file:
       state: directory
-      path: /usr/share/packit
+      path: '{{ item }}'
+    with_items:
+    - /usr/share/packit
+    - /packit-ssh  # this is where we put ssh creds
+    - /sandcastle  # working dir for the upstream git which is mapped to the sandbox pod
   - name: Copy packit.wsgi file
     copy:
       src: packit.wsgi
