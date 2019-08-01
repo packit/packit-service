@@ -82,7 +82,7 @@ def testing_farm_results():
 
     celery_app.send_task(name="task.steve_jobs.process_message", kwargs={"event": msg})
 
-    return "Results from testing farm accepted!"
+    return "{'status': 200, 'message': 'Test results accepted'}"
 
 
 def validate_testing_farm_request():

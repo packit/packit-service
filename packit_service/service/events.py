@@ -291,7 +291,7 @@ class DistGitEvent(Event):
         )
 
 
-class TestingFarmResultsEvent(Event):
+class TestingFarmResultsEvent(AbstractGithubEvent):
     def __init__(
         self,
         pipeline_id: str,
@@ -326,6 +326,19 @@ class TestingFarmResultsEvent(Event):
     def get_dict(self) -> dict:
         result = self.__dict__
         # whole dict have to be JSON serializable because of redis
+        result["_service_config"] = ""
         result["trigger"] = result["trigger"].value
-        result["status"] = result["status"].value
+        result["result"] = result["result"].value
         return result
+
+    def get_package_config(self):
+        package_config: PackageConfig = get_package_config_from_repo(
+            self.get_project(), self.ref
+        )
+        package_config.upstream_project_url = self.https_url
+        return package_config
+
+    def get_project(self) -> GitProject:
+        return self.github_service.get_project(
+            repo=self.repo_name, namespace=self.repo_namespace
+        )

@@ -23,6 +23,7 @@
 """
 This file defines classes for job handlers specific for Testing farm
 """
+from typing import Union, Any
 
 from ogr.abstract import GitProject
 from packit.config import (
@@ -35,7 +36,8 @@ from packit.config import (
 from packit.local_project import LocalProject
 
 from packit_service.config import Config
-from packit_service.service.events import TestingFarmResultsEvent
+from packit_service.constants import PACKIT_TESTING_FARM_CHECK
+from packit_service.service.events import TestingFarmResultsEvent, TestingFarmResult
 from packit_service.worker.github_handlers import AbstractGithubJobHandler
 from packit_service.worker.handler import (
     add_to_mapping,
@@ -53,7 +55,7 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
         self,
         config: Config,
         job: JobConfig,
-        test_results_event: TestingFarmResultsEvent,
+        test_results_event: Union[TestingFarmResultsEvent, Any],
     ):
         super(TestingFarmResultsHandler, self).__init__(config=config, job=job)
         self.tests_results_event = test_results_event
@@ -72,6 +74,20 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
         )
 
         r = BuildStatusReporter(self.project, self.tests_results_event.commit_sha)
-        r.set_status("success", "Tests passed!")
+        if self.tests_results_event.result == TestingFarmResult.passed:
+            status = "success"
+            msg = "Tests passed!"
+        else:
+            status = "failure"
+            msg = "Tests failed!"
+
+        # todo change to link to real log
+        r.report(
+            status,
+            msg,
+            None,
+            "https://packit.dev/",
+            check_name=PACKIT_TESTING_FARM_CHECK,
+        )
 
         return HandlerResults(success=True, details={})

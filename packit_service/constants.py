@@ -8,3 +8,4 @@ CONFIG_FILE_NAME = "packit-service.yaml"
 
 PACKIT_PROD_CHECK = "packit/rpm-build"
 PACKIT_STG_CHECK = "packit-stg/rpm-build"
+PACKIT_TESTING_FARM_CHECK = "packit/testing-farm"

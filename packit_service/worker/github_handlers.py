@@ -342,7 +342,7 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
 
 @add_to_mapping
 class GithubTestingFarmHandler(AbstractGithubJobHandler):
-    name = JobType.testing_farm
+    name = JobType.tests
     triggers = [JobTriggerType.pull_request]
 
     def __init__(self, config: Config, job: JobConfig, pr_event: PullRequestEvent):
@@ -409,6 +409,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
 
         payload: dict = {}
 
+        # TODO change to real url
         self.send_testing_farm_request("url", "POST", {}, payload)
 
         return HandlerResults(success=True, details={})
