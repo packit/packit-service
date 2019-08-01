@@ -36,10 +36,6 @@
       regexp: '^(Listen.+)$'
       line: '# \1'
       backrefs: yes
-  - name: "Set up git: user.email"
-    command: git config --global user.email "user-cont-team@redhat.com"
-  - name: "Set up git: user.name"
-    command: git config --global user.name "Pack It"
   - name: Create some home dirs
     file:
       state: directory
@@ -57,6 +53,10 @@
     copy:
       src: ssh_config
       dest: /etc/ssh/ssh_config.d/01-packit.conf
+  - name: Copy gitconfig
+    copy:
+      src: gitconfig
+      dest: '{{ home_path }}/.gitconfig'
   - name: stat /src
     stat:
       path: /src
