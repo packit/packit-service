@@ -28,8 +28,10 @@ import logging
 from pathlib import Path
 from typing import Union, Any
 
+import requests
 from ogr import GithubService
 from ogr.abstract import GitProject
+from ogr.utils import RequestResponse
 from packit.api import PackitAPI
 from packit.config import (
     JobConfig,
@@ -336,3 +338,77 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
                 success=False,
                 details={"msg": f"No handler for {str(self.event.trigger)}"},
             )
+
+
+@add_to_mapping
+class GithubTestingFarmHandler(AbstractGithubJobHandler):
+    name = JobType.testing_farm
+    triggers = [JobTriggerType.pull_request]
+
+    def __init__(self, config: Config, job: JobConfig, pr_event: PullRequestEvent):
+        super(GithubTestingFarmHandler, self).__init__(config=config, job=job)
+        self.pr_event = pr_event
+        self.project: GitProject = self.github_service.get_project(
+            repo=pr_event.base_repo_name, namespace=pr_event.base_repo_namespace
+        )
+        self.package_config: PackageConfig = get_package_config_from_repo(
+            self.project, pr_event.base_ref
+        )
+        self.package_config.upstream_project_url = pr_event.https_url
+
+        self.session = requests.session()
+        adapter = requests.adapters.HTTPAdapter(max_retries=5)
+        self.insecure = False
+        self.session.mount("https://", adapter)
+        self.header: dict = {}
+
+    def send_testing_farm_request(
+        self, url: str, method: str = None, params: dict = None, data=None
+    ):
+        method = method or "GET"
+        try:
+            response = self.get_raw_request(
+                method=method, url=url, params=params, data=data
+            )
+        except requests.exceptions.ConnectionError as er:
+            logger.error(er)
+            raise Exception(f"Cannot connect to url: `{url}`.", er)
+        return response
+
+    def get_raw_request(
+        self, url, method="GET", params=None, data=None, header=None
+    ) -> RequestResponse:
+
+        response = self.session.request(
+            method=method,
+            url=url,
+            params=params,
+            headers=header or self.header,
+            data=data,
+            verify=not self.insecure,
+        )
+
+        json_output = None
+        try:
+            json_output = response.json()
+        except ValueError:
+            logger.debug(response.text)
+
+        return RequestResponse(
+            status_code=response.status_code,
+            ok=response.ok,
+            content=response.content,
+            json=json_output,
+            reason=response.reason,
+        )
+
+    def run(self) -> HandlerResults:
+        self.local_project = LocalProject(
+            git_project=self.project, working_dir=self.config.command_handler_work_dir
+        )
+
+        payload: dict = {}
+
+        self.send_testing_farm_request("url", "POST", {}, payload)
+
+        return HandlerResults(success=True, details={})
