@@ -37,6 +37,7 @@
       - python3-kubernetes
       - rebase-helper
       - rpm-build
+      - nss_wrapper  # openshift anyuid passwd madness
       state: present
 #  - name: Install python-kube
 #    block:

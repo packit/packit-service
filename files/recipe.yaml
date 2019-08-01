@@ -18,7 +18,11 @@
   - name: Create /usr/share/packit directory
     file:
       state: directory
-      path: /usr/share/packit
+      path: '{{ item }}'
+    with_items:
+    - /usr/share/packit
+    - /packit-ssh  # this is where we put ssh creds
+    - /sandcastle  # working dir for the upstream git which is mapped to the sandbox pod
   - name: Copy packit.wsgi file
     copy:
       src: packit.wsgi
@@ -32,10 +36,6 @@
       regexp: '^(Listen.+)$'
       line: '# \1'
       backrefs: yes
-  - name: "Set up git: user.email"
-    command: git config --global user.email "user-cont-team@redhat.com"
-  - name: "Set up git: user.name"
-    command: git config --global user.name "Pack It"
   - name: Create some home dirs
     file:
       state: directory
@@ -53,6 +53,10 @@
     copy:
       src: ssh_config
       dest: /etc/ssh/ssh_config.d/01-packit.conf
+  - name: Copy gitconfig
+    copy:
+      src: gitconfig
+      dest: '{{ home_path }}/.gitconfig'
   - name: stat /src
     stat:
       path: /src

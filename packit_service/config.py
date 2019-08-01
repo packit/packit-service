@@ -125,7 +125,7 @@ class Config(BaseConfig):
 
     @classmethod
     def get_service_config(cls) -> "Config":
-        directory = Path.cwd() / ".config"
+        directory = Path.home() / ".config"
         config_file_name_full = directory / CONFIG_FILE_NAME
         logger.debug(f"Loading service config from directory: {directory}")
 
