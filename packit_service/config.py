@@ -65,6 +65,7 @@ class Config(BaseConfig):
         self.github_app_cert_path: Optional[str] = None
         self._github_token: str = ""
         self.webhook_secret: str = ""
+        self.testing_farm_secret: str = ""
         self.validate_webhooks: bool = True
 
         # %%% ACTIONS HANDLER CONFIGURATION %%%
@@ -100,6 +101,7 @@ class Config(BaseConfig):
         config.github_app_id = raw_dict.get("github_app_id", "")
         config.github_app_cert_path = raw_dict.get("github_app_cert_path", "")
         config.webhook_secret = raw_dict.get("webhook_secret", "")
+        config.testing_farm_secret = raw_dict.get("testing_farm_secret", "")
         config.deployment = Deployment(raw_dict.get("deployment", ""))
         config.validate_webhooks = raw_dict.get("validate_webhooks", False)
 
