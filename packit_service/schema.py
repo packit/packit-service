@@ -19,24 +19,22 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import logging
-from typing import Optional
-
-from celery.task import Task as CeleryTask
-
-from packit_service.celerizer import celery_app
-from packit_service.service.models import Task
-from packit_service.worker.jobs import SteveJobs
-
-logging.getLogger("requests").setLevel(logging.WARNING)
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("github").setLevel(logging.WARNING)  # pygithub
-logging.getLogger("ogr").setLevel(logging.WARNING)  # b/c of pagure requests
-logging.getLogger("kubernetes").setLevel(logging.WARNING)
 
 
-@celery_app.task(bind=True, name="task.steve_jobs.process_message")
-def process_message(self: CeleryTask, event: dict, topic: str = None) -> Optional[dict]:
-    # storing the whole event may be an overkill
-    Task.create(celery_id=self.request.id, metadata=event)
-    return SteveJobs().process_message(event=event, topic=topic)
+SERVICE_CONFIG_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "debug": {"type": "boolean"},
+        "dry_run": {"type": "boolean"},
+        "fas_user": {"type": "string"},
+        "keytab_path": {"type": "string"},
+        "pagure_user_token": {"type": "string"},
+        "pagure_fork_token": {"type": "string"},
+        "deployment": {"type": "string"},
+        "github_app_id": {"type": "string"},
+        "github_app_cert_path": {"type": "string"},
+        "webhook_secret": {"type": "string"},
+        "validate_webhooks": {"type": "boolean"},
+    },
+    "required": ["deployment", "github_app_id", "github_app_cert_path"],
+}

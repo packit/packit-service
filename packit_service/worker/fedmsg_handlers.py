@@ -51,6 +51,7 @@ PROCESSED_FEDMSG_TOPICS = []
 def add_topic(kls: Type["FedmsgHandler"]):
     if issubclass(kls, FedmsgHandler):
         PROCESSED_FEDMSG_TOPICS.append(kls.topic)
+    return kls
 
 
 def do_we_process_fedmsg_topic(topic: str) -> bool:
@@ -106,7 +107,6 @@ class NewDistGitCommit(FedmsgHandler):
         self.package_config.upstream_project_url = (
             dg.get_project_url_from_distgit_spec()
         )
-
         if not self.package_config.upstream_project_url:
             return HandlerResults(
                 success=False,

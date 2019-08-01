@@ -32,7 +32,6 @@ from ogr import GithubService
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import (
-    Config,
     JobConfig,
     JobTriggerType,
     JobType,
@@ -43,6 +42,7 @@ from packit.exceptions import FailedCreateSRPM
 from packit.local_project import LocalProject
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
+from packit_service.config import Config, Deployment
 from packit_service.service.events import (
     PullRequestEvent,
     InstallationEvent,
@@ -249,8 +249,10 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
         )
         self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
+        # add suffix stg when using stg app
+        stg = "-stg" if self.config.deployment == Deployment.stg else ""
         default_project_name = (
-            f"{self.project.namespace}-{self.project.repo}-{self.event.pr_id}"
+            f"{self.project.namespace}-{self.project.repo}-{self.event.pr_id}{stg}"
         )
         collaborators = self.project.who_can_merge_pr()
         project = self.job.metadata.get("project") or default_project_name

@@ -27,8 +27,9 @@ We love you, Steve Jobs.
 import logging
 from typing import Optional, Dict, Any
 
-from packit.config import JobTriggerType, JobType, Config
-from packit.exceptions import PackitException
+from packit.config import JobTriggerType, JobType
+
+from packit_service.config import Config
 from packit_service.worker.github_handlers import GithubAppInstallationHandler
 from packit_service.worker.handler import HandlerResults, JOB_NAME_HANDLER_MAPPING
 from packit_service.worker.parser import Parser
@@ -49,7 +50,7 @@ class SteveJobs:
     @property
     def config(self):
         if self._config is None:
-            self._config = Config.get_user_config()
+            self._config = Config.get_service_config()
         return self._config
 
     def process_jobs(self, event: Optional[Any]) -> Dict[str, HandlerResults]:
@@ -58,6 +59,18 @@ class SteveJobs:
         """
         handlers_results = {}
         package_config = event.get_package_config()
+
+        if not package_config:
+            # this happens when service receives fedmsg topic which we process,
+            # but package has no packit.yaml
+            msg = "Failed to obtain package config!"
+            logger.warning(msg)
+            handlers_results[event.trigger.value] = HandlerResults(
+                success=False, details={"msg": msg}
+            )
+
+            return handlers_results
+
         for job in package_config.jobs:
             if event.trigger == job.trigger:
                 handler_kls: Any = JOB_NAME_HANDLER_MAPPING.get(job.job, None)
@@ -120,6 +133,6 @@ class SteveJobs:
 
         if any(not v["success"] for v in jobs_results.values()):
             # Any job handler failed, mark task state as FAILURE
-            raise PackitException(task_results)
+            logger.error(task_results)
         # Task state SUCCESS
         return task_results

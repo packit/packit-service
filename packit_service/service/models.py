@@ -54,8 +54,8 @@ class Model:
         """ reverse operation as serialize """
         # this is pretty nasty: we could possibly replace this with a serialization
         # library or an ORM framework
-        if "_user_config" in inp:
-            del inp["_user_config"]
+        if "_service_config" in inp:
+            del inp["_service_config"]
         self.__dict__ = inp
 
     @classmethod
@@ -95,8 +95,8 @@ class Installation(Model):
     def serialize(self):
         cp = super().serialize()
         cp["event_data"] = self.event_data.get_dict()
-        if "_user_config" in cp["event_data"]:
-            del cp["event_data"]["_user_config"]
+        if "_service_config" in cp["event_data"]:
+            del cp["event_data"]["_service_config"]
         return cp
 
     def deserialize(self, inp: Dict):
