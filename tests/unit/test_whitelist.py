@@ -19,39 +19,49 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from flexmock import flexmock
-from flask import Flask, request
 import pytest
 
-from packit_service.config import Config
+from packit_service.service.events import WhitelistStatus
+from packit_service.worker.whitelist import Whitelist
+
+
+class GracefulDict(dict):
+    def __getitem__(self, item):
+        try:
+            return super().__getitem__(item)
+        except KeyError:
+            return None
 
 
 @pytest.fixture()
-def mock_config():
-    config = flexmock(Config)
-    config.webhook_secret = "testing-secret"
-    return config
+def db():
+    return GracefulDict(
+        {
+            "fero": {"status": WhitelistStatus.approved_manually.value},
+            "lojzo": {"status": str(WhitelistStatus.approved_automatically)},
+            "konipas": {"status": WhitelistStatus.waiting.value},
+        }
+    )
+
+
+@pytest.fixture()
+def whitelist(db):
+    w = Whitelist()
+    w.db = db
+    return w
 
 
 @pytest.mark.parametrize(
-    "digest, is_good",
-    [
-        # hmac.new(webhook_secret, msg=payload, digestmod=hashlib.sha1).hexdigest()
-        ("4e0281ef362383a2ab30c9dde79167da3b300b58", True),
-        ("abcdefghijklmnopqrstuvqxyz", False),
-    ],
+    "account_name,is_dict", (("lojzo", True), ("fero", True), ("krasomila", False))
 )
-def test_validate_signature(mock_config, digest, is_good):
-    payload = b'{"zen": "Keep it logically awesome."}'
-    headers = {"X-Hub-Signature": f"sha1={digest}"}
+def test_get_account(whitelist, account_name, is_dict):
+    a = whitelist.get_account(account_name)
+    assert isinstance(a, dict) == is_dict
 
-    # flexmock config before import as it fails on looking for config
-    flexmock(Config).should_receive("get_service_config").and_return(flexmock(Config))
-    from packit_service.service import web_hook
 
-    web_hook.config = mock_config
-
-    with Flask(__name__).test_request_context():
-        request._cached_data = request.data = payload
-        request.headers = headers
-        assert web_hook.validate_signature() is is_good
+@pytest.mark.parametrize(
+    "account_name,is_approved",
+    (("lojzo", True), ("fero", True), ("konipas", False), ("krasomila", False)),
+)
+def test_is_approved(whitelist, account_name, is_approved):
+    assert whitelist.is_approved(account_name) == is_approved

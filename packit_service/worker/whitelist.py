@@ -70,6 +70,22 @@ class Whitelist:
         )
         return False
 
+    def get_account(self, account_name: str) -> Optional[dict]:
+        """
+        Get selected account from DB, return None if it's not there
+
+        :param account_name: account name for approval
+        """
+        account = self.db[account_name]
+        if not account:
+            return None
+        # patch status
+        db_status = account["status"]
+        if db_status.startswith("WhitelistStatus"):
+            account["status"] = db_status.split(".", 1)[1]
+            self.db[account_name] = account
+        return account
+
     def add_account(self, github_app: InstallationEvent) -> bool:
         """
         Add account to whitelist, if automatic verification of user
@@ -77,8 +93,12 @@ class Whitelist:
          with status : `waiting`.
          Then a scripts in files/scripts have to be executed for manual approval
         :param github_app: github app installation info
-        :return:
+        :return: was the account auto-whitelisted?
         """
+        account = self.get_account(github_app.account_login)
+        if account:
+            # the account is already in DB
+            return True
         # we want to verify if user who installed the application is packager
         if Whitelist._is_packager(github_app.sender_login):
             github_app.status = WhitelistStatus.approved_automatically
@@ -105,7 +125,7 @@ class Whitelist:
         :param account_name: account name for approval
         :return:
         """
-        account = self.db[account_name] or {}
+        account = self.get_account(account_name) or {}
         account["status"] = WhitelistStatus.approved_manually.value
         self.db[account_name] = account
         logger.info(f"Account {account_name} approved successfully")
@@ -118,7 +138,9 @@ class Whitelist:
         :return:
         """
         if account_name in self.db:
-            s = WhitelistStatus(self.db[account_name]["status"])
+            account = self.get_account(account_name)
+            db_status = account["status"]
+            s = WhitelistStatus(db_status)
             return (
                 s == WhitelistStatus.approved_automatically
                 or s == WhitelistStatus.approved_manually
