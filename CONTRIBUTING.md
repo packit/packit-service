@@ -40,7 +40,7 @@ If you are introducing a new dependency, please make sure it's added to:
 
 ### How to contribute code to packit
 
-1. Create a fork of the `packit` repository.
+1. Create a fork of the `packit-service` repository.
 2. Create a new branch just for the bug/feature you are working on.
 3. Once you have completed your work, create a Pull Request, ensuring that it meets the requirements listed below.
 
@@ -82,8 +82,6 @@ When you are contributing to changelog, please follow these suggestions:
 ### Testing
 
 Tests are stored in [tests](/tests) directory.
-We use [Tox](https://pypi.org/project/tox) with configuration in [tox.ini](tox.ini).
-
 Running tests locally:
 ```
 make prepare-check && make check
@@ -95,8 +93,7 @@ As a CI we use [CentOS CI](https://ci.centos.org/job/packit-service-pr/) with a 
 
 #### Copr build
 
-For cases you'd like to trigger copr build in your copr project, you can configure it in
-packit configuration of your chosen package:
+For cases you'd like to trigger a copr build in your copr project, you can configure it in packit configuration of your chosen package:
 ```
 jobs:
 - job: copr_build
