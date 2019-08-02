@@ -1,19 +1,18 @@
 # Contributing Guidelines
 
-Thanks for your interest in contributing to `packit`.
+Thanks for your interest in contributing to `packit-service`.
 
-The following is a set of guidelines for contributing to `packit`.
+The following is a set of guidelines for contributing to `packit-service`.
 Use your best judgement, and feel free to propose changes to this document in a pull request.
 
 
 ## Reporting Bugs
-Before creating bug reports, please check a [list of known issues](https://github.com/packit-service/packit/issues) to see
+Before creating a bug report, please check a [list of known issues](https://github.com/packit-service/packit-service/issues) to see
 if the problem has already been reported (or fixed in a master branch).
 
-If you're unable to find an open issue addressing the problem, [open a new one](https://github.com/packit-service/packit/issues/new).
+If you're unable to find an open issue addressing the problem, [open a new one](https://github.com/packit-service/packit-service/issues/new).
 Be sure to include a **descriptive title and a clear description**. Ideally, please provide:
- * version of packit you are using (`rpm -q packit` or `pip3 freeze | grep packitos`)
- * the command you executed and a debug output (using option `--debug`)
+ * version of packit-service and packit you are using (`pip3 freeze | grep packit`)
 
 If possible, add a **code sample** or an **executable test case** demonstrating the expected behavior that is not occurring.
 
@@ -27,7 +26,7 @@ When you are creating an enhancement issue, **use a clear and descriptive title*
 
 ## Guidelines for Developers
 
-If you would like to contribute code to the `packit` project, this section is for you!
+If you would like to contribute code to the `packit-service` project, this section is for you!
 
 ### Is this your first contribution?
 
@@ -39,26 +38,32 @@ It's a quick read, and it's a great way to introduce yourself to how things work
 If you are introducing a new dependency, please make sure it's added to:
  * [setup.cfg](setup.cfg)
 
-### Documentation
+### How to contribute code to packit
 
-If you want to update documentation, find corresponding file in [docs](/docs) folder.
+1. Create a fork of the `packit-service` repository.
+2. Create a new branch just for the bug/feature you are working on.
+3. Once you have completed your work, create a Pull Request, ensuring that it meets the requirements listed below.
 
-### How to add a new job?
+### Requirements for Pull Requests
 
-Creating a new job is not hard at all but requires a few steps to be done. This section will walk you through this process.
+* Please create Pull Requests against the `master` branch.
+* Please make sure that your code complies with [PEP8](https://www.python.org/dev/peps/pep-0008/).
+* One line should not contain more than 100 characters.
+* Make sure that new code is covered by a test case (new or existing one).
+* We don't like [spaghetti code](https://en.wikipedia.org/wiki/Spaghetti_code).
+* The tests have to pass.
 
-## Packit
+### Checkers/linters/formatters & pre-commit
 
-The first step is to define new `JobType` and/or `JobTriggerType` in [packit/config.py](https://github.com/packit-service/packit/blob/master/packit/config.py). Then I recommend to push this change into your packit fork and change
-installation of `packit` in both [recipe.yaml](/files/recipe.yaml) and [recipe-tests.yaml](/files/recipe-tests.yaml) to this commit (e.g `git+https://github.com/rpitonak/packit.git@9cae9a0381753148e5bb23121bfebbb948f37b01`).
+To make sure our code is compliant with the above requirements, we use:
+* [black code formatter](https://github.com/ambv/black)
+* [Flake8 code linter](http://flake8.pycqa.org)
+* [mypy static type checker](http://mypy-lang.org)
 
-## Packit service
-
-Once we have jobs defined in `packit` config we are ready to move on to next steps:
-
-1. Define a new event in [events.py](/packit_service/service/events.py). This is required just when you want to react to new events (e.g github webhooks, fedmsg events, payloads from other APIs). In this file there are representations of those JSON objects.
-2. Define parse method in [/packit_service/worker/parser.py]. Create new static method in Parser class which can deserialize new defined event in previous step. Don't forget to call it in `parse_event` method. Write a new test in `test_events.py` to verify that it works well.
-3. Depends on type of job - create new handler in one of the `*_handlers.py` files. You need to implement the `run` method where is the whole logic of the handler. In this step take inspiration from other handlers.
+There's a [pre-commit](https://pre-commit.com) config file in [.pre-commit-config.yaml](.pre-commit-config.yaml).
+To [utilize pre-commit](https://pre-commit.com/#usage), install pre-commit with `pip3 install pre-commit` and then either
+* `pre-commit install` - to install pre-commit into your [git hooks](https://githooks.com). pre-commit will from now on run all the checkers/linters/formatters on every commit. If you later want to commit without running it, just run `git commit` with `-n/--no-verify`.
+* Or if you want to manually run all the checkers/linters/formatters, run `pre-commit run --all-files`.
 
 #### Changelog
 
@@ -74,12 +79,9 @@ When you are contributing to changelog, please follow these suggestions:
   trying to convince the person to use the project and that the changelog
   should help with that.
 
-
 ### Testing
 
 Tests are stored in [tests](/tests) directory.
-We use [Tox](https://pypi.org/project/tox) with configuration in [tox.ini](tox.ini).
-
 Running tests locally:
 ```
 make prepare-check && make check
@@ -87,40 +89,11 @@ make prepare-check && make check
 
 As a CI we use [CentOS CI](https://ci.centos.org/job/packit-service-pr/) with a configuration in [Jenkinsfile](Jenkinsfile).
 
-
-### Makefile
-
-#### Requirements
-
-- docker
-- ansible
-
-#### Targets
-
-Here are some important and useful targets of [Makefile](/Makefile):
-
-Build a container image for packit service:
-```
-make build
-```
-
-Run [recipe-tests.yaml](files/recipe-tests.yaml) ansible playbook to install packages needed to run tests:
-```
-make prepare-check
-```
-
-Run tests locally:
-```
-make check
-```
-
-
 ### Additional configuration for development purposes
 
 #### Copr build
 
-For cases you'd like to trigger copr build in your copr project, you can configure it in
-packit configuration of your chosen package:
+For cases you'd like to trigger a copr build in your copr project, you can configure it in packit configuration of your chosen package:
 ```
 jobs:
 - job: copr_build
@@ -134,34 +107,22 @@ jobs:
     project: some_project_name
 ```
 
-### How to contribute code to packit
+### How to add a new job?
 
-1. Create a fork of the `packit` repository.
-2. Create a new branch just for the bug/feature you are working on.
-3. Once you have completed your work, create a Pull Request, ensuring that it meets the requirements listed below.
+Creating a new job is not hard at all but requires a few steps to be done. This section will walk you through this process.
 
+#### Define job type in Packit
 
-### Requirements for Pull Requests
+The first step is to define new `JobType` and/or `JobTriggerType` in [packit/config.py](https://github.com/packit-service/packit/blob/master/packit/config.py).
+Then I recommend to push this change into your packit fork and change installation of `packit` in both [recipe.yaml](/files/recipe.yaml) and [recipe-tests.yaml](/files/recipe-tests.yaml) to this commit (e.g `git+https://github.com/rpitonak/packit.git@9cae9a0381753148e5bb23121bfebbb948f37b01`).
 
-* Please create Pull Requests against the `master` branch.
-* Please make sure that your code complies with [PEP8](https://www.python.org/dev/peps/pep-0008/).
-* One line should not contain more than 100 characters.
-* Make sure that new code is covered by a test case (new or existing one).
-* We don't like [spaghetti code](https://en.wikipedia.org/wiki/Spaghetti_code).
-* The tests have to pass.
+#### Packit service
 
+Once we have jobs defined in `packit` config we are ready to move on to next steps:
 
-### Checkers/linters/formatters & pre-commit
-
-To make sure our code is compliant with the above requirements, we use:
-* [black code formatter](https://github.com/ambv/black)
-* [Flake8 code linter](http://flake8.pycqa.org)
-* [mypy static type checker](http://mypy-lang.org)
-
-There's a [pre-commit](https://pre-commit.com) config file in [.pre-commit-config.yaml](.pre-commit-config.yaml).
-To [utilize pre-commit](https://pre-commit.com/#usage), install pre-commit with `pip3 install pre-commit` and then either
-* `pre-commit install` - to install pre-commit into your [git hooks](https://githooks.com). pre-commit will from now on run all the checkers/linters/formatters on every commit. If you later want to commit without running it, just run `git commit` with `-n/--no-verify`.
-* Or if you want to manually run all the checkers/linters/formatters, run `pre-commit run --all-files`.
+1. Define a new event in [events.py](/packit_service/service/events.py). This is required just when you want to react to new events (e.g github webhooks, fedmsg events, payloads from other APIs). In this file there are representations of those JSON objects.
+2. Define parse method in [worker/parser.py](/packit_service/worker/parser.py). Create new static method in `Parser` class which can deserialize new defined event in previous step. Don't forget to call it in `parse_event` method. Write a new test in `test_events.py` to verify that it works well.
+3. Depends on type of job - create new handler in one of the `*_handlers.py` files. You need to implement the `run` method where is the whole logic of the handler. In this step take inspiration from other handlers.
 
 Thank you for your interest!
 packit team.
