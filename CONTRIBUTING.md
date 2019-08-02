@@ -49,15 +49,15 @@ Creating a new job is not hard at all but requires a few steps to be done. This 
 
 ## Packit
 
-The first step is to define new `JobType` and/or `JobTriggerType` in [packit/config.py](https://github.com/packit-service/packit/blob/master/packit/config.py). Then I recommend to push this change into your `packit fork` and change
+The first step is to define new `JobType` and/or `JobTriggerType` in [packit/config.py](https://github.com/packit-service/packit/blob/master/packit/config.py). Then I recommend to push this change into your packit fork and change
 installation of `packit` in both [recipe.yaml](/files/recipe.yaml) and [recipe-tests.yaml](/files/recipe-tests.yaml) to this commit (e.g `git+https://github.com/rpitonak/packit.git@9cae9a0381753148e5bb23121bfebbb948f37b01`).
 
 ## Packit service
 
 Once we have jobs defined in `packit` config we are ready to move on to next steps:
 
-1. Define a new event in [events.py](). This is required just when you want to react to new events (e.g github webhooks, fedmsg events, payloads from other APIs). In this file there are representations of those JSON objects.
-2. Define parse method in [parser.py]. Create new static method in Parser class which can deserialize new defined event in previous step. Don't forget to call it in `parse_event` method. Write a new test in `test_events.py` to verify that it works well.
+1. Define a new event in [events.py](/packit_service/service/events.py). This is required just when you want to react to new events (e.g github webhooks, fedmsg events, payloads from other APIs). In this file there are representations of those JSON objects.
+2. Define parse method in [/packit_service/worker/parser.py]. Create new static method in Parser class which can deserialize new defined event in previous step. Don't forget to call it in `parse_event` method. Write a new test in `test_events.py` to verify that it works well.
 3. Depends on type of job - create new handler in one of the `*_handlers.py` files. You need to implement the `run` method where is the whole logic of the handler. In this step take inspiration from other handlers.
 
 #### Changelog
