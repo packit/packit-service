@@ -36,13 +36,13 @@ from packit.config import (
 from packit.local_project import LocalProject
 
 from packit_service.config import Config
-from packit_service.constants import PACKIT_TESTING_FARM_CHECK
 from packit_service.service.events import TestingFarmResultsEvent, TestingFarmResult
 from packit_service.worker.github_handlers import AbstractGithubJobHandler
 from packit_service.worker.handler import (
     add_to_mapping,
     HandlerResults,
     BuildStatusReporter,
+    PRCheckName,
 )
 
 
@@ -87,7 +87,7 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
             msg,
             None,
             "https://packit.dev/",
-            check_name=PACKIT_TESTING_FARM_CHECK,
+            check_name=PRCheckName.get_testing_farm_check(),
         )
 
         return HandlerResults(success=True, details={})

@@ -56,6 +56,7 @@ from packit_service.worker.handler import (
     HandlerResults,
     add_to_mapping,
     BuildStatusReporter,
+    PRCheckName,
 )
 from packit_service.worker.whitelist import Whitelist
 
@@ -238,6 +239,9 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
         self.package_config.upstream_project_url = event.https_url
 
     def handle_pull_request(self):
+
+        check_name = PRCheckName.get_build_check()
+
         if not self.job.metadata.get("targets"):
             logger.error(
                 "'targets' value is required in packit config for copr_build job"
@@ -266,7 +270,7 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
         r = BuildStatusReporter(self.project, self.event.commit_sha, copr_build_model)
         if self.event.github_login not in collaborators:
             msg = "Only collaborators can trigger Packit-as-a-Service"
-            r.set_status("failure", msg)
+            r.set_status("failure", msg, PRCheckName.get_build_check())
             return HandlerResults(success=False, details={"msg": msg})
         try:
             build_id, repo_url = self.api.run_copr_build(
@@ -276,7 +280,7 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             msg = "You have reached 10-minute timeout while creating the SRPM."
             self.project.pr_comment(self.event.pr_id, msg)
             msg = "Timeout reached while creating a SRPM."
-            r.report("failure", msg)
+            r.report("failure", msg, check_name=check_name)
             return HandlerResults(success=False, details={"msg": msg})
         except SandcastleCommandFailed as ex:
             max_log_size = 1024 * 16  # is 16KB enough?
@@ -294,17 +298,17 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             )
             self.project.pr_comment(self.event.pr_id, msg)
             msg = "Failed to create a SRPM."
-            r.report("failure", msg)
+            r.report("failure", msg, check_name=check_name)
             return HandlerResults(success=False, details={"msg": msg})
         except FailedCreateSRPM:
             msg = "Failed to create a SRPM."
-            r.report("failure", msg)
+            r.report("failure", msg, check_name=check_name)
             return HandlerResults(success=False, details={"msg": msg})
 
         except Exception as ex:
             logger.error(f"error while running a copr build: {ex}")
             msg = f"There was an error while running the build: {ex}"
-            r.report("failure", msg)
+            r.report("failure", msg, check_name=check_name)
             return HandlerResults(success=False, details={"msg": msg})
 
         copr_build_model.build_id = build_id

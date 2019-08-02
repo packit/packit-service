@@ -35,7 +35,7 @@ from packit_service.service.events import (
     WhitelistStatus,
     InstallationEvent,
 )
-from packit_service.worker.handler import BuildStatusReporter
+from packit_service.worker.handler import BuildStatusReporter, PRCheckName
 
 logger = logging.getLogger(__name__)
 
@@ -195,7 +195,12 @@ class Whitelist:
                 if event.trigger == JobTriggerType.pull_request:
                     r = BuildStatusReporter(project, event.commit_sha, None)
                     msg = "Account is not whitelisted!"
-                    r.report("failure", msg, url=FAQ_URL)
+                    r.report(
+                        "failure",
+                        msg,
+                        url=FAQ_URL,
+                        check_name=PRCheckName.get_build_check(),
+                    )
                 return False
 
         return True
