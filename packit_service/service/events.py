@@ -23,6 +23,7 @@
 """
 This file defines classes for events which are sent by GitHub or FedMsg.
 """
+import copy
 import enum
 from pathlib import Path
 from typing import Optional
@@ -57,6 +58,11 @@ class Event:
         self.trigger: JobTriggerType = trigger
         self._service_config: Config = None
 
+    def get_dict(self) -> dict:
+        d = copy.deepcopy(self.__dict__)
+        del d["_service_config"]
+        return d
+
     @property
     def service_config(self) -> Config:
         if not self._service_config:
@@ -90,7 +96,7 @@ class ReleaseEvent(AbstractGithubEvent):
         self.https_url = https_url
 
     def get_dict(self) -> dict:
-        result = self.__dict__
+        result = super().get_dict()
         result["trigger"] = str(result["trigger"])
         return result
 
@@ -132,7 +138,7 @@ class PullRequestEvent(AbstractGithubEvent):
         self.github_login = github_login
 
     def get_dict(self) -> dict:
-        result = self.__dict__
+        result = super().get_dict()
         # whole dict have to be JSON serializable because of redis
         result["trigger"] = str(result["trigger"])
         result["action"] = str(result["action"])
@@ -176,7 +182,7 @@ class InstallationEvent(Event):
         self.status = status
 
     def get_dict(self) -> dict:
-        result = self.__dict__
+        result = super().get_dict()
         # whole dict have to be JSON serializable because of redis
         result["trigger"] = str(result["trigger"])
         result["status"] = result["status"].value
@@ -202,7 +208,7 @@ class DistGitEvent(Event):
         self.msg_id = msg_id
 
     def get_dict(self) -> dict:
-        result = self.__dict__
+        result = super().get_dict()
         # whole dict have to be JSON serializable because of redis
         result["trigger"] = str(result["trigger"])
         result["topic"] = str(result["topic"])
