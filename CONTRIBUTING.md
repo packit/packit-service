@@ -38,22 +38,34 @@ It's a quick read, and it's a great way to introduce yourself to how things work
 If you are introducing a new dependency, please make sure it's added to:
  * [setup.cfg](setup.cfg)
 
+### How to contribute code to packit
 
-### How to add a new job?
+1. Create a fork of the `packit` repository.
+2. Create a new branch just for the bug/feature you are working on.
+3. Once you have completed your work, create a Pull Request, ensuring that it meets the requirements listed below.
 
-Creating a new job is not hard at all but requires a few steps to be done. This section will walk you through this process.
 
-## Packit
+### Requirements for Pull Requests
 
-The first step is to define new `JobType` and/or `JobTriggerType` in [packit/config.py](https://github.com/packit-service/packit/blob/master/packit/config.py). Then I recommend to push this change into your packit fork and change installation of `packit` in both [recipe.yaml](/files/recipe.yaml) and [recipe-tests.yaml](/files/recipe-tests.yaml) to this commit (e.g `git+https://github.com/rpitonak/packit.git@9cae9a0381753148e5bb23121bfebbb948f37b01`).
+* Please create Pull Requests against the `master` branch.
+* Please make sure that your code complies with [PEP8](https://www.python.org/dev/peps/pep-0008/).
+* One line should not contain more than 100 characters.
+* Make sure that new code is covered by a test case (new or existing one).
+* We don't like [spaghetti code](https://en.wikipedia.org/wiki/Spaghetti_code).
+* The tests have to pass.
 
-## Packit service
 
-Once we have jobs defined in `packit` config we are ready to move on to next steps:
+### Checkers/linters/formatters & pre-commit
 
-1. Define a new event in [events.py](/packit_service/service/events.py). This is required just when you want to react to new events (e.g github webhooks, fedmsg events, payloads from other APIs). In this file there are representations of those JSON objects.
-2. Define parse method in [/packit_service/worker/parser.py]. Create new static method in Parser class which can deserialize new defined event in previous step. Don't forget to call it in `parse_event` method. Write a new test in `test_events.py` to verify that it works well.
-3. Depends on type of job - create new handler in one of the `*_handlers.py` files. You need to implement the `run` method where is the whole logic of the handler. In this step take inspiration from other handlers.
+To make sure our code is compliant with the above requirements, we use:
+* [black code formatter](https://github.com/ambv/black)
+* [Flake8 code linter](http://flake8.pycqa.org)
+* [mypy static type checker](http://mypy-lang.org)
+
+There's a [pre-commit](https://pre-commit.com) config file in [.pre-commit-config.yaml](.pre-commit-config.yaml).
+To [utilize pre-commit](https://pre-commit.com/#usage), install pre-commit with `pip3 install pre-commit` and then either
+* `pre-commit install` - to install pre-commit into your [git hooks](https://githooks.com). pre-commit will from now on run all the checkers/linters/formatters on every commit. If you later want to commit without running it, just run `git commit` with `-n/--no-verify`.
+* Or if you want to manually run all the checkers/linters/formatters, run `pre-commit run --all-files`.
 
 #### Changelog
 
@@ -68,7 +80,6 @@ When you are contributing to changelog, please follow these suggestions:
   think about a situation that you met someone at a conference and you are
   trying to convince the person to use the project and that the changelog
   should help with that.
-
 
 ### Testing
 
@@ -129,34 +140,22 @@ jobs:
     project: some_project_name
 ```
 
-### How to contribute code to packit
+### How to add a new job?
 
-1. Create a fork of the `packit` repository.
-2. Create a new branch just for the bug/feature you are working on.
-3. Once you have completed your work, create a Pull Request, ensuring that it meets the requirements listed below.
+Creating a new job is not hard at all but requires a few steps to be done. This section will walk you through this process.
 
+## Packit
 
-### Requirements for Pull Requests
+The first step is to define new `JobType` and/or `JobTriggerType` in [packit/config.py](https://github.com/packit-service/packit/blob/master/packit/config.py).
+Then I recommend to push this change into your packit fork and change installation of `packit` in both [recipe.yaml](/files/recipe.yaml) and [recipe-tests.yaml](/files/recipe-tests.yaml) to this commit (e.g `git+https://github.com/rpitonak/packit.git@9cae9a0381753148e5bb23121bfebbb948f37b01`).
 
-* Please create Pull Requests against the `master` branch.
-* Please make sure that your code complies with [PEP8](https://www.python.org/dev/peps/pep-0008/).
-* One line should not contain more than 100 characters.
-* Make sure that new code is covered by a test case (new or existing one).
-* We don't like [spaghetti code](https://en.wikipedia.org/wiki/Spaghetti_code).
-* The tests have to pass.
+## Packit service
 
+Once we have jobs defined in `packit` config we are ready to move on to next steps:
 
-### Checkers/linters/formatters & pre-commit
-
-To make sure our code is compliant with the above requirements, we use:
-* [black code formatter](https://github.com/ambv/black)
-* [Flake8 code linter](http://flake8.pycqa.org)
-* [mypy static type checker](http://mypy-lang.org)
-
-There's a [pre-commit](https://pre-commit.com) config file in [.pre-commit-config.yaml](.pre-commit-config.yaml).
-To [utilize pre-commit](https://pre-commit.com/#usage), install pre-commit with `pip3 install pre-commit` and then either
-* `pre-commit install` - to install pre-commit into your [git hooks](https://githooks.com). pre-commit will from now on run all the checkers/linters/formatters on every commit. If you later want to commit without running it, just run `git commit` with `-n/--no-verify`.
-* Or if you want to manually run all the checkers/linters/formatters, run `pre-commit run --all-files`.
+1. Define a new event in [events.py](/packit_service/service/events.py). This is required just when you want to react to new events (e.g github webhooks, fedmsg events, payloads from other APIs). In this file there are representations of those JSON objects.
+2. Define parse method in [/packit_service/worker/parser.py]. Create new static method in Parser class which can deserialize new defined event in previous step. Don't forget to call it in `parse_event` method. Write a new test in `test_events.py` to verify that it works well.
+3. Depends on type of job - create new handler in one of the `*_handlers.py` files. You need to implement the `run` method where is the whole logic of the handler. In this step take inspiration from other handlers.
 
 Thank you for your interest!
 packit team.
