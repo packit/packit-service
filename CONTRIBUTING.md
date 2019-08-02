@@ -44,7 +44,6 @@ If you are introducing a new dependency, please make sure it's added to:
 2. Create a new branch just for the bug/feature you are working on.
 3. Once you have completed your work, create a Pull Request, ensuring that it meets the requirements listed below.
 
-
 ### Requirements for Pull Requests
 
 * Please create Pull Requests against the `master` branch.
@@ -53,7 +52,6 @@ If you are introducing a new dependency, please make sure it's added to:
 * Make sure that new code is covered by a test case (new or existing one).
 * We don't like [spaghetti code](https://en.wikipedia.org/wiki/Spaghetti_code).
 * The tests have to pass.
-
 
 ### Checkers/linters/formatters & pre-commit
 
@@ -92,34 +90,6 @@ make prepare-check && make check
 ```
 
 As a CI we use [CentOS CI](https://ci.centos.org/job/packit-service-pr/) with a configuration in [Jenkinsfile](Jenkinsfile).
-
-
-### Makefile
-
-#### Requirements
-
-- docker
-- ansible
-
-#### Targets
-
-Here are some important and useful targets of [Makefile](/Makefile):
-
-Build a container image for packit service:
-```
-make build
-```
-
-Run [recipe-tests.yaml](files/recipe-tests.yaml) ansible playbook to install packages needed to run tests:
-```
-make prepare-check
-```
-
-Run tests locally:
-```
-make check
-```
-
 
 ### Additional configuration for development purposes
 
