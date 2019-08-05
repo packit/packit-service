@@ -87,7 +87,9 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
             msg,
             None,
             "https://packit.dev/",
-            check_name=PRCheckName.get_testing_farm_check(),
+            check_name=PRCheckName.get_testing_farm_check()
+            + "-"
+            + self.tests_results_event.copr_chroot,
         )
 
         return HandlerResults(success=True, details={})

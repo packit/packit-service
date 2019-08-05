@@ -27,7 +27,7 @@ This file defines classes for job handlers specific for Github hooks
 import logging
 import uuid
 from pathlib import Path
-from typing import Union, Any
+from typing import Union, Any, Optional
 
 import requests
 from ogr import GithubService
@@ -46,6 +46,7 @@ from packit.local_project import LocalProject
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
 from packit_service.config import Config, Deployment
+from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.service.events import (
     PullRequestEvent,
     InstallationEvent,
@@ -330,7 +331,27 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
                 "\nPlease note that the RPMs should be used only in a testing environment."
             )
             self.project.pr_comment(self.event.pr_id, msg)
+
+            # Testing farm is triggered just once copr build is finished as it uses copr builds
+            # get job config
+            test_job = self.get_tests_for_build()
+            if test_job:
+                testing_farm_handler = GithubTestingFarmHandler(
+                    self.config, test_job, self.event
+                )
+                testing_farm_handler.run()
+
             return HandlerResults(success=True, details={})
+
+    def get_tests_for_build(self) -> Optional[JobConfig]:
+        """
+        Check if there are tests defined
+        :return: JobConfig or None
+        """
+        for job in self.package_config.jobs:
+            if job.job == JobType.tests:
+                return job
+        return None
 
     def run(self) -> HandlerResults:
         if self.event.trigger == JobTriggerType.pull_request:
@@ -345,8 +366,12 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             )
 
 
-@add_to_mapping
 class GithubTestingFarmHandler(AbstractGithubJobHandler):
+    """
+    This class intentionally does not have a @add_to_mapping decorator as its
+    trigger is finished copr build.
+    """
+
     name = JobType.tests
     triggers = [JobTriggerType.pull_request]
 
@@ -412,16 +437,39 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
             git_project=self.project, working_dir=self.config.command_handler_work_dir
         )
 
-        pipeline_id = str(uuid.uuid4())
-        payload: dict = {"pipeline": pipeline_id}
-        logger.debug("Sending testing farm request...")
-        logger.debug(payload)
+        chroots = self.job.metadata.get("targets")
+        for chroot in chroots:
+            pipeline_id = str(uuid.uuid4())
+            payload: dict = {
+                "pipeline": pipeline_id,
+                "token": self.config.testing_farm_secret,
+            }
 
-        # TODO change to real url
-        req = self.send_testing_farm_request("url", "POST", {}, payload)
-        logger.debug(
-            f"Submitted to testing farm with return code: {req.status_code}"
-            f" and message: {req.json['message']}"
-        )
+            stg = "-stg" if self.config.deployment == Deployment.stg else ""
+            copr_repo_name = (
+                f"{self.project.namespace}-{self.project.repo}-"
+                f"{self.pr_event.pr_id}{stg}"
+            )
+
+            payload["artifact"] = {
+                "repo-name": self.pr_event.base_repo_name,
+                "repo-namespace": self.pr_event.base_repo_namespace,
+                "copr-repo-name": copr_repo_name,
+                "copr-chroot": chroot,
+                "commit-sha": self.pr_event.commit_sha,
+                "git-url": self.pr_event.https_url,
+                "git-ref": self.pr_event.base_ref,
+            }
+
+            logger.debug("Sending testing farm request...")
+            logger.debug(payload)
+
+            req = self.send_testing_farm_request(
+                TESTING_FARM_TRIGGER_URL, "POST", {}, payload
+            )
+            logger.debug(
+                f"Submitted to testing farm with return code: {req.status_code}"
+                f" and message: {req.json['message']}"
+            )
 
         return HandlerResults(success=True, details={})
