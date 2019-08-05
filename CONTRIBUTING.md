@@ -113,7 +113,7 @@ Creating a new job is not hard at all but requires a few steps to be done. This 
 
 #### Define job type in Packit
 
-The first step is to define new `JobType` and/or `JobTriggerType` in [packit/config.py](https://github.com/packit-service/packit/blob/master/packit/config.py).
+The first step is to define new `JobType` and/or `JobTriggerType` in [packit/config.py](https://github.com/packit-service/packit/blob/master/packit/config.py). If you are defining new job which appears also in `.packit.yaml` you have to update `JOB_CONFIG_SCHEMA` in [schema.py](https://github.com/packit-service/packit/blob/master/packit/schema.py) and add the name of job to enum.
 Then I recommend to push this change into your packit fork and change installation of `packit` in both [recipe.yaml](/files/recipe.yaml) and [recipe-tests.yaml](/files/recipe-tests.yaml) to this commit (e.g `git+https://github.com/rpitonak/packit.git@9cae9a0381753148e5bb23121bfebbb948f37b01`).
 
 #### Packit service
