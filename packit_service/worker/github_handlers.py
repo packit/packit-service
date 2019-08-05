@@ -414,8 +414,14 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
 
         pipeline_id = str(uuid.uuid4())
         payload: dict = {"pipeline": pipeline_id}
+        logger.debug("Sending testing farm request...")
+        logger.debug(payload)
 
         # TODO change to real url
-        self.send_testing_farm_request("url", "POST", {}, payload)
+        req = self.send_testing_farm_request("url", "POST", {}, payload)
+        logger.debug(
+            f"Submitted to testing farm with return code: {req.status_code}"
+            f" and message: {req.json['message']}"
+        )
 
         return HandlerResults(success=True, details={})
