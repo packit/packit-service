@@ -25,6 +25,7 @@ This file defines classes for job handlers specific for Github hooks
 """
 
 import logging
+import uuid
 from pathlib import Path
 from typing import Union, Any
 
@@ -411,7 +412,8 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
             git_project=self.project, working_dir=self.config.command_handler_work_dir
         )
 
-        payload: dict = {}
+        pipeline_id = str(uuid.uuid4())
+        payload: dict = {"pipeline": pipeline_id}
 
         # TODO change to real url
         self.send_testing_farm_request("url", "POST", {}, payload)
