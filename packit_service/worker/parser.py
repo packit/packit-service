@@ -30,10 +30,12 @@ from packit.utils import nested_get
 
 from packit_service.service.events import (
     PullRequestEvent,
+    PullRequestCommentEvent,
     InstallationEvent,
     ReleaseEvent,
     DistGitEvent,
     PullRequestAction,
+    PullRequestCommentAction,
 )
 from packit_service.worker.fedmsg_handlers import NewDistGitCommit
 
@@ -50,7 +52,7 @@ class Parser:
     def parse_event(
         event: dict
     ) -> Optional[
-        Union[PullRequestEvent, InstallationEvent, ReleaseEvent, DistGitEvent]
+        Union[PullRequestEvent, InstallationEvent, ReleaseEvent, DistGitEvent, PullRequestCommentEvent]
     ]:
         """
         Try to parse all JSONs that we process
@@ -63,8 +65,12 @@ class Parser:
             return None
 
         response: Optional[
-            Union[PullRequestEvent, InstallationEvent, ReleaseEvent, DistGitEvent]
+            Union[PullRequestEvent, InstallationEvent, ReleaseEvent, DistGitEvent, PullRequestCommentEvent]
         ] = Parser.parse_pr_event(event)
+        if response:
+            return response
+
+        response = Parser.parse_pull_request_comment_event(event)
         if response:
             return response
 
@@ -129,6 +135,50 @@ class Parser:
                 https_url,
                 commit_sha,
                 github_login,
+            )
+        return None
+
+    @staticmethod
+    def parse_pull_request_comment_event(event) -> Optional[PullRequestCommentEvent]:
+        """ look into the provided event and see if it is github issue event """
+        action = nested_get(event, "action")
+        logger.debug(f"action = {action}")
+        is_issue = nested_get(event, "issue")
+        if not is_issue:
+            logger.info("Not a issue event.")
+            return None
+        pr_id = nested_get(event, "issue", "number")
+        is_pr_comment = nested_get(event, "issue", "pull_request")
+        if not is_pr_comment:
+            logger.info("Not a comment on pull request.")
+            return None
+        if action in ["created", "edited"] and pr_id:
+            base_repo_namespace = nested_get(
+                event, "repository", "owner", "login"
+            )
+            base_repo_name = nested_get(event, "repository",  "name")
+            if not (base_repo_name and base_repo_namespace):
+                logger.warning(
+                    "We could not figure out the full name of the repository."
+                )
+                return None
+            github_login = nested_get(event, "comment", "user", "login")
+            if not github_login:
+                logger.warning("We could not figure out GitHub login name from event.")
+                return None
+            target_repo = nested_get(event, "repository", "full_name")
+            logger.info(f"GitHub issue comment {pr_id} event for repo {target_repo}.")
+            comment = nested_get(event, "comment", "body")
+            https_url = event["repository"]["html_url"]
+            return PullRequestCommentEvent(
+                PullRequestCommentAction[action],
+                pr_id,
+                base_repo_namespace,
+                base_repo_name,
+                target_repo,
+                https_url,
+                github_login,
+                comment,
             )
         return None
 
