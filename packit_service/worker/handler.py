@@ -93,7 +93,7 @@ class BuildStatusReporter:
         description: str,
         build_id: Optional[str] = None,
         url: str = "",
-        check_name: str = "",
+        check_name: str = PACKIT_PROD_CHECK,
     ):
         logger.debug(
             f"Reporting state of copr build ID={build_id},"

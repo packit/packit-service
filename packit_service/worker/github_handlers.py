@@ -333,14 +333,14 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             self.project.pr_comment(self.event.pr_id, msg)
 
             # Testing farm is triggered just once copr build is finished as it uses copr builds
-            # get job config
-            test_job = self.get_tests_for_build()
-            if test_job:
+            test_job_config = self.get_tests_for_build()
+            if test_job_config:
                 testing_farm_handler = GithubTestingFarmHandler(
-                    self.config, test_job, self.event
+                    self.config, test_job_config, self.event
                 )
                 testing_farm_handler.run()
-
+            else:
+                logger.debug("Testing farm not in the job config.")
             return HandlerResults(success=True, details={})
 
     def get_tests_for_build(self) -> Optional[JobConfig]:
@@ -467,9 +467,12 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
             req = self.send_testing_farm_request(
                 TESTING_FARM_TRIGGER_URL, "POST", {}, payload
             )
-            logger.debug(
-                f"Submitted to testing farm with return code: {req.status_code}"
-                f" and message: {req.json['message']}"
-            )
+            if not req:
+                logger.debug("Failed to post request to testing farm API.")
+                return HandlerResults(success=False, details={})
+            else:
+                logger.debug(
+                    f"Submitted to testing farm with return code: {req.status_code}"
+                )
 
         return HandlerResults(success=True, details={})

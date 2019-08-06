@@ -11,4 +11,6 @@ PACKIT_STG_CHECK = "packit-stg/rpm-build"
 PACKIT_PROD_TESTING_FARM_CHECK = "packit/testing-farm"
 PACKIT_STG_TESTING_FARM_CHECK = "packit-stg/testing-farm"
 
-TESTING_FARM_TRIGGER_URL = "http://scheduler-testing-farm.apps.ci.centos.org/v0/trigger"
+TESTING_FARM_TRIGGER_URL = (
+    "https://scheduler-testing-farm.apps.ci.centos.org/v0/trigger"
+)
