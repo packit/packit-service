@@ -24,15 +24,14 @@
 Tests for events parsing
 """
 
-import pytest
 import json
-import flexmock
 
+import pytest
+from flexmock import flexmock
 from ogr.services.github import GithubProject, GithubService
 from packit.config import JobTriggerType
 
 from packit_service.config import Config
-
 from packit_service.service.events import (
     WhitelistStatus,
     InstallationEvent,
@@ -108,6 +107,13 @@ class TestEvents:
         assert event_object.target_repo == "packit-service/packit"
         assert event_object.https_url == "https://github.com/packit-service/packit"
         assert event_object.commit_sha == "528b803be6f93e19ca4130bf4976f2800a3004c4"
+
+        def _get_f_c(*args, **kwargs):
+            raise FileNotFoundError()
+
+        flexmock(GithubProject, get_file_content=_get_f_c)
+        flexmock(Config, get_service_config=Config())
+        assert event_object.get_package_config() is None
 
     def test_get_project_pr(self, pull_request, mock_config):
         event_object = Parser.parse_event(pull_request)

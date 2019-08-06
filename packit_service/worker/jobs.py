@@ -61,10 +61,10 @@ class SteveJobs:
         package_config = event.get_package_config()
 
         if not package_config:
-            # this happens when service receives fedmsg topic which we process,
-            # but package has no packit.yaml
+            # this happens when service receives events for repos which
+            # don't have packit config, this is not an error
             msg = "Failed to obtain package config!"
-            logger.warning(msg)
+            logger.info(msg)
             handlers_results[event.trigger.value] = HandlerResults(
                 success=False, details={"msg": msg}
             )

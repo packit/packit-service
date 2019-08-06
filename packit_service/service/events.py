@@ -25,6 +25,7 @@ This file defines classes for events which are sent by GitHub or FedMsg.
 """
 import copy
 import enum
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -33,6 +34,9 @@ from ogr.abstract import GitProject
 from packit.config import JobTriggerType, get_package_config_from_repo, PackageConfig
 
 from packit_service.config import Config
+
+
+logger = logging.getLogger(__name__)
 
 
 class PullRequestAction(enum.Enum):
@@ -144,10 +148,16 @@ class PullRequestEvent(AbstractGithubEvent):
         result["action"] = str(result["action"])
         return result
 
-    def get_package_config(self):
+    def get_package_config(self) -> Optional[PackageConfig]:
         package_config: PackageConfig = get_package_config_from_repo(
             self.get_project(), self.base_ref
         )
+        if not package_config:
+            logger.info(
+                f"no packit config found for "
+                f"{self.base_repo_namespace}/{self.base_repo_name}, #{self.pr_id}"
+            )
+            return None
         package_config.upstream_project_url = self.https_url
         return package_config
 
