@@ -174,15 +174,15 @@ class PullRequestEvent(AbstractGithubEvent):
 
 class PullRequestCommentEvent(AbstractGithubEvent):
     def __init__(
-            self,
-            action: PullRequestCommentAction,
-            pr_id: int,
-            base_repo_namespace: str,
-            base_repo_name: str,
-            target_repo: str,
-            https_url: str,
-            github_login: str,
-            comment: str,
+        self,
+        action: PullRequestCommentAction,
+        pr_id: int,
+        base_repo_namespace: str,
+        base_repo_name: str,
+        target_repo: str,
+        https_url: str,
+        github_login: str,
+        comment: str,
     ):
         super(PullRequestCommentEvent, self).__init__(JobTriggerType.comment)
         self.action = action

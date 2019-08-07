@@ -63,17 +63,23 @@ class TestEvents:
 
     @pytest.fixture()
     def issue_created_request(self):
-        with open(DATA_DIR / "webhooks" / "github_issue_comment_event.json", "r") as outfile:
+        with open(
+            DATA_DIR / "webhooks" / "github_issue_comment_event.json", "r"
+        ) as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
     def issue_edited_request(self):
-        with open(DATA_DIR / "webhooks" / "github_issue_comment_event_edited.json", "r") as outfile:
+        with open(
+            DATA_DIR / "webhooks" / "github_issue_comment_event_edited.json", "r"
+        ) as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
     def issue_delete_request(self):
-        with open(DATA_DIR / "webhooks" / "github_issue_comment_event_delete.json", "r") as outfile:
+        with open(
+            DATA_DIR / "webhooks" / "github_issue_comment_event_delete.json", "r"
+        ) as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -141,7 +147,10 @@ class TestEvents:
         assert event_object.pr_id == 9
         assert event_object.base_repo_namespace == "packit-service"
         assert event_object.base_repo_name == "hello-world"
-        assert event_object.target_repo == f"{event_object.base_repo_namespace}/{event_object.base_repo_name}"
+        assert (
+            event_object.target_repo
+            == f"{event_object.base_repo_namespace}/{event_object.base_repo_name}"
+        )
         assert event_object.https_url == "https://github.com/packit-service/hello-world"
         assert event_object.github_login == "phracek"
         assert event_object.comment == "/packit copr-build"
@@ -155,7 +164,10 @@ class TestEvents:
         assert event_object.pr_id == 9
         assert event_object.base_repo_namespace == "packit-service"
         assert event_object.base_repo_name == "hello-world"
-        assert event_object.target_repo == f"{event_object.base_repo_namespace}/{event_object.base_repo_name}"
+        assert (
+            event_object.target_repo
+            == f"{event_object.base_repo_namespace}/{event_object.base_repo_name}"
+        )
         assert event_object.https_url == "https://github.com/packit-service/hello-world"
         assert event_object.github_login == "phracek"
         assert event_object.comment == "/packit copr-build 2"

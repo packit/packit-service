@@ -52,7 +52,13 @@ class Parser:
     def parse_event(
         event: dict
     ) -> Optional[
-        Union[PullRequestEvent, InstallationEvent, ReleaseEvent, DistGitEvent, PullRequestCommentEvent]
+        Union[
+            PullRequestEvent,
+            InstallationEvent,
+            ReleaseEvent,
+            DistGitEvent,
+            PullRequestCommentEvent,
+        ]
     ]:
         """
         Try to parse all JSONs that we process
@@ -65,7 +71,13 @@ class Parser:
             return None
 
         response: Optional[
-            Union[PullRequestEvent, InstallationEvent, ReleaseEvent, DistGitEvent, PullRequestCommentEvent]
+            Union[
+                PullRequestEvent,
+                InstallationEvent,
+                ReleaseEvent,
+                DistGitEvent,
+                PullRequestCommentEvent,
+            ]
         ] = Parser.parse_pr_event(event)
         if response:
             return response
@@ -91,13 +103,14 @@ class Parser:
     @staticmethod
     def parse_pr_event(event) -> Optional[PullRequestEvent]:
         """ look into the provided event and see if it's one for a new github pr """
-        action = nested_get(event, "action")
-        logger.debug(f"action = {action}")
-        pr_id = nested_get(event, "number")
         is_pr = nested_get(event, "pull_request")
         if not is_pr:
             logger.info("Not a pull request event.")
             return None
+
+        action = nested_get(event, "action")
+        logger.debug(f"action = {action}")
+        pr_id = nested_get(event, "number")
         if action in ["opened", "reopened", "synchronize"] and pr_id:
             # we can't use head repo here b/c the app is set up against the upstream repo
             # and not the fork, on the other hand, we don't process packit.yaml from
@@ -108,20 +121,21 @@ class Parser:
             base_repo_name = nested_get(event, "pull_request", "base", "repo", "name")
 
             if not (base_repo_name and base_repo_namespace):
-                logger.warning(
-                    "We could not figure out the full name of the repository."
-                )
+                logger.warning("No full name of the repository.")
                 return None
+
             base_ref = nested_get(event, "pull_request", "head", "sha")
             if not base_ref:
                 logger.warning("Ref where the PR is coming from is not set.")
                 return None
+
             github_login = nested_get(event, "pull_request", "user", "login")
             if not github_login:
-                logger.warning("We could not figure out GitHub login name from event.")
+                logger.warning("No GitHub login name from event.")
                 return None
+
             target_repo = nested_get(event, "repository", "full_name")
-            logger.info(f"GitHub pull request {pr_id} event for repo {target_repo}.")
+            logger.info(f"GitHub PR {pr_id} event for repo {target_repo}.")
 
             commit_sha = nested_get(event, "pull_request", "head", "sha")
             https_url = event["repository"]["html_url"]
@@ -141,33 +155,34 @@ class Parser:
     @staticmethod
     def parse_pull_request_comment_event(event) -> Optional[PullRequestCommentEvent]:
         """ look into the provided event and see if it is github issue event """
-        action = nested_get(event, "action")
-        logger.debug(f"action = {action}")
+
         is_issue = nested_get(event, "issue")
         if not is_issue:
             logger.info("Not a issue event.")
             return None
-        pr_id = nested_get(event, "issue", "number")
+
         is_pr_comment = nested_get(event, "issue", "pull_request")
         if not is_pr_comment:
             logger.info("Not a comment on pull request.")
             return None
+
+        action = nested_get(event, "action")
+        logger.debug(f"action = {action}")
+        pr_id = nested_get(event, "issue", "number")
         if action in ["created", "edited"] and pr_id:
-            base_repo_namespace = nested_get(
-                event, "repository", "owner", "login"
-            )
-            base_repo_name = nested_get(event, "repository",  "name")
+            base_repo_namespace = nested_get(event, "repository", "owner", "login")
+            base_repo_name = nested_get(event, "repository", "name")
             if not (base_repo_name and base_repo_namespace):
-                logger.warning(
-                    "We could not figure out the full name of the repository."
-                )
+                logger.warning("No full name of the repository.")
                 return None
+
             github_login = nested_get(event, "comment", "user", "login")
             if not github_login:
-                logger.warning("We could not figure out GitHub login name from event.")
+                logger.warning("No GitHub login name from event.")
                 return None
+
             target_repo = nested_get(event, "repository", "full_name")
-            logger.info(f"GitHub issue comment {pr_id} event for repo {target_repo}.")
+            logger.info(f"GitHub PR {pr_id} comment event for repo {target_repo}.")
             comment = nested_get(event, "comment", "body")
             https_url = event["repository"]["html_url"]
             return PullRequestCommentEvent(
@@ -229,14 +244,14 @@ class Parser:
             repo_namespace = nested_get(event, "repository", "owner", "login")
             repo_name = nested_get(event, "repository", "name")
             if not (repo_namespace and repo_name):
-                logger.warning(
-                    "We could not figure out the full name of the repository."
-                )
+                logger.warning("No full name of the repository.")
                 return None
+
             release_ref = nested_get(event, "release", "tag_name")
             if not release_ref:
                 logger.warning("Release tag name is not set.")
                 return None
+
             logger.info(
                 f"New release event {release_ref} for repo {repo_namespace}/{repo_name}."
             )
@@ -254,13 +269,13 @@ class Parser:
             repo_name = nested_get(event, "msg", "commit", "repo")
             ref = nested_get(event, "msg", "commit", "branch")
             if not (repo_namespace and repo_name):
-                logger.warning(
-                    "We could not figure out the full name of the repository."
-                )
+                logger.warning("No full name of the repository.")
                 return None
+
             if not ref:
                 logger.warning("Target branch for the new commits is not set.")
                 return None
+
             logger.info(
                 f"New commits added to dist-git repo {repo_namespace}/{repo_name}, branch {ref}."
             )
