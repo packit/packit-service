@@ -135,7 +135,7 @@ class JobHandler:
             logger.info("volume was not empty")
             logger.debug("content of the volume: %s" % globz)
         for item in globz:
-            if item.is_file():
+            if item.is_file() or item.is_symlink():
                 item.unlink()
             else:
                 shutil.rmtree(item)
