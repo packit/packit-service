@@ -303,6 +303,7 @@ class Parser:
             result: TestingFarmResult = TestingFarmResult(nested_get(event, "result"))
             environment: str = nested_get(event, "environment", "image")
             message: str = nested_get(event, "message")
+            log_url: str = nested_get(event, "url")
             copr_repo_name: str = nested_get(event, "artifact", "copr-repo-name")
             copr_chroot: str = nested_get(event, "artifact", "copr-chroot")
             repo_name: str = nested_get(event, "artifact", "repo-name")
@@ -321,6 +322,7 @@ class Parser:
                 result,
                 environment,
                 message,
+                log_url,
                 copr_repo_name,
                 copr_chroot,
                 tests,
