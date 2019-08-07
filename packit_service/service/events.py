@@ -298,6 +298,7 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         result: TestingFarmResult,
         environment: str,
         message: str,
+        log_url: str,
         copr_repo_name: str,
         copr_chroot: str,
         tests: List[TestResult],
@@ -314,6 +315,7 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         self.result = result
         self.environment = environment
         self.message = message
+        self.log_url = log_url
         self.copr_repo_name = copr_repo_name
         self.copr_chroot = copr_chroot
         self.tests = tests

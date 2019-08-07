@@ -93,7 +93,7 @@ class BuildStatusReporter:
         description: str,
         build_id: Optional[str] = None,
         url: str = "",
-        check_name: str = PACKIT_PROD_CHECK,
+        check_name: Optional[str] = None,
     ):
         logger.debug(
             f"Reporting state of copr build ID={build_id},"
@@ -102,6 +102,9 @@ class BuildStatusReporter:
         if self.copr_build_model:
             self.copr_build_model.status = state
             self.copr_build_model.save()
+
+        if not check_name:
+            check_name = PRCheckName.get_build_check()
 
         self.gh_proj.set_commit_status(
             self.commit_sha, state, url, description, check_name

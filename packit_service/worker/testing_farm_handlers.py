@@ -76,17 +76,14 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
         r = BuildStatusReporter(self.project, self.tests_results_event.commit_sha)
         if self.tests_results_event.result == TestingFarmResult.passed:
             status = "success"
-            msg = "Tests passed!"
         else:
             status = "failure"
-            msg = "Tests failed!"
 
-        # todo change to link to real log
         r.report(
             status,
-            msg,
+            self.tests_results_event.message,
             None,
-            "https://packit.dev/",
+            self.tests_results_event.log_url,
             check_name=PRCheckName.get_testing_farm_check()
             + "-"
             + self.tests_results_event.copr_chroot,
