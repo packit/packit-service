@@ -45,6 +45,11 @@ class PullRequestAction(enum.Enum):
     synchronize = "synchronize"
 
 
+class PullRequestCommentAction(enum.Enum):
+    created = "created"
+    edited = "edited"
+
+
 class FedmsgTopic(enum.Enum):
     dist_git_push = "org.fedoraproject.prod.git.receive"
     copr_build_finished = "org.fedoraproject.prod.copr.build.end"
@@ -160,6 +165,41 @@ class PullRequestEvent(AbstractGithubEvent):
             return None
         package_config.upstream_project_url = self.https_url
         return package_config
+
+    def get_project(self) -> GitProject:
+        return self.github_service.get_project(
+            repo=self.base_repo_name, namespace=self.base_repo_namespace
+        )
+
+
+class PullRequestCommentEvent(AbstractGithubEvent):
+    def __init__(
+        self,
+        action: PullRequestCommentAction,
+        pr_id: int,
+        base_repo_namespace: str,
+        base_repo_name: str,
+        target_repo: str,
+        https_url: str,
+        github_login: str,
+        comment: str,
+    ):
+        super(PullRequestCommentEvent, self).__init__(JobTriggerType.comment)
+        self.action = action
+        self.pr_id = pr_id
+        self.base_repo_namespace = base_repo_namespace
+        self.base_repo_name = base_repo_name
+        self.target_repo = target_repo
+        self.https_url = https_url
+        self.github_login = github_login
+        self.comment = comment
+
+    def get_dict(self) -> dict:
+        result = self.__dict__
+        # whole dict have to be JSON serializable because of redis
+        result["trigger"] = str(result["trigger"])
+        result["action"] = str(result["action"])
+        return result
 
     def get_project(self) -> GitProject:
         return self.github_service.get_project(

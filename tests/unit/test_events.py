@@ -38,6 +38,8 @@ from packit_service.service.events import (
     ReleaseEvent,
     PullRequestEvent,
     PullRequestAction,
+    PullRequestCommentEvent,
+    PullRequestCommentAction,
 )
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
@@ -57,6 +59,27 @@ class TestEvents:
     @pytest.fixture()
     def pull_request(self):
         with open(DATA_DIR / "webhooks" / "github_pr_event.json", "r") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def issue_created_request(self):
+        with open(
+            DATA_DIR / "webhooks" / "github_issue_comment_event.json", "r"
+        ) as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def issue_edited_request(self):
+        with open(
+            DATA_DIR / "webhooks" / "github_issue_comment_event_edited.json", "r"
+        ) as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def issue_delete_request(self):
+        with open(
+            DATA_DIR / "webhooks" / "github_issue_comment_event_delete.json", "r"
+        ) as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -114,6 +137,40 @@ class TestEvents:
         flexmock(GithubProject, get_file_content=_get_f_c)
         flexmock(Config, get_service_config=Config())
         assert event_object.get_package_config() is None
+
+    def test_parse_pr_comment_created(self, issue_created_request):
+        event_object = Parser.parse_event(issue_created_request)
+
+        assert isinstance(event_object, PullRequestCommentEvent)
+        assert event_object.trigger == JobTriggerType.comment
+        assert event_object.action == PullRequestCommentAction.created
+        assert event_object.pr_id == 9
+        assert event_object.base_repo_namespace == "packit-service"
+        assert event_object.base_repo_name == "hello-world"
+        assert (
+            event_object.target_repo
+            == f"{event_object.base_repo_namespace}/{event_object.base_repo_name}"
+        )
+        assert event_object.https_url == "https://github.com/packit-service/hello-world"
+        assert event_object.github_login == "phracek"
+        assert event_object.comment == "/packit copr-build"
+
+    def test_parse_pr_comment_edited(self, issue_edited_request):
+        event_object = Parser.parse_event(issue_edited_request)
+
+        assert isinstance(event_object, PullRequestCommentEvent)
+        assert event_object.trigger == JobTriggerType.comment
+        assert event_object.action == PullRequestCommentAction.edited
+        assert event_object.pr_id == 9
+        assert event_object.base_repo_namespace == "packit-service"
+        assert event_object.base_repo_name == "hello-world"
+        assert (
+            event_object.target_repo
+            == f"{event_object.base_repo_namespace}/{event_object.base_repo_name}"
+        )
+        assert event_object.https_url == "https://github.com/packit-service/hello-world"
+        assert event_object.github_login == "phracek"
+        assert event_object.comment == "/packit copr-build 2"
 
     def test_get_project_pr(self, pull_request, mock_config):
         event_object = Parser.parse_event(pull_request)
