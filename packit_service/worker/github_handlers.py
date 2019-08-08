@@ -278,6 +278,12 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             build_id, repo_url = self.api.run_copr_build(
                 project=project, chroots=chroots, owner=owner
             )
+            r.report(
+                "pending",
+                # todo what is the name of pending check?
+                "Tests are running",
+                check_name=check_name,
+            )
         except SandcastleTimeoutReached:
             msg = "You have reached 10-minute timeout while creating the SRPM."
             self.project.pr_comment(self.event.pr_id, msg)
@@ -437,17 +443,19 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
             git_project=self.project, working_dir=self.config.command_handler_work_dir
         )
 
+        r = BuildStatusReporter(self.project, self.pr_event.commit_sha)
+
         chroots = self.job.metadata.get("targets")
         for chroot in chroots:
             pipeline_id = str(uuid.uuid4())
             payload: dict = {
-                "pipeline": pipeline_id,
-                "token": self.config.testing_farm_secret,
+                "pipeline": {"id": pipeline_id},
+                "api": {"token": self.config.testing_farm_secret},
             }
 
             stg = "-stg" if self.config.deployment == Deployment.stg else ""
             copr_repo_name = (
-                f"{self.project.namespace}-{self.project.repo}-"
+                f"packit/{self.project.namespace}-{self.project.repo}-"
                 f"{self.pr_event.pr_id}{stg}"
             )
 
@@ -468,11 +476,38 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
                 TESTING_FARM_TRIGGER_URL, "POST", {}, payload
             )
             if not req:
+                msg = "Failed to post request to testing farm API."
                 logger.debug("Failed to post request to testing farm API.")
-                return HandlerResults(success=False, details={})
+                r.report(
+                    "failure",
+                    msg,
+                    None,
+                    "",
+                    check_name=PRCheckName.get_testing_farm_check() + "-" + chroot,
+                )
+                return HandlerResults(success=False, details={"msg": msg})
             else:
                 logger.debug(
                     f"Submitted to testing farm with return code: {req.status_code}"
                 )
 
+                # success set check on pending
+                if req.status_code != 200:
+                    # something went wrong
+                    msg = req.json["message"]
+                    r.report(
+                        "failure",
+                        msg,
+                        None,
+                        check_name=PRCheckName.get_testing_farm_check() + "-" + chroot,
+                    )
+                    return HandlerResults(success=False, details={"msg": msg})
+
+        r.report(
+            "pending",
+            "Tests are running",
+            None,
+            "",
+            check_name=PRCheckName.get_testing_farm_check() + "-" + chroot,
+        )
         return HandlerResults(success=True, details={})
