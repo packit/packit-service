@@ -486,6 +486,15 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
                     f"Submitted to testing farm with return code: {req.status_code}"
                 )
 
+                """
+                Response:
+                {
+                    "id": "9fa3cbd1-83f2-4326-a118-aad59f5",
+                    "success": true,
+                    "url": "https://console-testing-farm.apps.ci.centos.org/pipeline/<id>"
+                }
+                """
+
                 # success set check on pending
                 if req.status_code != 200:
                     # something went wrong
@@ -498,11 +507,12 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
                     )
                     return HandlerResults(success=False, details={"msg": msg})
 
-        r.report(
-            "pending",
-            "Tests are running",
-            None,
-            "",
-            check_name=PRCheckName.get_testing_farm_check() + "-" + chroot,
-        )
+                r.report(
+                    "pending",
+                    "Tests are running ...",
+                    None,
+                    req.json["url"],
+                    check_name=PRCheckName.get_testing_farm_check() + "-" + chroot,
+                )
+
         return HandlerResults(success=True, details={})

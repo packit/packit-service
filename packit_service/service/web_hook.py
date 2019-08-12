@@ -91,8 +91,11 @@ def validate_testing_farm_request():
         logger.error("testing_farm_secret not specified in config")
         return False
 
-    # TODO: validate signatures
-    return True
+    if request.get_json()["token"] == testing_farm_secret:
+        return True
+
+    logger.warning("Invalid testing farm secret provided!")
+    return False
 
 
 def validate_signature() -> bool:
