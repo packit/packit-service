@@ -41,7 +41,7 @@ from packit_service.service.events import (
     TestingFarmResultsEvent,
     TestingFarmResult,
     PullRequestCommentEvent,
-    PullRequestCommentAction
+    PullRequestCommentAction,
 )
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR

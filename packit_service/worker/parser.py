@@ -61,7 +61,7 @@ class Parser:
             ReleaseEvent,
             DistGitEvent,
             TestingFarmResultsEvent,
-            PullRequestCommentEvent
+            PullRequestCommentEvent,
         ]
     ]:
         """
@@ -81,7 +81,7 @@ class Parser:
                 ReleaseEvent,
                 DistGitEvent,
                 TestingFarmResultsEvent,
-                PullRequestCommentEvent
+                PullRequestCommentEvent,
             ]
         ] = Parser.parse_pr_event(event)
         if response:
