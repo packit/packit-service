@@ -23,7 +23,7 @@
 """
 This file defines classes for job handlers specific for Github hooks
 """
-
+import json
 import logging
 import uuid
 from pathlib import Path
@@ -275,14 +275,9 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             r.set_status("failure", msg, PRCheckName.get_build_check())
             return HandlerResults(success=False, details={"msg": msg})
         try:
+            r.report("pending", "RPM build has just started...", check_name=check_name)
             build_id, repo_url = self.api.run_copr_build(
                 project=project, chroots=chroots, owner=owner
-            )
-            r.report(
-                "pending",
-                # todo what is the name of pending check?
-                "Tests are running",
-                check_name=check_name,
             )
         except SandcastleTimeoutReached:
             msg = "You have reached 10-minute timeout while creating the SRPM."
@@ -396,7 +391,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
         adapter = requests.adapters.HTTPAdapter(max_retries=5)
         self.insecure = False
         self.session.mount("https://", adapter)
-        self.header: dict = {}
+        self.header: dict = {"Content-Type": "application/json"}
 
     def send_testing_farm_request(
         self, url: str, method: str = None, params: dict = None, data=None
@@ -473,7 +468,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
             logger.debug(payload)
 
             req = self.send_testing_farm_request(
-                TESTING_FARM_TRIGGER_URL, "POST", {}, payload
+                TESTING_FARM_TRIGGER_URL, "POST", {}, json.dumps(payload)
             )
             if not req:
                 msg = "Failed to post request to testing farm API."
