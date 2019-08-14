@@ -127,18 +127,18 @@ class JobHandler:
         raise NotImplementedError("This should have been implemented.")
 
     def _clean_workplace(self):
-        logger.debug("remove contents of the PV")
+        logger.debug("removing contents of the PV")
         p = Path(self.config.command_handler_work_dir)
         # remove everything in the volume, but not the volume dir
-        globz = list(p.glob("*"))
-        if globz:
-            logger.info("volume was not empty")
-            logger.debug("content of the volume: %s" % globz)
-        for item in globz:
-            if item.is_file() or item.is_symlink():
-                item.unlink()
-            else:
+        dir_items = list(p.iterdir())
+        if dir_items:
+            logger.info("volume is not empty")
+            logger.debug("content: %s" % [g.name for g in dir_items])
+        for item in dir_items:
+            if item.is_dir():
                 shutil.rmtree(item)
+            else:
+                item.unlink()
 
     def clean(self):
         """ clean up the mess once we're done """
