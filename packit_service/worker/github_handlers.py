@@ -334,6 +334,7 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             self.project.pr_comment(self.event.pr_id, msg)
 
             # Testing farm is triggered just once copr build is finished as it uses copr builds
+            # todo: utilize fedmsg for this.
             test_job_config = self.get_tests_for_build()
             if test_job_config:
                 testing_farm_handler = GithubTestingFarmHandler(
