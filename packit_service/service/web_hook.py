@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import hmac
+import json
 import logging
 from hashlib import sha1
 
@@ -82,7 +83,7 @@ def testing_farm_results():
 
     celery_app.send_task(name="task.steve_jobs.process_message", kwargs={"event": msg})
 
-    return "{'status': 200, 'message': 'Test results accepted'}"
+    return json.dumps({"status": 200, "message": "Test results accepted"})
 
 
 def validate_testing_farm_request():
