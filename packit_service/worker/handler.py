@@ -34,7 +34,12 @@ from packit.config import JobConfig, JobTriggerType, JobType
 from packit_service.config import Config, Deployment
 
 
-from packit_service.constants import PACKIT_PROD_CHECK, PACKIT_STG_CHECK
+from packit_service.constants import (
+    PACKIT_PROD_CHECK,
+    PACKIT_STG_CHECK,
+    PACKIT_PROD_TESTING_FARM_CHECK,
+    PACKIT_STG_TESTING_FARM_CHECK,
+)
 
 from packit_service.service.models import CoprBuild
 
@@ -42,6 +47,28 @@ logger = logging.getLogger(__name__)
 
 
 JOB_NAME_HANDLER_MAPPING: Dict[JobType, Type["JobHandler"]] = {}
+
+
+class PRCheckName:
+    """
+    This is class providing static methods for getting check names according to deployment
+    """
+
+    @staticmethod
+    def get_build_check() -> str:
+        config = Config.get_service_config()
+        if config.deployment == Deployment.prod:
+            return PACKIT_PROD_CHECK
+
+        return PACKIT_STG_CHECK
+
+    @staticmethod
+    def get_testing_farm_check() -> str:
+        config = Config.get_service_config()
+        if config.deployment == Deployment.prod:
+            return PACKIT_PROD_TESTING_FARM_CHECK
+
+        return PACKIT_STG_TESTING_FARM_CHECK
 
 
 def add_to_mapping(kls: Type["JobHandler"]):
@@ -66,7 +93,7 @@ class BuildStatusReporter:
         description: str,
         build_id: Optional[str] = None,
         url: str = "",
-        check_name: str = PACKIT_PROD_CHECK,
+        check_name: Optional[str] = None,
     ):
         logger.debug(
             f"Reporting state of copr build ID={build_id},"
@@ -76,18 +103,17 @@ class BuildStatusReporter:
             self.copr_build_model.status = state
             self.copr_build_model.save()
 
-        config = Config.get_service_config()
-        if config.deployment == Deployment.stg:
-            check_name = PACKIT_STG_CHECK
+        if not check_name:
+            check_name = PRCheckName.get_build_check()
 
         self.gh_proj.set_commit_status(
             self.commit_sha, state, url, description, check_name
         )
 
-    def set_status(self, state: str, description: str):
+    def set_status(self, state: str, description: str, check_name: str):
         logger.debug(description)
         self.gh_proj.set_commit_status(
-            self.commit_sha, state, "", description, "packit/rpm-build"
+            self.commit_sha, state, "", description, check_name
         )
 
 

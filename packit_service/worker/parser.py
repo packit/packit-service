@@ -24,7 +24,7 @@
 Parser is transforming github JSONs into `events` objects
 """
 import logging
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 from packit.utils import nested_get
 
@@ -35,6 +35,9 @@ from packit_service.service.events import (
     ReleaseEvent,
     DistGitEvent,
     PullRequestAction,
+    TestingFarmResultsEvent,
+    TestingFarmResult,
+    TestResult,
     PullRequestCommentAction,
 )
 from packit_service.worker.fedmsg_handlers import NewDistGitCommit
@@ -57,6 +60,7 @@ class Parser:
             InstallationEvent,
             ReleaseEvent,
             DistGitEvent,
+            TestingFarmResultsEvent,
             PullRequestCommentEvent,
         ]
     ]:
@@ -76,6 +80,7 @@ class Parser:
                 InstallationEvent,
                 ReleaseEvent,
                 DistGitEvent,
+                TestingFarmResultsEvent,
                 PullRequestCommentEvent,
             ]
         ] = Parser.parse_pr_event(event)
@@ -95,6 +100,10 @@ class Parser:
             return response
 
         response = Parser.parse_distgit_event(event)
+        if response:
+            return response
+
+        response = Parser.parse_testing_farm_results_event(event)
         if response:
             return response
 
@@ -284,4 +293,44 @@ class Parser:
 
             branch = nested_get(event, "msg", "commit", "branch")
             return DistGitEvent(topic, repo_namespace, repo_name, ref, branch, msg_id)
+        return None
+
+    @staticmethod
+    def parse_testing_farm_results_event(event) -> Optional[TestingFarmResultsEvent]:
+        """ this corresponds to testing farm results event """
+        pipeline_id: str = nested_get(event, "pipeline", "id")
+        if pipeline_id:
+            result: TestingFarmResult = TestingFarmResult(nested_get(event, "result"))
+            environment: str = nested_get(event, "environment", "image")
+            message: str = nested_get(event, "message")
+            log_url: str = nested_get(event, "url")
+            copr_repo_name: str = nested_get(event, "artifact", "copr-repo-name")
+            copr_chroot: str = nested_get(event, "artifact", "copr-chroot")
+            repo_name: str = nested_get(event, "artifact", "repo-name")
+            repo_namespace: str = nested_get(event, "artifact", "repo-namespace")
+            ref: str = nested_get(event, "artifact", "git-ref")
+            https_url: str = nested_get(event, "artifact", "git-url")
+            commit_sha: str = nested_get(event, "artifact", "commit-sha")
+            tests: List[TestResult] = []
+
+            logger.info(
+                f"New testing results arrived from testing farm!. Pipeline ID: {pipeline_id}"
+            )
+
+            return TestingFarmResultsEvent(
+                pipeline_id,
+                result,
+                environment,
+                message,
+                log_url,
+                copr_repo_name,
+                copr_chroot,
+                tests,
+                repo_namespace,
+                repo_name,
+                ref,
+                https_url,
+                commit_sha,
+            )
+
         return None

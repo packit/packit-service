@@ -25,7 +25,7 @@ We love you, Steve Jobs.
 """
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 
 from packit.config import JobTriggerType, JobType
 
@@ -33,6 +33,7 @@ from packit_service.config import Config
 from packit_service.worker.github_handlers import GithubAppInstallationHandler
 from packit_service.worker.handler import HandlerResults, JOB_NAME_HANDLER_MAPPING
 from packit_service.worker.parser import Parser
+from packit_service.worker.testing_farm_handlers import TestingFarmResultsHandler
 from packit_service.worker.whitelist import Whitelist
 
 
@@ -89,6 +90,7 @@ class SteveJobs:
                         )
                         return handlers_results
 
+                    logger.debug(f"Running handler: {str(handler_kls)}")
                     handlers_results[job.job.value] = handler.run()
                     # don't break here, other handlers may react to the same event
                 finally:
@@ -120,16 +122,30 @@ class SteveJobs:
         # installation is handled differently b/c app is installed to GitHub account
         # not repository, so package config with jobs is missing
         if event_object.trigger == JobTriggerType.installation:
-            handler = GithubAppInstallationHandler(self.config, None, event_object)
+            handler: Union[
+                GithubAppInstallationHandler, TestingFarmResultsHandler
+            ] = GithubAppInstallationHandler(self.config, None, event_object)
             jobs_results[JobType.add_to_whitelist.value] = handler.run()
+        # Results from testing farm is another job which is not defined in packit.yaml so
+        # it needs to be handled outside process_jobs method
+        elif event_object.trigger == JobTriggerType.testing_farm_results:
+            handler = TestingFarmResultsHandler(self.config, None, event_object)
+            jobs_results[JobType.report_test_results.value] = handler.run()
         else:
             jobs_results = self.process_jobs(event_object)
+
+        logger.debug("All jobs finished!")
 
         task_results = {
             "jobs": jobs_results,
             "event": event_object.get_dict(),
             "trigger": str(event_object.trigger),
         }
+
+        # no jobs results, prevent from traceback on accessing v["success"]
+        if not jobs_results.values():
+            logger.error(task_results)
+            return task_results
 
         if any(not v["success"] for v in jobs_results.values()):
             # Any job handler failed, mark task state as FAILURE

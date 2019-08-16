@@ -38,6 +38,8 @@ from packit_service.service.events import (
     ReleaseEvent,
     PullRequestEvent,
     PullRequestAction,
+    TestingFarmResultsEvent,
+    TestingFarmResult,
     PullRequestCommentEvent,
     PullRequestCommentAction,
 )
@@ -59,6 +61,11 @@ class TestEvents:
     @pytest.fixture()
     def pull_request(self):
         with open(DATA_DIR / "webhooks" / "github_pr_event.json", "r") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def testing_farm_results(self):
+        with open(DATA_DIR / "webhooks" / "testing_farm_results.json", "r") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -172,6 +179,23 @@ class TestEvents:
         assert event_object.github_login == "phracek"
         assert event_object.comment == "/packit copr-build 2"
 
+    def test_parse_testing_farm_results(self, testing_farm_results):
+        event_object = Parser.parse_event(testing_farm_results)
+
+        assert isinstance(event_object, TestingFarmResultsEvent)
+        assert event_object.trigger == JobTriggerType.testing_farm_results
+        assert event_object.pipeline_id == "43e310b6-c1f1-4d3e-a95c-6c1eca235296"
+        assert event_object.result == TestingFarmResult.passed
+        assert event_object.repo_namespace == "packit-service"
+        assert event_object.repo_name == "hello-world"
+        assert event_object.ref == "pull/10/head"
+        assert event_object.https_url == "https://github.com/packit-service/hello-world"
+        assert event_object.commit_sha == "46597d9b66a1927b50376f73bdb1ec1a5757c330"
+        assert event_object.message == "Error or info message to display"
+        assert event_object.environment == "Fedora-Cloud-Base-29-1.2.x86_64.qcow2"
+        assert event_object.copr_repo_name == "packit/packit-service-hello-world-10-stg"
+        assert event_object.copr_chroot == "fedora-29-x86_64"
+
     def test_get_project_pr(self, pull_request, mock_config):
         event_object = Parser.parse_event(pull_request)
 
@@ -198,3 +222,15 @@ class TestEvents:
         assert isinstance(project.service, GithubService)
         assert project.namespace == "Codertocat"
         assert project.repo == "Hello-World"
+
+    def test_get_project_testing_farm_results(self, testing_farm_results, mock_config):
+        event_object = Parser.parse_event(testing_farm_results)
+
+        assert isinstance(event_object, TestingFarmResultsEvent)
+
+        project = event_object.get_project()
+
+        assert isinstance(project, GithubProject)
+        assert isinstance(project.service, GithubService)
+        assert project.namespace == "packit-service"
+        assert project.repo == "hello-world"

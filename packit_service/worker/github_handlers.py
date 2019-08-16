@@ -23,13 +23,16 @@
 """
 This file defines classes for job handlers specific for Github hooks
 """
-
+import json
 import logging
+import uuid
 from pathlib import Path
-from typing import Union, Any
+from typing import Union, Any, Optional
 
+import requests
 from ogr import GithubService
 from ogr.abstract import GitProject
+from ogr.utils import RequestResponse
 from packit.api import PackitAPI
 from packit.config import (
     JobConfig,
@@ -43,6 +46,7 @@ from packit.local_project import LocalProject
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
 from packit_service.config import Config, Deployment
+from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.service.events import (
     PullRequestEvent,
     InstallationEvent,
@@ -54,6 +58,7 @@ from packit_service.worker.handler import (
     HandlerResults,
     add_to_mapping,
     BuildStatusReporter,
+    PRCheckName,
 )
 from packit_service.worker.whitelist import Whitelist
 
@@ -236,6 +241,9 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
         self.package_config.upstream_project_url = event.https_url
 
     def handle_pull_request(self):
+
+        check_name = PRCheckName.get_build_check()
+
         if not self.job.metadata.get("targets"):
             logger.error(
                 "'targets' value is required in packit config for copr_build job"
@@ -264,9 +272,10 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
         r = BuildStatusReporter(self.project, self.event.commit_sha, copr_build_model)
         if self.event.github_login not in collaborators:
             msg = "Only collaborators can trigger Packit-as-a-Service"
-            r.set_status("failure", msg)
+            r.set_status("failure", msg, PRCheckName.get_build_check())
             return HandlerResults(success=False, details={"msg": msg})
         try:
+            r.report("pending", "RPM build has just started...", check_name=check_name)
             build_id, repo_url = self.api.run_copr_build(
                 project=project, chroots=chroots, owner=owner
             )
@@ -274,7 +283,7 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             msg = "You have reached 10-minute timeout while creating the SRPM."
             self.project.pr_comment(self.event.pr_id, msg)
             msg = "Timeout reached while creating a SRPM."
-            r.report("failure", msg)
+            r.report("failure", msg, check_name=check_name)
             return HandlerResults(success=False, details={"msg": msg})
         except SandcastleCommandFailed as ex:
             max_log_size = 1024 * 16  # is 16KB enough?
@@ -292,17 +301,17 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             )
             self.project.pr_comment(self.event.pr_id, msg)
             msg = "Failed to create a SRPM."
-            r.report("failure", msg)
+            r.report("failure", msg, check_name=check_name)
             return HandlerResults(success=False, details={"msg": msg})
         except FailedCreateSRPM:
             msg = "Failed to create a SRPM."
-            r.report("failure", msg)
+            r.report("failure", msg, check_name=check_name)
             return HandlerResults(success=False, details={"msg": msg})
 
         except Exception as ex:
             logger.error(f"error while running a copr build: {ex}")
             msg = f"There was an error while running the build: {ex}"
-            r.report("failure", msg)
+            r.report("failure", msg, check_name=check_name)
             return HandlerResults(success=False, details={"msg": msg})
 
         copr_build_model.build_id = build_id
@@ -323,7 +332,28 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
                 "\nPlease note that the RPMs should be used only in a testing environment."
             )
             self.project.pr_comment(self.event.pr_id, msg)
+
+            # Testing farm is triggered just once copr build is finished as it uses copr builds
+            # todo: utilize fedmsg for this.
+            test_job_config = self.get_tests_for_build()
+            if test_job_config:
+                testing_farm_handler = GithubTestingFarmHandler(
+                    self.config, test_job_config, self.event
+                )
+                testing_farm_handler.run()
+            else:
+                logger.debug("Testing farm not in the job config.")
             return HandlerResults(success=True, details={})
+
+    def get_tests_for_build(self) -> Optional[JobConfig]:
+        """
+        Check if there are tests defined
+        :return: JobConfig or None
+        """
+        for job in self.package_config.jobs:
+            if job.job == JobType.tests:
+                return job
+        return None
 
     def run(self) -> HandlerResults:
         if self.event.trigger == JobTriggerType.pull_request:
@@ -336,3 +366,154 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
                 success=False,
                 details={"msg": f"No handler for {str(self.event.trigger)}"},
             )
+
+
+class GithubTestingFarmHandler(AbstractGithubJobHandler):
+    """
+    This class intentionally does not have a @add_to_mapping decorator as its
+    trigger is finished copr build.
+    """
+
+    name = JobType.tests
+    triggers = [JobTriggerType.pull_request]
+
+    def __init__(self, config: Config, job: JobConfig, pr_event: PullRequestEvent):
+        super(GithubTestingFarmHandler, self).__init__(config=config, job=job)
+        self.pr_event = pr_event
+        self.project: GitProject = self.github_service.get_project(
+            repo=pr_event.base_repo_name, namespace=pr_event.base_repo_namespace
+        )
+        self.package_config: PackageConfig = get_package_config_from_repo(
+            self.project, pr_event.base_ref
+        )
+        self.package_config.upstream_project_url = pr_event.https_url
+
+        self.session = requests.session()
+        adapter = requests.adapters.HTTPAdapter(max_retries=5)
+        self.insecure = False
+        self.session.mount("https://", adapter)
+        self.header: dict = {"Content-Type": "application/json"}
+
+    def send_testing_farm_request(
+        self, url: str, method: str = None, params: dict = None, data=None
+    ):
+        method = method or "GET"
+        try:
+            response = self.get_raw_request(
+                method=method, url=url, params=params, data=data
+            )
+        except requests.exceptions.ConnectionError as er:
+            logger.error(er)
+            raise Exception(f"Cannot connect to url: `{url}`.", er)
+        return response
+
+    def get_raw_request(
+        self, url, method="GET", params=None, data=None, header=None
+    ) -> RequestResponse:
+
+        response = self.session.request(
+            method=method,
+            url=url,
+            params=params,
+            headers=header or self.header,
+            data=data,
+            verify=not self.insecure,
+        )
+
+        json_output = None
+        try:
+            json_output = response.json()
+        except ValueError:
+            logger.debug(response.text)
+
+        return RequestResponse(
+            status_code=response.status_code,
+            ok=response.ok,
+            content=response.content,
+            json=json_output,
+            reason=response.reason,
+        )
+
+    def run(self) -> HandlerResults:
+        self.local_project = LocalProject(
+            git_project=self.project, working_dir=self.config.command_handler_work_dir
+        )
+
+        r = BuildStatusReporter(self.project, self.pr_event.commit_sha)
+
+        chroots = self.job.metadata.get("targets")
+        for chroot in chroots:
+            pipeline_id = str(uuid.uuid4())
+            payload: dict = {
+                "pipeline": {"id": pipeline_id},
+                "api": {"token": self.config.testing_farm_secret},
+            }
+
+            stg = "-stg" if self.config.deployment == Deployment.stg else ""
+            copr_repo_name = (
+                f"packit/{self.project.namespace}-{self.project.repo}-"
+                f"{self.pr_event.pr_id}{stg}"
+            )
+
+            payload["artifact"] = {
+                "repo-name": self.pr_event.base_repo_name,
+                "repo-namespace": self.pr_event.base_repo_namespace,
+                "copr-repo-name": copr_repo_name,
+                "copr-chroot": chroot,
+                "commit-sha": self.pr_event.commit_sha,
+                "git-url": self.pr_event.https_url,
+                "git-ref": self.pr_event.base_ref,
+            }
+
+            logger.debug("Sending testing farm request...")
+            logger.debug(payload)
+
+            req = self.send_testing_farm_request(
+                TESTING_FARM_TRIGGER_URL, "POST", {}, json.dumps(payload)
+            )
+            if not req:
+                msg = "Failed to post request to testing farm API."
+                logger.debug("Failed to post request to testing farm API.")
+                r.report(
+                    "failure",
+                    msg,
+                    None,
+                    "",
+                    check_name=PRCheckName.get_testing_farm_check() + "-" + chroot,
+                )
+                return HandlerResults(success=False, details={"msg": msg})
+            else:
+                logger.debug(
+                    f"Submitted to testing farm with return code: {req.status_code}"
+                )
+
+                """
+                Response:
+                {
+                    "id": "9fa3cbd1-83f2-4326-a118-aad59f5",
+                    "success": true,
+                    "url": "https://console-testing-farm.apps.ci.centos.org/pipeline/<id>"
+                }
+                """
+
+                # success set check on pending
+                if req.status_code != 200:
+                    # something went wrong
+                    msg = req.json["message"]
+                    r.report(
+                        "failure",
+                        msg,
+                        None,
+                        check_name=PRCheckName.get_testing_farm_check() + "-" + chroot,
+                    )
+                    return HandlerResults(success=False, details={"msg": msg})
+
+                r.report(
+                    "pending",
+                    "Tests are running ...",
+                    None,
+                    req.json["url"],
+                    check_name=PRCheckName.get_testing_farm_check() + "-" + chroot,
+                )
+
+        return HandlerResults(success=True, details={})

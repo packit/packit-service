@@ -27,7 +27,7 @@ import copy
 import enum
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from ogr import PagureService, GithubService
 from ogr.abstract import GitProject
@@ -60,6 +60,20 @@ class WhitelistStatus(enum.Enum):
     approved_automatically = "approved_automatically"
     waiting = "waiting"
     approved_manually = "approved_manually"
+
+
+class TestingFarmResult(enum.Enum):
+    passed = "passed"
+    failed = "failed"
+    error = "error"
+    running = "running"
+
+
+class TestResult:
+    def __init__(self, name: str, result: TestingFarmResult, log_url: str):
+        self.name = name
+        self.result = result
+        self.log_url = log_url
 
 
 class Event:
@@ -273,5 +287,60 @@ class DistGitEvent(Event):
             token=config.pagure_user_token, read_only=config.dry_run
         )
         return pagure_service.get_project(
+            repo=self.repo_name, namespace=self.repo_namespace
+        )
+
+
+class TestingFarmResultsEvent(AbstractGithubEvent):
+    def __init__(
+        self,
+        pipeline_id: str,
+        result: TestingFarmResult,
+        environment: str,
+        message: str,
+        log_url: str,
+        copr_repo_name: str,
+        copr_chroot: str,
+        tests: List[TestResult],
+        repo_namespace: str,
+        repo_name: str,
+        ref: str,
+        https_url: str,
+        commit_sha: str,
+    ):
+        super(TestingFarmResultsEvent, self).__init__(
+            JobTriggerType.testing_farm_results
+        )
+        self.pipeline_id = pipeline_id
+        self.result = result
+        self.environment = environment
+        self.message = message
+        self.log_url = log_url
+        self.copr_repo_name = copr_repo_name
+        self.copr_chroot = copr_chroot
+        self.tests = tests
+        self.repo_name = repo_name
+        self.repo_namespace = repo_namespace
+        self.ref: str = ref
+        self.https_url: str = https_url
+        self.commit_sha: str = commit_sha
+
+    def get_dict(self) -> dict:
+        result = self.__dict__
+        # whole dict have to be JSON serializable because of redis
+        result["_service_config"] = ""
+        result["trigger"] = result["trigger"].value
+        result["result"] = result["result"].value
+        return result
+
+    def get_package_config(self):
+        package_config: PackageConfig = get_package_config_from_repo(
+            self.get_project(), self.ref
+        )
+        package_config.upstream_project_url = self.https_url
+        return package_config
+
+    def get_project(self) -> GitProject:
+        return self.github_service.get_project(
             repo=self.repo_name, namespace=self.repo_namespace
         )

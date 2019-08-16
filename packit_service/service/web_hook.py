@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import hmac
+import json
 import logging
 from hashlib import sha1
 
@@ -67,6 +68,35 @@ def github_webhook():
     celery_app.send_task(name="task.steve_jobs.process_message", kwargs={"event": msg})
 
     return "Webhook accepted. We thank you, Github."
+
+
+@app.route("/testing-farm/results", methods=["POST"])
+def testing_farm_results():
+    msg = request.get_json()
+
+    if not msg:
+        logger.debug("/testing-farm/results: we haven't received any JSON data.")
+        return "We haven't received any JSON data."
+
+    if not validate_testing_farm_request():
+        abort(401)  # Unauthorized
+
+    celery_app.send_task(name="task.steve_jobs.process_message", kwargs={"event": msg})
+
+    return json.dumps({"status": 200, "message": "Test results accepted"})
+
+
+def validate_testing_farm_request():
+    testing_farm_secret = config.testing_farm_secret.encode()
+    if not testing_farm_secret:
+        logger.error("testing_farm_secret not specified in config")
+        return False
+
+    if request.get_json()["token"] == testing_farm_secret:
+        return True
+
+    logger.warning("Invalid testing farm secret provided!")
+    return False
 
 
 def validate_signature() -> bool:
