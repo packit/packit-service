@@ -3,7 +3,7 @@
     name: packit-service/packit-service
     check:
       jobs:
-        - packit-service-pre-commit
+ #       - packit-service-pre-commit
         - packit-service-tests
     gate:
       jobs:
@@ -26,9 +26,12 @@
     name: packit-service-tests
     parent: base
     description: Run tests of packit via rpms
+    required-projects:
+      - github.com/packit-service/deployment
     pre-run:
       - files/install-openshift.yaml
-      - files/deploy-service.yaml
+      - files/packit-service-image.yaml
+      - files/deployment.yaml
     run: files/zuul-tests.yaml
     extra-vars:
       with_testing: true

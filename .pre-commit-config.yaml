@@ -15,6 +15,7 @@ repos:
     - id: check-ast
     - id: check-merge-conflict
     - id: check-yaml
+      exclude: files/zuul
     - id: detect-private-key
       exclude: tests/conftest.py
     - id: end-of-file-fixer
