@@ -35,7 +35,7 @@ from ogr import GithubService
 from packit.api import PackitAPI
 from packit.config import Config
 
-from packit_service.service.events import PullRequestEvent
+from packit_service.service.events import PullRequestCommentEvent
 from packit_service.worker.handler import HandlerResults
 
 logger = logging.getLogger(__name__)
@@ -59,9 +59,9 @@ def add_to_pr_comment_mapping(kls: Type["PullRequestCommentHandler"]):
 class PullRequestCommentHandler:
     name: PullRequestCommentAction
 
-    def __init__(self, config: Config, event: PullRequestEvent):
+    def __init__(self, config: Config, event: PullRequestCommentEvent):
         self.config: Config = config
-        self.event: PullRequestEvent = event
+        self.event: PullRequestCommentEvent = event
         self.api: Optional[PackitAPI] = None
         self.local_project: Optional[PackitAPI] = None
 
