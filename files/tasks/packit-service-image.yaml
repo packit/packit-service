@@ -1,0 +1,3 @@
+---
+- name: "Build packit-service image from current src dir"
+  command: make build

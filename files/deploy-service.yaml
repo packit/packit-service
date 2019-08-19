@@ -1,0 +1,60 @@
+---
+- name: Deploy packit-service into OpenShift with staging secrets
+  hosts: localhost
+  tasks:
+  - name: Download the deployment
+    git:
+        repo: 'https://github.com/packit-service/deployment.git'
+        dest: /tmp/deployment
+        clone: yes
+  - name: Install packages for deployment
+    dnf:
+      name:
+        - ansible-2.7.10-1.fc30 # because of packit-service deployment
+        - python3-openshift
+        - make
+
+  - name: get token
+    command: echo asdasdasdasd
+    register: kubeconfig_token
+
+  - name: Create dev.yml template
+    copy:
+      content: |
+        # Openshift project/namespace name
+        project: myproject
+
+        # Openshift cluster url (example: https://192.168.42.66:8443)
+        host: https://127.0.0.1:443
+
+        # oc login <the above host value>, oc whoami -t
+        # OR via Openshift web GUI: click on your login in top right corner, 'Copy Login Command', take the part after --token=
+        api_key: {{ kubeconfig_token }}
+
+        # To work-around 'SSL: CERTIFICATE_VERIFY_FAILED'
+        verify_ssl: no
+
+        # don't deploy fedmsg dc; good for local testing
+        without_fedmsg: false
+
+        # don't deploy redis-commander dc; good for staging deployment
+        without_redis_commander: false
+
+        # don't deploy flower dc; good for staging deployment
+        without_flower: false
+
+        # you can set the sandbox namespace name explicitly like this
+        sandbox_namespace: "packit-dev-sandbox"
+      dest: /tmp/deployment/vars/dev.yml.j2
+  - name: Create dev.yaml
+    template:
+      src: /tmp/deployment/vars/dev.yml.j2
+      dest: /tmp/deployment/vars/dev.yml
+
+  - name: Actually deploy
+    command: make deploy
+    environment:
+      DEPLOYMENT: dev
+      ANSIBLE_STDOUT_CALLBACK: debug
+    args:
+      chdir: /tmp/deployment/

@@ -1,0 +1,11 @@
+---
+- name: This is a recipe for how to run packit tests
+  hosts: all
+  tasks:
+  - include_tasks: tasks/zuul-project-setup.yaml
+  - include_tasks: tasks/packit-service-image.yaml
+  - import_playbook: deploy-service.yaml
+  - name: Run tests
+    command: make check_in_container
+    args:
+      chdir: '{{ project_dir }}'

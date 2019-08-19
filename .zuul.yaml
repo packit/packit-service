@@ -3,7 +3,37 @@
     name: packit-service/packit-service
     check:
       jobs:
-        - noop
+        - packit-service-pre-commit
+        - packit-service-tests
     gate:
       jobs:
-        - noop
+        - packit-service-pre-commit
+        - packit-service-tests
+
+- job:
+    name: packit-service-pre-commit
+    parent: base
+    description: Check precommit
+    run: files/zuul-pre-commit.yaml
+    extra-vars:
+      ansible_python_interpreter: /usr/bin/python3
+    nodeset:
+      nodes:
+        - name: test-node
+          label: cloud-fedora-30
+
+- job:
+    name: packit-service-tests
+    parent: base
+    description: Run tests of packit via rpms
+    pre-run:
+      - files/install-openshift.yaml
+      - files/deploy-service.yaml
+    run: files/zuul-tests.yaml
+    extra-vars:
+      with_testing: true
+      ansible_python_interpreter: /usr/bin/python3
+    nodeset:
+      nodes:
+        - name: test-node
+          label: cloud-fedora-30
