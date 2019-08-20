@@ -27,7 +27,6 @@ import logging
 from typing import Optional, Union, List
 
 from packit.utils import nested_get
-
 from packit_service.service.events import (
     PullRequestEvent,
     PullRequestCommentEvent,
@@ -111,16 +110,15 @@ class Parser:
 
     @staticmethod
     def parse_pr_event(event) -> Optional[PullRequestEvent]:
-        """ look into the provided event and see if it's one for a new github pr """
-        is_pr = nested_get(event, "pull_request")
-        if not is_pr:
-            logger.info("Not a pull request event.")
+        """ Look into the provided event and see if it's one for a new github PR. """
+        if not event.get("pull_request"):
             return None
 
-        action = nested_get(event, "action")
-        logger.debug(f"action = {action}")
-        pr_id = nested_get(event, "number")
+        pr_id = event.get("number")
+        action = event.get("action")
         if action in ["opened", "reopened", "synchronize"] and pr_id:
+            logger.info(f"GitHub PR {pr_id} event, action = {action}.")
+
             # we can't use head repo here b/c the app is set up against the upstream repo
             # and not the fork, on the other hand, we don't process packit.yaml from
             # the PR but what's in the upstream
@@ -144,7 +142,7 @@ class Parser:
                 return None
 
             target_repo = nested_get(event, "repository", "full_name")
-            logger.info(f"GitHub PR {pr_id} event for repo {target_repo}.")
+            logger.info(f"Target repo: {target_repo}.")
 
             commit_sha = nested_get(event, "pull_request", "head", "sha")
             https_url = event["repository"]["html_url"]
@@ -163,22 +161,16 @@ class Parser:
 
     @staticmethod
     def parse_pull_request_comment_event(event) -> Optional[PullRequestCommentEvent]:
-        """ look into the provided event and see if it is github issue event """
+        """ Look into the provided event and see if it is Github PR comment event. """
 
-        is_issue = nested_get(event, "issue")
-        if not is_issue:
-            logger.info("Not a issue event.")
+        if not nested_get(event, "issue", "pull_request"):
             return None
 
-        is_pr_comment = nested_get(event, "issue", "pull_request")
-        if not is_pr_comment:
-            logger.info("Not a comment on pull request.")
-            return None
-
-        action = nested_get(event, "action")
-        logger.debug(f"action = {action}")
         pr_id = nested_get(event, "issue", "number")
+        action = event.get("action")
         if action in ["created", "edited"] and pr_id:
+            logger.info(f"GitHub PR {pr_id} comment event, action = {action}.")
+
             base_repo_namespace = nested_get(event, "repository", "owner", "login")
             base_repo_name = nested_get(event, "repository", "name")
             if not (base_repo_name and base_repo_namespace):
@@ -191,7 +183,7 @@ class Parser:
                 return None
 
             target_repo = nested_get(event, "repository", "full_name")
-            logger.info(f"GitHub PR {pr_id} comment event for repo {target_repo}.")
+            logger.info(f"Target repo: {target_repo}.")
             comment = nested_get(event, "comment", "body")
             https_url = event["repository"]["html_url"]
             return PullRequestCommentEvent(
@@ -208,18 +200,20 @@ class Parser:
 
     @staticmethod
     def parse_installation_event(event) -> Optional[InstallationEvent]:
-        """ look into the provided event and see github app installation details """
-        action = nested_get(event, "action")  # created or deleted
-        logger.debug(f"action = {action}")
-
-        if not event.get("installation", None):
+        """ Look into the provided event and see Github App installation details. """
+        # Check if installation key in JSON isn't enough, we have to check the account as well
+        if not nested_get(event, "installation", "account"):
             return None
 
-        # it is not enough to check if installation key in JSON, we have to check the account
-        if not event["installation"].get("account", None):
-            return None
-
+        action = event.get("action")  # created or deleted
         installation_id = event["installation"]["id"]
+
+        logger.info(
+            f"Github App installation event. Action {action}"
+            f"Id {installation_id}, account {event['installation']['account']},"
+            f"sender {event['sender']}"
+        )
+
         account_login = event["installation"]["account"]["login"]
         account_id = event["installation"]["account"]["id"]
         account_url = event["installation"]["account"]["url"]
@@ -246,10 +240,11 @@ class Parser:
         look into the provided event and see if it's one for a published github release;
         if it is, process it and return input for the job handler
         """
-        action = nested_get(event, "action")
-        logger.debug(f"action = {action}")
-        release = nested_get(event, "release")
+        action = event.get("action")
+        release = event.get("release")
         if action == "published" and release:
+            logger.info(f"GitHub release {release} event, action = {action}.")
+
             repo_namespace = nested_get(event, "repository", "owner", "login")
             repo_name = nested_get(event, "repository", "name")
             if not (repo_namespace and repo_name):
@@ -271,9 +266,10 @@ class Parser:
     @staticmethod
     def parse_distgit_event(event) -> Optional[DistGitEvent]:
         """ this corresponds to dist-git event when someone pushes new commits """
-        topic = nested_get(event, "topic")
-        logger.debug(f"topic = {topic}")
+        topic = event.get("topic")
         if topic == NewDistGitCommit.topic:
+            logger.info(f"Dist-git commit event, topic: {topic}")
+
             repo_namespace = nested_get(event, "msg", "commit", "namespace")
             repo_name = nested_get(event, "msg", "commit", "repo")
             ref = nested_get(event, "msg", "commit", "branch")
@@ -288,7 +284,7 @@ class Parser:
             logger.info(
                 f"New commits added to dist-git repo {repo_namespace}/{repo_name}, branch {ref}."
             )
-            msg_id = nested_get(event, "msg_id")
+            msg_id = event.get("msg_id")
             logger.info(f"msg_id = {msg_id}")
 
             branch = nested_get(event, "msg", "commit", "branch")
