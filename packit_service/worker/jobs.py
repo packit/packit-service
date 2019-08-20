@@ -74,7 +74,6 @@ class SteveJobs:
             handlers_results[event.trigger.value] = HandlerResults(
                 success=False, details={"msg": msg}
             )
-
             return handlers_results
 
         for job in package_config.jobs:
@@ -83,6 +82,7 @@ class SteveJobs:
                 if not handler_kls:
                     logger.warning(f"There is no handler for job {job}")
                     continue
+
                 handler = handler_kls(self.config, job, event)
                 try:
                     # check whitelist approval for every job to be able to track down which jobs
@@ -105,7 +105,11 @@ class SteveJobs:
     def process_comment_jobs(self, event: Optional[Any]):
         handlers_results = {}
         # packit_command can be `/packit build` or `/packit build <with_args>`
-        (packit_mark, *packit_command) = event.comment.split(maxsplit=3)
+        try:
+            (packit_mark, *packit_command) = event.comment.split(maxsplit=3)
+        except ValueError:
+            logger.debug(f"This PR comment '{event.comment}' is empty.")
+            return HandlerResults(success=False, details={})
 
         if REQUESTED_PULL_REQUEST_COMMENT != packit_mark:
             logger.debug(
@@ -122,7 +126,7 @@ class SteveJobs:
                 details={
                     "msg": (
                         f"This PR trigger command '{REQUESTED_PULL_REQUEST_COMMENT} "
-                        f"{packit_command[0]}' is not handled by packit-service."
+                        f"{packit_command}' is not handled by packit-service."
                     )
                 },
             )
