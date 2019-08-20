@@ -155,6 +155,13 @@ class JobHandler:
     def _clean_workplace(self):
         logger.debug("removing contents of the PV")
         p = Path(self.config.command_handler_work_dir)
+        # Do not clean dir if does not exist
+        if not p.is_dir():
+            logger.debug(
+                f"Directory {self.config.command_handler_work_dir} does not exist."
+            )
+            return
+
         # remove everything in the volume, but not the volume dir
         dir_items = list(p.iterdir())
         if dir_items:
