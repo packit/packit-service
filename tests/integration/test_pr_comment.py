@@ -24,19 +24,12 @@ import json
 
 import pytest
 from flexmock import flexmock
-from github import Github
+
+from packit_service.worker.pr_comment_handler import PullRequestCommentAction
 from tests.spellbook import DATA_DIR
 
-from ogr.services.github import GithubProject
-
-from copr.v3.client import Client as CoprClient
-
-from packit.local_project import LocalProject
 from packit.api import PackitAPI
-from packit_service.config import Config
 from packit_service.worker.jobs import SteveJobs
-from packit_service.worker.whitelist import Whitelist
-from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.worker.copr_build import CoprBuildHandler
 from packit_service.worker.handler import HandlerResults
 
@@ -55,77 +48,49 @@ def pr_build_comment_event():
     )
 
 
-def test_pr_comment_copr_build_handler(pr_copr_build_comment_event):
-    packit_yaml = (
-        "{'specfile_path': '', 'synced_files': [],"
-        "'jobs': [{'trigger': 'pull_request', 'job': 'copr_build',"
-        "'metadata': {'targets': 'fedora-rawhide-x86_64'}}]}"
+@pytest.fixture()
+def pr_empty_comment_event():
+    return json.loads(
+        (DATA_DIR / "webhooks" / "github_issue_comment_empty.json").read_text()
     )
-    copr_dict = {
-        "login": "stevejobs",
-        "username": "stevejobs",
-        "token": "apple",
-        "copr_url": "https://copr.fedorainfracloud.org",
-    }
-    flexmock(Github, get_repo=lambda full_name_or_id: None)
-    flexmock(
-        GithubProject,
-        get_file_content=lambda path, ref: packit_yaml,
-        full_repo_name="packit-service/hello-world",
-    )
-    flexmock(CoprClient).should_receive("create_from_config_file").and_return(
-        CoprClient(copr_dict)
-    )
-    flexmock(GithubProject).should_receive("who_can_merge_pr").and_return({"phracek"})
-    flexmock(GithubProject).should_receive("get_all_pr_commits").with_args(
-        9
-    ).and_return(["528b803be6f93e19ca4130bf4976f2800a3004c4"])
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Whitelist, check_and_report=True)
+
+
+def test_pr_comment_copr_build_handler(
+    mock_pr_comment_functionality, pr_copr_build_comment_event
+):
     flexmock(CoprBuildHandler).should_receive("run_copr_build").and_return(
         HandlerResults(success=True, details={})
     )
-    config = Config()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    flexmock(Config).should_receive("get_service_config").and_return(config)
     steve = SteveJobs()
-
     results = steve.process_message(pr_copr_build_comment_event)
-    assert "pull_request_action" in results.get("jobs", {})
+    assert results.get("jobs", {})
+    assert PullRequestCommentAction.copr_build in results.get("jobs", {})
     assert "created" in results.get("event", {}).get("action", None)
+    assert results.get("event", {}).get("pr_id", None) == 9
     assert "comment" in results.get("trigger", None)
-    assert results.get("jobs", {}).get("pull_request_action", {}).get("success")
+    assert results.get("event", {}).get("comment", None) == "/packit copr-build"
+    assert (
+        results.get("jobs", {})
+        .get(PullRequestCommentAction.copr_build, {})
+        .get("success")
+    )
 
 
-def test_pr_comment_build_handler(pr_build_comment_event):
-    packit_yaml = (
-        "{'specfile_path': '', 'synced_files': [],"
-        "'downstream_package_name': 'hello-world',"
-        "'jobs': [{'trigger': 'pull_request', 'job': 'build',"
-        "'metadata': {'targets': 'fedora-rawhide-x86_64'}}]}"
-    )
-    flexmock(Github, get_repo=lambda full_name_or_id: None)
-    flexmock(
-        GithubProject,
-        get_file_content=lambda path, ref: packit_yaml,
-        full_repo_name="packit-service/hello-world",
-    )
-    flexmock(GithubProject).should_receive("who_can_merge_pr").and_return({"phracek"})
-    flexmock(GithubProject).should_receive("get_all_pr_commits").with_args(
-        9
-    ).and_return(["528b803be6f93e19ca4130bf4976f2800a3004c4"])
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Whitelist, check_and_report=True)
+def test_pr_comment_build_handler(
+    mock_pr_comment_functionality, pr_build_comment_event
+):
     flexmock(PackitAPI).should_receive("build").with_args(
         dist_git_branch="master"
     ).once()
-    config = Config()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    flexmock(Config).should_receive("get_service_config").and_return(config)
     steve = SteveJobs()
 
     results = steve.process_message(pr_build_comment_event)
-    assert "pull_request_action" in results.get("jobs", {})
+    assert results.get("jobs", {})
+    assert PullRequestCommentAction.build in results.get("jobs", {})
     assert "created" in results.get("event", {}).get("action", None)
+    assert results.get("event", {}).get("pr_id", None) == 9
     assert "comment" in results.get("trigger", None)
-    assert results.get("jobs", {}).get("pull_request_action", {}).get("success")
+    assert results.get("event", {}).get("comment", None) == "/packit build"
+    assert (
+        results.get("jobs", {}).get(PullRequestCommentAction.build, {}).get("success")
+    )
