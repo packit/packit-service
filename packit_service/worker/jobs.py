@@ -103,32 +103,43 @@ class SteveJobs:
         return handlers_results
 
     def process_comment_jobs(self, event: Optional[Any]):
-        handlers_results = {}
+        handlers_results: HandlerResults = None
         # packit_command can be `/packit build` or `/packit build <with_args>`
+        msg = f"PR comment '{event.comment[:35]}'"
         try:
             (packit_mark, *packit_command) = event.comment.split(maxsplit=3)
         except ValueError:
-            logger.debug(f"This PR comment '{event.comment}' is empty.")
-            return HandlerResults(success=False, details={})
+            return HandlerResults(success=False, details={"msg": (f"{msg} is empty.")})
 
         if REQUESTED_PULL_REQUEST_COMMENT != packit_mark:
-            logger.debug(
-                f"This PR comment '{packit_mark}' is not handled by packit-service"
+            return HandlerResults(
+                success=False,
+                details={"msg": (f"{msg} is not handled by packit-service.")},
             )
-            return HandlerResults(success=False, details={})
+
+        if not packit_command:
+            return HandlerResults(
+                success=False,
+                details={"msg": (f"{msg} does not contain a packit-service command.")},
+            )
 
         # packit has command `copr-build`. But PullRequestCommentAction has enum `copr_build`.
-        packit_action = PullRequestCommentAction[packit_command[0].replace("-", "_")]
+        try:
+            packit_action = PullRequestCommentAction[
+                packit_command[0].replace("-", "_")
+            ]
+        except KeyError:
+            return HandlerResults(
+                success=False,
+                details={
+                    "msg": (f"{msg} does not contain a valid packit-service command.")
+                },
+            )
         handler_kls: Any = PULL_REQUEST_COMMENT_HANDLER_MAPPING.get(packit_action, None)
         if not handler_kls:
             return HandlerResults(
                 success=False,
-                details={
-                    "msg": (
-                        f"This PR trigger command '{REQUESTED_PULL_REQUEST_COMMENT} "
-                        f"{packit_command}' is not handled by packit-service."
-                    )
-                },
+                details={"msg": (f"{msg} is not a packit-service command.")},
             )
 
         handler = handler_kls(self.config, event)
@@ -138,11 +149,11 @@ class SteveJobs:
             # failed because of missing whitelist approval
             whitelist = Whitelist()
             if not whitelist.check_and_report(event, event.get_project()):
-                handlers_results[packit_action] = HandlerResults(
+                handlers_results = HandlerResults(
                     success=False, details={"msg": "Account is not whitelisted!"}
                 )
                 return handlers_results
-            handlers_results[packit_action] = handler.run()
+            handlers_results = handler.run()
         finally:
             handler.clean()
         return handlers_results
@@ -177,7 +188,9 @@ class SteveJobs:
             ] = GithubAppInstallationHandler(self.config, None, event_object)
             jobs_results[JobType.add_to_whitelist.value] = handler.run()
         elif event_object.trigger == JobTriggerType.comment:
-            jobs_results = self.process_comment_jobs(event_object)
+            jobs_results[JobType.pull_request_action.value] = self.process_comment_jobs(
+                event_object
+            )
         # Results from testing farm is another job which is not defined in packit.yaml so
         # it needs to be handled outside process_jobs method
         elif event_object.trigger == JobTriggerType.testing_farm_results:
