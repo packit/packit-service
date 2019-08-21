@@ -28,9 +28,15 @@ from packit.api import PackitAPI
 from packit.exceptions import FailedCreateSRPM
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 from packit.local_project import LocalProject
-from packit.config import Config, PackageConfig, JobType, JobConfig
+from packit.config import PackageConfig, JobType, JobConfig
+
+from packit_service.config import Config, Deployment
 from packit_service.service.models import CoprBuild
-from packit_service.worker.handler import HandlerResults, BuildStatusReporter
+from packit_service.worker.handler import (
+    HandlerResults,
+    BuildStatusReporter,
+    PRCheckName,
+)
 from packit_service.service.events import PullRequestEvent, PullRequestCommentEvent
 
 logger = logging.getLogger(__name__)
@@ -90,11 +96,19 @@ class CoprBuildHandler(object):
 
     def run_copr_build(self) -> HandlerResults:
 
-        job = self.get_job_copr_build_metadata()
-        self.job_project = (
-            job.metadata.get("project")
-            or f"{self.project.namespace}-{self.project.repo}-{self.event.pr_id}"
+        check_name = PRCheckName.get_build_check()
+        # add suffix stg when using stg app
+        stg = "-stg" if self.config.deployment == Deployment.stg else ""
+        default_project_name = (
+            f"{self.project.namespace}-{self.project.repo}-{self.event.pr_id}{stg}"
         )
+        job = self.get_job_copr_build_metadata()
+        if not job.metadata.get("targets"):
+            logger.error(
+                "'targets' value is required in packit config for copr_build job"
+            )
+
+        self.job_project = job.metadata.get("project") or default_project_name
         self.job_owner = job.metadata.get("owner") or self.api.copr.config.get(
             "username"
         )
@@ -103,10 +117,11 @@ class CoprBuildHandler(object):
             self.project, self.event.commit_sha, self.copr_build_model
         )
         msg_retrigger = (
-            f"You can re-trigger copr build by adding a comment (/packit copr-build) "
+            f"You can re-trigger copr build by adding a comment (`/packit copr-build`) "
             f"into this pull request."
         )
         try:
+            r.report("pending", "RPM build has just started...", check_name=check_name)
             build_id, repo_url = self.api.run_copr_build(
                 project=self.job_project, chroots=self.job_chroots, owner=self.job_owner
             )
@@ -114,8 +129,9 @@ class CoprBuildHandler(object):
             msg = f"You have reached 10-minute timeout while creating the SRPM. {msg_retrigger}"
             self.project.pr_comment(self.event.pr_id, msg)
             msg = "Timeout reached while creating a SRPM."
-            r.report("failure", msg)
+            r.report("failure", msg, check_name=check_name)
             return HandlerResults(success=False, details={"msg": msg})
+
         except SandcastleCommandFailed as ex:
             max_log_size = 1024 * 16  # is 16KB enough?
             if len(ex.output) > max_log_size:
@@ -132,11 +148,12 @@ class CoprBuildHandler(object):
             )
             self.project.pr_comment(self.event.pr_id, msg)
             msg = "Failed to create a SRPM."
-            r.report("failure", msg)
+            r.report("failure", msg, check_name=check_name)
             return HandlerResults(success=False, details={"msg": msg})
+
         except FailedCreateSRPM:
             msg = "Failed to create a SRPM."
-            r.report("failure", msg)
+            r.report("failure", msg, check_name=check_name)
             return HandlerResults(success=False, details={"msg": msg})
 
         except Exception as ex:
@@ -144,7 +161,7 @@ class CoprBuildHandler(object):
             self.project.pr_comment(self.event.pr_id, msg)
             logger.error(f"error while running a copr build: {ex}")
             msg = f"There was an error while running the build: {ex}"
-            r.report("failure", msg)
+            r.report("failure", msg, check_name=check_name)
             return HandlerResults(success=False, details={"msg": msg})
 
         self.copr_build_model.build_id = build_id
