@@ -69,23 +69,16 @@ class TestEvents:
             return json.load(outfile)
 
     @pytest.fixture()
-    def issue_created_request(self):
+    def pr_comment_created_request(self):
         with open(
-            DATA_DIR / "webhooks" / "github_issue_comment_event.json", "r"
+            DATA_DIR / "webhooks" / "github_pr_comment_copr_build.json", "r"
         ) as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
-    def issue_edited_request(self):
+    def pr_comment_empty_request(self):
         with open(
-            DATA_DIR / "webhooks" / "github_issue_comment_event_edited.json", "r"
-        ) as outfile:
-            return json.load(outfile)
-
-    @pytest.fixture()
-    def issue_delete_request(self):
-        with open(
-            DATA_DIR / "webhooks" / "github_issue_comment_event_delete.json", "r"
+            DATA_DIR / "webhooks" / "github_issue_comment_empty.json", "r"
         ) as outfile:
             return json.load(outfile)
 
@@ -145,8 +138,8 @@ class TestEvents:
         flexmock(Config, get_service_config=Config())
         assert event_object.get_package_config() is None
 
-    def test_parse_pr_comment_created(self, issue_created_request):
-        event_object = Parser.parse_event(issue_created_request)
+    def test_parse_pr_comment_created(self, pr_comment_created_request):
+        event_object = Parser.parse_event(pr_comment_created_request)
 
         assert isinstance(event_object, PullRequestCommentEvent)
         assert event_object.trigger == JobTriggerType.comment
@@ -162,12 +155,12 @@ class TestEvents:
         assert event_object.github_login == "phracek"
         assert event_object.comment == "/packit copr-build"
 
-    def test_parse_pr_comment_edited(self, issue_edited_request):
-        event_object = Parser.parse_event(issue_edited_request)
+    def test_parse_pr_comment_empty(self, pr_comment_empty_request):
+        event_object = Parser.parse_event(pr_comment_empty_request)
 
         assert isinstance(event_object, PullRequestCommentEvent)
         assert event_object.trigger == JobTriggerType.comment
-        assert event_object.action == PullRequestCommentAction.edited
+        assert event_object.action == PullRequestCommentAction.created
         assert event_object.pr_id == 9
         assert event_object.base_repo_namespace == "packit-service"
         assert event_object.base_repo_name == "hello-world"
@@ -177,7 +170,7 @@ class TestEvents:
         )
         assert event_object.https_url == "https://github.com/packit-service/hello-world"
         assert event_object.github_login == "phracek"
-        assert event_object.comment == "/packit copr-build 2"
+        assert event_object.comment == ""
 
     def test_parse_testing_farm_results(self, testing_farm_results):
         event_object = Parser.parse_event(testing_farm_results)

@@ -41,18 +41,20 @@ from packit.config import (
     PackageConfig,
     get_package_config_from_repo,
 )
-from packit.exceptions import FailedCreateSRPM
 from packit.local_project import LocalProject
-from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
 from packit_service.config import Config, Deployment
-from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.service.events import (
     PullRequestEvent,
     InstallationEvent,
     ReleaseEvent,
+    PullRequestCommentEvent,
 )
-from packit_service.service.models import Installation, CoprBuild
+from packit_service.service.models import Installation
+from packit_service.worker.whitelist import Whitelist
+from packit_service.worker.copr_build import CoprBuildHandler
+from packit_service.constants import TESTING_FARM_TRIGGER_URL
+
 from packit_service.worker.handler import (
     JobHandler,
     HandlerResults,
@@ -60,7 +62,12 @@ from packit_service.worker.handler import (
     BuildStatusReporter,
     PRCheckName,
 )
-from packit_service.worker.whitelist import Whitelist
+from packit_service.worker.pr_comment_handler import (
+    PullRequestCommentAction,
+    add_to_pr_comment_mapping,
+    PullRequestCommentHandler,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -242,97 +249,22 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
 
     def handle_pull_request(self):
 
-        check_name = PRCheckName.get_build_check()
-
         if not self.job.metadata.get("targets"):
             logger.error(
                 "'targets' value is required in packit config for copr_build job"
             )
 
-        self.local_project = LocalProject(
-            git_project=self.project,
-            pr_id=self.event.pr_id,
-            git_service=self.project.service,
-            working_dir=self.config.command_handler_work_dir,
-        )
-        self.api = PackitAPI(self.config, self.package_config, self.local_project)
-
-        # add suffix stg when using stg app
-        stg = "-stg" if self.config.deployment == Deployment.stg else ""
-        default_project_name = (
-            f"{self.project.namespace}-{self.project.repo}-{self.event.pr_id}{stg}"
-        )
         collaborators = self.project.who_can_merge_pr()
-        project = self.job.metadata.get("project") or default_project_name
-        owner = self.job.metadata.get("owner") or self.api.copr.config.get("username")
-        chroots = self.job.metadata.get("targets")
-        copr_build_model = CoprBuild.create(
-            project=project, owner=owner, chroots=chroots
-        )
-        r = BuildStatusReporter(self.project, self.event.commit_sha, copr_build_model)
+        r = BuildStatusReporter(self.project, self.event.commit_sha)
         if self.event.github_login not in collaborators:
             msg = "Only collaborators can trigger Packit-as-a-Service"
             r.set_status("failure", msg, PRCheckName.get_build_check())
             return HandlerResults(success=False, details={"msg": msg})
-        try:
-            r.report("pending", "RPM build has just started...", check_name=check_name)
-            build_id, repo_url = self.api.run_copr_build(
-                project=project, chroots=chroots, owner=owner
-            )
-        except SandcastleTimeoutReached:
-            msg = "You have reached 10-minute timeout while creating the SRPM."
-            self.project.pr_comment(self.event.pr_id, msg)
-            msg = "Timeout reached while creating a SRPM."
-            r.report("failure", msg, check_name=check_name)
-            return HandlerResults(success=False, details={"msg": msg})
-        except SandcastleCommandFailed as ex:
-            max_log_size = 1024 * 16  # is 16KB enough?
-            if len(ex.output) > max_log_size:
-                output = "Earlier output was truncated\n\n" + ex.output[-max_log_size:]
-            else:
-                output = ex.output
-            msg = (
-                "There was an error while creating a SRPM.\n"
-                "\nOutput:"
-                "\n```\n"
-                f"{output}"
-                "\n```"
-                f"\nReturn code: {ex.rc}"
-            )
-            self.project.pr_comment(self.event.pr_id, msg)
-            msg = "Failed to create a SRPM."
-            r.report("failure", msg, check_name=check_name)
-            return HandlerResults(success=False, details={"msg": msg})
-        except FailedCreateSRPM:
-            msg = "Failed to create a SRPM."
-            r.report("failure", msg, check_name=check_name)
-            return HandlerResults(success=False, details={"msg": msg})
-
-        except Exception as ex:
-            logger.error(f"error while running a copr build: {ex}")
-            msg = f"There was an error while running the build: {ex}"
-            r.report("failure", msg, check_name=check_name)
-            return HandlerResults(success=False, details={"msg": msg})
-
-        copr_build_model.build_id = build_id
-        copr_build_model.save()
-
-        timeout_config = self.job.metadata.get("timeout")
-        timeout = int(timeout_config) if timeout_config else 60 * 60 * 2
-        build_state = self.api.watch_copr_build(build_id, timeout, report_func=r.report)
-        if build_state == "succeeded":
-            msg = (
-                f"Congratulations! The build [has finished]({repo_url})"
-                " successfully. :champagne:\n\n"
-                "You can install the built RPMs by following these steps:\n\n"
-                "* `sudo yum install -y dnf-plugins-core` on RHEL 8\n"
-                "* `sudo dnf install -y dnf-plugins-core` on Fedora\n"
-                f"* `dnf copr enable {owner}/{project}`\n"
-                "* And now you can install the packages.\n"
-                "\nPlease note that the RPMs should be used only in a testing environment."
-            )
-            self.project.pr_comment(self.event.pr_id, msg)
-
+        cbh = CoprBuildHandler(
+            self.config, self.package_config, self.project, self.event
+        )
+        handler_results = cbh.run_copr_build()
+        if handler_results["success"]:
             # Testing farm is triggered just once copr build is finished as it uses copr builds
             # todo: utilize fedmsg for this.
             test_job_config = self.get_tests_for_build()
@@ -377,14 +309,23 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
     name = JobType.tests
     triggers = [JobTriggerType.pull_request]
 
-    def __init__(self, config: Config, job: JobConfig, pr_event: PullRequestEvent):
+    def __init__(
+        self,
+        config: Config,
+        job: JobConfig,
+        pr_event: Union[PullRequestEvent, PullRequestCommentEvent],
+    ):
         super(GithubTestingFarmHandler, self).__init__(config=config, job=job)
         self.pr_event = pr_event
         self.project: GitProject = self.github_service.get_project(
             repo=pr_event.base_repo_name, namespace=pr_event.base_repo_namespace
         )
+        if isinstance(pr_event, PullRequestEvent):
+            self.base_ref = pr_event.base_ref
+        elif isinstance(pr_event, PullRequestCommentEvent):
+            self.base_ref = pr_event.commit_sha
         self.package_config: PackageConfig = get_package_config_from_repo(
-            self.project, pr_event.base_ref
+            self.project, self.base_ref
         )
         self.package_config.upstream_project_url = pr_event.https_url
 
@@ -462,7 +403,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
                 "copr-chroot": chroot,
                 "commit-sha": self.pr_event.commit_sha,
                 "git-url": self.pr_event.https_url,
-                "git-ref": self.pr_event.base_ref,
+                "git-ref": self.base_ref,
             }
 
             logger.debug("Sending testing farm request...")
@@ -517,3 +458,129 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
                 )
 
         return HandlerResults(success=True, details={})
+
+
+@add_to_pr_comment_mapping
+class GitHubPullRequestCommentCoprBuildHandler(PullRequestCommentHandler):
+    """ Issue handler for comment `/packit copr-build` """
+
+    name = PullRequestCommentAction.copr_build
+
+    def __init__(self, config: Config, event: PullRequestCommentEvent):
+        super(GitHubPullRequestCommentCoprBuildHandler, self).__init__(
+            config=config, event=event
+        )
+        self.config = config
+        self.event = event
+        self.project: GitProject = self.github_service.get_project(
+            repo=event.base_repo_name, namespace=event.base_repo_namespace
+        )
+        # Get the latest pull request commit
+        self.event.commit_sha = self.project.get_all_pr_commits(self.event.pr_id)[-1]
+        self.package_config: PackageConfig = get_package_config_from_repo(
+            self.project, self.event.commit_sha
+        )
+        self.package_config.upstream_project_url = event.https_url
+
+    def get_tests_for_build(self) -> Optional[JobConfig]:
+        """
+        Check if there are tests defined
+        :return: JobConfig or None
+        """
+        for job in self.package_config.jobs:
+            if job.job == JobType.tests:
+                return job
+        return None
+
+    def run(self) -> HandlerResults:
+
+        collaborators = self.project.who_can_merge_pr()
+        if self.event.github_login not in collaborators:
+            msg = "Only collaborators can trigger Packit-as-a-Service"
+            self.project.pr_comment(self.event.pr_id, msg)
+            return HandlerResults(success=False, details={"msg": msg})
+
+        cbh = CoprBuildHandler(
+            self.config, self.package_config, self.project, self.event
+        )
+        handler_results = cbh.run_copr_build()
+        if handler_results["success"]:
+            # Testing farm is triggered just once copr build is finished as it uses copr builds
+            # todo: utilize fedmsg for this.
+            test_job_config = self.get_tests_for_build()
+            if test_job_config:
+                testing_farm_handler = GithubTestingFarmHandler(
+                    self.config, test_job_config, self.event
+                )
+                testing_farm_handler.run()
+            else:
+                logger.debug("Testing farm not in the job config.")
+            return HandlerResults(success=True, details={})
+        return handler_results
+
+
+# @add_to_pr_comment_mapping
+# class GitHubPullRequestCommentBuildHandler(PullRequestCommentHandler):
+#     """ Issue handler for comment `/packit build` """
+#
+#     name = PullRequestCommentAction.build
+#
+#     def __init__(self, config: Config, event: PullRequestCommentEvent):
+#         super(GitHubPullRequestCommentBuildHandler, self).__init__(
+#             config=config, event=event
+#         )
+#
+#         self.config = config
+#         self.event = event
+#         self.project: GitProject = self.github_service.get_project(
+#             repo=event.base_repo_name, namespace=event.base_repo_namespace
+#         )
+#         # Get the latest pull request commit
+#         self.event.commit_sha = self.project.get_all_pr_commits(self.event.pr_id)[-1]
+#         self.package_config: PackageConfig = get_package_config_from_repo(
+#             self.project, self.event.commit_sha
+#         )
+#         self.package_config.upstream_project_url = event.https_url
+#
+#     def get_build_metadata_for_build(self) -> Optional[JobConfig]:
+#         """
+#         Check if there are builds defined
+#         :return: JobConfig or None
+#         """
+#         for job in self.package_config.jobs:
+#             if job.job == JobType.build:
+#                 return job
+#         return None
+#
+#     def run(self) -> HandlerResults:
+#         self.local_project = LocalProject(
+#             git_project=self.project, working_dir=self.config.command_handler_work_dir
+#         )
+#
+#         self.api = PackitAPI(self.config, self.package_config, self.local_project)
+#
+#         # TODO support also arguments for `/packit build <ARGS>`. Now builds without ARGS.
+#         collaborators = self.project.who_can_merge_pr()
+#         r = BuildStatusReporter(self.project, self.event.commit_sha)
+#         if self.event.github_login not in collaborators:
+#             msg = "Only collaborators can trigger Packit-as-a-Service"
+#             r.set_status("failure", msg, PRCheckName.get_build_check())
+#             return HandlerResults(success=False, details={"msg": msg})
+#
+#         job = self.get_build_metadata_for_build()
+#
+#         dist_git_branch = (
+#             "master" if not job else job.metadata.get("dist-git-branch", "master")
+#         )
+#         try:
+#             self.api.build(dist_git_branch=dist_git_branch)
+#         except PackitException as ex:
+#             msg = (
+#                 f"There was an error while building "
+#                 f"a Fedora package `{self.package_config.downstream_package_name}`."
+#             )
+#             self.project.pr_comment(self.event.pr_id, msg)
+#             logger.error(f"error while running a build: {ex}")
+#             return HandlerResults(success=False, details={})
+#
+#         return HandlerResults(success=True, details={})

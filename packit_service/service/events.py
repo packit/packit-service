@@ -197,12 +197,14 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         https_url: str,
         github_login: str,
         comment: str,
+        commit_sha: str = "",
     ):
         super(PullRequestCommentEvent, self).__init__(JobTriggerType.comment)
         self.action = action
         self.pr_id = pr_id
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
+        self.commit_sha = commit_sha
         self.target_repo = target_repo
         self.https_url = https_url
         self.github_login = github_login
@@ -214,6 +216,19 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         result["trigger"] = str(result["trigger"])
         result["action"] = str(result["action"])
         return result
+
+    def get_package_config(self, base_ref: str) -> Optional[PackageConfig]:
+        package_config: PackageConfig = get_package_config_from_repo(
+            self.get_project(), base_ref
+        )
+        if not package_config:
+            logger.info(
+                f"no packit config found for "
+                f"{self.base_repo_namespace}/{self.base_repo_name}, #{self.pr_id}"
+            )
+            return None
+        package_config.upstream_project_url = self.https_url
+        return package_config
 
     def get_project(self) -> GitProject:
         return self.github_service.get_project(
