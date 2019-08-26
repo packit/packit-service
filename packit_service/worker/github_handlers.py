@@ -440,7 +440,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
                 # success set check on pending
                 if req.status_code != 200:
                     # something went wrong
-                    msg = req.json["message"]
+                    msg = req.json()["message"]
                     r.report(
                         "failure",
                         msg,
@@ -453,7 +453,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
                     "pending",
                     "Tests are running ...",
                     None,
-                    req.json["url"],
+                    req.json()["url"],
                     check_name=PRCheckName.get_testing_farm_check() + "-" + chroot,
                 )
 
