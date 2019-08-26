@@ -160,3 +160,6 @@ class Config(BaseConfig):
         if token:
             return token
         return self._pagure_fork_token
+
+
+service_config = Config.get_service_config()
