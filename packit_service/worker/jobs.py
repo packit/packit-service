@@ -199,7 +199,10 @@ class SteveJobs:
             handler: Union[
                 GithubAppInstallationHandler, TestingFarmResultsHandler
             ] = GithubAppInstallationHandler(self.config, None, event_object)
-            jobs_results[JobType.add_to_whitelist.value] = handler.run()
+            try:
+                jobs_results[JobType.add_to_whitelist.value] = handler.run()
+            finally:
+                handler.clean()
         elif event_object.trigger == JobTriggerType.comment and isinstance(
             event_object, PullRequestCommentEvent
         ):
@@ -212,7 +215,10 @@ class SteveJobs:
             event_object, TestingFarmResultsEvent
         ):
             handler = TestingFarmResultsHandler(self.config, None, event_object)
-            jobs_results[JobType.report_test_results.value] = handler.run()
+            try:
+                jobs_results[JobType.report_test_results.value] = handler.run()
+            finally:
+                handler.clean()
         else:
             jobs_results = self.process_jobs(event_object)
 
