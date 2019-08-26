@@ -40,6 +40,7 @@ from packit_service.constants import (
     PACKIT_PROD_TESTING_FARM_CHECK,
     PACKIT_STG_TESTING_FARM_CHECK,
 )
+from packit_service.service.events import Event
 
 from packit_service.service.models import CoprBuild
 
@@ -140,9 +141,10 @@ class JobHandler:
     name: JobType
     triggers: List[JobTriggerType]
 
-    def __init__(self, config: Config, job: JobConfig):
+    def __init__(self, config: Config, job: JobConfig, event: Event):
         self.config: Config = config
         self.job: JobConfig = job
+        self.event = event
 
         self.api: Optional[PackitAPI] = None
         self.local_project: Optional[PackitAPI] = None

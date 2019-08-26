@@ -25,20 +25,30 @@ We love you, Steve Jobs.
 """
 
 import logging
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Union, Type
+
+from packit.config import JobTriggerType, JobType
 
 from packit_service.config import Config
-from packit.config import JobTriggerType, JobType
+from packit_service.service.events import (
+    PullRequestCommentEvent,
+    Event,
+    TestingFarmResultsEvent,
+)
 from packit_service.worker.github_handlers import GithubAppInstallationHandler
-from packit_service.worker.handler import HandlerResults, JOB_NAME_HANDLER_MAPPING
+from packit_service.worker.handler import (
+    HandlerResults,
+    JOB_NAME_HANDLER_MAPPING,
+    JobHandler,
+)
 from packit_service.worker.parser import Parser
-from packit_service.worker.testing_farm_handlers import TestingFarmResultsHandler
-from packit_service.worker.whitelist import Whitelist
-
 from packit_service.worker.pr_comment_handler import (
     PULL_REQUEST_COMMENT_HANDLER_MAPPING,
     PullRequestCommentAction,
+    PullRequestCommentHandler,
 )
+from packit_service.worker.testing_farm_handlers import TestingFarmResultsHandler
+from packit_service.worker.whitelist import Whitelist
 
 REQUESTED_PULL_REQUEST_COMMENT = "/packit"
 
@@ -59,7 +69,7 @@ class SteveJobs:
             self._config = Config.get_service_config()
         return self._config
 
-    def process_jobs(self, event: Optional[Any]) -> Dict[str, HandlerResults]:
+    def process_jobs(self, event: Event) -> Dict[str, HandlerResults]:
         """
         Run a job handler (if trigger matches) for every job defined in config.
         """
@@ -78,7 +88,9 @@ class SteveJobs:
 
         for job in package_config.jobs:
             if event.trigger == job.trigger:
-                handler_kls: Any = JOB_NAME_HANDLER_MAPPING.get(job.job, None)
+                handler_kls: Type[JobHandler] = JOB_NAME_HANDLER_MAPPING.get(
+                    job.job, None
+                )
                 if not handler_kls:
                     logger.warning(f"There is no handler for job {job}")
                     continue
@@ -102,25 +114,24 @@ class SteveJobs:
                     handler.clean()
         return handlers_results
 
-    def process_comment_jobs(self, event: Optional[Any]):
-        handlers_results: HandlerResults = None
+    def process_comment_jobs(self, event: PullRequestCommentEvent) -> HandlerResults:
         # packit_command can be `/packit build` or `/packit build <with_args>`
         msg = f"PR comment '{event.comment[:35]}'"
         try:
             (packit_mark, *packit_command) = event.comment.split(maxsplit=3)
         except ValueError:
-            return HandlerResults(success=False, details={"msg": (f"{msg} is empty.")})
+            return HandlerResults(success=False, details={"msg": f"{msg} is empty."})
 
         if REQUESTED_PULL_REQUEST_COMMENT != packit_mark:
             return HandlerResults(
                 success=False,
-                details={"msg": (f"{msg} is not handled by packit-service.")},
+                details={"msg": f"{msg} is not handled by packit-service."},
             )
 
         if not packit_command:
             return HandlerResults(
                 success=False,
-                details={"msg": (f"{msg} does not contain a packit-service command.")},
+                details={"msg": f"{msg} does not contain a packit-service command."},
             )
 
         # packit has command `copr-build`. But PullRequestCommentAction has enum `copr_build`.
@@ -132,14 +143,16 @@ class SteveJobs:
             return HandlerResults(
                 success=False,
                 details={
-                    "msg": (f"{msg} does not contain a valid packit-service command.")
+                    "msg": f"{msg} does not contain a valid packit-service command."
                 },
             )
-        handler_kls: Any = PULL_REQUEST_COMMENT_HANDLER_MAPPING.get(packit_action, None)
+        handler_kls: Type[
+            PullRequestCommentHandler
+        ] = PULL_REQUEST_COMMENT_HANDLER_MAPPING.get(packit_action, None)
         if not handler_kls:
             return HandlerResults(
                 success=False,
-                details={"msg": (f"{msg} is not a packit-service command.")},
+                details={"msg": f"{msg} is not a packit-service command."},
             )
 
         handler = handler_kls(self.config, event)
@@ -187,13 +200,17 @@ class SteveJobs:
                 GithubAppInstallationHandler, TestingFarmResultsHandler
             ] = GithubAppInstallationHandler(self.config, None, event_object)
             jobs_results[JobType.add_to_whitelist.value] = handler.run()
-        elif event_object.trigger == JobTriggerType.comment:
+        elif event_object.trigger == JobTriggerType.comment and isinstance(
+            event_object, PullRequestCommentEvent
+        ):
             jobs_results[JobType.pull_request_action.value] = self.process_comment_jobs(
                 event_object
             )
         # Results from testing farm is another job which is not defined in packit.yaml so
         # it needs to be handled outside process_jobs method
-        elif event_object.trigger == JobTriggerType.testing_farm_results:
+        elif event_object.trigger == JobTriggerType.testing_farm_results and isinstance(
+            event_object, TestingFarmResultsEvent
+        ):
             handler = TestingFarmResultsHandler(self.config, None, event_object)
             jobs_results[JobType.report_test_results.value] = handler.run()
         else:

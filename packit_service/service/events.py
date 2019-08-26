@@ -35,6 +35,7 @@ from packit.config import JobTriggerType, get_package_config_from_repo, PackageC
 
 from packit_service.config import service_config
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -82,6 +83,12 @@ class Event:
     def get_dict(self) -> dict:
         d = copy.deepcopy(self.__dict__)
         return d
+
+    def get_package_config(self):
+        raise NotImplementedError("Please implement me!")
+
+    def get_project(self) -> GitProject:
+        raise NotImplementedError("Please implement me!")
 
 
 class AbstractGithubEvent(Event):
@@ -185,6 +192,7 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         pr_id: int,
         base_repo_namespace: str,
         base_repo_name: str,
+        base_ref: Optional[str],
         target_repo: str,
         https_url: str,
         github_login: str,
@@ -196,6 +204,7 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         self.pr_id = pr_id
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
+        self.base_ref = base_ref
         self.commit_sha = commit_sha
         self.target_repo = target_repo
         self.https_url = https_url
@@ -209,9 +218,11 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         result["action"] = str(result["action"])
         return result
 
-    def get_package_config(self, base_ref: str) -> Optional[PackageConfig]:
+    def get_package_config(self) -> Optional[PackageConfig]:
+        if not self.base_ref:
+            self.base_ref = self.get_project().get_pr_info(self.pr_id).source_branch
         package_config: PackageConfig = get_package_config_from_repo(
-            self.get_project(), base_ref
+            self.get_project(), self.base_ref
         )
         if not package_config:
             logger.info(

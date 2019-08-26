@@ -191,6 +191,7 @@ class Parser:
                 pr_id,
                 base_repo_namespace,
                 base_repo_name,
+                None,  # the payload does not include this info
                 target_repo,
                 https_url,
                 github_login,

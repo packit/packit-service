@@ -23,7 +23,6 @@
 """
 This file defines classes for job handlers specific for Testing farm
 """
-from typing import Union, Any
 
 from ogr.abstract import GitProject
 from packit.config import (
@@ -50,15 +49,15 @@ from packit_service.worker.handler import (
 class TestingFarmResultsHandler(AbstractGithubJobHandler):
     name = JobType.report_test_results
     triggers = [JobTriggerType.testing_farm_results]
+    event: TestingFarmResultsEvent
 
     def __init__(
         self,
         config: Config,
         job: JobConfig,
-        test_results_event: Union[TestingFarmResultsEvent, Any],
+        test_results_event: TestingFarmResultsEvent,
     ):
-        super().__init__(config=config, job=job)
-        self.tests_results_event = test_results_event
+        super().__init__(config=config, job=job, event=test_results_event)
         self.project: GitProject = self.github_service.get_project(
             repo=test_results_event.repo_name,
             namespace=test_results_event.repo_namespace,
@@ -73,20 +72,20 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
             git_project=self.project, working_dir=self.config.command_handler_work_dir
         )
 
-        r = BuildStatusReporter(self.project, self.tests_results_event.commit_sha)
-        if self.tests_results_event.result == TestingFarmResult.passed:
+        r = BuildStatusReporter(self.project, self.event.commit_sha)
+        if self.event.result == TestingFarmResult.passed:
             status = "success"
         else:
             status = "failure"
 
         r.report(
             status,
-            self.tests_results_event.message,
+            self.event.message,
             None,
-            self.tests_results_event.log_url,
+            self.event.log_url,
             check_name=PRCheckName.get_testing_farm_check()
             + "-"
-            + self.tests_results_event.copr_chroot,
+            + self.event.copr_chroot,
         )
 
         return HandlerResults(success=True, details={})
