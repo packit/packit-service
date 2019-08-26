@@ -207,12 +207,7 @@ class SteveJobs:
             "trigger": str(event_object.trigger),
         }
 
-        # no jobs results, prevent from traceback on accessing v["success"]
-        if not jobs_results.values():
-            logger.error(task_results)
-            return task_results
-
-        if any(not v["success"] for v in jobs_results.values()):
+        if any(not (v and v["success"]) for v in jobs_results.values()):
             # Any job handler failed, mark task state as FAILURE
             logger.error(task_results)
         # Task state SUCCESS
