@@ -65,7 +65,7 @@ class FedmsgHandler(JobHandler):
     topic: str
 
     def __init__(self, config: Config, job: JobConfig):
-        super(FedmsgHandler, self).__init__(config=config, job=job)
+        super().__init__(config=config, job=job)
         self._pagure_service = None
 
     @property
@@ -92,7 +92,7 @@ class NewDistGitCommit(FedmsgHandler):
     triggers = [JobTriggerType.commit]
 
     def __init__(self, config: Config, job: JobConfig, distgit_event):
-        super(NewDistGitCommit, self).__init__(config=config, job=job)
+        super().__init__(config=config, job=job)
         self.distgit_event = distgit_event
         self.project = self.pagure_service.get_project(
             repo=distgit_event.repo_name, namespace=distgit_event.repo_namespace

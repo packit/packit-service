@@ -104,7 +104,7 @@ class ReleaseEvent(AbstractGithubEvent):
     def __init__(
         self, repo_namespace: str, repo_name: str, tag_name: str, https_url: str
     ):
-        super(ReleaseEvent, self).__init__(JobTriggerType.release)
+        super().__init__(JobTriggerType.release)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.tag_name = tag_name
@@ -141,7 +141,7 @@ class PullRequestEvent(AbstractGithubEvent):
         commit_sha: str,
         github_login: str,
     ):
-        super(PullRequestEvent, self).__init__(JobTriggerType.pull_request)
+        super().__init__(JobTriggerType.pull_request)
         self.action = action
         self.pr_id = pr_id
         self.base_repo_namespace = base_repo_namespace
@@ -191,7 +191,7 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         comment: str,
         commit_sha: str = "",
     ):
-        super(PullRequestCommentEvent, self).__init__(JobTriggerType.comment)
+        super().__init__(JobTriggerType.comment)
         self.action = action
         self.pr_id = pr_id
         self.base_repo_namespace = base_repo_namespace
@@ -241,7 +241,7 @@ class InstallationEvent(Event):
         sender_login: str,
         status: WhitelistStatus = WhitelistStatus.waiting,
     ):
-        super(InstallationEvent, self).__init__(JobTriggerType.installation)
+        super().__init__(JobTriggerType.installation)
         self.installation_id = installation_id
         self.account_login = account_login
         self.account_id = account_id
@@ -270,7 +270,7 @@ class DistGitEvent(Event):
         branch: str,
         msg_id: str,
     ):
-        super(DistGitEvent, self).__init__(JobTriggerType.commit)
+        super().__init__(JobTriggerType.commit)
         self.topic = topic
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
@@ -314,9 +314,7 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         https_url: str,
         commit_sha: str,
     ):
-        super(TestingFarmResultsEvent, self).__init__(
-            JobTriggerType.testing_farm_results
-        )
+        super().__init__(JobTriggerType.testing_farm_results)
         self.pipeline_id = pipeline_id
         self.result = result
         self.environment = environment
