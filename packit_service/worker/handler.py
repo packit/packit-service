@@ -168,10 +168,11 @@ class JobHandler:
             logger.info("volume is not empty")
             logger.debug("content: %s" % [g.name for g in dir_items])
         for item in dir_items:
-            if item.is_dir():
-                shutil.rmtree(item)
-            else:
+            # symlink pointing to a dir is also a dir and a symlink
+            if item.is_symlink() or item.is_file():
                 item.unlink()
+            else:
+                shutil.rmtree(item)
 
     def clean(self):
         """ clean up the mess once we're done """

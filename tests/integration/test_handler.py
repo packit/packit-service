@@ -45,4 +45,4 @@ def test_handler_cleanup(tmpdir):
 
     j._clean_workplace()
 
-    assert len(list(t.glob("*"))) == 0
+    assert len(list(t.iterdir())) == 0
