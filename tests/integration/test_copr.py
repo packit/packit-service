@@ -2,14 +2,12 @@ import json
 from pathlib import Path
 
 import pytest
-from github import Github
-from flexmock import flexmock
-from ogr.services.github import GithubProject
-from packit.local_project import LocalProject
 from copr.v3.client import Client as CoprClient
-
-from packit.exceptions import PackitException
+from flexmock import flexmock
+from github import Github
+from ogr.services.github import GithubProject
 from packit.api import PackitAPI
+from packit.local_project import LocalProject
 
 from packit_service.service.models import Model
 from packit_service.worker import jobs
@@ -76,9 +74,13 @@ def test_wrong_collaborator(pr_event):
     flexmock(Model, save=lambda: None)
 
     steve = SteveJobs()
-    with pytest.raises(PackitException) as ex:
-        steve.process_message(pr_event)
-    assert ex
+    result = steve.process_message(pr_event)
+    copr_build = result["jobs"]["copr_build"]
+    assert not copr_build["success"]
+    assert (
+        copr_build["details"]["msg"]
+        == "Only collaborators can trigger Packit-as-a-Service"
+    )
 
 
 # We do not support this workflow officially

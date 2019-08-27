@@ -57,7 +57,7 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
         job: JobConfig,
         test_results_event: Union[TestingFarmResultsEvent, Any],
     ):
-        super(TestingFarmResultsHandler, self).__init__(config=config, job=job)
+        super().__init__(config=config, job=job)
         self.tests_results_event = test_results_event
         self.project: GitProject = self.github_service.get_project(
             repo=test_results_event.repo_name,

@@ -95,7 +95,7 @@ class GithubPullRequestHandler(AbstractGithubJobHandler):
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
 
     def __init__(self, config: Config, job: JobConfig, pr_event: PullRequestEvent):
-        super(GithubPullRequestHandler, self).__init__(config=config, job=job)
+        super().__init__(config=config, job=job)
         self.pr_event = pr_event
         self.project: GitProject = self.github_service.get_project(
             repo=pr_event.base_repo_name, namespace=pr_event.base_repo_namespace
@@ -133,7 +133,7 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
         job: JobConfig,
         installation_event: Union[InstallationEvent, Any],
     ):
-        super(GithubAppInstallationHandler, self).__init__(config=config, job=job)
+        super().__init__(config=config, job=job)
 
         self.installation_event = installation_event
         self.project = self.github_service.get_project(
@@ -182,7 +182,7 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
     triggers = [JobTriggerType.release]
 
     def __init__(self, config: Config, job: JobConfig, release_event: ReleaseEvent):
-        super(GithubReleaseHandler, self).__init__(config=config, job=job)
+        super().__init__(config=config, job=job)
         self.release_event = release_event
 
         self.project: GitProject = self.github_service.get_project(
@@ -226,7 +226,7 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
         job: JobConfig,
         event: Union[PullRequestEvent, ReleaseEvent],
     ):
-        super(GithubCoprBuildHandler, self).__init__(config=config, job=job)
+        super().__init__(config=config, job=job)
 
         self.event = event
 
@@ -315,7 +315,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
         job: JobConfig,
         pr_event: Union[PullRequestEvent, PullRequestCommentEvent],
     ):
-        super(GithubTestingFarmHandler, self).__init__(config=config, job=job)
+        super().__init__(config=config, job=job)
         self.pr_event = pr_event
         self.project: GitProject = self.github_service.get_project(
             repo=pr_event.base_repo_name, namespace=pr_event.base_repo_namespace
@@ -467,9 +467,7 @@ class GitHubPullRequestCommentCoprBuildHandler(PullRequestCommentHandler):
     name = PullRequestCommentAction.copr_build
 
     def __init__(self, config: Config, event: PullRequestCommentEvent):
-        super(GitHubPullRequestCommentCoprBuildHandler, self).__init__(
-            config=config, event=event
-        )
+        super().__init__(config=config, event=event)
         self.config = config
         self.event = event
         self.project: GitProject = self.github_service.get_project(
@@ -526,7 +524,7 @@ class GitHubPullRequestCommentCoprBuildHandler(PullRequestCommentHandler):
 #     name = PullRequestCommentAction.build
 #
 #     def __init__(self, config: Config, event: PullRequestCommentEvent):
-#         super(GitHubPullRequestCommentBuildHandler, self).__init__(
+#         super().__init__(
 #             config=config, event=event
 #         )
 #

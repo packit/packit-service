@@ -34,5 +34,9 @@ test_image: files/install-rpm-packages.yaml files/recipe-tests.yaml
 	podman build --rm -t $(TEST_IMAGE) -f Dockerfile.tests .
 
 check_in_container: test_image
-	rsync -a $(CURDIR)/ /tmp/packit-service
-	podman run --rm -ti -v /tmp/packit-service:/src:Z $(TEST_IMAGE) bash -c "pip3 install .; make check"
+	podman run --rm -ti \
+		-v $(CURDIR):/src \
+		-w /src \
+		--security-opt label=disable \
+		-v $(CURDIR)/files/packit-service.yaml:/root/.config/packit-service.yaml \
+		$(TEST_IMAGE) make check
