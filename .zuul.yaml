@@ -7,8 +7,7 @@
         - packit-service-tests
     gate:
       jobs:
-        - packit-service-pre-commit
-        - packit-service-tests
+        - packit-service-tests-secrets
 
 - job:
     name: packit-service-pre-commit
@@ -25,7 +24,8 @@
 - job:
     name: packit-service-tests
     parent: base
-    description: Run tests of packit via rpms
+    attempts: 1
+    description: Run tests of packit-service
     required-projects:
       - github.com/packit-service/deployment
     pre-run:
@@ -40,3 +40,53 @@
       nodes:
         - name: test-node
           label: cloud-fedora-30
+
+# if we going to test packit interacting with real services, we should run
+# just one test suite at a time
+- semaphore:
+    name: packit-service-tests-secrets
+    max: 1
+
+- job:
+    name: packit-service-tests-secrets
+    parent: base
+    attempts: 1
+    description: Run tests with real services for packit-service.
+    pre-run:
+      - files/install-openshift.yaml
+      - files/packit-service-image.yaml
+      - files/deployment-secrets.yaml
+    run: files/zuul-tests-secrets.yaml
+    extra-vars:
+      with_testing: true
+      ansible_python_interpreter: /usr/bin/python3
+    nodeset:
+      nodes:
+        - name: test-node
+          label: cloud-fedora-30
+    semaphore: packit-service-tests-secrets
+    secrets:
+      - name: cert.pem
+        secret: cert.pem
+      - name: chain.pem
+        secret: chain.pem
+      - name: copr
+        secret: copr
+      - name: fullchain.pem
+        secret: fullchain.pem
+      - name: httpd-packit.conf
+        secret: httpd-packit.conf
+      - name: id_rsa
+        secret: id_rsa
+      - name: id_rsa.pub
+        secret: id_rsa.pub
+      - name: packit-service.yaml
+        secret: packit-service.yaml
+      - name: private-key.pem
+        secret: private-key.pem
+      - name: privkey.pem
+        secret: privkey.pem
+      - name: ssh_config
+        secret: ssh_config
+      - name: fedora.keytab
+        secret: fedora.keytab
