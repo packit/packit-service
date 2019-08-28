@@ -41,6 +41,7 @@ from packit.distgit import DistGit
 from packit.local_project import LocalProject
 from packit.utils import get_namespace_and_repo_name
 
+from packit_service.service.events import Event, DistGitEvent
 from packit_service.worker.handler import JobHandler, HandlerResults, add_to_mapping
 
 logger = logging.getLogger(__name__)
@@ -64,8 +65,8 @@ class FedmsgHandler(JobHandler):
 
     topic: str
 
-    def __init__(self, config: Config, job: JobConfig):
-        super().__init__(config=config, job=job)
+    def __init__(self, config: Config, job: JobConfig, event: Event):
+        super().__init__(config=config, job=job, event=event)
         self._pagure_service = None
 
     @property
@@ -91,8 +92,8 @@ class NewDistGitCommit(FedmsgHandler):
     name = JobType.sync_from_downstream
     triggers = [JobTriggerType.commit]
 
-    def __init__(self, config: Config, job: JobConfig, distgit_event):
-        super().__init__(config=config, job=job)
+    def __init__(self, config: Config, job: JobConfig, distgit_event: DistGitEvent):
+        super().__init__(config=config, job=job, event=distgit_event)
         self.distgit_event = distgit_event
         self.project = self.pagure_service.get_project(
             repo=distgit_event.repo_name, namespace=distgit_event.repo_namespace

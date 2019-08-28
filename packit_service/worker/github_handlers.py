@@ -41,6 +41,7 @@ from packit.config import (
     PackageConfig,
     get_package_config_from_repo,
 )
+from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 
 from packit_service.config import Config, Deployment
@@ -95,7 +96,7 @@ class GithubPullRequestHandler(AbstractGithubJobHandler):
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
 
     def __init__(self, config: Config, job: JobConfig, pr_event: PullRequestEvent):
-        super().__init__(config=config, job=job)
+        super().__init__(config=config, job=job, event=pr_event)
         self.pr_event = pr_event
         self.project: GitProject = self.github_service.get_project(
             repo=pr_event.base_repo_name, namespace=pr_event.base_repo_namespace
@@ -133,7 +134,7 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
         job: JobConfig,
         installation_event: Union[InstallationEvent, Any],
     ):
-        super().__init__(config=config, job=job)
+        super().__init__(config=config, job=job, event=installation_event)
 
         self.installation_event = installation_event
         self.project = self.github_service.get_project(
@@ -180,10 +181,10 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
 class GithubReleaseHandler(AbstractGithubJobHandler):
     name = JobType.propose_downstream
     triggers = [JobTriggerType.release]
+    event: ReleaseEvent
 
     def __init__(self, config: Config, job: JobConfig, release_event: ReleaseEvent):
-        super().__init__(config=config, job=job)
-        self.release_event = release_event
+        super().__init__(config=config, job=job, event=release_event)
 
         self.project: GitProject = self.github_service.get_project(
             repo=release_event.repo_name, namespace=release_event.repo_namespace
@@ -208,7 +209,7 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
         # if creates PR or pushes directly into dist-git directly from packit.yaml file.
         self.api.sync_release(
             dist_git_branch=self.job.metadata.get("dist-git-branch", "master"),
-            version=self.release_event.tag_name,
+            version=self.event.tag_name,
             create_pr=False,
         )
 
@@ -219,6 +220,7 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
 class GithubCoprBuildHandler(AbstractGithubJobHandler):
     name = JobType.copr_build
     triggers = [JobTriggerType.pull_request, JobTriggerType.release]
+    event: Union[PullRequestEvent, ReleaseEvent]
 
     def __init__(
         self,
@@ -226,9 +228,7 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
         job: JobConfig,
         event: Union[PullRequestEvent, ReleaseEvent],
     ):
-        super().__init__(config=config, job=job)
-
-        self.event = event
+        super().__init__(config=config, job=job, event=event)
 
         if isinstance(event, PullRequestEvent):
             repo_name = event.base_repo_name
@@ -238,6 +238,10 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             repo_name = event.repo_name
             repo_namespace = event.repo_namespace
             base_ref = event.tag_name
+        else:
+            raise PackitException(
+                "Unknown event, only PREvent and ReleaseEvent are accepted."
+            )
 
         self.project: GitProject = self.github_service.get_project(
             repo=repo_name, namespace=repo_namespace
@@ -308,6 +312,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
 
     name = JobType.tests
     triggers = [JobTriggerType.pull_request]
+    event: Union[PullRequestEvent, PullRequestCommentEvent]
 
     def __init__(
         self,
@@ -315,8 +320,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
         job: JobConfig,
         pr_event: Union[PullRequestEvent, PullRequestCommentEvent],
     ):
-        super().__init__(config=config, job=job)
-        self.pr_event = pr_event
+        super().__init__(config=config, job=job, event=pr_event)
         self.project: GitProject = self.github_service.get_project(
             repo=pr_event.base_repo_name, namespace=pr_event.base_repo_namespace
         )
@@ -380,7 +384,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
             git_project=self.project, working_dir=self.config.command_handler_work_dir
         )
 
-        r = BuildStatusReporter(self.project, self.pr_event.commit_sha)
+        r = BuildStatusReporter(self.project, self.event.commit_sha)
 
         chroots = self.job.metadata.get("targets")
         for chroot in chroots:
@@ -393,16 +397,16 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
             stg = "-stg" if self.config.deployment == Deployment.stg else ""
             copr_repo_name = (
                 f"packit/{self.project.namespace}-{self.project.repo}-"
-                f"{self.pr_event.pr_id}{stg}"
+                f"{self.event.pr_id}{stg}"
             )
 
             payload["artifact"] = {
-                "repo-name": self.pr_event.base_repo_name,
-                "repo-namespace": self.pr_event.base_repo_namespace,
+                "repo-name": self.event.base_repo_name,
+                "repo-namespace": self.event.base_repo_namespace,
                 "copr-repo-name": copr_repo_name,
                 "copr-chroot": chroot,
-                "commit-sha": self.pr_event.commit_sha,
-                "git-url": self.pr_event.https_url,
+                "commit-sha": self.event.commit_sha,
+                "git-url": self.event.https_url,
                 "git-ref": self.base_ref,
             }
 
@@ -465,6 +469,7 @@ class GitHubPullRequestCommentCoprBuildHandler(PullRequestCommentHandler):
     """ Issue handler for comment `/packit copr-build` """
 
     name = PullRequestCommentAction.copr_build
+    event: PullRequestCommentEvent
 
     def __init__(self, config: Config, event: PullRequestCommentEvent):
         super().__init__(config=config, event=event)
