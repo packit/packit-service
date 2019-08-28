@@ -2,17 +2,6 @@
 - name: This is a recipe for a container image where packit-service tests will run
   hosts: all
   tasks:
-  - name: Install RPMs needed to install packitos
-    dnf:
-      name:
-      - python3-devel
-      - krb5-devel
-      - rpm-libs
-      - rpm-devel
-      - redhat-rpm-config
-      - gcc
-      - make
-      state: present
   - name: Install test RPM dependencies
     dnf:
       name:

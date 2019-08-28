@@ -1,0 +1,31 @@
+---
+- name: Install dependencies for packit-service.
+  hosts: all
+  tasks:
+  - name: Install all RPM/python packages needed to run packit-service.
+    dnf:
+      name:
+      - mod_md
+      - python3-flask
+      - python3-ipdb  # for easy debugging
+      - python3-mod_wsgi
+      # the following are needed for frambo installation
+      - git
+      - gcc
+      - rpm-devel
+      - openssl-devel
+      - libxml2-devel
+      - redhat-rpm-config
+      - krb5-workstation
+      - python3-devel
+      - python3-pyOpenSSL
+      - python3-pyrsistent
+      - python3-anymarkup
+      # the following are needed for packitos installation
+      - krb5-devel
+      state: present
+  # db models
+  - name: Install frambo from git master
+    pip:
+      name: git+https://github.com/user-cont/frambo.git
+      executable: pip3

@@ -1,9 +1,9 @@
-FROM fedora:30
+# For running tests locally, see check_in_container target in Makefile
 
-RUN dnf -y install ansible
+FROM docker.io/usercont/packit
 
-COPY files/install-rpm-packages.yaml ./
-RUN ansible-playbook -vv -c local -i localhost, ./install-rpm-packages.yaml
+COPY files/install-deps.yaml ./
+RUN ansible-playbook -vv -c local -i localhost, ./install-deps.yaml
 
 COPY files/recipe-tests.yaml ./
 RUN ansible-playbook -vv -c local -i localhost, ./recipe-tests.yaml
