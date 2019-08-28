@@ -26,7 +26,6 @@ import logging
 
 from frambo.dict_in_redis import PersistentDict
 from ogr.abstract import GitProject
-from ogr.services.github import GithubProject
 from packit.config import JobTriggerType
 
 from packit_service.constants import FAQ_URL
@@ -70,13 +69,6 @@ class Whitelist:
             f"Cannot verify whether user: {account_login} is a packager in Fedora."
         )
         return False
-
-    @staticmethod
-    def _is_private(project: GitProject) -> bool:
-        github_project = GithubProject(
-            repo=project.repo, service=project.service, namespace=project.namespace
-        )
-        return github_project.github_repo.private
 
     def get_account(self, account_name: str) -> Optional[dict]:
         """
@@ -194,10 +186,6 @@ class Whitelist:
             account_name = event.base_repo_namespace
         if isinstance(event, ReleaseEvent):
             account_name = event.repo_namespace
-
-        if self._is_private(project):
-            logger.error("We do not interact with private repositories!")
-            return False
 
         if account_name:
             if not self.is_approved(account_name):

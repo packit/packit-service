@@ -76,6 +76,7 @@ def test_pr_comment_copr_build_handler(
         HandlerResults(success=True, details={})
     )
     steve = SteveJobs()
+    flexmock(SteveJobs, _is_private=False)
     results = steve.process_message(pr_copr_build_comment_event)
     assert results.get("jobs", {})
     assert "pull_request_action" in results.get("jobs", {})
@@ -111,6 +112,7 @@ def test_pr_comment_empty_handler(
     mock_pr_comment_functionality, pr_empty_comment_event
 ):
     steve = SteveJobs()
+    flexmock(SteveJobs, _is_private=False)
 
     results = steve.process_message(pr_empty_comment_event)
     assert results.get("jobs", {})
@@ -130,6 +132,7 @@ def test_pr_comment_packit_only_handler(
     mock_pr_comment_functionality, pr_packit_only_comment_event
 ):
     steve = SteveJobs()
+    flexmock(SteveJobs, _is_private=False)
 
     results = steve.process_message(pr_packit_only_comment_event)
     assert results.get("jobs", {})
@@ -149,6 +152,7 @@ def test_pr_comment_wrong_packit_command_handler(
     mock_pr_comment_functionality, pr_wrong_packit_comment_event
 ):
     steve = SteveJobs()
+    flexmock(SteveJobs, _is_private=False)
 
     results = steve.process_message(pr_wrong_packit_comment_event)
     assert results.get("jobs", {})

@@ -76,6 +76,7 @@ def test_process_message(event):
         dist_git_branch="master", version="1.2.3", create_pr=False
     ).once()
     flexmock(Whitelist, check_and_report=True)
+    flexmock(SteveJobs, _is_private=False)
 
     results = SteveJobs().process_message(event)
     assert "propose_downstream" in results.get("jobs", {})

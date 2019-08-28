@@ -28,6 +28,8 @@ import logging
 from typing import Optional, Dict, Union, Type
 
 from packit.config import JobTriggerType, JobType
+from ogr.abstract import GitProject
+from ogr.services.github import GithubProject
 
 from packit_service.config import Config
 from packit_service.service.events import (
@@ -68,6 +70,13 @@ class SteveJobs:
         if self._config is None:
             self._config = Config.get_service_config()
         return self._config
+
+    @staticmethod
+    def _is_private(project: GitProject) -> bool:
+        github_project = GithubProject(
+            repo=project.repo, service=project.service, namespace=project.namespace
+        )
+        return github_project.github_repo.private
 
     def process_jobs(self, event: Event) -> Dict[str, HandlerResults]:
         """
@@ -192,37 +201,40 @@ class SteveJobs:
             return None
 
         jobs_results = {}
+        if self._is_private(event_object.get_project()):
+            logger.error("We do not interact with private repositories!")
 
-        # installation is handled differently b/c app is installed to GitHub account
-        # not repository, so package config with jobs is missing
-        if event_object.trigger == JobTriggerType.installation:
-            handler: Union[
-                GithubAppInstallationHandler, TestingFarmResultsHandler
-            ] = GithubAppInstallationHandler(self.config, None, event_object)
-            try:
-                jobs_results[JobType.add_to_whitelist.value] = handler.run()
-            finally:
-                handler.clean()
-        elif event_object.trigger == JobTriggerType.comment and isinstance(
-            event_object, PullRequestCommentEvent
-        ):
-            jobs_results[JobType.pull_request_action.value] = self.process_comment_jobs(
-                event_object
-            )
-        # Results from testing farm is another job which is not defined in packit.yaml so
-        # it needs to be handled outside process_jobs method
-        elif event_object.trigger == JobTriggerType.testing_farm_results and isinstance(
-            event_object, TestingFarmResultsEvent
-        ):
-            handler = TestingFarmResultsHandler(self.config, None, event_object)
-            try:
-                jobs_results[JobType.report_test_results.value] = handler.run()
-            finally:
-                handler.clean()
         else:
-            jobs_results = self.process_jobs(event_object)
+            # installation is handled differently b/c app is installed to GitHub account
+            # not repository, so package config with jobs is missing
+            if event_object.trigger == JobTriggerType.installation:
+                handler: Union[
+                    GithubAppInstallationHandler, TestingFarmResultsHandler
+                ] = GithubAppInstallationHandler(self.config, None, event_object)
+                try:
+                    jobs_results[JobType.add_to_whitelist.value] = handler.run()
+                finally:
+                    handler.clean()
+            elif event_object.trigger == JobTriggerType.comment and isinstance(
+                event_object, PullRequestCommentEvent
+            ):
+                jobs_results[JobType.pull_request_action.value] = self.process_comment_jobs(
+                    event_object
+                )
+            # Results from testing farm is another job which is not defined in packit.yaml so
+            # it needs to be handled outside process_jobs method
+            elif event_object.trigger == JobTriggerType.testing_farm_results and isinstance(
+                event_object, TestingFarmResultsEvent
+            ):
+                handler = TestingFarmResultsHandler(self.config, None, event_object)
+                try:
+                    jobs_results[JobType.report_test_results.value] = handler.run()
+                finally:
+                    handler.clean()
+            else:
+                jobs_results = self.process_jobs(event_object)
 
-        logger.debug("All jobs finished!")
+            logger.debug("All jobs finished!")
 
         task_results = {
             "jobs": jobs_results,

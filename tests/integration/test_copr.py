@@ -5,6 +5,7 @@ import pytest
 from copr.v3.client import Client as CoprClient
 from flexmock import flexmock
 from github import Github
+from github.Repository import Repository
 from ogr.services.github import GithubProject
 from packit.api import PackitAPI
 from packit.local_project import LocalProject
@@ -74,6 +75,7 @@ def test_wrong_collaborator(pr_event):
     flexmock(Model, save=lambda: None)
 
     steve = SteveJobs()
+    flexmock(SteveJobs, _is_private=False)
     result = steve.process_message(pr_event)
     copr_build = result["jobs"]["copr_build"]
     assert not copr_build["success"]
