@@ -218,13 +218,14 @@ class SteveJobs:
             elif event_object.trigger == JobTriggerType.comment and isinstance(
                 event_object, PullRequestCommentEvent
             ):
-                jobs_results[JobType.pull_request_action.value] = self.process_comment_jobs(
-                    event_object
-                )
+                jobs_results[
+                    JobType.pull_request_action.value
+                ] = self.process_comment_jobs(event_object)
             # Results from testing farm is another job which is not defined in packit.yaml so
             # it needs to be handled outside process_jobs method
-            elif event_object.trigger == JobTriggerType.testing_farm_results and isinstance(
-                event_object, TestingFarmResultsEvent
+            elif (
+                event_object.trigger == JobTriggerType.testing_farm_results
+                and isinstance(event_object, TestingFarmResultsEvent)
             ):
                 handler = TestingFarmResultsHandler(self.config, None, event_object)
                 try:
