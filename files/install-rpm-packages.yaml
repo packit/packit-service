@@ -17,6 +17,9 @@
       - python3-devel
       - python3-fedmsg
       - python3-flask
+      - python3-celery
+      - python3-redis
+      - redis  # redis-cli for debugging
       - python3-ipdb  # for easy debugging
       - python3-jsonschema
       - python3-libpagure
