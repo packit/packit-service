@@ -74,6 +74,7 @@ def test_wrong_collaborator(pr_event):
     flexmock(Model, save=lambda: None)
 
     steve = SteveJobs()
+    flexmock(SteveJobs, _is_private=False)
     result = steve.process_message(pr_event)
     copr_build = result["jobs"]["copr_build"]
     assert not copr_build["success"]

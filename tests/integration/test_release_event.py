@@ -36,6 +36,7 @@ def test_dist_git_push_release_handle(release_event):
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
     steve = SteveJobs()
+    flexmock(SteveJobs, _is_private=False)
     config = Config()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(Config).should_receive("get_service_config").and_return(config)
