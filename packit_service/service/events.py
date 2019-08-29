@@ -90,9 +90,6 @@ class Event:
     def get_project(self) -> GitProject:
         raise NotImplementedError("Please implement me!")
 
-    def get_project(self):
-        raise NotImplementedError
-
 
 class AbstractGithubEvent(Event):
     @staticmethod

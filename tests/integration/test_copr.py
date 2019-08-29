@@ -5,7 +5,6 @@ import pytest
 from copr.v3.client import Client as CoprClient
 from flexmock import flexmock
 from github import Github
-from github.Repository import Repository
 from ogr.services.github import GithubProject
 from packit.api import PackitAPI
 from packit.local_project import LocalProject
