@@ -66,8 +66,8 @@
           label: cloud-fedora-30
     semaphore: packit-service-tests-secrets
     secrets:
-      - name: cert.pem
-        secret: cert.pem
+      - name: "cert.pem"
+        secret: "cert.pem"
       - name: chain.pem
         secret: chain.pem
       - name: copr
