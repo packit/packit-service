@@ -79,11 +79,8 @@ services:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
       # There's no secrets/ by default. You have to create (or symlink to other dir) it yourself.
       - ./secrets/httpd-packit.conf:/etc/httpd/conf.d/httpd-packit.conf:ro,Z
-      - ./secrets/packit-service.yaml:/opt/app-root/src/.config/packit-service.yaml:ro,z
-      - ./secrets/id_rsa:/opt/app-root/src/.ssh/id_rsa:ro,z
-      - ./secrets/id_rsa.pub:/opt/app-root/src/.ssh/id_rsa.pub:ro,z
-      - ./secrets/packit.yaml:/opt/app-root/src/.config/.packit.yaml:ro,z
-      - ./secrets/copr:/opt/app-root/src/.config/copr:ro,z
+      - ./secrets/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
+      - ./secrets/packit.yaml:/home/packit/.config/.packit.yaml:ro,z
       - ./secrets/fedora.keytab:/secrets/fedora.keytab:ro,z
       - ./secrets/private-key.pem:/secrets/private-key.pem:ro,z
       - ./secrets/fullchain.pem:/secrets/fullchain.pem:ro,z

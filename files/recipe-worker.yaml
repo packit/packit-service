@@ -19,19 +19,6 @@
     with_items:
     - /usr/share/packit
     - /sandcastle  # working dir for the upstream git which is mapped to the sandbox pod
-  - name: Create some home dirs
-    file:
-      state: directory
-      path: '{{ home_path }}/{{ item }}'
-      mode: 0700
-    with_items:
-#    - .ssh
-    - .config
-  - name: Create /secrets
-    file:
-      state: directory
-      path: /secrets
-      mode: 0777
   - name: Copy gitconfig
     copy:
       src: gitconfig

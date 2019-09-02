@@ -3,7 +3,9 @@
 FROM registry.fedoraproject.org/f29/httpd:2.4
 
 ENV LANG=en_US.UTF-8 \
-    ANSIBLE_STDOUT_CALLBACK=debug
+    ANSIBLE_STDOUT_CALLBACK=debug \
+    USER=packit \
+    HOME=/home/packit
 
 # We need to install packages. httpd:2.4 image has user 1001
 USER 0
@@ -30,7 +32,5 @@ RUN /usr/libexec/httpd-prepare && rpm-file-permissions \
     && chmod -R a+rwx /var/log/httpd
 
 USER 1001
-# ENV USER=packit
-# ENV HOME=/home/packit
 
 CMD ["/usr/bin/run-httpd"]
