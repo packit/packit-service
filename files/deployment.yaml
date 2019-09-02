@@ -36,6 +36,7 @@
     copy:
       src: "{{ deployment_dir }}/secrets/template/{{ item }}"
       dest: "{{ deployment_dir }}/secrets/dev/{{ item }}"
+      remote_src: yes
     with_items:
       - httpd-packit.conf
       - packit-service.yaml
@@ -64,11 +65,13 @@
         # you can set the sandbox namespace name explicitly like this
         sandbox_namespace: "packit-dev-sandbox"
       dest: "{{ deployment_dir }}/vars/dev.yml.j2"
+      remote_src: yes
     become: true
   - name: Create dev.yaml
     template:
       src: "{{ deployment_dir }}/vars/dev.yml.j2"
       dest: "{{ deployment_dir }}/vars/dev.yml"
+      remote_src: yes
     become: true
   - name: Actually deploy
     command: make deploy
