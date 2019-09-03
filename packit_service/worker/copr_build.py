@@ -157,11 +157,14 @@ class CoprBuildHandler(object):
             return HandlerResults(success=False, details={"msg": msg})
 
         except Exception as ex:
-            msg = f"There was an error while running a copr build. {msg_retrigger}"
-            self.project.pr_comment(self.event.pr_id, msg)
-            logger.error(f"error while running a copr build: {ex}")
-            msg = f"There was an error while running the build: {ex}"
-            r.report("failure", msg, check_name=check_name)
+            msg = f"There was an error while running a copr build: {ex}"
+            logger.error(msg)
+            self.project.pr_comment(self.event.pr_id, f"{msg}\n{msg_retrigger}")
+            r.report(
+                "failure",
+                "Build failed, check latest comment for details.",
+                check_name=check_name,
+            )
             return HandlerResults(success=False, details={"msg": msg})
 
         self.copr_build_model.build_id = build_id
