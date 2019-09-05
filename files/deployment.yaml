@@ -24,7 +24,6 @@
     with_items:
     - private-key.pem
     - privkey.pem
-
   - name: Generate dummy certs
     command: "openssl req -x509 -new -key {{ deployment_dir }}/secrets/dev/privkey.pem -out {{ deployment_dir }}/secrets/dev/{{ item }} -days 1 -subj '/CN=just.for.the.ci' -passin pass:somepassword -passout pass:anotherpassword -nodes"
     with_items:
@@ -32,9 +31,15 @@
     - chain.pem
     - fullchain.pem
 
-  - name: Generate ssh keys
-    openssh_keypair:
-      path: "{{ deployment_dir }}/secrets/dev/id_rsa"
+  - name: Generate /etc/ssh/ RSA host key
+    command: "ssh-keygen -q -t rsa -f {{ deployment_dir }}/secrets/dev/id_rsa -C '' -N ''"
+    args:
+      creates: "{{ deployment_dir }}/secrets/dev/id_rsa"
+
+# Ansible 2.8+ :(
+#  - name: Generate ssh keys
+#    openssh_keypair:
+#      path: "{{ deployment_dir }}/secrets/dev/id_rsa"
 
   - name: Copy the rest of the secrets from template
     copy:
