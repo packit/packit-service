@@ -3,7 +3,8 @@
   hosts: all
   tasks:
   - include_tasks: tasks/zuul-project-setup.yaml
-  - name: Run tests
-    command: "echo Tests"
+  - name: Build packit-service worker image from current src dir
+    command: "make check_in_container"
     args:
-      chdir: '{{ project_dir }}'
+      chdir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+    become: true
