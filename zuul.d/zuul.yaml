@@ -3,7 +3,7 @@
     name: packit-service/packit-service
     check:
       jobs:
- #       - packit-service-pre-commit
+        - packit-service-pre-commit
         - packit-service-tests
     gate:
       jobs:
