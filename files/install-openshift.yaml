@@ -52,7 +52,7 @@
     become: true
 
   - name: Create sandbox project
-    command: oc new-project packit-zuul-sandbox
+    command: oc new-project packit-dev-sandbox
     environment:
       PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
     become: true

@@ -32,6 +32,10 @@
     - chain.pem
     - fullchain.pem
 
+  - name: Generate ssh keys
+    openssh_keypair:
+      path: "{{ deployment_dir }}/secrets/dev/id_rsa"
+
   - name: Copy the rest of the secrets from template
     copy:
       src: "{{ deployment_dir }}/secrets/template/{{ item }}"
