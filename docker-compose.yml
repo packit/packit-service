@@ -31,12 +31,12 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/0
     user: "123123"
 
-  packit-worker:
+  packit-service-worker:
     container_name: packit-worker
     build:
       context: .
-      dockerfile: Dockerfile
-    image: docker.io/usercont/packit-service:master
+      dockerfile: Dockerfile.worker
+    image: docker.io/usercont/packit-service-worker
     command: /usr/bin/run_worker.sh
     tty: true
     depends_on:
@@ -48,9 +48,15 @@ services:
     volumes:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
       - ./secrets/packit.yaml:/home/packit/.config/.packit.yaml:ro,z
-      - ./secrets:/packit-ssh:ro,z
-      - ./secrets:/secrets:ro,z
-      - .:/src:ro,z
+      # worker should not require packit-service.yaml
+      - ./secrets/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
+      - ./secrets/copr:/home/packit/.config/copr:ro,z
+      - ./secrets/ssh_config:/packit-ssh/config:ro,z
+      - ./secrets/id_rsa.pub:/packit-ssh/id_rsa.pub:ro,z
+      - ./secrets/id_rsa:/packit-ssh/id_rsa:ro,z
+      - ./secrets/fedora.keytab:/secrets/fedora.keytab:ro,z
+      - ./secrets/private-key.pem:/secrets/private-key.pem:ro,z
+      #- .:/src:ro,z
     # user: "123123"
 
   packit-service:
@@ -58,7 +64,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: docker.io/usercont/packit-service:master
+    image: docker.io/usercont/packit-service
     #command: /usr/bin/run-httpd  # TODO: make this work instead of the below flask
     command: flask-3 run -h 0.0.0.0 -p 8443
     depends_on:
@@ -73,22 +79,20 @@ services:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
       # There's no secrets/ by default. You have to create (or symlink to other dir) it yourself.
       - ./secrets/httpd-packit.conf:/etc/httpd/conf.d/httpd-packit.conf:ro,Z
-      - ./secrets/id_rsa:/opt/app-root/src/.ssh/id_rsa:ro,z
-      - ./secrets/id_rsa.pub:/opt/app-root/src/.ssh/id_rsa.pub:ro,z
-      - ./secrets/packit.yaml:/opt/app-root/src/.config/.packit.yaml:ro,z
-      - ./secrets/copr:/opt/app-root/src/.config/copr:ro,Z
-      - ./secrets/fedora.keytab:/secrets/fedora.keytab:ro,Z
-      - ./secrets/private-key.pem:/secrets/private-key.pem:ro,Z
-      - ./secrets/fullchain.pem:/secrets/fullchain.pem:ro,Z
-      - ./secrets/privkey.pem:/secrets/privkey.pem:ro,Z
+      - ./secrets/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
+      - ./secrets/packit.yaml:/home/packit/.config/.packit.yaml:ro,z
+      - ./secrets/fedora.keytab:/secrets/fedora.keytab:ro,z
+      - ./secrets/private-key.pem:/secrets/private-key.pem:ro,z
+      - ./secrets/fullchain.pem:/secrets/fullchain.pem:ro,z
+      - ./secrets/privkey.pem:/secrets/privkey.pem:ro,z
     #user: "123123"
 
   packit-fedmsg:
     container_name: packit-fedmsg-listener
     build:
       context: .
-      dockerfile: Dockerfile
-    image: docker.io/usercont/packit-service:master
+      dockerfile: Dockerfile.worker
+    image: docker.io/usercont/packit-service-worker
     command: packit-service --debug listen-to-fedmsg
     depends_on:
       - redis
@@ -96,8 +100,5 @@ services:
       REDIS_SERVICE_HOST: redis
     volumes:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
-      # There's no secrets/ by default. You have to create (or symlink to other dir) it yourself.
-      - ./secrets/id_rsa:/opt/app-root/src/.ssh/id_rsa:ro,z
-      - ./secrets/id_rsa.pub:/opt/app-root/src/.ssh/id_rsa.pub:ro,z
-      - ./secrets/packit.yaml:/opt/app-root/src/.config/.packit.yaml:ro,z
+      - ./secrets/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
     #user: "123123"

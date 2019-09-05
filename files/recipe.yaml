@@ -1,11 +1,10 @@
 ---
-- name: This is a recipe for how to cook with packit
+- name: This is a recipe for how to cook with packit-service
   hosts: all
   vars:
     home_path: "{{ lookup('env', 'HOME') }}"
     ansible_bender:
       base_image: registry.fedoraproject.org/f29/httpd:2.4
-      #base_image: fedora:29
       target_image:
         name: docker.io/usercont/packit-service
         environment:
@@ -18,11 +17,7 @@
   - name: Create /usr/share/packit directory
     file:
       state: directory
-      path: '{{ item }}'
-    with_items:
-    - /usr/share/packit
-    - /packit-ssh  # this is where we put ssh creds
-    - /sandcastle  # working dir for the upstream git which is mapped to the sandbox pod
+      path: /usr/share/packit
   - name: Copy packit.wsgi file
     copy:
       src: packit.wsgi
@@ -36,66 +31,16 @@
       regexp: '^(Listen.+)$'
       line: '# \1'
       backrefs: yes
-  - name: Create some home dirs
-    file:
-      state: directory
-      path: '{{ home_path }}/{{ item }}'
-      mode: 0700
-    with_items:
-    - .ssh
-    - .config
-  - name: Create /secrets
-    file:
-      state: directory
-      path: /secrets
-      mode: 0777
-  - name: Copy ssh_config
-    copy:
-      src: ssh_config
-      dest: /etc/ssh/ssh_config.d/01-packit.conf
-  - name: Copy gitconfig
-    copy:
-      src: gitconfig
-      dest: '{{ home_path }}/.gitconfig'
   - name: stat /src
     stat:
       path: /src
     tags:
     - no-cache
     register: src_path
-  - name: Copy fedmsg ssl configuration
-    copy:
-      src: fedmsg-ssl.py
-      dest: /etc/fedmsg.d/ssl.py
   - name: Let's make sure /src is present
     assert:
       that:
       - 'src_path.stat.isdir'
-  - name: Copy run_worker.sh
-    copy:
-      src: run_worker.sh
-      dest: /usr/bin/run_worker.sh
-      mode: 0777
-  - name: Install PyGithub from PyPi
-    pip:
-      name: PyGithub>=1.43
-      executable: pip3
-  - name: Install sandcastle
-    pip:
-      name: git+https://github.com/packit-service/sandcastle.git
-      executable: pip3
-  - name: Install packit from git master
-    pip:
-      name: git+https://github.com/packit-service/packit.git
-      executable: pip3
-  - name: Install ogr from git master
-    pip:
-      name: git+https://github.com/packit-service/ogr.git
-      executable: pip3
-  - name: Install frambo from git master
-    pip:
-      name: git+https://github.com/user-cont/frambo.git
-      executable: pip3
   - name: Install packit-service from /src
     pip:
       name: /src

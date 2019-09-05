@@ -1,0 +1,50 @@
+---
+- name: This is a recipe for how to cook with packit-service worker
+  hosts: all
+  vars:
+    home_path: "{{ lookup('env', 'HOME') }}"
+    ansible_bender:
+      base_image: docker.io/usercont/packit
+      target_image:
+        name: docker.io/usercont/packit-service-worker
+        cmd: run_worker.sh
+      working_container:
+        volumes:
+        - '{{ playbook_dir }}:/src:Z'
+  tasks:
+  - name: Create /usr/share/packit directory
+    file:
+      state: directory
+      path: '{{ item }}'
+    with_items:
+    - /usr/share/packit
+    - /sandcastle  # working dir for the upstream git which is mapped to the sandbox pod
+  - name: Copy gitconfig
+    copy:
+      src: gitconfig
+      dest: '{{ home_path }}/.gitconfig'
+  - name: stat /src
+    stat:
+      path: /src
+    tags:
+    - no-cache
+    register: src_path
+  - name: Copy fedmsg ssl configuration
+    copy:
+      src: fedmsg-ssl.py
+      dest: /etc/fedmsg.d/ssl.py
+  - name: Let's make sure /src is present
+    assert:
+      that:
+      - 'src_path.stat.isdir'
+  - name: Copy run_worker.sh
+    copy:
+      src: run_worker.sh
+      dest: /usr/bin/run_worker.sh
+      mode: 0777
+  - name: Install packit-service from /src
+    pip:
+      name: /src
+      executable: pip3
+  - name: Clean all the cache files (especially pip)
+    shell: rm -rf ~/.cache/*

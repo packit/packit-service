@@ -84,7 +84,7 @@ When you are contributing to changelog, please follow these suggestions:
 Tests are stored in [tests](/tests) directory.
 Running tests locally:
 ```
-make prepare-check && make check
+make check_in_container
 ```
 
 As a CI we use [CentOS CI](https://ci.centos.org/job/packit-service-pr/) with a configuration in [Jenkinsfile](Jenkinsfile).

@@ -117,7 +117,7 @@ class Parser:
         pr_id = event.get("number")
         action = event.get("action")
         if action in ["opened", "reopened", "synchronize"] and pr_id:
-            logger.info(f"GitHub PR {pr_id} event, action = {action}.")
+            logger.info(f"GitHub PR#{pr_id} event. Action: {action}.")
 
             # we can't use head repo here b/c the app is set up against the upstream repo
             # and not the fork, on the other hand, we don't process packit.yaml from
@@ -169,7 +169,7 @@ class Parser:
         pr_id = nested_get(event, "issue", "number")
         action = event.get("action")
         if action in ["created", "edited"] and pr_id:
-            logger.info(f"GitHub PR {pr_id} comment event, action = {action}.")
+            logger.info(f"GitHub PR#{pr_id} comment event. Action: {action}.")
 
             base_repo_namespace = nested_get(event, "repository", "owner", "login")
             base_repo_name = nested_get(event, "repository", "name")
@@ -210,9 +210,9 @@ class Parser:
         installation_id = event["installation"]["id"]
 
         logger.info(
-            f"Github App installation event. Action {action}"
-            f"Id {installation_id}, account {event['installation']['account']},"
-            f"sender {event['sender']}"
+            f"Github App installation event. Action: {action}, "
+            f"id: {installation_id}, account: {event['installation']['account']}, "
+            f"sender: {event['sender']}"
         )
 
         account_login = event["installation"]["account"]["login"]
