@@ -92,9 +92,15 @@ def validate_testing_farm_request():
         logger.error("testing_farm_secret not specified in config")
         return False
 
-    if request.get_json()["token"] == testing_farm_secret:
+    token = request.get_json().get("token")
+    if not token:
+        logger.info("the request doesn't contain any token")
+        return False
+    if token == testing_farm_secret:
         return True
 
+    logger.info("we got: %s", token)
+    logger.info("we have: %s", testing_farm_secret)
     logger.warning("Invalid testing farm secret provided!")
     return False
 
