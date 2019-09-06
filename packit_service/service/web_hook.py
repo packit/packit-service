@@ -62,6 +62,7 @@ def github_webhook():
         return "Pong!"
 
     if not validate_signature():
+        logger.info("webhook secret is not correct")
         abort(401)  # Unauthorized
 
     # TODO: define task names at one place
