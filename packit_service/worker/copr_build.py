@@ -67,6 +67,7 @@ class CoprBuildHandler(object):
             self._local_project = LocalProject(
                 git_project=self.project,
                 working_dir=self.config.command_handler_work_dir,
+                ref=self.event.base_ref,
             )
         return self._local_project
 
@@ -95,7 +96,6 @@ class CoprBuildHandler(object):
         return None
 
     def run_copr_build(self) -> HandlerResults:
-
         check_name = PRCheckName.get_build_check()
         # add suffix stg when using stg app
         stg = "-stg" if self.config.deployment == Deployment.stg else ""
