@@ -3,6 +3,7 @@
   hosts: all
   vars:
     home_path: "{{ lookup('env', 'HOME') }}"
+    packit_service_path: /src-packit-service
     ansible_bender:
       base_image: docker.io/usercont/packit
       target_image:
@@ -10,7 +11,7 @@
         cmd: run_worker.sh
       working_container:
         volumes:
-        - '{{ playbook_dir }}:/src:Z'
+        - '{{ playbook_dir }}:{{ packit_service_path }}:Z'
   tasks:
   - name: Create /usr/share/packit directory
     file:
@@ -23,9 +24,9 @@
     copy:
       src: gitconfig
       dest: '{{ home_path }}/.gitconfig'
-  - name: stat /src
+  - name: stat {{ packit_service_path }}
     stat:
-      path: /src
+      path: '{{ packit_service_path }}'
     tags:
     - no-cache
     register: src_path
@@ -33,7 +34,7 @@
     copy:
       src: fedmsg-ssl.py
       dest: /etc/fedmsg.d/ssl.py
-  - name: Let's make sure /src is present
+  - name: Let's make sure {{ packit_service_path }} is present
     assert:
       that:
       - 'src_path.stat.isdir'
@@ -42,9 +43,9 @@
       src: run_worker.sh
       dest: /usr/bin/run_worker.sh
       mode: 0777
-  - name: Install packit-service from /src
+  - name: Install packit-service from {{ packit_service_path }}
     pip:
-      name: /src
+      name: '{{ packit_service_path }}'
       executable: pip3
   - name: Clean all the cache files (especially pip)
     file:

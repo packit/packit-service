@@ -14,4 +14,4 @@ install -m 0400 /packit-ssh/id_rsa ${PACKIT_HOME}/.ssh/
 install -m 0400 /packit-ssh/id_rsa.pub ${PACKIT_HOME}/.ssh/
 install -m 0400 /packit-ssh/config ${PACKIT_HOME}/.ssh/config
 
-exec celery-3 worker --app=${APP} --loglevel=debug --concurrency=1
+exec celery-3 worker --app=${APP} --loglevel=info --concurrency=1
