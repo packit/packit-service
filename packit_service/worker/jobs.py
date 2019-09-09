@@ -201,9 +201,17 @@ class SteveJobs:
             return None
 
         jobs_results = {}
-        if self._is_private(event_object.get_project()):
-            logger.error("We do not interact with private repositories!")
 
+        is_private_repository = False
+        try:
+            project = event_object.get_project()
+            is_private_repository = self._is_private(project)
+        except NotImplementedError:
+            logger.warning("Cannot obtain project from this event!")
+            logger.warning("Skipping private repository check!")
+
+        if is_private_repository:
+            logger.error("We do not interact with private repositories!")
         else:
             # installation is handled differently b/c app is installed to GitHub account
             # not repository, so package config with jobs is missing
