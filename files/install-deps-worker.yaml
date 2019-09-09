@@ -8,6 +8,7 @@
       - python3-ipdb  # for easy debugging
       - nss_wrapper  # openshift anyuid passwd madness
       - python3-celery # (#107)
+      - rebase-helper
       - python3-redis
       - redis  # redis-cli for debugging
       - origin-clients # for sandcastle
