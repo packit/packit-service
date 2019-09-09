@@ -202,14 +202,13 @@ class SteveJobs:
 
         jobs_results = {}
 
-        project = event_object.get_project()
         is_private_repository = False
-
-        if not project:
+        try:
+            project = event_object.get_project()
+            is_private_repository = self._is_private(project)
+        except NotImplementedError:
             logger.warning("Cannot obtain project from this event!")
             logger.warning("Skipping private repository check!")
-        else:
-            is_private_repository = self._is_private(event_object.get_project())
 
         if is_private_repository:
             logger.error("We do not interact with private repositories!")
