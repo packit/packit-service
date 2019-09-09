@@ -87,7 +87,33 @@ Running tests locally:
 make check_in_container
 ```
 
-As a CI we use [CentOS CI](https://ci.centos.org/job/packit-service-pr/) with a configuration in [Jenkinsfile](Jenkinsfile).
+## Running tests in CI
+
+For running E2E tests in CI, an instance of OpenShift cluster is deployed and setup in following way:
+```
+The server is accessible via web console at:
+https://127.0.0.1:8443/console
+You are logged in as:
+User:     developer
+Password: <any value>
+```
+
+and two projects are created:
+```
+* myproject
+  packit-dev-sandbox
+
+Using project "myproject".
+```
+
+Both images `packit-service` and `packit-service-worker` are built from source of current PR and deployed into the Openshift cluster using:
+```
+$ DEPLOYMENT=dev make deploy
+```
+
+**Note: All secrets for PR testing are fake(randomly generated), so it is not possible to communicate with real services (e.g github or copr) for PR testing.**
+
+As the last step playbook [zuul-tests.yaml](/files/zuul-tests.yaml) is executed.
 
 ### Additional configuration for development purposes
 

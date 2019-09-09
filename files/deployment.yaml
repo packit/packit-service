@@ -1,0 +1,96 @@
+---
+- name: Build packit-service image form current src dir.
+  hosts: all
+  vars:
+    deployment_dir: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/packit-service/deployment'].src_dir }}"
+  tasks:
+  - name: Install packages for deployment
+    dnf:
+      name:
+      - ansible-2.7.10-1.fc30 # because of packit-service deployment
+      - python3-openshift
+      - make
+    become: true
+  - name: get token
+    command: oc whoami -t
+    register: kubeconfig_token
+    become: true
+  - name: Creates zuul secrets directory
+    file:
+      path: "{{ deployment_dir }}/secrets/dev"
+      state: directory
+  - name: Generate dummy keys
+    command: "openssl genrsa -out {{ deployment_dir }}/secrets/dev/{{ item }} 4096"
+    with_items:
+    - private-key.pem
+    - privkey.pem
+  - name: Generate dummy certs
+    command: "openssl req -x509 -new -key {{ deployment_dir }}/secrets/dev/privkey.pem -out {{ deployment_dir }}/secrets/dev/{{ item }} -days 1 -subj '/CN=just.for.the.ci' -passin pass:somepassword -passout pass:anotherpassword -nodes"
+    with_items:
+    - cert.pem
+    - chain.pem
+    - fullchain.pem
+
+  - name: Generate /etc/ssh/ RSA host key
+    command: "ssh-keygen -q -t rsa -f {{ deployment_dir }}/secrets/dev/id_rsa -C '' -N ''"
+    args:
+      creates: "{{ deployment_dir }}/secrets/dev/id_rsa"
+
+# Ansible 2.8+ :(
+#  - name: Generate ssh keys
+#    openssh_keypair:
+#      path: "{{ deployment_dir }}/secrets/dev/id_rsa"
+
+  - name: Create fedora.keytab
+    file:
+      path: "{{ deployment_dir }}/secrets/dev/fedora.keytab"
+      state: touch
+
+  - name: Copy the rest of the secrets from template
+    copy:
+      src: "{{ deployment_dir }}/secrets/template/{{ item }}"
+      dest: "{{ deployment_dir }}/secrets/dev/{{ item }}"
+      remote_src: yes
+    with_items:
+      - httpd-packit.conf
+      - packit-service.yaml
+      - copr
+      - ssh_config
+    become: true
+
+  - name: Create dev.yml
+    copy:
+      content: |
+        # Openshift project/namespace name
+        project: myproject
+        # Openshift cluster url (example: https://192.168.42.66:8443)
+        host: https://127.0.0.1:8443
+        # oc login <the above host value>, oc whoami -t
+        # OR via Openshift web GUI: click on your login in top right corner, 'Copy Login Command', take the part after --token=
+        api_key: {{ kubeconfig_token.stdout }}
+        # To work-around 'SSL: CERTIFICATE_VERIFY_FAILED'
+        verify_ssl: no
+        # don't deploy fedmsg dc; good for local testing
+        without_fedmsg: false
+        # don't deploy redis-commander dc; good for staging deployment
+        without_redis_commander: false
+        # don't deploy flower dc; good for staging deployment
+        without_flower: false
+        # you can set the sandbox namespace name explicitly like this
+        sandbox_namespace: packit-dev-sandbox
+        # set tag to latest because images are freshly built with latest tag in CI
+        deployment_image: latest
+        # image packit-service
+        image: docker.io/usercont/packit-service
+        # image worker
+        image_worker: docker.io/usercont/packit-service-worker
+      dest: "{{ deployment_dir }}/vars/dev.yml"
+    become: true
+  - name: Actually deploy
+    command: make deploy
+    environment:
+      DEPLOYMENT: dev
+      ANSIBLE_STDOUT_CALLBACK: debug
+    args:
+      chdir: "{{ deployment_dir }}"
+    become: true

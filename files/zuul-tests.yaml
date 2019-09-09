@@ -1,0 +1,10 @@
+---
+- name: This is a recipe for how to run packit tests
+  hosts: all
+  tasks:
+  - include_tasks: tasks/zuul-project-setup.yaml
+  - name: Build packit-service worker image from current src dir
+    command: "make check_in_container"
+    args:
+      chdir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+    become: true

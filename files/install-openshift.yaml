@@ -1,0 +1,64 @@
+---
+- name: Install dependencies for packit service.
+  hosts: all
+  tasks:
+  - name: Install basic utilities which should be in environment.
+    dnf:
+      name:
+      - git
+      - rpmdevtools
+      - docker
+      - podman
+      state: present
+    become: true
+  - name: Put SELinux in permissive mode, logging actions that would be blocked.
+    selinux:
+      policy: targeted
+      state: permissive
+    become: true
+  - name: Make sure docker is running
+    systemd:
+      name: docker
+      state: started
+    become: true
+  - name: Create docker deamon config
+    file:
+      path: /etc/docker/daemon.json
+      state: touch
+    become: true
+  - name: Add OpenShift insecure registry into docker deamon config
+    copy:
+      content: |
+        {"insecure-registries" : [ "172.30.0.0/16" ]}
+      dest: /etc/docker/daemon.json
+    become: true
+  - name: Restart docker because config has changed
+    systemd:
+      state: restarted
+      daemon_reload: yes
+      name: docker
+    become: true
+  - name: Install OpenShift server
+    dnf:
+      name:
+      - origin
+      state: present
+    become: true
+  - name: Start Openshift cluster
+    command: oc cluster up --base-dir=/tmp
+    environment:
+      PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
+      DOCKER_CONFIG: "/etc/docker/daemon.json"
+    become: true
+
+  - name: Create sandbox project
+    command: oc new-project packit-dev-sandbox
+    environment:
+      PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
+    become: true
+
+  - name: Switch back to myproject
+    command: oc project myproject
+    environment:
+      PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
+    become: true

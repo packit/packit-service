@@ -1,4 +1,4 @@
-# Packit Service [![Build Status](https://ci.centos.org/job/packit-service-master/badge/icon)](https://ci.centos.org/job/packit-service-master/)
+# Packit Service [![Build Status](https://zuul-ci.org/gated.svg)](https://softwarefactory-project.io/zuul/t/local/builds?project=packit-service/packit-service)
 
 A service which helps you integrate your upstream GitHub project into Fedora
 ecosystem. Think of it as [packit](https://github.com/packit-service/packit) on
