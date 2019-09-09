@@ -248,7 +248,7 @@ class IssueCommentEvent(AbstractGithubEvent):
     def __init__(
         self,
         action: IssueCommentAction,
-        pr_id: int,
+        issue_id: int,
         base_repo_namespace: str,
         base_repo_name: str,
         base_ref: Optional[str],
