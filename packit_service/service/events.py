@@ -50,6 +50,11 @@ class PullRequestCommentAction(enum.Enum):
     edited = "edited"
 
 
+class IssueCommentAction(enum.Enum):
+    created = "created"
+    edited = "edited"
+
+
 class FedmsgTopic(enum.Enum):
     dist_git_push = "org.fedoraproject.prod.git.receive"
     copr_build_finished = "org.fedoraproject.prod.copr.build.end"
@@ -223,6 +228,60 @@ class PullRequestCommentEvent(AbstractGithubEvent):
             self.base_ref = self.get_project().get_pr_info(self.pr_id).source_branch
         package_config: PackageConfig = get_package_config_from_repo(
             self.get_project(), self.base_ref
+        )
+        if not package_config:
+            logger.info(
+                f"no packit config found for "
+                f"{self.base_repo_namespace}/{self.base_repo_name}, #{self.pr_id}"
+            )
+            return None
+        package_config.upstream_project_url = self.https_url
+        return package_config
+
+    def get_project(self) -> GitProject:
+        return self.github_service.get_project(
+            repo=self.base_repo_name, namespace=self.base_repo_namespace
+        )
+
+
+class IssueCommentEvent(AbstractGithubEvent):
+    def __init__(
+        self,
+        action: IssueCommentAction,
+        pr_id: int,
+        base_repo_namespace: str,
+        base_repo_name: str,
+        base_ref: Optional[str],
+        target_repo: str,
+        https_url: str,
+        github_login: str,
+        comment: str,
+        tag_name: str = "",
+    ):
+        super().__init__(JobTriggerType.comment)
+        self.action = action
+        self.pr_id = pr_id
+        self.base_repo_namespace = base_repo_namespace
+        self.base_repo_name = base_repo_name
+        self.base_ref = base_ref
+        self.tag_name = tag_name
+        self.target_repo = target_repo
+        self.https_url = https_url
+        self.github_login = github_login
+        self.comment = comment
+
+    def get_dict(self) -> dict:
+        result = self.__dict__
+        # whole dict have to be JSON serializable because of redis
+        result["trigger"] = str(result["trigger"])
+        result["action"] = str(result["action"])
+        return result
+
+    def get_package_config(self) -> Optional[PackageConfig]:
+        if not self.base_ref:
+            self.base_ref = self.get_project().get_pr_info(self.pr_id).source_branch
+        package_config: PackageConfig = get_package_config_from_repo(
+            self.get_project(), self.tag_name
         )
         if not package_config:
             logger.info(

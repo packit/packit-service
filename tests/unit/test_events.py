@@ -42,6 +42,8 @@ from packit_service.service.events import (
     TestingFarmResult,
     PullRequestCommentEvent,
     PullRequestCommentAction,
+    IssueCommentEvent,
+    IssueCommentAction,
 )
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
@@ -64,6 +66,13 @@ class TestEvents:
             return json.load(outfile)
 
     @pytest.fixture()
+    def issue_comment_request(self):
+        with open(
+            DATA_DIR / "webhooks" / "github_issue_propose_update.json", "r"
+        ) as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
     def testing_farm_results(self):
         with open(DATA_DIR / "webhooks" / "testing_farm_results.json", "r") as outfile:
             return json.load(outfile)
@@ -78,7 +87,7 @@ class TestEvents:
     @pytest.fixture()
     def pr_comment_empty_request(self):
         with open(
-            DATA_DIR / "webhooks" / "github_issue_comment_empty.json", "r"
+            DATA_DIR / "webhooks" / "github_pr_comment_empty.json", "r"
         ) as outfile:
             return json.load(outfile)
 
@@ -171,6 +180,23 @@ class TestEvents:
         assert event_object.https_url == "https://github.com/packit-service/hello-world"
         assert event_object.github_login == "phracek"
         assert event_object.comment == ""
+
+    def test_parse_issue_comment(self, issue_comment_request):
+        event_object = Parser.parse_event(issue_comment_request)
+
+        assert isinstance(event_object, IssueCommentEvent)
+        assert event_object.trigger == JobTriggerType.comment
+        assert event_object.action == IssueCommentAction.created
+        assert event_object.pr_id == 512
+        assert event_object.base_repo_namespace == "packit-service"
+        assert event_object.base_repo_name == "packit"
+        assert (
+            event_object.target_repo
+            == f"{event_object.base_repo_namespace}/{event_object.base_repo_name}"
+        )
+        assert event_object.https_url == "https://github.com/packit-service/packit"
+        assert event_object.github_login == "phracek"
+        assert event_object.comment == "/packit propose-update"
 
     def test_parse_testing_farm_results(self, testing_farm_results):
         event_object = Parser.parse_event(testing_farm_results)
