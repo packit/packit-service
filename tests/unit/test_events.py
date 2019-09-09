@@ -187,7 +187,7 @@ class TestEvents:
         assert isinstance(event_object, IssueCommentEvent)
         assert event_object.trigger == JobTriggerType.comment
         assert event_object.action == IssueCommentAction.created
-        assert event_object.pr_id == 512
+        assert event_object.issue_id == 512
         assert event_object.base_repo_namespace == "packit-service"
         assert event_object.base_repo_name == "packit"
         assert (

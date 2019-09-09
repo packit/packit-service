@@ -260,7 +260,7 @@ class IssueCommentEvent(AbstractGithubEvent):
     ):
         super().__init__(JobTriggerType.comment)
         self.action = action
-        self.pr_id = pr_id
+        self.issue_id = issue_id
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
         self.base_ref = base_ref
@@ -279,14 +279,14 @@ class IssueCommentEvent(AbstractGithubEvent):
 
     def get_package_config(self) -> Optional[PackageConfig]:
         if not self.base_ref:
-            self.base_ref = self.get_project().get_pr_info(self.pr_id).source_branch
+            self.base_ref = self.get_project().get_pr_info(self.issue_id).source_branch
         package_config: PackageConfig = get_package_config_from_repo(
             self.get_project(), self.tag_name
         )
         if not package_config:
             logger.info(
                 f"no packit config found for "
-                f"{self.base_repo_namespace}/{self.base_repo_name}, #{self.pr_id}"
+                f"{self.base_repo_namespace}/{self.base_repo_name}, #{self.issue_id}"
             )
             return None
         package_config.upstream_project_url = self.https_url

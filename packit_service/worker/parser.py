@@ -172,12 +172,12 @@ class Parser:
         """ Look into the provided event and see if it is Github issue comment event. """
 
         if nested_get(event, "issue", "pull_request"):
-            logger.debug("This is not Issue comment, but Pull request comment.")
             return None
 
         issue_id = nested_get(event, "issue", "number")
         action = event.get("action")
-        if action == "created" and issue_id:
+        comment = nested_get(event, "comment", "body")
+        if action == "created" and issue_id and comment:
             logger.info(f"Github issue {issue_id} comment event.")
 
             base_repo_namespace = nested_get(event, "repository", "owner", "login")
@@ -192,7 +192,6 @@ class Parser:
 
             target_repo = nested_get(event, "repository", "full_name")
             logger.info(f"Target repo: {target_repo}.")
-            comment = nested_get(event, "comment", "body")
             https_url = nested_get(event, "repository", "html_url")
             return IssueCommentEvent(
                 IssueCommentAction[action],
