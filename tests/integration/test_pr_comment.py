@@ -49,7 +49,7 @@ def pr_build_comment_event():
 @pytest.fixture()
 def pr_empty_comment_event():
     return json.loads(
-        (DATA_DIR / "webhooks" / "github_issue_comment_empty.json").read_text()
+        (DATA_DIR / "webhooks" / "github_pr_comment_empty.json").read_text()
     )
 
 

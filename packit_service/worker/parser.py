@@ -38,6 +38,8 @@ from packit_service.service.events import (
     TestingFarmResult,
     TestResult,
     PullRequestCommentAction,
+    IssueCommentEvent,
+    IssueCommentAction,
 )
 from packit_service.worker.fedmsg_handlers import NewDistGitCommit
 
@@ -61,6 +63,7 @@ class Parser:
             DistGitEvent,
             TestingFarmResultsEvent,
             PullRequestCommentEvent,
+            IssueCommentEvent,
         ]
     ]:
         """
@@ -81,12 +84,17 @@ class Parser:
                 DistGitEvent,
                 TestingFarmResultsEvent,
                 PullRequestCommentEvent,
+                IssueCommentEvent,
             ]
         ] = Parser.parse_pr_event(event)
         if response:
             return response
 
         response = Parser.parse_pull_request_comment_event(event)
+        if response:
+            return response
+
+        response = Parser.parse_issue_comment_event(event)
         if response:
             return response
 
@@ -156,6 +164,45 @@ class Parser:
                 https_url,
                 commit_sha,
                 github_login,
+            )
+        return None
+
+    @staticmethod
+    def parse_issue_comment_event(event) -> Optional[IssueCommentEvent]:
+        """ Look into the provided event and see if it is Github issue comment event. """
+
+        if nested_get(event, "issue", "pull_request"):
+            return None
+
+        issue_id = nested_get(event, "issue", "number")
+        action = event.get("action")
+        comment = nested_get(event, "comment", "body")
+        if action == "created" and issue_id and comment:
+            logger.info(f"Github issue {issue_id} comment event.")
+
+            base_repo_namespace = nested_get(event, "repository", "owner", "login")
+            base_repo_name = nested_get(event, "repository", "name")
+            if not (base_repo_namespace and base_repo_name):
+                logger.warning("No full name of the repository.")
+
+            github_login = nested_get(event, "comment", "user", "login")
+            if not github_login:
+                logger.warning("No Github login name from event.")
+                return None
+
+            target_repo = nested_get(event, "repository", "full_name")
+            logger.info(f"Target repo: {target_repo}.")
+            https_url = nested_get(event, "repository", "html_url")
+            return IssueCommentEvent(
+                IssueCommentAction[action],
+                issue_id,
+                base_repo_namespace,
+                base_repo_name,
+                None,
+                target_repo,
+                https_url,
+                github_login,
+                comment,
             )
         return None
 
