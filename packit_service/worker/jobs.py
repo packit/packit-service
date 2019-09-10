@@ -34,6 +34,7 @@ from ogr.services.github import GithubProject
 from packit_service.config import Config
 from packit_service.service.events import (
     PullRequestCommentEvent,
+    IssueCommentEvent,
     Event,
     TestingFarmResultsEvent,
 )
@@ -123,8 +124,10 @@ class SteveJobs:
                     handler.clean()
         return handlers_results
 
-    def process_comment_jobs(self, event: PullRequestCommentEvent) -> HandlerResults:
-        # packit_command can be `/packit build` or `/packit build <with_args>`
+    def process_comment_jobs(
+        self, event: Union[PullRequestCommentEvent, IssueCommentEvent]
+    ) -> HandlerResults:
+        # packit_command can be `/packit propose-update`
         msg = f"PR comment '{event.comment[:35]}'"
         try:
             (packit_mark, *packit_command) = event.comment.split(maxsplit=3)
@@ -223,8 +226,9 @@ class SteveJobs:
                     jobs_results[JobType.add_to_whitelist.value] = handler.run()
                 finally:
                     handler.clean()
-            elif event_object.trigger == JobTriggerType.comment and isinstance(
-                event_object, PullRequestCommentEvent
+            elif event_object.trigger == JobTriggerType.comment and (
+                isinstance(event_object, PullRequestCommentEvent)
+                or isinstance(event_object, IssueCommentEvent)
             ):
                 jobs_results[
                     JobType.pull_request_action.value
