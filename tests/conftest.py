@@ -26,12 +26,13 @@ from pathlib import Path
 from flexmock import flexmock
 from github import Github
 from copr.v3.client import Client as CoprClient
+from github.GitRelease import GitRelease as PyGithubRelease
 
 from packit.config import Config
 from packit.local_project import LocalProject
 from tests.spellbook import SAVED_HTTPD_REQS
 
-from ogr.services.github import GithubProject, GithubRelease
+from ogr.services.github import GithubProject, GithubRelease, GitTag
 
 from packit_service.config import Config as ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
@@ -120,14 +121,15 @@ def mock_issue_comment_functionality():
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     flexmock(GithubProject).should_receive("who_can_merge_pr").and_return({"phracek"})
     flexmock(GithubProject).should_receive("issue_comment").and_return(None)
+    flexmock(GithubProject).should_receive("issue_close").and_return(None)
     gr = GithubRelease(
         tag_name="0.5.1",
         url="packit-service/packit",
         created_at="",
         tarball_url="https://foo/bar",
-        git_tag=None,
-        project=None,
-        raw_release=None,
+        git_tag=flexmock(GitTag),
+        project=flexmock(GithubProject),
+        raw_release=flexmock(PyGithubRelease),
     )
     flexmock(GithubProject).should_receive("get_latest_release").and_return(gr)
     config = ServiceConfig()

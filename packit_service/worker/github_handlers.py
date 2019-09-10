@@ -590,4 +590,7 @@ class GitHubIssueCommentProposeUpdateHandler(PullRequestCommentHandler):
         if sync_failed:
             return HandlerResults(success=False, details={})
 
+        # Close issue if propose-update was successful in all branches
+        self.project.issue_close(self.event.issue_id)
+
         return HandlerResults(success=True, details={})
