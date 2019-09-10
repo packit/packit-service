@@ -9,23 +9,13 @@
       - python3-flask
       - python3-ipdb  # for easy debugging
       - python3-mod_wsgi
-      # the following are needed for frambo installation
-      - git
-      - gcc
-      - rpm-devel
-      - openssl-devel
-      - libxml2-devel
-      - redhat-rpm-config
-      - krb5-workstation
-      - python3-devel
-      - python3-pyOpenSSL
-      - python3-pyrsistent
-      - python3-anymarkup
-      # the following are needed for packitos installation
-      - krb5-devel
+      - git # setuptools-scm
       state: present
-  # db models
-  - name: Install frambo from git master
-    pip:
-      name: git+https://github.com/user-cont/frambo.git
-      executable: pip3
+  - name: Install python3-packit from testing repo
+    dnf:
+      name:
+      # web service needs packit just for few bits (see #109), so hopefully we don't need it from master and RPM is enough
+      - python3-packit
+      # can be removed once 0.6.0 is in stable
+      enablerepo: testing
+      state: present
