@@ -24,7 +24,7 @@ from typing import Optional, Any
 import requests
 import logging
 
-from frambo.dict_in_redis import PersistentDict
+from persistentdict.dict_in_redis import PersistentDict
 from ogr.abstract import GitProject
 from packit.config import JobTriggerType
 

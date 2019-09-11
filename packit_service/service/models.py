@@ -5,7 +5,7 @@ import copy
 import datetime
 from typing import List, Dict, Union
 
-from frambo.dict_in_redis import PersistentDict
+from persistentdict.dict_in_redis import PersistentDict
 
 from packit_service.service.events import InstallationEvent, WhitelistStatus
 
