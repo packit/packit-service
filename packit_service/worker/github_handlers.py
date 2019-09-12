@@ -27,7 +27,7 @@ import json
 import logging
 import uuid
 from pathlib import Path
-from typing import Union, Any, Optional
+from typing import Union, Any, Optional, List
 
 import requests
 from ogr import GithubService
@@ -50,6 +50,7 @@ from packit_service.service.events import (
     InstallationEvent,
     ReleaseEvent,
     PullRequestCommentEvent,
+    IssueCommentEvent,
 )
 from packit_service.service.models import Installation
 from packit_service.worker.whitelist import Whitelist
@@ -63,10 +64,10 @@ from packit_service.worker.handler import (
     BuildStatusReporter,
     PRCheckName,
 )
-from packit_service.worker.pr_comment_handler import (
-    PullRequestCommentAction,
-    add_to_pr_comment_mapping,
-    PullRequestCommentHandler,
+from packit_service.worker.comment_action_handler import (
+    CommentAction,
+    add_to_comment_action_mapping,
+    CommentActionHandler,
 )
 
 
@@ -464,11 +465,11 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
         return HandlerResults(success=True, details={})
 
 
-@add_to_pr_comment_mapping
-class GitHubPullRequestCommentCoprBuildHandler(PullRequestCommentHandler):
+@add_to_comment_action_mapping
+class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
     """ Issue handler for comment `/packit copr-build` """
 
-    name = PullRequestCommentAction.copr_build
+    name = CommentAction.copr_build
     event: PullRequestCommentEvent
 
     def __init__(self, config: Config, event: PullRequestCommentEvent):
@@ -522,68 +523,73 @@ class GitHubPullRequestCommentCoprBuildHandler(PullRequestCommentHandler):
         return handler_results
 
 
-# @add_to_pr_comment_mapping
-# class GitHubPullRequestCommentBuildHandler(PullRequestCommentHandler):
-#     """ Issue handler for comment `/packit build` """
-#
-#     name = PullRequestCommentAction.build
-#
-#     def __init__(self, config: Config, event: PullRequestCommentEvent):
-#         super().__init__(
-#             config=config, event=event
-#         )
-#
-#         self.config = config
-#         self.event = event
-#         self.project: GitProject = self.github_service.get_project(
-#             repo=event.base_repo_name, namespace=event.base_repo_namespace
-#         )
-#         # Get the latest pull request commit
-#         self.event.commit_sha = self.project.get_all_pr_commits(self.event.pr_id)[-1]
-#         self.package_config: PackageConfig = get_package_config_from_repo(
-#             self.project, self.event.commit_sha
-#         )
-#         self.package_config.upstream_project_url = event.https_url
-#
-#     def get_build_metadata_for_build(self) -> Optional[JobConfig]:
-#         """
-#         Check if there are builds defined
-#         :return: JobConfig or None
-#         """
-#         for job in self.package_config.jobs:
-#             if job.job == JobType.build:
-#                 return job
-#         return None
-#
-#     def run(self) -> HandlerResults:
-#         self.local_project = LocalProject(
-#             git_project=self.project, working_dir=self.config.command_handler_work_dir
-#         )
-#
-#         self.api = PackitAPI(self.config, self.package_config, self.local_project)
-#
-#         # TODO support also arguments for `/packit build <ARGS>`. Now builds without ARGS.
-#         collaborators = self.project.who_can_merge_pr()
-#         r = BuildStatusReporter(self.project, self.event.commit_sha)
-#         if self.event.github_login not in collaborators:
-#             msg = "Only collaborators can trigger Packit-as-a-Service"
-#             r.set_status("failure", msg, PRCheckName.get_build_check())
-#             return HandlerResults(success=False, details={"msg": msg})
-#
-#         job = self.get_build_metadata_for_build()
-#
-#         dist_git_branch = (
-#             "master" if not job else job.metadata.get("dist-git-branch", "master")
-#         )
-#         try:
-#             self.api.build(dist_git_branch=dist_git_branch)
-#         except PackitException as ex:
-#             msg = (
-#                 f"There was an error while building "
-#                 f"a Fedora package `{self.package_config.downstream_package_name}`."
-#             )
-#             self.project.pr_comment(self.event.pr_id, msg)
-#             logger.error(f"error while running a build: {ex}")
-#             return HandlerResults(success=False, details={})
-#
-#         return HandlerResults(success=True, details={})
+@add_to_comment_action_mapping
+class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
+    """ Issue handler for comment `/packit propose-update` """
+
+    name = CommentAction.propose_update
+    event: IssueCommentEvent
+
+    def __init__(self, config: Config, event: IssueCommentEvent):
+        super().__init__(config=config, event=event)
+
+        self.config = config
+        self.event = event
+        self.project: GitProject = self.github_service.get_project(
+            repo=event.base_repo_name, namespace=event.base_repo_namespace
+        )
+        # Get the latest tag release
+        self.event.tag_name = self.project.get_latest_release().tag_name
+        self.package_config: PackageConfig = get_package_config_from_repo(
+            self.project, self.event.tag_name
+        )
+        self.package_config.upstream_project_url = event.https_url
+
+    def get_build_metadata_for_build(self) -> List[str]:
+        """
+        Check if there are propose-update defined
+        :return: JobConfig or Empty list
+        """
+        return [
+            job.metadata.get("dist-git-branch")
+            for job in self.package_config.jobs
+            if job.job == JobType.propose_downstream
+        ]
+
+    def run(self) -> HandlerResults:
+        self.local_project = LocalProject(
+            git_project=self.project, working_dir=self.config.command_handler_work_dir
+        )
+
+        self.api = PackitAPI(self.config, self.package_config, self.local_project)
+
+        collaborators = self.project.who_can_merge_pr()
+        if self.event.github_login not in collaborators:
+            msg = "Only collaborators can trigger Packit-as-a-Service"
+            self.project.issue_comment(self.event.issue_id, msg)
+            return HandlerResults(success=False, details={"msg": msg})
+
+        branches = self.get_build_metadata_for_build()
+        sync_failed = False
+        for brn in branches:
+            msg = (
+                f"a new update for the Fedora package "
+                f"`{self.package_config.downstream_package_name}`"
+                f"with the tag `{self.event.tag_name}` in the `{brn}` branch.\n"
+            )
+            try:
+                self.api.sync_release(dist_git_branch=brn, version=self.event.tag_name)
+                msg = f"Packit-as-a-Service proposed {msg}"
+                self.project.issue_comment(self.event.issue_id, msg)
+            except PackitException as ex:
+                msg = f"There was an error while proposing {msg} Traceback is: `{ex}`"
+                self.project.issue_comment(self.event.issue_id, msg)
+                logger.error(f"error while running a build: {ex}")
+                sync_failed = True
+        if sync_failed:
+            return HandlerResults(success=False, details={})
+
+        # Close issue if propose-update was successful in all branches
+        self.project.issue_close(self.event.issue_id)
+
+        return HandlerResults(success=True, details={})
