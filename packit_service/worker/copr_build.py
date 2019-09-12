@@ -68,6 +68,7 @@ class CoprBuildHandler(object):
                 git_project=self.project,
                 working_dir=self.config.command_handler_work_dir,
                 ref=self.event.base_ref,
+                pr_id=self.event.pr_id,
             )
         return self._local_project
 
