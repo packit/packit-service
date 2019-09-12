@@ -64,10 +64,10 @@ from packit_service.worker.handler import (
     BuildStatusReporter,
     PRCheckName,
 )
-from packit_service.worker.pr_comment_handler import (
-    PullRequestCommentAction,
-    add_to_pr_comment_mapping,
-    PullRequestCommentHandler,
+from packit_service.worker.comment_action_handler import (
+    CommentAction,
+    add_to_comment_action_mapping,
+    CommentActionHandler,
 )
 
 
@@ -465,11 +465,11 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
         return HandlerResults(success=True, details={})
 
 
-@add_to_pr_comment_mapping
-class GitHubPullRequestCommentCoprBuildHandler(PullRequestCommentHandler):
+@add_to_comment_action_mapping
+class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
     """ Issue handler for comment `/packit copr-build` """
 
-    name = PullRequestCommentAction.copr_build
+    name = CommentAction.copr_build
     event: PullRequestCommentEvent
 
     def __init__(self, config: Config, event: PullRequestCommentEvent):
@@ -523,11 +523,11 @@ class GitHubPullRequestCommentCoprBuildHandler(PullRequestCommentHandler):
         return handler_results
 
 
-@add_to_pr_comment_mapping
-class GitHubIssueCommentProposeUpdateHandler(PullRequestCommentHandler):
+@add_to_comment_action_mapping
+class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
     """ Issue handler for comment `/packit propose-update` """
 
-    name = PullRequestCommentAction.propose_update
+    name = CommentAction.propose_update
     event: IssueCommentEvent
 
     def __init__(self, config: Config, event: IssueCommentEvent):
@@ -538,7 +538,7 @@ class GitHubIssueCommentProposeUpdateHandler(PullRequestCommentHandler):
         self.project: GitProject = self.github_service.get_project(
             repo=event.base_repo_name, namespace=event.base_repo_namespace
         )
-        # Get the latest pull request commit
+        # Get the latest tag release
         self.event.tag_name = self.project.get_latest_release().tag_name
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, self.event.tag_name
@@ -564,10 +564,9 @@ class GitHubIssueCommentProposeUpdateHandler(PullRequestCommentHandler):
         self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
         collaborators = self.project.who_can_merge_pr()
-        r = BuildStatusReporter(self.project, self.event.tag_name)
         if self.event.github_login not in collaborators:
             msg = "Only collaborators can trigger Packit-as-a-Service"
-            r.set_status("failure", msg, PRCheckName.get_build_check())
+            self.project.issue_comment(self.event.issue_id, msg)
             return HandlerResults(success=False, details={"msg": msg})
 
         branches = self.get_build_metadata_for_build()

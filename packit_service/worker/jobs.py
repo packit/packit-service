@@ -45,10 +45,10 @@ from packit_service.worker.handler import (
     JobHandler,
 )
 from packit_service.worker.parser import Parser
-from packit_service.worker.pr_comment_handler import (
-    PULL_REQUEST_COMMENT_HANDLER_MAPPING,
-    PullRequestCommentAction,
-    PullRequestCommentHandler,
+from packit_service.worker.comment_action_handler import (
+    COMMENT_ACTION_HANDLER_MAPPING,
+    CommentAction,
+    CommentActionHandler,
 )
 from packit_service.worker.testing_farm_handlers import TestingFarmResultsHandler
 from packit_service.worker.whitelist import Whitelist
@@ -148,9 +148,7 @@ class SteveJobs:
 
         # packit has command `copr-build`. But PullRequestCommentAction has enum `copr_build`.
         try:
-            packit_action = PullRequestCommentAction[
-                packit_command[0].replace("-", "_")
-            ]
+            packit_action = CommentAction[packit_command[0].replace("-", "_")]
         except KeyError:
             return HandlerResults(
                 success=False,
@@ -158,9 +156,9 @@ class SteveJobs:
                     "msg": f"{msg} does not contain a valid packit-service command."
                 },
             )
-        handler_kls: Type[
-            PullRequestCommentHandler
-        ] = PULL_REQUEST_COMMENT_HANDLER_MAPPING.get(packit_action, None)
+        handler_kls: Type[CommentActionHandler] = COMMENT_ACTION_HANDLER_MAPPING.get(
+            packit_action, None
+        )
         if not handler_kls:
             return HandlerResults(
                 success=False,

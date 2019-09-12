@@ -41,23 +41,21 @@ from packit_service.worker.handler import HandlerResults
 logger = logging.getLogger(__name__)
 
 
-class PullRequestCommentAction(enum.Enum):
+class CommentAction(enum.Enum):
     copr_build = "copr-build"
     propose_update = "propose-update"
 
 
-PULL_REQUEST_COMMENT_HANDLER_MAPPING: Dict[
-    PullRequestCommentAction, Type["PullRequestCommentHandler"]
-] = {}
+COMMENT_ACTION_HANDLER_MAPPING: Dict[CommentAction, Type["CommentActionHandler"]] = {}
 
 
-def add_to_pr_comment_mapping(kls: Type["PullRequestCommentHandler"]):
-    PULL_REQUEST_COMMENT_HANDLER_MAPPING[kls.name] = kls
+def add_to_comment_action_mapping(kls: Type["CommentActionHandler"]):
+    COMMENT_ACTION_HANDLER_MAPPING[kls.name] = kls
     return kls
 
 
-class PullRequestCommentHandler:
-    name: PullRequestCommentAction
+class CommentActionHandler:
+    name: CommentAction
 
     def __init__(
         self, config: Config, event: Union[PullRequestCommentEvent, IssueCommentEvent]
