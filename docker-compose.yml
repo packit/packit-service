@@ -91,13 +91,9 @@ services:
     container_name: packit-fedmsg-listener
     build:
       context: .
-      dockerfile: Dockerfile.worker
-    image: docker.io/usercont/packit-service-worker
+      dockerfile: Dockerfile
+    image: docker.io/usercont/packit-service
     command: packit-service --debug listen-to-fedmsg
-    depends_on:
-      - redis
-    environment:
-      REDIS_SERVICE_HOST: redis
     volumes:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
       - ./secrets/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
