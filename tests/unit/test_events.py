@@ -194,6 +194,7 @@ class TestEvents:
             event_object.target_repo
             == f"{event_object.base_repo_namespace}/{event_object.base_repo_name}"
         )
+        assert event_object.base_ref == "master"
         assert event_object.https_url == "https://github.com/packit-service/packit"
         assert event_object.github_login == "phracek"
         assert event_object.comment == "/packit propose-update"
