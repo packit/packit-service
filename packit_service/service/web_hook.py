@@ -88,7 +88,7 @@ def testing_farm_results():
 
 
 def validate_testing_farm_request():
-    testing_farm_secret = config.testing_farm_secret.encode()
+    testing_farm_secret = config.testing_farm_secret
     if not testing_farm_secret:
         logger.error("testing_farm_secret not specified in config")
         return False
@@ -100,8 +100,6 @@ def validate_testing_farm_request():
     if token == testing_farm_secret:
         return True
 
-    logger.info("we got: %s", token)
-    logger.info("we have: %s", testing_farm_secret)
     logger.warning("Invalid testing farm secret provided!")
     return False
 
