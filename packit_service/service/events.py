@@ -251,12 +251,14 @@ class IssueCommentEvent(AbstractGithubEvent):
         issue_id: int,
         base_repo_namespace: str,
         base_repo_name: str,
-        base_ref: Optional[str],
         target_repo: str,
         https_url: str,
         github_login: str,
         comment: str,
         tag_name: str = "",
+        base_ref: Optional[
+            str
+        ] = "master",  # default is master when working with issues
     ):
         super().__init__(JobTriggerType.comment)
         self.action = action
@@ -278,8 +280,10 @@ class IssueCommentEvent(AbstractGithubEvent):
         return result
 
     def get_package_config(self) -> Optional[PackageConfig]:
-        if not self.base_ref:
-            self.base_ref = self.get_project().get_pr_info(self.issue_id).source_branch
+        releases = self.get_project().get_releases()
+
+        if releases:
+            self.tag_name = releases[0].tag_name
         package_config: PackageConfig = get_package_config_from_repo(
             self.get_project(), self.tag_name
         )

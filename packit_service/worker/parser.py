@@ -198,7 +198,6 @@ class Parser:
                 issue_id,
                 base_repo_namespace,
                 base_repo_name,
-                None,
                 target_repo,
                 https_url,
                 github_login,
