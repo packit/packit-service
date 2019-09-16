@@ -190,5 +190,11 @@ class CoprBuildHandler(object):
         else:
             return HandlerResults(
                 success=False,
-                details={"msg": f"No Handler for {str(self.event.trigger)}"},
+                details={
+                    "msg": (
+                        f"Copr build {build_id} failed {build_state}."
+                        f"Copr build URL is {repo_url}."
+                        f"Handler used by Copr build is {str(self.event.trigger)}"
+                    )
+                },
             )
