@@ -28,11 +28,16 @@ from packit_service.celerizer import celery_app
 from packit_service.service.models import Task
 from packit_service.worker.jobs import SteveJobs
 
+# debug logs of these are super-duper verbose
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("github").setLevel(logging.WARNING)  # pygithub
-logging.getLogger("ogr").setLevel(logging.WARNING)  # b/c of pagure requests
+logging.getLogger("github").setLevel(logging.WARNING)
 logging.getLogger("kubernetes").setLevel(logging.WARNING)
+# info is just enough
+logging.getLogger("ogr").setLevel(logging.INFO)
+# easier debugging
+logging.getLogger("packit").setLevel(logging.DEBUG)
+logging.getLogger("sandcastle").setLevel(logging.DEBUG)
 
 
 @celery_app.task(bind=True, name="task.steve_jobs.process_message")
