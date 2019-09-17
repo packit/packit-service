@@ -21,7 +21,6 @@
 # SOFTWARE.
 
 import hmac
-import json
 import logging
 from hashlib import sha1
 
@@ -30,6 +29,7 @@ from flask import Flask, abort, request, jsonify
 from packit.utils import set_logging
 from packit_service.celerizer import celery_app
 from packit_service.config import Config
+from packit_service.service.testing_farm_api import testing_farm_api
 
 
 class PackitWebhookReceiver(Flask):
@@ -41,6 +41,9 @@ class PackitWebhookReceiver(Flask):
 app = PackitWebhookReceiver(__name__)
 config = Config.get_service_config()
 logger = logging.getLogger("packit_service")
+
+# testing farm API is defined in /packit_service/service/testing_farm_api.py
+app.register_blueprint(testing_farm_api)
 
 
 @app.route("/healthz", methods=["GET", "HEAD", "POST"])
@@ -69,39 +72,6 @@ def github_webhook():
     celery_app.send_task(name="task.steve_jobs.process_message", kwargs={"event": msg})
 
     return "Webhook accepted. We thank you, Github."
-
-
-@app.route("/testing-farm/results", methods=["POST"])
-def testing_farm_results():
-    msg = request.get_json()
-
-    if not msg:
-        logger.debug("/testing-farm/results: we haven't received any JSON data.")
-        return "We haven't received any JSON data."
-
-    if not validate_testing_farm_request():
-        abort(401)  # Unauthorized
-
-    celery_app.send_task(name="task.steve_jobs.process_message", kwargs={"event": msg})
-
-    return json.dumps({"status": 200, "message": "Test results accepted"})
-
-
-def validate_testing_farm_request():
-    testing_farm_secret = config.testing_farm_secret
-    if not testing_farm_secret:
-        logger.error("testing_farm_secret not specified in config")
-        return False
-
-    token = request.get_json().get("token")
-    if not token:
-        logger.info("the request doesn't contain any token")
-        return False
-    if token == testing_farm_secret:
-        return True
-
-    logger.warning("Invalid testing farm secret provided!")
-    return False
 
 
 def validate_signature() -> bool:
