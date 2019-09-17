@@ -37,6 +37,10 @@
     tags:
     - no-cache
     register: src_path
+  - name: Copy fedmsg ssl configuration
+    copy:
+      src: fedmsg-ssl.py
+      dest: /etc/fedmsg.d/ssl.py
   - name: Let's make sure /src is present
     assert:
       that:

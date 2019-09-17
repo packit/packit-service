@@ -18,7 +18,7 @@ RUN cd /src/ \
     && ansible-playbook -vv -c local -i localhost, files/install-deps.yaml \
     && dnf clean all
 
-COPY setup.py setup.cfg files/recipe.yaml files/packit.wsgi /src/
+COPY setup.py setup.cfg files/recipe.yaml files/packit.wsgi files/fedmsg-ssl.py /src/
 # setuptools-scm
 COPY .git /src/.git
 COPY packit_service/ /src/packit_service/

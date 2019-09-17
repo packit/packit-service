@@ -14,6 +14,7 @@
       - python3-flask
       - python3-ipdb  # for easy debugging
       - python3-mod_wsgi
+      - python3-fedmsg # packit-service listen-to-fedmsg
       - git # setuptools-scm
       # web service needs packit just for few bits (see #109), so hopefully we don't need it from master and RPM is enough
       - python3-packit
