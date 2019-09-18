@@ -1,3 +1,10 @@
 *.py[co]
 .tox
 secrets/
+
+.idea/
+.eggs/
+.coverage
+.vagrant/
+*.egg-info
+.mypy_cache/
