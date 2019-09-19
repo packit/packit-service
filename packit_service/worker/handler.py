@@ -114,7 +114,7 @@ class BuildStatusReporter:
     def set_status(self, state: str, description: str, check_name: str):
         logger.debug(description)
         self.gh_proj.set_commit_status(
-            self.commit_sha, state, "", description, check_name
+            self.commit_sha, state, "", description, check_name, trim=True
         )
 
 
