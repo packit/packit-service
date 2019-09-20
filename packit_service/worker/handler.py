@@ -107,14 +107,12 @@ class BuildStatusReporter:
         if not check_name:
             check_name = PRCheckName.get_build_check()
 
-        self.gh_proj.set_commit_status(
-            self.commit_sha, state, url, description, check_name
-        )
+        self.set_status(state, description, check_name, url)
 
-    def set_status(self, state: str, description: str, check_name: str):
+    def set_status(self, state: str, description: str, check_name: str, url: str = ""):
         logger.debug(description)
         self.gh_proj.set_commit_status(
-            self.commit_sha, state, "", description, check_name, trim=True
+            self.commit_sha, state, url, description, check_name, trim=True
         )
 
 
