@@ -55,6 +55,7 @@ class IssueCommentAction(enum.Enum):
 class FedmsgTopic(enum.Enum):
     dist_git_push = "org.fedoraproject.prod.git.receive"
     copr_build_finished = "org.fedoraproject.prod.copr.build.end"
+    copr_build_started = "org.fedoraproject.prod.copr.build.start"
     pr_flag_added = "org.fedoraproject.prod.pagure.pull-request.flag.added"
 
 
@@ -380,3 +381,19 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         )
         package_config.upstream_project_url = self.project_url
         return package_config
+
+
+class CoprBuildEvent(Event):
+    def __init__(self, topic: FedmsgTopic, build_id: int, chroot: str, status: int):
+        super().__init__(JobTriggerType.commit)
+        self.topic = topic
+        self.build_id = build_id
+        self.chroot = chroot
+        self.status = status
+
+    def get_dict(self) -> dict:
+        result = super().get_dict()
+        # whole dict have to be JSON serializable because of redis
+        result["trigger"] = str(result["trigger"])
+        result["topic"] = str(result["topic"])
+        return result

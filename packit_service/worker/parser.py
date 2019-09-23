@@ -41,6 +41,8 @@ from packit_service.service.events import (
     PullRequestCommentAction,
     IssueCommentEvent,
     IssueCommentAction,
+    CoprBuildEvent,
+    FedmsgTopic,
 )
 from packit_service.worker.fedmsg_handlers import NewDistGitCommit
 
@@ -65,6 +67,7 @@ class Parser:
             TestingFarmResultsEvent,
             PullRequestCommentEvent,
             IssueCommentEvent,
+            CoprBuildEvent,
         ]
     ]:
         """
@@ -86,6 +89,7 @@ class Parser:
                 TestingFarmResultsEvent,
                 PullRequestCommentEvent,
                 IssueCommentEvent,
+                CoprBuildEvent,
             ]
         ] = Parser.parse_pr_event(event)
         if response:
@@ -112,6 +116,10 @@ class Parser:
             return response
 
         response = Parser.parse_testing_farm_results_event(event)
+        if response:
+            return response
+
+        response = Parser.parse_copr_event(event)
         if response:
             return response
 
@@ -381,5 +389,24 @@ class Parser:
                 https_url,
                 commit_sha,
             )
+
+        return None
+
+    @staticmethod
+    def parse_copr_event(event) -> Optional[CoprBuildEvent]:
+        """ this corresponds to copr build event e.g:"""
+        topic = event.get("topic")
+        if (
+            topic == "org.fedoraproject.prod.copr.build.start"
+            or topic == "org.fedoraproject.prod.copr.build.end"
+        ):
+            logger.info(f"Copr build event, topic: {topic}")
+
+            topic = FedmsgTopic(topic)
+            build_id = event.get("i")
+            chroot = nested_get(event, "msg", "chroot")
+            status = nested_get(event, "msg", "status")
+
+            return CoprBuildEvent(topic, build_id, chroot, status)
 
         return None
