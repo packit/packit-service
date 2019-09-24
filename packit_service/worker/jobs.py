@@ -187,16 +187,28 @@ class SteveJobs:
 
         topic is meant to be a fedmsg topic for the message
         """
+
+        logger.error("TOPIC")
+        logger.error(topic)
+
+        logger.error("EVENT")
+        logger.error(event)
+
         if topic:
             # let's pre-filter messages: we don't need to get debug logs from processing
             # messages when we know beforehand that we are not interested in messages for such topic
             topics = [
                 getattr(h, "topic", None) for h in JOB_NAME_HANDLER_MAPPING.values()
             ]
+
+            logger.warning("TOPICS:")
+            logger.warning(topics)
             if topic not in topics:
                 return None
 
         event_object = Parser.parse_event(event)
+        logger.warning("EVENT_OBJECT:")
+        logger.warning(topics)
         if not event_object:
             logger.debug("We don't process this event")
             return None

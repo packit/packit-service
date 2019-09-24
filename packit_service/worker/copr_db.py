@@ -39,15 +39,39 @@ class CoprBuildDB:
     def __init__(self):
         self.db = PersistentDict(hash_name="copr_build")
 
-    def add_build(self, build_id, commit_sha, pr_id, ref):
-        build_info = {"commit_sha": commit_sha, "pr_id": pr_id, "ref": ref}
+    def add_build(
+        self,
+        build_id: int,
+        commit_sha: str,
+        pr_id: int,
+        repo_name: str,
+        repo_namespace: str,
+        ref: str,
+    ):
+        """
+        Save copr build with commit information
+        :param repo_name: github repository name
+        :param repo_namespace: github repository namespace
+        :param build_id: copr build id
+        :param commit_sha: commit sha
+        :param pr_id: PR id
+        :param ref: PR ref
+        :return:
+        """
+        build_info = {
+            "commit_sha": commit_sha,
+            "pr_id": pr_id,
+            "repo_name": repo_name,
+            "repo_namespace": repo_namespace,
+            "ref": ref,
+        }
         self.db[build_id] = build_info
         logger.debug(f"Saving build ({build_id}) : {build_info}")
 
-    def delete_build(self, build_id) -> bool:
+    def delete_build(self, build_id: int) -> bool:
         """
         Remove build from DB
-        :param build_id: build id of copr build
+        :param build_id: copr build id
         :return: bool
         """
         if build_id in self.db:
@@ -58,7 +82,12 @@ class CoprBuildDB:
             logger.debug(f"Build: {build_id} does not exists!")
             return False
 
-    def get_build(self, build_id) -> Optional[dict]:
+    def get_build(self, build_id: int) -> Optional[dict]:
+        """
+        Get build from DB
+        :param build_id:
+        :return:
+        """
         build = self.db[build_id]
         if not build:
             return None

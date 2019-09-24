@@ -403,10 +403,12 @@ class Parser:
             logger.info(f"Copr build event, topic: {topic}")
 
             topic = FedmsgTopic(topic)
-            build_id = event.get("i")
-            chroot = nested_get(event, "msg", "chroot")
-            status = nested_get(event, "msg", "status")
+            build_id = event.get("build")
+            chroot = nested_get(event, "chroot")
+            status = nested_get(event, "status")
+            owner = nested_get(event, "owner")
+            project_name = nested_get(event, "copr")
 
-            return CoprBuildEvent(topic, build_id, chroot, status)
+            return CoprBuildEvent(topic, build_id, chroot, status, owner, project_name)
 
         return None

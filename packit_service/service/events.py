@@ -32,6 +32,7 @@ from ogr.abstract import GitProject
 from packit.config import JobTriggerType, get_package_config_from_repo, PackageConfig
 
 from packit_service.config import service_config
+from packit_service.worker.copr_db import CoprBuildDB
 
 logger = logging.getLogger(__name__)
 
@@ -383,13 +384,23 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         return package_config
 
 
-class CoprBuildEvent(Event):
-    def __init__(self, topic: FedmsgTopic, build_id: int, chroot: str, status: int):
+class CoprBuildEvent(AbstractGithubEvent):
+    def __init__(
+        self,
+        topic: FedmsgTopic,
+        build_id: int,
+        chroot: str,
+        status: int,
+        owner: str,
+        project_name: str,
+    ):
         super().__init__(JobTriggerType.commit)
         self.topic = topic
         self.build_id = build_id
         self.chroot = chroot
         self.status = status
+        self.owner = owner
+        self.project_name = project_name
 
     def get_dict(self) -> dict:
         result = super().get_dict()
@@ -397,3 +408,17 @@ class CoprBuildEvent(Event):
         result["trigger"] = str(result["trigger"])
         result["topic"] = str(result["topic"])
         return result
+
+    def get_project(self) -> Optional[GitProject]:
+
+        db = CoprBuildDB()
+        build = db.get_build(self.build_id)
+
+        if not build:
+            logger.warning(f"Cannot get project for this build id: {self.build_id}")
+            return None
+
+        repo_name = build.get("repo_name")
+        repo_namespace = build.get("repo_namespace")
+
+        return self.github_service.get_project(repo=repo_name, namespace=repo_namespace)

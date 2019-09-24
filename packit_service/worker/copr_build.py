@@ -32,6 +32,7 @@ from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.service.events import PullRequestEvent, PullRequestCommentEvent
 from packit_service.service.models import CoprBuild
+from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.handler import (
     HandlerResults,
     BuildStatusReporter,
@@ -125,6 +126,19 @@ class CoprBuildHandler(object):
             build_id, repo_url = self.api.run_copr_build(
                 project=self.job_project, chroots=self.job_chroots, owner=self.job_owner
             )
+
+            # Save copr build with commit information to be able to report status back
+            # after fedmsg copr.build.end arrives
+            copr_build_db = CoprBuildDB()
+            copr_build_db.add_build(
+                build_id,
+                self.event.commit_sha,
+                self.event.pr_id,
+                self.event.base_repo_name,
+                self.event.base_repo_namespace,
+                self.event.base_ref,
+            )
+
         except SandcastleTimeoutReached:
             msg = f"You have reached 10-minute timeout while creating the SRPM. {msg_retrigger}"
             self.project.pr_comment(self.event.pr_id, msg)

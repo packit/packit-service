@@ -24,6 +24,7 @@ import logging
 
 from fedora_messaging import api, config
 from fedora_messaging.message import Message
+from packit_service.celerizer import celery_app
 
 config.conf.setup_logging()
 logger = logging.getLogger(__name__)
@@ -36,7 +37,17 @@ class Consumerino:
 
     @staticmethod
     def fedora_messaging_callback(message: Message):
-        print(f"{message.topic}: {message.body}")
+        """
+        Create celery task from fedora message
+        :param message: Message from Fedora message bus
+        :return: None
+        """
+        print("MESSAGE BODY")
+        print(message.body)
+        celery_app.send_task(
+            name="task.steve_jobs.process_message",
+            kwargs={"event": message.body, "topic": message.topic},
+        )
 
     @staticmethod
     def consume_from_fedora_messaging():

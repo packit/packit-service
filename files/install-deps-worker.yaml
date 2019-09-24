@@ -12,7 +12,6 @@
       - redis  # redis-cli for debugging
       - origin-clients # for sandcastle
       - python3-kubernetes # for sandcastle
-      - fedora-messaging
       state: present
   - name: Install sandcastle
     pip:

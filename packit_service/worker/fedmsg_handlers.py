@@ -38,9 +38,16 @@ from packit.distgit import DistGit
 from packit.local_project import LocalProject
 from packit.utils import get_namespace_and_repo_name
 
+from packit_service.service.events import Event, DistGitEvent, CoprBuildEvent
+from packit_service.worker.copr_db import CoprBuildDB
+from packit_service.worker.handler import (
+    JobHandler,
+    HandlerResults,
+    add_to_mapping,
+    BuildStatusReporter,
+    PRCheckName,
+)
 from packit_service.config import ServiceConfig
-from packit_service.service.events import Event, DistGitEvent
-from packit_service.worker.handler import JobHandler, HandlerResults, add_to_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -120,3 +127,50 @@ class NewDistGitCommit(FedmsgHandler):
             upstream_branch="master",  # TODO: this should be configurable
         )
         return HandlerResults(success=True, details={})
+
+
+@add_topic
+@add_to_mapping
+class CoprBuildStarted(FedmsgHandler):
+    topic = "org.fedoraproject.prod.copr.build.start"
+
+    def __init__(self, config: Config, job: JobConfig, event: CoprBuildEvent):
+        super().__init__(config=config, job=job, event=event)
+
+    def run(self):
+        pass
+
+
+@add_topic
+@add_to_mapping
+class CoprBuildEnded(FedmsgHandler):
+    topic = "org.fedoraproject.prod.copr.build.end"
+
+    def __init__(self, config: Config, job: JobConfig, event: CoprBuildEvent):
+        super().__init__(config=config, job=job, event=event)
+
+    def run(self):
+        # get copr build from db
+        db = CoprBuildDB()
+        build = db.get_build(self.event.build_id)
+
+        if not build:
+            logger.warning(
+                f"Build: {self.event.build_id} is not handled by packit service!"
+            )
+            return
+
+        msg = "RPMs failed to be built."
+        gh_state = "failure"
+
+        if self.event.status == 1:
+            msg = "RPMs were built successfully."
+            gh_state = "success"
+
+        r = BuildStatusReporter(self.event.project, build["commit_sha"])
+        url = (
+            "https://copr.fedorainfracloud.org/coprs/"
+            f"{self.event.owner}/{self.event.project_name}/build/{self.event.build_id}/"
+        )
+
+        r.report(gh_state, msg, url=url, check_name=PRCheckName.get_build_check())

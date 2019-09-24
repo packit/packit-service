@@ -2,6 +2,11 @@
 - name: Install dependencies for packit-service.
   hosts: all
   tasks:
+  - name: pip install pyasn1-modules
+    pip:
+      # (see #131), remove once image is based on F30 (#110) or we remove packitos/sandcastle dependency (#109)
+      name: pyasn1-modules
+      executable: pip3
   - name: Install all RPM/python packages needed to run packit-service.
     dnf:
       name:
@@ -17,4 +22,5 @@
       - nss_wrapper
       # web service needs packit just for few bits (see #109), so hopefully we don't need it from master and RPM is enough
       - python3-packit
+      - fedora-messaging
       state: present
