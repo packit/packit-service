@@ -27,8 +27,6 @@
   - name: Generate dummy certs
     command: "openssl req -x509 -new -key {{ deployment_dir }}/secrets/dev/privkey.pem -out {{ deployment_dir }}/secrets/dev/{{ item }} -days 1 -subj '/CN=just.for.the.ci' -passin pass:somepassword -passout pass:anotherpassword -nodes"
     with_items:
-    - cert.pem
-    - chain.pem
     - fullchain.pem
 
   - name: Generate /etc/ssh/ RSA host key
