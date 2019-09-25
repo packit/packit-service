@@ -8,8 +8,6 @@ ENV LANG=en_US.UTF-8 \
     HOME=/home/packit \
     PS_PATH=/src-packit-service
 
-RUN mkdir ${HOME} && chmod 0776 ${HOME}
-
 # Ansible doesn't like /tmp
 COPY files/install-deps-worker.yaml $PS_PATH/files/
 RUN cd $PS_PATH/ && \
