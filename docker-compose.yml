@@ -36,7 +36,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.worker
-    image: docker.io/usercont/packit-service-worker
+    image: docker.io/usercont/packit-service-worker:dev
     command: /usr/bin/run_worker.sh
     tty: true
     depends_on:
@@ -64,17 +64,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: docker.io/usercont/packit-service
-    #command: /usr/bin/run-httpd  # TODO: make this work instead of the below flask
-    command: flask-3 run -h 0.0.0.0 -p 8443
+    image: docker.io/usercont/packit-service:dev
+    command: /usr/bin/run_httpd.sh
     depends_on:
       - redis
     ports:
       - 8443:8443
     environment:
       REDIS_SERVICE_HOST: redis
-      FLASK_ENV: development
-      FLASK_APP: packit_service.service.web_hook
     volumes:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
       # There's no secrets/ by default. You have to create (or symlink to other dir) it yourself.
@@ -85,20 +82,16 @@ services:
       - ./secrets/private-key.pem:/secrets/private-key.pem:ro,z
       - ./secrets/fullchain.pem:/secrets/fullchain.pem:ro,z
       - ./secrets/privkey.pem:/secrets/privkey.pem:ro,z
-    #user: "123123"
+    user: "123123"
 
   packit-fedmsg:
     container_name: packit-fedmsg-listener
     build:
       context: .
-      dockerfile: Dockerfile.worker
-    image: docker.io/usercont/packit-service-worker
+      dockerfile: Dockerfile
+    image: docker.io/usercont/packit-service:dev
     command: packit-service --debug listen-to-fedmsg
-    depends_on:
-      - redis
-    environment:
-      REDIS_SERVICE_HOST: redis
     volumes:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
       - ./secrets/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
-    #user: "123123"
+    user: "123123"
