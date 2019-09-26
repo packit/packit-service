@@ -20,6 +20,11 @@
     with_items:
     - /usr/share/packit
     - /sandcastle  # working dir for the upstream git which is mapped to the sandbox pod
+  - name: make packit home dir
+    file:
+      state: directory
+      path: "{{ home_path }}"
+      mode: 0776
   - name: Copy gitconfig
     copy:
       src: gitconfig

@@ -57,7 +57,7 @@ services:
       - ./secrets/fedora.keytab:/secrets/fedora.keytab:ro,z
       - ./secrets/private-key.pem:/secrets/private-key.pem:ro,z
       #- .:/src:ro,z
-    # user: "123123"
+    user: "123123"
 
   packit-service:
     container_name: packit-service
