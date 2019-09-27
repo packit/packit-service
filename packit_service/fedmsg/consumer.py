@@ -42,11 +42,14 @@ class Consumerino:
         :param message: Message from Fedora message bus
         :return: None
         """
-        print("MESSAGE BODY")
-        print(message.body)
+
+        if message.body["owner"] != "packit":
+            logger.debug("Copr build is not handled by packit!")
+            return
+
+        message.body["topic"] = message.topic
         celery_app.send_task(
-            name="task.steve_jobs.process_message",
-            kwargs={"event": message.body, "topic": message.topic},
+            name="task.steve_jobs.process_message", kwargs={"event": message.body}
         )
 
     @staticmethod
@@ -67,7 +70,7 @@ class Consumerino:
             "exchange": "amq.topic",  # The AMQP exchange to bind our queue to
             "queue": queue_name,  # The unique name of our queue on the AMQP broker
             # The topics that should be delivered to the queue
-            "routing_keys": ["org.fedoraproject.prod.copr.build.#"],
+            "routing_keys": ["org.fedoraproject.prod.copr.build.end"],
         }
 
         # Start consuming messages using our callback. This call will block until

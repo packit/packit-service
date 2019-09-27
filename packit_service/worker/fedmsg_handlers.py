@@ -25,7 +25,7 @@ This file defines classes for job handlers specific for Fedmsg events
 """
 
 import logging
-from typing import Type
+from typing import Type, Optional
 
 from packit.api import PackitAPI
 from packit.config import (
@@ -40,6 +40,7 @@ from packit.utils import get_namespace_and_repo_name
 
 from packit_service.service.events import Event, DistGitEvent, CoprBuildEvent
 from packit_service.worker.copr_db import CoprBuildDB
+from packit_service.worker.github_handlers import GithubTestingFarmHandler
 from packit_service.worker.handler import (
     JobHandler,
     HandlerResults,
@@ -131,26 +132,18 @@ class NewDistGitCommit(FedmsgHandler):
 
 @add_topic
 @add_to_mapping
-class CoprBuildStarted(FedmsgHandler):
-    topic = "org.fedoraproject.prod.copr.build.start"
-
-    def __init__(self, config: Config, job: JobConfig, event: CoprBuildEvent):
-        super().__init__(config=config, job=job, event=event)
-
-    def run(self):
-        pass
-
-
-@add_topic
-@add_to_mapping
 class CoprBuildEnded(FedmsgHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
+    name = JobType.copr_build_finished
 
     def __init__(self, config: Config, job: JobConfig, event: CoprBuildEvent):
         super().__init__(config=config, job=job, event=event)
+        self.project = self.event.get_project()
+        self.package_config = self.event.get_package_config()
 
     def run(self):
         # get copr build from db
+
         db = CoprBuildDB()
         build = db.get_build(self.event.build_id)
 
@@ -160,6 +153,12 @@ class CoprBuildEnded(FedmsgHandler):
             )
             return
 
+        r = BuildStatusReporter(self.event.get_project(), build["commit_sha"])
+        url = (
+            "https://copr.fedorainfracloud.org/coprs/"
+            f"{self.event.owner}/{self.event.project_name}/build/{self.event.build_id}/"
+        )
+
         msg = "RPMs failed to be built."
         gh_state = "failure"
 
@@ -167,10 +166,39 @@ class CoprBuildEnded(FedmsgHandler):
             msg = "RPMs were built successfully."
             gh_state = "success"
 
-        r = BuildStatusReporter(self.event.project, build["commit_sha"])
-        url = (
-            "https://copr.fedorainfracloud.org/coprs/"
-            f"{self.event.owner}/{self.event.project_name}/build/{self.event.build_id}/"
-        )
+            msg = (
+                f"Congratulations! The build [has finished]({self.event.https_url})"
+                " successfully. :champagne:\n\n"
+                "You can install the built RPMs by following these steps:\n\n"
+                "* `sudo yum install -y dnf-plugins-core` on RHEL 8\n"
+                "* `sudo dnf install -y dnf-plugins-core` on Fedora\n"
+                f"* `dnf copr enable {self.event.owner}/{self.event.project_name}`\n"
+                "* And now you can install the packages.\n"
+                "\nPlease note that the RPMs should be used only in a testing environment."
+            )
+            self.project.pr_comment(self.event.pr_id, msg)
+            r.report(gh_state, msg, url=url, check_name=PRCheckName.get_build_check())
+
+            test_job_config = self.get_tests_for_build()
+            if test_job_config:
+                testing_farm_handler = GithubTestingFarmHandler(
+                    self.config, test_job_config, self.event
+                )
+                testing_farm_handler.run()
+            else:
+                logger.debug("Testing farm not in the job config.")
+
+            return HandlerResults(success=True, details={})
 
         r.report(gh_state, msg, url=url, check_name=PRCheckName.get_build_check())
+        return HandlerResults(success=False, details={"msg": msg})
+
+    def get_tests_for_build(self) -> Optional[JobConfig]:
+        """
+        Check if there are tests defined
+        :return: JobConfig or None
+        """
+        for job in self.package_config.jobs:
+            if job.job == JobType.tests:
+                return job
+        return None

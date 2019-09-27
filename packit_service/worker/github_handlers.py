@@ -248,28 +248,8 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             self.config, self.package_config, self.project, self.event
         )
         handler_results = cbh.run_copr_build()
-        if handler_results["success"]:
-            # Testing farm is triggered just once copr build is finished as it uses copr builds
-            # todo: utilize fedmsg for this.
-            test_job_config = self.get_tests_for_build()
-            if test_job_config:
-                testing_farm_handler = GithubTestingFarmHandler(
-                    self.config, test_job_config, self.event
-                )
-                testing_farm_handler.run()
-            else:
-                logger.debug("Testing farm not in the job config.")
-            return HandlerResults(success=True, details={})
 
-    def get_tests_for_build(self) -> Optional[JobConfig]:
-        """
-        Check if there are tests defined
-        :return: JobConfig or None
-        """
-        for job in self.package_config.jobs:
-            if job.job == JobType.tests:
-                return job
-        return None
+        return handler_results
 
     def run(self) -> HandlerResults:
         if self.event.trigger == JobTriggerType.pull_request:
@@ -459,6 +439,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, self.event.commit_sha
         )
+        self.event.base_ref = self.event.commit_sha
         self.package_config.upstream_project_url = event.project_url
 
     def get_tests_for_build(self) -> Optional[JobConfig]:
@@ -483,18 +464,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
             self.config, self.package_config, self.project, self.event
         )
         handler_results = cbh.run_copr_build()
-        if handler_results["success"]:
-            # Testing farm is triggered just once copr build is finished as it uses copr builds
-            # todo: utilize fedmsg for this.
-            test_job_config = self.get_tests_for_build()
-            if test_job_config:
-                testing_farm_handler = GithubTestingFarmHandler(
-                    self.config, test_job_config, self.event
-                )
-                testing_farm_handler.run()
-            else:
-                logger.debug("Testing farm not in the job config.")
-            return HandlerResults(success=True, details={})
+
         return handler_results
 
 

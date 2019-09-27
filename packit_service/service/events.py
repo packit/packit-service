@@ -401,6 +401,9 @@ class CoprBuildEvent(AbstractGithubEvent):
         self.status = status
         self.owner = owner
         self.project_name = project_name
+        self.pr_id = None
+        self.ref = ""
+        self.https_url = ""
 
     def get_dict(self) -> dict:
         result = super().get_dict()
@@ -408,6 +411,13 @@ class CoprBuildEvent(AbstractGithubEvent):
         result["trigger"] = str(result["trigger"])
         result["topic"] = str(result["topic"])
         return result
+
+    def get_package_config(self):
+        project = self.get_project()
+
+        package_config: PackageConfig = get_package_config_from_repo(project, self.ref)
+        package_config.upstream_project_url = self.https_url
+        return package_config
 
     def get_project(self) -> Optional[GitProject]:
 
@@ -420,5 +430,9 @@ class CoprBuildEvent(AbstractGithubEvent):
 
         repo_name = build.get("repo_name")
         repo_namespace = build.get("repo_namespace")
+
+        self.ref = build.get("ref")
+        self.https_url = build.get("https_url")
+        self.pr_id = build.get("pr_id")
 
         return self.github_service.get_project(repo=repo_name, namespace=repo_namespace)

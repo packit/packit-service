@@ -184,30 +184,4 @@ class CoprBuildHandler(object):
         self.copr_build_model.build_id = build_id
         self.copr_build_model.save()
 
-        timeout_config = job.metadata.get("timeout")
-        timeout = int(timeout_config) if timeout_config else 60 * 60 * 2
-        build_state = self.api.watch_copr_build(build_id, timeout, report_func=r.report)
-        if build_state == "succeeded":
-            msg = (
-                f"Congratulations! The build [has finished]({repo_url})"
-                " successfully. :champagne:\n\n"
-                "You can install the built RPMs by following these steps:\n\n"
-                "* `sudo yum install -y dnf-plugins-core` on RHEL 8\n"
-                "* `sudo dnf install -y dnf-plugins-core` on Fedora\n"
-                f"* `dnf copr enable {self.job_owner}/{self.job_project}`\n"
-                "* And now you can install the packages.\n"
-                "\nPlease note that the RPMs should be used only in a testing environment."
-            )
-            self.project.pr_comment(self.event.pr_id, msg)
-            return HandlerResults(success=True, details={})
-        else:
-            return HandlerResults(
-                success=False,
-                details={
-                    "msg": (
-                        f"Copr build {build_id} failed {build_state}."
-                        f"Copr build URL is {repo_url}."
-                        f"Handler used by Copr build is {str(self.event.trigger)}"
-                    )
-                },
-            )
+        return HandlerResults(success=True, details={})

@@ -37,12 +37,9 @@ from packit_service.service.events import (
     IssueCommentEvent,
     Event,
     TestingFarmResultsEvent,
+    CoprBuildEvent,
 )
-from packit_service.worker.comment_action_handler import (
-    COMMENT_ACTION_HANDLER_MAPPING,
-    CommentAction,
-    CommentActionHandler,
-)
+from packit_service.worker.fedmsg_handlers import CoprBuildEnded
 from packit_service.worker.github_handlers import GithubAppInstallationHandler
 from packit_service.worker.handler import (
     HandlerResults,
@@ -50,6 +47,11 @@ from packit_service.worker.handler import (
     JobHandler,
 )
 from packit_service.worker.parser import Parser
+from packit_service.worker.comment_action_handler import (
+    COMMENT_ACTION_HANDLER_MAPPING,
+    CommentAction,
+    CommentActionHandler,
+)
 from packit_service.worker.testing_farm_handlers import TestingFarmResultsHandler
 from packit_service.worker.whitelist import Whitelist
 
@@ -187,13 +189,6 @@ class SteveJobs:
 
         topic is meant to be a fedmsg topic for the message
         """
-
-        logger.error("TOPIC")
-        logger.error(topic)
-
-        logger.error("EVENT")
-        logger.error(event)
-
         if topic:
             # let's pre-filter messages: we don't need to get debug logs from processing
             # messages when we know beforehand that we are not interested in messages for such topic
@@ -201,14 +196,10 @@ class SteveJobs:
                 getattr(h, "topic", None) for h in JOB_NAME_HANDLER_MAPPING.values()
             ]
 
-            logger.warning("TOPICS:")
-            logger.warning(topics)
             if topic not in topics:
                 return None
 
         event_object = Parser.parse_event(event)
-        logger.warning("EVENT_OBJECT:")
-        logger.warning(topics)
         if not event_object:
             logger.debug("We don't process this event")
             return None
@@ -230,7 +221,9 @@ class SteveJobs:
             # not repository, so package config with jobs is missing
             if event_object.trigger == JobTriggerType.installation:
                 handler: Union[
-                    GithubAppInstallationHandler, TestingFarmResultsHandler
+                    GithubAppInstallationHandler,
+                    TestingFarmResultsHandler,
+                    CoprBuildEnded,
                 ] = GithubAppInstallationHandler(self.config, None, event_object)
                 try:
                     jobs_results[JobType.add_to_whitelist.value] = handler.run()
@@ -252,6 +245,13 @@ class SteveJobs:
                 handler = TestingFarmResultsHandler(self.config, None, event_object)
                 try:
                     jobs_results[JobType.report_test_results.value] = handler.run()
+                finally:
+                    handler.clean()
+
+            elif isinstance(event_object, CoprBuildEvent):
+                handler = CoprBuildEnded(self.config, None, event_object)
+                try:
+                    jobs_results[JobType.copr_build_finished.value] = handler.run()
                 finally:
                     handler.clean()
             else:
