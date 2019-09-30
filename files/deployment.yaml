@@ -1,5 +1,5 @@
 ---
-- name: Build packit-service image form current src dir.
+- name: Build packit-service image from current src dir.
   hosts: all
   vars:
     deployment_dir: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/packit-service/deployment'].src_dir }}"
@@ -50,7 +50,6 @@
       dest: "{{ deployment_dir }}/secrets/dev/{{ item }}"
       remote_src: yes
     with_items:
-      - httpd-packit.conf
       - packit-service.yaml
       - copr
       - ssh_config
