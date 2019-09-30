@@ -143,7 +143,6 @@ class CoprBuildEnded(FedmsgHandler):
 
     def run(self):
         # get copr build from db
-
         db = CoprBuildDB()
         build = db.get_build(self.event.build_id)
 
@@ -163,11 +162,18 @@ class CoprBuildEnded(FedmsgHandler):
         gh_state = "failure"
 
         if self.event.status == 1:
-            msg = "RPMs were built successfully."
+
+            if self.event.chroot == "srpm-builds":
+                # we don't want to set check for this
+                msg = "SRPM build in copr has finished"
+                logger.debug(msg)
+                return HandlerResults(success=True, details={"msg": msg})
+
+            check_msg = "RPMs were built successfully."
             gh_state = "success"
 
             msg = (
-                f"Congratulations! The build [has finished]({self.event.https_url})"
+                f"Congratulations! The build [has finished]({url})"
                 " successfully. :champagne:\n\n"
                 "You can install the built RPMs by following these steps:\n\n"
                 "* `sudo yum install -y dnf-plugins-core` on RHEL 8\n"
@@ -177,7 +183,9 @@ class CoprBuildEnded(FedmsgHandler):
                 "\nPlease note that the RPMs should be used only in a testing environment."
             )
             self.project.pr_comment(self.event.pr_id, msg)
-            r.report(gh_state, msg, url=url, check_name=PRCheckName.get_build_check())
+            r.report(
+                gh_state, check_msg, url=url, check_name=PRCheckName.get_build_check()
+            )
 
             test_job_config = self.get_tests_for_build()
             if test_job_config:

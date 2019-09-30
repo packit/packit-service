@@ -209,7 +209,10 @@ class SteveJobs:
         is_private_repository = False
         try:
             project = event_object.get_project()
-            is_private_repository = self._is_private(project)
+            if (
+                project
+            ):  # CoprBuildEvent.get_project returns None when the build id is not in redis
+                is_private_repository = self._is_private(project)
         except NotImplementedError:
             logger.warning("Cannot obtain project from this event!")
             logger.warning("Skipping private repository check!")
