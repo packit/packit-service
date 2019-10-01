@@ -1,0 +1,71 @@
+- name: httpd.conf - comment out the default :80 port
+  lineinfile:
+    path: /etc/httpd/conf/httpd.conf
+    regexp: '^(Listen.+)$'
+    line: '# \1'
+    backrefs: yes
+- name: httpd.conf - user packit
+  lineinfile:
+    path: /etc/httpd/conf/httpd.conf
+    regexp: '^User apache'
+    line: User packit
+- name: httpd.conf - group root
+  lineinfile:
+    path: /etc/httpd/conf/httpd.conf
+    regexp: '^Group apache'
+    line: Group root
+- name: httpd.conf - ErrorLog
+  lineinfile:
+    path: /etc/httpd/conf/httpd.conf
+    regexp: '^ErrorLog'
+    line: ErrorLog |/usr/bin/cat
+- name: ssl.conf - ensure the default port is 8443
+  lineinfile:
+    path: /etc/httpd/conf.d/ssl.conf
+    regexp: '^Listen '
+    line: Listen 0.0.0.0:8443 https
+- name: ssl.conf - SSL Virtual Host port
+  lineinfile:
+    path: /etc/httpd/conf.d/ssl.conf
+    regexp: '^<VirtualHost _default_:443>'
+    line: <VirtualHost _default_:8443>
+- name: ssl.conf - ErrorLog
+  lineinfile:
+    path: /etc/httpd/conf.d/ssl.conf
+    regexp: '^ErrorLog'
+    line: ErrorLog |/usr/bin/cat
+- name: ssl.conf - TransferLog
+  lineinfile:
+    path: /etc/httpd/conf.d/ssl.conf
+    regexp: '^TransferLog'
+    line: TransferLog |/usr/bin/cat
+- name: chmod a+rwx httpd dirs
+  file:
+    mode: a+rwx
+    state: directory
+    path: "{{ item }}"
+  with_items:
+    - /var/lib/httpd
+    - /var/log/httpd
+    - /run/httpd
+    - /etc/httpd/conf
+    - /etc/httpd/conf.d
+- name: Generate SSL certs
+  command: /usr/libexec/httpd-ssl-gencerts
+- name: chmod a+r SSL certs
+  file:
+    mode: a+r
+    path: "{{ item }}"
+  with_items:
+    - /etc/pki/tls/certs/localhost.crt
+    - /etc/pki/tls/private/localhost.key
+- name: Copy packit.wsgi file
+  copy:
+    src: packit.wsgi
+    dest: /usr/share/packit/packit.wsgi
+    mode: 0664
+- name: Copy run_httpd.sh
+  copy:
+    src: run_httpd.sh
+    dest: /usr/bin/run_httpd.sh
+    mode: 0775

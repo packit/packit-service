@@ -1,14 +1,11 @@
 # Image for the web service (httpd), for celery worker see Dockerfile.worker
 
-FROM registry.fedoraproject.org/f29/httpd:2.4
+FROM fedora:30
 
 ENV LANG=en_US.UTF-8 \
     ANSIBLE_STDOUT_CALLBACK=debug \
     USER=packit \
     HOME=/home/packit
-
-# We need to install packages. httpd:2.4 image has user 1001
-USER 0
 
 RUN dnf install -y ansible
 
@@ -18,7 +15,7 @@ RUN cd /src/ \
     && ansible-playbook -vv -c local -i localhost, files/install-deps.yaml \
     && dnf clean all
 
-COPY setup.py setup.cfg files/recipe.yaml files/packit.wsgi /src/
+COPY setup.py setup.cfg files/recipe.yaml files/tasks/httpd.yaml files/tasks/packit-service.yaml files/packit.wsgi files/run_httpd.sh /src/
 # setuptools-scm
 COPY .git /src/.git
 COPY packit_service/ /src/packit_service/
@@ -26,11 +23,6 @@ COPY packit_service/ /src/packit_service/
 RUN cd /src/ \
     && ansible-playbook -vv -c local -i localhost, recipe.yaml
 
-# TODO: add this logic to files/recipe.yaml
-RUN /usr/libexec/httpd-prepare && rpm-file-permissions \
-    && chmod -R a+rwx /var/lib/httpd \
-    && chmod -R a+rwx /var/log/httpd
+EXPOSE 8443
 
-USER 1001
-
-CMD ["/usr/bin/run-httpd"]
+CMD [/usr/bin/run_httpd.sh]
