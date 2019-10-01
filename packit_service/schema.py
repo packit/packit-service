@@ -19,23 +19,17 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from packit.schema import USER_CONFIG_SCHEMA
 
-
-SERVICE_CONFIG_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "debug": {"type": "boolean"},
-        "dry_run": {"type": "boolean"},
-        "fas_user": {"type": "string"},
-        "keytab_path": {"type": "string"},
-        "pagure_user_token": {"type": "string"},
-        "pagure_fork_token": {"type": "string"},
-        "deployment": {"type": "string"},
-        "github_app_id": {"type": "string"},
-        "github_app_cert_path": {"type": "string"},
-        "webhook_secret": {"type": "string"},
-        "testing_farm_secret": {"type": "string"},
-        "validate_webhooks": {"type": "boolean"},
-    },
-    "required": ["deployment", "github_app_id", "github_app_cert_path"],
+_SERVICE_CONFIG_SCHEMA_PROPERTIES = {
+    "deployment": {"type": "string"},
+    "webhook_secret": {"type": "string"},
+    "testing_farm_secret": {"type": "string"},
+    "validate_webhooks": {"type": "boolean"},
 }
+_SERVICE_CONFIG_SCHEMA_REQUIRED = ["deployment"]
+
+SERVICE_CONFIG_SCHEMA = USER_CONFIG_SCHEMA.copy()
+SERVICE_CONFIG_SCHEMA["properties"].update(_SERVICE_CONFIG_SCHEMA_PROPERTIES)
+SERVICE_CONFIG_SCHEMA.setdefault("required", [])
+SERVICE_CONFIG_SCHEMA["required"] += _SERVICE_CONFIG_SCHEMA_REQUIRED
