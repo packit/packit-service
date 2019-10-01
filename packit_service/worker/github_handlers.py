@@ -50,7 +50,7 @@ from packit_service.service.events import (
     ReleaseEvent,
     PullRequestCommentEvent,
     IssueCommentEvent,
-)
+    CoprBuildEvent)
 from packit_service.service.models import Installation
 from packit_service.worker.comment_action_handler import (
     CommentAction,
@@ -272,24 +272,24 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
 
     name = JobType.tests
     triggers = [JobTriggerType.pull_request]
-    event: Union[PullRequestEvent, PullRequestCommentEvent]
+    event: Union[CoprBuildEvent, PullRequestCommentEvent]
 
     def __init__(
         self,
         config: ServiceConfig,
         job: JobConfig,
-        pr_event: Union[PullRequestEvent, PullRequestCommentEvent],
+        event: Union[CoprBuildEvent, PullRequestCommentEvent],
     ):
-        super().__init__(config=config, job=job, event=pr_event)
-        self.project: GitProject = pr_event.get_project()
-        if isinstance(pr_event, PullRequestEvent):
-            self.base_ref = pr_event.base_ref
-        elif isinstance(pr_event, PullRequestCommentEvent):
-            self.base_ref = pr_event.commit_sha
+        super().__init__(config=config, job=job, event=event)
+        self.project: GitProject = event.get_project()
+        if isinstance(event, CoprBuildEvent):
+            self.base_ref = event.ref
+        elif isinstance(event, PullRequestCommentEvent):
+            self.base_ref = event.commit_sha
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, self.base_ref
         )
-        self.package_config.upstream_project_url = pr_event.project_url
+        self.package_config.upstream_project_url = event.project_url
 
         self.session = requests.session()
         adapter = requests.adapters.HTTPAdapter(max_retries=5)

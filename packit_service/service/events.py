@@ -401,9 +401,20 @@ class CoprBuildEvent(AbstractGithubEvent):
         self.status = status
         self.owner = owner
         self.project_name = project_name
-        self.pr_id = None
-        self.ref = ""
-        self.https_url = ""
+
+        db = CoprBuildDB()
+        build = db.get_build(self.build_id)
+
+        if not build:
+            logger.warning(f"Cannot get project for this build id: {self.build_id}")
+
+            self.base_repo_name = build.get("repo_name")
+            self.base_repo_namespace = build.get("repo_namespace")
+
+            self.pr_id = build.get("pr_id")
+            self.ref = build.get("ref")
+            self.https_url = build.get("https_url")
+            self.commit_sha = build.get("commit_sha")
 
     def get_dict(self) -> dict:
         result = super().get_dict()
@@ -421,18 +432,6 @@ class CoprBuildEvent(AbstractGithubEvent):
 
     def get_project(self) -> Optional[GitProject]:
 
-        db = CoprBuildDB()
-        build = db.get_build(self.build_id)
-
-        if not build:
-            logger.warning(f"Cannot get project for this build id: {self.build_id}")
-            return None
-
-        repo_name = build.get("repo_name")
-        repo_namespace = build.get("repo_namespace")
-
-        self.ref = build.get("ref")
-        self.https_url = build.get("https_url")
-        self.pr_id = build.get("pr_id")
-
-        return self.github_service.get_project(repo=repo_name, namespace=repo_namespace)
+        return self.github_service.get_project(
+            repo=self.base_repo_name, namespace=self.base_repo_namespace
+        )
