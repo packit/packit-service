@@ -3,32 +3,7 @@
   hosts: all
   vars:
     home_path: "{{ lookup('env', 'HOME') }}"
+    packit_service_path: /src
   tasks:
-  - name: Create /usr/share/packit directory
-    file:
-      state: directory
-      path: /usr/share/packit
-  - name: make packit home dir
-    file:
-      state: directory
-      path: "{{ home_path }}"
-      mode: 0776
-  - name: stat /src
-    stat:
-      path: /src
-    tags:
-    - no-cache
-    register: src_path
-  - name: Let's make sure /src is present
-    assert:
-      that:
-      - 'src_path.stat.isdir'
-  - name: Install packit-service from /src
-    pip:
-      name: /src
-      executable: pip3
-  - name: Clean all the cache files (especially pip)
-    file:
-      state: absent
-      path: ~/.cache/
-  - import_tasks: recipe-httpd.yaml
+  - import_tasks: packit-service.yaml
+  - import_tasks: httpd.yaml
