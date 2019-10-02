@@ -23,51 +23,92 @@ import json
 import flexmock
 
 import pytest
+from ogr.services.github import GithubProject
 
-from packit_service.worker.handler import BuildStatusReporter
+from packit_service.constants import PACKIT_STG_CHECK
+from packit_service.service.events import CoprBuildEvent
+from packit_service.worker.copr_db import CoprBuildDB
+from packit_service.worker.fedmsg_handlers import CoprBuildEndHandler
+from packit_service.worker.handler import BuildStatusReporter, PRCheckName
 from packit_service.worker.jobs import SteveJobs
 from tests.spellbook import DATA_DIR
 
 
 @pytest.fixture()
 def copr_build_start():
-    return json.loads((DATA_DIR / "fedmsg" / "copr_build_start").read_text())
+    return json.loads((DATA_DIR / "fedmsg" / "copr_build_start.json").read_text())
 
 
 @pytest.fixture()
 def copr_build_end():
-    return json.loads((DATA_DIR / "fedmsg" / "copr_build_end").read_text())
+    return json.loads((DATA_DIR / "fedmsg" / "copr_build_end.json").read_text())
 
 
 def test_copr_build_end(copr_build_end):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    results = steve.process_message(copr_build_end)
+    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(flexmock())
+    flexmock(PRCheckName).should_receive("get_build_check").and_return(PACKIT_STG_CHECK)
+    flexmock(GithubProject).should_receive("pr_comment")
+
+    flexmock(CoprBuildDB).should_receive("get_build").and_return(
+        {
+            "commit_sha": "XXXXX",
+            "pr_id": 24,
+            "repo_name": "hello-world",
+            "repo_namespace": "packit-service",
+            "ref": "XXXX",
+            "https_url": "https://github.com/packit-service/hello-world",
+        }
+    )
 
     url = (
         f"https://copr.fedorainfracloud.org/coprs/packit/"
         f"packit-service-hello-world-24-stg/build/1044215/"
     )
 
+    # check if packit-service set correct PR status
     flexmock(BuildStatusReporter).should_receive("report").with_args(
-        "success", "RPMs were built successfully.", url, "packit-stg/rpm-build"
+        state="success",
+        description="RPMs were built successfully.",
+        url=url,
+        check_name=PACKIT_STG_CHECK,
     ).once()
 
-    assert results.get("jobs", {})
+    # skip testing farm
+    flexmock(CoprBuildEndHandler).should_receive("get_tests_for_build").and_return(None)
+
+    steve.process_message(copr_build_end)
 
 
 def test_copr_build_start(copr_build_start):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    results = steve.process_message(copr_build_start)
+    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(flexmock())
+    flexmock(PRCheckName).should_receive("get_build_check").and_return(PACKIT_STG_CHECK)
 
-    url = (
-        f"https://copr.fedorainfracloud.org/coprs/packit/"
-        f"packit-service-hello-world-24-stg/build/1044215/"
+    flexmock(CoprBuildDB).should_receive("get_build").and_return(
+        {
+            "commit_sha": "XXXXX",
+            "pr_id": 24,
+            "repo_name": "hello-world",
+            "repo_namespace": "packit-service",
+            "ref": "XXXX",
+            "https_url": "https://github.com/packit-service/hello-world",
+        }
     )
 
+    url = (
+        "https://copr.fedorainfracloud.org/coprs/packit/"
+        "packit-service-hello-world-24-stg/build/1044215/"
+    )
+
+    # check if packit-service set correct PR status
     flexmock(BuildStatusReporter).should_receive("report").with_args(
-        "pending", "RPM build has started...", url, "packit-stg/rpm-build"
+        state="pending",
+        description="RPM build has started...",
+        url=url,
+        check_name=PACKIT_STG_CHECK,
     ).once()
 
-    assert results.get("jobs", {})
+    steve.process_message(copr_build_start)

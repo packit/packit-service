@@ -182,9 +182,12 @@ class CoprBuildEndHandler(FedmsgHandler):
                 "* And now you can install the packages.\n"
                 "\nPlease note that the RPMs should be used only in a testing environment."
             )
-            self.project.pr_comment(self.event.pr_id, msg)
+            self.project.pr_comment(pr_id=self.event.pr_id, body=msg)
             r.report(
-                gh_state, check_msg, url=url, check_name=PRCheckName.get_build_check()
+                state=gh_state,
+                description=check_msg,
+                url=url,
+                check_name=PRCheckName.get_build_check(),
             )
 
             test_job_config = self.get_tests_for_build()
@@ -247,8 +250,8 @@ class CoprBuildStartHandler(FedmsgHandler):
             return HandlerResults(success=True, details={"msg": msg})
 
         r.report(
-            "pending",
-            "RPM build has started...",
+            state="pending",
+            description="RPM build has started...",
             url=url,
             check_name=PRCheckName.get_build_check(),
         )
