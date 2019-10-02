@@ -47,6 +47,7 @@ class CoprBuildDB:
         repo_name: str,
         repo_namespace: str,
         ref: str,
+        https_url: str,
     ):
         """
         Save copr build with commit information
@@ -56,6 +57,7 @@ class CoprBuildDB:
         :param commit_sha: commit sha
         :param pr_id: PR id
         :param ref: PR ref
+        :param https_url: upstream url of the repo
         :return:
         """
         build_info = {
@@ -64,6 +66,7 @@ class CoprBuildDB:
             "repo_name": repo_name,
             "repo_namespace": repo_namespace,
             "ref": ref,
+            "https_url": https_url,
         }
         self.db[build_id] = build_info
         logger.debug(f"Saving build ({build_id}) : {build_info}")

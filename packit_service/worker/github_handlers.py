@@ -368,8 +368,8 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
                 "git-ref": self.base_ref,
             }
 
-            logger.debug("Sending testing farm request...")
-            logger.debug(payload)
+            logger.warning("Sending testing farm request...")
+            logger.warning(payload)
 
             req = self.send_testing_farm_request(
                 TESTING_FARM_TRIGGER_URL, "POST", {}, json.dumps(payload)

@@ -85,6 +85,7 @@ class SteveJobs:
         """
         Run a job handler (if trigger matches) for every job defined in config.
         """
+
         handlers_results = {}
         package_config = event.get_package_config()
 

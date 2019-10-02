@@ -137,6 +137,7 @@ class CoprBuildHandler(object):
                 self.event.base_repo_name,
                 self.event.base_repo_namespace,
                 self.event.base_ref,
+                self.event.https_url,
             )
 
         except SandcastleTimeoutReached:
