@@ -26,15 +26,13 @@ This file defines classes for events which are sent by GitHub or FedMsg.
 import copy
 import enum
 import logging
-from pathlib import Path
 from typing import Optional, List
 
-from ogr import PagureService, GithubService
+from ogr import PagureService
 from ogr.abstract import GitProject
 from packit.config import JobTriggerType, get_package_config_from_repo, PackageConfig
 
 from packit_service.config import service_config
-
 
 logger = logging.getLogger(__name__)
 
@@ -97,19 +95,7 @@ class Event:
 
 
 class AbstractGithubEvent(Event):
-    @staticmethod
-    def __get_private_key() -> Optional[str]:
-        if service_config.github_app_cert_path:
-            return Path(service_config.github_app_cert_path).read_text()
-        return None
-
-    @property
-    def github_service(self) -> GithubService:
-        return GithubService(
-            token=service_config.github_token,
-            github_app_id=service_config.github_app_id,
-            github_app_private_key=self.__get_private_key(),
-        )
+    pass
 
 
 class ReleaseEvent(AbstractGithubEvent):
@@ -135,9 +121,7 @@ class ReleaseEvent(AbstractGithubEvent):
         return package_config
 
     def get_project(self) -> GitProject:
-        return self.github_service.get_project(
-            repo=self.repo_name, namespace=self.repo_namespace
-        )
+        return service_config.get_project(url=self.https_url)
 
 
 class PullRequestEvent(AbstractGithubEvent):
@@ -185,9 +169,7 @@ class PullRequestEvent(AbstractGithubEvent):
         return package_config
 
     def get_project(self) -> GitProject:
-        return self.github_service.get_project(
-            repo=self.base_repo_name, namespace=self.base_repo_namespace
-        )
+        return service_config.get_project(url=self.https_url)
 
 
 class PullRequestCommentEvent(AbstractGithubEvent):
@@ -239,9 +221,7 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         return package_config
 
     def get_project(self) -> GitProject:
-        return self.github_service.get_project(
-            repo=self.base_repo_name, namespace=self.base_repo_namespace
-        )
+        return service_config.get_project(url=self.https_url)
 
 
 class IssueCommentEvent(AbstractGithubEvent):
@@ -297,9 +277,7 @@ class IssueCommentEvent(AbstractGithubEvent):
         return package_config
 
     def get_project(self) -> GitProject:
-        return self.github_service.get_project(
-            repo=self.base_repo_name, namespace=self.base_repo_namespace
-        )
+        return service_config.get_project(url=self.https_url)
 
 
 class InstallationEvent(Event):
@@ -418,6 +396,4 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         return package_config
 
     def get_project(self) -> GitProject:
-        return self.github_service.get_project(
-            repo=self.repo_name, namespace=self.repo_namespace
-        )
+        return service_config.get_project(url=self.https_url)

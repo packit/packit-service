@@ -22,9 +22,9 @@
 from pathlib import Path
 
 from packit.config import JobConfig, JobType, JobTriggerType
-from packit_service.config import Config
-from packit_service.service.events import Event
 
+from packit_service.config import ServiceConfig
+from packit_service.service.events import Event
 from packit_service.worker.handler import JobHandler
 
 
@@ -39,7 +39,7 @@ def test_handler_cleanup(tmpdir):
     t.joinpath(".g").write_text("g")
     t.joinpath(".h").symlink_to(".g", target_is_directory=False)
 
-    c = Config()
+    c = ServiceConfig()
     c.command_handler_work_dir = t
     jc = JobConfig(JobType.copr_build, [], JobTriggerType.pull_request, {})
     j = JobHandler(c, jc, Event(JobTriggerType.pull_request))

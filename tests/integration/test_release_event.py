@@ -3,18 +3,16 @@ import json
 import pytest
 from flexmock import flexmock
 from github import Github
-
 from ogr.services.github import GithubProject
-
 from packit.api import PackitAPI
 from packit.config import JobTriggerType
 from packit.local_project import LocalProject
 
-from packit_service.config import Config
+from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
-from tests.spellbook import DATA_DIR
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
+from tests.spellbook import DATA_DIR
 
 
 @pytest.fixture()
@@ -37,9 +35,9 @@ def test_dist_git_push_release_handle(release_event):
     flexmock(Whitelist, check_and_report=True)
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    config = Config()
+    config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    flexmock(Config).should_receive("get_service_config").and_return(config)
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     # it would make sense to make LocalProject offline
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="master", version="0.3.0", create_pr=False

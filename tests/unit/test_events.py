@@ -31,7 +31,7 @@ from flexmock import flexmock
 from ogr.services.github import GithubProject, GithubService
 from packit.config import JobTriggerType
 
-from packit_service.config import Config
+from packit_service.config import ServiceConfig
 from packit_service.service.events import (
     WhitelistStatus,
     InstallationEvent,
@@ -93,13 +93,15 @@ class TestEvents:
 
     @pytest.fixture()
     def mock_config(self):
-        config = flexmock(Config)
-        config.github_app_id = 123123
-        config.github_app_cert_path = None
-        config.github_token = "token"
-        config.dry_run = False
-        config.github_requests_log_path = "/path"
-        config.should_receive("get_service_config").and_return(flexmock(Config))
+        service_config = flexmock(ServiceConfig)
+        service_config.github_app_id = 123123
+        service_config.github_app_cert_path = None
+        service_config.github_token = "token"
+        service_config.dry_run = False
+        service_config.github_requests_log_path = "/path"
+        service_config.should_receive("get_service_config").and_return(
+            flexmock(ServiceConfig)
+        )
 
     def test_parse_installation(self, installation):
         event_object = Parser.parse_event(installation)
@@ -144,7 +146,7 @@ class TestEvents:
             raise FileNotFoundError()
 
         flexmock(GithubProject, get_file_content=_get_f_c)
-        flexmock(Config, get_service_config=Config())
+        flexmock(ServiceConfig, get_service_config=ServiceConfig())
         assert event_object.get_package_config() is None
 
     def test_parse_pr_comment_created(self, pr_comment_created_request):
@@ -221,8 +223,8 @@ class TestEvents:
 
         assert isinstance(event_object, PullRequestEvent)
 
-        flexmock(Config).should_receive("get_service_config").and_return(
-            flexmock(Config)
+        flexmock(ServiceConfig).should_receive("get_service_config").and_return(
+            flexmock(ServiceConfig)
         )
         project = event_object.get_project()
 

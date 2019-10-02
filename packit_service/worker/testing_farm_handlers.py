@@ -58,10 +58,7 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
         test_results_event: TestingFarmResultsEvent,
     ):
         super().__init__(config=config, job=job, event=test_results_event)
-        self.project: GitProject = self.github_service.get_project(
-            repo=test_results_event.repo_name,
-            namespace=test_results_event.repo_namespace,
-        )
+        self.project: GitProject = self.config.get_project(url=self.event.https_url)
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, test_results_event.ref
         )

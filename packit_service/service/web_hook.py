@@ -25,10 +25,10 @@ import logging
 from hashlib import sha1
 
 from flask import Flask, abort, request, jsonify
-
 from packit.utils import set_logging
+
 from packit_service.celerizer import celery_app
-from packit_service.config import Config
+from packit_service.config import ServiceConfig
 from packit_service.service.testing_farm_api import testing_farm_api
 
 
@@ -39,7 +39,7 @@ class PackitWebhookReceiver(Flask):
 
 
 app = PackitWebhookReceiver(__name__)
-config = Config.get_service_config()
+config = ServiceConfig.get_service_config()
 logger = logging.getLogger("packit_service")
 
 # testing farm API is defined in /packit_service/service/testing_farm_api.py

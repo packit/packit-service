@@ -22,20 +22,24 @@
 import pytest
 from packit.exceptions import PackitInvalidConfigException
 
-from packit_service.config import Config, Deployment
+from packit_service.config import ServiceConfig, Deployment
 
 
 def get_service_config_missing():
     # missing required fields
-    return {"deployment": "dev"}
+    return {}
 
 
 def get_service_config_invalid():
     # wrong option
     return {
-        "deployment": "prod",
-        "github_app_id": False,
-        "github_app_cert_path": "/path/lib",
+        "deployment": False,
+        "authentication": {
+            "github.com": {
+                "github_app_id": "11111",
+                "github_app_cert_path": "/path/lib",
+            }
+        },
         "webhook_secret": "secret",
         "command_handler_work_dir": "/sandcastle",
         "command_handler_image_reference": "docker.io/usercont/sandcastle",
@@ -46,8 +50,12 @@ def get_service_config_invalid():
 def get_service_config_valid():
     return {
         "deployment": "prod",
-        "github_app_id": "11111",
-        "github_app_cert_path": "/path/lib",
+        "authentication": {
+            "github.com": {
+                "github_app_id": "11111",
+                "github_app_cert_path": "/path/lib",
+            }
+        },
         "webhook_secret": "secret",
         "command_handler": "sandcastle",
         "command_handler_work_dir": "/sandcastle",
@@ -72,15 +80,15 @@ def service_config_invalid():
 
 
 def test_parse_valid(service_config_valid):
-    config = Config.get_from_dict(service_config_valid)
+    config = ServiceConfig.get_from_dict(service_config_valid)
     assert config.deployment == Deployment("prod")
 
 
 def test_parse_invalid(service_config_invalid):
     with pytest.raises(PackitInvalidConfigException):
-        Config.get_from_dict(service_config_invalid)
+        ServiceConfig.get_from_dict(service_config_invalid)
 
 
 def test_parse_missing(service_config_missing):
     with pytest.raises(PackitInvalidConfigException):
-        Config.get_from_dict(service_config_missing)
+        ServiceConfig.get_from_dict(service_config_missing)

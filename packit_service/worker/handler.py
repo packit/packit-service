@@ -31,9 +31,8 @@ from typing import Dict, Any, Optional, Type, List
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobTriggerType, JobType
-from packit_service.config import Config, Deployment
 
-
+from packit_service.config import Deployment, ServiceConfig
 from packit_service.constants import (
     PACKIT_PROD_CHECK,
     PACKIT_STG_CHECK,
@@ -41,11 +40,9 @@ from packit_service.constants import (
     PACKIT_STG_TESTING_FARM_CHECK,
 )
 from packit_service.service.events import Event
-
 from packit_service.service.models import CoprBuild
 
 logger = logging.getLogger(__name__)
-
 
 JOB_NAME_HANDLER_MAPPING: Dict[JobType, Type["JobHandler"]] = {}
 
@@ -57,7 +54,7 @@ class PRCheckName:
 
     @staticmethod
     def get_build_check() -> str:
-        config = Config.get_service_config()
+        config = ServiceConfig.get_service_config()
         if config.deployment == Deployment.prod:
             return PACKIT_PROD_CHECK
 
@@ -65,7 +62,7 @@ class PRCheckName:
 
     @staticmethod
     def get_testing_farm_check() -> str:
-        config = Config.get_service_config()
+        config = ServiceConfig.get_service_config()
         if config.deployment == Deployment.prod:
             return PACKIT_PROD_TESTING_FARM_CHECK
 
@@ -139,8 +136,8 @@ class JobHandler:
     name: JobType
     triggers: List[JobTriggerType]
 
-    def __init__(self, config: Config, job: JobConfig, event: Event):
-        self.config: Config = config
+    def __init__(self, config: ServiceConfig, job: JobConfig, event: Event):
+        self.config: ServiceConfig = config
         self.job: JobConfig = job
         self.event = event
 

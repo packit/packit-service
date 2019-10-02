@@ -24,14 +24,13 @@ import json
 import logging
 
 from flask import Blueprint, abort, request
-from packit_service.config import Config
 
 from packit_service.celerizer import celery_app
+from packit_service.config import ServiceConfig
 
 logger = logging.getLogger("packit_service")
 
-config = Config.get_service_config()
-
+config = ServiceConfig.get_service_config()
 
 testing_farm_api = Blueprint("testing_farm_api", __name__)
 
