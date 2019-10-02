@@ -22,22 +22,21 @@
 import logging
 from typing import Union, List, Optional
 
-
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
-from packit.exceptions import FailedCreateSRPM
-from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
-from packit.local_project import LocalProject
 from packit.config import PackageConfig, JobType, JobConfig
+from packit.exceptions import FailedCreateSRPM
+from packit.local_project import LocalProject
+from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
-from packit_service.config import Config, Deployment
+from packit_service.config import ServiceConfig, Deployment
+from packit_service.service.events import PullRequestEvent, PullRequestCommentEvent
 from packit_service.service.models import CoprBuild
 from packit_service.worker.handler import (
     HandlerResults,
     BuildStatusReporter,
     PRCheckName,
 )
-from packit_service.service.events import PullRequestEvent, PullRequestCommentEvent
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +44,12 @@ logger = logging.getLogger(__name__)
 class CoprBuildHandler(object):
     def __init__(
         self,
-        config: Config,
+        config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
         event: Union[PullRequestEvent, PullRequestCommentEvent],
     ):
-        self.config: Config = config
+        self.config: ServiceConfig = config
         self.package_config: PackageConfig = package_config
         self.project: GitProject = project
         self.event: Union[PullRequestEvent, PullRequestCommentEvent] = event

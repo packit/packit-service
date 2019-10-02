@@ -27,14 +27,12 @@ This file defines classes for issue comments which are sent by GitHub.
 import enum
 import logging
 import shutil
-
-from typing import Dict, Type, Optional, Union
 from pathlib import Path
+from typing import Dict, Type, Optional, Union
 
-from ogr import GithubService
 from packit.api import PackitAPI
-from packit.config import Config
 
+from packit_service.config import ServiceConfig
 from packit_service.service.events import PullRequestCommentEvent, IssueCommentEvent
 from packit_service.worker.handler import HandlerResults
 
@@ -58,25 +56,14 @@ class CommentActionHandler:
     name: CommentAction
 
     def __init__(
-        self, config: Config, event: Union[PullRequestCommentEvent, IssueCommentEvent]
+        self,
+        config: ServiceConfig,
+        event: Union[PullRequestCommentEvent, IssueCommentEvent],
     ):
-        self.config: Config = config
+        self.config: ServiceConfig = config
         self.event: Union[PullRequestCommentEvent, IssueCommentEvent] = event
         self.api: Optional[PackitAPI] = None
         self.local_project: Optional[PackitAPI] = None
-
-    def __get_private_key(self):
-        if self.config.github_app_cert_path:
-            return Path(self.config.github_app_cert_path).read_text()
-        return None
-
-    @property
-    def github_service(self) -> GithubService:
-        return GithubService(
-            token=self.config.github_token,
-            github_app_id=self.config.github_app_id,
-            github_app_private_key=self.__get_private_key(),
-        )
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")

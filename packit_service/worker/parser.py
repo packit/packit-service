@@ -27,6 +27,7 @@ import logging
 from typing import Optional, Union, List
 
 from packit.utils import nested_get
+
 from packit_service.service.events import (
     PullRequestEvent,
     PullRequestCommentEvent,
@@ -335,7 +336,12 @@ class Parser:
             logger.info(f"msg_id = {msg_id}")
 
             branch = nested_get(event, "msg", "commit", "branch")
-            return DistGitEvent(topic, repo_namespace, repo_name, ref, branch, msg_id)
+
+            # TODO: get the right hostname without hardcoding
+            project_url = f"https://src.fedoraproject.org/{repo_namespace}/{repo_name}"
+            return DistGitEvent(
+                topic, repo_namespace, repo_name, ref, branch, msg_id, project_url
+            )
         return None
 
     @staticmethod

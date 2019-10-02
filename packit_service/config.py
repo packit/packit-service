@@ -21,11 +21,9 @@
 # SOFTWARE.
 import enum
 import logging
-import os
 from pathlib import Path
-from typing import Optional
 
-from packit.config import BaseConfig, RunCommandType
+from packit.config import RunCommandType, Config
 from packit.exceptions import PackitException
 from yaml import safe_load
 
@@ -47,23 +45,14 @@ class Deployment(enum.Enum):
     prod = "prod"
 
 
-class Config(BaseConfig):
+class ServiceConfig(Config):
     SCHEMA = SERVICE_CONFIG_SCHEMA
 
     def __init__(self):
-
-        self.debug: bool = False
-        self.fas_user: Optional[str] = None
-        self.keytab_path: Optional[str] = None
-        self._pagure_user_token: str = ""
-        self._pagure_fork_token: str = ""
-        self.dry_run: bool = False
+        super().__init__()
 
         self.deployment: Deployment = Deployment.stg
 
-        self.github_app_id: Optional[str] = None
-        self.github_app_cert_path: Optional[str] = None
-        self._github_token: str = ""
         self.webhook_secret: str = ""
         self.testing_farm_secret: str = ""
         self.validate_webhooks: bool = True
@@ -86,20 +75,14 @@ class Config(BaseConfig):
         self.github_requests_log_path: str = ""
 
     @classmethod
-    def get_from_dict(cls, raw_dict: dict, validate=True) -> "Config":
+    def get_from_dict(cls, raw_dict: dict, validate=True) -> "ServiceConfig":
         if validate:
             cls.validate(raw_dict)
 
-        config = Config()
+        user_config = super().get_from_dict(raw_dict=raw_dict, validate=False)
+        config = ServiceConfig()
+        config.__dict__.update(user_config.__dict__)
 
-        config.debug = raw_dict.get("debug", False)
-        config.dry_run = raw_dict.get("dry_run", False)
-        config.fas_user = raw_dict.get("fas_user", None)
-        config.keytab_path = raw_dict.get("keytab_path", None)
-        config._pagure_user_token = raw_dict.get("pagure_user_token", "")
-        config._pagure_fork_token = raw_dict.get("pagure_fork_token", "")
-        config.github_app_id = raw_dict.get("github_app_id", "")
-        config.github_app_cert_path = raw_dict.get("github_app_cert_path", "")
         config.webhook_secret = raw_dict.get("webhook_secret", "")
         config.testing_farm_secret = raw_dict.get("testing_farm_secret", "")
         config.deployment = Deployment(raw_dict.get("deployment", ""))
@@ -126,7 +109,7 @@ class Config(BaseConfig):
         return config
 
     @classmethod
-    def get_service_config(cls) -> "Config":
+    def get_service_config(cls) -> "ServiceConfig":
         directory = Path.home() / ".config"
         config_file_name_full = directory / CONFIG_FILE_NAME
         logger.debug(f"Loading service config from directory: {directory}")
@@ -137,29 +120,7 @@ class Config(BaseConfig):
             logger.error(f"Cannot load service config '{config_file_name_full}'.")
             raise PackitException(f"Cannot load service config: {ex}.")
 
-        return Config.get_from_dict(raw_dict=loaded_config)
-
-    @property
-    def github_token(self) -> str:
-        token = os.getenv("GITHUB_TOKEN", "")
-        if token:
-            return token
-        return self._github_token
-
-    @property
-    def pagure_user_token(self) -> str:
-        token = os.getenv("PAGURE_USER_TOKEN", "")
-        if token:
-            return token
-        return self._pagure_user_token
-
-    @property
-    def pagure_fork_token(self) -> str:
-        """ this is needed to create pull requests """
-        token = os.getenv("PAGURE_FORK_TOKEN", "")
-        if token:
-            return token
-        return self._pagure_fork_token
+        return ServiceConfig.get_from_dict(raw_dict=loaded_config)
 
 
-service_config = Config.get_service_config()
+service_config = ServiceConfig.get_service_config()

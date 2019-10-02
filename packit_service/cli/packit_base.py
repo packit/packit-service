@@ -27,9 +27,9 @@ from packit.config import get_context_settings
 from packit.utils import set_logging
 from pkg_resources import get_distribution
 
-from packit_service.cli.process_message import process_message
 from packit_service.cli.listen_to_fedmsg import listen_to_fedmsg
-from packit_service.config import Config
+from packit_service.cli.process_message import process_message
+from packit_service.config import ServiceConfig
 
 logger = logging.getLogger("packit_service")
 
@@ -41,7 +41,7 @@ logger = logging.getLogger("packit_service")
 @click.pass_context
 def packit_base(ctx, debug, fas_user, keytab):
     """Integrate upstream open source projects into Fedora operating system."""
-    c = Config.get_service_config()
+    c = ServiceConfig.get_service_config()
     c.debug = debug or c.debug
     c.fas_user = fas_user or c.fas_user
     c.keytab_path = keytab or c.keytab_path

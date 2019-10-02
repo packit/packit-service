@@ -2,6 +2,9 @@
 #
 # Copyright (c) 2018-2019 Red Hat, Inc.
 
+import pytest
+from flask import Flask, request
+
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -20,15 +23,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from flexmock import flexmock
-from flask import Flask, request
-import pytest
 
-from packit_service.config import Config
+from packit_service.config import ServiceConfig
 
 
 @pytest.fixture()
 def mock_config():
-    config = flexmock(Config)
+    config = flexmock(ServiceConfig)
     config.webhook_secret = "testing-secret"
     return config
 
@@ -46,7 +47,9 @@ def test_validate_signature(mock_config, digest, is_good):
     headers = {"X-Hub-Signature": f"sha1={digest}"}
 
     # flexmock config before import as it fails on looking for config
-    flexmock(Config).should_receive("get_service_config").and_return(flexmock(Config))
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
+        flexmock(ServiceConfig)
+    )
     from packit_service.service import web_hook
 
     web_hook.config = mock_config

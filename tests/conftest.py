@@ -20,23 +20,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import os
-import pytest
-
 from pathlib import Path
+
+import pytest
+from copr.v3.client import Client as CoprClient
 from flexmock import flexmock
 from github import Github
-from copr.v3.client import Client as CoprClient
 from github.GitRelease import GitRelease as PyGithubRelease
-
-from packit.config import Config
-from packit.local_project import LocalProject
-from tests.spellbook import SAVED_HTTPD_REQS
-
 from ogr.services.github import GithubProject, GithubRelease, GitTag
+from packit.local_project import LocalProject
 
-from packit_service.config import Config as ServiceConfig
+from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.worker.whitelist import Whitelist
+from tests.spellbook import SAVED_HTTPD_REQS
 
 
 @pytest.fixture()
@@ -48,7 +45,7 @@ def dump_http_com():
     Usage:
     1. add it to your test case and pass the test path
       def test_something(dump_http_com):
-        config = dump_http_com(f"{Path(__file__).name}/pr_handle.yaml")
+        service_config = dump_http_com(f"{Path(__file__).name}/pr_handle.yaml")
     2. Run your test
       GITHUB_TOKEN=asdqwe pytest-3 -k test_something
     3. Your http communication should now be stored in tests/data/http-requests/{path}
@@ -57,7 +54,7 @@ def dump_http_com():
 
     def f(path: str):
         """ path points to a file where the http communication will be saved """
-        conf = Config()
+        conf = ServiceConfig()
         # TODO: add pagure support
         # conf._pagure_user_token = os.environ.get("PAGURE_TOKEN", "test")
         # conf._pagure_fork_token = os.environ.get("PAGURE_FORK_TOKEN", "test")

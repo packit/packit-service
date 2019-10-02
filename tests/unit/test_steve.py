@@ -33,7 +33,7 @@ from packit.api import PackitAPI
 from packit.config import JobTriggerType
 from packit.local_project import LocalProject
 
-from packit_service.config import Config
+from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
@@ -68,9 +68,9 @@ def test_process_message(event):
         full_repo_name="foo/bar",
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    config = Config()
+    config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    flexmock(Config).should_receive("get_service_config").and_return(config)
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="master", version="1.2.3", create_pr=False

@@ -27,16 +27,21 @@ We love you, Steve Jobs.
 import logging
 from typing import Optional, Dict, Union, Type
 
-from packit.config import JobTriggerType, JobType
 from ogr.abstract import GitProject
 from ogr.services.github import GithubProject
+from packit.config import JobTriggerType, JobType
 
-from packit_service.config import Config
+from packit_service.config import ServiceConfig
 from packit_service.service.events import (
     PullRequestCommentEvent,
     IssueCommentEvent,
     Event,
     TestingFarmResultsEvent,
+)
+from packit_service.worker.comment_action_handler import (
+    COMMENT_ACTION_HANDLER_MAPPING,
+    CommentAction,
+    CommentActionHandler,
 )
 from packit_service.worker.github_handlers import GithubAppInstallationHandler
 from packit_service.worker.handler import (
@@ -45,11 +50,6 @@ from packit_service.worker.handler import (
     JobHandler,
 )
 from packit_service.worker.parser import Parser
-from packit_service.worker.comment_action_handler import (
-    COMMENT_ACTION_HANDLER_MAPPING,
-    CommentAction,
-    CommentActionHandler,
-)
 from packit_service.worker.testing_farm_handlers import TestingFarmResultsHandler
 from packit_service.worker.whitelist import Whitelist
 
@@ -69,7 +69,7 @@ class SteveJobs:
     @property
     def config(self):
         if self._config is None:
-            self._config = Config.get_service_config()
+            self._config = ServiceConfig.get_service_config()
         return self._config
 
     @staticmethod
