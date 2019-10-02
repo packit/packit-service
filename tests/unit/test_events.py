@@ -126,7 +126,7 @@ class TestEvents:
         assert event_object.repo_namespace == "Codertocat"
         assert event_object.repo_name == "Hello-World"
         assert event_object.tag_name == "0.0.1"
-        assert event_object.https_url == "https://github.com/Codertocat/Hello-World"
+        assert event_object.project_url == "https://github.com/Codertocat/Hello-World"
 
     def test_parse_pr(self, pull_request):
         event_object = Parser.parse_event(pull_request)
@@ -139,7 +139,7 @@ class TestEvents:
         assert event_object.base_repo_name == "packit"
         assert event_object.base_ref == "528b803be6f93e19ca4130bf4976f2800a3004c4"
         assert event_object.target_repo == "packit-service/packit"
-        assert event_object.https_url == "https://github.com/packit-service/packit"
+        assert event_object.project_url == "https://github.com/packit-service/packit"
         assert event_object.commit_sha == "528b803be6f93e19ca4130bf4976f2800a3004c4"
 
         def _get_f_c(*args, **kwargs):
@@ -162,7 +162,9 @@ class TestEvents:
             event_object.target_repo
             == f"{event_object.base_repo_namespace}/{event_object.base_repo_name}"
         )
-        assert event_object.https_url == "https://github.com/packit-service/hello-world"
+        assert (
+            event_object.project_url == "https://github.com/packit-service/hello-world"
+        )
         assert event_object.github_login == "phracek"
         assert event_object.comment == "/packit copr-build"
 
@@ -179,7 +181,9 @@ class TestEvents:
             event_object.target_repo
             == f"{event_object.base_repo_namespace}/{event_object.base_repo_name}"
         )
-        assert event_object.https_url == "https://github.com/packit-service/hello-world"
+        assert (
+            event_object.project_url == "https://github.com/packit-service/hello-world"
+        )
         assert event_object.github_login == "phracek"
         assert event_object.comment == ""
 
@@ -197,7 +201,7 @@ class TestEvents:
             == f"{event_object.base_repo_namespace}/{event_object.base_repo_name}"
         )
         assert event_object.base_ref == "master"
-        assert event_object.https_url == "https://github.com/packit-service/packit"
+        assert event_object.project_url == "https://github.com/packit-service/packit"
         assert event_object.github_login == "phracek"
         assert event_object.comment == "/packit propose-update"
 
@@ -211,7 +215,9 @@ class TestEvents:
         assert event_object.repo_namespace == "packit-service"
         assert event_object.repo_name == "hello-world"
         assert event_object.ref == "pull/10/head"
-        assert event_object.https_url == "https://github.com/packit-service/hello-world"
+        assert (
+            event_object.project_url == "https://github.com/packit-service/hello-world"
+        )
         assert event_object.commit_sha == "46597d9b66a1927b50376f73bdb1ec1a5757c330"
         assert event_object.message == "Error or info message to display"
         assert event_object.environment == "Fedora-Cloud-Base-29-1.2.x86_64.qcow2"

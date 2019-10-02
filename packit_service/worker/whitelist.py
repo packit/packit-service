@@ -2,6 +2,8 @@
 #
 # Copyright (c) 2018-2019 Red Hat, Inc.
 
+import logging
+
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -22,11 +24,9 @@
 from typing import Optional, Any
 
 import requests
-import logging
-
-from persistentdict.dict_in_redis import PersistentDict
 from ogr.abstract import GitProject
 from packit.config import JobTriggerType
+from persistentdict.dict_in_redis import PersistentDict
 
 from packit_service.constants import FAQ_URL
 from packit_service.service.events import (

@@ -28,7 +28,6 @@ import enum
 import logging
 from typing import Optional, List
 
-from ogr import PagureService
 from ogr.abstract import GitProject
 from packit.config import JobTriggerType, get_package_config_from_repo, PackageConfig
 
@@ -95,18 +94,22 @@ class Event:
 
 
 class AbstractGithubEvent(Event):
-    pass
+    def __init__(self, trigger: JobTriggerType, project_url=None):
+        super().__init__(trigger)
+        self.project_url: str = project_url
+
+    def get_project(self) -> GitProject:
+        return service_config.get_project(url=self.project_url)
 
 
 class ReleaseEvent(AbstractGithubEvent):
     def __init__(
         self, repo_namespace: str, repo_name: str, tag_name: str, https_url: str
     ):
-        super().__init__(JobTriggerType.release)
+        super().__init__(trigger=JobTriggerType.release, project_url=https_url)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.tag_name = tag_name
-        self.https_url = https_url
 
     def get_dict(self) -> dict:
         result = super().get_dict()
@@ -117,11 +120,8 @@ class ReleaseEvent(AbstractGithubEvent):
         package_config: PackageConfig = get_package_config_from_repo(
             self.get_project(), self.tag_name
         )
-        package_config.upstream_project_url = self.https_url
+        package_config.upstream_project_url = self.project_url
         return package_config
-
-    def get_project(self) -> GitProject:
-        return service_config.get_project(url=self.https_url)
 
 
 class PullRequestEvent(AbstractGithubEvent):
@@ -137,14 +137,13 @@ class PullRequestEvent(AbstractGithubEvent):
         commit_sha: str,
         github_login: str,
     ):
-        super().__init__(JobTriggerType.pull_request)
+        super().__init__(trigger=JobTriggerType.pull_request, project_url=https_url)
         self.action = action
         self.pr_id = pr_id
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
         self.base_ref = base_ref
         self.target_repo = target_repo
-        self.https_url = https_url
         self.commit_sha = commit_sha
         self.github_login = github_login
 
@@ -165,11 +164,8 @@ class PullRequestEvent(AbstractGithubEvent):
                 f"{self.base_repo_namespace}/{self.base_repo_name}, #{self.pr_id}"
             )
             return None
-        package_config.upstream_project_url = self.https_url
+        package_config.upstream_project_url = self.project_url
         return package_config
-
-    def get_project(self) -> GitProject:
-        return service_config.get_project(url=self.https_url)
 
 
 class PullRequestCommentEvent(AbstractGithubEvent):
@@ -186,7 +182,7 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         comment: str,
         commit_sha: str = "",
     ):
-        super().__init__(JobTriggerType.comment)
+        super().__init__(trigger=JobTriggerType.comment, project_url=https_url)
         self.action = action
         self.pr_id = pr_id
         self.base_repo_namespace = base_repo_namespace
@@ -194,7 +190,6 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         self.base_ref = base_ref
         self.commit_sha = commit_sha
         self.target_repo = target_repo
-        self.https_url = https_url
         self.github_login = github_login
         self.comment = comment
 
@@ -217,11 +212,8 @@ class PullRequestCommentEvent(AbstractGithubEvent):
                 f"{self.base_repo_namespace}/{self.base_repo_name}, #{self.pr_id}"
             )
             return None
-        package_config.upstream_project_url = self.https_url
+        package_config.upstream_project_url = self.project_url
         return package_config
-
-    def get_project(self) -> GitProject:
-        return service_config.get_project(url=self.https_url)
 
 
 class IssueCommentEvent(AbstractGithubEvent):
@@ -240,7 +232,7 @@ class IssueCommentEvent(AbstractGithubEvent):
             str
         ] = "master",  # default is master when working with issues
     ):
-        super().__init__(JobTriggerType.comment)
+        super().__init__(trigger=JobTriggerType.comment, project_url=https_url)
         self.action = action
         self.issue_id = issue_id
         self.base_repo_namespace = base_repo_namespace
@@ -248,7 +240,6 @@ class IssueCommentEvent(AbstractGithubEvent):
         self.base_ref = base_ref
         self.tag_name = tag_name
         self.target_repo = target_repo
-        self.https_url = https_url
         self.github_login = github_login
         self.comment = comment
 
@@ -273,11 +264,8 @@ class IssueCommentEvent(AbstractGithubEvent):
                 f"{self.base_repo_namespace}/{self.base_repo_name}, #{self.issue_id}"
             )
             return None
-        package_config.upstream_project_url = self.https_url
+        package_config.upstream_project_url = self.project_url
         return package_config
-
-    def get_project(self) -> GitProject:
-        return service_config.get_project(url=self.https_url)
 
 
 class InstallationEvent(Event):
@@ -321,6 +309,7 @@ class DistGitEvent(Event):
         ref: str,
         branch: str,
         msg_id: str,
+        project_url: str,
     ):
         super().__init__(JobTriggerType.commit)
         self.topic = topic
@@ -329,6 +318,7 @@ class DistGitEvent(Event):
         self.ref = ref
         self.branch = branch
         self.msg_id = msg_id
+        self.project_url = project_url
 
     def get_dict(self) -> dict:
         result = super().get_dict()
@@ -341,12 +331,7 @@ class DistGitEvent(Event):
         return get_package_config_from_repo(self.get_project(), self.ref)
 
     def get_project(self) -> GitProject:
-        pagure_service = PagureService(
-            token=service_config.pagure_user_token, read_only=service_config.dry_run
-        )
-        return pagure_service.get_project(
-            repo=self.repo_name, namespace=self.repo_namespace
-        )
+        return service_config.get_project(self.project_url)
 
 
 class TestingFarmResultsEvent(AbstractGithubEvent):
@@ -366,7 +351,9 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         https_url: str,
         commit_sha: str,
     ):
-        super().__init__(JobTriggerType.testing_farm_results)
+        super().__init__(
+            trigger=JobTriggerType.testing_farm_results, project_url=https_url
+        )
         self.pipeline_id = pipeline_id
         self.result = result
         self.environment = environment
@@ -378,7 +365,6 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         self.repo_name = repo_name
         self.repo_namespace = repo_namespace
         self.ref: str = ref
-        self.https_url: str = https_url
         self.commit_sha: str = commit_sha
 
     def get_dict(self) -> dict:
@@ -392,8 +378,5 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         package_config: PackageConfig = get_package_config_from_repo(
             self.get_project(), self.ref
         )
-        package_config.upstream_project_url = self.https_url
+        package_config.upstream_project_url = self.project_url
         return package_config
-
-    def get_project(self) -> GitProject:
-        return service_config.get_project(url=self.https_url)

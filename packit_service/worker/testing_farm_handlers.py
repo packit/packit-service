@@ -34,7 +34,7 @@ from packit.config import (
 )
 from packit.local_project import LocalProject
 
-from packit_service.config import Config
+from packit_service.config import ServiceConfig
 from packit_service.service.events import TestingFarmResultsEvent, TestingFarmResult
 from packit_service.worker.github_handlers import AbstractGithubJobHandler
 from packit_service.worker.handler import (
@@ -53,16 +53,16 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
 
     def __init__(
         self,
-        config: Config,
+        config: ServiceConfig,
         job: JobConfig,
         test_results_event: TestingFarmResultsEvent,
     ):
         super().__init__(config=config, job=job, event=test_results_event)
-        self.project: GitProject = self.config.get_project(url=self.event.https_url)
+        self.project: GitProject = test_results_event.get_project()
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, test_results_event.ref
         )
-        self.package_config.upstream_project_url = test_results_event.https_url
+        self.package_config.upstream_project_url = test_results_event.project_url
 
     def run(self) -> HandlerResults:
         self.local_project = LocalProject(

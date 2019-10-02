@@ -24,23 +24,21 @@
 This file defines classes for job handlers specific for Fedmsg events
 """
 
-
 import logging
 from typing import Type
 
-from ogr.services.pagure import PagureService
 from packit.api import PackitAPI
 from packit.config import (
     JobType,
     JobTriggerType,
     JobConfig,
-    Config,
     get_package_config_from_repo,
 )
 from packit.distgit import DistGit
 from packit.local_project import LocalProject
 from packit.utils import get_namespace_and_repo_name
 
+from packit_service.config import ServiceConfig
 from packit_service.service.events import Event, DistGitEvent
 from packit_service.worker.handler import JobHandler, HandlerResults, add_to_mapping
 
@@ -65,19 +63,9 @@ class FedmsgHandler(JobHandler):
 
     topic: str
 
-    def __init__(self, config: Config, job: JobConfig, event: Event):
+    def __init__(self, config: ServiceConfig, job: JobConfig, event: Event):
         super().__init__(config=config, job=job, event=event)
         self._pagure_service = None
-
-    @property
-    def pagure_service(self):
-        if self._pagure_service is None:
-            self._pagure_service = PagureService(
-                token=self.config.pagure_user_token,
-                read_only=self.config.dry_run,
-                # TODO: how do we change to stg here? ideally in self.config
-            )
-        return self._pagure_service
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")
@@ -92,12 +80,12 @@ class NewDistGitCommit(FedmsgHandler):
     name = JobType.sync_from_downstream
     triggers = [JobTriggerType.commit]
 
-    def __init__(self, config: Config, job: JobConfig, distgit_event: DistGitEvent):
+    def __init__(
+        self, config: ServiceConfig, job: JobConfig, distgit_event: DistGitEvent
+    ):
         super().__init__(config=config, job=job, event=distgit_event)
         self.distgit_event = distgit_event
-        self.project = self.pagure_service.get_project(
-            repo=distgit_event.repo_name, namespace=distgit_event.repo_namespace
-        )
+        self.project = distgit_event.get_project()
         self.package_config = get_package_config_from_repo(
             self.project, distgit_event.ref
         )

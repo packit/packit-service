@@ -42,7 +42,7 @@ from packit.config import (
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 
-from packit_service.config import Config, Deployment
+from packit_service.config import Deployment, ServiceConfig
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.service.events import (
     PullRequestEvent,
@@ -81,14 +81,16 @@ class GithubPullRequestHandler(AbstractGithubJobHandler):
 
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
 
-    def __init__(self, config: Config, job: JobConfig, pr_event: PullRequestEvent):
+    def __init__(
+        self, config: ServiceConfig, job: JobConfig, pr_event: PullRequestEvent
+    ):
         super().__init__(config=config, job=job, event=pr_event)
         self.pr_event = pr_event
-        self.project: GitProject = self.config.get_project(url=pr_event.https_url)
+        self.project: GitProject = pr_event.get_project()
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, pr_event.base_ref
         )
-        self.package_config.upstream_project_url = pr_event.https_url
+        self.package_config.upstream_project_url = pr_event.project_url
 
     def run(self) -> HandlerResults:
         self.local_project = LocalProject(
@@ -114,7 +116,7 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
 
     def __init__(
         self,
-        config: Config,
+        config: ServiceConfig,
         job: JobConfig,
         installation_event: Union[InstallationEvent, Any],
     ):
@@ -167,14 +169,16 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
     triggers = [JobTriggerType.release]
     event: ReleaseEvent
 
-    def __init__(self, config: Config, job: JobConfig, release_event: ReleaseEvent):
+    def __init__(
+        self, config: ServiceConfig, job: JobConfig, release_event: ReleaseEvent
+    ):
         super().__init__(config=config, job=job, event=release_event)
 
-        self.project: GitProject = self.config.get_project(url=release_event.https_url)
+        self.project: GitProject = release_event.get_project()
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, release_event.tag_name
         )
-        self.package_config.upstream_project_url = release_event.https_url
+        self.package_config.upstream_project_url = release_event.project_url
 
     def run(self) -> HandlerResults:
         """
@@ -206,7 +210,7 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
 
     def __init__(
         self,
-        config: Config,
+        config: ServiceConfig,
         job: JobConfig,
         event: Union[PullRequestEvent, ReleaseEvent],
     ):
@@ -221,11 +225,11 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
                 "Unknown event, only PREvent and ReleaseEvent are accepted."
             )
 
-        self.project: GitProject = self.config.get_project(url=event.https_url)
+        self.project: GitProject = event.get_project()
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, base_ref
         )
-        self.package_config.upstream_project_url = event.https_url
+        self.package_config.upstream_project_url = event.project_url
 
     def handle_pull_request(self):
 
@@ -292,12 +296,12 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
 
     def __init__(
         self,
-        config: Config,
+        config: ServiceConfig,
         job: JobConfig,
         pr_event: Union[PullRequestEvent, PullRequestCommentEvent],
     ):
         super().__init__(config=config, job=job, event=pr_event)
-        self.project: GitProject = self.config.get_project(url=pr_event.https_url)
+        self.project: GitProject = pr_event.get_project()
         if isinstance(pr_event, PullRequestEvent):
             self.base_ref = pr_event.base_ref
         elif isinstance(pr_event, PullRequestCommentEvent):
@@ -305,7 +309,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, self.base_ref
         )
-        self.package_config.upstream_project_url = pr_event.https_url
+        self.package_config.upstream_project_url = pr_event.project_url
 
         self.session = requests.session()
         adapter = requests.adapters.HTTPAdapter(max_retries=5)
@@ -380,7 +384,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
                 "copr-repo-name": copr_repo_name,
                 "copr-chroot": chroot,
                 "commit-sha": self.event.commit_sha,
-                "git-url": self.event.https_url,
+                "git-url": self.event.project_url,
                 "git-ref": self.base_ref,
             }
 
@@ -445,17 +449,17 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
     name = CommentAction.copr_build
     event: PullRequestCommentEvent
 
-    def __init__(self, config: Config, event: PullRequestCommentEvent):
+    def __init__(self, config: ServiceConfig, event: PullRequestCommentEvent):
         super().__init__(config=config, event=event)
         self.config = config
         self.event = event
-        self.project: GitProject = self.config.get_project(url=event.https_url)
+        self.project: GitProject = event.get_project()
         # Get the latest pull request commit
         self.event.commit_sha = self.project.get_all_pr_commits(self.event.pr_id)[-1]
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, self.event.commit_sha
         )
-        self.package_config.upstream_project_url = event.https_url
+        self.package_config.upstream_project_url = event.project_url
 
     def get_tests_for_build(self) -> Optional[JobConfig]:
         """
@@ -501,18 +505,18 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
     name = CommentAction.propose_update
     event: IssueCommentEvent
 
-    def __init__(self, config: Config, event: IssueCommentEvent):
+    def __init__(self, config: ServiceConfig, event: IssueCommentEvent):
         super().__init__(config=config, event=event)
 
         self.config = config
         self.event = event
-        self.project: GitProject = self.config.get_project(url=event.https_url)
+        self.project = self.event.get_project()
         # Get the latest tag release
         self.event.tag_name = self.project.get_latest_release().tag_name
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, self.event.tag_name
         )
-        self.package_config.upstream_project_url = event.https_url
+        self.package_config.upstream_project_url = event.project_url
 
     def get_build_metadata_for_build(self) -> List[str]:
         """
