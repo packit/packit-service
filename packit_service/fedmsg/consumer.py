@@ -70,7 +70,7 @@ class Consumerino:
             "exchange": "amq.topic",  # The AMQP exchange to bind our queue to
             "queue": queue_name,  # The unique name of our queue on the AMQP broker
             # The topics that should be delivered to the queue
-            "routing_keys": ["org.fedoraproject.prod.copr.build.end"],
+            "routing_keys": ["org.fedoraproject.prod.copr.build.#"],
         }
 
         # Start consuming messages using our callback. This call will block until

@@ -38,8 +38,12 @@ from packit_service.service.events import (
     Event,
     TestingFarmResultsEvent,
     CoprBuildEvent,
+    FedmsgTopic,
 )
-from packit_service.worker.fedmsg_handlers import CoprBuildEnded
+from packit_service.worker.fedmsg_handlers import (
+    CoprBuildEndHandler,
+    CoprBuildStartHandler,
+)
 from packit_service.worker.github_handlers import GithubAppInstallationHandler
 from packit_service.worker.handler import (
     HandlerResults,
@@ -227,7 +231,8 @@ class SteveJobs:
                 handler: Union[
                     GithubAppInstallationHandler,
                     TestingFarmResultsHandler,
-                    CoprBuildEnded,
+                    CoprBuildEndHandler,
+                    CoprBuildStartHandler,
                 ] = GithubAppInstallationHandler(self.config, None, event_object)
                 try:
                     jobs_results[JobType.add_to_whitelist.value] = handler.run()
@@ -253,9 +258,13 @@ class SteveJobs:
                     handler.clean()
 
             elif isinstance(event_object, CoprBuildEvent):
-                handler = CoprBuildEnded(self.config, None, event_object)
+                handler = CoprBuildEndHandler(self.config, None, event_object)
+                job_type = JobType.copr_build_finished.value
+                if event_object.topic == FedmsgTopic.copr_build_started:
+                    handler = CoprBuildStartHandler(self.config, None, event_object)
+                    job_type = JobType.copr_build_started.value
                 try:
-                    jobs_results[JobType.copr_build_finished.value] = handler.run()
+                    jobs_results[job_type] = handler.run()
                 finally:
                     handler.clean()
             else:

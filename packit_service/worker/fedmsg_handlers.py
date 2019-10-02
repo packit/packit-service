@@ -132,7 +132,7 @@ class NewDistGitCommit(FedmsgHandler):
 
 @add_topic
 @add_to_mapping
-class CoprBuildEnded(FedmsgHandler):
+class CoprBuildEndHandler(FedmsgHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
     name = JobType.copr_build_finished
 
@@ -210,3 +210,45 @@ class CoprBuildEnded(FedmsgHandler):
             if job.job == JobType.tests:
                 return job
         return None
+
+
+@add_topic
+@add_to_mapping
+class CoprBuildStartHandler(FedmsgHandler):
+    topic = "org.fedoraproject.prod.copr.build.start"
+    name = JobType.copr_build_started
+
+    def __init__(self, config: Config, job: JobConfig, event: CoprBuildEvent):
+        super().__init__(config=config, job=job, event=event)
+        self.project = self.event.get_project()
+        self.package_config = self.event.get_package_config()
+
+    def run(self):
+        # get copr build from db
+        db = CoprBuildDB()
+        build = db.get_build(self.event.build_id)
+
+        if not build:
+            logger.warning(
+                f"Build: {self.event.build_id} is not handled by packit service!"
+            )
+            return
+
+        r = BuildStatusReporter(self.event.get_project(), build["commit_sha"])
+        url = (
+            "https://copr.fedorainfracloud.org/coprs/"
+            f"{self.event.owner}/{self.event.project_name}/build/{self.event.build_id}/"
+        )
+
+        if self.event.chroot == "srpm-builds":
+            # we don't want to set check for this
+            msg = "SRPM build in copr has started"
+            logger.debug(msg)
+            return HandlerResults(success=True, details={"msg": msg})
+
+        r.report(
+            "pending",
+            "RPM build has started...",
+            url=url,
+            check_name=PRCheckName.get_build_check(),
+        )
