@@ -405,7 +405,6 @@ class CoprBuildEvent(AbstractGithubEvent):
         self.base_repo_namespace = ""
         self.pr_id = 0
         self.ref = ""
-        self.https_url = ""
         self.commit_sha = ""
 
         db = CoprBuildDB()
@@ -416,7 +415,7 @@ class CoprBuildEvent(AbstractGithubEvent):
             self.base_repo_namespace = self.build.get("repo_namespace")
             self.pr_id = self.build.get("pr_id")
             self.ref = self.build.get("ref")
-            self.https_url = self.build.get("https_url")
+            self.project_url = self.build.get("https_url")
             self.commit_sha = self.build.get("commit_sha")
         else:
             logger.warning(f"Cannot get project for this build id: {self.build_id}")
@@ -435,15 +434,7 @@ class CoprBuildEvent(AbstractGithubEvent):
             package_config: PackageConfig = get_package_config_from_repo(
                 project, self.ref
             )
-            package_config.upstream_project_url = self.https_url
+            package_config.upstream_project_url = self.project_url
             return package_config
         else:
             return None
-
-    def get_project(self) -> Optional[GitProject]:
-        if self.build:
-            return self.github_service.get_project(
-                repo=self.base_repo_name, namespace=self.base_repo_namespace
-            )
-
-        return None
