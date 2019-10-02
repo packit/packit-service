@@ -19,53 +19,55 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-# import git
+import json
+import flexmock
+
 import pytest
 
-# from flexmock import flexmock
-# from git import Repo
-# from ogr.services.pagure import PagureProject
-#
-# from packit_service.jobs import SteveJobs
-# from tests.spellbook import get_test_config
+from packit_service.worker.handler import BuildStatusReporter
+from packit_service.worker.jobs import SteveJobs
+from tests.spellbook import DATA_DIR
 
 
 @pytest.fixture()
-def distgit_commit_fedmsg():
-    return {
-        "username": "ttomecek",
-        "msg_id": "2019-ef06e723-1df2-41d1-9666-63ea1dc402d8",
-        "topic": "org.fedoraproject.prod.git.receive",
-        "msg": {
-            "commit": {
-                "rev": "e45f51fd481039a8f527451944a2feb4816ccebc",
-                "namespace": "rpms",
-                "summary": "packit: s/fedora/fedora-tests/",
-                "repo": "packit",
-                "branch": "master",
-                "path": "/srv/git/repositories/rpms/packit.git",
-                "message": (
-                    "packit: s/fedora/fedora-tests/\n\n"
-                    "Signed-off-by: Tomas Tomecek <ttomecek@redhat.com>\n"
-                ),
-                "email": "ttomecek@redhat.com",
-            }
-        },
-    }
+def copr_build_start():
+    return json.loads((DATA_DIR / "fedmsg" / "copr_build_start").read_text())
 
 
-# TODO: utilize dump_http_com fixture instead of mock_remote_func
-# def test_distgit_commit_event(
-#     distgit_commit_fedmsg, mock_remote_functionality_upstream
-# ):
-#     u, d = mock_remote_functionality_upstream
-#
-#     conf = get_test_config()
-#     steve = SteveJobs(conf)
-#
-#     flexmock(PagureProject).should_receive("get_file_content").and_return(
-#         u.joinpath(".packit.json").read_text()
-#     )
-#     flexmock(Repo).should_receive("clone_from").and_return(git.Repo(str(u)))
-#
-#     steve.process_message(distgit_commit_fedmsg)
+@pytest.fixture()
+def copr_build_end():
+    return json.loads((DATA_DIR / "fedmsg" / "copr_build_end").read_text())
+
+
+def test_copr_build_end(copr_build_end):
+    steve = SteveJobs()
+    flexmock(SteveJobs, _is_private=False)
+    results = steve.process_message(copr_build_end)
+
+    url = (
+        f"https://copr.fedorainfracloud.org/coprs/packit/"
+        f"packit-service-hello-world-24-stg/build/1044215/"
+    )
+
+    flexmock(BuildStatusReporter).should_receive("report").with_args(
+        "success", "RPMs were built successfully.", url, "packit-stg/rpm-build"
+    ).once()
+
+    assert results.get("jobs", {})
+
+
+def test_copr_build_start(copr_build_start):
+    steve = SteveJobs()
+    flexmock(SteveJobs, _is_private=False)
+    results = steve.process_message(copr_build_start)
+
+    url = (
+        f"https://copr.fedorainfracloud.org/coprs/packit/"
+        f"packit-service-hello-world-24-stg/build/1044215/"
+    )
+
+    flexmock(BuildStatusReporter).should_receive("report").with_args(
+        "pending", "RPM build has started...", url, "packit-stg/rpm-build"
+    ).once()
+
+    assert results.get("jobs", {})

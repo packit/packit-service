@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import logging
+from typing import List
 
 from fedora_messaging import api, config
 from fedora_messaging.message import Message
@@ -53,11 +54,10 @@ class Consumerino:
         )
 
     @staticmethod
-    def consume_from_fedora_messaging():
+    def consume_from_fedora_messaging(queue_name: str, routing_keys: List[str]):
         """
         fedora-messaging is written in an async way: callbacks
         """
-        queue_name = "708D1D74-63E4-472A-88E8-8E43C5AE40DC"
         queues = {
             queue_name: {
                 "durable": False,  # Delete the queue on broker restart
@@ -70,7 +70,7 @@ class Consumerino:
             "exchange": "amq.topic",  # The AMQP exchange to bind our queue to
             "queue": queue_name,  # The unique name of our queue on the AMQP broker
             # The topics that should be delivered to the queue
-            "routing_keys": ["org.fedoraproject.prod.copr.build.#"],
+            "routing_keys": routing_keys,
         }
 
         # Start consuming messages using our callback. This call will block until
