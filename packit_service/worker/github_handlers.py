@@ -50,7 +50,8 @@ from packit_service.service.events import (
     ReleaseEvent,
     PullRequestCommentEvent,
     IssueCommentEvent,
-    CoprBuildEvent)
+    CoprBuildEvent,
+)
 from packit_service.service.models import Installation
 from packit_service.worker.comment_action_handler import (
     CommentAction,
