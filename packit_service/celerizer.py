@@ -24,6 +24,17 @@ from celery import Celery
 from os import getenv
 
 
+def configure_sentry():
+    """ Optionally returns sentry client """
+    secret_key = getenv("SENTRY_SECRET")
+    if not secret_key:
+        return
+    # so that we don't have to have sentry sdk installed locally
+    import sentry_sdk
+
+    return sentry_sdk.init(secret_key)
+
+
 class Celerizer:
     def __init__(self):
         self._celery_app = None
@@ -45,3 +56,4 @@ class Celerizer:
 
 celerizer = Celerizer()
 celery_app = celerizer.celery_app
+configure_sentry()

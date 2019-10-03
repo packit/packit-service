@@ -151,12 +151,22 @@ class CoprBuildHandler(object):
             r.report("failure", msg, check_name=check_name)
             return HandlerResults(success=False, details={"msg": msg})
 
-        except FailedCreateSRPM:
-            msg = "Failed to create a SRPM."
+        except FailedCreateSRPM as ex:
+            # so that we don't have to have sentry sdk installed locally
+            import sentry_sdk
+
+            sentry_sdk.capture_exception(ex)
+
+            msg = f"Failed to create a SRPM: {ex}"
             r.report("failure", msg, check_name=check_name)
             return HandlerResults(success=False, details={"msg": msg})
 
         except Exception as ex:
+            # so that we don't have to have sentry sdk installed locally
+            import sentry_sdk
+
+            sentry_sdk.capture_exception(ex)
+
             msg = f"There was an error while running a copr build:\n```\n{ex}\n```\n"
             logger.error(msg)
             self.project.pr_comment(self.event.pr_id, f"{msg}\n{msg_retrigger}")
