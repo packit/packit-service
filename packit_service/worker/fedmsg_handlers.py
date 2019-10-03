@@ -161,6 +161,7 @@ class CoprBuildEndHandler(FedmsgHandler):
         msg = "RPMs failed to be built."
         gh_state = "failure"
 
+        # https://pagure.io/copr/copr/blob/master/f/common/copr_common/enums.py#_42
         if self.event.status == 1:
 
             if self.event.chroot == "srpm-builds":

@@ -28,6 +28,7 @@ import logging
 import click
 
 from packit_service.fedmsg.consumer import Consumerino
+from packit_service.config import service_config
 
 logger = logging.getLogger(__name__)
 
@@ -41,10 +42,7 @@ def listen_to_fedora_messaging(message_id):
     if MESSAGE-ID is specified, process only the selected messages
     """
 
-    # TODO load queue_name and routing_keys from config
-
     consumerino = Consumerino()
     consumerino.consume_from_fedora_messaging(
-        queue_name="708D1D74-63E4-472A-88E8-8E43C5AE40DC",
-        routing_keys=["org.fedoraproject.prod.copr.build.#"],
+        queue_name=service_config.queue_name, routing_keys=service_config.routing_keys
     )
