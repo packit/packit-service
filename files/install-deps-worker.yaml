@@ -13,11 +13,10 @@
       - origin-clients # for sandcastle
       - python3-kubernetes # for sandcastle
       state: present
-  - name: Install sandcastle
+  - name: Install pip deps
     pip:
-      name: git+https://github.com/packit-service/sandcastle.git
-      executable: pip3
-  - name: Install ogr from git master
-    pip:
-      name: git+https://github.com/packit-service/ogr.git
+      name:
+      - git+https://github.com/packit-service/sandcastle.git
+      - git+https://github.com/packit-service/ogr.git
+      - sentry-sdk==0.12.2  # that's what sentry's official docs say
       executable: pip3
