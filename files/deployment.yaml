@@ -53,6 +53,7 @@
       - packit-service.yaml
       - copr
       - ssh_config
+      - fedora.toml
     become: true
 
   - name: Create dev.yml
