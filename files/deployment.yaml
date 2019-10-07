@@ -44,6 +44,11 @@
       path: "{{ deployment_dir }}/secrets/dev/fedora.keytab"
       state: touch
 
+  - name: Create sentry_key
+    file:
+      path: "{{ deployment_dir }}/secrets/dev/sentry_key"
+      state: touch
+
   - name: Copy the rest of the secrets from template
     copy:
       src: "{{ deployment_dir }}/secrets/template/{{ item }}"
