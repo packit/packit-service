@@ -7,7 +7,7 @@
   - name: Install packages for deployment
     dnf:
       name:
-      - ansible-2.7.10-1.fc30 # because of packit-service deployment
+      - ansible
       - python3-openshift
       - make
     become: true
@@ -33,9 +33,8 @@
     command: "ssh-keygen -q -t rsa -f {{ deployment_dir }}/secrets/dev/id_rsa -C '' -N ''"
     args:
       creates: "{{ deployment_dir }}/secrets/dev/id_rsa"
-
-# Ansible 2.8+ :(
-#  - name: Generate ssh keys
+  # Ansible 2.8+, does not work in Zuul (???)
+#  - name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
 #    openssh_keypair:
 #      path: "{{ deployment_dir }}/secrets/dev/id_rsa"
 
