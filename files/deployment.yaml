@@ -72,7 +72,7 @@
         # OR via Openshift web GUI: click on your login in top right corner, 'Copy Login Command', take the part after --token=
         api_key: {{ kubeconfig_token.stdout }}
         # To work-around 'SSL: CERTIFICATE_VERIFY_FAILED'
-        verify_ssl: no
+        validate_certs: no
         # don't deploy fedmsg dc; good for local testing
         without_fedmsg: false
         # don't deploy redis-commander dc; good for staging deployment
