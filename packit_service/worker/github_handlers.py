@@ -50,6 +50,7 @@ from packit_service.service.events import (
     ReleaseEvent,
     PullRequestCommentEvent,
     IssueCommentEvent,
+    CoprBuildEvent,
 )
 from packit_service.service.models import Installation
 from packit_service.worker.comment_action_handler import (
@@ -248,28 +249,8 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             self.config, self.package_config, self.project, self.event
         )
         handler_results = cbh.run_copr_build()
-        if handler_results["success"]:
-            # Testing farm is triggered just once copr build is finished as it uses copr builds
-            # todo: utilize fedmsg for this.
-            test_job_config = self.get_tests_for_build()
-            if test_job_config:
-                testing_farm_handler = GithubTestingFarmHandler(
-                    self.config, test_job_config, self.event
-                )
-                testing_farm_handler.run()
-            else:
-                logger.debug("Testing farm not in the job config.")
-            return HandlerResults(success=True, details={})
 
-    def get_tests_for_build(self) -> Optional[JobConfig]:
-        """
-        Check if there are tests defined
-        :return: JobConfig or None
-        """
-        for job in self.package_config.jobs:
-            if job.job == JobType.tests:
-                return job
-        return None
+        return handler_results
 
     def run(self) -> HandlerResults:
         if self.event.trigger == JobTriggerType.pull_request:
@@ -292,24 +273,24 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
 
     name = JobType.tests
     triggers = [JobTriggerType.pull_request]
-    event: Union[PullRequestEvent, PullRequestCommentEvent]
+    event: Union[CoprBuildEvent, PullRequestCommentEvent]
 
     def __init__(
         self,
         config: ServiceConfig,
         job: JobConfig,
-        pr_event: Union[PullRequestEvent, PullRequestCommentEvent],
+        event: Union[CoprBuildEvent, PullRequestCommentEvent],
     ):
-        super().__init__(config=config, job=job, event=pr_event)
-        self.project: GitProject = pr_event.get_project()
-        if isinstance(pr_event, PullRequestEvent):
-            self.base_ref = pr_event.base_ref
-        elif isinstance(pr_event, PullRequestCommentEvent):
-            self.base_ref = pr_event.commit_sha
+        super().__init__(config=config, job=job, event=event)
+        self.project: GitProject = event.get_project()
+        if isinstance(event, CoprBuildEvent):
+            self.base_ref = event.ref
+        elif isinstance(event, PullRequestCommentEvent):
+            self.base_ref = event.commit_sha
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, self.base_ref
         )
-        self.package_config.upstream_project_url = pr_event.project_url
+        self.package_config.upstream_project_url = event.project_url
 
         self.session = requests.session()
         adapter = requests.adapters.HTTPAdapter(max_retries=5)
@@ -459,6 +440,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, self.event.commit_sha
         )
+        self.event.base_ref = self.event.commit_sha
         self.package_config.upstream_project_url = event.project_url
 
     def get_tests_for_build(self) -> Optional[JobConfig]:
@@ -483,18 +465,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
             self.config, self.package_config, self.project, self.event
         )
         handler_results = cbh.run_copr_build()
-        if handler_results["success"]:
-            # Testing farm is triggered just once copr build is finished as it uses copr builds
-            # todo: utilize fedmsg for this.
-            test_job_config = self.get_tests_for_build()
-            if test_job_config:
-                testing_farm_handler = GithubTestingFarmHandler(
-                    self.config, test_job_config, self.event
-                )
-                testing_farm_handler.run()
-            else:
-                logger.debug("Testing farm not in the job config.")
-            return HandlerResults(success=True, details={})
+
         return handler_results
 
 

@@ -21,41 +21,28 @@
 # SOFTWARE.
 
 """
-Watch for new upstream releases.
+Listen to messages coming to fedora-messaging (AMQP)
 """
 import logging
 
 import click
 
-from packit_service.celerizer import celery_app
-from packit_service.fed_mes_consume import Consumerino
-from packit_service.worker.fedmsg_handlers import do_we_process_fedmsg_topic
+from packit_service.fedmsg.consumer import Consumerino
+from packit_service.config import service_config
 
 logger = logging.getLogger(__name__)
 
 
-@click.command("listen-to-fedmsg")
+@click.command("listen-to-fedora-messaging")
 @click.argument("message-id", nargs=-1)
-def listen_to_fedmsg(message_id):
+def listen_to_fedora_messaging(message_id):
     """
     Listen to events on fedmsg and process them.
 
     if MESSAGE-ID is specified, process only the selected messages
     """
-    consumerino = Consumerino()
 
-    if message_id:
-        for msg_id in message_id:
-            fedmsg_dict = consumerino.fetch_fedmsg_dict(msg_id)
-            logger.debug(f"Processing {fedmsg_dict}")
-            celery_app.send_task(
-                name="task.steve_jobs.process_message", kwargs={"event": fedmsg_dict}
-            )
-    else:
-        for topic, msg in consumerino.yield_all_messages():
-            if do_we_process_fedmsg_topic(topic):
-                logger.debug(f"Processing topic {topic}, msg {msg}")
-                celery_app.send_task(
-                    name="task.steve_jobs.process_message",
-                    kwargs={"event": msg, "topic": topic},
-                )
+    consumerino = Consumerino()
+    consumerino.consume_from_fedora_messaging(
+        queue_name=service_config.queue_name, routing_keys=service_config.routing_keys
+    )

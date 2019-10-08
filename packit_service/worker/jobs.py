@@ -37,11 +37,12 @@ from packit_service.service.events import (
     IssueCommentEvent,
     Event,
     TestingFarmResultsEvent,
+    CoprBuildEvent,
+    FedmsgTopic,
 )
-from packit_service.worker.comment_action_handler import (
-    COMMENT_ACTION_HANDLER_MAPPING,
-    CommentAction,
-    CommentActionHandler,
+from packit_service.worker.fedmsg_handlers import (
+    CoprBuildEndHandler,
+    CoprBuildStartHandler,
 )
 from packit_service.worker.github_handlers import GithubAppInstallationHandler
 from packit_service.worker.handler import (
@@ -50,6 +51,11 @@ from packit_service.worker.handler import (
     JobHandler,
 )
 from packit_service.worker.parser import Parser
+from packit_service.worker.comment_action_handler import (
+    COMMENT_ACTION_HANDLER_MAPPING,
+    CommentAction,
+    CommentActionHandler,
+)
 from packit_service.worker.testing_farm_handlers import TestingFarmResultsHandler
 from packit_service.worker.whitelist import Whitelist
 
@@ -83,6 +89,7 @@ class SteveJobs:
         """
         Run a job handler (if trigger matches) for every job defined in config.
         """
+
         handlers_results = {}
         package_config = event.get_package_config()
 
@@ -193,6 +200,7 @@ class SteveJobs:
             topics = [
                 getattr(h, "topic", None) for h in JOB_NAME_HANDLER_MAPPING.values()
             ]
+
             if topic not in topics:
                 return None
 
@@ -206,7 +214,10 @@ class SteveJobs:
         is_private_repository = False
         try:
             project = event_object.get_project()
-            is_private_repository = self._is_private(project)
+            if (
+                project
+            ):  # CoprBuildEvent.get_project returns None when the build id is not in redis
+                is_private_repository = self._is_private(project)
         except NotImplementedError:
             logger.warning("Cannot obtain project from this event!")
             logger.warning("Skipping private repository check!")
@@ -218,7 +229,10 @@ class SteveJobs:
             # not repository, so package config with jobs is missing
             if event_object.trigger == JobTriggerType.installation:
                 handler: Union[
-                    GithubAppInstallationHandler, TestingFarmResultsHandler
+                    GithubAppInstallationHandler,
+                    TestingFarmResultsHandler,
+                    CoprBuildEndHandler,
+                    CoprBuildStartHandler,
                 ] = GithubAppInstallationHandler(self.config, None, event_object)
                 try:
                     jobs_results[JobType.add_to_whitelist.value] = handler.run()
@@ -240,6 +254,17 @@ class SteveJobs:
                 handler = TestingFarmResultsHandler(self.config, None, event_object)
                 try:
                     jobs_results[JobType.report_test_results.value] = handler.run()
+                finally:
+                    handler.clean()
+
+            elif isinstance(event_object, CoprBuildEvent):
+                handler = CoprBuildEndHandler(self.config, None, event_object)
+                job_type = JobType.copr_build_finished.value
+                if event_object.topic == FedmsgTopic.copr_build_started:
+                    handler = CoprBuildStartHandler(self.config, None, event_object)
+                    job_type = JobType.copr_build_started.value
+                try:
+                    jobs_results[job_type] = handler.run()
                 finally:
                     handler.clean()
             else:

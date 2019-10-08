@@ -17,4 +17,5 @@
       - nss_wrapper
       # web service needs packit just for few bits (see #109), so hopefully we don't need it from master and RPM is enough
       - python3-packit
+      - fedora-messaging
       state: present

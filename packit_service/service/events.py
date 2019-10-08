@@ -32,6 +32,7 @@ from ogr.abstract import GitProject
 from packit.config import JobTriggerType, get_package_config_from_repo, PackageConfig
 
 from packit_service.config import service_config
+from packit_service.worker.copr_db import CoprBuildDB
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,7 @@ class IssueCommentAction(enum.Enum):
 class FedmsgTopic(enum.Enum):
     dist_git_push = "org.fedoraproject.prod.git.receive"
     copr_build_finished = "org.fedoraproject.prod.copr.build.end"
+    copr_build_started = "org.fedoraproject.prod.copr.build.start"
     pr_flag_added = "org.fedoraproject.prod.pagure.pull-request.flag.added"
 
 
@@ -380,3 +382,59 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         )
         package_config.upstream_project_url = self.project_url
         return package_config
+
+
+class CoprBuildEvent(AbstractGithubEvent):
+    def __init__(
+        self,
+        topic: FedmsgTopic,
+        build_id: int,
+        chroot: str,
+        status: int,
+        owner: str,
+        project_name: str,
+    ):
+        super().__init__(JobTriggerType.commit)
+        self.topic = topic
+        self.build_id = build_id
+        self.chroot = chroot
+        self.status = status
+        self.owner = owner
+        self.project_name = project_name
+        self.base_repo_name = ""
+        self.base_repo_namespace = ""
+        self.pr_id = 0
+        self.ref = ""
+        self.commit_sha = ""
+
+        db = CoprBuildDB()
+        self.build = db.get_build(self.build_id)
+
+        if self.build:
+            self.base_repo_name = self.build.get("repo_name")
+            self.base_repo_namespace = self.build.get("repo_namespace")
+            self.pr_id = self.build.get("pr_id")
+            self.ref = self.build.get("ref")
+            self.project_url = self.build.get("https_url")
+            self.commit_sha = self.build.get("commit_sha")
+        else:
+            logger.warning(f"Cannot get project for this build id: {self.build_id}")
+
+    def get_dict(self) -> dict:
+        result = super().get_dict()
+        # whole dict have to be JSON serializable because of redis
+        result["trigger"] = str(result["trigger"])
+        result["topic"] = str(result["topic"])
+        return result
+
+    def get_package_config(self) -> Optional[PackageConfig]:
+        project = self.get_project()
+
+        if project:
+            package_config: PackageConfig = get_package_config_from_repo(
+                project, self.ref
+            )
+            package_config.upstream_project_url = self.project_url
+            return package_config
+        else:
+            return None

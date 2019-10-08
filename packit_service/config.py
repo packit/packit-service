@@ -22,6 +22,7 @@
 import enum
 import logging
 from pathlib import Path
+from typing import List
 
 from packit.config import RunCommandType, Config
 from packit.exceptions import PackitException
@@ -57,6 +58,10 @@ class ServiceConfig(Config):
         self.testing_farm_secret: str = ""
         self.validate_webhooks: bool = True
 
+        # fedmsg
+        self.queue_name: str = ""
+        self.routing_keys: List[str] = ""
+
         # %%% ACTIONS HANDLER CONFIGURATION %%%
         # these values are specific to packit service when we run actions in a sandbox
 
@@ -87,6 +92,8 @@ class ServiceConfig(Config):
         config.testing_farm_secret = raw_dict.get("testing_farm_secret", "")
         config.deployment = Deployment(raw_dict.get("deployment", ""))
         config.validate_webhooks = raw_dict.get("validate_webhooks", False)
+        config.queue_name = raw_dict.get("queue_name", "")
+        config.routing_keys = raw_dict.get("routing_keys", [])
 
         config.command_handler = RunCommandType.local
         a_h = raw_dict.get("command_handler")

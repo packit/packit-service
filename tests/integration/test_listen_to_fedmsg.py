@@ -19,53 +19,96 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-# import git
-import pytest
+import json
+import flexmock
 
-# from flexmock import flexmock
-# from git import Repo
-# from ogr.services.pagure import PagureProject
-#
-# from packit_service.jobs import SteveJobs
-# from tests.spellbook import get_test_config
+import pytest
+from ogr.services.github import GithubProject
+
+from packit_service.constants import PACKIT_STG_CHECK
+from packit_service.service.events import CoprBuildEvent
+from packit_service.worker.copr_db import CoprBuildDB
+from packit_service.worker.fedmsg_handlers import CoprBuildEndHandler
+from packit_service.worker.handler import BuildStatusReporter, PRCheckName
+from packit_service.worker.jobs import SteveJobs
+from tests.spellbook import DATA_DIR
 
 
 @pytest.fixture()
-def distgit_commit_fedmsg():
-    return {
-        "username": "ttomecek",
-        "msg_id": "2019-ef06e723-1df2-41d1-9666-63ea1dc402d8",
-        "topic": "org.fedoraproject.prod.git.receive",
-        "msg": {
-            "commit": {
-                "rev": "e45f51fd481039a8f527451944a2feb4816ccebc",
-                "namespace": "rpms",
-                "summary": "packit: s/fedora/fedora-tests/",
-                "repo": "packit",
-                "branch": "master",
-                "path": "/srv/git/repositories/rpms/packit.git",
-                "message": (
-                    "packit: s/fedora/fedora-tests/\n\n"
-                    "Signed-off-by: Tomas Tomecek <ttomecek@redhat.com>\n"
-                ),
-                "email": "ttomecek@redhat.com",
-            }
-        },
-    }
+def copr_build_start():
+    return json.loads((DATA_DIR / "fedmsg" / "copr_build_start.json").read_text())
 
 
-# TODO: utilize dump_http_com fixture instead of mock_remote_func
-# def test_distgit_commit_event(
-#     distgit_commit_fedmsg, mock_remote_functionality_upstream
-# ):
-#     u, d = mock_remote_functionality_upstream
-#
-#     conf = get_test_config()
-#     steve = SteveJobs(conf)
-#
-#     flexmock(PagureProject).should_receive("get_file_content").and_return(
-#         u.joinpath(".packit.json").read_text()
-#     )
-#     flexmock(Repo).should_receive("clone_from").and_return(git.Repo(str(u)))
-#
-#     steve.process_message(distgit_commit_fedmsg)
+@pytest.fixture()
+def copr_build_end():
+    return json.loads((DATA_DIR / "fedmsg" / "copr_build_end.json").read_text())
+
+
+def test_copr_build_end(copr_build_end):
+    steve = SteveJobs()
+    flexmock(SteveJobs, _is_private=False)
+    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(flexmock())
+    flexmock(PRCheckName).should_receive("get_build_check").and_return(PACKIT_STG_CHECK)
+    flexmock(GithubProject).should_receive("pr_comment")
+
+    flexmock(CoprBuildDB).should_receive("get_build").and_return(
+        {
+            "commit_sha": "XXXXX",
+            "pr_id": 24,
+            "repo_name": "hello-world",
+            "repo_namespace": "packit-service",
+            "ref": "XXXX",
+            "https_url": "https://github.com/packit-service/hello-world",
+        }
+    )
+
+    url = (
+        f"https://copr.fedorainfracloud.org/coprs/packit/"
+        f"packit-service-hello-world-24-stg/build/1044215/"
+    )
+
+    # check if packit-service set correct PR status
+    flexmock(BuildStatusReporter).should_receive("report").with_args(
+        state="success",
+        description="RPMs were built successfully.",
+        url=url,
+        check_name=PACKIT_STG_CHECK,
+    ).once()
+
+    # skip testing farm
+    flexmock(CoprBuildEndHandler).should_receive("get_tests_for_build").and_return(None)
+
+    steve.process_message(copr_build_end)
+
+
+def test_copr_build_start(copr_build_start):
+    steve = SteveJobs()
+    flexmock(SteveJobs, _is_private=False)
+    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(flexmock())
+    flexmock(PRCheckName).should_receive("get_build_check").and_return(PACKIT_STG_CHECK)
+
+    flexmock(CoprBuildDB).should_receive("get_build").and_return(
+        {
+            "commit_sha": "XXXXX",
+            "pr_id": 24,
+            "repo_name": "hello-world",
+            "repo_namespace": "packit-service",
+            "ref": "XXXX",
+            "https_url": "https://github.com/packit-service/hello-world",
+        }
+    )
+
+    url = (
+        "https://copr.fedorainfracloud.org/coprs/packit/"
+        "packit-service-hello-world-24-stg/build/1044215/"
+    )
+
+    # check if packit-service set correct PR status
+    flexmock(BuildStatusReporter).should_receive("report").with_args(
+        state="pending",
+        description="RPM build has started...",
+        url=url,
+        check_name=PACKIT_STG_CHECK,
+    ).once()
+
+    steve.process_message(copr_build_start)
