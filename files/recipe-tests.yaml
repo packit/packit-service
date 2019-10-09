@@ -9,19 +9,3 @@
       - python3-pytest
       - python3-pytest-cov
       state: present
-  - name: Install sandcastle
-    pip:
-      name: git+https://github.com/packit-service/sandcastle.git
-  - name: Install ogr from git master
-    pip:
-      name: git+https://github.com/packit-service/ogr.git
-  # we don't install packit-service, so install deps manually
-  - name: Pip install dependencies
-    pip:
-      name:
-      - persistentdict
-      - celery[redis]
-  - name: Clean all the cache files (especially pip)
-    file:
-      state: absent
-      path: ~/.cache/

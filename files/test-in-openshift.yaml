@@ -1,0 +1,25 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: packit-tests
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: packit-tests
+        image: packit-service-tests
+        imagePullPolicy: Never  # IfNotPresent
+        workingDir: /src-packit-service
+        # volumeMounts:
+        # - name: packit-ssh
+        #   mountPath: /packit-ssh
+        # - name: packit-secrets
+        #   mountPath: /secrets
+        # - name: packit-config
+        #   mountPath: /home/packit/.config
+        # - name: packit-worker-vol
+        #   mountPath: /sandcastle
+        command: ["bash", "/src-packit-service/files/run_tests.sh"]
+  backoffLimit: 1

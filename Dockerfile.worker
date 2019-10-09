@@ -23,5 +23,6 @@ RUN cd $PS_PATH && \
     ansible-playbook -vv -c local -i localhost, recipe-worker.yaml
 
 COPY . $PS_PATH
+WORKDIR $PS_PATH
 
 CMD ["/usr/bin/run_worker.sh"]
