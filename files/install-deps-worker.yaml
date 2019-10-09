@@ -18,5 +18,6 @@
       name:
       - git+https://github.com/packit-service/sandcastle.git
       - git+https://github.com/packit-service/ogr.git
-      - sentry-sdk==0.12.2  # that's what sentry's official docs say
+      # "We recommend you update your SDK from version 0.12.2 to version 0.12.3"
+      - sentry-sdk==0.12.3
       executable: pip3
