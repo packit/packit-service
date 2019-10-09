@@ -13,7 +13,7 @@ worker: files/install-deps-worker.yaml files/recipe-worker.yaml
 # this is for cases when you want to deploy into production and don't want to wait for dockerhub
 worker-prod: files/install-deps-worker.yaml files/recipe-worker.yaml
 	docker build --rm -t $(WORKER_PROD_IMAGE) -f Dockerfile.worker.prod .
-worker-prod-push:
+worker-prod-push: worker-prod
 	docker push $(WORKER_PROD_IMAGE)
 
 # we can't use rootless podman here b/c we can't mount ~/.ssh inside (0400)
