@@ -27,9 +27,9 @@ from copr.v3.client import Client as CoprClient
 from flexmock import flexmock
 from github import Github
 from github.GitRelease import GitRelease as PyGithubRelease
-from ogr.services.github import GithubProject, GithubRelease, GitTag
+from ogr.abstract import GitTag
+from ogr.services.github import GithubProject, GithubRelease
 from packit.local_project import LocalProject
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.worker.whitelist import Whitelist
