@@ -29,10 +29,14 @@ def configure_sentry():
     secret_key = getenv("SENTRY_SECRET")
     if not secret_key:
         return
+
     # so that we don't have to have sentry sdk installed locally
     import sentry_sdk
 
-    return sentry_sdk.init(secret_key)
+    # https://docs.sentry.io/platforms/python/celery/
+    from sentry_sdk.integrations.celery import CeleryIntegration
+
+    return sentry_sdk.init(secret_key, integrations=[CeleryIntegration()])
 
 
 class Celerizer:
