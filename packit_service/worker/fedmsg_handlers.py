@@ -141,6 +141,20 @@ class CoprBuildEndHandler(FedmsgHandler):
         self.project = self.event.get_project()
         self.package_config = self.event.get_package_config()
 
+    def was_last_build_successful(self):
+        """
+        Check if the last copr build of the PR was succesful
+        :return: bool
+        """
+        comments = self.project.get_pr_comments(pr_id=self.event.pr_id, reverse=True)
+        for comment in comments:
+            if comment.author.startswith("packit-as-a-service"):
+                if "Congratulations!" in comment.comment:
+                    return True
+                return False
+        # if there is no comment from p-s
+        return False
+
     def run(self):
         # get copr build from db
         db = CoprBuildDB()
@@ -173,17 +187,18 @@ class CoprBuildEndHandler(FedmsgHandler):
             check_msg = "RPMs were built successfully."
             gh_state = "success"
 
-            msg = (
-                f"Congratulations! The build [has finished]({url})"
-                " successfully. :champagne:\n\n"
-                "You can install the built RPMs by following these steps:\n\n"
-                "* `sudo yum install -y dnf-plugins-core` on RHEL 8\n"
-                "* `sudo dnf install -y dnf-plugins-core` on Fedora\n"
-                f"* `dnf copr enable {self.event.owner}/{self.event.project_name}`\n"
-                "* And now you can install the packages.\n"
-                "\nPlease note that the RPMs should be used only in a testing environment."
-            )
-            self.project.pr_comment(pr_id=self.event.pr_id, body=msg)
+            if not self.was_last_build_successful():
+                msg = (
+                    f"Congratulations! The build [has finished]({url})"
+                    " successfully. :champagne:\n\n"
+                    "You can install the built RPMs by following these steps:\n\n"
+                    "* `sudo yum install -y dnf-plugins-core` on RHEL 8\n"
+                    "* `sudo dnf install -y dnf-plugins-core` on Fedora\n"
+                    f"* `dnf copr enable {self.event.owner}/{self.event.project_name}`\n"
+                    "* And now you can install the packages.\n"
+                    "\nPlease note that the RPMs should be used only in a testing environment."
+                )
+                self.project.pr_comment(pr_id=self.event.pr_id, body=msg)
             r.report(
                 state=gh_state,
                 description=check_msg,

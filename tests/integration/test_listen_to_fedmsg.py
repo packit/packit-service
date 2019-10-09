@@ -49,6 +49,9 @@ def test_copr_build_end(copr_build_end):
     flexmock(SteveJobs, _is_private=False)
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(flexmock())
     flexmock(PRCheckName).should_receive("get_build_check").and_return(PACKIT_STG_CHECK)
+    flexmock(CoprBuildEndHandler).should_receive(
+        "was_last_build_successful"
+    ).and_return(False)
     flexmock(GithubProject).should_receive("pr_comment")
 
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
@@ -112,3 +115,44 @@ def test_copr_build_start(copr_build_start):
     ).once()
 
     steve.process_message(copr_build_start)
+
+
+def test_copr_build_not_comment_on_success(copr_build_end):
+    steve = SteveJobs()
+    flexmock(SteveJobs, _is_private=False)
+    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(flexmock())
+    flexmock(PRCheckName).should_receive("get_build_check").and_return(PACKIT_STG_CHECK)
+
+    flexmock(CoprBuildEndHandler).should_receive(
+        "was_last_build_successful"
+    ).and_return(True)
+    flexmock(GithubProject).should_receive("pr_comment").never()
+
+    flexmock(CoprBuildDB).should_receive("get_build").and_return(
+        {
+            "commit_sha": "XXXXX",
+            "pr_id": 24,
+            "repo_name": "hello-world",
+            "repo_namespace": "packit-service",
+            "ref": "XXXX",
+            "https_url": "https://github.com/packit-service/hello-world",
+        }
+    )
+
+    url = (
+        f"https://copr.fedorainfracloud.org/coprs/packit/"
+        f"packit-service-hello-world-24-stg/build/1044215/"
+    )
+
+    # check if packit-service set correct PR status
+    flexmock(BuildStatusReporter).should_receive("report").with_args(
+        state="success",
+        description="RPMs were built successfully.",
+        url=url,
+        check_name=PACKIT_STG_CHECK,
+    ).once()
+
+    # skip testing farm
+    flexmock(CoprBuildEndHandler).should_receive("get_tests_for_build").and_return(None)
+
+    steve.process_message(copr_build_end)
