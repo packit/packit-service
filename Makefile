@@ -1,5 +1,6 @@
 SERVICE_IMAGE := docker.io/usercont/packit-service
 WORKER_IMAGE := docker.io/usercont/packit-service-worker
+WORKER_PROD_IMAGE := docker.io/usercont/packit-service-worker:prod
 TEST_IMAGE := packit-service-tests
 TEST_TARGET := ./tests/
 
@@ -8,6 +9,12 @@ build: files/install-deps.yaml files/recipe.yaml
 
 worker: files/install-deps-worker.yaml files/recipe-worker.yaml
 	docker build --rm -t $(WORKER_IMAGE) -f Dockerfile.worker .
+
+# this is for cases when you want to deploy into production and don't want to wait for dockerhub
+worker-prod: files/install-deps-worker.yaml files/recipe-worker.yaml
+	docker build --rm -t $(WORKER_PROD_IMAGE) -f Dockerfile.worker.prod .
+worker-prod-push: worker-prod
+	docker push $(WORKER_PROD_IMAGE)
 
 # we can't use rootless podman here b/c we can't mount ~/.ssh inside (0400)
 run-worker:
