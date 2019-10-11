@@ -40,7 +40,6 @@ from packit_service.service.events import (
     CoprBuildEvent,
     FedmsgTopic,
 )
-from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.fedmsg_handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -212,16 +211,9 @@ class SteveJobs:
 
         jobs_results: Dict[str, HandlerResults] = {}
 
-        if isinstance(event_object, CoprBuildEvent):
-            db = CoprBuildDB()
-            build = db.get_build(event_object.build_id)
-            if not build:
-                logger.warning("Copr build is not handled by this deployment.")
-                return {
-                    "jobs": jobs_results,
-                    "event": event_object.get_dict(),
-                    "trigger": str(event_object.topic),
-                }
+        pre_check = event_object.pre_check()
+        if not pre_check:
+            return {"jobs": jobs_results, "event": event_object.get_dict()}
 
         is_private_repository = False
         try:

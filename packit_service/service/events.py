@@ -94,6 +94,14 @@ class Event:
     def get_project(self) -> GitProject:
         raise NotImplementedError("Please implement me!")
 
+    def pre_check(self) -> bool:
+        """
+        Implement this method for those events, where you want to check if event properties are
+        correct. If this method returns false during runtime, execution of service code is skipped.
+        :return:
+        """
+        return True
+
 
 class AbstractGithubEvent(Event):
     def __init__(self, trigger: JobTriggerType, project_url=None):
@@ -419,6 +427,13 @@ class CoprBuildEvent(AbstractGithubEvent):
             self.commit_sha = self.build.get("commit_sha")
         else:
             logger.warning(f"Cannot get project for this build id: {self.build_id}")
+
+    def pre_check(self):
+        if not self.build:
+            logger.warning("Copr build is not handled by this deployment.")
+            return False
+
+        return True
 
     def get_dict(self) -> dict:
         result = super().get_dict()
