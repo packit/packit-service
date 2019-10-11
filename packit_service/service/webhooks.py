@@ -1,7 +1,7 @@
 # MIT License
 #
 # Copyright (c) 2018-2019 Red Hat, Inc.
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -19,40 +19,23 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 import hmac
-import logging
 from hashlib import sha1
+from logging import getLogger
 
-from flask import Flask, abort, request, jsonify
-from packit.utils import set_logging
+from flask import Blueprint, abort, request
 
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
-from packit_service.service.testing_farm_api import testing_farm_api
 
+logger = getLogger("packit_service")
 
-class PackitWebhookReceiver(Flask):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        set_logging(level=logging.DEBUG)
-
-
-app = PackitWebhookReceiver(__name__)
 config = ServiceConfig.get_service_config()
-logger = logging.getLogger("packit_service")
 
-# testing farm API is defined in /packit_service/service/testing_farm_api.py
-app.register_blueprint(testing_farm_api)
+blueprint = Blueprint("webhooks", __name__)
 
 
-@app.route("/healthz", methods=["GET", "HEAD", "POST"])
-def get_health():
-    # TODO: add some interesting stats here
-    return jsonify({"msg": "We are healthy!"})
-
-
-@app.route("/webhooks/github", methods=["POST"])
+@blueprint.route("/webhooks/github", methods=["POST"])
 def github_webhook():
     msg = request.get_json()
 

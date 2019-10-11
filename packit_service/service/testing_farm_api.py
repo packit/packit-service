@@ -1,7 +1,7 @@
 # MIT License
 #
 # Copyright (c) 2018-2019 Red Hat, Inc.
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -32,10 +32,10 @@ logger = logging.getLogger("packit_service")
 
 config = ServiceConfig.get_service_config()
 
-testing_farm_api = Blueprint("testing_farm_api", __name__)
+blueprint = Blueprint("testing_farm_api", __name__)
 
 
-@testing_farm_api.route("/testing-farm/results", methods=["POST"])
+@blueprint.route("/testing-farm/results", methods=["POST"])
 def testing_farm_results():
     """
     Expected format:
