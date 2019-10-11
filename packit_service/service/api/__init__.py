@@ -19,15 +19,23 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from flask import Blueprint
+from flask_restplus import Api
 
-import logging
+from .healthz import ns as healthz_ns
 
-from flask import Flask
+# from .testing_farm import ns as testing_farm_ns
+# from .webhooks import ns as webhooks_ns
 
-from packit.utils import set_logging
-from packit_service.service.api import blueprint
+# https://flask-restplus.readthedocs.io/en/stable/scaling.html
+blueprint = Blueprint("api", __name__, url_prefix="/api")
+api = Api(
+    app=blueprint,
+    version="1.0",
+    title="Packit Service API",
+    description="https://packit.dev/packit-as-a-service",
+)
 
-set_logging(logger_name="packit_service", level=logging.DEBUG)
-
-application = Flask(__name__)
-application.register_blueprint(blueprint)
+api.add_namespace(healthz_ns)
+# api.add_namespace(testing_farm_ns)
+# api.add_namespace(webhooks_ns)

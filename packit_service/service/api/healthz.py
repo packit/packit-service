@@ -20,14 +20,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import logging
+from logging import getLogger
 
-from flask import Flask
+from flask_restplus import Namespace, Resource
 
-from packit.utils import set_logging
-from packit_service.service.api import blueprint
+logger = getLogger("packit_service")
 
-set_logging(logger_name="packit_service", level=logging.DEBUG)
+ns = Namespace("healthz", description="Health checks")
 
-application = Flask(__name__)
-application.register_blueprint(blueprint)
+
+@ns.route("/")
+class HealthCheck(Resource):
+    def get(self):
+        return "We are healthy!"
+
+    def head(self):
+        # HEAD is identical to GET except that it MUST NOT return a message-body in the response
+        pass
