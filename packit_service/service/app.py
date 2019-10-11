@@ -28,14 +28,9 @@ from packit.utils import set_logging
 from packit_service.service.testing_farm_api import blueprint as testing_farm_blueprint
 from packit_service.service.webhooks import blueprint as webhooks_blueprint
 
+set_logging(logger_name="packit_service", level=logging.DEBUG)
 
-class PackitReceiver(Flask):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        set_logging(level=logging.DEBUG)
-
-
-application = PackitReceiver(__name__)
+application = Flask(__name__)
 application.register_blueprint(testing_farm_blueprint)
 application.register_blueprint(webhooks_blueprint)
 
