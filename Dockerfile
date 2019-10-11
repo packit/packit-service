@@ -21,8 +21,9 @@ COPY .git /src/.git
 COPY packit_service/ /src/packit_service/
 
 RUN cd /src/ \
-    && ansible-playbook -vv -c local -i localhost, recipe.yaml
+    && ansible-playbook -vv -c local -i localhost, recipe.yaml \
+    && rm -rf /src/
 
 EXPOSE 8443
 
-CMD [/usr/bin/run_httpd.sh]
+CMD ["/usr/bin/run_httpd.sh"]
