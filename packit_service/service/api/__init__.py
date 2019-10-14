@@ -24,8 +24,8 @@ from flask_restplus import Api
 
 from .healthz import ns as healthz_ns
 
-# from .testing_farm import ns as testing_farm_ns
-# from .webhooks import ns as webhooks_ns
+from .testing_farm import ns as testing_farm_ns
+from .webhooks import ns as webhooks_ns
 
 # https://flask-restplus.readthedocs.io/en/stable/scaling.html
 blueprint = Blueprint("api", __name__, url_prefix="/api")
@@ -37,5 +37,5 @@ api = Api(
 )
 
 api.add_namespace(healthz_ns)
-# api.add_namespace(testing_farm_ns)
-# api.add_namespace(webhooks_ns)
+api.add_namespace(testing_farm_ns)
+api.add_namespace(webhooks_ns)

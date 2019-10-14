@@ -1,10 +1,7 @@
 # MIT License
 #
 # Copyright (c) 2018-2019 Red Hat, Inc.
-
-import pytest
-from flask import Flask, request
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -22,6 +19,8 @@ from flask import Flask, request
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import pytest
+from flask import Flask, request
 from flexmock import flexmock
 
 from packit_service.config import ServiceConfig
@@ -50,11 +49,11 @@ def test_validate_signature(mock_config, digest, is_good):
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
         flexmock(ServiceConfig)
     )
-    from packit_service.service import web_hook
+    from packit_service.service.api import webhooks
 
-    web_hook.config = mock_config
+    webhooks.config = mock_config
 
     with Flask(__name__).test_request_context():
         request._cached_data = request.data = payload
         request.headers = headers
-        assert web_hook.validate_signature() is is_good
+        assert webhooks.GithubWebhook.validate_signature() is is_good

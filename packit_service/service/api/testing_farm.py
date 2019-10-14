@@ -23,7 +23,8 @@
 import json
 import logging
 
-from flask import Blueprint, abort, request
+from flask import abort, request
+from flask_restplus import Namespace, Resource
 
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
@@ -32,65 +33,68 @@ logger = logging.getLogger("packit_service")
 
 config = ServiceConfig.get_service_config()
 
-blueprint = Blueprint("testing_farm_api", __name__)
+ns = Namespace("testing-farm", description="Testing Farm")
 
 
-@blueprint.route("/testing-farm/results", methods=["POST"])
-def testing_farm_results():
-    """
-    Expected format:
+@ns.route("/results")
+class TestingFarmResults(Resource):
+    def post(self):
+        """
+        Expected format:
 
-    {
-        "artifact": {
-        "commit-sha": "08bfc38f15082bdf9ba964c3bbd04878666d1d56",
-        "copr-chroot": "fedora-29-x86_64",
-        "copr-repo-name": "packit/packit-service-hello-world-14",
-        "git-ref": "08bfc38f15082bdf9ba964c3bbd04878666d1d56",
-        "git-url": "https://github.com/packit-service/hello-world",
-        "repo-name": "hello-world",
-        "repo-namespace": "packit-service"
-        },
-        "message": "Command 'git' not found",
-        "pipeline": {
-            "id": "614d240a-1e27-4758-ad6a-ed3d34281924"
-        },
-        "result": "error",
-        "token": "HERE-IS-A-VALID-TOKEN",
-        "url": "https://console-testing-farm.apps.ci.centos.org/pipeline/<ID>"
-    }
+        {
+            "artifact": {
+            "commit-sha": "08bfc38f15082bdf9ba964c3bbd04878666d1d56",
+            "copr-chroot": "fedora-29-x86_64",
+            "copr-repo-name": "packit/packit-service-hello-world-14",
+            "git-ref": "08bfc38f15082bdf9ba964c3bbd04878666d1d56",
+            "git-url": "https://github.com/packit-service/hello-world",
+            "repo-name": "hello-world",
+            "repo-namespace": "packit-service"
+            },
+            "message": "Command 'git' not found",
+            "pipeline": {
+                "id": "614d240a-1e27-4758-ad6a-ed3d34281924"
+            },
+            "result": "error",
+            "token": "HERE-IS-A-VALID-TOKEN",
+            "url": "https://console-testing-farm.apps.ci.centos.org/pipeline/<ID>"
+        }
 
-    :return: {"status": 200, "message": "Test results accepted"}
-    """
-    msg = request.get_json()
+        :return: {"status": 200, "message": "Test results accepted"}
+        """
+        msg = request.get_json()
 
-    if not msg:
-        logger.debug("/testing-farm/results: we haven't received any JSON data.")
-        return "We haven't received any JSON data."
+        if not msg:
+            logger.debug("/testing-farm/results: we haven't received any JSON data.")
+            return "We haven't received any JSON data."
 
-    if not validate_testing_farm_request():
-        abort(401)  # Unauthorized
+        if not self.validate_testing_farm_request():
+            abort(401)  # Unauthorized
 
-    celery_app.send_task(name="task.steve_jobs.process_message", kwargs={"event": msg})
+        celery_app.send_task(
+            name="task.steve_jobs.process_message", kwargs={"event": msg}
+        )
 
-    return json.dumps({"status": 200, "message": "Test results accepted"})
+        return json.dumps({"status": 200, "message": "Test results accepted"})
 
+    @staticmethod
+    def validate_testing_farm_request():
+        """
+        Validate testing farm token received in request with the one in packit-service.yaml
+        :return:
+        """
+        testing_farm_secret = config.testing_farm_secret
+        if not testing_farm_secret:
+            logger.error("testing_farm_secret not specified in config")
+            return False
 
-def validate_testing_farm_request():
-    """
-    Validate testing farm token received in request with the one in packit-service.yaml
-    :return:
-    """
-    testing_farm_secret = config.testing_farm_secret
-    if not testing_farm_secret:
-        logger.error("testing_farm_secret not specified in config")
+        token = request.get_json().get("token")
+        if not token:
+            logger.info("the request doesn't contain any token")
+            return False
+        if token == testing_farm_secret:
+            return True
+
+        logger.warning("Invalid testing farm secret provided!")
         return False
-
-    token = request.get_json().get("token")
-    if not token:
-        logger.info("the request doesn't contain any token")
-        return False
-    if token == testing_farm_secret:
-        return True
-
-    logger.warning("Invalid testing farm secret provided!")
-    return False

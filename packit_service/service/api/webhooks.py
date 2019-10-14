@@ -23,66 +23,69 @@ import hmac
 from hashlib import sha1
 from logging import getLogger
 
-from flask import Blueprint, abort, request
+from flask import abort, request
+from flask_restplus import Namespace, Resource
 
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
 
 logger = getLogger("packit_service")
-
 config = ServiceConfig.get_service_config()
 
-blueprint = Blueprint("webhooks", __name__)
+ns = Namespace("webhooks", description="Webhooks")
 
 
-@blueprint.route("/webhooks/github", methods=["POST"])
-def github_webhook():
-    msg = request.get_json()
+@ns.route("/github")
+class GithubWebhook(Resource):
+    def post(self):
+        msg = request.get_json()
 
-    if not msg:
-        logger.debug("/webhooks/github: we haven't received any JSON data.")
-        return "We haven't received any JSON data."
+        if not msg:
+            logger.debug("/webhooks/github: we haven't received any JSON data.")
+            return "We haven't received any JSON data."
 
-    if all([msg.get("zen"), msg.get("hook_id"), msg.get("hook")]):
-        logger.debug(f"/webhooks/github received ping event: {msg['hook']}")
-        return "Pong!"
+        if all([msg.get("zen"), msg.get("hook_id"), msg.get("hook")]):
+            logger.debug(f"/webhooks/github received ping event: {msg['hook']}")
+            return "Pong!"
 
-    if not validate_signature():
-        logger.info("webhook secret is not correct")
-        abort(401)  # Unauthorized
+        if not self.validate_signature():
+            logger.info("webhook secret is not correct")
+            abort(401)  # Unauthorized
 
-    # TODO: define task names at one place
-    celery_app.send_task(name="task.steve_jobs.process_message", kwargs={"event": msg})
+        # TODO: define task names at one place
+        celery_app.send_task(
+            name="task.steve_jobs.process_message", kwargs={"event": msg}
+        )
 
-    return "Webhook accepted. We thank you, Github."
+        return "Webhook accepted. We thank you, Github."
 
+    @staticmethod
+    def validate_signature() -> bool:
+        """
+        https://developer.github.com/webhooks/securing/#validating-payloads-from-github
+        https://developer.github.com/webhooks/#delivery-headers
+        """
+        if "X-Hub-Signature" not in request.headers:
+            # no signature -> no validation
+            # don't validate signatures when testing locally
+            return not config.validate_webhooks
 
-def validate_signature() -> bool:
-    """
-    https://developer.github.com/webhooks/securing/#validating-payloads-from-github
-    https://developer.github.com/webhooks/#delivery-headers
-    """
-    if "X-Hub-Signature" not in request.headers:
-        # no signature -> no validation
-        # don't validate signatures when testing locally
-        return not config.validate_webhooks
+        sig = request.headers["X-Hub-Signature"]
+        if not sig.startswith("sha1="):
+            logger.warning(f"Digest mode in X-Hub-Signature {sig!r} is not sha1")
+            return False
 
-    sig = request.headers["X-Hub-Signature"]
-    if not sig.startswith("sha1="):
-        logger.warning(f"Digest mode in X-Hub-Signature {sig!r} is not sha1")
-        return False
+        webhook_secret = config.webhook_secret.encode()
+        if not webhook_secret:
+            logger.error("webhook_secret not specified in config")
+            return False
 
-    webhook_secret = config.webhook_secret.encode()
-    if not webhook_secret:
-        logger.error("webhook_secret not specified in config")
-        return False
-
-    signature = sig.split("=")[1]
-    mac = hmac.new(webhook_secret, msg=request.get_data(), digestmod=sha1)
-    digest_is_valid = hmac.compare_digest(signature, mac.hexdigest())
-    if digest_is_valid:
-        logger.debug(f"/webhooks/github payload signature OK.")
-    else:
-        logger.warning(f"/webhooks/github payload signature validation failed.")
-        logger.debug(f"X-Hub-Signature: {sig!r} != computed: {mac.hexdigest()}")
-    return digest_is_valid
+        signature = sig.split("=")[1]
+        mac = hmac.new(webhook_secret, msg=request.get_data(), digestmod=sha1)
+        digest_is_valid = hmac.compare_digest(signature, mac.hexdigest())
+        if digest_is_valid:
+            logger.debug(f"/webhooks/github payload signature OK.")
+        else:
+            logger.warning(f"/webhooks/github payload signature validation failed.")
+            logger.debug(f"X-Hub-Signature: {sig!r} != computed: {mac.hexdigest()}")
+        return digest_is_valid
