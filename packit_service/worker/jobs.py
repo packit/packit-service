@@ -209,7 +209,11 @@ class SteveJobs:
             logger.debug("We don't process this event")
             return None
 
-        jobs_results = {}
+        jobs_results: Dict[str, HandlerResults] = {}
+
+        pre_check = event_object.pre_check()
+        if not pre_check:
+            return {"jobs": jobs_results, "event": event_object.get_dict()}
 
         is_private_repository = False
         try:
