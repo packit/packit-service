@@ -4,6 +4,8 @@ WORKER_PROD_IMAGE := docker.io/usercont/packit-service-worker:prod
 TEST_IMAGE := packit-service-tests
 TEST_TARGET := ./tests/unit ./tests/integration/
 CONTAINER_ENGINE := docker
+ANSIBLE_PYTHON := /usr/bin/python3
+AP := ansible-playbook -vv -c local -i localhost, -e ansible_python_interpreter=$(ANSIBLE_PYTHON)
 
 build: files/install-deps.yaml files/recipe.yaml
 	docker build --rm -t $(SERVICE_IMAGE) .
@@ -11,6 +13,10 @@ build: files/install-deps.yaml files/recipe.yaml
 worker: CONTAINER_ENGINE ?= docker
 worker: files/install-deps-worker.yaml files/recipe-worker.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE) -f Dockerfile.worker .
+
+worker_openshift_tests: CONTAINER_ENGINE ?= docker
+worker_openshift_tests: files/install-deps-worker.yaml files/recipe-worker.yaml
+	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE):dev -f Dockerfile.worker .
 
 # this is for cases when you want to deploy into production and don't want to wait for dockerhub
 worker-prod: files/install-deps-worker.yaml files/recipe-worker.yaml
@@ -57,21 +63,24 @@ check_in_container: test_image
 		$(TEST_IMAGE) make check
 
 # deploy a pod with tests and run them
-check-inside-openshift: CONTAINER_ENGINE=docker
-check-inside-openshift: test_image
-	oc delete job packit-tests || :
+check-inside-openshift: CONTAINER_ENGINE ?= docker
+check-inside-openshift: worker_openshift_tests test_image
 	@# http://timmurphy.org/2015/09/27/how-to-get-a-makefile-directory-path/
 	@# sadly the hostPath volume doesn't work:
 	@#   Invalid value: "hostPath": hostPath volumes are not allowed to be used
 	@#   username system:admin is invalid for basic auth
 	@#-p PACKIT_SERVICE_SRC_LOCAL_PATH=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
-	oc process -f files/test-in-openshift.yaml | oc create -f -
-	oc wait job/packit-tests --for condition=complete --timeout=60s
-	oc logs job/packit-tests
-	# this garbage tells us if the tests passed or not
-	oc get job packit-tests -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' | grep True
+	$(AP) files/test-in-openshift-secrets.yaml
+	$(AP) files/check-inside-openshift.yaml
+
+check-inside-openshift-zuul: test_image
+	$(AP) files/check-inside-openshift.yaml
+
 
 # this target is expected to run within an openshift pod
 check-within-openshift:
 	/src-packit-service/files/setup_env_in_openshift.sh
 	pytest-3 -k test_update
+
+requre-purge-files:
+	requre-patch purge --replaces "requests.sessions%send:Date:str:Fri, 01 Nov 2019 13-36-03 GMT" --replaces 'requests.sessions%send:ETag:str:W/"1e51b8e1c48787a433405211e9e0fe61"' tests_requre/test_data/test_*/*.yaml

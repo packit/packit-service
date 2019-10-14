@@ -82,7 +82,7 @@ When you are contributing to changelog, please follow these suggestions:
 
 # Testing
 
-Tests are stored in [tests](/tests) directory.
+Tests are stored in [tests/](/tests) directory and tests using [requre](https://github.com/packit-service/requre) are stored in [tests-requre/](/tests-requre).
 
 
 ## Test categories
@@ -100,7 +100,7 @@ We have multiple test categories within packit-service:
     integration test.
 
 3. Integration tests which run within an OpenShift pod — stored in
-   `tests/openshift_integration/`:
+   `tests_requre/openshift_integration/`:
   * A checkout of packit-service is built as a container image and deployed to
     openshift as a job while the root process is pytest.
   * With these, we are making sure that tools we use run well inside [the non-standard OpenShift environment](.https://developers.redhat.com/blog/2016/10/21/understanding-openshift-security-context-constraints/)
@@ -124,9 +124,57 @@ You can run unit and integration tests locally in a container:
 make check_in_container
 ```
 
-For the tests which need an OpenShift cluster, you should provision one using `oc cluster up` or minishift and then run:
-```
-make check-inside-openshift
+## Openshift tests using requre
+This testsuite uses [requre project](https://github.com/packit-service/requre) project to
+to store and replay data for tests.
+
+### General requirements
+ * Set up docker and allow your user access it:
+   ```bash
+   sudo dnf -y install docker
+   sudo groupadd docker
+   sudo usermod -a -G docker $(whoami)
+   echo '{ "insecure-registries": ["172.30.0.0/16"] }' | sudo tee  /etc/docker/daemon.json
+   sudo systemctl restart docker
+
+   newgrp docker
+   ```
+ * Install and run local openshift cluster:
+   ```bash
+   sudo dnf install origins-client python3-openshift
+   oc cluster up --base-dir=/tmp/openshift_cluster
+   ```
+
+### Data regeneration
+ * copy secrets directory to the root of this project: `cp -ar path/to/secrets/ secrets/
+ * remove files which you want to regenerate:
+   ```bash
+   rm -r tests_requre/test_data/test_*
+   ```
+ * Run the tests with the secrets - the response files will be regenerated (container images for `worker` and `test_image` are done in this step)
+   ```bash
+   make check-inside-openshift PATH_TO_SECRETS=./secrets
+   ```
+ * Remove timestamps and another data what are changed every time, to avoid unwanted
+   changes of generated files.
+   ```bash
+   make requre-purge-files
+   ```
+
+#### Debugging
+ * to display all openshift pods:
+   ```bash
+   oc status
+   ```
+ * get information from pod (e.g. testing progress) use information  about pods from previous output
+   ```bash
+   oc logs pod/packit-tests-pdg6p
+   ```
+
+### Check it without secrets
+Verify that everything will work also inside zuul. Use the command:
+```bash
+make check-inside-openshift-zuul
 ```
 
 
