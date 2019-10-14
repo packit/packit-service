@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2019 Red Hat, Inc.
+# Copyright (c) 2018-2019 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,22 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from flask import Blueprint
-from flask_restplus import Api
 
-from packit_service.service.api.healthz import ns as healthz_ns
-from packit_service.service.api.testing_farm import ns as testing_farm_ns
-from packit_service.service.api.webhooks import ns as webhooks_ns
 
-# https://flask-restplus.readthedocs.io/en/stable/scaling.html
-blueprint = Blueprint("api", __name__, url_prefix="/api")
-api = Api(
-    app=blueprint,
-    version="1.0",
-    title="Packit Service API",
-    description="https://packit.dev/packit-as-a-service",
-)
-
-api.add_namespace(healthz_ns)
-api.add_namespace(testing_farm_ns)
-api.add_namespace(webhooks_ns)
+class ValidationFailed(Exception):
+    pass

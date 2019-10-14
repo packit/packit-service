@@ -24,6 +24,7 @@ from flask import Flask, request
 from flexmock import flexmock
 
 from packit_service.config import ServiceConfig
+from packit_service.service.api.errors import ValidationFailed
 
 
 @pytest.fixture()
@@ -56,4 +57,8 @@ def test_validate_signature(mock_config, digest, is_good):
     with Flask(__name__).test_request_context():
         request._cached_data = request.data = payload
         request.headers = headers
-        assert webhooks.GithubWebhook.validate_signature() is is_good
+        if not is_good:
+            with pytest.raises(ValidationFailed):
+                webhooks.GithubWebhook.validate_signature()
+        else:
+            webhooks.GithubWebhook.validate_signature()

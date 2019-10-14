@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2018-2019 Red Hat, Inc.
+# Copyright (c) 2019 Red Hat, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,14 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import json
 import logging
+from http import HTTPStatus
 
-from flask import abort, request
-from flask_restplus import Namespace, Resource
+from flask import request
+from flask_restplus import Namespace, Resource, fields
 
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
+from packit_service.service.api.errors import ValidationFailed
 
 logger = logging.getLogger("packit_service")
 
@@ -35,66 +36,97 @@ config = ServiceConfig.get_service_config()
 
 ns = Namespace("testing-farm", description="Testing Farm")
 
+payload_artifact = ns.model(
+    "Testing Farm results artifact",
+    {
+        "commit-sha": fields.String(
+            required=True, example="08bfc38f15082bdf9ba964c3bbd04878666d1d56"
+        ),
+        "copr-chroot": fields.String(required=True, example="fedora-30-x86_64"),
+        "copr-repo-name": fields.String(
+            required=True, example="packit/packit-service-hello-world-14"
+        ),
+        "git-ref": fields.String(
+            required=True, example="08bfc38f15082bdf9ba964c3bbd04878666d1d56"
+        ),
+        "git-url": fields.Url(
+            required=True, example="https://github.com/packit-service/hello-world"
+        ),
+        "repo-name": fields.String(required=True, example="hello-world"),
+        "repo-namespace": fields.String(required=True, example="packit-service"),
+    },
+)
+payload_pipeline = ns.model(
+    "Testing Farm results pipeline",
+    {
+        "id": fields.String(
+            required=True, example="614d240a-1e27-4758-ad6a-ed3d34281924"
+        )
+    },
+)
+payload = ns.model(
+    "Testing Farm results",
+    {
+        "artifact": fields.Nested(payload_artifact),
+        "message": fields.String(required=True, example="Command 'git' not found"),
+        "pipeline": fields.Nested(payload_pipeline),
+        "result": fields.String(required=True, example="error"),
+        "token": fields.String(required=True, example="HERE-IS-A-VALID-TOKEN"),
+        "url": fields.Url(
+            required=True,
+            example="https://console-testing-farm.apps.ci.centos.org/pipeline/<ID>",
+        ),
+    },
+)
+
 
 @ns.route("/results")
 class TestingFarmResults(Resource):
+    @ns.response(HTTPStatus.ACCEPTED, "Test results accepted and being processed")
+    @ns.response(HTTPStatus.BAD_REQUEST, "Bad request data")
+    @ns.response(HTTPStatus.UNAUTHORIZED, "Testing farm secret validation failed")
+    @ns.expect(payload)
     def post(self):
         """
-        Expected format:
-
-        {
-            "artifact": {
-            "commit-sha": "08bfc38f15082bdf9ba964c3bbd04878666d1d56",
-            "copr-chroot": "fedora-29-x86_64",
-            "copr-repo-name": "packit/packit-service-hello-world-14",
-            "git-ref": "08bfc38f15082bdf9ba964c3bbd04878666d1d56",
-            "git-url": "https://github.com/packit-service/hello-world",
-            "repo-name": "hello-world",
-            "repo-namespace": "packit-service"
-            },
-            "message": "Command 'git' not found",
-            "pipeline": {
-                "id": "614d240a-1e27-4758-ad6a-ed3d34281924"
-            },
-            "result": "error",
-            "token": "HERE-IS-A-VALID-TOKEN",
-            "url": "https://console-testing-farm.apps.ci.centos.org/pipeline/<ID>"
-        }
-
-        :return: {"status": 200, "message": "Test results accepted"}
+        Submit Testing Farm results
         """
-        msg = request.get_json()
+        msg = request.json
 
         if not msg:
             logger.debug("/testing-farm/results: we haven't received any JSON data.")
-            return "We haven't received any JSON data."
+            return "We haven't received any JSON data.", HTTPStatus.BAD_REQUEST
 
-        if not self.validate_testing_farm_request():
-            abort(401)  # Unauthorized
+        try:
+            self.validate_testing_farm_request()
+        except ValidationFailed as exc:
+            logger.info(f"/testing-farm/results {exc}")
+            ns.abort(code=HTTPStatus.UNAUTHORIZED, message=str(exc))
 
         celery_app.send_task(
             name="task.steve_jobs.process_message", kwargs={"event": msg}
         )
 
-        return json.dumps({"status": 200, "message": "Test results accepted"})
+        return "Test results accepted", HTTPStatus.ACCEPTED
 
     @staticmethod
     def validate_testing_farm_request():
         """
         Validate testing farm token received in request with the one in packit-service.yaml
-        :return:
+        :raises ValidationFailed
         """
-        testing_farm_secret = config.testing_farm_secret
-        if not testing_farm_secret:
-            logger.error("testing_farm_secret not specified in config")
-            return False
+        if not config.testing_farm_secret:
+            msg = "Testing farm secret not specified in config"
+            logger.error(msg)
+            raise ValidationFailed(msg)
 
-        token = request.get_json().get("token")
+        token = request.json.get("token")
         if not token:
-            logger.info("the request doesn't contain any token")
-            return False
-        if token == testing_farm_secret:
-            return True
+            msg = "The request doesn't contain any token"
+            logger.info(msg)
+            raise ValidationFailed(msg)
+        if token == config.testing_farm_secret:
+            return
 
-        logger.warning("Invalid testing farm secret provided!")
-        return False
+        msg = "Invalid testing farm secret provided"
+        logger.warning(msg)
+        raise ValidationFailed(msg)
