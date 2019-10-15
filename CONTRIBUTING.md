@@ -80,13 +80,55 @@ When you are contributing to changelog, please follow these suggestions:
   trying to convince the person to use the project and that the changelog
   should help with that.
 
-### Testing
+# Testing
 
 Tests are stored in [tests](/tests) directory.
-Running tests locally:
+
+
+## Test categories
+
+We have multiple test categories within packit-service:
+
+1. Unit tests — stored in `tests/unit/` directory:
+  * These tests don't require external resources.
+  * They are meant to exercise independent functions (usually in utils) or
+    abstractions, such as classes.
+  * The tests should be able to be run locally easily.
+
+2. Integration tests — stored in `tests/integration/`:
+  * If a test is executing a command or talking to a service, it's an
+    integration test.
+
+3. Integration tests which run within an OpenShift pod — stored in
+   `tests/openshift_integration/`:
+  * A checkout of packit-service is built as a container image and deployed to
+    openshift as a job while the root process is pytest.
+  * With these, we are making sure that tools we use run well inside [the non-standard OpenShift environment](.https://developers.redhat.com/blog/2016/10/21/understanding-openshift-security-context-constraints/)
+  * [requre](https://github.com/packit-service/requre) and/or
+    [flexmock](https://flexmock.readthedocs.io/en/latest/) is suppose to be
+    used to handle remote interactions and secrets so we don't touch production
+    systems while running tests in CI
+
+4. End To End tests (so far we have none of these):
+  * These tests run against a real deployment of packit-service.
+  * It's expected to send real inputs inside the service and get actual results
+    (observable in GitHub, COPR, Fedora infra etc.)
+  * [requre](https://github.com/packit-service/requre) is used to record the
+    remote interactions which are then replayed in CI.
+
+
+## Running tests locally
+
+You can run unit and integration tests locally in a container:
 ```
 make check_in_container
 ```
+
+For the tests which need an OpenShift cluster, you should provision one using `oc cluster up` or minishift and then run:
+```
+make check-inside-openshift
+```
+
 
 ## Running tests in CI
 
