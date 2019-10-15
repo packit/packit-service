@@ -4,31 +4,41 @@ import os
 
 WARNING_MSG = (
     "Your branch is not up to date with upstream/master. \n"
-    "SHA of the last commit of upstream/master: {first}\n"
-    "SHA of the last commit of upstream/master in your branch: {second}. \n"
+    "SHA of the last commit of upstream/master: {upstream}\n"
     "Please, rebase!"
 )
 
 
 def main():
     path = os.path.dirname(os.path.abspath(__file__))
-    local_upstream_hash = (
+    local_hashes = (
         subprocess.run(
-            ["git", "log", "upstream/master", "-1", "--format=%H"],
+            ["git", "log", "--max-count=100", "--format=%H"],
             capture_output=True,
             cwd=path,
         )
         .stdout.decode()
-        .rstrip()
+        .split()
     )
 
-    upstream_hash = subprocess.run(
-        ["git", "ls-remote", "upstream", "HEAD"], capture_output=True, cwd=path
-    ).stdout.decode()[: len(local_upstream_hash)]
+    upstream_hash = (
+        subprocess.run(
+            [
+                "git",
+                "ls-remote",
+                "git://github.com/packit-service/packit-service.git",
+                "HEAD",
+            ],
+            capture_output=True,
+            cwd=path,
+        )
+        .stdout.decode()
+        .split()[0]
+    )
 
-    if local_upstream_hash == upstream_hash:
+    if upstream_hash in local_hashes:
         return 0
-    print(WARNING_MSG.format(first=upstream_hash, second=local_upstream_hash))
+    print(WARNING_MSG.format(upstream=upstream_hash))
     return 1
 
 
