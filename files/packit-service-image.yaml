@@ -3,13 +3,13 @@
   hosts: all
   tasks:
   - name: Build packit-service image from current src dir
-    command: "make build"
+    command: "make build SERVICE_IMAGE=docker.io/usercont/packit-service:dev"
     args:
       chdir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
     become: true
 
   - name: Build packit-service worker image from current src dir
-    command: "make worker"
+    command: "make worker WOKER_IMAGE=docker.io/usercont/packit-service-worker:dev"
     args:
       chdir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
     become: true

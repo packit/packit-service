@@ -2,7 +2,7 @@ SERVICE_IMAGE := docker.io/usercont/packit-service
 WORKER_IMAGE := docker.io/usercont/packit-service-worker
 WORKER_PROD_IMAGE := docker.io/usercont/packit-service-worker:prod
 TEST_IMAGE := packit-service-tests
-TEST_TARGET := ./tests/
+TEST_TARGET := ./tests/integration/test_copr.py
 
 build: files/install-deps.yaml files/recipe.yaml
 	docker build --rm -t $(SERVICE_IMAGE) .
@@ -42,10 +42,10 @@ check:
 	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=yes --verbose --showlocals --cov=packit_service --cov-report=term-missing $(TEST_TARGET)
 
 test_image: files/install-deps.yaml files/recipe-tests.yaml
-	podman build --rm -t $(TEST_IMAGE) -f Dockerfile.tests .
+	docker build --rm -t $(TEST_IMAGE) -f Dockerfile.tests .
 
 check_in_container: test_image
-	podman run --rm -ti \
+	docker run --rm -ti \
 		-v $(CURDIR):/src \
 		-w /src \
 		--security-opt label=disable \
