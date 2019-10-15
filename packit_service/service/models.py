@@ -42,7 +42,7 @@ class Model:
         db[self.identifier] = self.serialize()
 
     def serialize(self):
-        """ convert from python data structure into format acceptable by redis """
+        """ convert from python data structure into a json serializable dict for PersistentDict """
         data = self.__dict__
         cp = copy.deepcopy(data)
         # we don't need to store table_name inside
@@ -51,7 +51,9 @@ class Model:
         return cp
 
     def deserialize(self, inp: Dict):
-        """ reverse operation as serialize """
+        """
+        reverse operation as serialize,
+        i.e. fill attributes of this object with what PersistentDict returns"""
         # this is pretty nasty: we could possibly replace this with a serialization
         # library or an ORM framework
         if "_service_config" in inp:
@@ -59,16 +61,16 @@ class Model:
         self.__dict__ = inp
 
     @classmethod
+    def from_dict(cls, inp: Dict):
+        """ create instance from dictionary"""
+        instance = cls()
+        instance.deserialize(inp)
+        return instance
+
+    @classmethod
     def all(cls):
-        """ get all instances """
-        response = []
-        for key, data in cls.db().items():
-            if key == LAST_PK:
-                continue
-            instance = cls()
-            instance.deserialize(data)
-            response.append(instance)
-        return response
+        """ get a dict of keys:instances """
+        return {k: cls.from_dict(v) for k, v in cls.db().items() if k != LAST_PK}
 
     def __str__(self):
         return f"{self.table_name} - {self.__dict__}"
