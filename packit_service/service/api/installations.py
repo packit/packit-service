@@ -19,24 +19,36 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from flask import Blueprint
-from flask_restplus import Api
+from http import HTTPStatus
+from logging import getLogger
 
-from packit_service.service.api.healthz import ns as healthz_ns
-from packit_service.service.api.installations import ns as installations_ns
-from packit_service.service.api.testing_farm import ns as testing_farm_ns
-from packit_service.service.api.webhooks import ns as webhooks_ns
+from flask_restplus import Namespace, Resource
 
-# https://flask-restplus.readthedocs.io/en/stable/scaling.html
-blueprint = Blueprint("api", __name__, url_prefix="/api")
-api = Api(
-    app=blueprint,
-    version="1.0",
-    title="Packit Service API",
-    description="https://packit.dev/packit-as-a-service",
-)
+from packit_service.service.models import Installation
 
-api.add_namespace(healthz_ns)
-api.add_namespace(installations_ns)
-api.add_namespace(testing_farm_ns)
-api.add_namespace(webhooks_ns)
+logger = getLogger("packit_service")
+
+ns = Namespace("installations", description="Github App installations")
+
+
+@ns.route("/")
+class InstallationsList(Resource):
+    @ns.response(HTTPStatus.OK, "OK, installations list follows")
+    def get(self):
+        """List all Github App installations"""
+        return [i["event_data"] for i in Installation.db().get_all().values()]
+
+
+@ns.route("/<int:id>")
+@ns.param("id", "Installation identifier")
+class InstallationItem(Resource):
+    @ns.response(HTTPStatus.OK, "OK, installation details follow")
+    @ns.response(HTTPStatus.NO_CONTENT, "identifier not in whitelist")
+    def get(self, id):
+        """A specific installation details"""
+        no_content = ("", HTTPStatus.NO_CONTENT)
+        try:
+            installation = Installation.db()[id]
+        except KeyError:
+            return no_content
+        return installation["event_data"] if installation else no_content

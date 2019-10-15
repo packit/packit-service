@@ -73,7 +73,7 @@ class GithubWebhook(Resource):
             self.validate_signature()
         except ValidationFailed as exc:
             logger.info(f"/webhooks/github {exc}")
-            ns.abort(code=HTTPStatus.UNAUTHORIZED, message=str(exc))
+            return str(exc), HTTPStatus.UNAUTHORIZED
 
         # TODO: define task names at one place
         celery_app.send_task(

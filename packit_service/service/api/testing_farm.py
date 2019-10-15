@@ -100,7 +100,7 @@ class TestingFarmResults(Resource):
             self.validate_testing_farm_request()
         except ValidationFailed as exc:
             logger.info(f"/testing-farm/results {exc}")
-            ns.abort(code=HTTPStatus.UNAUTHORIZED, message=str(exc))
+            return str(exc), HTTPStatus.UNAUTHORIZED
 
         celery_app.send_task(
             name="task.steve_jobs.process_message", kwargs={"event": msg}
