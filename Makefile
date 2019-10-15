@@ -3,7 +3,7 @@ WORKER_IMAGE := docker.io/usercont/packit-service-worker
 WORKER_PROD_IMAGE := docker.io/usercont/packit-service-worker:prod
 TEST_IMAGE := packit-service-tests
 TEST_TARGET := ./tests/unit ./tests/integration/
-CONTAINER_ENGINE := podman
+CONTAINER_ENGINE := docker
 
 build: files/install-deps.yaml files/recipe.yaml
 	docker build --rm -t $(SERVICE_IMAGE) .
@@ -43,7 +43,7 @@ check:
 	find . -name "*.pyc" -exec rm {} \;
 	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=yes --verbose --showlocals --cov=packit_service --cov-report=term-missing $(TEST_TARGET)
 
-test_image: CONTAINER_ENGINE ?= podman
+test_image: CONTAINER_ENGINE ?= docker
 test_image: files/install-deps.yaml files/recipe-tests.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(TEST_IMAGE) -f Dockerfile.tests .
 

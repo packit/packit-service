@@ -1,6 +1,6 @@
 # For running tests locally, see check_in_container target in Makefile
 
-FROM docker.io/usercont/packit-service-worker
+FROM docker.io/usercont/packit-service-worker:dev
 
 RUN set -ex; mkdir -p /home/packit/.config \
     && ln -s $PS_PATH/files/packit-service.yaml /home/packit/.config/packit-service.yaml \
