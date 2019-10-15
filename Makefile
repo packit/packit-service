@@ -58,8 +58,6 @@ check_in_container: test_image
 # deploy a pod with tests and run them
 check-inside-openshift: CONTAINER_ENGINE=docker
 check-inside-openshift: test_image
-	@# make sure we are running against a local cluster
-	oc whoami --show-server | grep localhost
 	oc delete job packit-tests || :
 	@# http://timmurphy.org/2015/09/27/how-to-get-a-makefile-directory-path/
 	@# sadly the hostPath volume doesn't work:
