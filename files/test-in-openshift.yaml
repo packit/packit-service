@@ -1,25 +1,35 @@
 ---
-apiVersion: batch/v1
-kind: Job
+kind: Template
+apiVersion: v1
 metadata:
-  name: packit-tests
-spec:
-  template:
-    spec:
-      restartPolicy: Never
-      containers:
-      - name: packit-tests
-        image: packit-service-tests
-        imagePullPolicy: Never  # IfNotPresent
-        workingDir: /src-packit-service
-        # volumeMounts:
-        # - name: packit-ssh
-        #   mountPath: /packit-ssh
-        # - name: packit-secrets
-        #   mountPath: /secrets
-        # - name: packit-config
-        #   mountPath: /home/packit/.config
-        # - name: packit-worker-vol
-        #   mountPath: /sandcastle
-        command: ["bash", "/src-packit-service/files/run_tests.sh"]
-  backoffLimit: 1
+  name: packit-service-tests-template
+# parameters:
+# - name: PACKIT_SERVICE_SRC_LOCAL_PATH
+#   displayName: Packit Service Sources Path
+#   description: Local path to packit-service sources
+#   required: true
+objects:
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: packit-tests
+  spec:
+    template:
+      spec:
+        restartPolicy: Never
+        containers:
+        - name: packit-tests
+          image: packit-service-tests
+          imagePullPolicy: Never  # IfNotPresent
+          workingDir: /src-packit-service
+          # volumeMounts:
+          # - name: packit-service-sources
+          #   mountPath: /src-packit-service
+          command: ["bash", "/src-packit-service/files/run_tests.sh"]
+        # TODO: try in a few months with OKD 4 and CRC
+        # volumes:
+        # - name: packit-service-sources
+        #   hostPath:
+        #     path: "${PACKIT_SERVICE_SRC_LOCAL_PATH}"
+        #     type: Directory
+    backoffLimit: 1

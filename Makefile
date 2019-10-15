@@ -43,8 +43,8 @@ check:
 	find . -name "*.pyc" -exec rm {} \;
 	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=yes --verbose --showlocals --cov=packit_service --cov-report=term-missing $(TEST_TARGET)
 
-test_image: CONTAINER_ENGINE=podman
-test_image: worker files/install-deps.yaml files/recipe-tests.yaml
+test_image: CONTAINER_ENGINE ?= podman
+test_image: files/install-deps.yaml files/recipe-tests.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(TEST_IMAGE) -f Dockerfile.tests .
 
 check_in_container: test_image
@@ -61,7 +61,12 @@ check-inside-openshift: test_image
 	@# make sure we are running against a local cluster
 	oc whoami --show-server | grep localhost
 	oc delete job packit-tests || :
-	oc apply -f files/test-in-openshift.yaml
+	@# http://timmurphy.org/2015/09/27/how-to-get-a-makefile-directory-path/
+	@# sadly the hostPath volume doesn't work:
+	@#   Invalid value: "hostPath": hostPath volumes are not allowed to be used
+	@#   username system:admin is invalid for basic auth
+	@#-p PACKIT_SERVICE_SRC_LOCAL_PATH=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+	oc process -f files/test-in-openshift.yaml | oc create -f -
 	oc wait job/packit-tests --for condition=complete --timeout=60s
 	oc logs job/packit-tests
 	# this garbage tells us if the tests passed or not
