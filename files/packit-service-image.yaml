@@ -9,7 +9,7 @@
     become: true
 
   - name: Build packit-service worker image from current src dir
-    command: "make worker WOKER_IMAGE=docker.io/usercont/packit-service-worker:dev"
+    command: "make worker WORKER_IMAGE=docker.io/usercont/packit-service-worker:dev"
     args:
       chdir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
     become: true
