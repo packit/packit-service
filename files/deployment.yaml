@@ -10,6 +10,7 @@
       - ansible
       - python3-openshift
       - make
+      - skopeo
     become: true
   - name: get token
     command: oc whoami -t
@@ -81,11 +82,12 @@
         # you can set the sandbox namespace name explicitly like this
         sandbox_namespace: packit-dev-sandbox
         # set tag to latest because images are freshly built with latest tag in CI
-        deployment_image: latest
         # image packit-service
         image: docker.io/usercont/packit-service
         # image worker
         image_worker: docker.io/usercont/packit-service-worker
+        worker_replicas: 1
+        skopeo_transport: "docker-daemon:"
       dest: "{{ deployment_dir }}/vars/dev.yml"
     become: true
   - name: Actually deploy
