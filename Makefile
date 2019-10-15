@@ -48,7 +48,8 @@ test_image: files/install-deps.yaml files/recipe-tests.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(TEST_IMAGE) -f Dockerfile.tests .
 
 check_in_container: test_image
-	$(CONTAINER_ENGINE) run --rm -ti \
+	@# don't use -ti here in CI, TTY is not allocated in zuul
+	$(CONTAINER_ENGINE) run --rm \
 		-v $(CURDIR):/src-packit-service \
 		-w /src-packit-service \
 		--security-opt label=disable \
