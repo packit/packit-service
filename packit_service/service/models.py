@@ -3,9 +3,11 @@ Data models for jobs, tasks, builds, etc. The models are mapped to redis.
 """
 import copy
 import datetime
+from os import getenv
 from typing import List, Dict, Union
 
 from persistentdict.dict_in_redis import PersistentDict
+from redis import Redis
 
 from packit_service.service.events import InstallationEvent, WhitelistStatus
 
@@ -149,9 +151,15 @@ class Task(Model):
         )
         super().deserialize(inp)
 
-    def task_data(self):
+    def celery_task_meta(self):
         """ get data which celery stores about a task """
-        return PersistentDict(hash_name=self.identifier)
+        db = Redis(
+            host=getenv("REDIS_SERVICE_HOST", "localhost"),
+            port=int(getenv("REDIS_SERVICE_PORT", 6379)),
+            db=0,
+            decode_responses=True,
+        )
+        return db.get(f"celery-task-meta-{self.identifier}")
 
 
 class Build(Model):
