@@ -23,6 +23,6 @@
     become: true
 
   - name: Run it
-    command: pre-commit run --all-files
+    command: pre-commit run --verbose --all-files
     args:
       chdir: "{{ project_dir }}"
