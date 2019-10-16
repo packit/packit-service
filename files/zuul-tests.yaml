@@ -1,10 +1,15 @@
 ---
-- name: This is a recipe for how to run packit tests
+- name: Run packit-service tests
   hosts: all
   tasks:
   - include_tasks: tasks/zuul-project-setup.yaml
-  - name: Build packit-service worker image from current src dir
+  - name: Run tests within a container
     command: "make check_in_container"
+    args:
+      chdir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+    become: true
+  - name: Run tests which are executed within openshift
+    command: make check-inside-openshift
     args:
       chdir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
     become: true

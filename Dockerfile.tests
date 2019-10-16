@@ -1,11 +1,11 @@
 # For running tests locally, see check_in_container target in Makefile
 
-FROM docker.io/usercont/packit
+FROM docker.io/usercont/packit-service-worker:dev
 
-COPY files/install-deps.yaml ./
-RUN ansible-playbook -vv -c local -i localhost, ./install-deps.yaml
+RUN set -ex; mkdir -p /home/packit/.config \
+    && ln -s $PS_PATH/files/packit-service.yaml /home/packit/.config/packit-service.yaml \
+    && ansible-playbook -vv -c local -i localhost, ./files/recipe-tests.yaml
 
-COPY files/recipe-tests.yaml ./
-RUN ansible-playbook -vv -c local -i localhost, ./recipe-tests.yaml
-
-WORKDIR /src
+# we are doing the same here as in worker Df so that we don't need to rerun the
+# playbook above for every code change: iterating fast <3
+COPY . $PS_PATH
