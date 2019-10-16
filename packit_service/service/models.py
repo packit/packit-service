@@ -158,7 +158,7 @@ class Build(Model):
     """ An abstract build model """
 
     status: str
-    build_id: str
+    build_id: int
 
 
 class CoprBuild(Build):
