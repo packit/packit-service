@@ -511,7 +511,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
         if self.event.github_login not in collaborators:
             msg = "Only collaborators can trigger Packit-as-a-Service"
             self.project.issue_comment(self.event.issue_id, msg)
-            return HandlerResults(success=False, details={"msg": msg})
+            return HandlerResults(success=True, details={"msg": msg})
 
         branches = self.get_build_metadata_for_build()
         sync_failed = False

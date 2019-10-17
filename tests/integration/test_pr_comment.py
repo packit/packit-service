@@ -123,7 +123,7 @@ def test_pr_comment_empty_handler(
     assert event.get("pr_id", None) == 9
     assert "comment" in results.get("trigger", None)
     assert event.get("comment", None) == ""
-    assert not jobs.get("pull_request_action", {}).get("success")
+    assert jobs.get("pull_request_action", {}).get("success")
     msg = "PR comment '' is empty."
     assert jobs.get("pull_request_action", {}).get("details", {}).get("msg") == msg
 
@@ -143,7 +143,7 @@ def test_pr_comment_packit_only_handler(
     assert event.get("pr_id", None) == 9
     assert "comment" in results.get("trigger", None)
     assert event.get("comment", None) == "/packit"
-    assert not jobs.get("pull_request_action", {}).get("success")
+    assert jobs.get("pull_request_action", {}).get("success")
     msg = "PR comment '/packit' does not contain a packit-service command."
     assert jobs.get("pull_request_action", {}).get("details", {}).get("msg") == msg
 
@@ -163,6 +163,6 @@ def test_pr_comment_wrong_packit_command_handler(
     assert event.get("pr_id", None) == 9
     assert "comment" in results.get("trigger", None)
     assert event.get("comment", None) == "/packit foobar"
-    assert not jobs.get("pull_request_action", {}).get("success")
+    assert jobs.get("pull_request_action", {}).get("success")
     msg = "PR comment '/packit foobar' does not contain a valid packit-service command."
     assert jobs.get("pull_request_action", {}).get("details", {}).get("msg") == msg
