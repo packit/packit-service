@@ -8,12 +8,11 @@ def test_serialize_task():
     t = Task.create("123", {1: 2, "a": "b"}, save=False)
     s = t.serialize()
     assert s["metadata"] == {1: 2, "a": "b"}
-    assert s["identifier"] == "123"
     assert isinstance(s["date_created"], str)
     t.date_created = None
     nt = Task()
     nt.deserialize(s)
-    assert nt.identifier == "123"
+    assert nt.identifier is None
     assert nt.metadata == {1: 2, "a": "b"}
     assert isinstance(nt.date_created, datetime)
 
@@ -24,7 +23,6 @@ def test_serialize_installs():
     )
     i = Installation.create(1, ev, save=False)
     s = i.serialize()
-    assert s["identifier"] == 1
     assert s["event_data"]
 
     i2 = Installation()
