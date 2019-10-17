@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import subprocess
 import os
+import subprocess
 
 WARNING_MSG = (
     "Your branch is not up to date with upstream/master. \n"
@@ -11,6 +11,16 @@ WARNING_MSG = (
 
 def main():
     path = os.path.dirname(os.path.abspath(__file__))
+
+    last_commit_subject = subprocess.run(
+        ["git", "log", "--format=%s", "-1"], capture_output=True, cwd=path
+    ).stdout.decode()
+    print(f"Last commit subject: {last_commit_subject}")
+
+    if "Merge commit" in last_commit_subject:
+        print("Zuul merged the master -- rebase is needed.")
+        return 2
+
     local_hashes = (
         subprocess.run(
             ["git", "log", "--max-count=100", "--format=%H"],
@@ -36,7 +46,7 @@ def main():
         .split()[0]
     )
 
-    print(f"Upstream hash: {upstream_hash}\n" f"Local hashes : {local_hashes}\n")
+    print(f"Upstream hash: {upstream_hash}\n" f"Local hashes: {local_hashes}\n")
 
     if upstream_hash in local_hashes:
         return 0
