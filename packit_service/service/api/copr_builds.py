@@ -25,6 +25,7 @@ from logging import getLogger
 from flask_restplus import Namespace, Resource
 from persistentdict.dict_in_redis import PersistentDict
 
+from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.models import CoprBuild, LAST_PK
 
 logger = getLogger("packit_service")
@@ -35,9 +36,12 @@ ns = Namespace("copr-builds", description="COPR builds")
 
 @ns.route("/")
 class CoprBuildsList(Resource):
+    @ns.expect(pagination_arguments)
     @ns.response(HTTPStatus.OK, "OK, Copr builds list follows")
     def get(self):
         """ List all Copr builds. From 'copr-builds' hash, filled by service. """
+        # I know it's expensive to first convert whole dict to a list and then slice the list,
+        # but how else would you slice a dict, huh?
         result = []
         for k, cb in CoprBuild.db().get_all().items():
             if k == LAST_PK:
@@ -45,7 +49,9 @@ class CoprBuildsList(Resource):
                 continue
             cb.pop("identifier", None)  # see PR#179
             result.append(cb)
-        return result
+
+        first, last = indices()
+        return result[first:last]
 
 
 @ns.route("/<int:id>")

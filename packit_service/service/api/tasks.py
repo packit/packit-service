@@ -20,12 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from http import HTTPStatus
+from itertools import islice
 from json import loads
 from logging import getLogger
 from os import getenv
 
 from flask_restplus import Namespace, Resource
 from redis import Redis
+
+from packit_service.service.api.parsers import pagination_arguments, indices
 
 logger = getLogger("packit_service")
 
@@ -39,17 +42,19 @@ db = Redis(
     decode_responses=True,
 )
 
-# TODO:
-#  pagination
-
 
 @ns.route("/")
 class TasksList(Resource):
+    @ns.expect(pagination_arguments)
     @ns.response(HTTPStatus.OK, "OK, Celery tasks list follows")
     def get(self):
         """ List all Celery tasks / jobs """
+        first, last = indices()
+
         tasks = []
-        for key in db.keys("celery-task-meta-*"):
+        # The db.keys() always returns all matched keys, but there's no better way with redis.
+        # Use islice (instead of [first:last]) to at least create an iterator instead of new list.
+        for key in islice(db.keys("celery-task-meta-*"), first, last):
             data = db.get(key)
             if data:
                 tasks.append(loads(data))
