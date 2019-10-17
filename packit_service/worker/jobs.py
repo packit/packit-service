@@ -98,8 +98,9 @@ class SteveJobs:
             # don't have packit config, this is not an error
             msg = "Failed to obtain package config!"
             logger.info(msg)
+            # success=True - it's not an error that people don't have packit.yaml in their repo
             handlers_results[event.trigger.value] = HandlerResults(
-                success=False, details={"msg": msg}
+                success=True, details={"msg": msg}
             )
             return handlers_results
 
