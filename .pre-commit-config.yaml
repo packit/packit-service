@@ -29,11 +29,9 @@ repos:
     hooks:
     -   id: mypy
         args: [--no-strict-optional, --ignore-missing-imports]
--   repo: local
+-   repo: https://github.com/packit-service/pre-commit-hooks
+    rev: master
     hooks:
     -   id: check-rebase
-        name: Check if rebase is needed
-        entry: ./files/scripts/check-rebase.py
-        language: script
-        types: [python]
-        always_run: true
+        args:
+        - git://github.com/packit-service/packit-service.git
