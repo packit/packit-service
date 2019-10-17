@@ -459,7 +459,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
         if self.event.github_login not in collaborators:
             msg = "Only collaborators can trigger Packit-as-a-Service"
             self.project.pr_comment(self.event.pr_id, msg)
-            return HandlerResults(success=False, details={"msg": msg})
+            return HandlerResults(success=True, details={"msg": msg})
 
         cbh = CoprBuildHandler(
             self.config, self.package_config, self.project, self.event
