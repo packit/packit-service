@@ -44,6 +44,9 @@ from packit_service.service.events import (
     PullRequestCommentAction,
     IssueCommentEvent,
     IssueCommentAction,
+    CoprBuildEvent,
+    CoprBuildDB,
+    FedmsgTopic,
 )
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
@@ -89,6 +92,16 @@ class TestEvents:
         with open(
             DATA_DIR / "webhooks" / "github_pr_comment_empty.json", "r"
         ) as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def copr_build_results_start(self):
+        with open(DATA_DIR / "fedmsg" / "copr_build_start.json", "r") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def copr_build_results_end(self):
+        with open(DATA_DIR / "fedmsg" / "copr_build_end.json", "r") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -223,6 +236,32 @@ class TestEvents:
         assert event_object.environment == "Fedora-Cloud-Base-29-1.2.x86_64.qcow2"
         assert event_object.copr_repo_name == "packit/packit-service-hello-world-10-stg"
         assert event_object.copr_chroot == "fedora-29-x86_64"
+
+    def test_parse_copr_build_event_start(self, copr_build_results_start):
+        flexmock(CoprBuildDB).should_receive("get_build").and_return()
+
+        event_object = Parser.parse_event(copr_build_results_start)
+
+        assert isinstance(event_object, CoprBuildEvent)
+        assert event_object.topic == FedmsgTopic.copr_build_started
+        assert event_object.build_id == 1044215
+        assert event_object.chroot == "fedora-rawhide-x86_64"
+        assert event_object.status == 3
+        assert event_object.owner == "packit"
+        assert event_object.project_name == "packit-service-hello-world-24-stg"
+
+    def test_parse_copr_build_event_end(self, copr_build_results_end):
+        flexmock(CoprBuildDB).should_receive("get_build").and_return()
+
+        event_object = Parser.parse_event(copr_build_results_end)
+
+        assert isinstance(event_object, CoprBuildEvent)
+        assert event_object.topic == FedmsgTopic.copr_build_finished
+        assert event_object.build_id == 1044215
+        assert event_object.chroot == "fedora-rawhide-x86_64"
+        assert event_object.status == 1
+        assert event_object.owner == "packit"
+        assert event_object.project_name == "packit-service-hello-world-24-stg"
 
     def test_get_project_pr(self, pull_request, mock_config):
         event_object = Parser.parse_event(pull_request)
