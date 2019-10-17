@@ -209,23 +209,20 @@ class SteveJobs:
             logger.debug("We don't process this event")
             return None
 
-        jobs_results: Dict[str, HandlerResults] = {}
-
-        pre_check = event_object.pre_check()
-        if not pre_check:
+        if not event_object.pre_check():
             return None
 
         is_private_repository = False
         try:
             project = event_object.get_project()
-            if (
-                project
-            ):  # CoprBuildEvent.get_project returns None when the build id is not in redis
+            # CoprBuildEvent.get_project returns None when the build id is not in redis
+            if project:
                 is_private_repository = self._is_private(project)
         except NotImplementedError:
             logger.warning("Cannot obtain project from this event!")
             logger.warning("Skipping private repository check!")
 
+        jobs_results: Dict[str, HandlerResults] = {}
         if is_private_repository:
             logger.error("We do not interact with private repositories!")
         else:
