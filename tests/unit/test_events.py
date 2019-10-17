@@ -238,7 +238,7 @@ class TestEvents:
         assert event_object.copr_chroot == "fedora-29-x86_64"
 
     def test_parse_copr_build_event_start(self, copr_build_results_start):
-        flexmock(CoprBuildDB).should_receive("get_build").and_return()
+        flexmock(CoprBuildDB).should_receive("get_build")
 
         event_object = Parser.parse_event(copr_build_results_start)
 
@@ -251,7 +251,7 @@ class TestEvents:
         assert event_object.project_name == "packit-service-hello-world-24-stg"
 
     def test_parse_copr_build_event_end(self, copr_build_results_end):
-        flexmock(CoprBuildDB).should_receive("get_build").and_return()
+        flexmock(CoprBuildDB).should_receive("get_build")
 
         event_object = Parser.parse_event(copr_build_results_end)
 
