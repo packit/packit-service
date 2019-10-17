@@ -213,7 +213,7 @@ class SteveJobs:
 
         pre_check = event_object.pre_check()
         if not pre_check:
-            return {"jobs": jobs_results, "event": event_object.get_dict()}
+            return None
 
         is_private_repository = False
         try:
