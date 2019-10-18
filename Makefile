@@ -4,6 +4,8 @@ WORKER_PROD_IMAGE := docker.io/usercont/packit-service-worker:prod
 TEST_IMAGE := packit-service-tests
 TEST_TARGET := ./tests/unit ./tests/integration/
 CONTAINER_ENGINE := docker
+ANSIBLE_PYTHON := /usr/bin/python3
+AP := ansible-playbook -vv -c local -i localhost, -e ansible_python_interpreter=$(ANSIBLE_PYTHON)
 
 build: files/install-deps.yaml files/recipe.yaml
 	docker build --rm -t $(SERVICE_IMAGE) .
@@ -65,8 +67,9 @@ check-inside-openshift: test_image
 	@#   Invalid value: "hostPath": hostPath volumes are not allowed to be used
 	@#   username system:admin is invalid for basic auth
 	@#-p PACKIT_SERVICE_SRC_LOCAL_PATH=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+	$(AP) files/test-in-openshift-secrets.yaml
 	oc process -f files/test-in-openshift.yaml | oc create -f -
-	oc wait job/packit-tests --for condition=complete --timeout=60s
+	oc wait job/packit-tests --for condition=complete --timeout=300s
 	oc logs job/packit-tests
 	# this garbage tells us if the tests passed or not
 	oc get job packit-tests -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' | grep True
