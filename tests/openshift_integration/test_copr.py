@@ -22,8 +22,14 @@
 
 import json
 import pytest
+import flexmock
+from packit.config import RunCommandType
 
+from packit_service.service.models import CoprBuild
+from packit_service.worker.copr_build import CoprBuildHandler
+from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.whitelist import Whitelist
 from tests.spellbook import DATA_DIR
 
 
@@ -51,29 +57,52 @@ def pr_comment_event_not_collaborator():
 
 
 def test_submit_copr_build_pr_event(pr_event):
+
+    # turn off interactions with redis
+    flexmock(CoprBuildDB).should_receive("add_build")
+    flexmock(CoprBuild).should_receive("create")
+    flexmock(CoprBuildHandler).should_receive("copr_build_model").and_return(
+        CoprBuild()
+    )
+    flexmock(CoprBuild).should_receive("save")
+    flexmock(Whitelist, check_and_report=True)
+
     steve = SteveJobs()
+    steve.config.command_handler = RunCommandType.local
+    steve.config.command_handler_work_dir = "/tmp/hello-world"
     result = steve.process_message(pr_event)
 
     assert result
     assert "copr_build" in result["jobs"]
-    assert result["jobs"]["copr_build"] == "success"
+    assert result["jobs"]["copr_build"]["success"]
 
 
-def test_submit_copr_build_pr(pr_comment_event):
+def test_submit_copr_build_pr_comment(pr_comment_event):
+
+    # turn off interactions with redis
+    flexmock(CoprBuildDB).should_receive("add_build")
+    flexmock(CoprBuild).should_receive("create")
+    flexmock(CoprBuildHandler).should_receive("copr_build_model").and_return(
+        CoprBuild()
+    )
+    flexmock(CoprBuild).should_receive("save")
+
     steve = SteveJobs()
+    # this test is executed in one pod, we do not utilize sandcastle here
+    steve.config.command_handler = RunCommandType.local
+    steve.config.command_handler_work_dir = "/tmp/hello-world"
     result = steve.process_message(pr_comment_event)
 
     assert result
-    assert "copr_build" in result["jobs"]
-    assert result["jobs"]["copr_build"] == "success"
+    assert "pull_request_action" in result["jobs"]
+    assert result["jobs"]["pull_request_action"]["success"]
 
 
 def test_not_collaborator(pr_comment_event_not_collaborator):
     steve = SteveJobs()
     result = steve.process_message(pr_comment_event_not_collaborator)
-    copr_build = result["jobs"]["copr_build"]
-    assert not copr_build["success"]
+    action = result["jobs"]["pull_request_action"]
+    assert not action["success"]
     assert (
-        copr_build["details"]["msg"]
-        == "Only collaborators can trigger Packit-as-a-Service"
+        action["details"]["msg"] == "Only collaborators can trigger Packit-as-a-Service"
     )

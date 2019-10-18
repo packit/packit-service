@@ -19,3 +19,26 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+from requre.helpers.requests_response import RequestResponseHandling
+from requre.import_system import upgrade_import_system
+
+ogr_import_system = upgrade_import_system(
+    filters=[
+        ("^requests$", {"who_name": "ogr"}),
+        ("^requests$", {"who_name": "gitlab"}),
+        ("^requests$", {"who_name": "github"}),
+    ],
+    debug_file="modules.out",
+).decorate(
+    where="^requests$",
+    what="Session.send",
+    who_name=[
+        "ogr.services.pagure",
+        "gitlab",
+        "github.MainClass",
+        "github.Requester",
+        "ogr.services.github_tweak",
+    ],
+    decorator=RequestResponseHandling.decorator(item_list=[]),
+)

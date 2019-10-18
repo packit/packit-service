@@ -16,20 +16,23 @@ objects:
   spec:
     template:
       spec:
+        volumes:
+        - name: packit-secrets
+          secret:
+            secretName: packit-secrets
+        - name: packit-config
+          secret:
+            secretName: packit-config
         restartPolicy: Never
         containers:
         - name: packit-tests
-          image: packit-service-tests
+          image: packit-service-tests:latest
           imagePullPolicy: Never  # IfNotPresent
           workingDir: /src-packit-service
-          # volumeMounts:
-          # - name: packit-service-sources
-          #   mountPath: /src-packit-service
+          volumeMounts:
+          - name: packit-secrets
+            mountPath: /secrets
+          - name: packit-config
+            mountPath: /home/packit/.config
           command: ["bash", "/src-packit-service/files/run_tests.sh"]
-        # TODO: try in a few months with OKD 4 and CRC
-        # volumes:
-        # - name: packit-service-sources
-        #   hostPath:
-        #     path: "${PACKIT_SERVICE_SRC_LOCAL_PATH}"
-        #     type: Directory
     backoffLimit: 1

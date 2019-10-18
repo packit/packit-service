@@ -9,3 +9,8 @@
       - python3-pytest
       - python3-pytest-cov
       state: present
+  - name: Install pip deps
+    pip:
+      name:
+      - git+https://github.com/packit-service/requre.git
+      executable: pip3
