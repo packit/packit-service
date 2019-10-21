@@ -140,17 +140,17 @@ class SteveJobs:
         try:
             (packit_mark, *packit_command) = event.comment.split(maxsplit=3)
         except ValueError:
-            return HandlerResults(success=False, details={"msg": f"{msg} is empty."})
+            return HandlerResults(success=True, details={"msg": f"{msg} is empty."})
 
         if REQUESTED_PULL_REQUEST_COMMENT != packit_mark:
             return HandlerResults(
-                success=False,
+                success=True,
                 details={"msg": f"{msg} is not handled by packit-service."},
             )
 
         if not packit_command:
             return HandlerResults(
-                success=False,
+                success=True,
                 details={"msg": f"{msg} does not contain a packit-service command."},
             )
 
@@ -159,7 +159,7 @@ class SteveJobs:
             packit_action = CommentAction[packit_command[0].replace("-", "_")]
         except KeyError:
             return HandlerResults(
-                success=False,
+                success=True,
                 details={
                     "msg": f"{msg} does not contain a valid packit-service command."
                 },
@@ -169,8 +169,7 @@ class SteveJobs:
         )
         if not handler_kls:
             return HandlerResults(
-                success=False,
-                details={"msg": f"{msg} is not a packit-service command."},
+                success=True, details={"msg": f"{msg} is not a packit-service command."}
             )
 
         handler = handler_kls(self.config, event)
@@ -181,7 +180,7 @@ class SteveJobs:
             whitelist = Whitelist()
             if not whitelist.check_and_report(event, event.get_project()):
                 handlers_results = HandlerResults(
-                    success=False, details={"msg": "Account is not whitelisted!"}
+                    success=True, details={"msg": "Account is not whitelisted!"}
                 )
                 return handlers_results
             handlers_results = handler.run()
