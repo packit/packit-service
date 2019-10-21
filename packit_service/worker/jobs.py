@@ -273,11 +273,7 @@ class SteveJobs:
 
             logger.debug("All jobs finished!")
 
-        task_results = {
-            "jobs": jobs_results,
-            "event": event_object.get_dict(),
-            "trigger": str(event_object.trigger),
-        }
+        task_results = {"jobs": jobs_results, "event": event_object.get_dict()}
 
         if any(not (v and v["success"]) for v in jobs_results.values()):
             # Any job handler failed, mark task state as FAILURE
