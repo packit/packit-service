@@ -25,11 +25,10 @@ import json
 import pytest
 from flexmock import flexmock
 
-from tests.spellbook import DATA_DIR
-
-from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.copr_build import CoprBuildHandler
 from packit_service.worker.handler import HandlerResults
+from packit_service.worker.jobs import SteveJobs
+from tests.spellbook import DATA_DIR
 
 
 @pytest.fixture()
@@ -75,94 +74,59 @@ def test_pr_comment_copr_build_handler(
     flexmock(CoprBuildHandler).should_receive("run_copr_build").and_return(
         HandlerResults(success=True, details={})
     )
-    steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    results = steve.process_message(pr_copr_build_comment_event)
-    assert results.get("jobs", {})
-    assert "pull_request_action" in results.get("jobs", {})
-    assert "created" in results.get("event", {}).get("action", None)
-    assert results.get("event", {}).get("pr_id", None) == 9
-    assert "comment" in results.get("trigger", None)
-    assert results.get("event", {}).get("comment", None) == "/packit copr-build"
-    assert results.get("jobs", {}).get("pull_request_action", {}).get("success")
-
-
-# def test_pr_comment_build_handler(
-#     mock_pr_comment_functionality, pr_build_comment_event
-# ):
-#     flexmock(PackitAPI).should_receive("build").with_args(
-#         dist_git_branch="master"
-#     ).once()
-#     steve = SteveJobs()
-#
-#     results = steve.process_message(pr_build_comment_event)
-#     assert results.get("jobs", {})
-#     assert "pull_request_action" in results.get("jobs", {})
-#     assert "created" in results.get("event", {}).get("action", None)
-#     assert results.get("event", {}).get("pr_id", None) == 9
-#     assert "comment" in results.get("trigger", None)
-#     assert results.get("event", {}).get("comment", None) == "/packit build"
-#     assert (
-#         results.get("jobs", {}).get(PullRequestCommentAction.build, {}).get("success")
-#     )
-#
+    results = SteveJobs().process_message(pr_copr_build_comment_event)
+    event = results["event"]
+    assert event["action"] == "created"
+    assert event["pr_id"] == 9
+    assert event["trigger"] == "comment"
+    assert event["comment"] == "/packit copr-build"
+    assert results["jobs"]["pull_request_action"]["success"]
 
 
 def test_pr_comment_empty_handler(
     mock_pr_comment_functionality, pr_empty_comment_event
 ):
-    steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
 
-    results = steve.process_message(pr_empty_comment_event)
-    assert results.get("jobs", {})
-    jobs = results.get("jobs", {})
-    event = results.get("event", {})
-    assert "pull_request_action" in jobs
-    assert "created" in event.get("action", None)
-    assert event.get("pr_id", None) == 9
-    assert "comment" in results.get("trigger", None)
-    assert event.get("comment", None) == ""
-    assert jobs.get("pull_request_action", {}).get("success")
+    results = SteveJobs().process_message(pr_empty_comment_event)
+    event = results["event"]
+    assert event["action"] == "created"
+    assert event["pr_id"] == 9
+    assert event["trigger"] == "comment"
+    assert event["comment"] == ""
+    assert results["jobs"]["pull_request_action"]["success"]
     msg = "PR comment '' is empty."
-    assert jobs.get("pull_request_action", {}).get("details", {}).get("msg") == msg
+    assert results["jobs"]["pull_request_action"]["details"]["msg"] == msg
 
 
 def test_pr_comment_packit_only_handler(
     mock_pr_comment_functionality, pr_packit_only_comment_event
 ):
-    steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
 
-    results = steve.process_message(pr_packit_only_comment_event)
-    assert results.get("jobs", {})
-    jobs = results.get("jobs", {})
-    event = results.get("event", {})
-    assert "pull_request_action" in jobs
-    assert "created" in event.get("action", None)
-    assert event.get("pr_id", None) == 9
-    assert "comment" in results.get("trigger", None)
-    assert event.get("comment", None) == "/packit"
-    assert jobs.get("pull_request_action", {}).get("success")
+    results = SteveJobs().process_message(pr_packit_only_comment_event)
+    event = results["event"]
+    assert event["action"] == "created"
+    assert event["pr_id"] == 9
+    assert event["trigger"] == "comment"
+    assert event["comment"] == "/packit"
+    assert results["jobs"]["pull_request_action"]["success"]
     msg = "PR comment '/packit' does not contain a packit-service command."
-    assert jobs.get("pull_request_action", {}).get("details", {}).get("msg") == msg
+    assert results["jobs"]["pull_request_action"]["details"]["msg"] == msg
 
 
 def test_pr_comment_wrong_packit_command_handler(
     mock_pr_comment_functionality, pr_wrong_packit_comment_event
 ):
-    steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
 
-    results = steve.process_message(pr_wrong_packit_comment_event)
-    assert results.get("jobs", {})
-    jobs = results.get("jobs", {})
-    event = results.get("event", {})
-    assert "pull_request_action" in jobs
-    assert "created" in event.get("action", None)
-    assert event.get("pr_id", None) == 9
-    assert "comment" in results.get("trigger", None)
-    assert event.get("comment", None) == "/packit foobar"
-    assert jobs.get("pull_request_action", {}).get("success")
+    results = SteveJobs().process_message(pr_wrong_packit_comment_event)
+    event = results["event"]
+    assert event["action"] == "created"
+    assert event["pr_id"] == 9
+    assert event["trigger"] == "comment"
+    assert event["comment"] == "/packit foobar"
+    assert results["jobs"]["pull_request_action"]["success"]
     msg = "PR comment '/packit foobar' does not contain a valid packit-service command."
-    assert jobs.get("pull_request_action", {}).get("details", {}).get("msg") == msg
+    assert results["jobs"]["pull_request_action"]["details"]["msg"] == msg

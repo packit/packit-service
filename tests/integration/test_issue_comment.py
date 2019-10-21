@@ -25,10 +25,10 @@ import json
 import pytest
 from flexmock import flexmock
 
-from tests.spellbook import DATA_DIR
 from packit.api import PackitAPI
-from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.handler import HandlerResults
+from packit_service.worker.jobs import SteveJobs
+from tests.spellbook import DATA_DIR
 
 
 @pytest.fixture()
@@ -51,13 +51,12 @@ def test_issue_comment_propose_update_handler(
     flexmock(PackitAPI).should_receive("sync_release").and_return(
         HandlerResults(success=True, details={})
     )
-    steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    results = steve.process_message(issue_comment_propose_update_event)
-    assert results.get("jobs", {})
-    assert "pull_request_action" in results.get("jobs", {})
-    assert "created" in results.get("event", {}).get("action", None)
-    assert results.get("event", {}).get("issue_id", None) == 512
-    assert "comment" in results.get("trigger", None)
-    assert results.get("event", {}).get("comment", None) == "/packit propose-update"
-    assert results.get("jobs", {}).get("pull_request_action", {}).get("success")
+    results = SteveJobs().process_message(issue_comment_propose_update_event)
+    event = results["event"]
+    assert event
+    assert event["action"] == "created"
+    assert event["issue_id"] == 512
+    assert event["trigger"] == "comment"
+    assert event["comment"] == "/packit propose-update"
+    assert results["jobs"]["pull_request_action"]["success"]

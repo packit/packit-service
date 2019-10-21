@@ -28,11 +28,10 @@ from json import dumps
 import pytest
 from flexmock import flexmock
 from github import Github
+
 from ogr.services.github import GithubProject
 from packit.api import PackitAPI
-from packit.config import JobTriggerType
 from packit.local_project import LocalProject
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.worker.jobs import SteveJobs
@@ -79,5 +78,5 @@ def test_process_message(event):
     flexmock(SteveJobs, _is_private=False)
 
     results = SteveJobs().process_message(event)
-    assert "propose_downstream" in results.get("jobs", {})
-    assert results["trigger"] == str(JobTriggerType.release)
+    assert "propose_downstream" in results["jobs"]
+    assert results["event"]["trigger"] == "release"
