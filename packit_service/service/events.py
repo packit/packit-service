@@ -88,7 +88,7 @@ class Event:
     def get_dict(self) -> dict:
         d = copy.deepcopy(self.__dict__)
         # whole dict have to be JSON serializable because of redis
-        d["trigger"] = str(d["trigger"])
+        d["trigger"] = d["trigger"].value
         return d
 
     def get_package_config(self):
@@ -157,7 +157,7 @@ class PullRequestEvent(AbstractGithubEvent):
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        result["action"] = str(result["action"])
+        result["action"] = result["action"].value
         return result
 
     def get_package_config(self) -> Optional[PackageConfig]:
@@ -201,7 +201,7 @@ class PullRequestCommentEvent(AbstractGithubEvent):
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        result["action"] = str(result["action"])
+        result["action"] = result["action"].value
         return result
 
     def get_package_config(self) -> Optional[PackageConfig]:
@@ -249,7 +249,7 @@ class IssueCommentEvent(AbstractGithubEvent):
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        result["action"] = str(result["action"])
+        result["action"] = result["action"].value
         return result
 
     def get_package_config(self) -> Optional[PackageConfig]:
@@ -295,7 +295,7 @@ class InstallationEvent(Event):
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        result["status"] = str(result["status"])
+        result["status"] = result["status"].value
         return result
 
 
@@ -321,7 +321,7 @@ class DistGitEvent(Event):
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        result["topic"] = str(result["topic"])
+        result["topic"] = result["topic"].value
         return result
 
     def get_package_config(self):
@@ -422,7 +422,7 @@ class CoprBuildEvent(AbstractGithubEvent):
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        result["topic"] = str(result["topic"])
+        result["topic"] = result["topic"].value
         return result
 
     def get_package_config(self) -> Optional[PackageConfig]:
