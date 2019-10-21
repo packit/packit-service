@@ -87,6 +87,8 @@ class Event:
 
     def get_dict(self) -> dict:
         d = copy.deepcopy(self.__dict__)
+        # whole dict have to be JSON serializable because of redis
+        d["trigger"] = str(d["trigger"])
         return d
 
     def get_package_config(self):
@@ -122,11 +124,6 @@ class ReleaseEvent(AbstractGithubEvent):
         self.repo_name = repo_name
         self.tag_name = tag_name
 
-    def get_dict(self) -> dict:
-        result = super().get_dict()
-        result["trigger"] = str(result["trigger"])
-        return result
-
     def get_package_config(self):
         package_config: PackageConfig = get_package_config_from_repo(
             self.get_project(), self.tag_name
@@ -160,8 +157,6 @@ class PullRequestEvent(AbstractGithubEvent):
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        # whole dict have to be JSON serializable because of redis
-        result["trigger"] = str(result["trigger"])
         result["action"] = str(result["action"])
         return result
 
@@ -205,9 +200,7 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         self.comment = comment
 
     def get_dict(self) -> dict:
-        result = self.__dict__
-        # whole dict have to be JSON serializable because of redis
-        result["trigger"] = str(result["trigger"])
+        result = super().get_dict()
         result["action"] = str(result["action"])
         return result
 
@@ -255,9 +248,7 @@ class IssueCommentEvent(AbstractGithubEvent):
         self.comment = comment
 
     def get_dict(self) -> dict:
-        result = self.__dict__
-        # whole dict have to be JSON serializable because of redis
-        result["trigger"] = str(result["trigger"])
+        result = super().get_dict()
         result["action"] = str(result["action"])
         return result
 
@@ -304,9 +295,7 @@ class InstallationEvent(Event):
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        # whole dict have to be JSON serializable because of redis
-        result["trigger"] = str(result["trigger"])
-        result["status"] = result["status"].value
+        result["status"] = str(result["status"])
         return result
 
 
@@ -332,8 +321,6 @@ class DistGitEvent(Event):
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        # whole dict have to be JSON serializable because of redis
-        result["trigger"] = str(result["trigger"])
         result["topic"] = str(result["topic"])
         return result
 
@@ -379,8 +366,6 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        # whole dict have to be JSON serializable because of redis
-        result["trigger"] = result["trigger"].value
         result["result"] = result["result"].value
         return result
 
@@ -437,8 +422,6 @@ class CoprBuildEvent(AbstractGithubEvent):
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        # whole dict have to be JSON serializable because of redis
-        result["trigger"] = str(result["trigger"])
         result["topic"] = str(result["topic"])
         return result
 
