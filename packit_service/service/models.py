@@ -2,15 +2,11 @@
 Data models for jobs, tasks, builds, etc. The models are mapped to redis.
 """
 import copy
-import datetime
-from os import getenv
 from typing import List, Dict, Union
 
 from persistentdict.dict_in_redis import PersistentDict
-from redis import Redis
 
 from packit_service.service.events import InstallationEvent, WhitelistStatus
-
 
 # if identifier is not set, we need to create primary key ourselves
 # with this variable, we keep track on what's the last PK
@@ -111,55 +107,6 @@ class Installation(Model):
         inp["event_data"] = InstallationEvent(**event_data)
         inp["identifier"] = event_data["installation_id"]
         super().deserialize(inp)
-
-
-class Task(Model):
-    """ Thin wrapper on top of a celery task """
-
-    table_name = "celery-tasks"
-    date_created: datetime.datetime
-    metadata: Dict
-
-    @classmethod
-    def create(cls, celery_id: str, metadata: Dict, save: bool = True):
-        """
-        Create new Task instance from provided args and save it to redis, unless save=False
-
-        :param celery_id: ID of the task set by celery
-        :param metadata: task metadata
-        :param save: save to DB if True
-        :return: Task instance
-        """
-        t = Task()
-        t.identifier = celery_id
-        t.metadata = metadata
-        t.date_created = datetime.datetime.utcnow()
-        if save:
-            t.save()
-        return t
-
-    def serialize(self):
-        cp = super().serialize()
-        cp["date_created"] = cp["date_created"].isoformat()
-        return cp
-
-    def deserialize(self, inp: Dict):
-        # fromisoformat is 3.7
-        iso_format = "%Y-%m-%dT%H:%M:%S.%f"
-        inp["date_created"] = datetime.datetime.strptime(
-            inp["date_created"], iso_format
-        )
-        super().deserialize(inp)
-
-    def celery_task_meta(self):
-        """ get data which celery stores about a task """
-        db = Redis(
-            host=getenv("REDIS_SERVICE_HOST", "localhost"),
-            port=int(getenv("REDIS_SERVICE_PORT", 6379)),
-            db=0,
-            decode_responses=True,
-        )
-        return db.get(f"celery-task-meta-{self.identifier}")
 
 
 class Build(Model):
