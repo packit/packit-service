@@ -7,7 +7,7 @@
         - packit-service-tests
     gate:
       jobs:
-        - packit-service-tests-secrets
+        - packit-service-pre-commit
 
 - job:
     name: packit-service-pre-commit
