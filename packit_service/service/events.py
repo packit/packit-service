@@ -26,11 +26,11 @@ This file defines classes for events which are sent by GitHub or FedMsg.
 import copy
 import enum
 import logging
+from time import time
 from typing import Optional, List
 
 from ogr.abstract import GitProject
 from packit.config import JobTriggerType, get_package_config_from_repo, PackageConfig
-
 from packit_service.config import service_config
 from packit_service.worker.copr_db import CoprBuildDB
 
@@ -81,8 +81,9 @@ class TestResult:
 
 
 class Event:
-    def __init__(self, trigger: JobTriggerType):
+    def __init__(self, trigger: JobTriggerType, created_at: int = None):
         self.trigger: JobTriggerType = trigger
+        self.created_at: int = created_at or int(time())
 
     def get_dict(self) -> dict:
         d = copy.deepcopy(self.__dict__)
@@ -291,13 +292,12 @@ class InstallationEvent(Event):
         sender_login: str,
         status: WhitelistStatus = WhitelistStatus.waiting,
     ):
-        super().__init__(JobTriggerType.installation)
+        super().__init__(JobTriggerType.installation, created_at)
         self.installation_id = installation_id
         self.account_login = account_login
         self.account_id = account_id
         self.account_url = account_url
         self.account_type = account_type
-        self.created_at = created_at
         self.sender_id = sender_id
         self.sender_login = sender_login
         self.status = status
