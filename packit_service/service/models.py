@@ -47,9 +47,9 @@ class Model:
         """ convert from python data structure into a json serializable dict for PersistentDict """
         data = self.__dict__
         cp = copy.deepcopy(data)
-        # we don't need to store table_name inside
-        if "table_name" in cp:
-            del cp["table_name"]
+        # we don't need to store table_name & identifier (key)
+        cp.pop("table_name", None)
+        cp.pop("identifier", None)
         return cp
 
     def deserialize(self, inp: Dict):
