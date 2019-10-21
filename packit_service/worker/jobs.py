@@ -30,7 +30,6 @@ from typing import Optional, Dict, Union, Type
 from ogr.abstract import GitProject
 from ogr.services.github import GithubProject
 from packit.config import JobTriggerType, JobType
-
 from packit_service.config import ServiceConfig
 from packit_service.service.events import (
     PullRequestCommentEvent,
@@ -39,6 +38,11 @@ from packit_service.service.events import (
     TestingFarmResultsEvent,
     CoprBuildEvent,
     FedmsgTopic,
+)
+from packit_service.worker.comment_action_handler import (
+    COMMENT_ACTION_HANDLER_MAPPING,
+    CommentAction,
+    CommentActionHandler,
 )
 from packit_service.worker.fedmsg_handlers import (
     CoprBuildEndHandler,
@@ -51,11 +55,6 @@ from packit_service.worker.handler import (
     JobHandler,
 )
 from packit_service.worker.parser import Parser
-from packit_service.worker.comment_action_handler import (
-    COMMENT_ACTION_HANDLER_MAPPING,
-    CommentAction,
-    CommentActionHandler,
-)
 from packit_service.worker.testing_farm_handlers import TestingFarmResultsHandler
 from packit_service.worker.whitelist import Whitelist
 
@@ -202,14 +201,11 @@ class SteveJobs:
             ]
 
             if topic not in topics:
+                logger.debug(f"{topic} not in {topics}")
                 return None
 
         event_object = Parser.parse_event(event)
-        if not event_object:
-            logger.debug("We don't process this event")
-            return None
-
-        if not event_object.pre_check():
+        if not event_object or not event_object.pre_check():
             return None
 
         is_private_repository = False
