@@ -74,7 +74,7 @@ class Whitelist:
 
         :param account_name: account name for approval
         """
-        account = self.db[account_name]
+        account = self.db.get(account_name)
         if not account:
             return None
         # patch status

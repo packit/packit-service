@@ -63,9 +63,5 @@ class InstallationItem(Resource):
         """A specific copr build details. From copr_build hash, filled by worker."""
         # hash name is defined in worker (CoprBuildDB), which I don't want to import from
         db = PersistentDict(hash_name="copr_build")
-        no_content = ("", HTTPStatus.NO_CONTENT)
-        try:
-            build = db[id]
-        except KeyError:
-            return no_content
-        return build if build else no_content
+        build = db.get(id)
+        return build if build else ("", HTTPStatus.NO_CONTENT)

@@ -31,8 +31,9 @@ class Model:
         """ store the current state of the object inside redis """
         db = self.db()
         if not self.identifier:
-            last_pk = db[LAST_PK]
-            if last_pk is None:
+            try:
+                last_pk = db[LAST_PK]
+            except KeyError:
                 # we are going to insert first item
                 last_pk = 0
             self.identifier = last_pk + 1

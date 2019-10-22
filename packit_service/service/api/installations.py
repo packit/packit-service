@@ -46,9 +46,6 @@ class InstallationItem(Resource):
     @ns.response(HTTPStatus.NO_CONTENT, "identifier not in whitelist")
     def get(self, id):
         """A specific installation details"""
+        installation = Installation.db().get(id)
         no_content = ("", HTTPStatus.NO_CONTENT)
-        try:
-            installation = Installation.db()[id]
-        except KeyError:
-            return no_content
         return installation["event_data"] if installation else no_content

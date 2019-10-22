@@ -4,7 +4,6 @@ A service which helps you integrate your upstream GitHub project into Fedora
 ecosystem. Think of it as [packit](https://github.com/packit-service/packit) on
 steroids.
 
-
 ## Current status
 
 For the run-down of the planned work, please see the task-list below.
@@ -14,7 +13,6 @@ For the run-down of the planned work, please see the task-list below.
 * [x] Packit service is secure. (by running things in a [sandbox](https://github.com/packit-service/sandcastle/))
 * [x] Packit Service GitHub app is placed in [GitHub marketplace](https://github.com/marketplace/packit-as-a-service).
 * [ ] New upstream releases can be proposed as pull requests downstream.
-
 
 ## More info
 

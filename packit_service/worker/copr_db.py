@@ -89,10 +89,6 @@ class CoprBuildDB:
         """
         Get build from DB
         :param build_id:
-        :return:
+        :return: build or None if build_id not in DB
         """
-        build = self.db[build_id]
-        if not build:
-            return None
-        else:
-            return build
+        return self.db.get(build_id)
