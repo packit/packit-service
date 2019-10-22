@@ -26,11 +26,11 @@ This file defines classes for events which are sent by GitHub or FedMsg.
 import copy
 import enum
 import logging
+from time import time
 from typing import Optional, List
 
 from ogr.abstract import GitProject
 from packit.config import JobTriggerType, get_package_config_from_repo, PackageConfig
-
 from packit_service.config import service_config
 from packit_service.worker.copr_db import CoprBuildDB
 
@@ -81,11 +81,14 @@ class TestResult:
 
 
 class Event:
-    def __init__(self, trigger: JobTriggerType):
+    def __init__(self, trigger: JobTriggerType, created_at: int = None):
         self.trigger: JobTriggerType = trigger
+        self.created_at: int = created_at or int(time())
 
     def get_dict(self) -> dict:
         d = copy.deepcopy(self.__dict__)
+        # whole dict have to be JSON serializable because of redis
+        d["trigger"] = d["trigger"].value
         return d
 
     def get_package_config(self):
@@ -121,11 +124,6 @@ class ReleaseEvent(AbstractGithubEvent):
         self.repo_name = repo_name
         self.tag_name = tag_name
 
-    def get_dict(self) -> dict:
-        result = super().get_dict()
-        result["trigger"] = str(result["trigger"])
-        return result
-
     def get_package_config(self):
         package_config: PackageConfig = get_package_config_from_repo(
             self.get_project(), self.tag_name
@@ -159,9 +157,7 @@ class PullRequestEvent(AbstractGithubEvent):
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        # whole dict have to be JSON serializable because of redis
-        result["trigger"] = str(result["trigger"])
-        result["action"] = str(result["action"])
+        result["action"] = result["action"].value
         return result
 
     def get_package_config(self) -> Optional[PackageConfig]:
@@ -204,10 +200,8 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         self.comment = comment
 
     def get_dict(self) -> dict:
-        result = self.__dict__
-        # whole dict have to be JSON serializable because of redis
-        result["trigger"] = str(result["trigger"])
-        result["action"] = str(result["action"])
+        result = super().get_dict()
+        result["action"] = result["action"].value
         return result
 
     def get_package_config(self) -> Optional[PackageConfig]:
@@ -254,10 +248,8 @@ class IssueCommentEvent(AbstractGithubEvent):
         self.comment = comment
 
     def get_dict(self) -> dict:
-        result = self.__dict__
-        # whole dict have to be JSON serializable because of redis
-        result["trigger"] = str(result["trigger"])
-        result["action"] = str(result["action"])
+        result = super().get_dict()
+        result["action"] = result["action"].value
         return result
 
     def get_package_config(self) -> Optional[PackageConfig]:
@@ -291,21 +283,18 @@ class InstallationEvent(Event):
         sender_login: str,
         status: WhitelistStatus = WhitelistStatus.waiting,
     ):
-        super().__init__(JobTriggerType.installation)
+        super().__init__(JobTriggerType.installation, created_at)
         self.installation_id = installation_id
         self.account_login = account_login
         self.account_id = account_id
         self.account_url = account_url
         self.account_type = account_type
-        self.created_at = created_at
         self.sender_id = sender_id
         self.sender_login = sender_login
         self.status = status
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        # whole dict have to be JSON serializable because of redis
-        result["trigger"] = str(result["trigger"])
         result["status"] = result["status"].value
         return result
 
@@ -332,9 +321,7 @@ class DistGitEvent(Event):
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        # whole dict have to be JSON serializable because of redis
-        result["trigger"] = str(result["trigger"])
-        result["topic"] = str(result["topic"])
+        result["topic"] = result["topic"].value
         return result
 
     def get_package_config(self):
@@ -379,8 +366,6 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        # whole dict have to be JSON serializable because of redis
-        result["trigger"] = result["trigger"].value
         result["result"] = result["result"].value
         return result
 
@@ -437,9 +422,7 @@ class CoprBuildEvent(AbstractGithubEvent):
 
     def get_dict(self) -> dict:
         result = super().get_dict()
-        # whole dict have to be JSON serializable because of redis
-        result["trigger"] = str(result["trigger"])
-        result["topic"] = str(result["topic"])
+        result["topic"] = result["topic"].value
         return result
 
     def get_package_config(self) -> Optional[PackageConfig]:

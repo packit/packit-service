@@ -1,20 +1,5 @@
-from datetime import datetime
-
 from packit_service.service.events import InstallationEvent, WhitelistStatus
-from packit_service.service.models import Task, CoprBuild, Installation
-
-
-def test_serialize_task():
-    t = Task.create("123", {1: 2, "a": "b"}, save=False)
-    s = t.serialize()
-    assert s["metadata"] == {1: 2, "a": "b"}
-    assert isinstance(s["date_created"], str)
-    t.date_created = None
-    nt = Task()
-    nt.deserialize(s)
-    assert nt.identifier is None
-    assert nt.metadata == {1: 2, "a": "b"}
-    assert isinstance(nt.date_created, datetime)
+from packit_service.service.models import CoprBuild, Installation
 
 
 def test_serialize_installs():

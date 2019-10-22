@@ -22,10 +22,7 @@
 import logging
 from typing import Optional
 
-from celery.task import Task as CeleryTask
-
 from packit_service.celerizer import celery_app
-from packit_service.service.models import Task
 from packit_service.worker.jobs import SteveJobs
 
 # debug logs of these are super-duper verbose
@@ -40,8 +37,6 @@ logging.getLogger("packit").setLevel(logging.DEBUG)
 logging.getLogger("sandcastle").setLevel(logging.DEBUG)
 
 
-@celery_app.task(bind=True, name="task.steve_jobs.process_message")
-def process_message(self: CeleryTask, event: dict, topic: str = None) -> Optional[dict]:
-    # storing the whole event may be an overkill
-    Task.create(celery_id=self.request.id, metadata=event)
+@celery_app.task(name="task.steve_jobs.process_message")
+def process_message(event: dict, topic: str = None) -> Optional[dict]:
     return SteveJobs().process_message(event=event, topic=topic)

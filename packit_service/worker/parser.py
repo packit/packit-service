@@ -123,6 +123,9 @@ class Parser:
         if response:
             return response
 
+        if not response:
+            logger.debug("We don't process this event")
+
         return response
 
     @staticmethod

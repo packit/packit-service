@@ -3,11 +3,10 @@ import json
 import pytest
 from flexmock import flexmock
 from github import Github
+
 from ogr.services.github import GithubProject
 from packit.api import PackitAPI
-from packit.config import JobTriggerType
 from packit.local_project import LocalProject
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.worker.jobs import SteveJobs
@@ -33,7 +32,6 @@ def test_dist_git_push_release_handle(release_event):
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
-    steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
@@ -43,7 +41,6 @@ def test_dist_git_push_release_handle(release_event):
         dist_git_branch="master", version="0.3.0", create_pr=False
     ).once()
 
-    results = steve.process_message(release_event)
-    assert "propose_downstream" in results.get("jobs", {})
-    assert results.get("jobs", {}).get("propose_downstream", {}).get("success")
-    assert results["trigger"] == str(JobTriggerType.release)
+    results = SteveJobs().process_message(release_event)
+    assert results["jobs"]["propose_downstream"]["success"]
+    assert results["event"]["trigger"] == "release"
