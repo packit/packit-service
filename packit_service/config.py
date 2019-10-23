@@ -22,7 +22,7 @@
 import enum
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Set
 
 from packit.config import RunCommandType, Config
 from packit.exceptions import PackitException
@@ -63,7 +63,7 @@ class ServiceConfig(Config):
         self.routing_keys: List[str] = []
 
         # List of github users who are allowed to trigger p-s on any repository
-        self.admins: List[str] = []
+        self.admins: Set[str] = set()
 
         # %%% ACTIONS HANDLER CONFIGURATION %%%
         # these values are specific to packit service when we run actions in a sandbox
@@ -97,7 +97,7 @@ class ServiceConfig(Config):
         config.validate_webhooks = raw_dict.get("validate_webhooks", False)
         config.queue_name = raw_dict.get("queue_name", "")
         config.routing_keys = raw_dict.get("routing_keys", [])
-        config.admins = raw_dict.get("admins", [])
+        config.admins = set(raw_dict.get("admins", []))
 
         config.command_handler = RunCommandType.local
         a_h = raw_dict.get("command_handler")

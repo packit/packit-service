@@ -241,9 +241,7 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
 
         collaborators = self.project.who_can_merge_pr()
         r = BuildStatusReporter(self.project, self.event.commit_sha)
-        if (self.event.github_login not in collaborators) and (
-            self.event.github_login not in self.config.admins
-        ):
+        if self.event.github_login not in collaborators | self.config.admins:
             msg = "Only collaborators can trigger Packit-as-a-Service"
             r.set_status("failure", msg, PRCheckName.get_build_check())
             return HandlerResults(success=False, details={"msg": msg})
@@ -465,9 +463,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
     def run(self) -> HandlerResults:
 
         collaborators = self.project.who_can_merge_pr()
-        if (self.event.github_login not in collaborators) and (
-            self.event.github_login not in self.config.admins
-        ):
+        if self.event.github_login not in collaborators | self.config.admins:
             msg = "Only collaborators can trigger Packit-as-a-Service"
             self.project.pr_comment(self.event.pr_id, msg)
             return HandlerResults(success=True, details={"msg": msg})
@@ -519,9 +515,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
         self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
         collaborators = self.project.who_can_merge_pr()
-        if (self.event.github_login not in collaborators) and (
-            self.event.github_login not in self.config.admins
-        ):
+        if self.event.github_login not in collaborators | self.config.admins:
             msg = "Only collaborators can trigger Packit-as-a-Service"
             self.project.issue_comment(self.event.issue_id, msg)
             return HandlerResults(success=True, details={"msg": msg})
@@ -585,9 +579,7 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
     def run(self) -> HandlerResults:
 
         collaborators = self.project.who_can_merge_pr()
-        if (self.event.github_login not in collaborators) and (
-            self.event.github_login not in self.config.admins
-        ):
+        if self.event.github_login not in collaborators | self.config.admins:
             msg = "Only collaborators can trigger Packit-as-a-Service"
             self.project.pr_comment(self.event.pr_id, msg)
             return HandlerResults(success=True, details={"msg": msg})
