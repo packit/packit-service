@@ -343,15 +343,21 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
             git_project=self.project, working_dir=self.config.command_handler_work_dir
         )
 
+        logger.info("Running testing farm")
+
         r = BuildStatusReporter(self.project, self.event.commit_sha)
 
         chroots = self.job.metadata.get("targets")
+        logger.debug(f"Testing farm chroots: {chroots}")
         for chroot in chroots:
             pipeline_id = str(uuid.uuid4())
+            logger.debug(f"Pipeline id: {pipeline_id}")
             payload: dict = {
                 "pipeline": {"id": pipeline_id},
                 "api": {"token": self.config.testing_farm_secret},
             }
+
+            logger.debug(f"Payload: {payload}")
 
             stg = "-stg" if self.config.deployment == Deployment.stg else ""
             copr_repo_name = (
@@ -375,6 +381,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
             req = self.send_testing_farm_request(
                 TESTING_FARM_TRIGGER_URL, "POST", {}, json.dumps(payload)
             )
+            logger.debug(f"Request sent: {req}")
             if not req:
                 msg = "Failed to post request to testing farm API."
                 logger.debug("Failed to post request to testing farm API.")
@@ -537,3 +544,56 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
         self.project.issue_close(self.event.issue_id)
 
         return HandlerResults(success=True, details={})
+
+
+@add_to_comment_action_mapping
+class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
+    """ Issue handler for comment `/packit test` """
+
+    name = CommentAction.test
+    event: PullRequestCommentEvent
+
+    def __init__(self, config: ServiceConfig, event: PullRequestCommentEvent):
+        super().__init__(config=config, event=event)
+        self.config = config
+        self.event = event
+        self.project: GitProject = event.get_project()
+        # Get the latest pull request commit
+        self.event.commit_sha = self.project.get_all_pr_commits(self.event.pr_id)[-1]
+        self.package_config: PackageConfig = get_package_config_from_repo(
+            self.project, self.event.commit_sha
+        )
+        self.event.base_ref = self.event.commit_sha
+        self.package_config.upstream_project_url = event.project_url
+
+    def get_tests_for_build(self) -> Optional[JobConfig]:
+        """
+        Check if there are tests defined
+        :return: JobConfig or None
+        """
+        for job in self.package_config.jobs:
+            if job.job == JobType.tests:
+                return job
+        return None
+
+    def run(self) -> HandlerResults:
+
+        collaborators = self.project.who_can_merge_pr()
+        if self.event.github_login not in collaborators:
+            msg = "Only collaborators can trigger Packit-as-a-Service"
+            self.project.pr_comment(self.event.pr_id, msg)
+            return HandlerResults(success=True, details={"msg": msg})
+
+        handler_results = HandlerResults(success=True, details={})
+
+        test_job_config = self.get_tests_for_build()
+        logger.debug(f"Test job config: {test_job_config}")
+        if test_job_config:
+            testing_farm_handler = GithubTestingFarmHandler(
+                self.config, test_job_config, self.event
+            )
+            handler_results = testing_farm_handler.run()
+        else:
+            logger.debug("Testing farm not in the job config.")
+
+        return handler_results

@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 class CommentAction(enum.Enum):
     copr_build = "copr-build"
     propose_update = "propose-update"
+    test = "test"
 
 
 COMMENT_ACTION_HANDLER_MAPPING: Dict[CommentAction, Type["CommentActionHandler"]] = {}
