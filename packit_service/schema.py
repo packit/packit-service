@@ -28,6 +28,7 @@ _SERVICE_CONFIG_SCHEMA_PROPERTIES = {
     "validate_webhooks": {"type": "boolean"},
     "queue_name": {"type": "string"},
     "routing_keys": {"type": "array"},
+    "admins": {"type": "array"},
 }
 _SERVICE_CONFIG_SCHEMA_REQUIRED = ["deployment"]
 
