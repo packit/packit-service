@@ -48,9 +48,5 @@ class WhiteListItem(Resource):
     @ns.response(HTTPStatus.NO_CONTENT, "login not in whitelist")
     def get(self, login):
         """A specific whitelist item details"""
-        no_content = ("", HTTPStatus.NO_CONTENT)
-        try:
-            account = db[login]
-        except KeyError:
-            return no_content
-        return account if account else no_content
+        account = db.get(login)
+        return account if account else ("", HTTPStatus.NO_CONTENT)
