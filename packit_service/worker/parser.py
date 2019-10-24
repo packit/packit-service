@@ -268,9 +268,11 @@ class Parser:
         installation_id = event["installation"]["id"]
 
         logger.info(
-            f"Github App installation event. Action: {action}, "
-            f"id: {installation_id}, account: {event['installation']['account']}, "
-            f"sender: {event['sender']}"
+            f"Github App installation event. Action: {action}, id: {installation_id}"
+        )
+        logger.debug(
+            f"account: {event['installation']['account']}, "
+            f"repositories: {event['repositories']}, sender: {event['sender']}"
         )
 
         account_login = event["installation"]["account"]["login"]
@@ -278,6 +280,8 @@ class Parser:
         account_url = event["installation"]["account"]["url"]
         account_type = event["installation"]["account"]["type"]  # User or Organization
         created_at = event["installation"]["created_at"]
+
+        repositories = [repo["full_name"] for repo in event["repositories"]]
 
         sender_id = event["sender"]["id"]
         sender_login = event["sender"]["login"]
@@ -289,6 +293,7 @@ class Parser:
             account_url,
             account_type,
             created_at,
+            repositories,
             sender_id,
             sender_login,
         )

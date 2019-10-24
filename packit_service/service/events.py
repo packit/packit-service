@@ -303,6 +303,7 @@ class InstallationEvent(Event):
         account_url: str,
         account_type: str,
         created_at: int,
+        repositories: List[str],
         sender_id: int,
         sender_login: str,
         status: WhitelistStatus = WhitelistStatus.waiting,
@@ -313,6 +314,7 @@ class InstallationEvent(Event):
         self.account_id = account_id
         self.account_url = account_url
         self.account_type = account_type
+        self.repositories = repositories
         self.sender_id = sender_id
         self.sender_login = sender_login
         self.status = status
