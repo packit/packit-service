@@ -34,7 +34,7 @@ logger = getLogger("packit_service")
 ns = Namespace("copr-builds", description="COPR builds")
 
 
-@ns.route("/")
+@ns.route("")
 class CoprBuildsList(Resource):
     @ns.expect(pagination_arguments)
     @ns.response(HTTPStatus.OK, "OK, Copr builds list follows")

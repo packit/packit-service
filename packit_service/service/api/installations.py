@@ -31,7 +31,7 @@ logger = getLogger("packit_service")
 ns = Namespace("installations", description="Github App installations")
 
 
-@ns.route("/")
+@ns.route("")
 class InstallationsList(Resource):
     @ns.response(HTTPStatus.OK, "OK, installations list follows")
     def get(self):

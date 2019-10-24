@@ -43,7 +43,7 @@ db = Redis(
 )
 
 
-@ns.route("/")
+@ns.route("")
 class TasksList(Resource):
     @ns.expect(pagination_arguments)
     @ns.response(HTTPStatus.OK, "OK, Celery tasks list follows")

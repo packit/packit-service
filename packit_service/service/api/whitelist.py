@@ -33,7 +33,7 @@ logger = getLogger("packit_service")
 ns = Namespace("whitelist", description="Whitelisted FAS accounts")
 
 
-@ns.route("/")
+@ns.route("")
 class WhiteList(Resource):
     @ns.response(HTTPStatus.OK, "OK, whitelist follows")
     def get(self):
