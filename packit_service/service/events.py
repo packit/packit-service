@@ -26,8 +26,8 @@ This file defines classes for events which are sent by GitHub or FedMsg.
 import copy
 import enum
 import logging
-from time import time
-from typing import Optional, List
+from datetime import datetime
+from typing import Optional, List, Union
 
 from ogr.abstract import GitProject
 from packit.config import JobTriggerType, get_package_config_from_repo, PackageConfig
@@ -81,14 +81,38 @@ class TestResult:
 
 
 class Event:
-    def __init__(self, trigger: JobTriggerType, created_at: int = None):
+    def __init__(
+        self, trigger: JobTriggerType, created_at: Union[int, float, str] = None
+    ):
         self.trigger: JobTriggerType = trigger
-        self.created_at: int = created_at or int(time())
+        self.created_at: datetime
+        if created_at:
+            if isinstance(created_at, (int, float)):
+                self.created_at = datetime.fromtimestamp(created_at)
+            elif isinstance(created_at, str):
+                self.created_at = datetime.fromisoformat(created_at)
+        else:
+            self.created_at = datetime.now()
+
+    @staticmethod
+    def ts2str(event: dict):
+        """
+        Convert 'created_at' key from timestamp to iso 8601 time format.
+        This would normally be in a from_dict(), but we don't have such method.
+        In api/* we read events from db and directly serve them to clients.
+        Deserialize (from_dict) and serialize (to_dict) every entry
+        just to do this ts2str would be waste of resources.
+        """
+        created_at = event.get("created_at")
+        if isinstance(created_at, int):
+            event["created_at"] = datetime.fromtimestamp(created_at).isoformat()
+        return event
 
     def get_dict(self) -> dict:
         d = copy.deepcopy(self.__dict__)
         # whole dict have to be JSON serializable because of redis
         d["trigger"] = d["trigger"].value
+        d["created_at"] = int(d["created_at"].timestamp())
         return d
 
     def get_package_config(self):

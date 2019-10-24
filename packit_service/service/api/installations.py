@@ -24,6 +24,7 @@ from logging import getLogger
 
 from flask_restplus import Namespace, Resource
 
+from packit_service.service.events import Event
 from packit_service.service.models import Installation
 
 logger = getLogger("packit_service")
@@ -36,7 +37,9 @@ class InstallationsList(Resource):
     @ns.response(HTTPStatus.OK, "OK, installations list follows")
     def get(self):
         """List all Github App installations"""
-        return [i["event_data"] for i in Installation.db().get_all().values()]
+        return [
+            Event.ts2str(i["event_data"]) for i in Installation.db().get_all().values()
+        ]
 
 
 @ns.route("/<int:id>")

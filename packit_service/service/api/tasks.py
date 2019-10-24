@@ -29,6 +29,7 @@ from flask_restplus import Namespace, Resource
 from redis import Redis
 
 from packit_service.service.api.parsers import pagination_arguments, indices
+from packit_service.service.events import Event
 
 logger = getLogger("packit_service")
 
@@ -57,7 +58,11 @@ class TasksList(Resource):
         for key in islice(db.keys("celery-task-meta-*"), first, last):
             data = db.get(key)
             if data:
-                tasks.append(loads(data))
+                data = loads(data)
+                event = data.get("result", {}).get("event")
+                if event:  # timestamp to datetime string
+                    data["result"]["event"] = Event.ts2str(data["result"]["event"])
+                tasks.append(data)
         return tasks
 
 

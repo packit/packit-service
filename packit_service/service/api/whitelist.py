@@ -26,6 +26,8 @@ from flask_restplus import Namespace, Resource
 from persistentdict.dict_in_redis import PersistentDict
 
 # hash name is defined in worker (Whitelist class), which I don't want to import from
+from packit_service.service.events import Event
+
 db = PersistentDict(hash_name="whitelist")
 
 logger = getLogger("packit_service")
@@ -38,7 +40,7 @@ class WhiteList(Resource):
     @ns.response(HTTPStatus.OK, "OK, whitelist follows")
     def get(self):
         """List all Whitelisted FAS accounts"""
-        return list(db.get_all().values())
+        return [Event.ts2str(event) for event in db.get_all().values()]
 
 
 @ns.route("/<string:login>")
