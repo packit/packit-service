@@ -20,8 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from http import HTTPStatus
+from json import dumps
 from logging import getLogger
 
+from flask import make_response
 from flask_restplus import Namespace, Resource
 from persistentdict.dict_in_redis import PersistentDict
 
@@ -37,7 +39,7 @@ ns = Namespace("copr-builds", description="COPR builds")
 @ns.route("")
 class CoprBuildsList(Resource):
     @ns.expect(pagination_arguments)
-    @ns.response(HTTPStatus.OK, "OK, Copr builds list follows")
+    @ns.response(HTTPStatus.PARTIAL_CONTENT, "Copr builds list follows")
     def get(self):
         """ List all Copr builds. From 'copr-builds' hash, filled by service. """
         # I know it's expensive to first convert whole dict to a list and then slice the list,
@@ -51,7 +53,10 @@ class CoprBuildsList(Resource):
             result.append(cb)
 
         first, last = indices()
-        return result[first:last]
+        resp = make_response(dumps(result[first:last]), HTTPStatus.PARTIAL_CONTENT)
+        resp.headers["Content-Range"] = f"copr-builds {first + 1}-{last}/{len(result)}"
+        resp.headers["Content-Type"] = "application/json"
+        return resp
 
 
 @ns.route("/<int:id>")

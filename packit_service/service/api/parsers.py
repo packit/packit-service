@@ -23,6 +23,8 @@
 from flask import request
 from flask_restplus import reqparse
 
+DEFAULT_PER_PAGE = 10
+
 pagination_arguments = reqparse.RequestParser()
 pagination_arguments.add_argument(
     "page", type=int, required=False, default=1, help="Page number"
@@ -32,7 +34,7 @@ pagination_arguments.add_argument(
     type=int,
     required=False,
     choices=[2, 10, 20, 30, 40, 50],
-    default=10,
+    default=DEFAULT_PER_PAGE,
     help="Results per page",
 )
 
@@ -41,7 +43,7 @@ def indices():
     """Return indices of first and last entry based on request arguments"""
     args = pagination_arguments.parse_args(request)
     page = args.get("page", 1)
-    per_page = args.get("per_page", 10)
+    per_page = args.get("per_page", DEFAULT_PER_PAGE)
     first = (page - 1) * per_page
     last = page * per_page
     return first, last

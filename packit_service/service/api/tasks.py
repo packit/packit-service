@@ -21,10 +21,11 @@
 # SOFTWARE.
 from http import HTTPStatus
 from itertools import islice
-from json import loads
+from json import loads, dumps
 from logging import getLogger
 from os import getenv
 
+from flask import make_response
 from flask_restplus import Namespace, Resource
 from redis import Redis
 
@@ -47,7 +48,7 @@ db = Redis(
 @ns.route("")
 class TasksList(Resource):
     @ns.expect(pagination_arguments)
-    @ns.response(HTTPStatus.OK, "OK, Celery tasks list follows")
+    @ns.response(HTTPStatus.PARTIAL_CONTENT, "Celery tasks list follows")
     def get(self):
         """ List all Celery tasks / jobs """
         first, last = indices()
@@ -55,7 +56,8 @@ class TasksList(Resource):
         tasks = []
         # The db.keys() always returns all matched keys, but there's no better way with redis.
         # Use islice (instead of [first:last]) to at least create an iterator instead of new list.
-        for key in islice(db.keys("celery-task-meta-*"), first, last):
+        keys = db.keys("celery-task-meta-*")
+        for key in islice(keys, first, last):
             data = db.get(key)
             if data:
                 data = loads(data)
@@ -63,7 +65,11 @@ class TasksList(Resource):
                 if event:  # timestamp to datetime string
                     data["result"]["event"] = Event.ts2str(data["result"]["event"])
                 tasks.append(data)
-        return tasks
+
+        resp = make_response(dumps(tasks[first:last]), HTTPStatus.PARTIAL_CONTENT)
+        resp.headers["Content-Range"] = f"tasks {first+1}-{last}/{len(keys)}"
+        resp.headers["Content-Type"] = "application/json"
+        return resp
 
 
 @ns.route("/<string:id>")
