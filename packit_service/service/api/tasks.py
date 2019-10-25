@@ -64,7 +64,7 @@ class TasksList(Resource):
                 data = loads(data)
                 event = nested_get(data, "result", "event")
                 if event:  # timestamp to datetime string
-                    data["result"]["event"] = Event.ts2str(data["result"]["event"])
+                    data["result"]["event"] = Event.ts2str(event)
                 tasks.append(data)
 
         resp = make_response(dumps(tasks), HTTPStatus.PARTIAL_CONTENT)
