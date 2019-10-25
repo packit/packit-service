@@ -42,11 +42,12 @@ services:
     depends_on:
       - redis
     environment:
+      DEPLOYMENT: dev
       REDIS_SERVICE_HOST: redis
       APP: packit_service.worker.tasks
       KRB5CCNAME: FILE:/tmp/krb5cc_packit
     volumes:
-      - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
+      - ./packit_service:/src-packit-service/packit_service:ro,z
       - ./secrets/packit.yaml:/home/packit/.config/.packit.yaml:ro,z
       # worker should not require packit-service.yaml
       - ./secrets/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
@@ -71,6 +72,7 @@ services:
     ports:
       - 8443:8443
     environment:
+      DEPLOYMENT: dev
       REDIS_SERVICE_HOST: redis
     volumes:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z

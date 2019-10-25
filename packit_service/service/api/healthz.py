@@ -29,7 +29,7 @@ logger = getLogger("packit_service")
 ns = Namespace("healthz", description="Health checks")
 
 
-@ns.route("/")
+@ns.route("")
 class HealthCheck(Resource):
     @ns.response(HTTPStatus.OK, "Healthy")
     def get(self):

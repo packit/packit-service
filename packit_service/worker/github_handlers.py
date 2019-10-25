@@ -136,12 +136,12 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
         :return: HandlerResults
         """
 
-        # try to add user to whitelist
-        whitelist = Whitelist()
         Installation.create(
             installation_id=self.installation_event.installation_id,
             event=self.installation_event,
         )
+        # try to add user to whitelist
+        whitelist = Whitelist()
         if not whitelist.add_account(self.installation_event):
             # Create an issue in our repository, so we are notified when someone install the app
             self.project.create_issue(
@@ -152,16 +152,12 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
                     "get back to you shortly."
                 ),
             )
-
             msg = f"Account: {self.installation_event.account_login} needs to be approved manually!"
-            logger.info(msg)
-            return HandlerResults(success=True, details={"msg": msg})
-        return HandlerResults(
-            success=True,
-            details={
-                "msg": f"Account {self.installation_event.account_login} whitelisted!"
-            },
-        )
+        else:
+            msg = f"Account {self.installation_event.account_login} whitelisted!"
+
+        logger.info(msg)
+        return HandlerResults(success=True, details={"msg": msg})
 
 
 @add_to_mapping
