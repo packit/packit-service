@@ -67,7 +67,7 @@ class TasksList(Resource):
                     data["result"]["event"] = Event.ts2str(data["result"]["event"])
                 tasks.append(data)
 
-        resp = make_response(dumps(tasks[first:last]), HTTPStatus.PARTIAL_CONTENT)
+        resp = make_response(dumps(tasks), HTTPStatus.PARTIAL_CONTENT)
         resp.headers["Content-Range"] = f"tasks {first+1}-{last}/{len(keys)}"
         resp.headers["Content-Type"] = "application/json"
         return resp
