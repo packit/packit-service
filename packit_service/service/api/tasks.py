@@ -27,6 +27,7 @@ from os import getenv
 
 from flask import make_response
 from flask_restplus import Namespace, Resource
+from packit.utils import nested_get
 from redis import Redis
 
 from packit_service.service.api.parsers import pagination_arguments, indices
@@ -61,7 +62,7 @@ class TasksList(Resource):
             data = db.get(key)
             if data:
                 data = loads(data)
-                event = data.get("result", {}).get("event")
+                event = nested_get(data, "result", "event")
                 if event:  # timestamp to datetime string
                     data["result"]["event"] = Event.ts2str(data["result"]["event"])
                 tasks.append(data)
