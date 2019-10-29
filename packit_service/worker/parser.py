@@ -264,7 +264,7 @@ class Parser:
         if not nested_get(event, "installation", "account"):
             return None
 
-        action = event.get("action")  # created or deleted
+        action = event["action"]  # added or removed
         installation_id = event["installation"]["id"]
 
         logger.info(
@@ -272,7 +272,7 @@ class Parser:
         )
         logger.debug(
             f"account: {event['installation']['account']}, "
-            f"repositories: {event['repositories']}, sender: {event['sender']}"
+            f"repositories_added: {event['repositories_added']}, sender: {event['sender']}"
         )
 
         account_login = event["installation"]["account"]["login"]
@@ -281,7 +281,7 @@ class Parser:
         account_type = event["installation"]["account"]["type"]  # User or Organization
         created_at = event["installation"]["created_at"]
 
-        repositories = [repo["full_name"] for repo in event["repositories"]]
+        repositories = [repo["full_name"] for repo in event["repositories_added"]]
 
         sender_id = event["sender"]["id"]
         sender_login = event["sender"]["login"]
