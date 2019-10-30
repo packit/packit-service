@@ -24,7 +24,7 @@
 - name: Deploy secrets for integration tests
   hosts: localhost
   vars:
-    local_data_dir: "../tests/test_data"
+    local_data_dir: "../tests_requre"
     remote_data_dir: "/tmp/test_data"
   tasks:
   - name: delete old test job if exists
