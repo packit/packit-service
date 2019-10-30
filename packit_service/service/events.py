@@ -406,16 +406,18 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
 class CoprBuildEvent(AbstractGithubEvent):
     def __init__(
         self,
-        topic: FedmsgTopic,
+        topic: str,
         build_id: int,
+        build: dict,
         chroot: str,
         status: int,
         owner: str,
         project_name: str,
     ):
         super().__init__(JobTriggerType.commit)
-        self.topic = topic
+        self.topic = FedmsgTopic(topic)
         self.build_id = build_id
+        self.build = build
         self.chroot = chroot
         self.status = status
         self.owner = owner
@@ -425,19 +427,29 @@ class CoprBuildEvent(AbstractGithubEvent):
         self.pr_id = 0
         self.ref = ""
         self.commit_sha = ""
+        self.base_repo_name = build.get("repo_name")
+        self.base_repo_namespace = build.get("repo_namespace")
+        self.pr_id = build.get("pr_id")
+        self.ref = build.get("ref")
+        self.project_url = build.get("https_url")
+        self.commit_sha = build.get("commit_sha")
 
-        db = CoprBuildDB()
-        self.build = db.get_build(self.build_id)
-
-        if self.build:
-            self.base_repo_name = self.build.get("repo_name")
-            self.base_repo_namespace = self.build.get("repo_namespace")
-            self.pr_id = self.build.get("pr_id")
-            self.ref = self.build.get("ref")
-            self.project_url = self.build.get("https_url")
-            self.commit_sha = self.build.get("commit_sha")
-        else:
-            logger.warning(f"Cannot get project for this build id: {self.build_id}")
+    @classmethod
+    def from_build_id(
+        cls,
+        topic: str,
+        build_id: int,
+        chroot: str,
+        status: int,
+        owner: str,
+        project_name: str,
+    ) -> Optional["CoprBuildEvent"]:
+        """ Return cls instance or None if build_id not in CoprBuildDB"""
+        build = CoprBuildDB().get_build(build_id)
+        if not build:
+            logger.warning(f"Build id: {build_id} not in CoprBuildDB")
+            return None
+        return cls(topic, build_id, build, chroot, status, owner, project_name)
 
     def pre_check(self):
         if not self.build:
