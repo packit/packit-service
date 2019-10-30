@@ -60,7 +60,7 @@ check_in_container: test_image
 
 # deploy a pod with tests and run them
 check-inside-openshift: CONTAINER_ENGINE=docker
-check-inside-openshift:
+check-inside-openshift: test_image
 	@# http://timmurphy.org/2015/09/27/how-to-get-a-makefile-directory-path/
 	@# sadly the hostPath volume doesn't work:
 	@#   Invalid value: "hostPath": hostPath volumes are not allowed to be used
