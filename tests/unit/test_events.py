@@ -122,14 +122,14 @@ class TestEvents:
 
         assert isinstance(event_object, InstallationEvent)
         assert event_object.trigger == JobTriggerType.installation
-        assert event_object.installation_id == 1173510
-        assert event_object.account_login == "user-cont"
-        assert event_object.account_id == 26160778
-        assert event_object.account_url == "https://api.github.com/users/rpitonak"
+        assert event_object.installation_id == 1708454
+        assert event_object.account_login == "jpopelka"
+        assert event_object.account_id == 288686
+        assert event_object.account_url == "https://api.github.com/users/jpopelka"
         assert event_object.account_type == "User"
-        assert event_object.created_at == datetime.fromtimestamp(1560941425)
-        assert event_object.sender_login == "rpitonak"
-        assert event_object.sender_id == 26160778
+        assert event_object.created_at == datetime.fromtimestamp(1567090283)
+        assert event_object.sender_login == "jpopelka"
+        assert event_object.sender_id == 288686
         assert event_object.status == WhitelistStatus.waiting
 
     def test_parse_release(self, release):
