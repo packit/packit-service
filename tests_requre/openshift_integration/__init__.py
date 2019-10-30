@@ -23,7 +23,7 @@ FILTERS = upgrade_import_system().decorate(
     what="utils.run_command_remote",
     decorator=store_function_output,
 ).decorate(
-    where="^fedpkg$",
+    where="packit.fedpkg",
     what="FedPKG.clone",
     decorator=StoreFiles.arg_references(files_params={"target_path": 2}),
 ).decorate(
