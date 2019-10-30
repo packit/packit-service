@@ -27,7 +27,6 @@ import logging
 from typing import Optional, Union, List
 
 from packit.utils import nested_get
-
 from packit_service.service.events import (
     PullRequestEvent,
     PullRequestCommentEvent,
@@ -42,7 +41,6 @@ from packit_service.service.events import (
     IssueCommentEvent,
     IssueCommentAction,
     CoprBuildEvent,
-    FedmsgTopic,
 )
 from packit_service.worker.fedmsg_handlers import NewDistGitCommit
 
@@ -404,19 +402,20 @@ class Parser:
     def parse_copr_event(event) -> Optional[CoprBuildEvent]:
         """ this corresponds to copr build event e.g:"""
         topic = event.get("topic")
-        if (
-            topic == "org.fedoraproject.prod.copr.build.start"
-            or topic == "org.fedoraproject.prod.copr.build.end"
-        ):
-            logger.info(f"Copr build event, topic: {topic}")
+        if topic not in {
+            "org.fedoraproject.prod.copr.build.start",
+            "org.fedoraproject.prod.copr.build.end",
+        }:
+            return None
 
-            topic = FedmsgTopic(topic)
-            build_id = event.get("build")
-            chroot = nested_get(event, "chroot")
-            status = nested_get(event, "status")
-            owner = nested_get(event, "owner")
-            project_name = nested_get(event, "copr")
+        logger.info(f"Copr build event, topic: {topic}")
 
-            return CoprBuildEvent(topic, build_id, chroot, status, owner, project_name)
+        build_id = event.get("build")
+        chroot = nested_get(event, "chroot")
+        status = nested_get(event, "status")
+        owner = nested_get(event, "owner")
+        project_name = nested_get(event, "copr")
 
-        return None
+        return CoprBuildEvent.from_build_id(
+            topic, build_id, chroot, status, owner, project_name
+        )
