@@ -1,0 +1,27 @@
+---
+kind: Template
+apiVersion: v1
+metadata:
+  name: packit-service-get-requre-data-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: get-requre-data
+    labels:
+      app: get-requre-data
+  spec:
+    volumes:
+    - name: test-data-pv
+      persistentVolumeClaim:
+        claimName: test-data-pvc
+    restartPolicy: Never
+    containers:
+    - name: packit-tests
+      image: rpitonak/packit-service-tests:latest
+      imagePullPolicy: Never  # IfNotPresent
+      workingDir: /src-packit-service
+      volumeMounts:
+      - mountPath: /tmp/test_data
+        name: test-data-pv
+      command: ["bash", "-c", "sleep 10000"]

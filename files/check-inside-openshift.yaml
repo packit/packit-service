@@ -1,0 +1,59 @@
+# MIT License
+#
+# Copyright (c) 2018-2019 Red Hat, Inc.
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+---
+- name: Deploy secrets for integration tests
+  hosts: localhost
+  vars:
+    local_data_dir: "../tests/test_data"
+    remote_data_dir: "/tmp/test_data"
+  tasks:
+#  - name: delete old test job if exists
+#    command: oc delete job packit-tests
+#    ignore_errors: yes
+#  - name: delete old pvc
+#    command: oc delete pvc/test-data-pvc
+#    ignore_errors: yes
+#  - name: create test job in openshift
+#    shell: oc process -f ./test-in-openshift.yaml | oc create -f -
+#    register: job_template
+#  - name: Create directory for response files
+#    file:
+#      path: ../tests/test_data
+#      state: directory
+#  - name: get pod name
+#    command: oc get pods -o name
+#    register: pod_name
+#  - name: wait for tests to finish
+#    command: oc wait job/packit-tests --for condition=complete --timeout=300s
+#  - name: get test logs
+#    command: oc logs job/packit-tests
+#  - name: get test logs
+#    command: oc logs job/packit-tests
+#  - name: get test result
+#    shell: oc get job packit-tests -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' | grep True
+  - name: start pod which will gather the data
+    shell: oc process -f ./test-in-openshift-get-data.yaml | oc create -f -
+  - name: wait while pod is running
+    command: oc wait pod/get-requre-data --for condition=Ready --timeout=100s
+  - name: get generated responses from pod
+    command: oc rsync pod/get-requre-data:{{ remote_data_dir }} {{ local_data_dir }}
