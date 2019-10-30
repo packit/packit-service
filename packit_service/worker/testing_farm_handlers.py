@@ -62,6 +62,8 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, test_results_event.ref
         )
+        if not self.package_config:
+            raise ValueError(f"No config file found in {self.project.full_repo_name}")
         self.package_config.upstream_project_url = test_results_event.project_url
 
     def run(self) -> HandlerResults:

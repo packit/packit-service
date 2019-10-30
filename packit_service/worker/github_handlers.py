@@ -91,6 +91,8 @@ class GithubPullRequestHandler(AbstractGithubJobHandler):
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, pr_event.base_ref
         )
+        if not self.package_config:
+            raise ValueError(f"No config file found in {self.project.full_repo_name}")
         self.package_config.upstream_project_url = pr_event.project_url
 
     def run(self) -> HandlerResults:
@@ -175,6 +177,8 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, release_event.tag_name
         )
+        if not self.package_config:
+            raise ValueError(f"No config file found in {self.project.full_repo_name}")
         self.package_config.upstream_project_url = release_event.project_url
 
     def run(self) -> HandlerResults:
@@ -226,6 +230,8 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, base_ref
         )
+        if not self.package_config:
+            raise ValueError(f"No config file found in {self.project.full_repo_name}")
         self.package_config.upstream_project_url = event.project_url
 
     def handle_pull_request(self):
@@ -286,6 +292,8 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, self.base_ref
         )
+        if not self.package_config:
+            raise ValueError(f"No config file found in {self.project.full_repo_name}")
         self.package_config.upstream_project_url = event.project_url
 
         self.session = requests.session()
@@ -440,10 +448,12 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
         self.project: GitProject = event.get_project()
         # Get the latest pull request commit
         self.event.commit_sha = self.project.get_all_pr_commits(self.event.pr_id)[-1]
+        self.event.base_ref = self.event.commit_sha
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, self.event.commit_sha
         )
-        self.event.base_ref = self.event.commit_sha
+        if not self.package_config:
+            raise ValueError(f"No config file found in {self.project.full_repo_name}")
         self.package_config.upstream_project_url = event.project_url
 
     def get_tests_for_build(self) -> Optional[JobConfig]:
@@ -490,6 +500,8 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, self.event.tag_name
         )
+        if not self.package_config:
+            raise ValueError(f"No config file found in {self.project.full_repo_name}")
         self.package_config.upstream_project_url = event.project_url
 
     def get_build_metadata_for_build(self) -> List[str]:
@@ -556,10 +568,12 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
         self.project: GitProject = event.get_project()
         # Get the latest pull request commit
         self.event.commit_sha = self.project.get_all_pr_commits(self.event.pr_id)[-1]
+        self.event.base_ref = self.event.commit_sha
         self.package_config: PackageConfig = get_package_config_from_repo(
             self.project, self.event.commit_sha
         )
-        self.event.base_ref = self.event.commit_sha
+        if not self.package_config:
+            raise ValueError(f"No config file found in {self.project.full_repo_name}")
         self.package_config.upstream_project_url = event.project_url
 
     def get_tests_for_build(self) -> Optional[JobConfig]:

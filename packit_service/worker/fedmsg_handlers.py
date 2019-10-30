@@ -97,6 +97,8 @@ class NewDistGitCommit(FedmsgHandler):
         self.package_config = get_package_config_from_repo(
             self.project, distgit_event.ref
         )
+        if not self.package_config:
+            raise ValueError(f"No config file found in {self.project.full_repo_name}")
 
     def run(self) -> HandlerResults:
         # self.project is dist-git, we need to get upstream
