@@ -27,30 +27,33 @@
     local_data_dir: "../tests/test_data"
     remote_data_dir: "/tmp/test_data"
   tasks:
-#  - name: delete old test job if exists
-#    command: oc delete job packit-tests
-#    ignore_errors: yes
-#  - name: delete old pvc
-#    command: oc delete pvc/test-data-pvc
-#    ignore_errors: yes
-#  - name: create test job in openshift
-#    shell: oc process -f ./test-in-openshift.yaml | oc create -f -
-#    register: job_template
-#  - name: Create directory for response files
-#    file:
-#      path: ../tests/test_data
-#      state: directory
-#  - name: get pod name
-#    command: oc get pods -o name
-#    register: pod_name
-#  - name: wait for tests to finish
-#    command: oc wait job/packit-tests --for condition=complete --timeout=300s
-#  - name: get test logs
-#    command: oc logs job/packit-tests
-#  - name: get test logs
-#    command: oc logs job/packit-tests
-#  - name: get test result
-#    shell: oc get job packit-tests -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' | grep True
+  - name: delete old test job if exists
+    command: oc delete job packit-tests
+    ignore_errors: yes
+  - name: delete old test job if exists
+    command: oc delete pod get-requre-data
+    ignore_errors: yes
+  - name: delete old pvc
+    command: oc delete pvc/test-data-pvc
+    ignore_errors: yes
+  - name: create test job in openshift
+    shell: oc process -f ./test-in-openshift.yaml | oc create -f -
+    register: job_template
+  - name: Create directory for response files
+    file:
+      path: ../tests/test_data
+      state: directory
+  - name: get pod name
+    command: oc get pods -o name
+    register: pod_name
+  - name: wait for tests to finish
+    command: oc wait job/packit-tests --for condition=complete --timeout=300s
+  - name: get test logs
+    command: oc logs job/packit-tests
+  - name: get test logs
+    command: oc logs job/packit-tests
+  - name: get test result
+    shell: oc get job packit-tests -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' | grep True
   - name: start pod which will gather the data
     shell: oc process -f ./test-in-openshift-get-data.yaml | oc create -f -
   - name: wait while pod is running
