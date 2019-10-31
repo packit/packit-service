@@ -49,8 +49,6 @@
   - name: get pod name
     command: oc get pods -o name
     register: pod_name
-  - name: watch logs
-    command: oc logs --watch=true {{ pod_name.stdout }}
   - name: wait for tests to finish
     command: oc wait job/packit-tests --for condition=complete --timeout=300s
   - name: get test logs
