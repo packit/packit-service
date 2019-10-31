@@ -14,9 +14,10 @@ DATA_DIR = PROJECT_DIR / "tests" / "data"
 
 
 class PackitServiceTestCase(unittest.TestCase):
-
     def get_datafile_filename(self, path_prefix=PERSISTENT_DATA_PREFIX, suffix="yaml"):
-        test_file_name = os.path.basename(inspect.getfile(self.__class__)).rsplit(".", 1)[0]
+        test_file_name = os.path.basename(inspect.getfile(self.__class__)).rsplit(
+            ".", 1
+        )[0]
         test_class_name = f"{self.id()}.{suffix}"
         testdata_dirname = os.path.join(path_prefix, test_file_name)
         os.makedirs(testdata_dirname, mode=0o777, exist_ok=True)

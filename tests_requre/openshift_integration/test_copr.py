@@ -87,5 +87,6 @@ class Copr(PackitServiceTestCase):
         result = self.steve.process_message(pr_comment_event_not_collaborator())
         action = result["jobs"]["pull_request_action"]
         assert (
-            action["details"]["msg"] == "Only collaborators can trigger Packit-as-a-Service"
+            action["details"]["msg"]
+            == "Only collaborators can trigger Packit-as-a-Service"
         )
