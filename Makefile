@@ -69,6 +69,9 @@ check-inside-openshift: test_image
 	$(AP) files/test-in-openshift-secrets.yaml
 	$(AP) files/check-inside-openshift.yaml
 
+check-inside-openshift-zuul: test_image
+	$(AP) files/check-inside-openshift.yaml
+
 
 # this target is expected to run within an openshift pod
 check-within-openshift:
