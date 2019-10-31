@@ -24,8 +24,8 @@ objects:
         restartPolicy: Never
         containers:
         - name: packit-tests
-          image: packit-service-tests:latest
-          imagePullPolicy: Never  # IfNotPresent
+          image: rpitonak/packit-service-tests:latest
+          imagePullPolicy: Always #Never  # IfNotPresent
           workingDir: /src-packit-service
           volumeMounts:
           - name: packit-secrets
