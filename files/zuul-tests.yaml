@@ -8,6 +8,10 @@
     args:
       chdir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
     become: true
+  - name: Copy secrets to packit-service dir
+    copy:
+      src: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/packit-service/deployment'].src_dir }}/secrets"
+      dest: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/secrets"
   - name: Run tests which are executed within openshift
     command: make check-inside-openshift
     args:
