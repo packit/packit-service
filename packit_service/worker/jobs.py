@@ -95,11 +95,9 @@ class SteveJobs:
         if not package_config:
             # this happens when service receives events for repos which
             # don't have packit config, this is not an error
-            msg = "Failed to obtain package config!"
-            logger.info(msg)
             # success=True - it's not an error that people don't have packit.yaml in their repo
             handlers_results[event.trigger.value] = HandlerResults(
-                success=True, details={"msg": msg}
+                success=True, details={"msg": "No packit config in repo"}
             )
             return handlers_results
 

@@ -148,10 +148,12 @@ class ReleaseEvent(AbstractGithubEvent):
         self.repo_name = repo_name
         self.tag_name = tag_name
 
-    def get_package_config(self):
+    def get_package_config(self) -> Optional[PackageConfig]:
         package_config: PackageConfig = get_package_config_from_repo(
             self.get_project(), self.tag_name
         )
+        if not package_config:
+            return None
         package_config.upstream_project_url = self.project_url
         return package_config
 
@@ -189,10 +191,6 @@ class PullRequestEvent(AbstractGithubEvent):
             self.get_project(), self.base_ref
         )
         if not package_config:
-            logger.info(
-                f"no packit config found for "
-                f"{self.base_repo_namespace}/{self.base_repo_name}, #{self.pr_id}"
-            )
             return None
         package_config.upstream_project_url = self.project_url
         return package_config
@@ -235,10 +233,6 @@ class PullRequestCommentEvent(AbstractGithubEvent):
             self.get_project(), self.base_ref
         )
         if not package_config:
-            logger.info(
-                f"no packit config found for "
-                f"{self.base_repo_namespace}/{self.base_repo_name}, #{self.pr_id}"
-            )
             return None
         package_config.upstream_project_url = self.project_url
         return package_config
@@ -285,10 +279,6 @@ class IssueCommentEvent(AbstractGithubEvent):
             self.get_project(), self.tag_name
         )
         if not package_config:
-            logger.info(
-                f"no packit config found for "
-                f"{self.base_repo_namespace}/{self.base_repo_name}, #{self.issue_id}"
-            )
             return None
         package_config.upstream_project_url = self.project_url
         return package_config
@@ -399,6 +389,8 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         package_config: PackageConfig = get_package_config_from_repo(
             self.get_project(), self.ref
         )
+        if not package_config:
+            return None
         package_config.upstream_project_url = self.project_url
         return package_config
 
@@ -465,12 +457,12 @@ class CoprBuildEvent(AbstractGithubEvent):
 
     def get_package_config(self) -> Optional[PackageConfig]:
         project = self.get_project()
-
-        if project:
-            package_config: PackageConfig = get_package_config_from_repo(
-                project, self.ref
-            )
-            package_config.upstream_project_url = self.project_url
-            return package_config
-        else:
+        if not project:
             return None
+
+        package_config: PackageConfig = get_package_config_from_repo(project, self.ref)
+        if not package_config:
+            return None
+
+        package_config.upstream_project_url = self.project_url
+        return package_config
