@@ -12,6 +12,7 @@
     copy:
       src: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/packit-service/deployment'].src_dir }}/secrets"
       dest: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/secrets"
+      remote_src: yes
   - name: Run tests which are executed within openshift
     command: make check-inside-openshift
     args:
