@@ -363,10 +363,10 @@ class Parser:
         """ this corresponds to testing farm results event """
         pipeline_id: str = nested_get(event, "pipeline", "id")
         if pipeline_id:
-            result: TestingFarmResult = TestingFarmResult(nested_get(event, "result"))
+            result: TestingFarmResult = TestingFarmResult(event.get("result"))
             environment: str = nested_get(event, "environment", "image")
-            message: str = nested_get(event, "message")
-            log_url: str = nested_get(event, "url")
+            message: str = event.get("message")
+            log_url: str = event.get("url")
             copr_repo_name: str = nested_get(event, "artifact", "copr-repo-name")
             copr_chroot: str = nested_get(event, "artifact", "copr-chroot")
             repo_name: str = nested_get(event, "artifact", "repo-name")
@@ -411,10 +411,10 @@ class Parser:
         logger.info(f"Copr build event, topic: {topic}")
 
         build_id = event.get("build")
-        chroot = nested_get(event, "chroot")
-        status = nested_get(event, "status")
-        owner = nested_get(event, "owner")
-        project_name = nested_get(event, "copr")
+        chroot = event.get("chroot")
+        status = event.get("status")
+        owner = event.get("owner")
+        project_name = event.get("copr")
 
         return CoprBuildEvent.from_build_id(
             topic, build_id, chroot, status, owner, project_name
