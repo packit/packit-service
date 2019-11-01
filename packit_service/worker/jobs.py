@@ -110,23 +110,23 @@ class SteveJobs:
                     logger.warning(f"There is no handler for job {job}")
                     continue
 
+                # check whitelist approval for every job to be able to track down which jobs
+                # failed because of missing whitelist approval
+                whitelist = Whitelist()
+                if not whitelist.check_and_report(event, event.get_project()):
+                    handlers_results[job.job.value] = HandlerResults(
+                        success=False, details={"msg": "Account is not whitelisted!"}
+                    )
+                    return handlers_results
+
+                logger.debug(f"Running handler: {str(handler_kls)}")
                 handler = handler_kls(self.config, job, event)
                 try:
-                    # check whitelist approval for every job to be able to track down which jobs
-                    # failed because of missing whitelist approval
-                    whitelist = Whitelist()
-                    if not whitelist.check_and_report(event, event.get_project()):
-                        handlers_results[job.job.value] = HandlerResults(
-                            success=False,
-                            details={"msg": "Account is not whitelisted!"},
-                        )
-                        return handlers_results
-
-                    logger.debug(f"Running handler: {str(handler_kls)}")
                     handlers_results[job.job.value] = handler.run()
                     # don't break here, other handlers may react to the same event
                 finally:
                     handler.clean()
+
         return handlers_results
 
     def process_comment_jobs(
@@ -169,21 +169,19 @@ class SteveJobs:
                 success=True, details={"msg": f"{msg} is not a packit-service command."}
             )
 
-        handler = handler_kls(self.config, event)
+        # check whitelist approval for every job to be able to track down which jobs
+        # failed because of missing whitelist approval
+        whitelist = Whitelist()
+        if not whitelist.check_and_report(event, event.get_project()):
+            return HandlerResults(
+                success=True, details={"msg": "Account is not whitelisted!"}
+            )
 
+        handler = handler_kls(self.config, event)
         try:
-            # check whitelist approval for every job to be able to track down which jobs
-            # failed because of missing whitelist approval
-            whitelist = Whitelist()
-            if not whitelist.check_and_report(event, event.get_project()):
-                handlers_results = HandlerResults(
-                    success=True, details={"msg": "Account is not whitelisted!"}
-                )
-                return handlers_results
-            handlers_results = handler.run()
+            return handler.run()
         finally:
             handler.clean()
-        return handlers_results
 
     def process_message(self, event: dict, topic: str = None) -> Optional[dict]:
         """
@@ -229,8 +227,9 @@ class SteveJobs:
                 CoprBuildEndHandler,
                 CoprBuildStartHandler,
             ] = GithubAppInstallationHandler(self.config, None, event_object)
+            job_type = JobType.add_to_whitelist.value
             try:
-                jobs_results[JobType.add_to_whitelist.value] = handler.run()
+                jobs_results[job_type] = handler.run()
             finally:
                 handler.clean()
         # Results from testing farm is another job which is not defined in packit.yaml so
@@ -239,8 +238,9 @@ class SteveJobs:
             event_object, TestingFarmResultsEvent
         ):
             handler = TestingFarmResultsHandler(self.config, None, event_object)
+            job_type = JobType.report_test_results.value
             try:
-                jobs_results[JobType.report_test_results.value] = handler.run()
+                jobs_results[job_type] = handler.run()
             finally:
                 handler.clean()
         elif isinstance(event_object, CoprBuildEvent):
@@ -259,9 +259,8 @@ class SteveJobs:
         elif event_object.trigger == JobTriggerType.comment and (
             isinstance(event_object, (PullRequestCommentEvent, IssueCommentEvent))
         ):
-            jobs_results[JobType.pull_request_action.value] = self.process_comment_jobs(
-                event_object
-            )
+            job_type = JobType.pull_request_action.value
+            jobs_results[job_type] = self.process_comment_jobs(event_object)
         else:
             # What other handlers are we talking about here?
             jobs_results = self.process_jobs(event_object)
