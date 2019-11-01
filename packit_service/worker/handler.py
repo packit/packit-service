@@ -133,21 +133,11 @@ class HandlerResults(dict):
         super().__init__(self, success=success, details=details or {})
 
 
-class JobHandler:
-    """ Generic interface to handle different type of inputs """
-
-    name: JobType
-    triggers: List[JobTriggerType]
-
-    def __init__(self, config: ServiceConfig, job: JobConfig, event: Event):
+class Handler:
+    def __init__(self, config: ServiceConfig):
         self.config: ServiceConfig = config
-        self.job: JobConfig = job
-        self.event = event
-
         self.api: Optional[PackitAPI] = None
         self.local_project: Optional[PackitAPI] = None
-
-        self._clean_workplace()
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")
@@ -186,3 +176,19 @@ class JobHandler:
         if self.api:
             self.api.clean()
         self._clean_workplace()
+
+
+class JobHandler(Handler):
+    """ Generic interface to handle different type of inputs """
+
+    name: JobType
+    triggers: List[JobTriggerType]
+
+    def __init__(self, config: ServiceConfig, job: JobConfig, event: Event):
+        super().__init__(config)
+        self.job: JobConfig = job
+        self.event = event
+        self._clean_workplace()
+
+    def run(self) -> HandlerResults:
+        raise NotImplementedError("This should have been implemented.")

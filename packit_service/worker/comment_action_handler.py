@@ -26,15 +26,11 @@ This file defines classes for issue comments which are sent by GitHub.
 
 import enum
 import logging
-import shutil
-from pathlib import Path
-from typing import Dict, Type, Optional, Union
-
-from packit.api import PackitAPI
+from typing import Dict, Type, Union
 
 from packit_service.config import ServiceConfig
 from packit_service.service.events import PullRequestCommentEvent, IssueCommentEvent
-from packit_service.worker.handler import HandlerResults
+from packit_service.worker.handler import HandlerResults, Handler
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +49,7 @@ def add_to_comment_action_mapping(kls: Type["CommentActionHandler"]):
     return kls
 
 
-class CommentActionHandler:
+class CommentActionHandler(Handler):
     name: CommentAction
 
     def __init__(
@@ -61,45 +57,8 @@ class CommentActionHandler:
         config: ServiceConfig,
         event: Union[PullRequestCommentEvent, IssueCommentEvent],
     ):
-        self.config: ServiceConfig = config
+        super().__init__(config)
         self.event: Union[PullRequestCommentEvent, IssueCommentEvent] = event
-        self.api: Optional[PackitAPI] = None
-        self.local_project: Optional[PackitAPI] = None
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")
-
-    def run_n_clean(self) -> HandlerResults:
-        try:
-            return self.run()
-        finally:
-            self.clean()
-
-    def _clean_workplace(self):
-        logger.debug("removing contents of the PV")
-        p = Path(self.config.command_handler_work_dir)
-        # Do not clean dir if does not exist
-        if not p.is_dir():
-            logger.debug(
-                f"Directory {self.config.command_handler_work_dir} does not exist."
-            )
-            return
-
-        # remove everything in the volume, but not the volume dir
-        dir_items = list(p.iterdir())
-        if dir_items:
-            logger.info("volume is not empty")
-            logger.debug("content: %s" % [g.name for g in dir_items])
-        for item in dir_items:
-            # symlink pointing to a dir is also a dir and a symlink
-            if item.is_symlink() or item.is_file():
-                item.unlink()
-            else:
-                shutil.rmtree(item)
-
-    def clean(self):
-        """ clean up the mess once we're done """
-        logger.info("cleaning up the mess")
-        if self.api:
-            self.api.clean()
-        self._clean_workplace()
