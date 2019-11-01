@@ -121,11 +121,8 @@ class SteveJobs:
 
                 logger.debug(f"Running handler: {str(handler_kls)}")
                 handler = handler_kls(self.config, job, event)
-                try:
-                    handlers_results[job.job.value] = handler.run()
-                    # don't break here, other handlers may react to the same event
-                finally:
-                    handler.clean()
+                handlers_results[job.job.value] = handler.run_n_clean()
+                # don't break here, other handlers may react to the same event
 
         return handlers_results
 
@@ -177,11 +174,7 @@ class SteveJobs:
                 success=True, details={"msg": "Account is not whitelisted!"}
             )
 
-        handler = handler_kls(self.config, event)
-        try:
-            return handler.run()
-        finally:
-            handler.clean()
+        return handler_kls(self.config, event).run_n_clean()
 
     def process_message(self, event: dict, topic: str = None) -> Optional[dict]:
         """
@@ -228,10 +221,7 @@ class SteveJobs:
                 CoprBuildStartHandler,
             ] = GithubAppInstallationHandler(self.config, None, event_object)
             job_type = JobType.add_to_whitelist.value
-            try:
-                jobs_results[job_type] = handler.run()
-            finally:
-                handler.clean()
+            jobs_results[job_type] = handler.run_n_clean()
         # Results from testing farm is another job which is not defined in packit.yaml so
         # it needs to be handled outside process_jobs method
         elif event_object.trigger == JobTriggerType.testing_farm_results and isinstance(
@@ -239,10 +229,7 @@ class SteveJobs:
         ):
             handler = TestingFarmResultsHandler(self.config, None, event_object)
             job_type = JobType.report_test_results.value
-            try:
-                jobs_results[job_type] = handler.run()
-            finally:
-                handler.clean()
+            jobs_results[job_type] = handler.run_n_clean()
         elif isinstance(event_object, CoprBuildEvent):
             if event_object.topic == FedmsgTopic.copr_build_started:
                 handler = CoprBuildStartHandler(self.config, None, event_object)
@@ -252,10 +239,7 @@ class SteveJobs:
                 job_type = JobType.copr_build_finished.value
             else:
                 raise ValueError(f"Unknown topic {event_object.topic}")
-            try:
-                jobs_results[job_type] = handler.run()
-            finally:
-                handler.clean()
+            jobs_results[job_type] = handler.run_n_clean()
         elif event_object.trigger == JobTriggerType.comment and (
             isinstance(event_object, (PullRequestCommentEvent, IssueCommentEvent))
         ):

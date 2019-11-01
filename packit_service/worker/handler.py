@@ -152,6 +152,12 @@ class JobHandler:
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")
 
+    def run_n_clean(self) -> HandlerResults:
+        try:
+            return self.run()
+        finally:
+            self.clean()
+
     def _clean_workplace(self):
         logger.debug("removing contents of the PV")
         p = Path(self.config.command_handler_work_dir)
