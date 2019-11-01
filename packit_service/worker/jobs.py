@@ -233,13 +233,6 @@ class SteveJobs:
                 jobs_results[JobType.add_to_whitelist.value] = handler.run()
             finally:
                 handler.clean()
-        elif event_object.trigger == JobTriggerType.comment and (
-            isinstance(event_object, PullRequestCommentEvent)
-            or isinstance(event_object, IssueCommentEvent)
-        ):
-            jobs_results[JobType.pull_request_action.value] = self.process_comment_jobs(
-                event_object
-            )
         # Results from testing farm is another job which is not defined in packit.yaml so
         # it needs to be handled outside process_jobs method
         elif event_object.trigger == JobTriggerType.testing_farm_results and isinstance(
@@ -250,18 +243,27 @@ class SteveJobs:
                 jobs_results[JobType.report_test_results.value] = handler.run()
             finally:
                 handler.clean()
-
         elif isinstance(event_object, CoprBuildEvent):
-            handler = CoprBuildEndHandler(self.config, None, event_object)
-            job_type = JobType.copr_build_finished.value
             if event_object.topic == FedmsgTopic.copr_build_started:
                 handler = CoprBuildStartHandler(self.config, None, event_object)
                 job_type = JobType.copr_build_started.value
+            elif event_object.topic == FedmsgTopic.copr_build_finished:
+                handler = CoprBuildEndHandler(self.config, None, event_object)
+                job_type = JobType.copr_build_finished.value
+            else:
+                raise ValueError(f"Unknown topic {event_object.topic}")
             try:
                 jobs_results[job_type] = handler.run()
             finally:
                 handler.clean()
+        elif event_object.trigger == JobTriggerType.comment and (
+            isinstance(event_object, (PullRequestCommentEvent, IssueCommentEvent))
+        ):
+            jobs_results[JobType.pull_request_action.value] = self.process_comment_jobs(
+                event_object
+            )
         else:
+            # What other handlers are we talking about here?
             jobs_results = self.process_jobs(event_object)
 
         logger.debug("All jobs finished!")
