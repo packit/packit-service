@@ -215,57 +215,56 @@ class SteveJobs:
         except NotImplementedError:
             logger.warning("Cannot obtain project from this event!")
             logger.warning("Skipping private repository check!")
+        if is_private_repository:
+            logger.info("We do not interact with private repositories!")
+            return None
 
         jobs_results: Dict[str, HandlerResults] = {}
-        if is_private_repository:
-            logger.error("We do not interact with private repositories!")
+        # installation is handled differently b/c app is installed to GitHub account
+        # not repository, so package config with jobs is missing
+        if event_object.trigger == JobTriggerType.installation:
+            handler: Union[
+                GithubAppInstallationHandler,
+                TestingFarmResultsHandler,
+                CoprBuildEndHandler,
+                CoprBuildStartHandler,
+            ] = GithubAppInstallationHandler(self.config, None, event_object)
+            try:
+                jobs_results[JobType.add_to_whitelist.value] = handler.run()
+            finally:
+                handler.clean()
+        elif event_object.trigger == JobTriggerType.comment and (
+            isinstance(event_object, PullRequestCommentEvent)
+            or isinstance(event_object, IssueCommentEvent)
+        ):
+            jobs_results[JobType.pull_request_action.value] = self.process_comment_jobs(
+                event_object
+            )
+        # Results from testing farm is another job which is not defined in packit.yaml so
+        # it needs to be handled outside process_jobs method
+        elif event_object.trigger == JobTriggerType.testing_farm_results and isinstance(
+            event_object, TestingFarmResultsEvent
+        ):
+            handler = TestingFarmResultsHandler(self.config, None, event_object)
+            try:
+                jobs_results[JobType.report_test_results.value] = handler.run()
+            finally:
+                handler.clean()
+
+        elif isinstance(event_object, CoprBuildEvent):
+            handler = CoprBuildEndHandler(self.config, None, event_object)
+            job_type = JobType.copr_build_finished.value
+            if event_object.topic == FedmsgTopic.copr_build_started:
+                handler = CoprBuildStartHandler(self.config, None, event_object)
+                job_type = JobType.copr_build_started.value
+            try:
+                jobs_results[job_type] = handler.run()
+            finally:
+                handler.clean()
         else:
-            # installation is handled differently b/c app is installed to GitHub account
-            # not repository, so package config with jobs is missing
-            if event_object.trigger == JobTriggerType.installation:
-                handler: Union[
-                    GithubAppInstallationHandler,
-                    TestingFarmResultsHandler,
-                    CoprBuildEndHandler,
-                    CoprBuildStartHandler,
-                ] = GithubAppInstallationHandler(self.config, None, event_object)
-                try:
-                    jobs_results[JobType.add_to_whitelist.value] = handler.run()
-                finally:
-                    handler.clean()
-            elif event_object.trigger == JobTriggerType.comment and (
-                isinstance(event_object, PullRequestCommentEvent)
-                or isinstance(event_object, IssueCommentEvent)
-            ):
-                jobs_results[
-                    JobType.pull_request_action.value
-                ] = self.process_comment_jobs(event_object)
-            # Results from testing farm is another job which is not defined in packit.yaml so
-            # it needs to be handled outside process_jobs method
-            elif (
-                event_object.trigger == JobTriggerType.testing_farm_results
-                and isinstance(event_object, TestingFarmResultsEvent)
-            ):
-                handler = TestingFarmResultsHandler(self.config, None, event_object)
-                try:
-                    jobs_results[JobType.report_test_results.value] = handler.run()
-                finally:
-                    handler.clean()
+            jobs_results = self.process_jobs(event_object)
 
-            elif isinstance(event_object, CoprBuildEvent):
-                handler = CoprBuildEndHandler(self.config, None, event_object)
-                job_type = JobType.copr_build_finished.value
-                if event_object.topic == FedmsgTopic.copr_build_started:
-                    handler = CoprBuildStartHandler(self.config, None, event_object)
-                    job_type = JobType.copr_build_started.value
-                try:
-                    jobs_results[job_type] = handler.run()
-                finally:
-                    handler.clean()
-            else:
-                jobs_results = self.process_jobs(event_object)
-
-            logger.debug("All jobs finished!")
+        logger.debug("All jobs finished!")
 
         task_results = {"jobs": jobs_results, "event": event_object.get_dict()}
 
