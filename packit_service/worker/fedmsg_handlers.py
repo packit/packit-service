@@ -145,7 +145,7 @@ class CoprBuildEndHandler(FedmsgHandler):
 
     def was_last_build_successful(self):
         """
-        Check if the last copr build of the PR was succesful
+        Check if the last copr build of the PR was successful
         :return: bool
         """
         comments = self.project.get_pr_comments(pr_id=self.event.pr_id, reverse=True)
@@ -158,15 +158,12 @@ class CoprBuildEndHandler(FedmsgHandler):
         return False
 
     def run(self):
-        # get copr build from db
-        db = CoprBuildDB()
-        build = db.get_build(self.event.build_id)
-
+        build = CoprBuildDB().get_build(self.event.build_id)
         if not build:
-            logger.warning(
-                f"Build: {self.event.build_id} is not handled by packit service!"
-            )
-            return
+            # TODO: how could this happen?
+            msg = f"Copr build {self.event.build_id} not in CoprBuildDB"
+            logger.warning(msg)
+            return HandlerResults(success=False, details={"msg": msg})
 
         r = BuildStatusReporter(self.event.get_project(), build["commit_sha"])
         url = (
@@ -245,15 +242,12 @@ class CoprBuildStartHandler(FedmsgHandler):
         self.package_config = self.event.get_package_config()
 
     def run(self):
-        # get copr build from db
-        db = CoprBuildDB()
-        build = db.get_build(self.event.build_id)
-
+        build = CoprBuildDB().get_build(self.event.build_id)
         if not build:
-            logger.warning(
-                f"Build: {self.event.build_id} is not handled by packit service!"
-            )
-            return
+            # TODO: how could this happen?
+            msg = f"Copr build {self.event.build_id} not in CoprBuildDB"
+            logger.warning(msg)
+            return HandlerResults(success=False, details={"msg": msg})
 
         r = BuildStatusReporter(self.event.get_project(), build["commit_sha"])
         url = (
