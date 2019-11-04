@@ -210,16 +210,17 @@ class SteveJobs:
             logger.info("We do not interact with private repositories!")
             return None
 
+        handler: Union[
+            GithubAppInstallationHandler,
+            TestingFarmResultsHandler,
+            CoprBuildStartHandler,
+            CoprBuildEndHandler,
+        ]
         jobs_results: Dict[str, HandlerResults] = {}
         # installation is handled differently b/c app is installed to GitHub account
         # not repository, so package config with jobs is missing
         if event_object.trigger == JobTriggerType.installation:
-            handler: Union[
-                GithubAppInstallationHandler,
-                TestingFarmResultsHandler,
-                CoprBuildEndHandler,
-                CoprBuildStartHandler,
-            ] = GithubAppInstallationHandler(self.config, None, event_object)
+            handler = GithubAppInstallationHandler(self.config, None, event_object)
             job_type = JobType.add_to_whitelist.value
             jobs_results[job_type] = handler.run_n_clean()
         # Results from testing farm is another job which is not defined in packit.yaml so
