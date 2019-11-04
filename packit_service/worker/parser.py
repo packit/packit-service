@@ -262,7 +262,10 @@ class Parser:
         if not nested_get(event, "installation", "account"):
             return None
 
-        action = event["action"]  # added/created or removed/deleted or updated
+        action = event["action"]
+        if action not in {"created", "added"}:
+            # We're currently not interested in removed/deleted/updated event.
+            return None
         installation_id = event["installation"]["id"]
         # if action == 'created' then repos are in repositories
         # if action == 'added' then repos are in repositories_added
