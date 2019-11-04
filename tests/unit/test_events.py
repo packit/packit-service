@@ -55,8 +55,9 @@ from tests.spellbook import DATA_DIR
 
 class TestEvents:
     @pytest.fixture()
-    def installation(self):
-        with open(DATA_DIR / "webhooks" / "installation.json", "r") as outfile:
+    def installation(self, request):
+        file = f"installation_{request.param}.json"
+        with open(DATA_DIR / "webhooks" / file) as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -117,6 +118,8 @@ class TestEvents:
             flexmock(ServiceConfig)
         )
 
+    # https://stackoverflow.com/questions/35413134/what-does-indirect-true-false-in-pytest-mark-parametrize-do-mean
+    @pytest.mark.parametrize("installation", ["added", "created"], indirect=True)
     def test_parse_installation(self, installation):
         event_object = Parser.parse_event(installation)
 
@@ -131,6 +134,7 @@ class TestEvents:
         assert event_object.sender_login == "jpopelka"
         assert event_object.sender_id == 288686
         assert event_object.status == WhitelistStatus.waiting
+        assert event_object.repositories == ["jpopelka/brewutils"]
 
     def test_parse_release(self, release):
         event_object = Parser.parse_event(release)
