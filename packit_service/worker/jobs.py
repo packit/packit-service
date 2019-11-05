@@ -110,23 +110,20 @@ class SteveJobs:
                     logger.warning(f"There is no handler for job {job}")
                     continue
 
-                handler = handler_kls(self.config, job, event)
-                try:
-                    # check whitelist approval for every job to be able to track down which jobs
-                    # failed because of missing whitelist approval
-                    whitelist = Whitelist()
-                    if not whitelist.check_and_report(event, event.get_project()):
-                        handlers_results[job.job.value] = HandlerResults(
-                            success=False,
-                            details={"msg": "Account is not whitelisted!"},
-                        )
-                        return handlers_results
+                # check whitelist approval for every job to be able to track down which jobs
+                # failed because of missing whitelist approval
+                whitelist = Whitelist()
+                if not whitelist.check_and_report(event, event.get_project()):
+                    handlers_results[job.job.value] = HandlerResults(
+                        success=False, details={"msg": "Account is not whitelisted!"}
+                    )
+                    return handlers_results
 
-                    logger.debug(f"Running handler: {str(handler_kls)}")
-                    handlers_results[job.job.value] = handler.run()
-                    # don't break here, other handlers may react to the same event
-                finally:
-                    handler.clean()
+                logger.debug(f"Running handler: {str(handler_kls)}")
+                handler = handler_kls(self.config, job, event)
+                handlers_results[job.job.value] = handler.run_n_clean()
+                # don't break here, other handlers may react to the same event
+
         return handlers_results
 
     def process_comment_jobs(
@@ -169,21 +166,15 @@ class SteveJobs:
                 success=True, details={"msg": f"{msg} is not a packit-service command."}
             )
 
-        handler = handler_kls(self.config, event)
+        # check whitelist approval for every job to be able to track down which jobs
+        # failed because of missing whitelist approval
+        whitelist = Whitelist()
+        if not whitelist.check_and_report(event, event.get_project()):
+            return HandlerResults(
+                success=True, details={"msg": "Account is not whitelisted!"}
+            )
 
-        try:
-            # check whitelist approval for every job to be able to track down which jobs
-            # failed because of missing whitelist approval
-            whitelist = Whitelist()
-            if not whitelist.check_and_report(event, event.get_project()):
-                handlers_results = HandlerResults(
-                    success=True, details={"msg": "Account is not whitelisted!"}
-                )
-                return handlers_results
-            handlers_results = handler.run()
-        finally:
-            handler.clean()
-        return handlers_results
+        return handler_kls(self.config, event).run_n_clean()
 
     def process_message(self, event: dict, topic: str = None) -> Optional[dict]:
         """
@@ -215,57 +206,51 @@ class SteveJobs:
         except NotImplementedError:
             logger.warning("Cannot obtain project from this event!")
             logger.warning("Skipping private repository check!")
-
-        jobs_results: Dict[str, HandlerResults] = {}
         if is_private_repository:
-            logger.error("We do not interact with private repositories!")
-        else:
-            # installation is handled differently b/c app is installed to GitHub account
-            # not repository, so package config with jobs is missing
-            if event_object.trigger == JobTriggerType.installation:
-                handler: Union[
-                    GithubAppInstallationHandler,
-                    TestingFarmResultsHandler,
-                    CoprBuildEndHandler,
-                    CoprBuildStartHandler,
-                ] = GithubAppInstallationHandler(self.config, None, event_object)
-                try:
-                    jobs_results[JobType.add_to_whitelist.value] = handler.run()
-                finally:
-                    handler.clean()
-            elif event_object.trigger == JobTriggerType.comment and (
-                isinstance(event_object, PullRequestCommentEvent)
-                or isinstance(event_object, IssueCommentEvent)
-            ):
-                jobs_results[
-                    JobType.pull_request_action.value
-                ] = self.process_comment_jobs(event_object)
-            # Results from testing farm is another job which is not defined in packit.yaml so
-            # it needs to be handled outside process_jobs method
-            elif (
-                event_object.trigger == JobTriggerType.testing_farm_results
-                and isinstance(event_object, TestingFarmResultsEvent)
-            ):
-                handler = TestingFarmResultsHandler(self.config, None, event_object)
-                try:
-                    jobs_results[JobType.report_test_results.value] = handler.run()
-                finally:
-                    handler.clean()
+            logger.info("We do not interact with private repositories!")
+            return None
 
-            elif isinstance(event_object, CoprBuildEvent):
+        handler: Union[
+            GithubAppInstallationHandler,
+            TestingFarmResultsHandler,
+            CoprBuildStartHandler,
+            CoprBuildEndHandler,
+        ]
+        jobs_results: Dict[str, HandlerResults] = {}
+        # installation is handled differently b/c app is installed to GitHub account
+        # not repository, so package config with jobs is missing
+        if event_object.trigger == JobTriggerType.installation:
+            handler = GithubAppInstallationHandler(self.config, None, event_object)
+            job_type = JobType.add_to_whitelist.value
+            jobs_results[job_type] = handler.run_n_clean()
+        # Results from testing farm is another job which is not defined in packit.yaml so
+        # it needs to be handled outside process_jobs method
+        elif event_object.trigger == JobTriggerType.testing_farm_results and isinstance(
+            event_object, TestingFarmResultsEvent
+        ):
+            handler = TestingFarmResultsHandler(self.config, None, event_object)
+            job_type = JobType.report_test_results.value
+            jobs_results[job_type] = handler.run_n_clean()
+        elif isinstance(event_object, CoprBuildEvent):
+            if event_object.topic == FedmsgTopic.copr_build_started:
+                handler = CoprBuildStartHandler(self.config, None, event_object)
+                job_type = JobType.copr_build_started.value
+            elif event_object.topic == FedmsgTopic.copr_build_finished:
                 handler = CoprBuildEndHandler(self.config, None, event_object)
                 job_type = JobType.copr_build_finished.value
-                if event_object.topic == FedmsgTopic.copr_build_started:
-                    handler = CoprBuildStartHandler(self.config, None, event_object)
-                    job_type = JobType.copr_build_started.value
-                try:
-                    jobs_results[job_type] = handler.run()
-                finally:
-                    handler.clean()
             else:
-                jobs_results = self.process_jobs(event_object)
+                raise ValueError(f"Unknown topic {event_object.topic}")
+            jobs_results[job_type] = handler.run_n_clean()
+        elif event_object.trigger == JobTriggerType.comment and (
+            isinstance(event_object, (PullRequestCommentEvent, IssueCommentEvent))
+        ):
+            job_type = JobType.pull_request_action.value
+            jobs_results[job_type] = self.process_comment_jobs(event_object)
+        else:
+            # What other handlers are we talking about here?
+            jobs_results = self.process_jobs(event_object)
 
-            logger.debug("All jobs finished!")
+        logger.debug("All jobs finished!")
 
         task_results = {"jobs": jobs_results, "event": event_object.get_dict()}
 
