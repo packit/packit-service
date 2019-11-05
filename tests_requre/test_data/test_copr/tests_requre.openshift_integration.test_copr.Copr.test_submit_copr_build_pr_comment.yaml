@@ -1,0 +1,2530 @@
+_requre:
+  version_storage_file: 2
+unittest.case:
+  tests_requre.openshift_integration.test_copr:
+    packit_service.worker.jobs:
+      ogr.services.github.project:
+        github.MainClass:
+          github.Requester:
+            requests.sessions:
+              requre.objects:
+                requests.sessions:
+                  send:
+                  - metadata:
+                      latency: 0.4390261173248291
+                    output:
+                      __store_indicator: 2
+                      _content:
+                        archive_url: https://api.github.com/repos/packit-service/hello-world/{archive_format}{/ref}
+                        archived: false
+                        assignees_url: https://api.github.com/repos/packit-service/hello-world/assignees{/user}
+                        blobs_url: https://api.github.com/repos/packit-service/hello-world/git/blobs{/sha}
+                        branches_url: https://api.github.com/repos/packit-service/hello-world/branches{/branch}
+                        clone_url: https://github.com/packit-service/hello-world.git
+                        collaborators_url: https://api.github.com/repos/packit-service/hello-world/collaborators{/collaborator}
+                        comments_url: https://api.github.com/repos/packit-service/hello-world/comments{/number}
+                        commits_url: https://api.github.com/repos/packit-service/hello-world/commits{/sha}
+                        compare_url: https://api.github.com/repos/packit-service/hello-world/compare/{base}...{head}
+                        contents_url: https://api.github.com/repos/packit-service/hello-world/contents/{+path}
+                        contributors_url: https://api.github.com/repos/packit-service/hello-world/contributors
+                        created_at: '2019-05-02T18:54:46Z'
+                        default_branch: master
+                        deployments_url: https://api.github.com/repos/packit-service/hello-world/deployments
+                        description: The most progresive command-line tool in the
+                          world.
+                        disabled: false
+                        downloads_url: https://api.github.com/repos/packit-service/hello-world/downloads
+                        events_url: https://api.github.com/repos/packit-service/hello-world/events
+                        fork: false
+                        forks: 7
+                        forks_count: 7
+                        forks_url: https://api.github.com/repos/packit-service/hello-world/forks
+                        full_name: packit-service/hello-world
+                        git_commits_url: https://api.github.com/repos/packit-service/hello-world/git/commits{/sha}
+                        git_refs_url: https://api.github.com/repos/packit-service/hello-world/git/refs{/sha}
+                        git_tags_url: https://api.github.com/repos/packit-service/hello-world/git/tags{/sha}
+                        git_url: git://github.com/packit-service/hello-world.git
+                        has_downloads: true
+                        has_issues: true
+                        has_pages: false
+                        has_projects: true
+                        has_wiki: true
+                        homepage: null
+                        hooks_url: https://api.github.com/repos/packit-service/hello-world/hooks
+                        html_url: https://github.com/packit-service/hello-world
+                        id: 184635124
+                        issue_comment_url: https://api.github.com/repos/packit-service/hello-world/issues/comments{/number}
+                        issue_events_url: https://api.github.com/repos/packit-service/hello-world/issues/events{/number}
+                        issues_url: https://api.github.com/repos/packit-service/hello-world/issues{/number}
+                        keys_url: https://api.github.com/repos/packit-service/hello-world/keys{/key_id}
+                        labels_url: https://api.github.com/repos/packit-service/hello-world/labels{/name}
+                        language: Python
+                        languages_url: https://api.github.com/repos/packit-service/hello-world/languages
+                        license:
+                          key: mit
+                          name: MIT License
+                          node_id: MDc6TGljZW5zZTEz
+                          spdx_id: MIT
+                          url: https://api.github.com/licenses/mit
+                        merges_url: https://api.github.com/repos/packit-service/hello-world/merges
+                        milestones_url: https://api.github.com/repos/packit-service/hello-world/milestones{/number}
+                        mirror_url: null
+                        name: hello-world
+                        network_count: 7
+                        node_id: MDEwOlJlcG9zaXRvcnkxODQ2MzUxMjQ=
+                        notifications_url: https://api.github.com/repos/packit-service/hello-world/notifications{?since,all,participating}
+                        open_issues: 8
+                        open_issues_count: 8
+                        organization:
+                          avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
+                          events_url: https://api.github.com/users/packit-service/events{/privacy}
+                          followers_url: https://api.github.com/users/packit-service/followers
+                          following_url: https://api.github.com/users/packit-service/following{/other_user}
+                          gists_url: https://api.github.com/users/packit-service/gists{/gist_id}
+                          gravatar_id: ''
+                          html_url: https://github.com/packit-service
+                          id: 46870917
+                          login: packit-service
+                          node_id: MDEyOk9yZ2FuaXphdGlvbjQ2ODcwOTE3
+                          organizations_url: https://api.github.com/users/packit-service/orgs
+                          received_events_url: https://api.github.com/users/packit-service/received_events
+                          repos_url: https://api.github.com/users/packit-service/repos
+                          site_admin: false
+                          starred_url: https://api.github.com/users/packit-service/starred{/owner}{/repo}
+                          subscriptions_url: https://api.github.com/users/packit-service/subscriptions
+                          type: Organization
+                          url: https://api.github.com/users/packit-service
+                        owner:
+                          avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
+                          events_url: https://api.github.com/users/packit-service/events{/privacy}
+                          followers_url: https://api.github.com/users/packit-service/followers
+                          following_url: https://api.github.com/users/packit-service/following{/other_user}
+                          gists_url: https://api.github.com/users/packit-service/gists{/gist_id}
+                          gravatar_id: ''
+                          html_url: https://github.com/packit-service
+                          id: 46870917
+                          login: packit-service
+                          node_id: MDEyOk9yZ2FuaXphdGlvbjQ2ODcwOTE3
+                          organizations_url: https://api.github.com/users/packit-service/orgs
+                          received_events_url: https://api.github.com/users/packit-service/received_events
+                          repos_url: https://api.github.com/users/packit-service/repos
+                          site_admin: false
+                          starred_url: https://api.github.com/users/packit-service/starred{/owner}{/repo}
+                          subscriptions_url: https://api.github.com/users/packit-service/subscriptions
+                          type: Organization
+                          url: https://api.github.com/users/packit-service
+                        permissions:
+                          admin: false
+                          pull: false
+                          push: false
+                        private: false
+                        pulls_url: https://api.github.com/repos/packit-service/hello-world/pulls{/number}
+                        pushed_at: '2019-10-29T15:18:11Z'
+                        releases_url: https://api.github.com/repos/packit-service/hello-world/releases{/id}
+                        size: 15
+                        ssh_url: git@github.com:packit-service/hello-world.git
+                        stargazers_count: 0
+                        stargazers_url: https://api.github.com/repos/packit-service/hello-world/stargazers
+                        statuses_url: https://api.github.com/repos/packit-service/hello-world/statuses/{sha}
+                        subscribers_count: 5
+                        subscribers_url: https://api.github.com/repos/packit-service/hello-world/subscribers
+                        subscription_url: https://api.github.com/repos/packit-service/hello-world/subscription
+                        svn_url: https://github.com/packit-service/hello-world
+                        tags_url: https://api.github.com/repos/packit-service/hello-world/tags
+                        teams_url: https://api.github.com/repos/packit-service/hello-world/teams
+                        trees_url: https://api.github.com/repos/packit-service/hello-world/git/trees{/sha}
+                        updated_at: '2019-10-08T07:32:39Z'
+                        url: https://api.github.com/repos/packit-service/hello-world
+                        watchers: 0
+                        watchers_count: 0
+                      _next: null
+                      elapsed: 0.438664
+                      encoding: utf-8
+                      headers:
+                        Access-Control-Allow-Origin: '*'
+                        Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                          X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                          X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                          X-Poll-Interval, X-GitHub-Media-Type
+                        Cache-Control: private, max-age=60, s-maxage=60
+                        Content-Encoding: gzip
+                        Content-Security-Policy: default-src 'none'
+                        Content-Type: application/json; charset=utf-8
+                        Date: Fri, 01 Nov 2019 13-36-03 GMT
+                        ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                        Last-Modified: Tue, 08 Oct 2019 07:32:39 GMT
+                        Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                        Server: GitHub.com
+                        Status: 200 OK
+                        Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                          preload
+                        Transfer-Encoding: chunked
+                        Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                        X-Content-Type-Options: nosniff
+                        X-Frame-Options: deny
+                        X-GitHub-Media-Type: github.v3; format=json
+                        X-GitHub-Request-Id: DEB8:AA0A:42B041F:503015D:5DBC34C3
+                        X-RateLimit-Limit: '5000'
+                        X-RateLimit-Remaining: '4980'
+                        X-RateLimit-Reset: '1572618953'
+                        X-XSS-Protection: 1; mode=block
+                      raw: !!binary ""
+                      reason: OK
+                      status_code: 200
+          requests.api:
+            requests.sessions:
+              requre.objects:
+                requests.sessions:
+                  send:
+                  - metadata:
+                      latency: 0.5007801055908203
+                    output:
+                      __store_indicator: 2
+                      _content:
+                        expires_at: '2019-11-01T14:36:03Z'
+                        permissions:
+                          contents: read
+                          issues: write
+                          metadata: read
+                          pull_requests: write
+                          statuses: write
+                        repository_selection: selected
+                        token: v1.4d994531f3f29653a8de7d3135dbbf8d8c136fb4
+                      _next: null
+                      elapsed: 0.500324
+                      encoding: utf-8
+                      headers:
+                        Access-Control-Allow-Origin: '*'
+                        Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                          X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                          X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                          X-Poll-Interval, X-GitHub-Media-Type
+                        Cache-Control: public, max-age=60, s-maxage=60
+                        Content-Length: '237'
+                        Content-Security-Policy: default-src 'none'
+                        Content-Type: application/json; charset=utf-8
+                        Date: Fri, 01 Nov 2019 13-36-03 GMT
+                        ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                        Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                        Server: GitHub.com
+                        Status: 201 Created
+                        Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                          preload
+                        Vary: Accept, Accept-Encoding
+                        X-Content-Type-Options: nosniff
+                        X-Frame-Options: deny
+                        X-GitHub-Media-Type: github.machine-man-preview; format=json
+                        X-GitHub-Request-Id: DEB0:AA07:2558E66:2D1B295:5DBC34C3
+                        X-XSS-Protection: 1; mode=block
+                      raw: !!binary ""
+                      reason: Created
+                      status_code: 201
+        ogr.services.github_tweak:
+          requests.api:
+            requests.sessions:
+              requre.objects:
+                requests.sessions:
+                  send:
+                  - metadata:
+                      latency: 0.3903207778930664
+                    output:
+                      __store_indicator: 2
+                      _content:
+                        access_tokens_url: https://api.github.com/app/installations/1924121/access_tokens
+                        account:
+                          avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
+                          events_url: https://api.github.com/users/packit-service/events{/privacy}
+                          followers_url: https://api.github.com/users/packit-service/followers
+                          following_url: https://api.github.com/users/packit-service/following{/other_user}
+                          gists_url: https://api.github.com/users/packit-service/gists{/gist_id}
+                          gravatar_id: ''
+                          html_url: https://github.com/packit-service
+                          id: 46870917
+                          login: packit-service
+                          node_id: MDEyOk9yZ2FuaXphdGlvbjQ2ODcwOTE3
+                          organizations_url: https://api.github.com/users/packit-service/orgs
+                          received_events_url: https://api.github.com/users/packit-service/received_events
+                          repos_url: https://api.github.com/users/packit-service/repos
+                          site_admin: false
+                          starred_url: https://api.github.com/users/packit-service/starred{/owner}{/repo}
+                          subscriptions_url: https://api.github.com/users/packit-service/subscriptions
+                          type: Organization
+                          url: https://api.github.com/users/packit-service
+                        app_id: 29180
+                        created_at: '2019-09-16T07:28:35.000Z'
+                        events:
+                        - issues
+                        - issue_comment
+                        - pull_request
+                        - release
+                        html_url: https://github.com/organizations/packit-service/settings/installations/1924121
+                        id: 1924121
+                        permissions:
+                          contents: read
+                          issues: write
+                          metadata: read
+                          pull_requests: write
+                          statuses: write
+                        repositories_url: https://api.github.com/installation/repositories
+                        repository_selection: selected
+                        single_file_name: null
+                        target_id: 46870917
+                        target_type: Organization
+                        updated_at: '2019-09-16T07:28:36.000Z'
+                      _next: null
+                      elapsed: 0.389428
+                      encoding: utf-8
+                      headers:
+                        Access-Control-Allow-Origin: '*'
+                        Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                          X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                          X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                          X-Poll-Interval, X-GitHub-Media-Type
+                        Cache-Control: public, max-age=60, s-maxage=60
+                        Content-Encoding: gzip
+                        Content-Security-Policy: default-src 'none'
+                        Content-Type: application/json; charset=utf-8
+                        Date: Fri, 01 Nov 2019 13-36-03 GMT
+                        ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                        Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                        Server: GitHub.com
+                        Status: 200 OK
+                        Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                          preload
+                        Transfer-Encoding: chunked
+                        Vary: Accept, Accept-Encoding
+                        X-Content-Type-Options: nosniff
+                        X-Frame-Options: deny
+                        X-GitHub-Media-Type: github.machine-man-preview; format=json
+                        X-GitHub-Request-Id: DEAE:14620:561CE82:67C20CC:5DBC34C2
+                        X-XSS-Protection: 1; mode=block
+                      raw: !!binary ""
+                      reason: OK
+                      status_code: 200
+      packit_service.worker.github_handlers:
+        ogr.services.github.project:
+          github.MainClass:
+            github.Requester:
+              requests.sessions:
+                requre.objects:
+                  requests.sessions:
+                    send:
+                    - metadata:
+                        latency: 0.3675506114959717
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          archive_url: https://api.github.com/repos/packit-service/hello-world/{archive_format}{/ref}
+                          archived: false
+                          assignees_url: https://api.github.com/repos/packit-service/hello-world/assignees{/user}
+                          blobs_url: https://api.github.com/repos/packit-service/hello-world/git/blobs{/sha}
+                          branches_url: https://api.github.com/repos/packit-service/hello-world/branches{/branch}
+                          clone_url: https://github.com/packit-service/hello-world.git
+                          collaborators_url: https://api.github.com/repos/packit-service/hello-world/collaborators{/collaborator}
+                          comments_url: https://api.github.com/repos/packit-service/hello-world/comments{/number}
+                          commits_url: https://api.github.com/repos/packit-service/hello-world/commits{/sha}
+                          compare_url: https://api.github.com/repos/packit-service/hello-world/compare/{base}...{head}
+                          contents_url: https://api.github.com/repos/packit-service/hello-world/contents/{+path}
+                          contributors_url: https://api.github.com/repos/packit-service/hello-world/contributors
+                          created_at: '2019-05-02T18:54:46Z'
+                          default_branch: master
+                          deployments_url: https://api.github.com/repos/packit-service/hello-world/deployments
+                          description: The most progresive command-line tool in the
+                            world.
+                          disabled: false
+                          downloads_url: https://api.github.com/repos/packit-service/hello-world/downloads
+                          events_url: https://api.github.com/repos/packit-service/hello-world/events
+                          fork: false
+                          forks: 7
+                          forks_count: 7
+                          forks_url: https://api.github.com/repos/packit-service/hello-world/forks
+                          full_name: packit-service/hello-world
+                          git_commits_url: https://api.github.com/repos/packit-service/hello-world/git/commits{/sha}
+                          git_refs_url: https://api.github.com/repos/packit-service/hello-world/git/refs{/sha}
+                          git_tags_url: https://api.github.com/repos/packit-service/hello-world/git/tags{/sha}
+                          git_url: git://github.com/packit-service/hello-world.git
+                          has_downloads: true
+                          has_issues: true
+                          has_pages: false
+                          has_projects: true
+                          has_wiki: true
+                          homepage: null
+                          hooks_url: https://api.github.com/repos/packit-service/hello-world/hooks
+                          html_url: https://github.com/packit-service/hello-world
+                          id: 184635124
+                          issue_comment_url: https://api.github.com/repos/packit-service/hello-world/issues/comments{/number}
+                          issue_events_url: https://api.github.com/repos/packit-service/hello-world/issues/events{/number}
+                          issues_url: https://api.github.com/repos/packit-service/hello-world/issues{/number}
+                          keys_url: https://api.github.com/repos/packit-service/hello-world/keys{/key_id}
+                          labels_url: https://api.github.com/repos/packit-service/hello-world/labels{/name}
+                          language: Python
+                          languages_url: https://api.github.com/repos/packit-service/hello-world/languages
+                          license:
+                            key: mit
+                            name: MIT License
+                            node_id: MDc6TGljZW5zZTEz
+                            spdx_id: MIT
+                            url: https://api.github.com/licenses/mit
+                          merges_url: https://api.github.com/repos/packit-service/hello-world/merges
+                          milestones_url: https://api.github.com/repos/packit-service/hello-world/milestones{/number}
+                          mirror_url: null
+                          name: hello-world
+                          network_count: 7
+                          node_id: MDEwOlJlcG9zaXRvcnkxODQ2MzUxMjQ=
+                          notifications_url: https://api.github.com/repos/packit-service/hello-world/notifications{?since,all,participating}
+                          open_issues: 8
+                          open_issues_count: 8
+                          organization:
+                            avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
+                            events_url: https://api.github.com/users/packit-service/events{/privacy}
+                            followers_url: https://api.github.com/users/packit-service/followers
+                            following_url: https://api.github.com/users/packit-service/following{/other_user}
+                            gists_url: https://api.github.com/users/packit-service/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/packit-service
+                            id: 46870917
+                            login: packit-service
+                            node_id: MDEyOk9yZ2FuaXphdGlvbjQ2ODcwOTE3
+                            organizations_url: https://api.github.com/users/packit-service/orgs
+                            received_events_url: https://api.github.com/users/packit-service/received_events
+                            repos_url: https://api.github.com/users/packit-service/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/packit-service/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/packit-service/subscriptions
+                            type: Organization
+                            url: https://api.github.com/users/packit-service
+                          owner:
+                            avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
+                            events_url: https://api.github.com/users/packit-service/events{/privacy}
+                            followers_url: https://api.github.com/users/packit-service/followers
+                            following_url: https://api.github.com/users/packit-service/following{/other_user}
+                            gists_url: https://api.github.com/users/packit-service/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/packit-service
+                            id: 46870917
+                            login: packit-service
+                            node_id: MDEyOk9yZ2FuaXphdGlvbjQ2ODcwOTE3
+                            organizations_url: https://api.github.com/users/packit-service/orgs
+                            received_events_url: https://api.github.com/users/packit-service/received_events
+                            repos_url: https://api.github.com/users/packit-service/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/packit-service/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/packit-service/subscriptions
+                            type: Organization
+                            url: https://api.github.com/users/packit-service
+                          permissions:
+                            admin: false
+                            pull: false
+                            push: false
+                          private: false
+                          pulls_url: https://api.github.com/repos/packit-service/hello-world/pulls{/number}
+                          pushed_at: '2019-10-29T15:18:11Z'
+                          releases_url: https://api.github.com/repos/packit-service/hello-world/releases{/id}
+                          size: 15
+                          ssh_url: git@github.com:packit-service/hello-world.git
+                          stargazers_count: 0
+                          stargazers_url: https://api.github.com/repos/packit-service/hello-world/stargazers
+                          statuses_url: https://api.github.com/repos/packit-service/hello-world/statuses/{sha}
+                          subscribers_count: 5
+                          subscribers_url: https://api.github.com/repos/packit-service/hello-world/subscribers
+                          subscription_url: https://api.github.com/repos/packit-service/hello-world/subscription
+                          svn_url: https://github.com/packit-service/hello-world
+                          tags_url: https://api.github.com/repos/packit-service/hello-world/tags
+                          teams_url: https://api.github.com/repos/packit-service/hello-world/teams
+                          trees_url: https://api.github.com/repos/packit-service/hello-world/git/trees{/sha}
+                          updated_at: '2019-10-08T07:32:39Z'
+                          url: https://api.github.com/repos/packit-service/hello-world
+                          watchers: 0
+                          watchers_count: 0
+                        _next: null
+                        elapsed: 0.367158
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: private, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Last-Modified: Tue, 08 Oct 2019 07:32:39 GMT
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.v3; format=json
+                          X-GitHub-Request-Id: DEBE:FEB0:5355077:64806A7:5DBC34C4
+                          X-RateLimit-Limit: '5000'
+                          X-RateLimit-Remaining: '4978'
+                          X-RateLimit-Reset: '1572618953'
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+            requests.api:
+              requests.sessions:
+                requre.objects:
+                  requests.sessions:
+                    send:
+                    - metadata:
+                        latency: 0.4497201442718506
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          expires_at: '2019-11-01T14:36:04Z'
+                          permissions:
+                            contents: read
+                            issues: write
+                            metadata: read
+                            pull_requests: write
+                            statuses: write
+                          repository_selection: selected
+                          token: v1.4e18e4ded55c05d0ea374a05cea28144581845e1
+                        _next: null
+                        elapsed: 0.449424
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: public, max-age=60, s-maxage=60
+                          Content-Length: '237'
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 201 Created
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Vary: Accept, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.machine-man-preview; format=json
+                          X-GitHub-Request-Id: DEBC:1411C:259C248:2D74647:5DBC34C4
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: Created
+                        status_code: 201
+          github.PaginatedList:
+            github.Requester:
+              requests.sessions:
+                requre.objects:
+                  requests.sessions:
+                    send:
+                    - metadata:
+                        latency: 0.3988151550292969
+                      output:
+                        __store_indicator: 2
+                        _content:
+                        - author:
+                            avatar_url: https://avatars3.githubusercontent.com/u/26160778?v=4
+                            events_url: https://api.github.com/users/rpitonak/events{/privacy}
+                            followers_url: https://api.github.com/users/rpitonak/followers
+                            following_url: https://api.github.com/users/rpitonak/following{/other_user}
+                            gists_url: https://api.github.com/users/rpitonak/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/rpitonak
+                            id: 26160778
+                            login: rpitonak
+                            node_id: MDQ6VXNlcjI2MTYwNzc4
+                            organizations_url: https://api.github.com/users/rpitonak/orgs
+                            received_events_url: https://api.github.com/users/rpitonak/received_events
+                            repos_url: https://api.github.com/users/rpitonak/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/rpitonak/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/rpitonak/subscriptions
+                            type: User
+                            url: https://api.github.com/users/rpitonak
+                          comments_url: https://api.github.com/repos/packit-service/hello-world/commits/f454418b6a5ec1803d23f87c5d73afe91da89dbd/comments
+                          commit:
+                            author:
+                              date: '2019-10-11T06:52:12Z'
+                              email: rado.pitonak@gmail.com
+                              name: Radoslav Pitonak
+                            comment_count: 0
+                            committer:
+                              date: '2019-10-11T06:52:12Z'
+                              email: rado.pitonak@gmail.com
+                              name: Radoslav Pitonak
+                            message: comment out testing farm
+                            tree:
+                              sha: eb525b6a2cf3160de0ce81c13366d8bd3d2d9b75
+                              url: https://api.github.com/repos/packit-service/hello-world/git/trees/eb525b6a2cf3160de0ce81c13366d8bd3d2d9b75
+                            url: https://api.github.com/repos/packit-service/hello-world/git/commits/f454418b6a5ec1803d23f87c5d73afe91da89dbd
+                            verification:
+                              payload: null
+                              reason: unsigned
+                              signature: null
+                              verified: false
+                          committer:
+                            avatar_url: https://avatars3.githubusercontent.com/u/26160778?v=4
+                            events_url: https://api.github.com/users/rpitonak/events{/privacy}
+                            followers_url: https://api.github.com/users/rpitonak/followers
+                            following_url: https://api.github.com/users/rpitonak/following{/other_user}
+                            gists_url: https://api.github.com/users/rpitonak/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/rpitonak
+                            id: 26160778
+                            login: rpitonak
+                            node_id: MDQ6VXNlcjI2MTYwNzc4
+                            organizations_url: https://api.github.com/users/rpitonak/orgs
+                            received_events_url: https://api.github.com/users/rpitonak/received_events
+                            repos_url: https://api.github.com/users/rpitonak/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/rpitonak/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/rpitonak/subscriptions
+                            type: User
+                            url: https://api.github.com/users/rpitonak
+                          html_url: https://github.com/packit-service/hello-world/commit/f454418b6a5ec1803d23f87c5d73afe91da89dbd
+                          node_id: MDY6Q29tbWl0MTk0NjMxNTY4OmY0NTQ0MThiNmE1ZWMxODAzZDIzZjg3YzVkNzNhZmU5MWRhODlkYmQ=
+                          parents:
+                          - html_url: https://github.com/packit-service/hello-world/commit/28d30dd1178b9983a0b717c809895500b2a3583b
+                            sha: 28d30dd1178b9983a0b717c809895500b2a3583b
+                            url: https://api.github.com/repos/packit-service/hello-world/commits/28d30dd1178b9983a0b717c809895500b2a3583b
+                          sha: f454418b6a5ec1803d23f87c5d73afe91da89dbd
+                          url: https://api.github.com/repos/packit-service/hello-world/commits/f454418b6a5ec1803d23f87c5d73afe91da89dbd
+                        - author:
+                            avatar_url: https://avatars3.githubusercontent.com/u/26160778?v=4
+                            events_url: https://api.github.com/users/rpitonak/events{/privacy}
+                            followers_url: https://api.github.com/users/rpitonak/followers
+                            following_url: https://api.github.com/users/rpitonak/following{/other_user}
+                            gists_url: https://api.github.com/users/rpitonak/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/rpitonak
+                            id: 26160778
+                            login: rpitonak
+                            node_id: MDQ6VXNlcjI2MTYwNzc4
+                            organizations_url: https://api.github.com/users/rpitonak/orgs
+                            received_events_url: https://api.github.com/users/rpitonak/received_events
+                            repos_url: https://api.github.com/users/rpitonak/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/rpitonak/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/rpitonak/subscriptions
+                            type: User
+                            url: https://api.github.com/users/rpitonak
+                          comments_url: https://api.github.com/repos/packit-service/hello-world/commits/711e0faad307e0142947c2c3c5660917ad68c8d5/comments
+                          commit:
+                            author:
+                              date: '2019-10-14T11:41:53Z'
+                              email: rado.pitonak@gmail.com
+                              name: Radoslav Pitonak
+                            comment_count: 0
+                            committer:
+                              date: '2019-10-14T11:41:53Z'
+                              email: rado.pitonak@gmail.com
+                              name: Radoslav Pitonak
+                            message: generate synchronize hook
+                            tree:
+                              sha: 26d22b00dad8aa42bbbe99e0491be583b8331eef
+                              url: https://api.github.com/repos/packit-service/hello-world/git/trees/26d22b00dad8aa42bbbe99e0491be583b8331eef
+                            url: https://api.github.com/repos/packit-service/hello-world/git/commits/711e0faad307e0142947c2c3c5660917ad68c8d5
+                            verification:
+                              payload: null
+                              reason: unsigned
+                              signature: null
+                              verified: false
+                          committer:
+                            avatar_url: https://avatars3.githubusercontent.com/u/26160778?v=4
+                            events_url: https://api.github.com/users/rpitonak/events{/privacy}
+                            followers_url: https://api.github.com/users/rpitonak/followers
+                            following_url: https://api.github.com/users/rpitonak/following{/other_user}
+                            gists_url: https://api.github.com/users/rpitonak/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/rpitonak
+                            id: 26160778
+                            login: rpitonak
+                            node_id: MDQ6VXNlcjI2MTYwNzc4
+                            organizations_url: https://api.github.com/users/rpitonak/orgs
+                            received_events_url: https://api.github.com/users/rpitonak/received_events
+                            repos_url: https://api.github.com/users/rpitonak/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/rpitonak/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/rpitonak/subscriptions
+                            type: User
+                            url: https://api.github.com/users/rpitonak
+                          html_url: https://github.com/packit-service/hello-world/commit/711e0faad307e0142947c2c3c5660917ad68c8d5
+                          node_id: MDY6Q29tbWl0MTk0NjMxNTY4OjcxMWUwZmFhZDMwN2UwMTQyOTQ3YzJjM2M1NjYwOTE3YWQ2OGM4ZDU=
+                          parents:
+                          - html_url: https://github.com/packit-service/hello-world/commit/f454418b6a5ec1803d23f87c5d73afe91da89dbd
+                            sha: f454418b6a5ec1803d23f87c5d73afe91da89dbd
+                            url: https://api.github.com/repos/packit-service/hello-world/commits/f454418b6a5ec1803d23f87c5d73afe91da89dbd
+                          sha: 711e0faad307e0142947c2c3c5660917ad68c8d5
+                          url: https://api.github.com/repos/packit-service/hello-world/commits/711e0faad307e0142947c2c3c5660917ad68c8d5
+                        - author:
+                            avatar_url: https://avatars3.githubusercontent.com/u/26160778?v=4
+                            events_url: https://api.github.com/users/rpitonak/events{/privacy}
+                            followers_url: https://api.github.com/users/rpitonak/followers
+                            following_url: https://api.github.com/users/rpitonak/following{/other_user}
+                            gists_url: https://api.github.com/users/rpitonak/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/rpitonak
+                            id: 26160778
+                            login: rpitonak
+                            node_id: MDQ6VXNlcjI2MTYwNzc4
+                            organizations_url: https://api.github.com/users/rpitonak/orgs
+                            received_events_url: https://api.github.com/users/rpitonak/received_events
+                            repos_url: https://api.github.com/users/rpitonak/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/rpitonak/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/rpitonak/subscriptions
+                            type: User
+                            url: https://api.github.com/users/rpitonak
+                          comments_url: https://api.github.com/repos/packit-service/hello-world/commits/5e4ddd317ef0ee0f482c4156b078a90417451c5f/comments
+                          commit:
+                            author:
+                              date: '2019-10-22T13:14:46Z'
+                              email: rado.pitonak@gmail.com
+                              name: Radoslav Pitonak
+                            comment_count: 0
+                            committer:
+                              date: '2019-10-22T13:14:46Z'
+                              email: rado.pitonak@gmail.com
+                              name: Radoslav Pitonak
+                            message: uncomment testing farm
+                            tree:
+                              sha: 229bab2286890ab548a89e6ca790651a836c9f31
+                              url: https://api.github.com/repos/packit-service/hello-world/git/trees/229bab2286890ab548a89e6ca790651a836c9f31
+                            url: https://api.github.com/repos/packit-service/hello-world/git/commits/5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                            verification:
+                              payload: null
+                              reason: unsigned
+                              signature: null
+                              verified: false
+                          committer:
+                            avatar_url: https://avatars3.githubusercontent.com/u/26160778?v=4
+                            events_url: https://api.github.com/users/rpitonak/events{/privacy}
+                            followers_url: https://api.github.com/users/rpitonak/followers
+                            following_url: https://api.github.com/users/rpitonak/following{/other_user}
+                            gists_url: https://api.github.com/users/rpitonak/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/rpitonak
+                            id: 26160778
+                            login: rpitonak
+                            node_id: MDQ6VXNlcjI2MTYwNzc4
+                            organizations_url: https://api.github.com/users/rpitonak/orgs
+                            received_events_url: https://api.github.com/users/rpitonak/received_events
+                            repos_url: https://api.github.com/users/rpitonak/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/rpitonak/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/rpitonak/subscriptions
+                            type: User
+                            url: https://api.github.com/users/rpitonak
+                          html_url: https://github.com/packit-service/hello-world/commit/5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                          node_id: MDY6Q29tbWl0MTk0NjMxNTY4OjVlNGRkZDMxN2VmMGVlMGY0ODJjNDE1NmIwNzhhOTA0MTc0NTFjNWY=
+                          parents:
+                          - html_url: https://github.com/packit-service/hello-world/commit/711e0faad307e0142947c2c3c5660917ad68c8d5
+                            sha: 711e0faad307e0142947c2c3c5660917ad68c8d5
+                            url: https://api.github.com/repos/packit-service/hello-world/commits/711e0faad307e0142947c2c3c5660917ad68c8d5
+                          sha: 5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                          url: https://api.github.com/repos/packit-service/hello-world/commits/5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                        _next: null
+                        elapsed: 0.398074
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: private, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Last-Modified: Fri, 01 Nov 2019 13:36:01 GMT
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.v3; format=json
+                          X-GitHub-Request-Id: DEBE:FEB0:535516E:64807AE:5DBC34C5
+                          X-RateLimit-Limit: '5000'
+                          X-RateLimit-Remaining: '4976'
+                          X-RateLimit-Reset: '1572618953'
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+                    - metadata:
+                        latency: 0.4080181121826172
+                      output:
+                        __store_indicator: 2
+                        _content:
+                        - avatar_url: https://avatars0.githubusercontent.com/u/288686?v=4
+                          events_url: https://api.github.com/users/jpopelka/events{/privacy}
+                          followers_url: https://api.github.com/users/jpopelka/followers
+                          following_url: https://api.github.com/users/jpopelka/following{/other_user}
+                          gists_url: https://api.github.com/users/jpopelka/gists{/gist_id}
+                          gravatar_id: ''
+                          html_url: https://github.com/jpopelka
+                          id: 288686
+                          login: jpopelka
+                          node_id: MDQ6VXNlcjI4ODY4Ng==
+                          organizations_url: https://api.github.com/users/jpopelka/orgs
+                          permissions:
+                            admin: true
+                            pull: true
+                            push: true
+                          received_events_url: https://api.github.com/users/jpopelka/received_events
+                          repos_url: https://api.github.com/users/jpopelka/repos
+                          site_admin: false
+                          starred_url: https://api.github.com/users/jpopelka/starred{/owner}{/repo}
+                          subscriptions_url: https://api.github.com/users/jpopelka/subscriptions
+                          type: User
+                          url: https://api.github.com/users/jpopelka
+                        - avatar_url: https://avatars1.githubusercontent.com/u/633969?v=4
+                          events_url: https://api.github.com/users/thrix/events{/privacy}
+                          followers_url: https://api.github.com/users/thrix/followers
+                          following_url: https://api.github.com/users/thrix/following{/other_user}
+                          gists_url: https://api.github.com/users/thrix/gists{/gist_id}
+                          gravatar_id: ''
+                          html_url: https://github.com/thrix
+                          id: 633969
+                          login: thrix
+                          node_id: MDQ6VXNlcjYzMzk2OQ==
+                          organizations_url: https://api.github.com/users/thrix/orgs
+                          permissions:
+                            admin: false
+                            pull: true
+                            push: true
+                          received_events_url: https://api.github.com/users/thrix/received_events
+                          repos_url: https://api.github.com/users/thrix/repos
+                          site_admin: false
+                          starred_url: https://api.github.com/users/thrix/starred{/owner}{/repo}
+                          subscriptions_url: https://api.github.com/users/thrix/subscriptions
+                          type: User
+                          url: https://api.github.com/users/thrix
+                        - avatar_url: https://avatars0.githubusercontent.com/u/1662493?v=4
+                          events_url: https://api.github.com/users/TomasTomecek/events{/privacy}
+                          followers_url: https://api.github.com/users/TomasTomecek/followers
+                          following_url: https://api.github.com/users/TomasTomecek/following{/other_user}
+                          gists_url: https://api.github.com/users/TomasTomecek/gists{/gist_id}
+                          gravatar_id: ''
+                          html_url: https://github.com/TomasTomecek
+                          id: 1662493
+                          login: TomasTomecek
+                          node_id: MDQ6VXNlcjE2NjI0OTM=
+                          organizations_url: https://api.github.com/users/TomasTomecek/orgs
+                          permissions:
+                            admin: true
+                            pull: true
+                            push: true
+                          received_events_url: https://api.github.com/users/TomasTomecek/received_events
+                          repos_url: https://api.github.com/users/TomasTomecek/repos
+                          site_admin: false
+                          starred_url: https://api.github.com/users/TomasTomecek/starred{/owner}{/repo}
+                          subscriptions_url: https://api.github.com/users/TomasTomecek/subscriptions
+                          type: User
+                          url: https://api.github.com/users/TomasTomecek
+                        - avatar_url: https://avatars3.githubusercontent.com/u/1866652?v=4
+                          events_url: https://api.github.com/users/eliskasl/events{/privacy}
+                          followers_url: https://api.github.com/users/eliskasl/followers
+                          following_url: https://api.github.com/users/eliskasl/following{/other_user}
+                          gists_url: https://api.github.com/users/eliskasl/gists{/gist_id}
+                          gravatar_id: ''
+                          html_url: https://github.com/eliskasl
+                          id: 1866652
+                          login: eliskasl
+                          node_id: MDQ6VXNlcjE4NjY2NTI=
+                          organizations_url: https://api.github.com/users/eliskasl/orgs
+                          permissions:
+                            admin: true
+                            pull: true
+                            push: true
+                          received_events_url: https://api.github.com/users/eliskasl/received_events
+                          repos_url: https://api.github.com/users/eliskasl/repos
+                          site_admin: false
+                          starred_url: https://api.github.com/users/eliskasl/starred{/owner}{/repo}
+                          subscriptions_url: https://api.github.com/users/eliskasl/subscriptions
+                          type: User
+                          url: https://api.github.com/users/eliskasl
+                        - avatar_url: https://avatars2.githubusercontent.com/u/3416672?v=4
+                          events_url: https://api.github.com/users/phracek/events{/privacy}
+                          followers_url: https://api.github.com/users/phracek/followers
+                          following_url: https://api.github.com/users/phracek/following{/other_user}
+                          gists_url: https://api.github.com/users/phracek/gists{/gist_id}
+                          gravatar_id: ''
+                          html_url: https://github.com/phracek
+                          id: 3416672
+                          login: phracek
+                          node_id: MDQ6VXNlcjM0MTY2NzI=
+                          organizations_url: https://api.github.com/users/phracek/orgs
+                          permissions:
+                            admin: true
+                            pull: true
+                            push: true
+                          received_events_url: https://api.github.com/users/phracek/received_events
+                          repos_url: https://api.github.com/users/phracek/repos
+                          site_admin: false
+                          starred_url: https://api.github.com/users/phracek/starred{/owner}{/repo}
+                          subscriptions_url: https://api.github.com/users/phracek/subscriptions
+                          type: User
+                          url: https://api.github.com/users/phracek
+                        - avatar_url: https://avatars0.githubusercontent.com/u/8735467?v=4
+                          events_url: https://api.github.com/users/jscotka/events{/privacy}
+                          followers_url: https://api.github.com/users/jscotka/followers
+                          following_url: https://api.github.com/users/jscotka/following{/other_user}
+                          gists_url: https://api.github.com/users/jscotka/gists{/gist_id}
+                          gravatar_id: ''
+                          html_url: https://github.com/jscotka
+                          id: 8735467
+                          login: jscotka
+                          node_id: MDQ6VXNlcjg3MzU0Njc=
+                          organizations_url: https://api.github.com/users/jscotka/orgs
+                          permissions:
+                            admin: true
+                            pull: true
+                            push: true
+                          received_events_url: https://api.github.com/users/jscotka/received_events
+                          repos_url: https://api.github.com/users/jscotka/repos
+                          site_admin: false
+                          starred_url: https://api.github.com/users/jscotka/starred{/owner}{/repo}
+                          subscriptions_url: https://api.github.com/users/jscotka/subscriptions
+                          type: User
+                          url: https://api.github.com/users/jscotka
+                        - avatar_url: https://avatars1.githubusercontent.com/u/20214043?v=4
+                          events_url: https://api.github.com/users/lachmanfrantisek/events{/privacy}
+                          followers_url: https://api.github.com/users/lachmanfrantisek/followers
+                          following_url: https://api.github.com/users/lachmanfrantisek/following{/other_user}
+                          gists_url: https://api.github.com/users/lachmanfrantisek/gists{/gist_id}
+                          gravatar_id: ''
+                          html_url: https://github.com/lachmanfrantisek
+                          id: 20214043
+                          login: lachmanfrantisek
+                          node_id: MDQ6VXNlcjIwMjE0MDQz
+                          organizations_url: https://api.github.com/users/lachmanfrantisek/orgs
+                          permissions:
+                            admin: true
+                            pull: true
+                            push: true
+                          received_events_url: https://api.github.com/users/lachmanfrantisek/received_events
+                          repos_url: https://api.github.com/users/lachmanfrantisek/repos
+                          site_admin: false
+                          starred_url: https://api.github.com/users/lachmanfrantisek/starred{/owner}{/repo}
+                          subscriptions_url: https://api.github.com/users/lachmanfrantisek/subscriptions
+                          type: User
+                          url: https://api.github.com/users/lachmanfrantisek
+                        - avatar_url: https://avatars3.githubusercontent.com/u/26160778?v=4
+                          events_url: https://api.github.com/users/rpitonak/events{/privacy}
+                          followers_url: https://api.github.com/users/rpitonak/followers
+                          following_url: https://api.github.com/users/rpitonak/following{/other_user}
+                          gists_url: https://api.github.com/users/rpitonak/gists{/gist_id}
+                          gravatar_id: ''
+                          html_url: https://github.com/rpitonak
+                          id: 26160778
+                          login: rpitonak
+                          node_id: MDQ6VXNlcjI2MTYwNzc4
+                          organizations_url: https://api.github.com/users/rpitonak/orgs
+                          permissions:
+                            admin: true
+                            pull: true
+                            push: true
+                          received_events_url: https://api.github.com/users/rpitonak/received_events
+                          repos_url: https://api.github.com/users/rpitonak/repos
+                          site_admin: false
+                          starred_url: https://api.github.com/users/rpitonak/starred{/owner}{/repo}
+                          subscriptions_url: https://api.github.com/users/rpitonak/subscriptions
+                          type: User
+                          url: https://api.github.com/users/rpitonak
+                        - avatar_url: https://avatars2.githubusercontent.com/u/31201372?v=4
+                          events_url: https://api.github.com/users/dhodovsk/events{/privacy}
+                          followers_url: https://api.github.com/users/dhodovsk/followers
+                          following_url: https://api.github.com/users/dhodovsk/following{/other_user}
+                          gists_url: https://api.github.com/users/dhodovsk/gists{/gist_id}
+                          gravatar_id: ''
+                          html_url: https://github.com/dhodovsk
+                          id: 31201372
+                          login: dhodovsk
+                          node_id: MDQ6VXNlcjMxMjAxMzcy
+                          organizations_url: https://api.github.com/users/dhodovsk/orgs
+                          permissions:
+                            admin: true
+                            pull: true
+                            push: true
+                          received_events_url: https://api.github.com/users/dhodovsk/received_events
+                          repos_url: https://api.github.com/users/dhodovsk/repos
+                          site_admin: false
+                          starred_url: https://api.github.com/users/dhodovsk/starred{/owner}{/repo}
+                          subscriptions_url: https://api.github.com/users/dhodovsk/subscriptions
+                          type: User
+                          url: https://api.github.com/users/dhodovsk
+                        - avatar_url: https://avatars1.githubusercontent.com/u/36231209?v=4
+                          events_url: https://api.github.com/users/usercont-release-bot/events{/privacy}
+                          followers_url: https://api.github.com/users/usercont-release-bot/followers
+                          following_url: https://api.github.com/users/usercont-release-bot/following{/other_user}
+                          gists_url: https://api.github.com/users/usercont-release-bot/gists{/gist_id}
+                          gravatar_id: ''
+                          html_url: https://github.com/usercont-release-bot
+                          id: 36231209
+                          login: usercont-release-bot
+                          node_id: MDQ6VXNlcjM2MjMxMjA5
+                          organizations_url: https://api.github.com/users/usercont-release-bot/orgs
+                          permissions:
+                            admin: true
+                            pull: true
+                            push: true
+                          received_events_url: https://api.github.com/users/usercont-release-bot/received_events
+                          repos_url: https://api.github.com/users/usercont-release-bot/repos
+                          site_admin: false
+                          starred_url: https://api.github.com/users/usercont-release-bot/starred{/owner}{/repo}
+                          subscriptions_url: https://api.github.com/users/usercont-release-bot/subscriptions
+                          type: User
+                          url: https://api.github.com/users/usercont-release-bot
+                        - avatar_url: https://avatars3.githubusercontent.com/u/49026743?v=4
+                          events_url: https://api.github.com/users/lbarcziova/events{/privacy}
+                          followers_url: https://api.github.com/users/lbarcziova/followers
+                          following_url: https://api.github.com/users/lbarcziova/following{/other_user}
+                          gists_url: https://api.github.com/users/lbarcziova/gists{/gist_id}
+                          gravatar_id: ''
+                          html_url: https://github.com/lbarcziova
+                          id: 49026743
+                          login: lbarcziova
+                          node_id: MDQ6VXNlcjQ5MDI2NzQz
+                          organizations_url: https://api.github.com/users/lbarcziova/orgs
+                          permissions:
+                            admin: true
+                            pull: true
+                            push: true
+                          received_events_url: https://api.github.com/users/lbarcziova/received_events
+                          repos_url: https://api.github.com/users/lbarcziova/repos
+                          site_admin: false
+                          starred_url: https://api.github.com/users/lbarcziova/starred{/owner}{/repo}
+                          subscriptions_url: https://api.github.com/users/lbarcziova/subscriptions
+                          type: User
+                          url: https://api.github.com/users/lbarcziova
+                        _next: null
+                        elapsed: 0.407516
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: private, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.v3; format=json
+                          X-GitHub-Request-Id: DEBE:FEB0:5355293:6480900:5DBC34C6
+                          X-RateLimit-Limit: '5000'
+                          X-RateLimit-Remaining: '4974'
+                          X-RateLimit-Reset: '1572618953'
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+          github.Repository:
+            github.Requester:
+              requests.sessions:
+                requre.objects:
+                  requests.sessions:
+                    send:
+                    - metadata:
+                        latency: 0.33388590812683105
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          _links:
+                            comments:
+                              href: https://api.github.com/repos/packit-service/hello-world/issues/26/comments
+                            commits:
+                              href: https://api.github.com/repos/packit-service/hello-world/pulls/26/commits
+                            html:
+                              href: https://github.com/packit-service/hello-world/pull/26
+                            issue:
+                              href: https://api.github.com/repos/packit-service/hello-world/issues/26
+                            review_comment:
+                              href: https://api.github.com/repos/packit-service/hello-world/pulls/comments{/number}
+                            review_comments:
+                              href: https://api.github.com/repos/packit-service/hello-world/pulls/26/comments
+                            self:
+                              href: https://api.github.com/repos/packit-service/hello-world/pulls/26
+                            statuses:
+                              href: https://api.github.com/repos/packit-service/hello-world/statuses/5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                          additions: 1
+                          assignee: null
+                          assignees: []
+                          author_association: CONTRIBUTOR
+                          base:
+                            label: packit-service:master
+                            ref: master
+                            repo:
+                              archive_url: https://api.github.com/repos/packit-service/hello-world/{archive_format}{/ref}
+                              archived: false
+                              assignees_url: https://api.github.com/repos/packit-service/hello-world/assignees{/user}
+                              blobs_url: https://api.github.com/repos/packit-service/hello-world/git/blobs{/sha}
+                              branches_url: https://api.github.com/repos/packit-service/hello-world/branches{/branch}
+                              clone_url: https://github.com/packit-service/hello-world.git
+                              collaborators_url: https://api.github.com/repos/packit-service/hello-world/collaborators{/collaborator}
+                              comments_url: https://api.github.com/repos/packit-service/hello-world/comments{/number}
+                              commits_url: https://api.github.com/repos/packit-service/hello-world/commits{/sha}
+                              compare_url: https://api.github.com/repos/packit-service/hello-world/compare/{base}...{head}
+                              contents_url: https://api.github.com/repos/packit-service/hello-world/contents/{+path}
+                              contributors_url: https://api.github.com/repos/packit-service/hello-world/contributors
+                              created_at: '2019-05-02T18:54:46Z'
+                              default_branch: master
+                              deployments_url: https://api.github.com/repos/packit-service/hello-world/deployments
+                              description: The most progresive command-line tool in
+                                the world.
+                              disabled: false
+                              downloads_url: https://api.github.com/repos/packit-service/hello-world/downloads
+                              events_url: https://api.github.com/repos/packit-service/hello-world/events
+                              fork: false
+                              forks: 7
+                              forks_count: 7
+                              forks_url: https://api.github.com/repos/packit-service/hello-world/forks
+                              full_name: packit-service/hello-world
+                              git_commits_url: https://api.github.com/repos/packit-service/hello-world/git/commits{/sha}
+                              git_refs_url: https://api.github.com/repos/packit-service/hello-world/git/refs{/sha}
+                              git_tags_url: https://api.github.com/repos/packit-service/hello-world/git/tags{/sha}
+                              git_url: git://github.com/packit-service/hello-world.git
+                              has_downloads: true
+                              has_issues: true
+                              has_pages: false
+                              has_projects: true
+                              has_wiki: true
+                              homepage: null
+                              hooks_url: https://api.github.com/repos/packit-service/hello-world/hooks
+                              html_url: https://github.com/packit-service/hello-world
+                              id: 184635124
+                              issue_comment_url: https://api.github.com/repos/packit-service/hello-world/issues/comments{/number}
+                              issue_events_url: https://api.github.com/repos/packit-service/hello-world/issues/events{/number}
+                              issues_url: https://api.github.com/repos/packit-service/hello-world/issues{/number}
+                              keys_url: https://api.github.com/repos/packit-service/hello-world/keys{/key_id}
+                              labels_url: https://api.github.com/repos/packit-service/hello-world/labels{/name}
+                              language: Python
+                              languages_url: https://api.github.com/repos/packit-service/hello-world/languages
+                              license:
+                                key: mit
+                                name: MIT License
+                                node_id: MDc6TGljZW5zZTEz
+                                spdx_id: MIT
+                                url: https://api.github.com/licenses/mit
+                              merges_url: https://api.github.com/repos/packit-service/hello-world/merges
+                              milestones_url: https://api.github.com/repos/packit-service/hello-world/milestones{/number}
+                              mirror_url: null
+                              name: hello-world
+                              node_id: MDEwOlJlcG9zaXRvcnkxODQ2MzUxMjQ=
+                              notifications_url: https://api.github.com/repos/packit-service/hello-world/notifications{?since,all,participating}
+                              open_issues: 8
+                              open_issues_count: 8
+                              owner:
+                                avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
+                                events_url: https://api.github.com/users/packit-service/events{/privacy}
+                                followers_url: https://api.github.com/users/packit-service/followers
+                                following_url: https://api.github.com/users/packit-service/following{/other_user}
+                                gists_url: https://api.github.com/users/packit-service/gists{/gist_id}
+                                gravatar_id: ''
+                                html_url: https://github.com/packit-service
+                                id: 46870917
+                                login: packit-service
+                                node_id: MDEyOk9yZ2FuaXphdGlvbjQ2ODcwOTE3
+                                organizations_url: https://api.github.com/users/packit-service/orgs
+                                received_events_url: https://api.github.com/users/packit-service/received_events
+                                repos_url: https://api.github.com/users/packit-service/repos
+                                site_admin: false
+                                starred_url: https://api.github.com/users/packit-service/starred{/owner}{/repo}
+                                subscriptions_url: https://api.github.com/users/packit-service/subscriptions
+                                type: Organization
+                                url: https://api.github.com/users/packit-service
+                              private: false
+                              pulls_url: https://api.github.com/repos/packit-service/hello-world/pulls{/number}
+                              pushed_at: '2019-10-29T15:18:11Z'
+                              releases_url: https://api.github.com/repos/packit-service/hello-world/releases{/id}
+                              size: 15
+                              ssh_url: git@github.com:packit-service/hello-world.git
+                              stargazers_count: 0
+                              stargazers_url: https://api.github.com/repos/packit-service/hello-world/stargazers
+                              statuses_url: https://api.github.com/repos/packit-service/hello-world/statuses/{sha}
+                              subscribers_url: https://api.github.com/repos/packit-service/hello-world/subscribers
+                              subscription_url: https://api.github.com/repos/packit-service/hello-world/subscription
+                              svn_url: https://github.com/packit-service/hello-world
+                              tags_url: https://api.github.com/repos/packit-service/hello-world/tags
+                              teams_url: https://api.github.com/repos/packit-service/hello-world/teams
+                              trees_url: https://api.github.com/repos/packit-service/hello-world/git/trees{/sha}
+                              updated_at: '2019-10-08T07:32:39Z'
+                              url: https://api.github.com/repos/packit-service/hello-world
+                              watchers: 0
+                              watchers_count: 0
+                            sha: 28d30dd1178b9983a0b717c809895500b2a3583b
+                            user:
+                              avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
+                              events_url: https://api.github.com/users/packit-service/events{/privacy}
+                              followers_url: https://api.github.com/users/packit-service/followers
+                              following_url: https://api.github.com/users/packit-service/following{/other_user}
+                              gists_url: https://api.github.com/users/packit-service/gists{/gist_id}
+                              gravatar_id: ''
+                              html_url: https://github.com/packit-service
+                              id: 46870917
+                              login: packit-service
+                              node_id: MDEyOk9yZ2FuaXphdGlvbjQ2ODcwOTE3
+                              organizations_url: https://api.github.com/users/packit-service/orgs
+                              received_events_url: https://api.github.com/users/packit-service/received_events
+                              repos_url: https://api.github.com/users/packit-service/repos
+                              site_admin: false
+                              starred_url: https://api.github.com/users/packit-service/starred{/owner}{/repo}
+                              subscriptions_url: https://api.github.com/users/packit-service/subscriptions
+                              type: Organization
+                              url: https://api.github.com/users/packit-service
+                          body: ''
+                          changed_files: 2
+                          closed_at: null
+                          comments: 84
+                          comments_url: https://api.github.com/repos/packit-service/hello-world/issues/26/comments
+                          commits: 3
+                          commits_url: https://api.github.com/repos/packit-service/hello-world/pulls/26/commits
+                          created_at: '2019-10-11T06:52:37Z'
+                          deletions: 1
+                          diff_url: https://github.com/packit-service/hello-world/pull/26.diff
+                          head:
+                            label: rpitonak:another-test
+                            ref: another-test
+                            repo:
+                              archive_url: https://api.github.com/repos/rpitonak/hello-world/{archive_format}{/ref}
+                              archived: false
+                              assignees_url: https://api.github.com/repos/rpitonak/hello-world/assignees{/user}
+                              blobs_url: https://api.github.com/repos/rpitonak/hello-world/git/blobs{/sha}
+                              branches_url: https://api.github.com/repos/rpitonak/hello-world/branches{/branch}
+                              clone_url: https://github.com/rpitonak/hello-world.git
+                              collaborators_url: https://api.github.com/repos/rpitonak/hello-world/collaborators{/collaborator}
+                              comments_url: https://api.github.com/repos/rpitonak/hello-world/comments{/number}
+                              commits_url: https://api.github.com/repos/rpitonak/hello-world/commits{/sha}
+                              compare_url: https://api.github.com/repos/rpitonak/hello-world/compare/{base}...{head}
+                              contents_url: https://api.github.com/repos/rpitonak/hello-world/contents/{+path}
+                              contributors_url: https://api.github.com/repos/rpitonak/hello-world/contributors
+                              created_at: '2019-07-01T08:26:02Z'
+                              default_branch: master
+                              deployments_url: https://api.github.com/repos/rpitonak/hello-world/deployments
+                              description: The most progresive command-line tool in
+                                the world.
+                              disabled: false
+                              downloads_url: https://api.github.com/repos/rpitonak/hello-world/downloads
+                              events_url: https://api.github.com/repos/rpitonak/hello-world/events
+                              fork: true
+                              forks: 0
+                              forks_count: 0
+                              forks_url: https://api.github.com/repos/rpitonak/hello-world/forks
+                              full_name: rpitonak/hello-world
+                              git_commits_url: https://api.github.com/repos/rpitonak/hello-world/git/commits{/sha}
+                              git_refs_url: https://api.github.com/repos/rpitonak/hello-world/git/refs{/sha}
+                              git_tags_url: https://api.github.com/repos/rpitonak/hello-world/git/tags{/sha}
+                              git_url: git://github.com/rpitonak/hello-world.git
+                              has_downloads: true
+                              has_issues: false
+                              has_pages: false
+                              has_projects: true
+                              has_wiki: true
+                              homepage: null
+                              hooks_url: https://api.github.com/repos/rpitonak/hello-world/hooks
+                              html_url: https://github.com/rpitonak/hello-world
+                              id: 194631568
+                              issue_comment_url: https://api.github.com/repos/rpitonak/hello-world/issues/comments{/number}
+                              issue_events_url: https://api.github.com/repos/rpitonak/hello-world/issues/events{/number}
+                              issues_url: https://api.github.com/repos/rpitonak/hello-world/issues{/number}
+                              keys_url: https://api.github.com/repos/rpitonak/hello-world/keys{/key_id}
+                              labels_url: https://api.github.com/repos/rpitonak/hello-world/labels{/name}
+                              language: Python
+                              languages_url: https://api.github.com/repos/rpitonak/hello-world/languages
+                              license:
+                                key: mit
+                                name: MIT License
+                                node_id: MDc6TGljZW5zZTEz
+                                spdx_id: MIT
+                                url: https://api.github.com/licenses/mit
+                              merges_url: https://api.github.com/repos/rpitonak/hello-world/merges
+                              milestones_url: https://api.github.com/repos/rpitonak/hello-world/milestones{/number}
+                              mirror_url: null
+                              name: hello-world
+                              node_id: MDEwOlJlcG9zaXRvcnkxOTQ2MzE1Njg=
+                              notifications_url: https://api.github.com/repos/rpitonak/hello-world/notifications{?since,all,participating}
+                              open_issues: 0
+                              open_issues_count: 0
+                              owner:
+                                avatar_url: https://avatars3.githubusercontent.com/u/26160778?v=4
+                                events_url: https://api.github.com/users/rpitonak/events{/privacy}
+                                followers_url: https://api.github.com/users/rpitonak/followers
+                                following_url: https://api.github.com/users/rpitonak/following{/other_user}
+                                gists_url: https://api.github.com/users/rpitonak/gists{/gist_id}
+                                gravatar_id: ''
+                                html_url: https://github.com/rpitonak
+                                id: 26160778
+                                login: rpitonak
+                                node_id: MDQ6VXNlcjI2MTYwNzc4
+                                organizations_url: https://api.github.com/users/rpitonak/orgs
+                                received_events_url: https://api.github.com/users/rpitonak/received_events
+                                repos_url: https://api.github.com/users/rpitonak/repos
+                                site_admin: false
+                                starred_url: https://api.github.com/users/rpitonak/starred{/owner}{/repo}
+                                subscriptions_url: https://api.github.com/users/rpitonak/subscriptions
+                                type: User
+                                url: https://api.github.com/users/rpitonak
+                              private: false
+                              pulls_url: https://api.github.com/repos/rpitonak/hello-world/pulls{/number}
+                              pushed_at: '2019-10-22T13:15:00Z'
+                              releases_url: https://api.github.com/repos/rpitonak/hello-world/releases{/id}
+                              size: 20
+                              ssh_url: git@github.com:rpitonak/hello-world.git
+                              stargazers_count: 0
+                              stargazers_url: https://api.github.com/repos/rpitonak/hello-world/stargazers
+                              statuses_url: https://api.github.com/repos/rpitonak/hello-world/statuses/{sha}
+                              subscribers_url: https://api.github.com/repos/rpitonak/hello-world/subscribers
+                              subscription_url: https://api.github.com/repos/rpitonak/hello-world/subscription
+                              svn_url: https://github.com/rpitonak/hello-world
+                              tags_url: https://api.github.com/repos/rpitonak/hello-world/tags
+                              teams_url: https://api.github.com/repos/rpitonak/hello-world/teams
+                              trees_url: https://api.github.com/repos/rpitonak/hello-world/git/trees{/sha}
+                              updated_at: '2019-07-01T08:26:04Z'
+                              url: https://api.github.com/repos/rpitonak/hello-world
+                              watchers: 0
+                              watchers_count: 0
+                            sha: 5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                            user:
+                              avatar_url: https://avatars3.githubusercontent.com/u/26160778?v=4
+                              events_url: https://api.github.com/users/rpitonak/events{/privacy}
+                              followers_url: https://api.github.com/users/rpitonak/followers
+                              following_url: https://api.github.com/users/rpitonak/following{/other_user}
+                              gists_url: https://api.github.com/users/rpitonak/gists{/gist_id}
+                              gravatar_id: ''
+                              html_url: https://github.com/rpitonak
+                              id: 26160778
+                              login: rpitonak
+                              node_id: MDQ6VXNlcjI2MTYwNzc4
+                              organizations_url: https://api.github.com/users/rpitonak/orgs
+                              received_events_url: https://api.github.com/users/rpitonak/received_events
+                              repos_url: https://api.github.com/users/rpitonak/repos
+                              site_admin: false
+                              starred_url: https://api.github.com/users/rpitonak/starred{/owner}{/repo}
+                              subscriptions_url: https://api.github.com/users/rpitonak/subscriptions
+                              type: User
+                              url: https://api.github.com/users/rpitonak
+                          html_url: https://github.com/packit-service/hello-world/pull/26
+                          id: 327056228
+                          issue_url: https://api.github.com/repos/packit-service/hello-world/issues/26
+                          labels: []
+                          locked: false
+                          maintainer_can_modify: true
+                          merge_commit_sha: 0b0061e6c85b32d031fc58416e35387fe978256b
+                          mergeable: true
+                          mergeable_state: unstable
+                          merged: false
+                          merged_at: null
+                          merged_by: null
+                          milestone: null
+                          node_id: MDExOlB1bGxSZXF1ZXN0MzI3MDU2MjI4
+                          number: 26
+                          patch_url: https://github.com/packit-service/hello-world/pull/26.patch
+                          rebaseable: true
+                          requested_reviewers: []
+                          requested_teams: []
+                          review_comment_url: https://api.github.com/repos/packit-service/hello-world/pulls/comments{/number}
+                          review_comments: 0
+                          review_comments_url: https://api.github.com/repos/packit-service/hello-world/pulls/26/comments
+                          state: open
+                          statuses_url: https://api.github.com/repos/packit-service/hello-world/statuses/5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                          title: comment out testing farm
+                          updated_at: '2019-11-01T13:36:01Z'
+                          url: https://api.github.com/repos/packit-service/hello-world/pulls/26
+                          user:
+                            avatar_url: https://avatars3.githubusercontent.com/u/26160778?v=4
+                            events_url: https://api.github.com/users/rpitonak/events{/privacy}
+                            followers_url: https://api.github.com/users/rpitonak/followers
+                            following_url: https://api.github.com/users/rpitonak/following{/other_user}
+                            gists_url: https://api.github.com/users/rpitonak/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/rpitonak
+                            id: 26160778
+                            login: rpitonak
+                            node_id: MDQ6VXNlcjI2MTYwNzc4
+                            organizations_url: https://api.github.com/users/rpitonak/orgs
+                            received_events_url: https://api.github.com/users/rpitonak/received_events
+                            repos_url: https://api.github.com/users/rpitonak/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/rpitonak/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/rpitonak/subscriptions
+                            type: User
+                            url: https://api.github.com/users/rpitonak
+                        _next: null
+                        elapsed: 0.333194
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: private, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Last-Modified: Fri, 01 Nov 2019 13:36:01 GMT
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.v3; format=json
+                          X-GitHub-Request-Id: DEBE:FEB0:53550ED:648071A:5DBC34C5
+                          X-RateLimit-Limit: '5000'
+                          X-RateLimit-Remaining: '4977'
+                          X-RateLimit-Reset: '1572618953'
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+                    - metadata:
+                        latency: 0.2620086669921875
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          permission: admin
+                          user:
+                            avatar_url: https://avatars0.githubusercontent.com/u/288686?v=4
+                            events_url: https://api.github.com/users/jpopelka/events{/privacy}
+                            followers_url: https://api.github.com/users/jpopelka/followers
+                            following_url: https://api.github.com/users/jpopelka/following{/other_user}
+                            gists_url: https://api.github.com/users/jpopelka/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/jpopelka
+                            id: 288686
+                            login: jpopelka
+                            node_id: MDQ6VXNlcjI4ODY4Ng==
+                            organizations_url: https://api.github.com/users/jpopelka/orgs
+                            received_events_url: https://api.github.com/users/jpopelka/received_events
+                            repos_url: https://api.github.com/users/jpopelka/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/jpopelka/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/jpopelka/subscriptions
+                            type: User
+                            url: https://api.github.com/users/jpopelka
+                        _next: null
+                        elapsed: 0.261537
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: private, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.v3; format=json
+                          X-GitHub-Request-Id: DEBE:FEB0:5355350:64809F0:5DBC34C6
+                          X-RateLimit-Limit: '5000'
+                          X-RateLimit-Remaining: '4973'
+                          X-RateLimit-Reset: '1572618953'
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+                    - metadata:
+                        latency: 0.2521374225616455
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          permission: write
+                          user:
+                            avatar_url: https://avatars1.githubusercontent.com/u/633969?v=4
+                            events_url: https://api.github.com/users/thrix/events{/privacy}
+                            followers_url: https://api.github.com/users/thrix/followers
+                            following_url: https://api.github.com/users/thrix/following{/other_user}
+                            gists_url: https://api.github.com/users/thrix/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/thrix
+                            id: 633969
+                            login: thrix
+                            node_id: MDQ6VXNlcjYzMzk2OQ==
+                            organizations_url: https://api.github.com/users/thrix/orgs
+                            received_events_url: https://api.github.com/users/thrix/received_events
+                            repos_url: https://api.github.com/users/thrix/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/thrix/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/thrix/subscriptions
+                            type: User
+                            url: https://api.github.com/users/thrix
+                        _next: null
+                        elapsed: 0.251614
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: private, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.v3; format=json
+                          X-GitHub-Request-Id: DEBE:FEB0:53553BD:6480A7E:5DBC34C6
+                          X-RateLimit-Limit: '5000'
+                          X-RateLimit-Remaining: '4972'
+                          X-RateLimit-Reset: '1572618953'
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+                    - metadata:
+                        latency: 0.23575305938720703
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          permission: admin
+                          user:
+                            avatar_url: https://avatars0.githubusercontent.com/u/1662493?v=4
+                            events_url: https://api.github.com/users/TomasTomecek/events{/privacy}
+                            followers_url: https://api.github.com/users/TomasTomecek/followers
+                            following_url: https://api.github.com/users/TomasTomecek/following{/other_user}
+                            gists_url: https://api.github.com/users/TomasTomecek/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/TomasTomecek
+                            id: 1662493
+                            login: TomasTomecek
+                            node_id: MDQ6VXNlcjE2NjI0OTM=
+                            organizations_url: https://api.github.com/users/TomasTomecek/orgs
+                            received_events_url: https://api.github.com/users/TomasTomecek/received_events
+                            repos_url: https://api.github.com/users/TomasTomecek/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/TomasTomecek/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/TomasTomecek/subscriptions
+                            type: User
+                            url: https://api.github.com/users/TomasTomecek
+                        _next: null
+                        elapsed: 0.235038
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: private, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.v3; format=json
+                          X-GitHub-Request-Id: DEBE:FEB0:5355429:6480B0A:5DBC34C7
+                          X-RateLimit-Limit: '5000'
+                          X-RateLimit-Remaining: '4971'
+                          X-RateLimit-Reset: '1572618953'
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+                    - metadata:
+                        latency: 0.2617638111114502
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          permission: admin
+                          user:
+                            avatar_url: https://avatars3.githubusercontent.com/u/1866652?v=4
+                            events_url: https://api.github.com/users/eliskasl/events{/privacy}
+                            followers_url: https://api.github.com/users/eliskasl/followers
+                            following_url: https://api.github.com/users/eliskasl/following{/other_user}
+                            gists_url: https://api.github.com/users/eliskasl/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/eliskasl
+                            id: 1866652
+                            login: eliskasl
+                            node_id: MDQ6VXNlcjE4NjY2NTI=
+                            organizations_url: https://api.github.com/users/eliskasl/orgs
+                            received_events_url: https://api.github.com/users/eliskasl/received_events
+                            repos_url: https://api.github.com/users/eliskasl/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/eliskasl/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/eliskasl/subscriptions
+                            type: User
+                            url: https://api.github.com/users/eliskasl
+                        _next: null
+                        elapsed: 0.261248
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: private, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.v3; format=json
+                          X-GitHub-Request-Id: DEBE:FEB0:5355498:6480B88:5DBC34C7
+                          X-RateLimit-Limit: '5000'
+                          X-RateLimit-Remaining: '4970'
+                          X-RateLimit-Reset: '1572618953'
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+                    - metadata:
+                        latency: 0.505439043045044
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          permission: admin
+                          user:
+                            avatar_url: https://avatars2.githubusercontent.com/u/3416672?v=4
+                            events_url: https://api.github.com/users/phracek/events{/privacy}
+                            followers_url: https://api.github.com/users/phracek/followers
+                            following_url: https://api.github.com/users/phracek/following{/other_user}
+                            gists_url: https://api.github.com/users/phracek/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/phracek
+                            id: 3416672
+                            login: phracek
+                            node_id: MDQ6VXNlcjM0MTY2NzI=
+                            organizations_url: https://api.github.com/users/phracek/orgs
+                            received_events_url: https://api.github.com/users/phracek/received_events
+                            repos_url: https://api.github.com/users/phracek/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/phracek/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/phracek/subscriptions
+                            type: User
+                            url: https://api.github.com/users/phracek
+                        _next: null
+                        elapsed: 0.505077
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: private, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.v3; format=json
+                          X-GitHub-Request-Id: DEBE:FEB0:535550D:6480C14:5DBC34C7
+                          X-RateLimit-Limit: '5000'
+                          X-RateLimit-Remaining: '4969'
+                          X-RateLimit-Reset: '1572618953'
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+                    - metadata:
+                        latency: 0.30728793144226074
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          permission: admin
+                          user:
+                            avatar_url: https://avatars0.githubusercontent.com/u/8735467?v=4
+                            events_url: https://api.github.com/users/jscotka/events{/privacy}
+                            followers_url: https://api.github.com/users/jscotka/followers
+                            following_url: https://api.github.com/users/jscotka/following{/other_user}
+                            gists_url: https://api.github.com/users/jscotka/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/jscotka
+                            id: 8735467
+                            login: jscotka
+                            node_id: MDQ6VXNlcjg3MzU0Njc=
+                            organizations_url: https://api.github.com/users/jscotka/orgs
+                            received_events_url: https://api.github.com/users/jscotka/received_events
+                            repos_url: https://api.github.com/users/jscotka/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/jscotka/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/jscotka/subscriptions
+                            type: User
+                            url: https://api.github.com/users/jscotka
+                        _next: null
+                        elapsed: 0.306846
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: private, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.v3; format=json
+                          X-GitHub-Request-Id: DEBE:FEB0:53555FC:6480D31:5DBC34C8
+                          X-RateLimit-Limit: '5000'
+                          X-RateLimit-Remaining: '4968'
+                          X-RateLimit-Reset: '1572618953'
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+                    - metadata:
+                        latency: 0.258101224899292
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          permission: admin
+                          user:
+                            avatar_url: https://avatars1.githubusercontent.com/u/20214043?v=4
+                            events_url: https://api.github.com/users/lachmanfrantisek/events{/privacy}
+                            followers_url: https://api.github.com/users/lachmanfrantisek/followers
+                            following_url: https://api.github.com/users/lachmanfrantisek/following{/other_user}
+                            gists_url: https://api.github.com/users/lachmanfrantisek/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/lachmanfrantisek
+                            id: 20214043
+                            login: lachmanfrantisek
+                            node_id: MDQ6VXNlcjIwMjE0MDQz
+                            organizations_url: https://api.github.com/users/lachmanfrantisek/orgs
+                            received_events_url: https://api.github.com/users/lachmanfrantisek/received_events
+                            repos_url: https://api.github.com/users/lachmanfrantisek/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/lachmanfrantisek/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/lachmanfrantisek/subscriptions
+                            type: User
+                            url: https://api.github.com/users/lachmanfrantisek
+                        _next: null
+                        elapsed: 0.257544
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: private, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.v3; format=json
+                          X-GitHub-Request-Id: DEBE:FEB0:535568B:6480D9F:5DBC34C8
+                          X-RateLimit-Limit: '5000'
+                          X-RateLimit-Remaining: '4967'
+                          X-RateLimit-Reset: '1572618953'
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+                    - metadata:
+                        latency: 0.4215567111968994
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          permission: admin
+                          user:
+                            avatar_url: https://avatars3.githubusercontent.com/u/26160778?v=4
+                            events_url: https://api.github.com/users/rpitonak/events{/privacy}
+                            followers_url: https://api.github.com/users/rpitonak/followers
+                            following_url: https://api.github.com/users/rpitonak/following{/other_user}
+                            gists_url: https://api.github.com/users/rpitonak/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/rpitonak
+                            id: 26160778
+                            login: rpitonak
+                            node_id: MDQ6VXNlcjI2MTYwNzc4
+                            organizations_url: https://api.github.com/users/rpitonak/orgs
+                            received_events_url: https://api.github.com/users/rpitonak/received_events
+                            repos_url: https://api.github.com/users/rpitonak/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/rpitonak/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/rpitonak/subscriptions
+                            type: User
+                            url: https://api.github.com/users/rpitonak
+                        _next: null
+                        elapsed: 0.421284
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: private, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.v3; format=json
+                          X-GitHub-Request-Id: DEBE:FEB0:53556F4:6480E34:5DBC34C8
+                          X-RateLimit-Limit: '5000'
+                          X-RateLimit-Remaining: '4966'
+                          X-RateLimit-Reset: '1572618953'
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+                    - metadata:
+                        latency: 0.6117303371429443
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          permission: admin
+                          user:
+                            avatar_url: https://avatars2.githubusercontent.com/u/31201372?v=4
+                            events_url: https://api.github.com/users/dhodovsk/events{/privacy}
+                            followers_url: https://api.github.com/users/dhodovsk/followers
+                            following_url: https://api.github.com/users/dhodovsk/following{/other_user}
+                            gists_url: https://api.github.com/users/dhodovsk/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/dhodovsk
+                            id: 31201372
+                            login: dhodovsk
+                            node_id: MDQ6VXNlcjMxMjAxMzcy
+                            organizations_url: https://api.github.com/users/dhodovsk/orgs
+                            received_events_url: https://api.github.com/users/dhodovsk/received_events
+                            repos_url: https://api.github.com/users/dhodovsk/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/dhodovsk/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/dhodovsk/subscriptions
+                            type: User
+                            url: https://api.github.com/users/dhodovsk
+                        _next: null
+                        elapsed: 0.61139
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: private, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.v3; format=json
+                          X-GitHub-Request-Id: DEBE:FEB0:535578F:6480EC2:5DBC34C9
+                          X-RateLimit-Limit: '5000'
+                          X-RateLimit-Remaining: '4965'
+                          X-RateLimit-Reset: '1572618953'
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+                    - metadata:
+                        latency: 0.3180501461029053
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          permission: admin
+                          user:
+                            avatar_url: https://avatars1.githubusercontent.com/u/36231209?v=4
+                            events_url: https://api.github.com/users/usercont-release-bot/events{/privacy}
+                            followers_url: https://api.github.com/users/usercont-release-bot/followers
+                            following_url: https://api.github.com/users/usercont-release-bot/following{/other_user}
+                            gists_url: https://api.github.com/users/usercont-release-bot/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/usercont-release-bot
+                            id: 36231209
+                            login: usercont-release-bot
+                            node_id: MDQ6VXNlcjM2MjMxMjA5
+                            organizations_url: https://api.github.com/users/usercont-release-bot/orgs
+                            received_events_url: https://api.github.com/users/usercont-release-bot/received_events
+                            repos_url: https://api.github.com/users/usercont-release-bot/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/usercont-release-bot/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/usercont-release-bot/subscriptions
+                            type: User
+                            url: https://api.github.com/users/usercont-release-bot
+                        _next: null
+                        elapsed: 0.317695
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: private, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.v3; format=json
+                          X-GitHub-Request-Id: DEBE:FEB0:5355891:6480F97:5DBC34C9
+                          X-RateLimit-Limit: '5000'
+                          X-RateLimit-Remaining: '4964'
+                          X-RateLimit-Reset: '1572618953'
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+                    - metadata:
+                        latency: 0.29978418350219727
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          permission: admin
+                          user:
+                            avatar_url: https://avatars3.githubusercontent.com/u/49026743?v=4
+                            events_url: https://api.github.com/users/lbarcziova/events{/privacy}
+                            followers_url: https://api.github.com/users/lbarcziova/followers
+                            following_url: https://api.github.com/users/lbarcziova/following{/other_user}
+                            gists_url: https://api.github.com/users/lbarcziova/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/lbarcziova
+                            id: 49026743
+                            login: lbarcziova
+                            node_id: MDQ6VXNlcjQ5MDI2NzQz
+                            organizations_url: https://api.github.com/users/lbarcziova/orgs
+                            received_events_url: https://api.github.com/users/lbarcziova/received_events
+                            repos_url: https://api.github.com/users/lbarcziova/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/lbarcziova/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/lbarcziova/subscriptions
+                            type: User
+                            url: https://api.github.com/users/lbarcziova
+                        _next: null
+                        elapsed: 0.299111
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: private, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.v3; format=json
+                          X-GitHub-Request-Id: DEBE:FEB0:5355907:64810BA:5DBC34CA
+                          X-RateLimit-Limit: '5000'
+                          X-RateLimit-Remaining: '4963'
+                          X-RateLimit-Reset: '1572618953'
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+          ogr.services.github_tweak:
+            requests.api:
+              requests.sessions:
+                requre.objects:
+                  requests.sessions:
+                    send:
+                    - metadata:
+                        latency: 0.3534824848175049
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          access_tokens_url: https://api.github.com/app/installations/1924121/access_tokens
+                          account:
+                            avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
+                            events_url: https://api.github.com/users/packit-service/events{/privacy}
+                            followers_url: https://api.github.com/users/packit-service/followers
+                            following_url: https://api.github.com/users/packit-service/following{/other_user}
+                            gists_url: https://api.github.com/users/packit-service/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/packit-service
+                            id: 46870917
+                            login: packit-service
+                            node_id: MDEyOk9yZ2FuaXphdGlvbjQ2ODcwOTE3
+                            organizations_url: https://api.github.com/users/packit-service/orgs
+                            received_events_url: https://api.github.com/users/packit-service/received_events
+                            repos_url: https://api.github.com/users/packit-service/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/packit-service/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/packit-service/subscriptions
+                            type: Organization
+                            url: https://api.github.com/users/packit-service
+                          app_id: 29180
+                          created_at: '2019-09-16T07:28:35.000Z'
+                          events:
+                          - issues
+                          - issue_comment
+                          - pull_request
+                          - release
+                          html_url: https://github.com/organizations/packit-service/settings/installations/1924121
+                          id: 1924121
+                          permissions:
+                            contents: read
+                            issues: write
+                            metadata: read
+                            pull_requests: write
+                            statuses: write
+                          repositories_url: https://api.github.com/installation/repositories
+                          repository_selection: selected
+                          single_file_name: null
+                          target_id: 46870917
+                          target_type: Organization
+                          updated_at: '2019-09-16T07:28:36.000Z'
+                        _next: null
+                        elapsed: 0.352861
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type
+                          Cache-Control: public, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'none'
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Accept-Encoding
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.machine-man-preview; format=json
+                          X-GitHub-Request-Id: DEBA:21F99:4006020:4D26532:5DBC34C4
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+        packit.config:
+          ogr.services.github.project:
+            github.Repository:
+              github.Requester:
+                requests.sessions:
+                  requre.objects:
+                    requests.sessions:
+                      send:
+                      - metadata:
+                          latency: 0.29564952850341797
+                        output:
+                          __store_indicator: 2
+                          _content:
+                            _links:
+                              git: https://api.github.com/repos/packit-service/hello-world/git/blobs/6310ed0c59a1c656d47f2dde6b54be5a1dd4bd14
+                              html: https://github.com/packit-service/hello-world/blob/5e4ddd317ef0ee0f482c4156b078a90417451c5f/.packit.yaml
+                              self: https://api.github.com/repos/packit-service/hello-world/contents/.packit.yaml?ref=5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                            content: 'LS0tCnNwZWNmaWxlX3BhdGg6IGhlbGxvLnNwZWMKc3luY2VkX2ZpbGVzOgog
+
+                              IC0gaGVsbG8uc3BlYwp1cHN0cmVhbV9wcm9qZWN0X25hbWU6IGhlbGxvCmRv
+
+                              d25zdHJlYW1fcGFja2FnZV9uYW1lOiBoZWxsbwojIGFjdGlvbnM6CiMgICBw
+
+                              b3N0LXVwc3RyZWFtLWNsb25lOiAicHl0aG9uMyBzZXR1cC5weSBzZGlzdCAt
+
+                              LWRpc3QtZGlyIC4iCiMgY3VycmVudF92ZXJzaW9uX2NvbW1hbmQ6IFsicHl0
+
+                              aG9uMyIsICJzZXR1cC5weSIsICItLXZlcnNpb24iXQojIGNyZWF0ZV90YXJi
+
+                              YWxsX2NvbW1hbmQ6IFsicHl0aG9uMyIsICJzZXR1cC5weSIsICJzZGlzdCIs
+
+                              ICItLWRpc3QtZGlyIiwgIi4iXQpqb2JzOgotIGpvYjogY29wcl9idWlsZAog
+
+                              IHRyaWdnZXI6IHB1bGxfcmVxdWVzdAogIG1ldGFkYXRhOgogICAgdGFyZ2V0
+
+                              czoKICAgIC0gZmVkb3JhLTI5LXg4Nl82NAogICAgLSBmZWRvcmEtMzAteDg2
+
+                              XzY0CiAgICAtIGZlZG9yYS1yYXdoaWRlLXg4Nl82NAoKLSBqb2I6IHRlc3Rz
+
+                              CiAgdHJpZ2dlcjogcHVsbF9yZXF1ZXN0CiAgbWV0YWRhdGE6CiAgICB0YXJn
+
+                              ZXRzOgogICAgLSBmZWRvcmEtMjkteDg2XzY0CiAgICAtIGZlZG9yYS0zMC14
+
+                              ODZfNjQKICAgIC0gZmVkb3JhLXJhd2hpZGUteDg2XzY0Cgo=
+
+                              '
+                            download_url: https://raw.githubusercontent.com/packit-service/hello-world/5e4ddd317ef0ee0f482c4156b078a90417451c5f/.packit.yaml
+                            encoding: base64
+                            git_url: https://api.github.com/repos/packit-service/hello-world/git/blobs/6310ed0c59a1c656d47f2dde6b54be5a1dd4bd14
+                            html_url: https://github.com/packit-service/hello-world/blob/5e4ddd317ef0ee0f482c4156b078a90417451c5f/.packit.yaml
+                            name: .packit.yaml
+                            path: .packit.yaml
+                            sha: 6310ed0c59a1c656d47f2dde6b54be5a1dd4bd14
+                            size: 620
+                            type: file
+                            url: https://api.github.com/repos/packit-service/hello-world/contents/.packit.yaml?ref=5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                          _next: null
+                          elapsed: 0.295246
+                          encoding: utf-8
+                          headers:
+                            Access-Control-Allow-Origin: '*'
+                            Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                              X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                              X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                              X-Poll-Interval, X-GitHub-Media-Type
+                            Cache-Control: private, max-age=60, s-maxage=60
+                            Content-Encoding: gzip
+                            Content-Security-Policy: default-src 'none'
+                            Content-Type: application/json; charset=utf-8
+                            Date: Fri, 01 Nov 2019 13-36-03 GMT
+                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Last-Modified: Tue, 22 Oct 2019 13:14:46 GMT
+                            Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                            Server: GitHub.com
+                            Status: 200 OK
+                            Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                              preload
+                            Transfer-Encoding: chunked
+                            Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                            X-Content-Type-Options: nosniff
+                            X-Frame-Options: deny
+                            X-GitHub-Media-Type: github.v3; format=json
+                            X-GitHub-Request-Id: DEBE:FEB0:5355213:6480857:5DBC34C5
+                            X-RateLimit-Limit: '5000'
+                            X-RateLimit-Remaining: '4975'
+                            X-RateLimit-Reset: '1572618953'
+                            X-XSS-Protection: 1; mode=block
+                          raw: !!binary ""
+                          reason: OK
+                          status_code: 200
+        packit_service.worker.copr_build:
+          packit.api:
+            copr.v3.helpers:
+              copr.v3.proxies.build:
+                copr.v3.helpers:
+                  copr.v3.proxies.build:
+                    copr.v3.requests:
+                      requests.api:
+                        requests.sessions:
+                          requre.objects:
+                            requests.sessions:
+                              send:
+                              - metadata:
+                                  latency: 0.8316845893859863
+                                output:
+                                  __store_indicator: 2
+                                  _content:
+                                    chroots: []
+                                    ended_on: null
+                                    id: 1083193
+                                    ownername: packit
+                                    project_dirname: packit-service-hello-world-26-stg
+                                    projectname: packit-service-hello-world-26-stg
+                                    repo_url: https://copr-be.cloud.fedoraproject.org/results/packit/packit-service-hello-world-26-stg
+                                    source_package:
+                                      name: null
+                                      url: https://copr.fedorainfracloud.org/tmp/tmpf72_3i7q/hello-0.7.0.5.g5e4ddd3-1.fc30.src.rpm
+                                      version: null
+                                    started_on: null
+                                    state: pending
+                                    submitted_on: 1572615376
+                                    submitter: packit
+                                  _next: null
+                                  elapsed: 0.831399
+                                  encoding: null
+                                  headers:
+                                    Connection: Keep-Alive
+                                    Content-Length: '496'
+                                    Content-Type: application/json
+                                    Date: Fri, 01 Nov 2019 13-36-03 GMT
+                                    Keep-Alive: timeout=5, max=100
+                                    Server: Apache/2.4.41 (Fedora) OpenSSL/1.1.1d
+                                      mod_wsgi/4.6.4 Python/3.7
+                                    Strict-Transport-Security: max-age=31536000; preload
+                                  raw: !!binary ""
+                                  reason: OK
+                                  status_code: 200
+              copr.v3.proxies.project:
+                copr.v3.requests:
+                  requests.api:
+                    requests.sessions:
+                      requre.objects:
+                        requests.sessions:
+                          send:
+                          - metadata:
+                              latency: 0.9279181957244873
+                            output:
+                              __store_indicator: 2
+                              _content:
+                                additional_repos: []
+                                auto_prune: true
+                                chroot_repos:
+                                  fedora-29-x86_64: https://copr-be.cloud.fedoraproject.org/results/packit/packit-service-hello-world-26-stg/fedora-29-x86_64/
+                                  fedora-30-x86_64: https://copr-be.cloud.fedoraproject.org/results/packit/packit-service-hello-world-26-stg/fedora-30-x86_64/
+                                  fedora-rawhide-x86_64: https://copr-be.cloud.fedoraproject.org/results/packit/packit-service-hello-world-26-stg/fedora-rawhide-x86_64/
+                                contact: https://github.com/packit-service/packit/issues
+                                description: 'Continuous builds initiated by packit
+                                  service.
+
+                                  For more info check out https://packit.dev/'
+                                devel_mode: false
+                                enable_net: true
+                                full_name: packit/packit-service-hello-world-26-stg
+                                homepage: ''
+                                id: 26874
+                                instructions: You can check out the upstream projecthttps://github.com/packit-service/hello-world.git
+                                  to find out how to consume thesebuilds. This copr
+                                  project is created and handled by the packit project(https://packit.dev/).
+                                name: packit-service-hello-world-26-stg
+                                ownername: packit
+                                persistent: false
+                                unlisted_on_hp: true
+                                use_bootstrap_container: false
+                              _next: null
+                              elapsed: 0.927642
+                              encoding: null
+                              headers:
+                                Connection: Keep-Alive
+                                Content-Length: '1105'
+                                Content-Type: application/json
+                                Date: Fri, 01 Nov 2019 13-36-03 GMT
+                                Keep-Alive: timeout=5, max=100
+                                Server: Apache/2.4.41 (Fedora) OpenSSL/1.1.1d mod_wsgi/4.6.4
+                                  Python/3.7
+                                Strict-Transport-Security: max-age=31536000; preload
+                              raw: !!binary ""
+                              reason: OK
+                              status_code: 200
+          packit_service.worker.handler:
+            ogr.read_only:
+              ogr.services.github.project:
+                github.Commit:
+                  github.Requester:
+                    requests.sessions:
+                      requre.objects:
+                        requests.sessions:
+                          send:
+                          - metadata:
+                              latency: 0.4053356647491455
+                            output:
+                              __store_indicator: 2
+                              _content:
+                                avatar_url: https://avatars0.githubusercontent.com/in/29180?v=4
+                                context: packit-stg/rpm-build
+                                created_at: '2019-11-01T13:36:13Z'
+                                creator:
+                                  avatar_url: https://avatars0.githubusercontent.com/in/29180?v=4
+                                  events_url: https://api.github.com/users/packit-as-a-service-stg%5Bbot%5D/events{/privacy}
+                                  followers_url: https://api.github.com/users/packit-as-a-service-stg%5Bbot%5D/followers
+                                  following_url: https://api.github.com/users/packit-as-a-service-stg%5Bbot%5D/following{/other_user}
+                                  gists_url: https://api.github.com/users/packit-as-a-service-stg%5Bbot%5D/gists{/gist_id}
+                                  gravatar_id: ''
+                                  html_url: https://github.com/apps/packit-as-a-service-stg
+                                  id: 49729116
+                                  login: packit-as-a-service-stg[bot]
+                                  node_id: MDM6Qm90NDk3MjkxMTY=
+                                  organizations_url: https://api.github.com/users/packit-as-a-service-stg%5Bbot%5D/orgs
+                                  received_events_url: https://api.github.com/users/packit-as-a-service-stg%5Bbot%5D/received_events
+                                  repos_url: https://api.github.com/users/packit-as-a-service-stg%5Bbot%5D/repos
+                                  site_admin: false
+                                  starred_url: https://api.github.com/users/packit-as-a-service-stg%5Bbot%5D/starred{/owner}{/repo}
+                                  subscriptions_url: https://api.github.com/users/packit-as-a-service-stg%5Bbot%5D/subscriptions
+                                  type: Bot
+                                  url: https://api.github.com/users/packit-as-a-service-stg%5Bbot%5D
+                                description: RPM build has just started...
+                                id: 8024884421
+                                node_id: MDEzOlN0YXR1c0NvbnRleHQ4MDI0ODg0NDIx
+                                state: pending
+                                target_url: ''
+                                updated_at: '2019-11-01T13:36:13Z'
+                                url: https://api.github.com/repos/packit-service/hello-world/statuses/5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                              _next: null
+                              elapsed: 0.404762
+                              encoding: utf-8
+                              headers:
+                                Access-Control-Allow-Origin: '*'
+                                Access-Control-Expose-Headers: ETag, Link, Location,
+                                  Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                                  X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                                  X-Poll-Interval, X-GitHub-Media-Type
+                                Cache-Control: private, max-age=60, s-maxage=60
+                                Content-Length: '1628'
+                                Content-Security-Policy: default-src 'none'
+                                Content-Type: application/json; charset=utf-8
+                                Date: Fri, 01 Nov 2019 13-36-03 GMT
+                                ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                                Location: https://api.github.com/repos/packit-service/hello-world/statuses/5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                                Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                                Server: GitHub.com
+                                Status: 201 Created
+                                Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                                  preload
+                                Vary: Accept, Authorization, Cookie, X-GitHub-OTP,
+                                  Accept-Encoding
+                                X-Content-Type-Options: nosniff
+                                X-Frame-Options: deny
+                                X-GitHub-Media-Type: github.v3; format=json
+                                X-GitHub-Request-Id: DEBE:FEB0:5355E03:64816AB:5DBC34CD
+                                X-RateLimit-Limit: '5000'
+                                X-RateLimit-Remaining: '4961'
+                                X-RateLimit-Reset: '1572618953'
+                                X-XSS-Protection: 1; mode=block
+                              raw: !!binary ""
+                              reason: Created
+                              status_code: 201
+                github.Repository:
+                  github.Requester:
+                    requests.sessions:
+                      requre.objects:
+                        requests.sessions:
+                          send:
+                          - metadata:
+                              latency: 0.26853370666503906
+                            output:
+                              __store_indicator: 2
+                              _content:
+                                author:
+                                  avatar_url: https://avatars3.githubusercontent.com/u/26160778?v=4
+                                  events_url: https://api.github.com/users/rpitonak/events{/privacy}
+                                  followers_url: https://api.github.com/users/rpitonak/followers
+                                  following_url: https://api.github.com/users/rpitonak/following{/other_user}
+                                  gists_url: https://api.github.com/users/rpitonak/gists{/gist_id}
+                                  gravatar_id: ''
+                                  html_url: https://github.com/rpitonak
+                                  id: 26160778
+                                  login: rpitonak
+                                  node_id: MDQ6VXNlcjI2MTYwNzc4
+                                  organizations_url: https://api.github.com/users/rpitonak/orgs
+                                  received_events_url: https://api.github.com/users/rpitonak/received_events
+                                  repos_url: https://api.github.com/users/rpitonak/repos
+                                  site_admin: false
+                                  starred_url: https://api.github.com/users/rpitonak/starred{/owner}{/repo}
+                                  subscriptions_url: https://api.github.com/users/rpitonak/subscriptions
+                                  type: User
+                                  url: https://api.github.com/users/rpitonak
+                                comments_url: https://api.github.com/repos/packit-service/hello-world/commits/5e4ddd317ef0ee0f482c4156b078a90417451c5f/comments
+                                commit:
+                                  author:
+                                    date: '2019-10-22T13:14:46Z'
+                                    email: rado.pitonak@gmail.com
+                                    name: Radoslav Pitonak
+                                  comment_count: 0
+                                  committer:
+                                    date: '2019-10-22T13:14:46Z'
+                                    email: rado.pitonak@gmail.com
+                                    name: Radoslav Pitonak
+                                  message: uncomment testing farm
+                                  tree:
+                                    sha: 229bab2286890ab548a89e6ca790651a836c9f31
+                                    url: https://api.github.com/repos/packit-service/hello-world/git/trees/229bab2286890ab548a89e6ca790651a836c9f31
+                                  url: https://api.github.com/repos/packit-service/hello-world/git/commits/5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                                  verification:
+                                    payload: null
+                                    reason: unsigned
+                                    signature: null
+                                    verified: false
+                                committer:
+                                  avatar_url: https://avatars3.githubusercontent.com/u/26160778?v=4
+                                  events_url: https://api.github.com/users/rpitonak/events{/privacy}
+                                  followers_url: https://api.github.com/users/rpitonak/followers
+                                  following_url: https://api.github.com/users/rpitonak/following{/other_user}
+                                  gists_url: https://api.github.com/users/rpitonak/gists{/gist_id}
+                                  gravatar_id: ''
+                                  html_url: https://github.com/rpitonak
+                                  id: 26160778
+                                  login: rpitonak
+                                  node_id: MDQ6VXNlcjI2MTYwNzc4
+                                  organizations_url: https://api.github.com/users/rpitonak/orgs
+                                  received_events_url: https://api.github.com/users/rpitonak/received_events
+                                  repos_url: https://api.github.com/users/rpitonak/repos
+                                  site_admin: false
+                                  starred_url: https://api.github.com/users/rpitonak/starred{/owner}{/repo}
+                                  subscriptions_url: https://api.github.com/users/rpitonak/subscriptions
+                                  type: User
+                                  url: https://api.github.com/users/rpitonak
+                                files:
+                                - additions: 8
+                                  blob_url: https://github.com/packit-service/hello-world/blob/5e4ddd317ef0ee0f482c4156b078a90417451c5f/.packit.yaml
+                                  changes: 15
+                                  contents_url: https://api.github.com/repos/packit-service/hello-world/contents/.packit.yaml?ref=5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                                  deletions: 7
+                                  filename: .packit.yaml
+                                  patch: "@@ -17,10 +17,11 @@ jobs:\n     - fedora-30-x86_64\n\
+                                    \     - fedora-rawhide-x86_64\n \n- #- job: tests\n\
+                                    - #trigger: pull_request\n- #metadata:\n- #  targets:\n\
+                                    - #  - fedora-29-x86_64\n- #  - fedora-30-x86_64\n\
+                                    - #  - fedora-rawhide-x86_64\n+- job: tests\n\
+                                    +  trigger: pull_request\n+  metadata:\n+    targets:\n\
+                                    +    - fedora-29-x86_64\n+    - fedora-30-x86_64\n\
+                                    +    - fedora-rawhide-x86_64\n+"
+                                  raw_url: https://github.com/packit-service/hello-world/raw/5e4ddd317ef0ee0f482c4156b078a90417451c5f/.packit.yaml
+                                  sha: 6310ed0c59a1c656d47f2dde6b54be5a1dd4bd14
+                                  status: modified
+                                html_url: https://github.com/packit-service/hello-world/commit/5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                                node_id: MDY6Q29tbWl0MTg0NjM1MTI0OjVlNGRkZDMxN2VmMGVlMGY0ODJjNDE1NmIwNzhhOTA0MTc0NTFjNWY=
+                                parents:
+                                - html_url: https://github.com/packit-service/hello-world/commit/711e0faad307e0142947c2c3c5660917ad68c8d5
+                                  sha: 711e0faad307e0142947c2c3c5660917ad68c8d5
+                                  url: https://api.github.com/repos/packit-service/hello-world/commits/711e0faad307e0142947c2c3c5660917ad68c8d5
+                                sha: 5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                                stats:
+                                  additions: 8
+                                  deletions: 7
+                                  total: 15
+                                url: https://api.github.com/repos/packit-service/hello-world/commits/5e4ddd317ef0ee0f482c4156b078a90417451c5f
+                              _next: null
+                              elapsed: 0.268183
+                              encoding: utf-8
+                              headers:
+                                Access-Control-Allow-Origin: '*'
+                                Access-Control-Expose-Headers: ETag, Link, Location,
+                                  Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                                  X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                                  X-Poll-Interval, X-GitHub-Media-Type
+                                Cache-Control: private, max-age=60, s-maxage=60
+                                Content-Encoding: gzip
+                                Content-Security-Policy: default-src 'none'
+                                Content-Type: application/json; charset=utf-8
+                                Date: Fri, 01 Nov 2019 13-36-03 GMT
+                                ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                                Last-Modified: Tue, 22 Oct 2019 13:14:46 GMT
+                                Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                                Server: GitHub.com
+                                Status: 200 OK
+                                Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                                  preload
+                                Transfer-Encoding: chunked
+                                Vary: Accept, Authorization, Cookie, X-GitHub-OTP,
+                                  Accept-Encoding
+                                X-Content-Type-Options: nosniff
+                                X-Frame-Options: deny
+                                X-GitHub-Media-Type: github.v3; format=json
+                                X-GitHub-Request-Id: DEBE:FEB0:5355DA3:6481159:5DBC34CA
+                                X-RateLimit-Limit: '5000'
+                                X-RateLimit-Remaining: '4962'
+                                X-RateLimit-Reset: '1572618953'
+                                X-XSS-Protection: 1; mode=block
+                              raw: !!binary ""
+                              reason: OK
+                              status_code: 200

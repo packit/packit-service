@@ -8,4 +8,4 @@ id
 
 cat $HOME/.config/packit-service.yaml
 
-pytest-3 -vv tests/openshift_integration/
+pytest-3 -vv tests_requre/openshift_integration/

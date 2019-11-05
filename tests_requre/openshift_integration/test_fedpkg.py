@@ -20,13 +20,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from pathlib import Path
-
+import tempfile
+import shutil
+from tests_requre.openshift_integration.base import PackitServiceTestCase
 from packit.fedpkg import FedPKG
 
 
-def test_fedpkg_clone(tmpdir):
-    """ test `fedpkg clone -a` within an openshift pod """
-    t = Path(tmpdir)
-    f = FedPKG()
-    f.clone("units", str(t), anonymous=True)
-    assert t.joinpath("units.spec").is_file()
+class FedPkg(PackitServiceTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.tmpdir)
+        super().tearDown()
+
+    def test_fedpkg_clone(self):
+        """ test `fedpkg clone -a` within an openshift pod """
+        t = Path(self.tmpdir)
+        f = FedPKG()
+        f.clone("units", str(t), anonymous=True)
+        assert t.joinpath("units.spec").is_file()
