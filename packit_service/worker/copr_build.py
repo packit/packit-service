@@ -104,19 +104,24 @@ class CoprBuildHandler(object):
             f"{self.project.namespace}-{self.project.repo}-{self.event.pr_id}{stg}"
         )
         job = self.get_job_copr_build_metadata()
-        if not job.metadata.get("targets"):
-            logger.error(
-                "'targets' value is required in packit config for copr_build job"
-            )
+        if not job:
+            msg = "No copr_build defined"
+            # we can't report it to end-user at this stage
+            return HandlerResults(success=False, details={"msg": msg})
 
         self.job_project = job.metadata.get("project") or default_project_name
         self.job_owner = job.metadata.get("owner") or self.api.copr.config.get(
             "username"
         )
-        self.job_chroots = job.metadata.get("targets")
+        self.job_chroots = job.metadata.get("targets", [])
         r = BuildStatusReporter(
             self.project, self.event.commit_sha, self.copr_build_model
         )
+        if not job.metadata.get("targets"):
+            msg = "'targets' value is required in packit config for copr_build job"
+            r.report("failure", msg, check_name=check_name)
+            return HandlerResults(success=False, details={"msg": msg})
+
         msg_retrigger = (
             f"You can re-trigger copr build by adding a comment (`/packit copr-build`) "
             f"into this pull request."
