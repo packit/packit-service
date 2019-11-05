@@ -48,15 +48,15 @@ services:
       KRB5CCNAME: FILE:/tmp/krb5cc_packit
     volumes:
       - ./packit_service:/src-packit-service/packit_service:ro,z
-      - ./secrets/packit.yaml:/home/packit/.config/.packit.yaml:ro,z
+      - ./secrets/dev/packit.yaml:/home/packit/.config/.packit.yaml:ro,z
       # worker should not require packit-service.yaml
-      - ./secrets/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
-      - ./secrets/copr:/home/packit/.config/copr:ro,z
-      - ./secrets/ssh_config:/packit-ssh/config:ro,z
-      - ./secrets/id_rsa.pub:/packit-ssh/id_rsa.pub:ro,z
-      - ./secrets/id_rsa:/packit-ssh/id_rsa:ro,z
-      - ./secrets/fedora.keytab:/secrets/fedora.keytab:ro,z
-      - ./secrets/private-key.pem:/secrets/private-key.pem:ro,z
+      - ./secrets/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
+      - ./secrets/dev/copr:/home/packit/.config/copr:ro,z
+      - ./secrets/dev/ssh_config:/packit-ssh/config:ro,z
+      - ./secrets/dev/id_rsa.pub:/packit-ssh/id_rsa.pub:ro,z
+      - ./secrets/dev/id_rsa:/packit-ssh/id_rsa:ro,z
+      - ./secrets/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
+      - ./secrets/dev/private-key.pem:/secrets/private-key.pem:ro,z
       #- .:/src:ro,z
     user: "123123"
 
@@ -77,13 +77,13 @@ services:
     volumes:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
       # There's no secrets/ by default. You have to create (or symlink to other dir) it yourself.
-      - ./secrets/httpd-packit.conf:/etc/httpd/conf.d/httpd-packit.conf:ro,Z
-      - ./secrets/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
-      - ./secrets/packit.yaml:/home/packit/.config/.packit.yaml:ro,z
-      - ./secrets/fedora.keytab:/secrets/fedora.keytab:ro,z
-      - ./secrets/private-key.pem:/secrets/private-key.pem:ro,z
-      - ./secrets/fullchain.pem:/secrets/fullchain.pem:ro,z
-      - ./secrets/privkey.pem:/secrets/privkey.pem:ro,z
+      - ./secrets/dev/httpd-packit.conf:/etc/httpd/conf.d/httpd-packit.conf:ro,Z
+      - ./secrets/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
+      - ./secrets/dev/packit.yaml:/home/packit/.config/.packit.yaml:ro,z
+      - ./secrets/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
+      - ./secrets/dev/private-key.pem:/secrets/private-key.pem:ro,z
+      - ./secrets/dev/fullchain.pem:/secrets/fullchain.pem:ro,z
+      - ./secrets/dev/privkey.pem:/secrets/privkey.pem:ro,z
     user: "123123"
 
   packit-fedmsg:
@@ -97,6 +97,6 @@ services:
       FEDORA_MESSAGING_CONF: /home/packit/.config/fedora.toml
     volumes:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
-      - ./secrets/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
-      - ./secrets/fedora.toml:/home/packit/.config/fedora.toml:ro,z
+      - ./secrets/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
+      - ./secrets/dev/fedora.toml:/home/packit/.config/fedora.toml:ro,z
     user: "123123"
