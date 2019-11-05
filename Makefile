@@ -22,27 +22,6 @@ worker-prod: files/install-deps-worker.yaml files/recipe-worker.yaml
 worker-prod-push: worker-prod
 	$(CONTAINER_ENGINE) push $(WORKER_PROD_IMAGE)
 
-# we can't use rootless podman here b/c we can't mount ~/.ssh inside (0400)
-run-worker:
-	docker run -it --rm --net=host \
-		-u 1000 \
-		-e FLASK_ENV=development \
-		-e PAGURE_USER_TOKEN \
-		-e PAGURE_FORK_TOKEN \
-		-e GITHUB_TOKEN \
-		-w /src \
-		-v ~/.ssh/:/home/packit/.ssh/:Z \
-		-v $(CURDIR):/src:Z \
-		$(WORKER_IMAGE) bash
-
-run-fedmsg:
-	docker run -it --rm --net=host \
-		-u 1000 \
-		-w /src \
-		-v ~/.ssh/:/home/packit/.ssh/:Z \
-		-v $(CURDIR):/src:Z \
-		$(WORKER_IMAGE) bash
-
 check:
 	find . -name "*.pyc" -exec rm {} \;
 	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=yes --verbose --showlocals --cov=packit_service --cov-report=term-missing $(TEST_TARGET)
