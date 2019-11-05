@@ -1,6 +1,6 @@
 SERVICE_IMAGE ?= docker.io/usercont/packit-service:dev
 WORKER_IMAGE ?= docker.io/usercont/packit-service-worker:dev
-WORKER_PROD_IMAGE ?= docker.io/usercont/packit-service-worker:prod
+WORKER_IMAGE_PROD ?= docker.io/usercont/packit-service-worker:prod
 TEST_IMAGE ?= packit-service-tests
 TEST_TARGET ?= ./tests/unit ./tests/integration/
 CONTAINER_ENGINE ?= docker
@@ -13,16 +13,18 @@ service: files/install-deps.yaml files/recipe.yaml
 worker: files/install-deps-worker.yaml files/recipe-worker.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE) -f Dockerfile.worker .
 
-# this is for cases when you want to deploy into production and don't want to wait for dockerhub
+# This is for cases when you want to deploy into production and don't want to wait for dockerhub
+# Make sure you have latest docker.io/usercont/packit:prod prior to running this
 worker-prod: files/install-deps-worker.yaml files/recipe-worker.yaml
-	$(CONTAINER_ENGINE) build --rm -t $(WORKER_PROD_IMAGE) -f Dockerfile.worker.prod .
+	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE_PROD) -f Dockerfile.worker.prod .
 worker-prod-push: worker-prod
-	$(CONTAINER_ENGINE) push $(WORKER_PROD_IMAGE)
+	$(CONTAINER_ENGINE) push $(WORKER_IMAGE_PROD)
 
 check:
 	find . -name "*.pyc" -exec rm {} \;
 	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=yes --verbose --showlocals --cov=packit_service --cov-report=term-missing $(TEST_TARGET)
 
+# first run 'make worker'
 test_image: files/install-deps.yaml files/recipe-tests.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(TEST_IMAGE) -f Dockerfile.tests .
 
