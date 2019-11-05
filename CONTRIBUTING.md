@@ -121,7 +121,7 @@ We have multiple test categories within packit-service:
 
 You can run unit and integration tests locally in a container:
 ```
-make check_in_container
+make test_image && make check_in_container
 ```
 
 ## Openshift tests using requre
@@ -211,7 +211,7 @@ As the last step playbook [zuul-tests.yaml](/files/zuul-tests.yaml) is executed.
 #### Copr build
 
 For cases you'd like to trigger a copr build in your copr project, you can configure it in packit configuration of your chosen package:
-```
+```yaml
 jobs:
 - job: copr_build
   trigger: pull_request
@@ -241,9 +241,6 @@ Once we have jobs defined in `packit` config we are ready to move on to next ste
 2. Define parse method in [worker/parser.py](/packit_service/worker/parser.py). Create new static method in `Parser` class which can deserialize new defined event in previous step. Don't forget to call it in `parse_event` method. Write a new test in `test_events.py` to verify that it works well.
 3. Depends on type of job - create new handler in one of the `*_handlers.py` files. You need to implement the `run` method where is the whole logic of the handler. In this step take inspiration from other handlers.
 
-Thank you for your interest!
-packit team.
-
 ### Service configuration
 
 The service configuration is an extension of the user configuration from packit. (`Config` class in [packit/config.py](https://github.com/packit-service/packit/blob/master/packit/config.py).)
@@ -254,3 +251,6 @@ To add a new service-related property you need to:
 2. Load the property in `ServiceConfig.get_from_dict`.
 2. Add it to the validation schema (`_SERVICE_CONFIG_SCHEMA_PROPERTIES`) in [schema.py](/packit_service/schema.py).
     - Add the property to the `_SERVICE_CONFIG_SCHEMA_REQUIRED` if the property is required.
+
+Thank you for your interest!
+packit team.
