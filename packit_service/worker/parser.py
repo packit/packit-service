@@ -262,15 +262,22 @@ class Parser:
         if not nested_get(event, "installation", "account"):
             return None
 
-        action = event["action"]  # added or removed
+        action = event["action"]
+        if action not in {"created", "added"}:
+            # We're currently not interested in removed/deleted/updated event.
+            return None
         installation_id = event["installation"]["id"]
+        # if action == 'created' then repos are in repositories
+        # if action == 'added' then repos are in repositories_added
+        repositories = event.get("repositories") or event.get("repositories_added", [])
+        repo_names = [repo["full_name"] for repo in repositories]
 
         logger.info(
             f"Github App installation event. Action: {action}, id: {installation_id}"
         )
         logger.debug(
             f"account: {event['installation']['account']}, "
-            f"repositories_added: {event['repositories_added']}, sender: {event['sender']}"
+            f"repositories: {repo_names}, sender: {event['sender']}"
         )
 
         account_login = event["installation"]["account"]["login"]
@@ -278,8 +285,6 @@ class Parser:
         account_url = event["installation"]["account"]["url"]
         account_type = event["installation"]["account"]["type"]  # User or Organization
         created_at = event["installation"]["created_at"]
-
-        repositories = [repo["full_name"] for repo in event["repositories_added"]]
 
         sender_id = event["sender"]["id"]
         sender_login = event["sender"]["login"]
@@ -291,7 +296,7 @@ class Parser:
             account_url,
             account_type,
             created_at,
-            repositories,
+            repo_names,
             sender_id,
             sender_login,
         )
