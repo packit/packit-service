@@ -1,5 +1,5 @@
-SERVICE_IMAGE ?= docker.io/usercont/packit-service
-WORKER_IMAGE ?= docker.io/usercont/packit-service-worker
+SERVICE_IMAGE ?= docker.io/usercont/packit-service:dev
+WORKER_IMAGE ?= docker.io/usercont/packit-service-worker:dev
 WORKER_PROD_IMAGE ?= docker.io/usercont/packit-service-worker:prod
 TEST_IMAGE ?= packit-service-tests
 TEST_TARGET ?= ./tests/unit ./tests/integration/
@@ -7,14 +7,11 @@ CONTAINER_ENGINE ?= docker
 ANSIBLE_PYTHON ?= /usr/bin/python3
 AP ?= ansible-playbook -vv -c local -i localhost, -e ansible_python_interpreter=$(ANSIBLE_PYTHON)
 
-build: files/install-deps.yaml files/recipe.yaml
+service: files/install-deps.yaml files/recipe.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(SERVICE_IMAGE) .
 
 worker: files/install-deps-worker.yaml files/recipe-worker.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE) -f Dockerfile.worker .
-
-worker_openshift_tests: files/install-deps-worker.yaml files/recipe-worker.yaml
-	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE):dev -f Dockerfile.worker .
 
 # this is for cases when you want to deploy into production and don't want to wait for dockerhub
 worker-prod: files/install-deps-worker.yaml files/recipe-worker.yaml
@@ -39,7 +36,7 @@ check_in_container: test_image
 		$(TEST_IMAGE) make check
 
 # deploy a pod with tests and run them
-check-inside-openshift: worker_openshift_tests test_image
+check-inside-openshift: worker test_image
 	@# http://timmurphy.org/2015/09/27/how-to-get-a-makefile-directory-path/
 	@# sadly the hostPath volume doesn't work:
 	@#   Invalid value: "hostPath": hostPath volumes are not allowed to be used
