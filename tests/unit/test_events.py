@@ -25,7 +25,7 @@ Tests for events parsing
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from flexmock import flexmock
@@ -130,7 +130,9 @@ class TestEvents:
         assert event_object.account_id == 288686
         assert event_object.account_url == "https://api.github.com/users/jpopelka"
         assert event_object.account_type == "User"
-        assert event_object.created_at == datetime.fromtimestamp(1567090283)
+        assert event_object.created_at == datetime.fromtimestamp(
+            1567090283, timezone.utc
+        )
         assert event_object.sender_login == "jpopelka"
         assert event_object.sender_id == 288686
         assert event_object.status == WhitelistStatus.waiting

@@ -26,7 +26,7 @@ This file defines classes for events which are sent by GitHub or FedMsg.
 import copy
 import enum
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Union
 
 from ogr.abstract import GitProject
@@ -88,8 +88,10 @@ class Event:
         self.created_at: datetime
         if created_at:
             if isinstance(created_at, (int, float)):
-                self.created_at = datetime.fromtimestamp(created_at)
+                self.created_at = datetime.fromtimestamp(created_at, timezone.utc)
             elif isinstance(created_at, str):
+                # https://stackoverflow.com/questions/127803/how-do-i-parse-an-iso-8601-formatted-date/49784038
+                created_at = created_at.replace("Z", "+00:00")
                 self.created_at = datetime.fromisoformat(created_at)
         else:
             self.created_at = datetime.now()
