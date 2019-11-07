@@ -23,12 +23,3 @@
       src: run_worker.sh
       dest: /usr/bin/run_worker.sh
       mode: 0777
-  - name: Create ~/.ssh/
-    file:
-      path: '{{ home_path }}/.ssh/'
-      state: directory
-  - name: Add pkgs.fedoraproject.org to ~/.ssh/known_hosts
-    known_hosts:
-      name: pkgs.fedoraproject.org
-      # if we need more keys, we can put them into a file and source/lookup it here
-      key: pkgs.fedoraproject.org,209.132.181.4 ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAnhQyqu6oY5g01SOEbtrgrlCk3/eoLVZl2oh6c+Xq2oJg5ppPCtvmdWgU9rEltS+jgAYTH3LG4lGd02boMk8mmV5QvzGGRA9HmN991Phm7y4EN5r84A0gibf2O5QzhU2IMBQuOkEMwqZC+wc7pGGFJeXQjzBAVidjacxXtVJyfFOhAIYoHerIYq3VbJrTzEGkHmcJ8o3ZnP8Mt35aBESNsHdIaCOpvZzK1NVHdUHwRGcXIjG6t06mNVG4DVbdpB6xmMbAD5bemPoPVG0oYVs9wmhSHC0LmOZbvv8CDO2Z0DJ8q25FwVlTjo1Eq2A8VJc4LnHTDHZbtDZiKGTo/UMvvQ==
