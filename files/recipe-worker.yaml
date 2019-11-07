@@ -13,6 +13,7 @@
         volumes:
         - '{{ playbook_dir }}:{{ packit_service_path }}:Z'
   tasks:
+  - import_tasks: packit-service.yaml
   - name: Copy gitconfig
     copy:
       src: gitconfig
@@ -22,4 +23,3 @@
       src: run_worker.sh
       dest: /usr/bin/run_worker.sh
       mode: 0777
-  - import_tasks: packit-service.yaml
