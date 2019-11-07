@@ -246,7 +246,7 @@ class TestEvents:
 
     def test_parse_copr_build_event_start(self, copr_build_results_start):
         flexmock(CoprBuildDB).should_receive("get_build").and_return(
-            {"repo_name": "foo"}
+            {"repo_name": "foo", "https_url": "url"}
         )
 
         event_object = Parser.parse_event(copr_build_results_start)
@@ -258,11 +258,12 @@ class TestEvents:
         assert event_object.status == 3
         assert event_object.owner == "packit"
         assert event_object.project_name == "packit-service-hello-world-24-stg"
+        assert event_object.project_url == "url"
         assert event_object.base_repo_name == "foo"
 
     def test_parse_copr_build_event_end(self, copr_build_results_end):
         flexmock(CoprBuildDB).should_receive("get_build").and_return(
-            {"repo_name": "foo"}
+            {"repo_name": "foo", "https_url": "url"}
         )
 
         event_object = Parser.parse_event(copr_build_results_end)
@@ -274,6 +275,7 @@ class TestEvents:
         assert event_object.status == 1
         assert event_object.owner == "packit"
         assert event_object.project_name == "packit-service-hello-world-24-stg"
+        assert event_object.project_url == "url"
         assert event_object.base_repo_name == "foo"
 
     def test_get_project_pr(self, pull_request, mock_config):

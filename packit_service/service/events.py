@@ -133,7 +133,7 @@ class Event:
 
 
 class AbstractGithubEvent(Event):
-    def __init__(self, trigger: JobTriggerType, project_url=None):
+    def __init__(self, trigger: JobTriggerType, project_url: str):
         super().__init__(trigger)
         self.project_url: str = project_url
 
@@ -397,6 +397,7 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         return package_config
 
 
+# Wait, what? copr build event doesn't sound like github event
 class CoprBuildEvent(AbstractGithubEvent):
     def __init__(
         self,
@@ -408,7 +409,7 @@ class CoprBuildEvent(AbstractGithubEvent):
         owner: str,
         project_name: str,
     ):
-        super().__init__(JobTriggerType.commit)
+        super().__init__(trigger=JobTriggerType.commit, project_url=build["https_url"])
         self.topic = FedmsgTopic(topic)
         self.build_id = build_id
         self.build = build
@@ -425,7 +426,6 @@ class CoprBuildEvent(AbstractGithubEvent):
         self.base_repo_namespace = build.get("repo_namespace")
         self.pr_id = build.get("pr_id")
         self.ref = build.get("ref")
-        self.project_url = build.get("https_url")
         self.commit_sha = build.get("commit_sha")
 
     @classmethod
