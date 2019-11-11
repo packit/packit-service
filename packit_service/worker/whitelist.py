@@ -53,19 +53,19 @@ class Whitelist:
         """
 
         url = f"https://badges.fedoraproject.org/user/{account_login}/json"
-        data = requests.get(url)
-        if not data:
+        response = requests.get(url)
+        if not response.status_code == 200:
+            if response.status_code == 404:
+                logger.info(f"No FAS {account_login!r} in badges.fedoraproject.org.")
+            else:
+                logger.error(f"Failed to get {account_login!r} from badges.fp.org.")
             return False
-        assertions = data.json().get("assertions")
-        if not assertions:
-            return False
-        for item in assertions:
-            if "Succesfully completed a koji build." in item.get("description"):
-                logger.info(f"User: {account_login} is a packager in Fedora!")
+
+        for item in response.json().get("assertions", []):
+            if "Successfully completed a koji build." in item.get("description"):
+                logger.info(f"User {account_login!r} is a packager in Fedora!")
                 return True
-        logger.info(
-            f"Cannot verify whether user: {account_login} is a packager in Fedora."
-        )
+        logger.info(f"Cannot verify whether {account_login!r} is a packager in Fedora.")
         return False
 
     def get_account(self, account_name: str) -> Optional[dict]:
