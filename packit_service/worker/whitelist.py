@@ -91,29 +91,28 @@ class Whitelist:
          with status : `waiting`.
          Then a scripts in files/scripts have to be executed for manual approval
         :param github_app: github app installation info
-        :return: was the account auto-whitelisted?
+        :return: was the account (auto/already)-whitelisted?
         """
-        account = self.get_account(github_app.account_login)
-        if account:
-            # the account is already in DB
+        if github_app.account_login in self.db:
             return True
-        # we want to verify if user who installed the application is packager
+
+        # Do the DB insertion as a first thing to avoid issue#42
+        github_app.status = WhitelistStatus.waiting
+        self.db[github_app.account_login] = github_app.get_dict()
+
+        # we want to verify if user who installed the application (sender_login) is packager
         if Whitelist._is_packager(github_app.sender_login):
             github_app.status = WhitelistStatus.approved_automatically
             self.db[github_app.account_login] = github_app.get_dict()
             logger.info(f"Account {github_app.account_login} whitelisted!")
             return True
         else:
-            logger.error(
+            logger.info(
                 "Failed to verify that user is Fedora packager. "
                 "This could be caused by different github username than FAS username "
                 "or that user is not a packager."
-            )
-            github_app.status = WhitelistStatus.waiting
-            self.db[github_app.account_login] = github_app.get_dict()
-            logger.info(
                 f"Account {github_app.account_login} inserted "
-                f"to whitelist with status: waiting for approval"
+                "to whitelist with status: waiting for approval"
             )
             return False
 
