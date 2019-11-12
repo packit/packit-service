@@ -53,19 +53,19 @@ class Whitelist:
         """
 
         url = f"https://badges.fedoraproject.org/user/{account_login}/json"
-        data = requests.get(url)
-        if not data:
+        response = requests.get(url)
+        if not response.status_code == 200:
+            if response.status_code == 404:
+                logger.info(f"No FAS {account_login!r} in badges.fedoraproject.org.")
+            else:
+                logger.error(f"Failed to get {account_login!r} from badges.fp.org.")
             return False
-        assertions = data.json().get("assertions")
-        if not assertions:
-            return False
-        for item in assertions:
-            if "Succesfully completed a koji build." in item.get("description"):
-                logger.info(f"User: {account_login} is a packager in Fedora!")
+
+        for item in response.json().get("assertions", []):
+            if "Successfully completed a koji build." in item.get("description"):
+                logger.info(f"User {account_login!r} is a packager in Fedora!")
                 return True
-        logger.info(
-            f"Cannot verify whether user: {account_login} is a packager in Fedora."
-        )
+        logger.info(f"Cannot verify whether {account_login!r} is a packager in Fedora.")
         return False
 
     def get_account(self, account_name: str) -> Optional[dict]:
@@ -91,29 +91,28 @@ class Whitelist:
          with status : `waiting`.
          Then a scripts in files/scripts have to be executed for manual approval
         :param github_app: github app installation info
-        :return: was the account auto-whitelisted?
+        :return: was the account (auto/already)-whitelisted?
         """
-        account = self.get_account(github_app.account_login)
-        if account:
-            # the account is already in DB
+        if github_app.account_login in self.db:
             return True
-        # we want to verify if user who installed the application is packager
+
+        # Do the DB insertion as a first thing to avoid issue#42
+        github_app.status = WhitelistStatus.waiting
+        self.db[github_app.account_login] = github_app.get_dict()
+
+        # we want to verify if user who installed the application (sender_login) is packager
         if Whitelist._is_packager(github_app.sender_login):
             github_app.status = WhitelistStatus.approved_automatically
             self.db[github_app.account_login] = github_app.get_dict()
             logger.info(f"Account {github_app.account_login} whitelisted!")
             return True
         else:
-            logger.error(
+            logger.info(
                 "Failed to verify that user is Fedora packager. "
                 "This could be caused by different github username than FAS username "
                 "or that user is not a packager."
-            )
-            github_app.status = WhitelistStatus.waiting
-            self.db[github_app.account_login] = github_app.get_dict()
-            logger.info(
                 f"Account {github_app.account_login} inserted "
-                f"to whitelist with status: waiting for approval"
+                "to whitelist with status: waiting for approval"
             )
             return False
 

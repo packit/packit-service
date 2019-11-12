@@ -75,6 +75,9 @@ class GithubWebhook(Resource):
             logger.info(f"/webhooks/github {exc}")
             return str(exc), HTTPStatus.UNAUTHORIZED
 
+        if not self.interested():
+            return "Thanks but we don't care about this event", HTTPStatus.ACCEPTED
+
         # TODO: define task names at one place
         celery_app.send_task(
             name="task.steve_jobs.process_message", kwargs={"event": msg}
@@ -120,3 +123,20 @@ class GithubWebhook(Resource):
             logger.warning(msg)
             logger.debug(f"X-Hub-Signature: {sig!r} != computed: {mac.hexdigest()}")
             raise ValidationFailed(msg)
+
+    @staticmethod
+    def interested():
+        """
+        Check X-GitHub-Event header for events we know we give a f...
+        ...finely prepared response to.
+        :return: False if we are not interested in this kind of event
+        """
+        uninteresting_events = {"integration_installation"}
+        event_type = request.headers.get("X-GitHub-Event")
+        uuid = request.headers.get("X-GitHub-Delivery")
+        _interested = event_type not in uninteresting_events
+
+        logger.debug(
+            f"{event_type} {uuid}{' (not interested)' if not _interested else ''}"
+        )
+        return _interested
