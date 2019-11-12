@@ -18,6 +18,8 @@ services:
       REDIS_PORT: "6379"
     ports:
       - 8081:8081
+    depends_on:
+      - redis
     user: "123123"
 
   flower:
