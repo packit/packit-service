@@ -23,14 +23,11 @@
 """
 Listen to messages coming to fedora-messaging (AMQP)
 """
-import logging
 
 import click
 
-from packit_service.fedmsg.consumer import Consumerino
 from packit_service.config import service_config
-
-logger = logging.getLogger(__name__)
+from packit_service.fedmsg.consumer import Consumerino
 
 
 @click.command("listen-to-fedora-messaging")

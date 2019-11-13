@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import logging
+from datetime import datetime
 from typing import List
 
 from fedora_messaging import api, config
@@ -28,7 +28,9 @@ from fedora_messaging.message import Message
 from packit_service.celerizer import celery_app
 
 config.conf.setup_logging()
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
+# FIXME logging.getLogger() and config._log somehow clash together, using only one for now
+logger = config._log
 
 
 class Consumerino:
@@ -43,10 +45,13 @@ class Consumerino:
         :param message: Message from Fedora message bus
         :return: None
         """
+        logger.info(datetime.now())
 
-        if message.body["owner"] != "packit":
-            logger.debug("Copr build is not handled by packit!")
+        if message.body.get("owner") != "packit":
+            logger.info("Not handled by packit!")
             return
+
+        logger.info(message.body.get("what"))
 
         message.body["topic"] = message.topic
         celery_app.send_task(
