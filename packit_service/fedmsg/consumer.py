@@ -60,7 +60,7 @@ class Consumerino:
         """
         queues = {
             queue_name: {
-                "durable": False,  # Delete the queue on broker restart
+                "durable": True,  # Keep messages on broker restart
                 "auto_delete": True,  # Delete the queue when the client terminates
                 "exclusive": False,  # Allow multiple simultaneous consumers
                 "arguments": {},
