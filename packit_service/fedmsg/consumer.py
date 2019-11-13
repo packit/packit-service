@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from datetime import datetime
 from typing import List
 
 from fedora_messaging import api, config
@@ -44,9 +45,13 @@ class Consumerino:
         :param message: Message from Fedora message bus
         :return: None
         """
+        logger.info(datetime.now())
+
         if message.body.get("owner") != "packit":
             logger.info("Not handled by packit!")
             return
+
+        logger.info(message.body.get("what"))
 
         message.body["topic"] = message.topic
         celery_app.send_task(
