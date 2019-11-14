@@ -19,18 +19,16 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-from datetime import datetime
+from logging import getLogger
 from typing import List
 
 from fedora_messaging import api, config
 from fedora_messaging.message import Message
+
 from packit_service.celerizer import celery_app
 
 config.conf.setup_logging()
-# logger = logging.getLogger(__name__)
-# FIXME logging.getLogger() and config._log somehow clash together, using only one for now
-logger = config._log
+logger = getLogger(__name__)
 
 
 class Consumerino:
@@ -45,8 +43,6 @@ class Consumerino:
         :param message: Message from Fedora message bus
         :return: None
         """
-        logger.info(datetime.now())
-
         if message.body.get("owner") != "packit":
             logger.info("Not handled by packit!")
             return
