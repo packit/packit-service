@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from logging import getLogger
-from typing import List
 
 from fedora_messaging import api, config
 from fedora_messaging.message import Message
@@ -55,28 +54,11 @@ class Consumerino:
         )
 
     @staticmethod
-    def consume_from_fedora_messaging(queue_name: str, routing_keys: List[str]):
+    def consume_from_fedora_messaging():
         """
         fedora-messaging is written in an async way: callbacks
         """
-        queues = {
-            queue_name: {
-                "durable": False,  # Delete the queue on broker restart
-                "auto_delete": True,  # Delete the queue when the client terminates
-                "exclusive": False,  # Allow multiple simultaneous consumers
-                "arguments": {},
-            }
-        }
-        binding = {
-            "exchange": "amq.topic",  # The AMQP exchange to bind our queue to
-            "queue": queue_name,  # The unique name of our queue on the AMQP broker
-            # The topics that should be delivered to the queue
-            "routing_keys": routing_keys,
-        }
-
         # Start consuming messages using our callback. This call will block until
         # a KeyboardInterrupt is raised, or the process receives a SIGINT or SIGTERM
         # signal.
-        api.consume(
-            Consumerino.fedora_messaging_callback, bindings=binding, queues=queues
-        )
+        api.consume(Consumerino.fedora_messaging_callback)

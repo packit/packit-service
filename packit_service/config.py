@@ -22,12 +22,12 @@
 import enum
 import logging
 from pathlib import Path
-from typing import List, Set
+from typing import Set
+
+from yaml import safe_load
 
 from packit.config import RunCommandType, Config
 from packit.exceptions import PackitException
-from yaml import safe_load
-
 from packit_service.constants import (
     SANDCASTLE_WORK_DIR,
     SANDCASTLE_PVC,
@@ -57,10 +57,6 @@ class ServiceConfig(Config):
         self.webhook_secret: str = ""
         self.testing_farm_secret: str = ""
         self.validate_webhooks: bool = True
-
-        # fedmsg
-        self.queue_name: str = ""
-        self.routing_keys: List[str] = []
 
         # List of github users who are allowed to trigger p-s on any repository
         self.admins: Set[str] = set()
@@ -95,8 +91,6 @@ class ServiceConfig(Config):
         config.testing_farm_secret = raw_dict.get("testing_farm_secret", "")
         config.deployment = Deployment(raw_dict.get("deployment", ""))
         config.validate_webhooks = raw_dict.get("validate_webhooks", False)
-        config.queue_name = raw_dict.get("queue_name", "")
-        config.routing_keys = raw_dict.get("routing_keys", [])
         config.admins = set(raw_dict.get("admins", []))
 
         config.command_handler = RunCommandType.local

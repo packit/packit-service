@@ -26,8 +26,6 @@ _SERVICE_CONFIG_SCHEMA_PROPERTIES = {
     "webhook_secret": {"type": "string"},
     "testing_farm_secret": {"type": "string"},
     "validate_webhooks": {"type": "boolean"},
-    "queue_name": {"type": "string"},
-    "routing_keys": {"type": "array"},
     "admins": {"type": "array"},
 }
 _SERVICE_CONFIG_SCHEMA_REQUIRED = ["deployment"]

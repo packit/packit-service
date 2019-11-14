@@ -26,13 +26,11 @@ Listen to messages coming to fedora-messaging (AMQP)
 
 import click
 
-from packit_service.config import service_config
 from packit_service.fedmsg.consumer import Consumerino
 
 
 @click.command("listen-to-fedora-messaging")
-@click.argument("message-id", nargs=-1)
-def listen_to_fedora_messaging(message_id):
+def listen_to_fedora_messaging():
     """
     Listen to events on fedmsg and process them.
 
@@ -40,6 +38,4 @@ def listen_to_fedora_messaging(message_id):
     """
 
     consumerino = Consumerino()
-    consumerino.consume_from_fedora_messaging(
-        queue_name=service_config.queue_name, routing_keys=service_config.routing_keys
-    )
+    consumerino.consume_from_fedora_messaging()
