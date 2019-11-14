@@ -408,6 +408,7 @@ class CoprBuildEvent(AbstractGithubEvent):
         status: int,
         owner: str,
         project_name: str,
+        pkg: str,
     ):
         super().__init__(trigger=JobTriggerType.commit, project_url=build["https_url"])
         self.topic = FedmsgTopic(topic)
@@ -417,6 +418,7 @@ class CoprBuildEvent(AbstractGithubEvent):
         self.status = status
         self.owner = owner
         self.project_name = project_name
+        self.pkg = pkg
         self.base_repo_name = ""
         self.base_repo_namespace = ""
         self.pr_id = 0
@@ -437,13 +439,14 @@ class CoprBuildEvent(AbstractGithubEvent):
         status: int,
         owner: str,
         project_name: str,
+        pkg: str,
     ) -> Optional["CoprBuildEvent"]:
         """ Return cls instance or None if build_id not in CoprBuildDB"""
         build = CoprBuildDB().get_build(build_id)
         if not build:
             logger.warning(f"Build id: {build_id} not in CoprBuildDB")
             return None
-        return cls(topic, build_id, build, chroot, status, owner, project_name)
+        return cls(topic, build_id, build, chroot, status, owner, project_name, pkg)
 
     def pre_check(self):
         if not self.build:

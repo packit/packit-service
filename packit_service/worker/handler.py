@@ -26,7 +26,7 @@ This file defines generic job handler
 import logging
 import shutil
 from pathlib import Path
-from typing import Dict, Any, Optional, Type, List
+from typing import Dict, Any, Optional, Type, List, Union
 
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
@@ -36,6 +36,10 @@ from packit_service.config import Deployment, ServiceConfig
 from packit_service.constants import (
     PACKIT_PROD_CHECK,
     PACKIT_STG_CHECK,
+    PACKIT_PROD_ACCOUNT_CHECK,
+    PACKIT_STG_ACCOUNT_CHECK,
+    PACKIT_PROD_SRPM_CHECK,
+    PACKIT_STG_SRPM_CHECK,
     PACKIT_PROD_TESTING_FARM_CHECK,
     PACKIT_STG_TESTING_FARM_CHECK,
 )
@@ -53,19 +57,41 @@ class PRCheckName:
     """
 
     @staticmethod
-    def get_build_check() -> str:
+    def get_account_check() -> str:
         config = ServiceConfig.get_service_config()
         if config.deployment == Deployment.prod:
+            return PACKIT_PROD_ACCOUNT_CHECK
+        return PACKIT_STG_ACCOUNT_CHECK
+
+    @staticmethod
+    def get_srpm_build_check() -> str:
+        config = ServiceConfig.get_service_config()
+        if config.deployment == Deployment.prod:
+            return PACKIT_PROD_SRPM_CHECK
+        return PACKIT_STG_SRPM_CHECK
+
+    @staticmethod
+    def get_build_check(chroot: str = None) -> str:
+        config = ServiceConfig.get_service_config()
+        if config.deployment == Deployment.prod:
+            if chroot:
+                return f"{PACKIT_PROD_CHECK}-{chroot}"
             return PACKIT_PROD_CHECK
 
+        if chroot:
+            return f"{PACKIT_STG_CHECK}-{chroot}"
         return PACKIT_STG_CHECK
 
     @staticmethod
-    def get_testing_farm_check() -> str:
+    def get_testing_farm_check(chroot: str = None) -> str:
         config = ServiceConfig.get_service_config()
         if config.deployment == Deployment.prod:
+            if chroot:
+                return f"{PACKIT_PROD_TESTING_FARM_CHECK}-{chroot}"
             return PACKIT_PROD_TESTING_FARM_CHECK
 
+        if chroot:
+            return f"{PACKIT_STG_TESTING_FARM_CHECK}-{chroot}"
         return PACKIT_STG_TESTING_FARM_CHECK
 
 
@@ -91,20 +117,24 @@ class BuildStatusReporter:
         description: str,
         build_id: Optional[str] = None,
         url: str = "",
-        check_name: Optional[str] = None,
+        check_names: Union[str, list, None] = None,
     ):
+
         logger.debug(
-            f"Reporting state of copr build ID={build_id},"
+            f"Reporting state of copr build ID={build_id}"
             f" state={state}, commit={self.commit_sha}"
         )
         if self.copr_build_model:
             self.copr_build_model.status = state
             self.copr_build_model.save()
 
-        if not check_name:
-            check_name = PRCheckName.get_build_check()
+        if not check_names:
+            check_names = [PRCheckName.get_build_check()]
+        elif isinstance(check_names, str):
+            check_names = [check_names]
 
-        self.set_status(state, description, check_name, url)
+        for check in check_names:
+            self.set_status(state, description, check, url)
 
     def set_status(self, state: str, description: str, check_name: str, url: str = ""):
         logger.debug(description)

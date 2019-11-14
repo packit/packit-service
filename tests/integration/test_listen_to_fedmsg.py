@@ -66,8 +66,9 @@ def test_copr_build_end(copr_build_end):
     )
 
     url = (
-        f"https://copr.fedorainfracloud.org/coprs/packit/"
-        f"packit-service-hello-world-24-stg/build/1044215/"
+        f"https://copr-be.cloud.fedoraproject.org/results/"
+        f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
+        f"01044215-hello/builder-live.log.gz"
     )
 
     # check if packit-service set correct PR status
@@ -75,7 +76,7 @@ def test_copr_build_end(copr_build_end):
         state="success",
         description="RPMs were built successfully.",
         url=url,
-        check_name=PACKIT_STG_CHECK,
+        check_names=PACKIT_STG_CHECK,
     ).once()
 
     # skip testing farm
@@ -87,7 +88,9 @@ def test_copr_build_end(copr_build_end):
 def test_copr_build_start(copr_build_start):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(flexmock())
+    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+        flexmock()
+    ).once()
     flexmock(PRCheckName).should_receive("get_build_check").and_return(PACKIT_STG_CHECK)
 
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
@@ -102,8 +105,9 @@ def test_copr_build_start(copr_build_start):
     )
 
     url = (
-        "https://copr.fedorainfracloud.org/coprs/packit/"
-        "packit-service-hello-world-24-stg/build/1044215/"
+        f"https://copr-be.cloud.fedoraproject.org/results/"
+        f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
+        f"01044215-hello/builder-live.log.gz"
     )
 
     # check if packit-service set correct PR status
@@ -111,7 +115,7 @@ def test_copr_build_start(copr_build_start):
         state="pending",
         description="RPM build has started...",
         url=url,
-        check_name=PACKIT_STG_CHECK,
+        check_names=PACKIT_STG_CHECK,
     ).once()
 
     steve.process_message(copr_build_start)
@@ -140,8 +144,9 @@ def test_copr_build_not_comment_on_success(copr_build_end):
     )
 
     url = (
-        f"https://copr.fedorainfracloud.org/coprs/packit/"
-        f"packit-service-hello-world-24-stg/build/1044215/"
+        f"https://copr-be.cloud.fedoraproject.org/results/"
+        f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
+        f"01044215-hello/builder-live.log.gz"
     )
 
     # check if packit-service set correct PR status
@@ -149,7 +154,7 @@ def test_copr_build_not_comment_on_success(copr_build_end):
         state="success",
         description="RPMs were built successfully.",
         url=url,
-        check_name=PACKIT_STG_CHECK,
+        check_names=PACKIT_STG_CHECK,
     ).once()
 
     # skip testing farm
