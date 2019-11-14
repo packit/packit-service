@@ -50,7 +50,7 @@ services:
       KRB5CCNAME: FILE:/tmp/krb5cc_packit
     volumes:
       - ./packit_service:/src-packit-service/packit_service:ro,z
-      - ./secrets/dev/packit.yaml:/home/packit/.config/.packit.yaml:ro,z
+      - ./secrets/dev/.packit.yaml:/home/packit/.config/.packit.yaml:ro,z
       # worker should not require packit-service.yaml
       - ./secrets/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
       - ./secrets/dev/copr:/home/packit/.config/copr:ro,z
