@@ -22,7 +22,7 @@
 import enum
 import logging
 from pathlib import Path
-from typing import Set
+from typing import Set, Optional
 
 from yaml import safe_load
 
@@ -58,6 +58,10 @@ class ServiceConfig(Config):
         self.testing_farm_secret: str = ""
         self.validate_webhooks: bool = True
 
+        # fas.fedoraproject.org needs password to authenticate
+        # 'fas_user' is inherited from packit.config.Config
+        self.fas_password: Optional[str] = None
+
         # List of github users who are allowed to trigger p-s on any repository
         self.admins: Set[str] = set()
 
@@ -91,6 +95,7 @@ class ServiceConfig(Config):
         config.testing_farm_secret = raw_dict.get("testing_farm_secret", "")
         config.deployment = Deployment(raw_dict.get("deployment", ""))
         config.validate_webhooks = raw_dict.get("validate_webhooks", False)
+        config.fas_password = raw_dict.get("fas_password", None)
         config.admins = set(raw_dict.get("admins", []))
 
         config.command_handler = RunCommandType.local

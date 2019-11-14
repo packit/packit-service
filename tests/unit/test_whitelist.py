@@ -19,7 +19,10 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import flexmock
 import pytest
+from fedora.client.fas2 import AccountSystem
+from fedora.client import AuthError, FedoraServiceError
 
 from packit_service.service.events import WhitelistStatus
 from packit_service.worker.whitelist import Whitelist
@@ -65,3 +68,40 @@ def test_get_account(whitelist, account_name, is_dict):
 )
 def test_is_approved(whitelist, account_name, is_approved):
     assert whitelist.is_approved(account_name) == is_approved
+
+
+@pytest.mark.parametrize(
+    "account_name,person_object,raises,is_packager",
+    [
+        (
+            "me",
+            {
+                "memberships": [
+                    {"name": "unicorns"},
+                    {"name": "packager"},
+                    {"name": "builder"},
+                ]
+            },
+            None,
+            True,
+        ),
+        ("you", {"memberships": [{"name": "packagers"}]}, None, False),
+        ("they", {}, None, False),
+        ("parrot", {"some": "data"}, None, False),
+        ("we", None, AuthError, False),
+        ("bear", None, FedoraServiceError, False),
+    ],
+)
+def test_is_packager(whitelist, account_name, person_object, raises, is_packager):
+    fas = (
+        flexmock(AccountSystem)
+        .should_receive("person_by_username")
+        .with_args(account_name)
+        .once()
+    )
+    if person_object is not None:
+        fas.and_return(person_object)
+    if raises is not None:
+        fas.and_raise(raises)
+
+    assert whitelist._is_packager(account_name) == is_packager

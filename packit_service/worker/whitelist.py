@@ -21,7 +21,8 @@
 import logging
 from typing import Optional, Any
 
-import requests
+from fedora.client.fas2 import AccountSystem
+from fedora.client import AuthError, FedoraServiceError
 from ogr.abstract import GitProject
 from packit.config import JobTriggerType
 from persistentdict.dict_in_redis import PersistentDict
@@ -39,32 +40,40 @@ logger = logging.getLogger(__name__)
 
 
 class Whitelist:
-    def __init__(self):
+    def __init__(self, fas_user: str = None, fas_password: str = None):
         self.db = PersistentDict(hash_name="whitelist")
+        self._fas: AccountSystem = AccountSystem(
+            username=fas_user, password=fas_password
+        )
 
-    @staticmethod
-    def _is_packager(account_login: str) -> bool:
+    def _is_packager(self, account_login: str) -> bool:
         """
-        If GitHub username is same as FAS username this method checks if user is packager.
-        User is considered to be packager when he/she has the badge:
-         `If you build it... (Koji Success I)`
+        Check if the user is a packager, by checking if their GitHub
+        username is in the 'packager' group in FAS. Works only the user's
+        username is the same in GitHub and FAS.
+
         :param account_login: str, Github username
         :return: bool
         """
 
-        url = f"https://badges.fedoraproject.org/user/{account_login}/json"
-        response = requests.get(url)
-        if not response.status_code == 200:
-            if response.status_code == 404:
-                logger.info(f"No FAS {account_login!r} in badges.fedoraproject.org.")
-            else:
-                logger.error(f"Failed to get {account_login!r} from badges.fp.org.")
+        try:
+            person = self._fas.person_by_username(account_login)
+        except AuthError as e:
+            logger.error(f"FAS authentication failed: {e!r}")
+            return False
+        except FedoraServiceError as e:
+            logger.error(f"FAS query failed: {e!r}")
             return False
 
-        for item in response.json().get("assertions", []):
-            if "Successfully completed a koji build." in item.get("description"):
+        if not person:
+            logger.info(f"Not a FAS username {account_login!r}.")
+            return False
+
+        for membership in person.get("memberships", []):
+            if membership.get("name") == "packager":
                 logger.info(f"User {account_login!r} is a packager in Fedora!")
                 return True
+
         logger.info(f"Cannot verify whether {account_login!r} is a packager in Fedora.")
         return False
 
@@ -101,7 +110,7 @@ class Whitelist:
         self.db[github_app.account_login] = github_app.get_dict()
 
         # we want to verify if user who installed the application (sender_login) is packager
-        if Whitelist._is_packager(github_app.sender_login):
+        if self._is_packager(github_app.sender_login):
             github_app.status = WhitelistStatus.approved_automatically
             self.db[github_app.account_login] = github_app.get_dict()
             logger.info(f"Account {github_app.account_login} whitelisted!")
