@@ -1,3 +1,5 @@
+# Tasks common to all images
+
 - name: Create /usr/share/packit
   file:
     state: directory
