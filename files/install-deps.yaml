@@ -8,6 +8,7 @@
       - python3-flask
       - python3-ipdb  # for easy debugging
       - python3-mod_wsgi
+      - python3-click
       - git # setuptools-scm
       # httpd & deps
       - httpd
@@ -19,3 +20,9 @@
       - fedora-messaging
       - python3-copr-messaging  # json schemas
       state: present
+  - name: Install pip deps
+    pip:
+      name:
+      - persistentdict
+      - flask-restplus  # https://bugzilla.redhat.com/show_bug.cgi?id=1764597
+      executable: pip3
