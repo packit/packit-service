@@ -149,9 +149,10 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
             self.project.create_issue(
                 title=f"Account: {self.installation_event.account_login} needs to be approved.",
                 body=(
-                    f"Hi @{self.installation_event.account_login}, we need to approve you in "
+                    f"Hi @{self.installation_event.sender_login}, we need to approve you in "
                     "order to start using Packit-as-a-Service. Someone from our team will "
-                    "get back to you shortly."
+                    "get back to you shortly.\n"
+                    "http://packit.dev/packit-as-a-service/"
                 ),
             )
             msg = f"Account: {self.installation_event.account_login} needs to be approved manually!"
