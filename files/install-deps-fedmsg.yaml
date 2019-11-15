@@ -1,0 +1,14 @@
+---
+- name: Install dependencies for fedora messaging consumer.
+  hosts: all
+  tasks:
+  - name: Install all RPM/python packages needed to run fedora messaging consumer.
+    dnf:
+      name:
+      - python3-celery
+      - python3-redis
+      - python3-click
+      - git # setuptools-scm
+      - fedora-messaging
+      - python3-copr-messaging  # json schemas
+      state: present

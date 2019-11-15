@@ -1,0 +1,8 @@
+---
+- name: This is a recipe for how to cook fedora messaging consumer
+  hosts: all
+  vars:
+    home_path: "{{ lookup('env', 'HOME') }}"
+    packit_service_path: /src
+  tasks:
+  - import_tasks: common.yaml

@@ -92,13 +92,12 @@ services:
     container_name: packit-fedmsg-listener
     build:
       context: .
-      dockerfile: Dockerfile
-    image: docker.io/usercont/packit-service:dev
-    command: packit-service --debug listen-to-fedora-messaging
+      dockerfile: Dockerfile.fedmsg
+    image: docker.io/usercont/packit-service-fedmsg:dev
+    command: packit-service listen-to-fedora-messaging
     environment:
       FEDORA_MESSAGING_CONF: /home/packit/.config/fedora.toml
     volumes:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
-      - ./secrets/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
       - ./secrets/dev/fedora.toml:/home/packit/.config/fedora.toml:ro,z
     user: "123123"
