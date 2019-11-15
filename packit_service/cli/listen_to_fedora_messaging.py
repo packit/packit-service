@@ -32,9 +32,7 @@ from packit_service.fedmsg.consumer import Consumerino
 @click.command("listen-to-fedora-messaging")
 def listen_to_fedora_messaging():
     """
-    Listen to events on fedmsg and process them.
-
-    if MESSAGE-ID is specified, process only the selected messages
+    Listen to events on fedora messaging and process them.
     """
 
     consumerino = Consumerino()

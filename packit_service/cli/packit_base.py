@@ -20,43 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import logging
 
 import click
-from packit.config import get_context_settings
-from packit.utils import set_logging
 from pkg_resources import get_distribution
 
 from packit_service.cli.listen_to_fedora_messaging import listen_to_fedora_messaging
-from packit_service.config import ServiceConfig
-
-logger = logging.getLogger("packit_service")
 
 
-@click.group("packit", context_settings=get_context_settings())
-@click.option("-d", "--debug", is_flag=True, help="Enable debug logs.")
-@click.option("--fas-user", help="Fedora Account System username.")
-@click.option("-k", "--keytab", help="Path to FAS keytab file.")
-@click.pass_context
-def packit_base(ctx, debug, fas_user, keytab):
-    """Integrate upstream open source projects into Fedora operating system."""
-    c = ServiceConfig.get_service_config()
-    c.debug = debug or c.debug
-    c.fas_user = fas_user or c.fas_user
-    c.keytab_path = keytab or c.keytab_path
-    ctx.obj = c
-    if ctx.obj.debug:
-        set_logging(level=logging.DEBUG)
-        logger.debug("logging set to DEBUG")
-    else:
-        set_logging(level=logging.INFO)
-        logger.debug("logging set to INFO")
-
-
-@click.command("version")
-def version():
-    """Display the version."""
-    click.echo(get_distribution("packit-service").version)
+@click.group("packit")
+@click.version_option(
+    version=get_distribution("packit-service").version, message="%(version)s"
+)
+def packit_base():
+    pass
 
 
 packit_base.add_command(listen_to_fedora_messaging)
