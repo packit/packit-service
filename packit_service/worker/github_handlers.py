@@ -151,7 +151,8 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
                 body=(
                     f"Hi @{self.installation_event.sender_login}, we need to approve you in "
                     "order to start using Packit-as-a-Service. Someone from our team will "
-                    "get back to you shortly.\n"
+                    "get back to you shortly.\n\n"
+                    "For more info, please check out the documentation: "
                     "http://packit.dev/packit-as-a-service/"
                 ),
             )
