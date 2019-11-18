@@ -51,6 +51,7 @@
     register: pod_name
   - name: wait for tests to finish
     command: oc wait job/packit-tests --for condition=complete --timeout=300s
+    ignore_errors: yes # we want to see logs either way
   - name: get test logs
     command: oc logs job/packit-tests
   - name: get test logs
