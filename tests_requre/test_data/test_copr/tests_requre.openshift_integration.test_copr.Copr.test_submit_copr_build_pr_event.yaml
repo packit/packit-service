@@ -1,4 +1,5 @@
 _requre:
+  key_strategy: StorageKeysInspectFull
   version_storage_file: 2
 unittest.case:
   tests_requre.openshift_integration.test_copr:
@@ -11,7 +12,7 @@ unittest.case:
                 requests.sessions:
                   send:
                   - metadata:
-                      latency: 0.0
+                      latency: 0.32228970527648926
                     output:
                       __store_indicator: 2
                       _content:
@@ -36,8 +37,8 @@ unittest.case:
                         downloads_url: https://api.github.com/repos/packit-service/hello-world/downloads
                         events_url: https://api.github.com/repos/packit-service/hello-world/events
                         fork: false
-                        forks: 7
-                        forks_count: 7
+                        forks: 8
+                        forks_count: 8
                         forks_url: https://api.github.com/repos/packit-service/hello-world/forks
                         full_name: packit-service/hello-world
                         git_commits_url: https://api.github.com/repos/packit-service/hello-world/git/commits{/sha}
@@ -70,7 +71,7 @@ unittest.case:
                         milestones_url: https://api.github.com/repos/packit-service/hello-world/milestones{/number}
                         mirror_url: null
                         name: hello-world
-                        network_count: 7
+                        network_count: 8
                         node_id: MDEwOlJlcG9zaXRvcnkxODQ2MzUxMjQ=
                         notifications_url: https://api.github.com/repos/packit-service/hello-world/notifications{?since,all,participating}
                         open_issues: 8
@@ -119,14 +120,14 @@ unittest.case:
                           push: false
                         private: false
                         pulls_url: https://api.github.com/repos/packit-service/hello-world/pulls{/number}
-                        pushed_at: '2019-10-29T15:18:11Z'
+                        pushed_at: '2019-11-18T11:52:02Z'
                         releases_url: https://api.github.com/repos/packit-service/hello-world/releases{/id}
-                        size: 15
+                        size: 16
                         ssh_url: git@github.com:packit-service/hello-world.git
                         stargazers_count: 0
                         stargazers_url: https://api.github.com/repos/packit-service/hello-world/stargazers
                         statuses_url: https://api.github.com/repos/packit-service/hello-world/statuses/{sha}
-                        subscribers_count: 5
+                        subscribers_count: 6
                         subscribers_url: https://api.github.com/repos/packit-service/hello-world/subscribers
                         subscription_url: https://api.github.com/repos/packit-service/hello-world/subscription
                         svn_url: https://github.com/packit-service/hello-world
@@ -138,7 +139,7 @@ unittest.case:
                         watchers: 0
                         watchers_count: 0
                       _next: null
-                      elapsed: 0.2
+                      elapsed: 0.321864
                       encoding: utf-8
                       headers:
                         Access-Control-Allow-Origin: '*'
@@ -150,8 +151,8 @@ unittest.case:
                         Content-Encoding: gzip
                         Content-Security-Policy: default-src 'none'
                         Content-Type: application/json; charset=utf-8
-                        Date: Fri, 01 Nov 2019 13-36-03 GMT
-                        ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                        Date: Mon, 18 Nov 2019 12:48:01 GMT
+                        ETag: W/"ac39c31dfdd174c148f25e0abac7e5c4"
                         Last-Modified: Tue, 08 Oct 2019 07:32:39 GMT
                         Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                         Server: GitHub.com
@@ -163,10 +164,10 @@ unittest.case:
                         X-Content-Type-Options: nosniff
                         X-Frame-Options: deny
                         X-GitHub-Media-Type: github.v3; format=json
-                        X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                        X-GitHub-Request-Id: 6A20:352DA:8E9ADE:AC1112:5DD29301
                         X-RateLimit-Limit: '5000'
-                        X-RateLimit-Remaining: '4960'
-                        X-RateLimit-Reset: '1573052591'
+                        X-RateLimit-Remaining: '4958'
+                        X-RateLimit-Reset: '1574084860'
                         X-XSS-Protection: 1; mode=block
                       raw: !!binary ""
                       reason: OK
@@ -177,11 +178,11 @@ unittest.case:
                 requests.sessions:
                   send:
                   - metadata:
-                      latency: 0.0
+                      latency: 0.2492220401763916
                     output:
                       __store_indicator: 2
                       _content:
-                        expires_at: '2019-11-01T14:35:53Z'
+                        expires_at: '2019-11-18T13:48:00Z'
                         permissions:
                           contents: read
                           issues: write
@@ -189,9 +190,9 @@ unittest.case:
                           pull_requests: write
                           statuses: write
                         repository_selection: selected
-                        token: v1.1bd88d399b8c70e8b88e22cbdaa72abad5e399db
+                        token: v1.605e69b7e32653f3a6bed79f67019cd53afc324b
                       _next: null
-                      elapsed: 0.2
+                      elapsed: 0.248995
                       encoding: utf-8
                       headers:
                         Access-Control-Allow-Origin: '*'
@@ -203,8 +204,8 @@ unittest.case:
                         Content-Length: '237'
                         Content-Security-Policy: default-src 'none'
                         Content-Type: application/json; charset=utf-8
-                        Date: Fri, 01 Nov 2019 13-36-03 GMT
-                        ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                        Date: Mon, 18 Nov 2019 12:48:01 GMT
+                        ETag: '"e96493f3f217c09a9b2f0820f64490e7"'
                         Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                         Server: GitHub.com
                         Status: 201 Created
@@ -214,7 +215,7 @@ unittest.case:
                         X-Content-Type-Options: nosniff
                         X-Frame-Options: deny
                         X-GitHub-Media-Type: github.machine-man-preview; format=json
-                        X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                        X-GitHub-Request-Id: 5590:8614:90A2E2:AEB212:5DD29300
                         X-XSS-Protection: 1; mode=block
                       raw: !!binary ""
                       reason: Created
@@ -226,7 +227,7 @@ unittest.case:
                 requests.sessions:
                   send:
                   - metadata:
-                      latency: 0.0
+                      latency: 0.23699045181274414
                     output:
                       __store_indicator: 2
                       _content:
@@ -272,7 +273,7 @@ unittest.case:
                         target_type: Organization
                         updated_at: '2019-09-16T07:28:36.000Z'
                       _next: null
-                      elapsed: 0.2
+                      elapsed: 0.236411
                       encoding: utf-8
                       headers:
                         Access-Control-Allow-Origin: '*'
@@ -284,8 +285,8 @@ unittest.case:
                         Content-Encoding: gzip
                         Content-Security-Policy: default-src 'none'
                         Content-Type: application/json; charset=utf-8
-                        Date: Fri, 01 Nov 2019 13-36-03 GMT
-                        ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                        Date: Mon, 18 Nov 2019 12:48:00 GMT
+                        ETag: W/"135d647c01ba3ac1c6f0d6de3571f02b"
                         Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                         Server: GitHub.com
                         Status: 200 OK
@@ -296,7 +297,7 @@ unittest.case:
                         X-Content-Type-Options: nosniff
                         X-Frame-Options: deny
                         X-GitHub-Media-Type: github.machine-man-preview; format=json
-                        X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                        X-GitHub-Request-Id: 0643:3F841:8E30C0:AB48D9:5DD29300
                         X-XSS-Protection: 1; mode=block
                       raw: !!binary ""
                       reason: OK
@@ -311,7 +312,7 @@ unittest.case:
                     requests.sessions:
                       send:
                       - metadata:
-                          latency: 0.0
+                          latency: 0.30846190452575684
                         output:
                           __store_indicator: 2
                           _content:
@@ -336,8 +337,8 @@ unittest.case:
                             downloads_url: https://api.github.com/repos/packit-service/hello-world/downloads
                             events_url: https://api.github.com/repos/packit-service/hello-world/events
                             fork: false
-                            forks: 7
-                            forks_count: 7
+                            forks: 8
+                            forks_count: 8
                             forks_url: https://api.github.com/repos/packit-service/hello-world/forks
                             full_name: packit-service/hello-world
                             git_commits_url: https://api.github.com/repos/packit-service/hello-world/git/commits{/sha}
@@ -370,7 +371,7 @@ unittest.case:
                             milestones_url: https://api.github.com/repos/packit-service/hello-world/milestones{/number}
                             mirror_url: null
                             name: hello-world
-                            network_count: 7
+                            network_count: 8
                             node_id: MDEwOlJlcG9zaXRvcnkxODQ2MzUxMjQ=
                             notifications_url: https://api.github.com/repos/packit-service/hello-world/notifications{?since,all,participating}
                             open_issues: 8
@@ -419,14 +420,14 @@ unittest.case:
                               push: false
                             private: false
                             pulls_url: https://api.github.com/repos/packit-service/hello-world/pulls{/number}
-                            pushed_at: '2019-10-29T15:18:11Z'
+                            pushed_at: '2019-11-18T11:52:02Z'
                             releases_url: https://api.github.com/repos/packit-service/hello-world/releases{/id}
-                            size: 15
+                            size: 16
                             ssh_url: git@github.com:packit-service/hello-world.git
                             stargazers_count: 0
                             stargazers_url: https://api.github.com/repos/packit-service/hello-world/stargazers
                             statuses_url: https://api.github.com/repos/packit-service/hello-world/statuses/{sha}
-                            subscribers_count: 5
+                            subscribers_count: 6
                             subscribers_url: https://api.github.com/repos/packit-service/hello-world/subscribers
                             subscription_url: https://api.github.com/repos/packit-service/hello-world/subscription
                             svn_url: https://github.com/packit-service/hello-world
@@ -438,7 +439,7 @@ unittest.case:
                             watchers: 0
                             watchers_count: 0
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.308038
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -450,8 +451,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:02 GMT
+                            ETag: W/"bd7f32266e2884ae903c2b7d600a3881"
                             Last-Modified: Tue, 08 Oct 2019 07:32:39 GMT
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
@@ -463,10 +464,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35E6:1FDA4:45F9DD:55032F:5DD29301
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4959'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4957'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -477,11 +478,11 @@ unittest.case:
                     requests.sessions:
                       send:
                       - metadata:
-                          latency: 0.0
+                          latency: 0.20312023162841797
                         output:
                           __store_indicator: 2
                           _content:
-                            expires_at: '2019-11-01T14:35:53Z'
+                            expires_at: '2019-11-18T13:48:01Z'
                             permissions:
                               contents: read
                               issues: write
@@ -489,9 +490,9 @@ unittest.case:
                               pull_requests: write
                               statuses: write
                             repository_selection: selected
-                            token: v1.1bd88d399b8c70e8b88e22cbdaa72abad5e399db
+                            token: v1.8b4f00e1182abd0197926e7a96aea4ab35393f6c
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.202831
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -503,8 +504,8 @@ unittest.case:
                             Content-Length: '237'
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:01 GMT
+                            ETag: '"de34796c89168bc8cd8829b741688231"'
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 201 Created
@@ -514,7 +515,7 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.machine-man-preview; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 7939:1FDA7:8E30F7:ABBA39:5DD29301
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: Created
@@ -526,7 +527,7 @@ unittest.case:
                     requests.sessions:
                       send:
                       - metadata:
-                          latency: 0.0
+                          latency: 0.5922119617462158
                         output:
                           __store_indicator: 2
                           _content:
@@ -574,7 +575,7 @@ unittest.case:
                             type: file
                             url: https://api.github.com/repos/packit-service/hello-world/contents/.packit.yaml?ref=711e0faad307e0142947c2c3c5660917ad68c8d5
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.591855
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -586,8 +587,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:02 GMT
+                            ETag: W/"35b78b6affeabf511aa0a517b50398644c1a1121"
                             Last-Modified: Mon, 14 Oct 2019 11:41:53 GMT
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
@@ -599,10 +600,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35E6:1FDA4:45FA30:550392:5DD29302
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4958'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4956'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -614,7 +615,7 @@ unittest.case:
                     requests.sessions:
                       send:
                       - metadata:
-                          latency: 0.0
+                          latency: 0.30646467208862305
                         output:
                           __store_indicator: 2
                           _content:
@@ -660,7 +661,7 @@ unittest.case:
                             target_type: Organization
                             updated_at: '2019-09-16T07:28:36.000Z'
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.30617
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -672,8 +673,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:01 GMT
+                            ETag: W/"135d647c01ba3ac1c6f0d6de3571f02b"
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 200 OK
@@ -684,7 +685,7 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.machine-man-preview; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 0BCC:860B:4280F9:50A922:5DD29301
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -699,7 +700,7 @@ unittest.case:
                     requests.sessions:
                       send:
                       - metadata:
-                          latency: 0.0
+                          latency: 0.894892692565918
                         output:
                           __store_indicator: 2
                           _content:
@@ -724,8 +725,8 @@ unittest.case:
                             downloads_url: https://api.github.com/repos/packit-service/hello-world/downloads
                             events_url: https://api.github.com/repos/packit-service/hello-world/events
                             fork: false
-                            forks: 7
-                            forks_count: 7
+                            forks: 8
+                            forks_count: 8
                             forks_url: https://api.github.com/repos/packit-service/hello-world/forks
                             full_name: packit-service/hello-world
                             git_commits_url: https://api.github.com/repos/packit-service/hello-world/git/commits{/sha}
@@ -758,7 +759,7 @@ unittest.case:
                             milestones_url: https://api.github.com/repos/packit-service/hello-world/milestones{/number}
                             mirror_url: null
                             name: hello-world
-                            network_count: 7
+                            network_count: 8
                             node_id: MDEwOlJlcG9zaXRvcnkxODQ2MzUxMjQ=
                             notifications_url: https://api.github.com/repos/packit-service/hello-world/notifications{?since,all,participating}
                             open_issues: 8
@@ -807,14 +808,14 @@ unittest.case:
                               push: false
                             private: false
                             pulls_url: https://api.github.com/repos/packit-service/hello-world/pulls{/number}
-                            pushed_at: '2019-10-29T15:18:11Z'
+                            pushed_at: '2019-11-18T11:52:02Z'
                             releases_url: https://api.github.com/repos/packit-service/hello-world/releases{/id}
-                            size: 15
+                            size: 16
                             ssh_url: git@github.com:packit-service/hello-world.git
                             stargazers_count: 0
                             stargazers_url: https://api.github.com/repos/packit-service/hello-world/stargazers
                             statuses_url: https://api.github.com/repos/packit-service/hello-world/statuses/{sha}
-                            subscribers_count: 5
+                            subscribers_count: 6
                             subscribers_url: https://api.github.com/repos/packit-service/hello-world/subscribers
                             subscription_url: https://api.github.com/repos/packit-service/hello-world/subscription
                             svn_url: https://github.com/packit-service/hello-world
@@ -826,7 +827,7 @@ unittest.case:
                             watchers: 0
                             watchers_count: 0
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.894564
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -838,8 +839,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:04 GMT
+                            ETag: W/"e3bf09faf27d90384f7d93a7c8664626"
                             Last-Modified: Tue, 08 Oct 2019 07:32:39 GMT
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
@@ -851,10 +852,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35F4:2D61:B9C9D:E5C35:5DD29303
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4957'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4955'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -865,11 +866,11 @@ unittest.case:
                     requests.sessions:
                       send:
                       - metadata:
-                          latency: 0.0
+                          latency: 0.23035454750061035
                         output:
                           __store_indicator: 2
                           _content:
-                            expires_at: '2019-11-01T14:35:53Z'
+                            expires_at: '2019-11-18T13:48:03Z'
                             permissions:
                               contents: read
                               issues: write
@@ -877,9 +878,9 @@ unittest.case:
                               pull_requests: write
                               statuses: write
                             repository_selection: selected
-                            token: v1.1bd88d399b8c70e8b88e22cbdaa72abad5e399db
+                            token: v1.f29d379954628a81af8bd3430e55b1301914ba19
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.230186
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -891,8 +892,8 @@ unittest.case:
                             Content-Length: '237'
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:03 GMT
+                            ETag: '"ce7c77fb249a3fa95b193c978aee8342"'
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 201 Created
@@ -902,7 +903,7 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.machine-man-preview; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 5BEF:3F83F:42DF47:510576:5DD29303
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: Created
@@ -914,7 +915,7 @@ unittest.case:
                     requests.sessions:
                       send:
                       - metadata:
-                          latency: 0.0
+                          latency: 0.23903751373291016
                         output:
                           __store_indicator: 2
                           _content:
@@ -962,7 +963,7 @@ unittest.case:
                             type: file
                             url: https://api.github.com/repos/packit-service/hello-world/contents/.packit.yaml?ref=711e0faad307e0142947c2c3c5660917ad68c8d5
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.238622
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -974,8 +975,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:04 GMT
+                            ETag: W/"35b78b6affeabf511aa0a517b50398644c1a1121"
                             Last-Modified: Mon, 14 Oct 2019 11:41:53 GMT
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
@@ -987,10 +988,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35F4:2D61:B9CC6:E5C67:5DD29304
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4956'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4954'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -1002,7 +1003,7 @@ unittest.case:
                     requests.sessions:
                       send:
                       - metadata:
-                          latency: 0.0
+                          latency: 0.5189032554626465
                         output:
                           __store_indicator: 2
                           _content:
@@ -1048,7 +1049,7 @@ unittest.case:
                             target_type: Organization
                             updated_at: '2019-09-16T07:28:36.000Z'
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.518572
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -1060,8 +1061,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:03 GMT
+                            ETag: W/"135d647c01ba3ac1c6f0d6de3571f02b"
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 200 OK
@@ -1072,7 +1073,7 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.machine-man-preview; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 13B5:2D66:908667:AE064B:5DD29302
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -1087,7 +1088,7 @@ unittest.case:
                     requests.sessions:
                       send:
                       - metadata:
-                          latency: 0.0
+                          latency: 0.3457305431365967
                         output:
                           __store_indicator: 2
                           _content:
@@ -1201,6 +1202,28 @@ unittest.case:
                             subscriptions_url: https://api.github.com/users/phracek/subscriptions
                             type: User
                             url: https://api.github.com/users/phracek
+                          - avatar_url: https://avatars2.githubusercontent.com/u/7654857?v=4
+                            events_url: https://api.github.com/users/sakalosj/events{/privacy}
+                            followers_url: https://api.github.com/users/sakalosj/followers
+                            following_url: https://api.github.com/users/sakalosj/following{/other_user}
+                            gists_url: https://api.github.com/users/sakalosj/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/sakalosj
+                            id: 7654857
+                            login: sakalosj
+                            node_id: MDQ6VXNlcjc2NTQ4NTc=
+                            organizations_url: https://api.github.com/users/sakalosj/orgs
+                            permissions:
+                              admin: false
+                              pull: true
+                              push: true
+                            received_events_url: https://api.github.com/users/sakalosj/received_events
+                            repos_url: https://api.github.com/users/sakalosj/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/sakalosj/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/sakalosj/subscriptions
+                            type: User
+                            url: https://api.github.com/users/sakalosj
                           - avatar_url: https://avatars0.githubusercontent.com/u/8735467?v=4
                             events_url: https://api.github.com/users/jscotka/events{/privacy}
                             followers_url: https://api.github.com/users/jscotka/followers
@@ -1334,7 +1357,7 @@ unittest.case:
                             type: User
                             url: https://api.github.com/users/lbarcziova
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.345411
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -1346,8 +1369,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:05 GMT
+                            ETag: W/"4fd2b6a070d2106f342c7abafb9f8baa"
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 200 OK
@@ -1358,10 +1381,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35F4:2D61:B9CD4:E5C77:5DD29304
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4955'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4953'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -1373,7 +1396,7 @@ unittest.case:
                     requests.sessions:
                       send:
                       - metadata:
-                          latency: 0.0
+                          latency: 0.22635507583618164
                         output:
                           __store_indicator: 2
                           _content:
@@ -1398,7 +1421,7 @@ unittest.case:
                               type: User
                               url: https://api.github.com/users/jpopelka
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.226079
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -1410,8 +1433,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:05 GMT
+                            ETag: W/"37110f53637032641ee9573f08a84b98"
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 200 OK
@@ -1422,16 +1445,16 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35F4:2D61:B9CDD:E5C86:5DD29305
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4954'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4952'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
                           status_code: 200
                       - metadata:
-                          latency: 0.0
+                          latency: 0.5498218536376953
                         output:
                           __store_indicator: 2
                           _content:
@@ -1456,7 +1479,7 @@ unittest.case:
                               type: User
                               url: https://api.github.com/users/thrix
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.549597
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -1468,8 +1491,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:05 GMT
+                            ETag: W/"5e4dab5d66ae926874d52bb806511686"
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 200 OK
@@ -1480,16 +1503,16 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35F4:2D61:B9CE7:E5C94:5DD29305
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4953'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4951'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
                           status_code: 200
                       - metadata:
-                          latency: 0.0
+                          latency: 0.2466585636138916
                         output:
                           __store_indicator: 2
                           _content:
@@ -1514,7 +1537,7 @@ unittest.case:
                               type: User
                               url: https://api.github.com/users/TomasTomecek
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.246089
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -1526,8 +1549,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:06 GMT
+                            ETag: W/"7c3388fe94c7e49bfd79f86d7c9adeda"
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 200 OK
@@ -1538,16 +1561,16 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35F4:2D61:B9D00:E5CB3:5DD29305
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4952'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4950'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
                           status_code: 200
                       - metadata:
-                          latency: 0.0
+                          latency: 0.5187866687774658
                         output:
                           __store_indicator: 2
                           _content:
@@ -1572,7 +1595,7 @@ unittest.case:
                               type: User
                               url: https://api.github.com/users/eliskasl
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.518308
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -1584,8 +1607,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:06 GMT
+                            ETag: W/"6936fde47766eae8f7f2939c4edb0a74"
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 200 OK
@@ -1596,16 +1619,16 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35F4:2D61:B9D10:E5CC1:5DD29306
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4951'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4949'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
                           status_code: 200
                       - metadata:
-                          latency: 0.0
+                          latency: 0.49392032623291016
                         output:
                           __store_indicator: 2
                           _content:
@@ -1630,7 +1653,7 @@ unittest.case:
                               type: User
                               url: https://api.github.com/users/phracek
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.493685
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -1642,8 +1665,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:07 GMT
+                            ETag: W/"df07ee1e41f432fe6ffef6c52ddfac1d"
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 200 OK
@@ -1654,16 +1677,74 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35F4:2D61:B9D2B:E5CEB:5DD29306
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4950'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4948'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
                           status_code: 200
                       - metadata:
-                          latency: 0.0
+                          latency: 0.22301435470581055
+                        output:
+                          __store_indicator: 2
+                          _content:
+                            permission: write
+                            user:
+                              avatar_url: https://avatars2.githubusercontent.com/u/7654857?v=4
+                              events_url: https://api.github.com/users/sakalosj/events{/privacy}
+                              followers_url: https://api.github.com/users/sakalosj/followers
+                              following_url: https://api.github.com/users/sakalosj/following{/other_user}
+                              gists_url: https://api.github.com/users/sakalosj/gists{/gist_id}
+                              gravatar_id: ''
+                              html_url: https://github.com/sakalosj
+                              id: 7654857
+                              login: sakalosj
+                              node_id: MDQ6VXNlcjc2NTQ4NTc=
+                              organizations_url: https://api.github.com/users/sakalosj/orgs
+                              received_events_url: https://api.github.com/users/sakalosj/received_events
+                              repos_url: https://api.github.com/users/sakalosj/repos
+                              site_admin: false
+                              starred_url: https://api.github.com/users/sakalosj/starred{/owner}{/repo}
+                              subscriptions_url: https://api.github.com/users/sakalosj/subscriptions
+                              type: User
+                              url: https://api.github.com/users/sakalosj
+                          _next: null
+                          elapsed: 0.222607
+                          encoding: utf-8
+                          headers:
+                            Access-Control-Allow-Origin: '*'
+                            Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                              X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                              X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                              X-Poll-Interval, X-GitHub-Media-Type
+                            Cache-Control: private, max-age=60, s-maxage=60
+                            Content-Encoding: gzip
+                            Content-Security-Policy: default-src 'none'
+                            Content-Type: application/json; charset=utf-8
+                            Date: Mon, 18 Nov 2019 12:48:07 GMT
+                            ETag: W/"0165e3020b2862bb49a33542c1b6ef72"
+                            Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                            Server: GitHub.com
+                            Status: 200 OK
+                            Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                              preload
+                            Transfer-Encoding: chunked
+                            Vary: Accept, Authorization, Cookie, X-GitHub-OTP, Accept-Encoding
+                            X-Content-Type-Options: nosniff
+                            X-Frame-Options: deny
+                            X-GitHub-Media-Type: github.v3; format=json
+                            X-GitHub-Request-Id: 35F4:2D61:B9D3F:E5D03:5DD29307
+                            X-RateLimit-Limit: '5000'
+                            X-RateLimit-Remaining: '4947'
+                            X-RateLimit-Reset: '1574084860'
+                            X-XSS-Protection: 1; mode=block
+                          raw: !!binary ""
+                          reason: OK
+                          status_code: 200
+                      - metadata:
+                          latency: 0.5845293998718262
                         output:
                           __store_indicator: 2
                           _content:
@@ -1688,7 +1769,7 @@ unittest.case:
                               type: User
                               url: https://api.github.com/users/jscotka
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.584009
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -1700,8 +1781,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:07 GMT
+                            ETag: W/"93469b30a7dbc5e285bd2c292b23123f"
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 200 OK
@@ -1712,16 +1793,16 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35F4:2D61:B9D50:E5D18:5DD29307
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4949'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4946'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
                           status_code: 200
                       - metadata:
-                          latency: 0.0
+                          latency: 0.6553347110748291
                         output:
                           __store_indicator: 2
                           _content:
@@ -1746,7 +1827,7 @@ unittest.case:
                               type: User
                               url: https://api.github.com/users/lachmanfrantisek
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.654911
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -1758,8 +1839,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:08 GMT
+                            ETag: W/"b118ab9c5c2a08ed69690efdc8a53b55"
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 200 OK
@@ -1770,16 +1851,16 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35F4:2D61:B9D75:E5D46:5DD29307
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4948'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4945'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
                           status_code: 200
                       - metadata:
-                          latency: 0.0
+                          latency: 0.20919299125671387
                         output:
                           __store_indicator: 2
                           _content:
@@ -1804,7 +1885,7 @@ unittest.case:
                               type: User
                               url: https://api.github.com/users/rpitonak
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.20893
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -1816,8 +1897,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:08 GMT
+                            ETag: W/"6141f9559a91fa53e5d0f44e2df596c9"
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 200 OK
@@ -1828,16 +1909,16 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35F4:2D61:B9D9D:E5D7A:5DD29308
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4947'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4944'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
                           status_code: 200
                       - metadata:
-                          latency: 0.0
+                          latency: 0.21096062660217285
                         output:
                           __store_indicator: 2
                           _content:
@@ -1862,7 +1943,7 @@ unittest.case:
                               type: User
                               url: https://api.github.com/users/dhodovsk
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.210695
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -1874,8 +1955,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:09 GMT
+                            ETag: W/"c56c6646b003634cb8711e0a75ab6b55"
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 200 OK
@@ -1886,16 +1967,16 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35F4:2D61:B9DAC:E5D8B:5DD29308
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4946'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4943'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
                           status_code: 200
                       - metadata:
-                          latency: 0.0
+                          latency: 0.23843693733215332
                         output:
                           __store_indicator: 2
                           _content:
@@ -1920,7 +2001,7 @@ unittest.case:
                               type: User
                               url: https://api.github.com/users/usercont-release-bot
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.238158
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -1932,8 +2013,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:09 GMT
+                            ETag: W/"d3674c51979280ef6ac8035edcbe5c3b"
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 200 OK
@@ -1944,16 +2025,16 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35F4:2D61:B9DB9:E5D97:5DD29309
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4945'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4942'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
                           status_code: 200
                       - metadata:
-                          latency: 0.0
+                          latency: 0.6001195907592773
                         output:
                           __store_indicator: 2
                           _content:
@@ -1978,7 +2059,7 @@ unittest.case:
                               type: User
                               url: https://api.github.com/users/lbarcziova
                           _next: null
-                          elapsed: 0.2
+                          elapsed: 0.599624
                           encoding: utf-8
                           headers:
                             Access-Control-Allow-Origin: '*'
@@ -1990,8 +2071,8 @@ unittest.case:
                             Content-Encoding: gzip
                             Content-Security-Policy: default-src 'none'
                             Content-Type: application/json; charset=utf-8
-                            Date: Fri, 01 Nov 2019 13-36-03 GMT
-                            ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                            Date: Mon, 18 Nov 2019 12:48:09 GMT
+                            ETag: W/"f7522eb2ef0c8cca5026c6b0843d0cca"
                             Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                             Server: GitHub.com
                             Status: 200 OK
@@ -2002,10 +2083,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 35F4:2D61:B9DC6:E5DA7:5DD29309
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4944'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4941'
+                            X-RateLimit-Reset: '1574084860'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -2023,33 +2104,33 @@ unittest.case:
                               requests.sessions:
                                 send:
                                 - metadata:
-                                    latency: 0.0
+                                    latency: 1.0017421245574951
                                   output:
                                     __store_indicator: 2
                                     _content:
                                       chroots: []
                                       ended_on: null
-                                      id: 1087782
+                                      id: 1112553
                                       ownername: packit
                                       project_dirname: packit-service-hello-world-26-stg
                                       projectname: packit-service-hello-world-26-stg
                                       repo_url: https://copr-be.cloud.fedoraproject.org/results/packit/packit-service-hello-world-26-stg
                                       source_package:
                                         name: null
-                                        url: https://copr.fedorainfracloud.org/tmp/tmpuz7wj9t0/hello-0.7.0.5.g5e4ddd3-1.fc30.src.rpm
+                                        url: https://copr.fedorainfracloud.org/tmp/tmp4e2774sx/hello-0.7.0.5.g5e4ddd3-1.fc30.src.rpm
                                         version: null
                                       started_on: null
                                       state: pending
-                                      submitted_on: 1573049030
+                                      submitted_on: 1574081294
                                       submitter: packit
                                     _next: null
-                                    elapsed: 0.2
+                                    elapsed: 1.001147
                                     encoding: null
                                     headers:
                                       Connection: Keep-Alive
                                       Content-Length: '496'
                                       Content-Type: application/json
-                                      Date: Fri, 01 Nov 2019 13-36-03 GMT
+                                      Date: Mon, 18 Nov 2019 12:48:14 GMT
                                       Keep-Alive: timeout=5, max=100
                                       Server: Apache/2.4.41 (Fedora) OpenSSL/1.1.1d
                                         mod_wsgi/4.6.4 Python/3.7
@@ -2066,7 +2147,7 @@ unittest.case:
                           requests.sessions:
                             send:
                             - metadata:
-                                latency: 0.0
+                                latency: 0.6215879917144775
                               output:
                                 __store_indicator: 2
                                 _content:
@@ -2095,13 +2176,13 @@ unittest.case:
                                   unlisted_on_hp: true
                                   use_bootstrap_container: false
                                 _next: null
-                                elapsed: 0.2
+                                elapsed: 0.621415
                                 encoding: null
                                 headers:
                                   Connection: Keep-Alive
                                   Content-Length: '1105'
                                   Content-Type: application/json
-                                  Date: Fri, 01 Nov 2019 13-36-03 GMT
+                                  Date: Mon, 18 Nov 2019 12:48:13 GMT
                                   Keep-Alive: timeout=5, max=100
                                   Server: Apache/2.4.41 (Fedora) OpenSSL/1.1.1d mod_wsgi/4.6.4
                                     Python/3.7
@@ -2119,13 +2200,13 @@ unittest.case:
                           requests.sessions:
                             send:
                             - metadata:
-                                latency: 0.0
+                                latency: 0.6983976364135742
                               output:
                                 __store_indicator: 2
                                 _content:
                                   avatar_url: https://avatars0.githubusercontent.com/in/29180?v=4
                                   context: packit-stg/rpm-build
-                                  created_at: '2019-11-06T14:03:47Z'
+                                  created_at: '2019-11-18T12:48:12Z'
                                   creator:
                                     avatar_url: https://avatars0.githubusercontent.com/in/29180?v=4
                                     events_url: https://api.github.com/users/packit-as-a-service-stg%5Bbot%5D/events{/privacy}
@@ -2146,14 +2227,14 @@ unittest.case:
                                     type: Bot
                                     url: https://api.github.com/users/packit-as-a-service-stg%5Bbot%5D
                                   description: RPM build has just started...
-                                  id: 8060148946
-                                  node_id: MDEzOlN0YXR1c0NvbnRleHQ4MDYwMTQ4OTQ2
+                                  id: 8153372120
+                                  node_id: MDEzOlN0YXR1c0NvbnRleHQ4MTUzMzcyMTIw
                                   state: pending
                                   target_url: ''
-                                  updated_at: '2019-11-06T14:03:47Z'
+                                  updated_at: '2019-11-18T12:48:12Z'
                                   url: https://api.github.com/repos/packit-service/hello-world/statuses/711e0faad307e0142947c2c3c5660917ad68c8d5
                                 _next: null
-                                elapsed: 0.2
+                                elapsed: 0.698158
                                 encoding: utf-8
                                 headers:
                                   Access-Control-Allow-Origin: '*'
@@ -2165,8 +2246,8 @@ unittest.case:
                                   Content-Length: '1628'
                                   Content-Security-Policy: default-src 'none'
                                   Content-Type: application/json; charset=utf-8
-                                  Date: Fri, 01 Nov 2019 13-36-03 GMT
-                                  ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                                  Date: Mon, 18 Nov 2019 12:48:12 GMT
+                                  ETag: '"1d866acecaf60b4ae02d353b87be452e"'
                                   Location: https://api.github.com/repos/packit-service/hello-world/statuses/711e0faad307e0142947c2c3c5660917ad68c8d5
                                   Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                                   Server: GitHub.com
@@ -2178,10 +2259,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 35F4:2D61:B9E56:E5E50:5DD2930C
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4942'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4939'
+                                  X-RateLimit-Reset: '1574084860'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: Created
@@ -2193,7 +2274,7 @@ unittest.case:
                           requests.sessions:
                             send:
                             - metadata:
-                                latency: 0.0
+                                latency: 0.257171630859375
                               output:
                                 __store_indicator: 2
                                 _content:
@@ -2285,7 +2366,7 @@ unittest.case:
                                     total: 1
                                   url: https://api.github.com/repos/packit-service/hello-world/commits/711e0faad307e0142947c2c3c5660917ad68c8d5
                                 _next: null
-                                elapsed: 0.2
+                                elapsed: 0.256676
                                 encoding: utf-8
                                 headers:
                                   Access-Control-Allow-Origin: '*'
@@ -2297,8 +2378,8 @@ unittest.case:
                                   Content-Encoding: gzip
                                   Content-Security-Policy: default-src 'none'
                                   Content-Type: application/json; charset=utf-8
-                                  Date: Fri, 01 Nov 2019 13-36-03 GMT
-                                  ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                                  Date: Mon, 18 Nov 2019 12:48:12 GMT
+                                  ETag: W/"0c6ca61b353aa82264ee18536d22694c"
                                   Last-Modified: Mon, 14 Oct 2019 11:41:53 GMT
                                   Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                                   Server: GitHub.com
@@ -2311,10 +2392,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 35F4:2D61:B9E46:E5DBE:5DD29309
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4943'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4940'
+                                  X-RateLimit-Reset: '1574084860'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: OK
