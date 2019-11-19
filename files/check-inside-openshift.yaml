@@ -54,8 +54,6 @@
     ignore_errors: yes # we want to see logs either way
   - name: get test logs
     command: oc logs job/packit-tests
-  - name: get test logs
-    command: oc logs job/packit-tests
   - name: get test result
     shell: oc get job packit-tests -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' | grep True
   - name: start pod which will gather the data
