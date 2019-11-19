@@ -32,3 +32,5 @@
     args:
       chdir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
     become: true
+    environment:
+      ansible_stdout_callback: debug
