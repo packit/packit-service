@@ -1,10 +1,9 @@
-- name: Create /usr/share/packit & /sandcastle
+# Tasks common to all images
+
+- name: Create /usr/share/packit
   file:
     state: directory
-    path: '{{ item }}'
-  with_items:
-  - /usr/share/packit
-  - /sandcastle  # working dir for the upstream git which is mapped to the sandbox pod
+    path: /usr/share/packit
 - name: make packit home dir
   file:
     state: directory

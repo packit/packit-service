@@ -13,7 +13,12 @@
         volumes:
         - '{{ playbook_dir }}:{{ packit_service_path }}:Z'
   tasks:
-  - import_tasks: packit-service.yaml
+  - import_tasks: common.yaml
+  - name: Create /sandcastle
+    # working dir for the upstream git which is mapped to the sandbox pod
+    file:
+      state: directory
+      path: /sandcastle
   - name: Copy gitconfig
     copy:
       src: gitconfig
