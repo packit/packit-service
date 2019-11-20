@@ -341,28 +341,33 @@ class Parser:
 
         repo_namespace = nested_get(event, "msg", "commit", "namespace")
         repo_name = nested_get(event, "msg", "commit", "repo")
-        # FIXME: What? we get "branch" also below
-        ref = nested_get(event, "msg", "commit", "branch")
+
         if not (repo_namespace and repo_name):
             logger.warning("No full name of the repository.")
             return None
 
-        if not ref:
-            logger.warning("Target branch for the new commits is not set.")
+        branch = nested_get(event, "msg", "commit", "branch")
+        rev = nested_get(event, "msg", "commit", "rev")
+        if not branch or not rev:
+            logger.warning("Target branch/rev for the new commits is not set.")
             return None
 
         msg_id = event.get("msg_id")
-        branch = nested_get(event, "msg", "commit", "branch")
-
         logger.info(
             f"New commits added to dist-git repo {repo_namespace}/{repo_name},"
-            f"ref: {ref}, branch: {branch}, msg_id: {msg_id}"
+            f"rev: {rev}, branch: {branch}, msg_id: {msg_id}"
         )
 
         # TODO: get the right hostname without hardcoding
         project_url = f"https://src.fedoraproject.org/{repo_namespace}/{repo_name}"
         return DistGitEvent(
-            topic, repo_namespace, repo_name, ref, branch, msg_id, project_url
+            topic=topic,
+            repo_namespace=repo_namespace,
+            repo_name=repo_name,
+            ref=rev,
+            branch=branch,
+            msg_id=msg_id,
+            project_url=project_url,
         )
 
     @staticmethod
