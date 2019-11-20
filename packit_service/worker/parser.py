@@ -134,88 +134,87 @@ class Parser:
 
         pr_id = event.get("number")
         action = event.get("action")
-        if action in ["opened", "reopened", "synchronize"] and pr_id:
-            logger.info(f"GitHub PR#{pr_id} {action!r} event.")
+        if action not in {"opened", "reopened", "synchronize"} or not pr_id:
+            return None
 
-            # we can't use head repo here b/c the app is set up against the upstream repo
-            # and not the fork, on the other hand, we don't process packit.yaml from
-            # the PR but what's in the upstream
-            base_repo_namespace = nested_get(
-                event, "pull_request", "base", "repo", "owner", "login"
-            )
-            base_repo_name = nested_get(event, "pull_request", "base", "repo", "name")
+        logger.info(f"GitHub PR#{pr_id} {action!r} event.")
 
-            if not (base_repo_name and base_repo_namespace):
-                logger.warning("No full name of the repository.")
-                return None
+        # we can't use head repo here b/c the app is set up against the upstream repo
+        # and not the fork, on the other hand, we don't process packit.yaml from
+        # the PR but what's in the upstream
+        base_repo_namespace = nested_get(
+            event, "pull_request", "base", "repo", "owner", "login"
+        )
+        base_repo_name = nested_get(event, "pull_request", "base", "repo", "name")
 
-            base_ref = nested_get(event, "pull_request", "head", "sha")
-            if not base_ref:
-                logger.warning("Ref where the PR is coming from is not set.")
-                return None
+        if not (base_repo_name and base_repo_namespace):
+            logger.warning("No full name of the repository.")
+            return None
 
-            github_login = nested_get(event, "pull_request", "user", "login")
-            if not github_login:
-                logger.warning("No GitHub login name from event.")
-                return None
+        base_ref = nested_get(event, "pull_request", "head", "sha")
+        if not base_ref:
+            logger.warning("Ref where the PR is coming from is not set.")
+            return None
 
-            target_repo = nested_get(event, "repository", "full_name")
-            logger.info(f"Target repo: {target_repo}.")
+        github_login = nested_get(event, "pull_request", "user", "login")
+        if not github_login:
+            logger.warning("No GitHub login name from event.")
+            return None
 
-            commit_sha = nested_get(event, "pull_request", "head", "sha")
-            https_url = event["repository"]["html_url"]
-            return PullRequestEvent(
-                PullRequestAction[action],
-                pr_id,
-                base_repo_namespace,
-                base_repo_name,
-                base_ref,
-                target_repo,
-                https_url,
-                commit_sha,
-                github_login,
-            )
-        return None
+        target_repo = nested_get(event, "repository", "full_name")
+        logger.info(f"Target repo: {target_repo}.")
+
+        commit_sha = nested_get(event, "pull_request", "head", "sha")
+        https_url = event["repository"]["html_url"]
+        return PullRequestEvent(
+            PullRequestAction[action],
+            pr_id,
+            base_repo_namespace,
+            base_repo_name,
+            base_ref,
+            target_repo,
+            https_url,
+            commit_sha,
+            github_login,
+        )
 
     @staticmethod
     def parse_issue_comment_event(event) -> Optional[IssueCommentEvent]:
         """ Look into the provided event and see if it is Github issue comment event. """
-
         if nested_get(event, "issue", "pull_request"):
             return None
 
         issue_id = nested_get(event, "issue", "number")
         action = event.get("action")
         comment = nested_get(event, "comment", "body")
-        if action == "created" and issue_id and comment:
-            logger.info(
-                f"Github issue#{issue_id} comment: {comment!r} {action!r} event."
-            )
+        if action != "created" or not issue_id or not comment:
+            return None
 
-            base_repo_namespace = nested_get(event, "repository", "owner", "login")
-            base_repo_name = nested_get(event, "repository", "name")
-            if not (base_repo_namespace and base_repo_name):
-                logger.warning("No full name of the repository.")
+        logger.info(f"Github issue#{issue_id} comment: {comment!r} {action!r} event.")
 
-            github_login = nested_get(event, "comment", "user", "login")
-            if not github_login:
-                logger.warning("No Github login name from event.")
-                return None
+        base_repo_namespace = nested_get(event, "repository", "owner", "login")
+        base_repo_name = nested_get(event, "repository", "name")
+        if not (base_repo_namespace and base_repo_name):
+            logger.warning("No full name of the repository.")
 
-            target_repo = nested_get(event, "repository", "full_name")
-            logger.info(f"Target repo: {target_repo}.")
-            https_url = nested_get(event, "repository", "html_url")
-            return IssueCommentEvent(
-                IssueCommentAction[action],
-                issue_id,
-                base_repo_namespace,
-                base_repo_name,
-                target_repo,
-                https_url,
-                github_login,
-                comment,
-            )
-        return None
+        github_login = nested_get(event, "comment", "user", "login")
+        if not github_login:
+            logger.warning("No Github login name from event.")
+            return None
+
+        target_repo = nested_get(event, "repository", "full_name")
+        logger.info(f"Target repo: {target_repo}.")
+        https_url = nested_get(event, "repository", "html_url")
+        return IssueCommentEvent(
+            IssueCommentAction[action],
+            issue_id,
+            base_repo_namespace,
+            base_repo_name,
+            target_repo,
+            https_url,
+            github_login,
+            comment,
+        )
 
     @staticmethod
     def parse_pull_request_comment_event(event) -> Optional[PullRequestCommentEvent]:
@@ -225,36 +224,37 @@ class Parser:
 
         pr_id = nested_get(event, "issue", "number")
         action = event.get("action")
-        if action in ["created", "edited"] and pr_id:
-            comment = nested_get(event, "comment", "body")
-            logger.info(f"Github PR#{pr_id} comment: {comment!r} {action!r} event.")
+        if action not in {"created", "edited"} or not pr_id:
+            return None
 
-            base_repo_namespace = nested_get(event, "repository", "owner", "login")
-            base_repo_name = nested_get(event, "repository", "name")
-            if not (base_repo_name and base_repo_namespace):
-                logger.warning("No full name of the repository.")
-                return None
+        comment = nested_get(event, "comment", "body")
+        logger.info(f"Github PR#{pr_id} comment: {comment!r} {action!r} event.")
 
-            github_login = nested_get(event, "comment", "user", "login")
-            if not github_login:
-                logger.warning("No GitHub login name from event.")
-                return None
+        base_repo_namespace = nested_get(event, "repository", "owner", "login")
+        base_repo_name = nested_get(event, "repository", "name")
+        if not (base_repo_name and base_repo_namespace):
+            logger.warning("No full name of the repository.")
+            return None
 
-            target_repo = nested_get(event, "repository", "full_name")
-            logger.info(f"Target repo: {target_repo}.")
-            https_url = event["repository"]["html_url"]
-            return PullRequestCommentEvent(
-                PullRequestCommentAction[action],
-                pr_id,
-                base_repo_namespace,
-                base_repo_name,
-                None,  # the payload does not include this info
-                target_repo,
-                https_url,
-                github_login,
-                comment,
-            )
-        return None
+        github_login = nested_get(event, "comment", "user", "login")
+        if not github_login:
+            logger.warning("No GitHub login name from event.")
+            return None
+
+        target_repo = nested_get(event, "repository", "full_name")
+        logger.info(f"Target repo: {target_repo}.")
+        https_url = event["repository"]["html_url"]
+        return PullRequestCommentEvent(
+            PullRequestCommentAction[action],
+            pr_id,
+            base_repo_namespace,
+            base_repo_name,
+            None,  # the payload does not include this info
+            target_repo,
+            https_url,
+            github_login,
+            comment,
+        )
 
     @staticmethod
     def parse_installation_event(event) -> Optional[InstallationEvent]:
@@ -308,102 +308,104 @@ class Parser:
         """
         action = event.get("action")
         release = event.get("release")
-        if action == "published" and release:
-            logger.info(f"GitHub release {release} {action!r} event.")
+        if action != "published" or not release:
+            return None
 
-            repo_namespace = nested_get(event, "repository", "owner", "login")
-            repo_name = nested_get(event, "repository", "name")
-            if not (repo_namespace and repo_name):
-                logger.warning("No full name of the repository.")
-                return None
+        logger.info(f"GitHub release {release} {action!r} event.")
 
-            release_ref = nested_get(event, "release", "tag_name")
-            if not release_ref:
-                logger.warning("Release tag name is not set.")
-                return None
+        repo_namespace = nested_get(event, "repository", "owner", "login")
+        repo_name = nested_get(event, "repository", "name")
+        if not (repo_namespace and repo_name):
+            logger.warning("No full name of the repository.")
+            return None
 
-            logger.info(
-                f"New release event {release_ref} for repo {repo_namespace}/{repo_name}."
-            )
-            https_url = event["repository"]["html_url"]
-            return ReleaseEvent(repo_namespace, repo_name, release_ref, https_url)
-        return None
+        release_ref = nested_get(event, "release", "tag_name")
+        if not release_ref:
+            logger.warning("Release tag name is not set.")
+            return None
+
+        logger.info(
+            f"New release event {release_ref} for repo {repo_namespace}/{repo_name}."
+        )
+        https_url = event["repository"]["html_url"]
+        return ReleaseEvent(repo_namespace, repo_name, release_ref, https_url)
 
     @staticmethod
     def parse_distgit_event(event) -> Optional[DistGitEvent]:
         """ this corresponds to dist-git event when someone pushes new commits """
         topic = event.get("topic")
-        if topic == NewDistGitCommit.topic:
-            logger.info(f"Dist-git commit event, topic: {topic}")
+        if topic != NewDistGitCommit.topic:
+            return None
 
-            repo_namespace = nested_get(event, "msg", "commit", "namespace")
-            repo_name = nested_get(event, "msg", "commit", "repo")
-            # FIXME: What? we get "branch" also below
-            ref = nested_get(event, "msg", "commit", "branch")
-            if not (repo_namespace and repo_name):
-                logger.warning("No full name of the repository.")
-                return None
+        logger.info(f"Dist-git commit event, topic: {topic}")
 
-            if not ref:
-                logger.warning("Target branch for the new commits is not set.")
-                return None
+        repo_namespace = nested_get(event, "msg", "commit", "namespace")
+        repo_name = nested_get(event, "msg", "commit", "repo")
+        # FIXME: What? we get "branch" also below
+        ref = nested_get(event, "msg", "commit", "branch")
+        if not (repo_namespace and repo_name):
+            logger.warning("No full name of the repository.")
+            return None
 
-            msg_id = event.get("msg_id")
-            branch = nested_get(event, "msg", "commit", "branch")
+        if not ref:
+            logger.warning("Target branch for the new commits is not set.")
+            return None
 
-            logger.info(
-                f"New commits added to dist-git repo {repo_namespace}/{repo_name},"
-                f"ref: {ref}, branch: {branch}, msg_id: {msg_id}"
-            )
+        msg_id = event.get("msg_id")
+        branch = nested_get(event, "msg", "commit", "branch")
 
-            # TODO: get the right hostname without hardcoding
-            project_url = f"https://src.fedoraproject.org/{repo_namespace}/{repo_name}"
-            return DistGitEvent(
-                topic, repo_namespace, repo_name, ref, branch, msg_id, project_url
-            )
-        return None
+        logger.info(
+            f"New commits added to dist-git repo {repo_namespace}/{repo_name},"
+            f"ref: {ref}, branch: {branch}, msg_id: {msg_id}"
+        )
+
+        # TODO: get the right hostname without hardcoding
+        project_url = f"https://src.fedoraproject.org/{repo_namespace}/{repo_name}"
+        return DistGitEvent(
+            topic, repo_namespace, repo_name, ref, branch, msg_id, project_url
+        )
 
     @staticmethod
     def parse_testing_farm_results_event(event) -> Optional[TestingFarmResultsEvent]:
         """ this corresponds to testing farm results event """
         pipeline_id: str = nested_get(event, "pipeline", "id")
-        if pipeline_id:
-            result: TestingFarmResult = TestingFarmResult(event.get("result"))
-            environment: str = nested_get(event, "environment", "image")
-            message: str = event.get("message")
-            log_url: str = event.get("url")
-            copr_repo_name: str = nested_get(event, "artifact", "copr-repo-name")
-            copr_chroot: str = nested_get(event, "artifact", "copr-chroot")
-            repo_name: str = nested_get(event, "artifact", "repo-name")
-            repo_namespace: str = nested_get(event, "artifact", "repo-namespace")
-            ref: str = nested_get(event, "artifact", "git-ref")
-            https_url: str = nested_get(event, "artifact", "git-url")
-            commit_sha: str = nested_get(event, "artifact", "commit-sha")
-            tests: List[TestResult] = []
+        if not pipeline_id:
+            return None
 
-            logger.info(f"Results from Testing farm event. Pipeline ID: {pipeline_id}")
-            logger.debug(
-                f"environment: {environment}, message: {message}, "
-                f"log_url: {log_url}, artifact: {event.get('artifact')}"
-            )
+        result: TestingFarmResult = TestingFarmResult(event.get("result"))
+        environment: str = nested_get(event, "environment", "image")
+        message: str = event.get("message")
+        log_url: str = event.get("url")
+        copr_repo_name: str = nested_get(event, "artifact", "copr-repo-name")
+        copr_chroot: str = nested_get(event, "artifact", "copr-chroot")
+        repo_name: str = nested_get(event, "artifact", "repo-name")
+        repo_namespace: str = nested_get(event, "artifact", "repo-namespace")
+        ref: str = nested_get(event, "artifact", "git-ref")
+        https_url: str = nested_get(event, "artifact", "git-url")
+        commit_sha: str = nested_get(event, "artifact", "commit-sha")
+        tests: List[TestResult] = []
 
-            return TestingFarmResultsEvent(
-                pipeline_id,
-                result,
-                environment,
-                message,
-                log_url,
-                copr_repo_name,
-                copr_chroot,
-                tests,
-                repo_namespace,
-                repo_name,
-                ref,
-                https_url,
-                commit_sha,
-            )
+        logger.info(f"Results from Testing farm event. Pipeline ID: {pipeline_id}")
+        logger.debug(
+            f"environment: {environment}, message: {message}, "
+            f"log_url: {log_url}, artifact: {event.get('artifact')}"
+        )
 
-        return None
+        return TestingFarmResultsEvent(
+            pipeline_id,
+            result,
+            environment,
+            message,
+            log_url,
+            copr_repo_name,
+            copr_chroot,
+            tests,
+            repo_namespace,
+            repo_name,
+            ref,
+            https_url,
+            commit_sha,
+        )
 
     @staticmethod
     def parse_copr_event(event) -> Optional[CoprBuildEvent]:
