@@ -103,6 +103,8 @@ class Whitelist:
         :return: was the account (auto/already)-whitelisted?
         """
         if github_app.account_login in self.db:
+            # TODO: if the sender added (not created) our App to more repos,
+            #  then we should update the DB here
             return True
 
         # Do the DB insertion as a first thing to avoid issue#42

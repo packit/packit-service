@@ -55,7 +55,7 @@ class Parser:
 
     @staticmethod
     def parse_event(
-        event: dict
+        event: dict,
     ) -> Optional[
         Union[
             PullRequestEvent,
@@ -135,7 +135,7 @@ class Parser:
         pr_id = event.get("number")
         action = event.get("action")
         if action in ["opened", "reopened", "synchronize"] and pr_id:
-            logger.info(f"GitHub PR#{pr_id} event. Action: {action}.")
+            logger.info(f"GitHub PR#{pr_id} {action!r} event.")
 
             # we can't use head repo here b/c the app is set up against the upstream repo
             # and not the fork, on the other hand, we don't process packit.yaml from
@@ -188,7 +188,9 @@ class Parser:
         action = event.get("action")
         comment = nested_get(event, "comment", "body")
         if action == "created" and issue_id and comment:
-            logger.info(f"Github issue {issue_id} comment event.")
+            logger.info(
+                f"Github issue#{issue_id} comment: {comment!r} {action!r} event."
+            )
 
             base_repo_namespace = nested_get(event, "repository", "owner", "login")
             base_repo_name = nested_get(event, "repository", "name")
@@ -218,14 +220,14 @@ class Parser:
     @staticmethod
     def parse_pull_request_comment_event(event) -> Optional[PullRequestCommentEvent]:
         """ Look into the provided event and see if it is Github PR comment event. """
-
         if not nested_get(event, "issue", "pull_request"):
             return None
 
         pr_id = nested_get(event, "issue", "number")
         action = event.get("action")
         if action in ["created", "edited"] and pr_id:
-            logger.info(f"GitHub PR#{pr_id} comment event. Action: {action}.")
+            comment = nested_get(event, "comment", "body")
+            logger.info(f"Github PR#{pr_id} comment: {comment!r} {action!r} event.")
 
             base_repo_namespace = nested_get(event, "repository", "owner", "login")
             base_repo_name = nested_get(event, "repository", "name")
@@ -240,7 +242,6 @@ class Parser:
 
             target_repo = nested_get(event, "repository", "full_name")
             logger.info(f"Target repo: {target_repo}.")
-            comment = nested_get(event, "comment", "body")
             https_url = event["repository"]["html_url"]
             return PullRequestCommentEvent(
                 PullRequestCommentAction[action],
@@ -272,9 +273,7 @@ class Parser:
         repositories = event.get("repositories") or event.get("repositories_added", [])
         repo_names = [repo["full_name"] for repo in repositories]
 
-        logger.info(
-            f"Github App installation event. Action: {action}, id: {installation_id}"
-        )
+        logger.info(f"Github App installation {action!r} event. id: {installation_id}")
         logger.debug(
             f"account: {event['installation']['account']}, "
             f"repositories: {repo_names}, sender: {event['sender']}"
@@ -310,7 +309,7 @@ class Parser:
         action = event.get("action")
         release = event.get("release")
         if action == "published" and release:
-            logger.info(f"GitHub release {release} event, action = {action}.")
+            logger.info(f"GitHub release {release} {action!r} event.")
 
             repo_namespace = nested_get(event, "repository", "owner", "login")
             repo_name = nested_get(event, "repository", "name")
@@ -339,6 +338,7 @@ class Parser:
 
             repo_namespace = nested_get(event, "msg", "commit", "namespace")
             repo_name = nested_get(event, "msg", "commit", "repo")
+            # FIXME: What? we get "branch" also below
             ref = nested_get(event, "msg", "commit", "branch")
             if not (repo_namespace and repo_name):
                 logger.warning("No full name of the repository.")
@@ -348,13 +348,13 @@ class Parser:
                 logger.warning("Target branch for the new commits is not set.")
                 return None
 
-            logger.info(
-                f"New commits added to dist-git repo {repo_namespace}/{repo_name}, branch {ref}."
-            )
             msg_id = event.get("msg_id")
-            logger.info(f"msg_id = {msg_id}")
-
             branch = nested_get(event, "msg", "commit", "branch")
+
+            logger.info(
+                f"New commits added to dist-git repo {repo_namespace}/{repo_name},"
+                f"ref: {ref}, branch: {branch}, msg_id: {msg_id}"
+            )
 
             # TODO: get the right hostname without hardcoding
             project_url = f"https://src.fedoraproject.org/{repo_namespace}/{repo_name}"
@@ -381,8 +381,10 @@ class Parser:
             commit_sha: str = nested_get(event, "artifact", "commit-sha")
             tests: List[TestResult] = []
 
-            logger.info(
-                f"New testing results arrived from testing farm!. Pipeline ID: {pipeline_id}"
+            logger.info(f"Results from Testing farm event. Pipeline ID: {pipeline_id}")
+            logger.debug(
+                f"environment: {environment}, message: {message}, "
+                f"log_url: {log_url}, artifact: {event.get('artifact')}"
             )
 
             return TestingFarmResultsEvent(
