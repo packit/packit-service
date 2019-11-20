@@ -60,6 +60,12 @@
       - ssh_config
       - fedora.toml
     become: true
+  - name: Replace github app id with real number
+    lineinfile:
+      path: "{{ deployment_dir }}/secrets/dev/packit-service.yaml"
+      regexp: '<id>'
+      line: '    github_app_id: 1234'
+      state: present
 
   - name: Create dev.yml
     copy:
