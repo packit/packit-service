@@ -45,10 +45,10 @@ check-inside-openshift: worker test_image
 	@#   username system:admin is invalid for basic auth
 	@#-p PACKIT_SERVICE_SRC_LOCAL_PATH=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 	$(AP) files/test-in-openshift-secrets.yaml
-	$(AP) files/check-inside-openshift.yaml
+	ANSIBLE_STDOUT_CALLBACK=debug $(AP) files/check-inside-openshift.yaml
 
 check-inside-openshift-zuul: test_image
-	$(AP) files/check-inside-openshift.yaml
+	ANSIBLE_STDOUT_CALLBACK=debug $(AP) files/check-inside-openshift.yaml
 
 
 # this target is expected to run within an openshift pod
