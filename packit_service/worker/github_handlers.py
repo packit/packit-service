@@ -143,7 +143,9 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
             event=self.installation_event,
         )
         # try to add user to whitelist
-        whitelist = Whitelist()
+        whitelist = Whitelist(
+            fas_user=self.config.fas_user, fas_password=self.config.fas_password
+        )
         if not whitelist.add_account(self.installation_event):
             # Create an issue in our repository, so we are notified when someone install the app
             self.project.create_issue(
