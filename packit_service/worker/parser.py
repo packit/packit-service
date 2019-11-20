@@ -413,7 +413,7 @@ class Parser:
         }:
             return None
 
-        logger.info(f"Copr build event, topic: {topic}")
+        logger.info(f"Copr event; {event.get('what')}")
 
         build_id = event.get("build")
         chroot = event.get("chroot")
