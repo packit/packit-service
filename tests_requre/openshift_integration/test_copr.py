@@ -62,6 +62,7 @@ class Copr(PackitServiceTestCase):
         )
         flexmock(CoprBuild).should_receive("save")
         flexmock(Whitelist, check_and_report=True)
+        flexmock(self.steve).should_receive("_is_private").and_return(False)
 
         result = self.steve.process_message(pr_event())
         assert result
@@ -77,6 +78,7 @@ class Copr(PackitServiceTestCase):
             CoprBuild()
         )
         flexmock(CoprBuild).should_receive("save")
+        flexmock(self.steve).should_receive("_is_private").and_return(False)
 
         result = self.steve.process_message(pr_comment_event())
         assert result
@@ -85,6 +87,7 @@ class Copr(PackitServiceTestCase):
 
     def test_not_collaborator(self):
         result = self.steve.process_message(pr_comment_event_not_collaborator())
+        flexmock(self.steve).should_receive("_is_private").and_return(False)
         action = result["jobs"]["pull_request_action"]
         assert (
             action["details"]["msg"]
