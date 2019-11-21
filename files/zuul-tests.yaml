@@ -1,4 +1,5 @@
 ---
+# This playbook is running tests inside Zuul
 - name: Run packit-service tests
   hosts: all
   tasks:
