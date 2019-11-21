@@ -48,6 +48,7 @@ from packit_service.service.events import (
     CoprBuildEvent,
     CoprBuildDB,
     FedmsgTopic,
+    DistGitEvent,
 )
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
@@ -91,9 +92,12 @@ class TestEvents:
 
     @pytest.fixture()
     def pr_comment_empty_request(self):
-        with open(
-            DATA_DIR / "webhooks" / "github_pr_comment_empty.json", "r"
-        ) as outfile:
+        with open(DATA_DIR / "webhooks" / "github_pr_comment_empty.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def distgit_commit(self):
+        with open(DATA_DIR / "webhooks" / "distgit_commit.json") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -316,3 +320,14 @@ class TestEvents:
         assert isinstance(project.service, GithubService)
         assert project.namespace == "packit-service"
         assert project.repo == "hello-world"
+
+    def test_distgit_commit(self, distgit_commit):
+        event_object = Parser.parse_event(distgit_commit)
+
+        assert isinstance(event_object, DistGitEvent)
+        assert event_object.topic == FedmsgTopic.dist_git_push
+        assert event_object.repo_namespace == "rpms"
+        assert event_object.repo_name == "buildah"
+        assert event_object.ref == "abcd"
+        assert event_object.branch == "master"
+        assert event_object.msg_id == "2019-49c02775-6d37-40a9-b108-879e3511c49a"

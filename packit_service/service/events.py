@@ -320,7 +320,7 @@ class InstallationEvent(Event):
 class DistGitEvent(Event):
     def __init__(
         self,
-        topic: FedmsgTopic,
+        topic: str,
         repo_namespace: str,
         repo_name: str,
         ref: str,
@@ -329,7 +329,7 @@ class DistGitEvent(Event):
         project_url: str,
     ):
         super().__init__(JobTriggerType.commit)
-        self.topic = topic
+        self.topic = FedmsgTopic(topic)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.ref = ref
