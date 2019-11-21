@@ -5,9 +5,9 @@ from requre.helpers.requests_response import RequestResponseHandling
 from requre.helpers.tempfile import TempFile
 from requre.import_system import upgrade_import_system
 
-from requre.storage import DataMiner, StorageKeysInspectSimple
-
-DataMiner().key_stategy_cls = StorageKeysInspectSimple
+# from requre.storage import DataMiner, StorageKeysInspectSimple
+#
+# DataMiner().key_stategy_cls = StorageKeysInspectSimple
 
 FILTERS = (
     upgrade_import_system()

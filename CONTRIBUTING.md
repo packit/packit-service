@@ -155,6 +155,15 @@ to store and replay data for tests.
    ```bash
    make check-inside-openshift PATH_TO_SECRETS=./secrets
    ```
+
+#### Troubleshooting
+
+   If you got:
+   ```
+   PermissionError: [Errno 13] Permission denied: '/src-packit-service/tests_requre/test_data/test_fedpkg'
+   ```
+   You have to create all directories locally first. So in this case calling `mkdir tests_requre/test_data/test_fedpkg` will solve the problem.
+
  * Remove timestamps and another data what are changed every time, to avoid unwanted
    changes of generated files.
    ```bash
