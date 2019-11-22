@@ -38,13 +38,6 @@ def issue_comment_propose_update_event():
     )
 
 
-@pytest.fixture()
-def issue_empty_comment_event():
-    return json.loads(
-        (DATA_DIR / "webhooks" / "github_issue_empty_comment.json").read_text()
-    )
-
-
 def test_issue_comment_propose_update_handler(
     mock_issue_comment_functionality, issue_comment_propose_update_event
 ):
