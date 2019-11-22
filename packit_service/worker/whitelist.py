@@ -195,23 +195,26 @@ class Whitelist:
         :param project: GitProject
         :return:
         """
-        account_name = None
+
         # TODO: modify event hierarchy so we can use some abstract classes instead
-        if isinstance(
-            event, (PullRequestEvent, PullRequestCommentEvent, IssueCommentEvent)
-        ):
-            account_name = event.github_login
-            assert account_name, f"Failed to get account_name from {type(event)}"
         if isinstance(event, ReleaseEvent):
             account_name = event.repo_namespace
-            assert account_name, f"Failed to get account_name from {type(event)}"
+            if not account_name:
+                raise KeyError(f"Failed to get account_name from {type(event)}")
+            if not self.is_approved(account_name):
+                logger.info(f"Refusing release event on not whitelisted repo namespace")
+                return False
+            return True
         if isinstance(
             event,
             (CoprBuildEvent, TestingFarmResultsEvent, DistGitEvent, InstallationEvent),
         ):
             return True
+        if isinstance(event, (PullRequestEvent, PullRequestCommentEvent)):
+            account_name = event.github_login
+            if not account_name:
+                raise KeyError(f"Failed to get account_name from {type(event)}")
 
-        if account_name:
             if not self.is_approved(account_name):
                 logger.error(f"User {account_name} is not approved on whitelist!")
                 # TODO also check blacklist,
@@ -230,6 +233,19 @@ class Whitelist:
                 return False
             # TODO: clear failing check when present
             return True
+        if isinstance(event, IssueCommentEvent):
+            account_name = event.github_login
+            if not account_name:
+                raise KeyError(f"Failed to get account_name from {type(event)}")
+            if not self.is_approved(account_name):
+                logger.error(f"User {account_name} is not approved on whitelist!")
+                # TODO also check blacklist,
+                # but for that we need to know who triggered the action
+                msg = "Account is not whitelisted!"
+                project.issue_comment(event.issue_id, msg)
+                return False
+            return True
+
         msg = f"Failed to validate account: Unrecognized event type {type(event)}."
         logger.error(msg)
         raise PackitException(msg)

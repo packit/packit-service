@@ -84,7 +84,7 @@ def copr_url_from_event(event: CoprBuildEvent):
         logger.debug(f"Reaching url {url}")
         r = requests.get(url)
         r.raise_for_status()
-    except:
+    except Exception:
         # we might want sentry to know but don't want to start handling things?
         logger.error(f"Failed to reach url with copr chroot build result.")
         url = (
@@ -95,7 +95,7 @@ def copr_url_from_event(event: CoprBuildEvent):
             logger.debug(f"Reaching url {url}")
             r = requests.get(url)
             r.raise_for_status()
-        except:
+        except Exception:
             logger.error(f"Failed to reach url with copr build.")
             raise PackitException("Error while getting copr build url")
     return url

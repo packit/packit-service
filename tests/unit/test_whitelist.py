@@ -29,8 +29,6 @@ from ogr.abstract import GitProject, GitService
 from packit_service.service.events import (
     WhitelistStatus,
     PullRequestCommentEvent,
-    ReleaseEvent,
-    CoprBuildEvent,
     PullRequestAction,
 )
 from packit_service.worker.whitelist import Whitelist
