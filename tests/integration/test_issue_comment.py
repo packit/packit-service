@@ -46,10 +46,4 @@ def test_issue_comment_propose_update_handler(
     )
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(issue_comment_propose_update_event)
-    event = results["event"]
-    assert event
-    assert event["action"] == "created"
-    assert event["issue_id"] == 512
-    assert event["trigger"] == "comment"
-    assert event["comment"] == "/packit propose-update"
     assert results["jobs"]["pull_request_action"]["success"]
