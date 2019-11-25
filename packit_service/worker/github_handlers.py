@@ -241,15 +241,19 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
     def handle_pull_request(self):
 
         if not self.job.metadata.get("targets"):
-            logger.error(
-                "'targets' value is required in packit config for copr_build job"
-            )
+            msg = "'targets' value is required in packit config for copr_build job"
+            self.project.pr_comment(self.event.pr_id, msg)
+            return HandlerResults(success=False, details={"msg": msg})
 
         collaborators = self.project.who_can_merge_pr()
         r = BuildStatusReporter(self.project, self.event.commit_sha)
         if self.event.github_login not in collaborators | self.config.admins:
             msg = "Only collaborators can trigger Packit-as-a-Service"
-            r.set_status("failure", msg, PRCheckName.get_build_check())
+            check_names = [
+                f"{PRCheckName.get_build_check(x)}"
+                for x in self.job.metadata.get("targets")
+            ]
+            r.report("failure", msg, check_names=check_names)
             return HandlerResults(success=False, details={"msg": msg})
         cbh = CoprBuildHandler(
             self.config, self.package_config, self.project, self.event
@@ -398,7 +402,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
                     msg,
                     None,
                     "",
-                    check_name=PRCheckName.get_testing_farm_check() + "-" + chroot,
+                    check_names=PRCheckName.get_testing_farm_check(chroot),
                 )
                 return HandlerResults(success=False, details={"msg": msg})
             else:
@@ -423,7 +427,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
                         "failure",
                         msg,
                         None,
-                        check_name=PRCheckName.get_testing_farm_check() + "-" + chroot,
+                        check_names=PRCheckName.get_testing_farm_check(chroot),
                     )
                     return HandlerResults(success=False, details={"msg": msg})
 
@@ -432,7 +436,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
                     "Tests are running ...",
                     None,
                     req.json()["url"],
-                    check_name=PRCheckName.get_testing_farm_check() + "-" + chroot,
+                    check_names=PRCheckName.get_testing_farm_check(chroot),
                 )
 
         return HandlerResults(success=True, details={})

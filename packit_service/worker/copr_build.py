@@ -97,7 +97,6 @@ class CoprBuildHandler(object):
         return None
 
     def run_copr_build(self) -> HandlerResults:
-        check_name = PRCheckName.get_build_check()
         # add suffix stg when using stg app
         stg = "-stg" if self.config.deployment == Deployment.stg else ""
         default_project_name = (
@@ -113,25 +112,63 @@ class CoprBuildHandler(object):
         self.job_owner = job.metadata.get("owner") or self.api.copr.config.get(
             "username"
         )
+        if not job.metadata.get("targets"):
+            msg = "'targets' value is required in packit config for copr_build job"
+            self.project.pr_comment(self.event.pr_id, msg)
+            return HandlerResults(success=False, details={"msg": msg})
+
         self.job_chroots = job.metadata.get("targets", [])
+        for test_check_name in (
+            f"{PRCheckName.get_testing_farm_check(x)}" for x in self.job_chroots
+        ):
+            self.project.set_commit_status(
+                self.event.commit_sha,
+                "pending",
+                "",
+                "Waiting for a successful RPM build",
+                test_check_name,
+                trim=True,
+            )
         r = BuildStatusReporter(
             self.project, self.event.commit_sha, self.copr_build_model
         )
-        if not job.metadata.get("targets"):
-            msg = "'targets' value is required in packit config for copr_build job"
-            r.report("failure", msg, check_name=check_name)
-            return HandlerResults(success=False, details={"msg": msg})
-
+        build_check_names = [
+            f"{PRCheckName.get_build_check(x)}" for x in self.job_chroots
+        ]
         msg_retrigger = (
             f"You can re-trigger copr build by adding a comment (`/packit copr-build`) "
             f"into this pull request."
         )
         try:
-            r.report("pending", "RPM build has just started...", check_name=check_name)
-            build_id, repo_url = self.api.run_copr_build(
+            r.report(
+                "pending",
+                "SRPM build has just started...",
+                check_names=PRCheckName.get_srpm_build_check(),
+            )
+            r.report(
+                "pending",
+                "RPM build is waiting for succesfull SPRM build",
+                check_names=build_check_names,
+            )
+            build_id, _ = self.api.run_copr_build(
                 project=self.job_project, chroots=self.job_chroots, owner=self.job_owner
             )
-
+            r.report(
+                "success",
+                "SRPM was built successfully.",
+                check_names=PRCheckName.get_srpm_build_check(),
+            )
+            # provide common build url while waiting on response from copr
+            url = (
+                "https://copr.fedorainfracloud.org/coprs/"
+                f"{self.job_owner}/{self.job_project}/build/{build_id}/"
+            )
+            r.report(
+                "pending",
+                "RPM build has just started...",
+                check_names=build_check_names,
+                url=url,
+            )
             # Save copr build with commit information to be able to report status back
             # after fedmsg copr.build.end arrives
             copr_build_db = CoprBuildDB()
@@ -149,7 +186,7 @@ class CoprBuildHandler(object):
             msg = f"You have reached 10-minute timeout while creating the SRPM. {msg_retrigger}"
             self.project.pr_comment(self.event.pr_id, msg)
             msg = "Timeout reached while creating a SRPM."
-            r.report("failure", msg, check_name=check_name)
+            r.report("failure", msg, check_names=build_check_names)
             return HandlerResults(success=False, details={"msg": msg})
 
         except SandcastleCommandFailed as ex:
@@ -167,8 +204,12 @@ class CoprBuildHandler(object):
                 f"\nReturn code: {ex.rc}"
             )
             self.project.pr_comment(self.event.pr_id, msg)
+            import sentry_sdk
+
+            sentry_sdk.capture_exception(output)
+
             msg = "Failed to create a SRPM."
-            r.report("failure", msg, check_name=check_name)
+            r.report("failure", msg, check_names=PRCheckName.get_srpm_build_check())
             return HandlerResults(success=False, details={"msg": msg})
 
         except FailedCreateSRPM as ex:
@@ -178,7 +219,7 @@ class CoprBuildHandler(object):
             sentry_sdk.capture_exception(ex)
 
             msg = f"Failed to create a SRPM: {ex}"
-            r.report("failure", msg, check_name=check_name)
+            r.report("failure", ex, check_names=PRCheckName.get_srpm_build_check())
             return HandlerResults(success=False, details={"msg": msg})
 
         except Exception as ex:
@@ -193,7 +234,7 @@ class CoprBuildHandler(object):
             r.report(
                 "failure",
                 "Build failed, check latest comment for details.",
-                check_name=check_name,
+                check_names=build_check_names,
             )
             return HandlerResults(success=False, details={"msg": msg})
 

@@ -26,13 +26,19 @@ from fedora.client import AuthError, FedoraServiceError
 from ogr.abstract import GitProject
 from packit.config import JobTriggerType
 from persistentdict.dict_in_redis import PersistentDict
+from packit.exceptions import PackitException
 
 from packit_service.constants import FAQ_URL
 from packit_service.service.events import (
     PullRequestEvent,
+    PullRequestCommentEvent,
+    IssueCommentEvent,
     ReleaseEvent,
     WhitelistStatus,
     InstallationEvent,
+    CoprBuildEvent,
+    TestingFarmResultsEvent,
+    DistGitEvent,
 )
 from packit_service.worker.handler import BuildStatusReporter, PRCheckName
 
@@ -189,29 +195,60 @@ class Whitelist:
         :param project: GitProject
         :return:
         """
-        account_name = None
-        if isinstance(event, PullRequestEvent):
-            account_name = event.base_repo_namespace
+
+        # TODO: modify event hierarchy so we can use some abstract classes instead
         if isinstance(event, ReleaseEvent):
             account_name = event.repo_namespace
+            if not account_name:
+                raise KeyError(f"Failed to get account_name from {type(event)}")
+            if not self.is_approved(account_name):
+                logger.info(f"Refusing release event on not whitelisted repo namespace")
+                return False
+            return True
+        if isinstance(
+            event,
+            (CoprBuildEvent, TestingFarmResultsEvent, DistGitEvent, InstallationEvent),
+        ):
+            return True
+        if isinstance(event, (PullRequestEvent, PullRequestCommentEvent)):
+            account_name = event.github_login
+            if not account_name:
+                raise KeyError(f"Failed to get account_name from {type(event)}")
 
-        if account_name:
             if not self.is_approved(account_name):
                 logger.error(f"User {account_name} is not approved on whitelist!")
                 # TODO also check blacklist,
                 # but for that we need to know who triggered the action
-                if event.trigger == JobTriggerType.pull_request:
+                msg = "Account is not whitelisted!"
+                if event.trigger == JobTriggerType.comment:
+                    project.pr_comment(event.pr_id, msg)
+                else:
                     r = BuildStatusReporter(project, event.commit_sha, None)
-                    msg = "Account is not whitelisted!"
                     r.report(
                         "failure",
                         msg,
                         url=FAQ_URL,
-                        check_name=PRCheckName.get_build_check(),
+                        check_names=PRCheckName.get_account_check(),
                     )
                 return False
+            # TODO: clear failing check when present
+            return True
+        if isinstance(event, IssueCommentEvent):
+            account_name = event.github_login
+            if not account_name:
+                raise KeyError(f"Failed to get account_name from {type(event)}")
+            if not self.is_approved(account_name):
+                logger.error(f"User {account_name} is not approved on whitelist!")
+                # TODO also check blacklist,
+                # but for that we need to know who triggered the action
+                msg = "Account is not whitelisted!"
+                project.issue_comment(event.issue_id, msg)
+                return False
+            return True
 
-        return True
+        msg = f"Failed to validate account: Unrecognized event type {type(event)}."
+        logger.error(msg)
+        raise PackitException(msg)
 
 
 class Blacklist:

@@ -82,9 +82,7 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
             self.event.message,
             None,
             self.event.log_url,
-            check_name=PRCheckName.get_testing_farm_check()
-            + "-"
-            + self.event.copr_chroot,
+            check_names=PRCheckName.get_testing_farm_check(self.event.copr_chroot),
         )
 
         return HandlerResults(success=True, details={})

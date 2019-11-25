@@ -25,6 +25,7 @@ This file defines classes for job handlers specific for Fedmsg events
 """
 
 import logging
+import requests
 from typing import Type, Optional
 
 from packit.api import PackitAPI
@@ -34,6 +35,7 @@ from packit.config import (
     JobConfig,
     get_package_config_from_repo,
 )
+from packit.exceptions import PackitException
 from packit.distgit import DistGit
 from packit.local_project import LocalProject
 from packit.utils import get_namespace_and_repo_name
@@ -64,6 +66,39 @@ def add_topic(kls: Type["FedmsgHandler"]):
 def do_we_process_fedmsg_topic(topic: str) -> bool:
     """ do we process selected fedmsg topic? """
     return topic in PROCESSED_FEDMSG_TOPICS
+
+
+def copr_url_from_event(event: CoprBuildEvent):
+    """
+    Get url to builder-live.log.gz bound to single event
+    :param event: fedora messaging event from topic copr.build.start or copr.build.end
+    :return: reachable url
+    """
+    url = (
+        f"https://copr-be.cloud.fedoraproject.org/results/{event.owner}/"
+        f"{event.project_name}/{event.chroot}/"
+        f"{event.build_id:08d}-{event.pkg}/builder-live.log.gz"
+    )
+    # make sure we provide valid url in status, let sentry handle if not
+    try:
+        logger.debug(f"Reaching url {url}")
+        r = requests.get(url)
+        r.raise_for_status()
+    except Exception:
+        # we might want sentry to know but don't want to start handling things?
+        logger.error(f"Failed to reach url with copr chroot build result.")
+        url = (
+            "https://copr.fedorainfracloud.org/coprs/"
+            f"{event.owner}/{event.project_name}/build/{event.build_id}/"
+        )
+        try:
+            logger.debug(f"Reaching url {url}")
+            r = requests.get(url)
+            r.raise_for_status()
+        except Exception:
+            logger.error(f"Failed to reach url with copr build.")
+            raise PackitException("Error while getting copr build url")
+    return url
 
 
 class FedmsgHandler(JobHandler):
@@ -166,10 +201,7 @@ class CoprBuildEndHandler(FedmsgHandler):
             return HandlerResults(success=False, details={"msg": msg})
 
         r = BuildStatusReporter(self.event.get_project(), build["commit_sha"])
-        url = (
-            "https://copr.fedorainfracloud.org/coprs/"
-            f"{self.event.owner}/{self.event.project_name}/build/{self.event.build_id}/"
-        )
+        url = copr_url_from_event(self.event)
 
         msg = "RPMs failed to be built."
         gh_state = "failure"
@@ -202,7 +234,7 @@ class CoprBuildEndHandler(FedmsgHandler):
                 state=gh_state,
                 description=check_msg,
                 url=url,
-                check_name=PRCheckName.get_build_check(),
+                check_names=PRCheckName.get_build_check(self.event.chroot),
             )
 
             test_job_config = self.get_tests_for_build()
@@ -216,7 +248,12 @@ class CoprBuildEndHandler(FedmsgHandler):
 
             return HandlerResults(success=True, details={})
 
-        r.report(gh_state, msg, url=url, check_name=PRCheckName.get_build_check())
+        r.report(
+            gh_state,
+            msg,
+            url=url,
+            check_names=PRCheckName.get_build_check(self.event.chroot),
+        )
         return HandlerResults(success=False, details={"msg": msg})
 
     def get_tests_for_build(self) -> Optional[JobConfig]:
@@ -250,10 +287,6 @@ class CoprBuildStartHandler(FedmsgHandler):
             return HandlerResults(success=False, details={"msg": msg})
 
         r = BuildStatusReporter(self.event.get_project(), build["commit_sha"])
-        url = (
-            "https://copr.fedorainfracloud.org/coprs/"
-            f"{self.event.owner}/{self.event.project_name}/build/{self.event.build_id}/"
-        )
 
         if self.event.chroot == "srpm-builds":
             # we don't want to set check for this
@@ -264,6 +297,6 @@ class CoprBuildStartHandler(FedmsgHandler):
         r.report(
             state="pending",
             description="RPM build has started...",
-            url=url,
-            check_name=PRCheckName.get_build_check(),
+            url=copr_url_from_event(self.event),
+            check_names=PRCheckName.get_build_check(self.event.chroot),
         )

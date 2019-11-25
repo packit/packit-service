@@ -19,12 +19,18 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import flexmock
 import pytest
+import flexmock
+
 from fedora.client.fas2 import AccountSystem
 from fedora.client import AuthError, FedoraServiceError
 
-from packit_service.service.events import WhitelistStatus
+from ogr.abstract import GitProject, GitService
+from packit_service.service.events import (
+    WhitelistStatus,
+    PullRequestCommentEvent,
+    PullRequestAction,
+)
 from packit_service.worker.whitelist import Whitelist
 
 
@@ -105,3 +111,25 @@ def test_is_packager(whitelist, account_name, person_object, raises, is_packager
         fas.and_raise(raises)
 
     assert whitelist._is_packager(account_name) == is_packager
+
+
+def test_check_and_report_pr_comment_reject(whitelist):
+    event = PullRequestCommentEvent(
+        PullRequestAction["opened"], 0, "", "", "", "", "", "rakosnicek", ""
+    )
+    gp = GitProject("", GitService(), "")
+    flexmock(gp).should_receive("pr_comment").with_args(
+        0, "Account is not whitelisted!"
+    ).once()
+    assert not whitelist.check_and_report(event, gp)
+
+
+def test_check_and_report_pr_comment_approve(whitelist):
+    event = PullRequestCommentEvent(
+        PullRequestAction["opened"], 0, "", "", "", "", "", "lojzo", ""
+    )
+    gp = GitProject("", GitService(), "")
+    flexmock(gp).should_receive("pr_comment").with_args(
+        0, "Account is not whitelisted!"
+    ).never()
+    assert whitelist.check_and_report(event, gp)
