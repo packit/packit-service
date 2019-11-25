@@ -171,7 +171,36 @@ to store and replay data for tests.
    oc logs pod/packit-tests-pdg6p
    ```
 
+#### Troubleshooting
+If you got:
+```
+PermissionError: [Errno 13] Permission denied: '/src-packit-service/tests_requre/test_data/test_fedpkg'
+```
+You have to create all directories locally first. So in this case calling `mkdir -p tests_requre/test_data/test_fedpkg` will solve the problem.
+
 ### Check it without secrets
+
+If you want to simulate Zuul environment locally you can do so in the following way:
+
+Delete all secrets from OpenShift cluster. This will ensure that no real secrets are used.
+```bash
+oc delete secrets --all
+```
+
+Re-build the images:
+```
+make service
+make worker
+```
+
+Generate and deploy fake secrets (you need to have [deployment repository](https://github.com/packit-service/deployment) cloned):
+
+**Note: We highly recommend to clone deployment repository to a temporary location since the command below will overwrite secrets stored in deployment/secrets/dev**
+
+```bash
+ansible-playbook --extra-vars="deployment_dir=<PATH_TO_LOCAL_DEPLOYMENT_DIR>" files/deployment.yaml
+```
+
 Verify that everything will work also inside zuul. Use the command:
 ```bash
 make check-inside-openshift-zuul
