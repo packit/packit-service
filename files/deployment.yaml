@@ -1,4 +1,5 @@
 ---
+# This file is the entrypoint to deploy packit-service to an openshift cluster (e.g. in Zuul)
 - name: Build packit-service image from current src dir.
   hosts: all
   vars:

@@ -1,4 +1,6 @@
 ---
+# Entrypoint for Zuul
+# The "secrets" files in this directory don't work at the moment. Rado said.
 - project:
     name: packit-service/packit-service
     check:
@@ -26,6 +28,7 @@
     parent: base
     attempts: 1
     description: Run tests of packit-service
+    # this will clone the deployment repo to a predictable path
     required-projects:
       - github.com/packit-service/deployment
     pre-run:

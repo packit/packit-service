@@ -1,4 +1,5 @@
 ---
+# deploy an openshift cluster to the current env - e.g. in Zuul
 - name: Install dependencies for packit service.
   hosts: all
   tasks:
