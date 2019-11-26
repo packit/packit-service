@@ -146,14 +146,13 @@ to store and replay data for tests.
    ```
 
 ### Data regeneration
- * copy secrets directory to the root of this project: `cp -ar path/to/secrets/ secrets/
  * remove files which you want to regenerate:
    ```bash
    rm -r tests_requre/test_data/test_*
    ```
  * Run the tests with the secrets - the response files will be regenerated (container images for `worker` and `test_image` are done in this step)
    ```bash
-   make check-inside-openshift PATH_TO_SECRETS=./secrets
+   make check-inside-openshift PATH_TO_SECRETS=<path-to-valid-secrets>
    ```
  * Remove timestamps and another data what are changed every time, to avoid unwanted
    changes of generated files.
