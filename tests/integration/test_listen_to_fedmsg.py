@@ -20,11 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import json
-import flexmock
 
 import pytest
-from ogr.services.github import GithubProject
+from flexmock import flexmock
 
+from ogr.services.github import GithubProject
 from packit_service.constants import PACKIT_STG_CHECK
 from packit_service.service.events import CoprBuildEvent
 from packit_service.worker.copr_db import CoprBuildDB

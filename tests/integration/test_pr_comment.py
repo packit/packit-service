@@ -76,11 +76,6 @@ def test_pr_comment_copr_build_handler(
     )
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(pr_copr_build_comment_event)
-    event = results["event"]
-    assert event["action"] == "created"
-    assert event["pr_id"] == 9
-    assert event["trigger"] == "comment"
-    assert event["comment"] == "/packit copr-build"
     assert results["jobs"]["pull_request_action"]["success"]
 
 
@@ -90,13 +85,8 @@ def test_pr_comment_empty_handler(
     flexmock(SteveJobs, _is_private=False)
 
     results = SteveJobs().process_message(pr_empty_comment_event)
-    event = results["event"]
-    assert event["action"] == "created"
-    assert event["pr_id"] == 9
-    assert event["trigger"] == "comment"
-    assert event["comment"] == ""
     assert results["jobs"]["pull_request_action"]["success"]
-    msg = "PR comment '' is empty."
+    msg = "comment '' is empty."
     assert results["jobs"]["pull_request_action"]["details"]["msg"] == msg
 
 
@@ -106,13 +96,8 @@ def test_pr_comment_packit_only_handler(
     flexmock(SteveJobs, _is_private=False)
 
     results = SteveJobs().process_message(pr_packit_only_comment_event)
-    event = results["event"]
-    assert event["action"] == "created"
-    assert event["pr_id"] == 9
-    assert event["trigger"] == "comment"
-    assert event["comment"] == "/packit"
     assert results["jobs"]["pull_request_action"]["success"]
-    msg = "PR comment '/packit' does not contain a packit-service command."
+    msg = "comment '/packit' does not contain a packit-service command."
     assert results["jobs"]["pull_request_action"]["details"]["msg"] == msg
 
 
@@ -122,11 +107,6 @@ def test_pr_comment_wrong_packit_command_handler(
     flexmock(SteveJobs, _is_private=False)
 
     results = SteveJobs().process_message(pr_wrong_packit_comment_event)
-    event = results["event"]
-    assert event["action"] == "created"
-    assert event["pr_id"] == 9
-    assert event["trigger"] == "comment"
-    assert event["comment"] == "/packit foobar"
     assert results["jobs"]["pull_request_action"]["success"]
-    msg = "PR comment '/packit foobar' does not contain a valid packit-service command."
+    msg = "comment '/packit foobar' does not contain a valid packit-service command."
     assert results["jobs"]["pull_request_action"]["details"]["msg"] == msg

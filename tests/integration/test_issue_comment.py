@@ -38,13 +38,6 @@ def issue_comment_propose_update_event():
     )
 
 
-@pytest.fixture()
-def issue_empty_comment_event():
-    return json.loads(
-        (DATA_DIR / "webhooks" / "github_issue_empty_comment.json").read_text()
-    )
-
-
 def test_issue_comment_propose_update_handler(
     mock_issue_comment_functionality, issue_comment_propose_update_event
 ):
@@ -53,10 +46,4 @@ def test_issue_comment_propose_update_handler(
     )
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(issue_comment_propose_update_event)
-    event = results["event"]
-    assert event
-    assert event["action"] == "created"
-    assert event["issue_id"] == 512
-    assert event["trigger"] == "comment"
-    assert event["comment"] == "/packit propose-update"
     assert results["jobs"]["pull_request_action"]["success"]

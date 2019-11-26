@@ -130,13 +130,13 @@ class SteveJobs:
         self, event: Union[PullRequestCommentEvent, IssueCommentEvent]
     ) -> HandlerResults:
         # packit_command can be `/packit propose-update`
-        msg = f"PR comment '{event.comment[:35]}'"
+        msg = f"comment '{event.comment[:35]}'"
         try:
             (packit_mark, *packit_command) = event.comment.split(maxsplit=3)
         except ValueError:
             return HandlerResults(success=True, details={"msg": f"{msg} is empty."})
 
-        if REQUESTED_PULL_REQUEST_COMMENT != packit_mark:
+        if packit_mark != REQUESTED_PULL_REQUEST_COMMENT:
             return HandlerResults(
                 success=True,
                 details={"msg": f"{msg} is not handled by packit-service."},

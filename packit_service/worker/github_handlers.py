@@ -444,7 +444,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
 
 @add_to_comment_action_mapping
 class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
-    """ Issue handler for comment `/packit copr-build` """
+    """ Handler for PR comment `/packit copr-build` """
 
     name = CommentAction.copr_build
     event: PullRequestCommentEvent
@@ -492,7 +492,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
 
 @add_to_comment_action_mapping
 class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
-    """ Issue handler for comment `/packit propose-update` """
+    """ Handler for issue comment `/packit propose-update` """
 
     name = CommentAction.propose_update
     event: IssueCommentEvent
