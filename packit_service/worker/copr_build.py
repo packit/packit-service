@@ -20,7 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
-from typing import Union, List, Optional
+from io import StringIO
+from typing import Union, List, Optional, Dict
 
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
@@ -118,9 +119,10 @@ class CoprBuildHandler(object):
             return HandlerResults(success=False, details={"msg": msg})
 
         self.job_chroots = job.metadata.get("targets", [])
-        for test_check_name in (
-            f"{PRCheckName.get_testing_farm_check(x)}" for x in self.job_chroots
-        ):
+        targets_db: Dict[str, Dict[str, str]] = {}
+        for chroot in self.job_chroots:
+            test_check_name = PRCheckName.get_testing_farm_check(chroot)
+            targets_db.setdefault(chroot, {"status": "pending"})
             self.project.set_commit_status(
                 self.event.commit_sha,
                 "pending",
@@ -150,14 +152,26 @@ class CoprBuildHandler(object):
                 "RPM build is waiting for succesfull SPRM build",
                 check_names=build_check_names,
             )
+
+            # we want to get packit logs from the SRPM creation process
+            # so we stuff them into a StringIO buffer
+            stream = StringIO()
+            handler = logging.StreamHandler(stream)
+            packit_logger = logging.getLogger("packit")
+            packit_logger.setLevel(logging.DEBUG)
+            packit_logger.addHandler(handler)
             build_id, _ = self.api.run_copr_build(
                 project=self.job_project, chroots=self.job_chroots, owner=self.job_owner
             )
+            packit_logger.removeHandler(handler)
+            stream.seek(0)
+
             r.report(
                 "success",
                 "SRPM was built successfully.",
                 check_names=PRCheckName.get_srpm_build_check(),
             )
+            # FIXME: point to logs view here
             # provide common build url while waiting on response from copr
             url = (
                 "https://copr.fedorainfracloud.org/coprs/"
@@ -180,6 +194,9 @@ class CoprBuildHandler(object):
                 self.event.base_repo_namespace,
                 self.event.base_ref,
                 self.event.project_url,
+                logs=stream.read(),
+                targets=targets_db,
+                web_url=url,
             )
 
         except SandcastleTimeoutReached:

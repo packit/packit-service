@@ -74,11 +74,12 @@ def copr_url_from_event(event: CoprBuildEvent):
     :param event: fedora messaging event from topic copr.build.start or copr.build.end
     :return: reachable url
     """
-    url = (
+    build_logs_url = (
         f"https://copr-be.cloud.fedoraproject.org/results/{event.owner}/"
         f"{event.project_name}/{event.chroot}/"
         f"{event.build_id:08d}-{event.pkg}/builder-live.log.gz"
     )
+    root_logs_url = ...
     # make sure we provide valid url in status, let sentry handle if not
     try:
         logger.debug(f"Reaching url {url}")
@@ -248,10 +249,19 @@ class CoprBuildEndHandler(FedmsgHandler):
 
             return HandlerResults(success=True, details={})
 
+        # FIXME: there is still a race condition here if 2 events happen at the same time
+        db = CoprBuildDB()
+        build = db.get_build(self.event.build_id)
+        build_target = build["targets"][self.event.chroot]
+        build_target["status"] = gh_state
+        build_target["build_logs"] = build_logs_url
+        build_target["root_logs"] = root_logs_url
+        db.set_build(self.event.build_id, build_target)
+
         r.report(
             gh_state,
             msg,
-            url=url,
+            url=url,  # FIXME: set this properly
             check_names=PRCheckName.get_build_check(self.event.chroot),
         )
         return HandlerResults(success=False, details={"msg": msg})

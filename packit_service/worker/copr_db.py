@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Optional
+from typing import Optional, Dict
 
 import logging
 
@@ -48,6 +48,9 @@ class CoprBuildDB:
         repo_namespace: str,
         ref: str,
         https_url: str,
+        logs: str,
+        targets: Dict,
+        web_url: str,
     ):
         """
         Save copr build with commit information
@@ -58,7 +61,9 @@ class CoprBuildDB:
         :param pr_id: PR id
         :param ref: PR ref
         :param https_url: upstream url of the repo
-        :return:
+        :param logs: SRPM creation logs
+        :param targets: metadata for every target we build in
+        :param web_url: URL to the web UI
         """
         build_info = {
             "commit_sha": commit_sha,
@@ -67,6 +72,9 @@ class CoprBuildDB:
             "repo_namespace": repo_namespace,
             "ref": ref,
             "https_url": https_url,
+            "logs": logs,
+            "targets": targets,
+            "web_url": web_url,
         }
         self.db[build_id] = build_info
         logger.debug(f"Saving build ({build_id}) : {build_info}")
@@ -92,3 +100,6 @@ class CoprBuildDB:
         :return: build or None if build_id not in DB
         """
         return self.db.get(build_id)
+
+    def set_build(self, build_id: int, data: Dict):
+        self.db[build_id] = data
