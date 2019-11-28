@@ -4,13 +4,7 @@ import flexmock
 
 from ogr.abstract import GitProject, GitService
 from packit.api import PackitAPI
-from packit.config import (
-    PackageConfig,
-    JobConfig,
-    JobType,
-    JobTriggerType,
-    JobNotifyType,
-)
+from packit.config import PackageConfig, JobConfig, JobType, JobTriggerType
 from packit.exceptions import FailedCreateSRPM
 
 from packit_service.config import ServiceConfig
@@ -54,7 +48,6 @@ def build_handler(metadata=None, trigger=None):
         JobConfig(
             job=JobType.copr_build,
             trigger=trigger or JobTriggerType.pull_request,
-            notify=JobNotifyType.from_list([]),
             metadata=metadata,
         )
     ]
