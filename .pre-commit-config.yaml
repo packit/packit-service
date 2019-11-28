@@ -4,12 +4,12 @@
 
 repos:
 -   repo: https://github.com/ambv/black
-    rev: 19.3b0
+    rev: 19.10b0
     hooks:
     - id: black
       language_version: python3.6
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.2.3
+    rev: v2.4.0
     hooks:
     - id: check-added-large-files
     - id: check-ast
@@ -25,12 +25,12 @@ repos:
         - --max-line-length=100
         - --per-file-ignores=files/packit.wsgi:F401,E402
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.720
+    rev: v0.740
     hooks:
     -   id: mypy
         args: [--no-strict-optional, --ignore-missing-imports]
 -   repo: https://github.com/packit-service/pre-commit-hooks
-    rev: master
+    rev: f6251f4b3800b81faa653c0ef34ab15b2b278cc6
     hooks:
     -   id: check-rebase
         args:
