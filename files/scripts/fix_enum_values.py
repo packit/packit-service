@@ -3,6 +3,7 @@ from redis import Redis
 import json
 
 
+# https://github.com/packit-service/packit-service/issues/212
 def fix_enum_values(db, hash):
     for k, v in db.hgetall(hash).items():
         value_dict = json.loads(v)

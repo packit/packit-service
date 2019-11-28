@@ -3,6 +3,7 @@ from redis import Redis
 import json
 
 
+# https://github.com/packit-service/packit-service/issues/196
 def clean_up_empty_tasks(db):
     keys = db.keys("celery-tasks-meta-*")
 
