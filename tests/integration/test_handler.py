@@ -41,7 +41,7 @@ def test_handler_cleanup(tmpdir):
 
     c = ServiceConfig()
     c.command_handler_work_dir = t
-    jc = JobConfig(JobType.copr_build, [], JobTriggerType.pull_request, {})
+    jc = JobConfig(JobType.copr_build, JobTriggerType.pull_request, {})
     j = JobHandler(c, jc, Event(JobTriggerType.pull_request))
 
     j._clean_workplace()
