@@ -38,4 +38,25 @@ repos:
 -   repo: https://github.com/packit-service/requre
     rev: master
     hooks:
-    -   id: requre-purge
+    - id: requre-purge
+      name: Requre response files cleanup
+      description: Replace the sensitive/time-based values in the requre response files
+      entry: >
+          requre-patch purge
+          --replaces 'requests.sessions%send:Date:str:Fri, 01 Nov 2019 13-36-03 GMT'
+          --replaces 'requests.sessions%send:ETag:str:W/"1e51b8e1c48787a433405211e9e0fe61"'
+          --replaces 'requests.sessions%send:X-Fedora-RequestID:str:XcFVKMi@EiqyqRlV7q32fgBBBkM'
+          --replaces 'requests.sessions%send:X-RateLimit-Remaining:str:4972'
+          --replaces 'requests.sessions%send:X-RateLimit-Reset:str:1572953901'
+          --replaces 'requests.sessions%send:X-GitHub-Request-Id:str:18FB:AA1A:99616C4:B8092CB:5CC15425'
+          --replaces 'requests.sessions%send:AppTime:str:D=4081'
+          --replaces 'requests.sessions%send:X-Fedora-AppServer:str:koji01.phx2.fedoraproject.org'
+          --replaces 'requests.sessions%send:X-Fedora-ProxyServer:str:proxy01.phx2.fedoraproject.org'
+          --replaces "requests.sessions%send:Content-Security-Policy:str:default-src 'self';script-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne' https://apps.fedoraproject.org; style-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne'; object-src 'none';base-uri 'self';img-src 'self' https:;"
+          --replaces "github.Requester%requests.sessions%send:Content-Security-Policy:str:default-src 'none'"
+          --replaces "requests.sessions%_content:expires_at:str:2019-11-01T14:35:53Z"
+          --replaces "requests.sessions%send:elapsed:float:0.2"
+          --replaces "requests.sessions%_content:token:str:v1.1cd89d399b8c70f8b88e22cbdaa72abbe5e390db"
+      language: python
+      types: [yaml]
+      files: /tests_requre.*\.yaml$

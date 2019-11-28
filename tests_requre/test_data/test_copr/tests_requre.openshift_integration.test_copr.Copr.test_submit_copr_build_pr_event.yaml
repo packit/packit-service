@@ -862,10 +862,10 @@ unittest.case:
                         X-Content-Type-Options: nosniff
                         X-Frame-Options: deny
                         X-GitHub-Media-Type: github.v3; format=json
-                        X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                        X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                         X-RateLimit-Limit: '5000'
-                        X-RateLimit-Remaining: '4990'
-                        X-RateLimit-Reset: '1573052591'
+                        X-RateLimit-Remaining: '4972'
+                        X-RateLimit-Reset: '1572953901'
                         X-XSS-Protection: 1; mode=block
                       raw: !!binary ""
                       reason: OK
@@ -931,7 +931,10 @@ unittest.case:
                           X-Poll-Interval, X-GitHub-Media-Type
                         Cache-Control: public, max-age=60, s-maxage=60
                         Content-Encoding: gzip
-                        Content-Security-Policy: default-src 'none'
+                        Content-Security-Policy: default-src 'self';script-src 'self'
+                          'nonce-YqLDC0BS8d7iY8mKO7VtBbIne' https://apps.fedoraproject.org;
+                          style-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne'; object-src
+                          'none';base-uri 'self';img-src 'self' https:;
                         Content-Type: application/json; charset=utf-8
                         Date: Fri, 01 Nov 2019 13-36-03 GMT
                         ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
@@ -945,7 +948,7 @@ unittest.case:
                         X-Content-Type-Options: nosniff
                         X-Frame-Options: deny
                         X-GitHub-Media-Type: github.machine-man-preview; format=json
-                        X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                        X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                         X-XSS-Protection: 1; mode=block
                       raw: !!binary ""
                       reason: OK
@@ -963,7 +966,7 @@ unittest.case:
                           pull_requests: write
                           statuses: write
                         repository_selection: selected
-                        token: v1.1bd88d399b8c70e8b88e22cbdaa72abad5e399db
+                        token: v1.1cd89d399b8c70f8b88e22cbdaa72abbe5e390db
                       _next: null
                       elapsed: 0.2
                       encoding: utf-8
@@ -975,7 +978,10 @@ unittest.case:
                           X-Poll-Interval, X-GitHub-Media-Type
                         Cache-Control: public, max-age=60, s-maxage=60
                         Content-Length: '237'
-                        Content-Security-Policy: default-src 'none'
+                        Content-Security-Policy: default-src 'self';script-src 'self'
+                          'nonce-YqLDC0BS8d7iY8mKO7VtBbIne' https://apps.fedoraproject.org;
+                          style-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne'; object-src
+                          'none';base-uri 'self';img-src 'self' https:;
                         Content-Type: application/json; charset=utf-8
                         Date: Fri, 01 Nov 2019 13-36-03 GMT
                         ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
@@ -988,7 +994,7 @@ unittest.case:
                         X-Content-Type-Options: nosniff
                         X-Frame-Options: deny
                         X-GitHub-Media-Type: github.machine-man-preview; format=json
-                        X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                        X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                         X-XSS-Protection: 1; mode=block
                       raw: !!binary ""
                       reason: Created
@@ -1155,10 +1161,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4988'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -1224,7 +1230,10 @@ unittest.case:
                               X-Poll-Interval, X-GitHub-Media-Type
                             Cache-Control: public, max-age=60, s-maxage=60
                             Content-Encoding: gzip
-                            Content-Security-Policy: default-src 'none'
+                            Content-Security-Policy: default-src 'self';script-src
+                              'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne' https://apps.fedoraproject.org;
+                              style-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne';
+                              object-src 'none';base-uri 'self';img-src 'self' https:;
                             Content-Type: application/json; charset=utf-8
                             Date: Fri, 01 Nov 2019 13-36-03 GMT
                             ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
@@ -1238,7 +1247,7 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.machine-man-preview; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -1256,7 +1265,7 @@ unittest.case:
                               pull_requests: write
                               statuses: write
                             repository_selection: selected
-                            token: v1.1bd88d399b8c70e8b88e22cbdaa72abad5e399db
+                            token: v1.1cd89d399b8c70f8b88e22cbdaa72abbe5e390db
                           _next: null
                           elapsed: 0.2
                           encoding: utf-8
@@ -1268,7 +1277,10 @@ unittest.case:
                               X-Poll-Interval, X-GitHub-Media-Type
                             Cache-Control: public, max-age=60, s-maxage=60
                             Content-Length: '237'
-                            Content-Security-Policy: default-src 'none'
+                            Content-Security-Policy: default-src 'self';script-src
+                              'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne' https://apps.fedoraproject.org;
+                              style-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne';
+                              object-src 'none';base-uri 'self';img-src 'self' https:;
                             Content-Type: application/json; charset=utf-8
                             Date: Fri, 01 Nov 2019 13-36-03 GMT
                             ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
@@ -1281,7 +1293,7 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.machine-man-preview; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: Created
@@ -1366,10 +1378,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4987'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -1536,10 +1548,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4986'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -1605,7 +1617,10 @@ unittest.case:
                               X-Poll-Interval, X-GitHub-Media-Type
                             Cache-Control: public, max-age=60, s-maxage=60
                             Content-Encoding: gzip
-                            Content-Security-Policy: default-src 'none'
+                            Content-Security-Policy: default-src 'self';script-src
+                              'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne' https://apps.fedoraproject.org;
+                              style-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne';
+                              object-src 'none';base-uri 'self';img-src 'self' https:;
                             Content-Type: application/json; charset=utf-8
                             Date: Fri, 01 Nov 2019 13-36-03 GMT
                             ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
@@ -1619,7 +1634,7 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.machine-man-preview; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -1637,7 +1652,7 @@ unittest.case:
                               pull_requests: write
                               statuses: write
                             repository_selection: selected
-                            token: v1.1bd88d399b8c70e8b88e22cbdaa72abad5e399db
+                            token: v1.1cd89d399b8c70f8b88e22cbdaa72abbe5e390db
                           _next: null
                           elapsed: 0.2
                           encoding: utf-8
@@ -1649,7 +1664,10 @@ unittest.case:
                               X-Poll-Interval, X-GitHub-Media-Type
                             Cache-Control: public, max-age=60, s-maxage=60
                             Content-Length: '237'
-                            Content-Security-Policy: default-src 'none'
+                            Content-Security-Policy: default-src 'self';script-src
+                              'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne' https://apps.fedoraproject.org;
+                              style-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne';
+                              object-src 'none';base-uri 'self';img-src 'self' https:;
                             Content-Type: application/json; charset=utf-8
                             Date: Fri, 01 Nov 2019 13-36-03 GMT
                             ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
@@ -1662,7 +1680,7 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.machine-man-preview; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: Created
@@ -1747,10 +1765,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4985'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -2058,10 +2076,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4984'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -2122,10 +2140,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4983'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -2180,10 +2198,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4982'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -2238,10 +2256,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4981'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -2296,10 +2314,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4980'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -2354,10 +2372,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4979'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -2412,10 +2430,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4978'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -2470,10 +2488,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4977'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -2528,10 +2546,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4976'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -2586,10 +2604,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4975'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -2644,10 +2662,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4974'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -2702,10 +2720,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
-                            X-RateLimit-Remaining: '4973'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Remaining: '4972'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -2760,10 +2778,10 @@ unittest.case:
                             X-Content-Type-Options: nosniff
                             X-Frame-Options: deny
                             X-GitHub-Media-Type: github.v3; format=json
-                            X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                            X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                             X-RateLimit-Limit: '5000'
                             X-RateLimit-Remaining: '4972'
-                            X-RateLimit-Reset: '1573052591'
+                            X-RateLimit-Reset: '1572953901'
                             X-XSS-Protection: 1; mode=block
                           raw: !!binary ""
                           reason: OK
@@ -2837,10 +2855,10 @@ unittest.case:
                                 X-Content-Type-Options: nosniff
                                 X-Frame-Options: deny
                                 X-GitHub-Media-Type: github.v3; format=json
-                                X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                 X-RateLimit-Limit: '5000'
-                                X-RateLimit-Remaining: '4970'
-                                X-RateLimit-Reset: '1573052591'
+                                X-RateLimit-Remaining: '4972'
+                                X-RateLimit-Reset: '1572953901'
                                 X-XSS-Protection: 1; mode=block
                               raw: !!binary ""
                               reason: Created
@@ -2905,10 +2923,10 @@ unittest.case:
                                 X-Content-Type-Options: nosniff
                                 X-Frame-Options: deny
                                 X-GitHub-Media-Type: github.v3; format=json
-                                X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                 X-RateLimit-Limit: '5000'
-                                X-RateLimit-Remaining: '4968'
-                                X-RateLimit-Reset: '1573052591'
+                                X-RateLimit-Remaining: '4972'
+                                X-RateLimit-Reset: '1572953901'
                                 X-XSS-Protection: 1; mode=block
                               raw: !!binary ""
                               reason: Created
@@ -2973,10 +2991,10 @@ unittest.case:
                                 X-Content-Type-Options: nosniff
                                 X-Frame-Options: deny
                                 X-GitHub-Media-Type: github.v3; format=json
-                                X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                 X-RateLimit-Limit: '5000'
-                                X-RateLimit-Remaining: '4966'
-                                X-RateLimit-Reset: '1573052591'
+                                X-RateLimit-Remaining: '4972'
+                                X-RateLimit-Reset: '1572953901'
                                 X-XSS-Protection: 1; mode=block
                               raw: !!binary ""
                               reason: Created
@@ -3105,10 +3123,10 @@ unittest.case:
                                 X-Content-Type-Options: nosniff
                                 X-Frame-Options: deny
                                 X-GitHub-Media-Type: github.v3; format=json
-                                X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                 X-RateLimit-Limit: '5000'
-                                X-RateLimit-Remaining: '4971'
-                                X-RateLimit-Reset: '1573052591'
+                                X-RateLimit-Remaining: '4972'
+                                X-RateLimit-Reset: '1572953901'
                                 X-XSS-Protection: 1; mode=block
                               raw: !!binary ""
                               reason: OK
@@ -3231,10 +3249,10 @@ unittest.case:
                                 X-Content-Type-Options: nosniff
                                 X-Frame-Options: deny
                                 X-GitHub-Media-Type: github.v3; format=json
-                                X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                 X-RateLimit-Limit: '5000'
-                                X-RateLimit-Remaining: '4969'
-                                X-RateLimit-Reset: '1573052591'
+                                X-RateLimit-Remaining: '4972'
+                                X-RateLimit-Reset: '1572953901'
                                 X-XSS-Protection: 1; mode=block
                               raw: !!binary ""
                               reason: OK
@@ -3357,10 +3375,10 @@ unittest.case:
                                 X-Content-Type-Options: nosniff
                                 X-Frame-Options: deny
                                 X-GitHub-Media-Type: github.v3; format=json
-                                X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                 X-RateLimit-Limit: '5000'
-                                X-RateLimit-Remaining: '4967'
-                                X-RateLimit-Reset: '1573052591'
+                                X-RateLimit-Remaining: '4972'
+                                X-RateLimit-Reset: '1572953901'
                                 X-XSS-Protection: 1; mode=block
                               raw: !!binary ""
                               reason: OK
@@ -3543,10 +3561,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4964'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: Created
@@ -3612,10 +3630,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4962'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: Created
@@ -3681,10 +3699,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4960'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: Created
@@ -3750,10 +3768,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4958'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: Created
@@ -3818,10 +3836,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4956'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: Created
@@ -3886,10 +3904,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4954'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: Created
@@ -3954,10 +3972,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4952'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: Created
@@ -4022,10 +4040,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4950'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: Created
@@ -4155,10 +4173,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4965'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: OK
@@ -4282,10 +4300,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4963'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: OK
@@ -4409,10 +4427,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4961'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: OK
@@ -4536,10 +4554,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4959'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: OK
@@ -4663,10 +4681,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4957'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: OK
@@ -4790,10 +4808,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4955'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: OK
@@ -4917,10 +4935,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4953'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: OK
@@ -5044,10 +5062,10 @@ unittest.case:
                                   X-Content-Type-Options: nosniff
                                   X-Frame-Options: deny
                                   X-GitHub-Media-Type: github.v3; format=json
-                                  X-GitHub-Request-Id: DE82:1411D:42114C4:4F8EF0E:5DBC34B9
+                                  X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
                                   X-RateLimit-Limit: '5000'
-                                  X-RateLimit-Remaining: '4951'
-                                  X-RateLimit-Reset: '1573052591'
+                                  X-RateLimit-Remaining: '4972'
+                                  X-RateLimit-Reset: '1572953901'
                                   X-XSS-Protection: 1; mode=block
                                 raw: !!binary ""
                                 reason: OK
