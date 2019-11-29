@@ -213,16 +213,9 @@ class Whitelist:
             account_name = event.github_login
             if not account_name:
                 raise KeyError(f"Failed to get account_name from {type(event)}")
-            extra_condition = False
-            namespace = None
-            if isinstance(event, PullRequestEvent):
-                namespace = event.base_repo_namespace
-                extra_condition = self.is_approved(namespace)
-            if not (self.is_approved(account_name) or extra_condition):
-                if namespace:
-                    msg = f"Namespace {account_name} or owner {namespace} are not whitelisted!"
-                else:
-                    msg = f"Namespace {account_name} is not whitelisted!"
+            namespace = event.base_repo_namespace
+            if not (self.is_approved(account_name) or self.is_approved(namespace)):
+                msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
                 logger.error(msg)
                 # TODO also check blacklist,
                 # but for that we need to know who triggered the action

@@ -118,11 +118,11 @@ def test_is_packager(whitelist, account_name, person_object, raises, is_packager
 
 def test_check_and_report_pr_comment_reject(whitelist):
     event = PullRequestCommentEvent(
-        PullRequestAction["opened"], 0, "", "", "", "", "", "rakosnicek", ""
+        PullRequestAction["opened"], 0, "brcalnik", "", "", "", "", "rakosnicek", ""
     )
     gp = GitProject("", GitService(), "")
     flexmock(gp).should_receive("pr_comment").with_args(
-        0, "Namespace rakosnicek is not whitelisted!"
+        0, "Neither account rakosnicek nor owner brcalnik are on our whitelist!"
     ).once()
     assert not whitelist.check_and_report(event, gp)
 
@@ -209,7 +209,7 @@ def test_check_and_report_pr_comment_approve(whitelist):
                 "darth-criplicus",
                 "",
             ),
-            False,
+            True,
         ),
         (
             PullRequestCommentEvent(
