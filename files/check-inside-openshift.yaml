@@ -1,7 +1,7 @@
 # MIT License
 #
 # Copyright (c) 2018-2019 Red Hat, Inc.
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -36,7 +36,7 @@
   - name: get project
     command: oc project --short=true
     register: oc_project
-  - name: get project
+  - name: get server
     command: oc whoami --show-server
     register: oc_server
   - name: Delete old test job if it exists
@@ -59,7 +59,8 @@
       api_version: v1
       kind: Pod
       state: absent
-  - name: delete old test job if it exists
+  - name: delete all pods
+    # Do we need this?
     command: oc delete pods --all
     ignore_errors: yes
   - name: Delete old PersistentVolumeClaim
@@ -122,6 +123,7 @@
       wait: yes
       wait_condition:
         type: Ready
-    # rsync werks only on a running pod
+      wait_timeout: 100
+  # rsync works only on a running pod
   - name: get generated responses from the pod
     command: oc rsync pod/get-requre-data:{{ remote_data_dir }} {{ local_data_dir }}
