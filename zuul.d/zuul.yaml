@@ -7,6 +7,7 @@
       jobs:
         - packit-service-pre-commit
         - packit-service-tests
+        - packit-service-tests-requre
     gate:
       jobs:
         - packit-service-pre-commit
@@ -24,7 +25,7 @@
           label: cloud-fedora-30
 
 - job:
-    name: packit-service-tests
+    name: packit-service-base
     parent: base
     attempts: 1
     description: Run tests of packit-service
@@ -35,7 +36,6 @@
       - files/install-openshift.yaml
       - files/packit-service-image.yaml
       - files/deployment.yaml
-    run: files/zuul-tests.yaml
     extra-vars:
       with_testing: true
       ansible_python_interpreter: /usr/bin/python3
@@ -43,6 +43,19 @@
       nodes:
         - name: test-node
           label: cloud-fedora-30
+
+
+- job:
+    name: packit-service-tests
+    parent: packit-service-base
+    description: Run tests of packit-service
+    run: files/zuul-tests.yaml
+
+- job:
+    name: packit-service-tests-requre
+    parent: packit-service-base
+    description: Run tests of packit-service with requre support
+    run: files/zuul-tests-requre.yaml
 
 # if we going to test packit interacting with real services, we should run
 # just one test suite at a time
@@ -52,21 +65,13 @@
 
 - job:
     name: packit-service-tests-secrets
-    parent: base
-    attempts: 1
+    parent: packit-service-base
     description: Run tests with real services for packit-service.
     pre-run:
       - files/install-openshift.yaml
       - files/packit-service-image.yaml
       - files/deployment-secrets.yaml
     run: files/zuul-tests-secrets.yaml
-    extra-vars:
-      with_testing: true
-      ansible_python_interpreter: /usr/bin/python3
-    nodeset:
-      nodes:
-        - name: test-node
-          label: cloud-fedora-30
     semaphore: packit-service-tests-secrets
     secrets:
       - name: cert
