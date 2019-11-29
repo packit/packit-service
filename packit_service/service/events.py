@@ -308,11 +308,14 @@ class InstallationEvent(Event):
     ):
         super().__init__(JobTriggerType.installation, created_at)
         self.installation_id = installation_id
+        # account == namespace (user/organization) into which the app has been installed
         self.account_login = account_login
         self.account_id = account_id
         self.account_url = account_url
         self.account_type = account_type
+        # repos within the account/namespace
         self.repositories = repositories
+        # sender == user who installed the app into 'account'
         self.sender_id = sender_id
         self.sender_login = sender_login
         self.status = status

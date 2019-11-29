@@ -131,7 +131,10 @@ class GithubWebhook(Resource):
         ...finely prepared response to.
         :return: False if we are not interested in this kind of event
         """
-        uninteresting_events = {"integration_installation"}
+        uninteresting_events = {
+            "integration_installation",
+            "integration_installation_repositories",
+        }
         event_type = request.headers.get("X-GitHub-Event")
         uuid = request.headers.get("X-GitHub-Delivery")
         _interested = event_type not in uninteresting_events

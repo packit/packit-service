@@ -146,10 +146,12 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
         whitelist = Whitelist(
             fas_user=self.config.fas_user, fas_password=self.config.fas_password
         )
+        account_login = self.installation_event.account_login
+        account_type = self.installation_event.account_type
         if not whitelist.add_account(self.installation_event):
             # Create an issue in our repository, so we are notified when someone install the app
             self.project.create_issue(
-                title=f"Account: {self.installation_event.account_login} needs to be approved.",
+                title=f"{account_type} {account_login} needs to be approved.",
                 body=(
                     f"Hi @{self.installation_event.sender_login}, we need to approve you in "
                     "order to start using Packit-as-a-Service. Someone from our team will "
@@ -158,9 +160,9 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
                     "http://packit.dev/packit-as-a-service/"
                 ),
             )
-            msg = f"Account: {self.installation_event.account_login} needs to be approved manually!"
+            msg = f"{account_type} {account_login} needs to be approved manually!"
         else:
-            msg = f"Account {self.installation_event.account_login} whitelisted!"
+            msg = f"{account_type} {account_login} whitelisted!"
 
         logger.info(msg)
         return HandlerResults(success=True, details={"msg": msg})
