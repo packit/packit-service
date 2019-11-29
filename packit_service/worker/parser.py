@@ -279,12 +279,14 @@ class Parser:
             f"repositories: {repo_names}, sender: {event['sender']}"
         )
 
+        # namespace (user/organization) into which the app has been installed
         account_login = event["installation"]["account"]["login"]
         account_id = event["installation"]["account"]["id"]
         account_url = event["installation"]["account"]["url"]
         account_type = event["installation"]["account"]["type"]  # User or Organization
         created_at = event["installation"]["created_at"]
 
+        # user who installed the app into 'account'
         sender_id = event["sender"]["id"]
         sender_login = event["sender"]["login"]
 

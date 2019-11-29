@@ -121,14 +121,16 @@ class Whitelist:
         if self._is_packager(github_app.sender_login):
             github_app.status = WhitelistStatus.approved_automatically
             self.db[github_app.account_login] = github_app.get_dict()
-            logger.info(f"Account {github_app.account_login} whitelisted!")
+            logger.info(
+                f"{github_app.account_type} {github_app.account_login} whitelisted!"
+            )
             return True
         else:
             logger.info(
                 "Failed to verify that user is Fedora packager. "
                 "This could be caused by different github username than FAS username "
                 "or that user is not a packager."
-                f"Account {github_app.account_login} inserted "
+                f"{github_app.account_type} {github_app.account_login} inserted "
                 "to whitelist with status: waiting for approval"
             )
             return False
@@ -170,10 +172,10 @@ class Whitelist:
         if account_name in self.db:
             del self.db[account_name]
             # TODO: delete all artifacts from copr
-            logger.info(f"User: {account_name} removed from whitelist!")
+            logger.info(f"Account: {account_name} removed from whitelist!")
             return True
         else:
-            logger.info(f"User: {account_name} does not exists!")
+            logger.info(f"Account: {account_name} does not exists!")
             return False
 
     def accounts_waiting(self) -> list:

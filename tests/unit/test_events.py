@@ -130,10 +130,10 @@ class TestEvents:
         assert isinstance(event_object, InstallationEvent)
         assert event_object.trigger == JobTriggerType.installation
         assert event_object.installation_id == 1708454
-        assert event_object.account_login == "jpopelka"
-        assert event_object.account_id == 288686
-        assert event_object.account_url == "https://api.github.com/users/jpopelka"
-        assert event_object.account_type == "User"
+        assert event_object.account_login == "packit-service"
+        assert event_object.account_id == 46870917
+        assert event_object.account_url == "https://api.github.com/users/packit-service"
+        assert event_object.account_type == "Organization"
         assert event_object.created_at == datetime.fromtimestamp(
             1567090283, timezone.utc
         )
