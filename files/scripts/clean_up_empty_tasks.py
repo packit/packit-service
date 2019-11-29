@@ -15,7 +15,7 @@ def clean_up_empty_tasks(db):
 if __name__ == "__main__":
     db = Redis(
         host=getenv("REDIS_SERVICE_HOST", "localhost"),
-        port=getenv("REDIS_SERVICE_PORT", "6379"),
+        port=int(getenv("REDIS_SERVICE_PORT", "6379")),
         db=0,
         decode_responses=True,
     )

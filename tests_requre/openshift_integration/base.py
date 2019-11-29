@@ -2,7 +2,7 @@ import os
 import unittest
 import inspect
 from pathlib import Path
-from requre.utils import STORAGE
+from requre.storage import PersistentObjectStorage
 from packit.config import RunCommandType
 from packit_service.worker.jobs import SteveJobs
 
@@ -27,10 +27,10 @@ class PackitServiceTestCase(unittest.TestCase):
     def setUp(self) -> None:
         if self.get_datafile_filename().exists():
             # if already exists, do not regenerate test file, what is stored inside tests dir
-            STORAGE.storage_file = str(self.get_datafile_filename())
+            PersistentObjectStorage().storage_file = str(self.get_datafile_filename())
         else:
             # store them to path where Persistent volume is mounted
-            STORAGE.storage_file = str(
+            PersistentObjectStorage().storage_file = str(
                 self.get_datafile_filename(path_prefix=Path("/tmp") / TEST_DATA_DIR)
             )
         self.steve = SteveJobs()
@@ -38,4 +38,4 @@ class PackitServiceTestCase(unittest.TestCase):
         self.steve.config.command_handler_work_dir = "/tmp/hello-world"
 
     def tearDown(self) -> None:
-        STORAGE.dump()
+        PersistentObjectStorage().dump()

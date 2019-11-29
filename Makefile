@@ -55,6 +55,3 @@ check-inside-openshift-zuul: test_image
 check-within-openshift:
 	/src-packit-service/files/setup_env_in_openshift.sh
 	pytest-3 -k test_update
-
-requre-purge-files:
-	requre-patch purge --replaces "requests.sessions%send:Date:str:Fri, 01 Nov 2019 13-36-03 GMT" --replaces 'requests.sessions%send:ETag:str:W/"1e51b8e1c48787a433405211e9e0fe61"' --replaces "requests.sessions%send:elapsed:float:0.2" --replaces "metadata:latency:float:0" --replaces "requests.sessions%_content:expires_at:str:2019-11-01T14:35:53Z" --replaces "requests.sessions%_content:token:str:v1.1bd88d399b8c70e8b88e22cbdaa72abad5e399db" --replaces ":X-GitHub-Request-Id:str:DE82:1411D:42114C4:4F8EF0E:5DBC34B9" --replaces ":X-RateLimit-Reset:str:1573052591" tests_requre/test_data/test_*/*.yaml
