@@ -152,7 +152,7 @@ to store and replay data for tests.
    ```
  * Run the tests with the secrets - the response files will be regenerated (container images for `worker` and `test_image` are done in this step)
    ```bash
-   make check-inside-openshift PATH_TO_SECRETS=<path-to-valid-secrets>
+   make check-inside-openshift PATH_TO_SECRETS=<absolute-path-to-valid-secrets>
    ```
  * Remove timestamps and another data what are changed every time, to avoid unwanted
    changes of generated files.

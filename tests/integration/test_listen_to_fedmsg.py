@@ -22,9 +22,10 @@
 import json
 
 import pytest
+import requests
 from flexmock import flexmock
-
 from ogr.services.github import GithubProject
+
 from packit_service.constants import PACKIT_STG_CHECK
 from packit_service.service.events import CoprBuildEvent
 from packit_service.worker.copr_db import CoprBuildDB
@@ -70,6 +71,8 @@ def test_copr_build_end(copr_build_end):
         f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
         f"01044215-hello/builder-live.log.gz"
     )
+    flexmock(requests).should_receive("get").and_return(requests.Response())
+    flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 
     # check if packit-service set correct PR status
     flexmock(BuildStatusReporter).should_receive("report").with_args(
@@ -109,6 +112,8 @@ def test_copr_build_start(copr_build_start):
         f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
         f"01044215-hello/builder-live.log.gz"
     )
+    flexmock(requests).should_receive("get").and_return(requests.Response())
+    flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 
     # check if packit-service set correct PR status
     flexmock(BuildStatusReporter).should_receive("report").with_args(
@@ -148,6 +153,8 @@ def test_copr_build_not_comment_on_success(copr_build_end):
         f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
         f"01044215-hello/builder-live.log.gz"
     )
+    flexmock(requests).should_receive("get").and_return(requests.Response())
+    flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 
     # check if packit-service set correct PR status
     flexmock(BuildStatusReporter).should_receive("report").with_args(

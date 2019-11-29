@@ -131,6 +131,12 @@ class Event:
         """
         return True
 
+    def __str__(self):
+        return str(self.get_dict())
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.get_dict()})"
+
 
 class AbstractGithubEvent(Event):
     def __init__(self, trigger: JobTriggerType, project_url: str):

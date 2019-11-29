@@ -195,7 +195,6 @@ class Whitelist:
         :param project: GitProject
         :return:
         """
-
         # TODO: modify event hierarchy so we can use some abstract classes instead
         if isinstance(event, ReleaseEvent):
             account_name = event.repo_namespace
@@ -214,15 +213,16 @@ class Whitelist:
             account_name = event.github_login
             if not account_name:
                 raise KeyError(f"Failed to get account_name from {type(event)}")
-
-            if not self.is_approved(account_name):
-                logger.error(f"User {account_name} is not approved on whitelist!")
+            namespace = event.base_repo_namespace
+            if not (self.is_approved(account_name) or self.is_approved(namespace)):
+                msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
+                logger.error(msg)
                 # TODO also check blacklist,
                 # but for that we need to know who triggered the action
-                msg = "Account is not whitelisted!"
                 if event.trigger == JobTriggerType.comment:
                     project.pr_comment(event.pr_id, msg)
                 else:
+                    msg = "Account is not whitelisted!"  # needs to be shorter
                     r = BuildStatusReporter(project, event.commit_sha, None)
                     r.report(
                         "failure",
