@@ -16,6 +16,7 @@ def cli():
 def approve(account_name):
     """
     Approve user who is waiting on whitelist.
+
     :param account_name: github namespace
     :return:
     """
@@ -31,6 +32,7 @@ def approve(account_name):
 def remove(account_name):
     """
     Remove account from whitelist
+
     :param account_name: github namespace
     :return:
     """
@@ -46,7 +48,6 @@ def remove(account_name):
 def waiting():
     """
     Show accounts waiting for approval.
-    :return:
     """
     whitelist = Whitelist()
 
