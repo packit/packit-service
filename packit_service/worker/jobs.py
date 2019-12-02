@@ -113,7 +113,10 @@ class SteveJobs:
                 # check whitelist approval for every job to be able to track down which jobs
                 # failed because of missing whitelist approval
                 whitelist = Whitelist()
-                if not whitelist.check_and_report(event, event.get_project()):
+                github_login = getattr(event, "github_login", None)
+                if github_login and github_login in self.config.admins:
+                    logger.info(f"{github_login} is admin, you shall pass")
+                elif not whitelist.check_and_report(event, event.get_project()):
                     handlers_results[job.job.value] = HandlerResults(
                         success=False, details={"msg": "Account is not whitelisted!"}
                     )
@@ -169,7 +172,10 @@ class SteveJobs:
         # check whitelist approval for every job to be able to track down which jobs
         # failed because of missing whitelist approval
         whitelist = Whitelist()
-        if not whitelist.check_and_report(event, event.get_project()):
+        github_login = getattr(event, "github_login", None)
+        if github_login and github_login in self.config.admins:
+            logger.info(f"{github_login} is admin, you shall pass")
+        elif not whitelist.check_and_report(event, event.get_project()):
             return HandlerResults(
                 success=True, details={"msg": "Account is not whitelisted!"}
             )
