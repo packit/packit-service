@@ -50,7 +50,6 @@ services:
       KRB5CCNAME: FILE:/tmp/krb5cc_packit
     volumes:
       - ./packit_service:/src-packit-service/packit_service:ro,z
-      - ./secrets/dev/.packit.yaml:/home/packit/.config/.packit.yaml:ro,z
       # worker should not require packit-service.yaml
       - ./secrets/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
       - ./secrets/dev/copr:/home/packit/.config/copr:ro,z
@@ -79,9 +78,9 @@ services:
     volumes:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
       # There's no secrets/ by default. You have to create (or symlink to other dir) it yourself.
+      # Make sure that httpd-packit.conf is present, otherwise you'll be getting 404
       - ./secrets/dev/httpd-packit.conf:/etc/httpd/conf.d/httpd-packit.conf:ro,Z
       - ./secrets/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
-      - ./secrets/dev/packit.yaml:/home/packit/.config/.packit.yaml:ro,z
       - ./secrets/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
       - ./secrets/dev/private-key.pem:/secrets/private-key.pem:ro,z
       - ./secrets/dev/fullchain.pem:/secrets/fullchain.pem:ro,z
