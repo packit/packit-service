@@ -66,7 +66,7 @@ To [utilize pre-commit](https://pre-commit.com/#usage), install pre-commit with 
 * `pre-commit install` - to install pre-commit into your [git hooks](https://githooks.com). pre-commit will from now on run all the checkers/linters/formatters on every commit. If you later want to commit without running it, just run `git commit` with `-n/--no-verify`.
 * Or if you want to manually run all the checkers/linters/formatters, run `pre-commit run --all-files`.
 
-#### Changelog
+### Changelog
 
 When you are contributing to changelog, please follow these suggestions:
 
@@ -79,6 +79,23 @@ When you are contributing to changelog, please follow these suggestions:
   think about a situation that you met someone at a conference and you are
   trying to convince the person to use the project and that the changelog
   should help with that.
+
+
+### Generating GitHub webhooks
+
+If you need to create a webhook payload, you can utilize script `files/scripts/webhook.py`. It is able to create a minimal json with the webhook payload and send it to p-s instance of your choice (the default is localhost:8443). Pull request changes are only supported right now. For more info, check out the readme:
+
+```
+$ GITHUB_TOKEN=the-token python3 files/scripts/webhook.py --help
+Usage: webhook.py [OPTIONS] <NAMESPACE/PROJECT>
+
+Options:
+  --hostname TEXT      Hostname of packit-service where we should connect
+  --github-token TEXT  GitHub token so we can reach the api
+  --pr INTEGER         ID of the pull request
+  --help               Show this message and exit.
+```
+
 
 # Testing
 
