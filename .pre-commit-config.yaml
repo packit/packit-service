@@ -43,6 +43,7 @@ repos:
       description: Replace the sensitive/time-based values in the requre response files
       entry: >
           requre-patch purge
+          --simplify
           --replaces 'requests.sessions%send:Date:str:Fri, 01 Nov 2019 13-36-03 GMT'
           --replaces 'requests.sessions%send:ETag:str:W/"1e51b8e1c48787a433405211e9e0fe61"'
           --replaces 'requests.sessions%send:X-Fedora-RequestID:str:XcFVKMi@EiqyqRlV7q32fgBBBkM'

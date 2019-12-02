@@ -23,10 +23,6 @@
 import json
 import flexmock
 
-
-from packit_service.service.models import CoprBuild
-from packit_service.worker.copr_build import CoprBuildHandler
-from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.whitelist import Whitelist
 from tests_requre.openshift_integration.base import PackitServiceTestCase, DATA_DIR
 
@@ -53,14 +49,7 @@ def pr_comment_event_not_collaborator():
 
 class Copr(PackitServiceTestCase):
     def test_submit_copr_build_pr_event(self):
-
-        # turn off interactions with redis
-        flexmock(CoprBuildDB).should_receive("add_build")
-        flexmock(CoprBuild).should_receive("create")
-        flexmock(CoprBuildHandler).should_receive("copr_build_model").and_return(
-            CoprBuild()
-        )
-        flexmock(CoprBuild).should_receive("save")
+        # flexmock whitelist
         flexmock(Whitelist, check_and_report=True)
 
         result = self.steve.process_message(pr_event())
@@ -69,15 +58,6 @@ class Copr(PackitServiceTestCase):
         self.assertTrue(result["jobs"]["copr_build"]["success"])
 
     def test_submit_copr_build_pr_comment(self):
-
-        # turn off interactions with redis
-        flexmock(CoprBuildDB).should_receive("add_build")
-        flexmock(CoprBuild).should_receive("create")
-        flexmock(CoprBuildHandler).should_receive("copr_build_model").and_return(
-            CoprBuild()
-        )
-        flexmock(CoprBuild).should_receive("save")
-
         result = self.steve.process_message(pr_comment_event())
         self.assertTrue(result)
         self.assertIn("pull_request_action", result["jobs"])
