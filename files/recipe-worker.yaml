@@ -19,6 +19,7 @@
     file:
       state: directory
       path: /sandcastle
+      mode: 0777
   - name: Copy gitconfig
     copy:
       src: gitconfig
