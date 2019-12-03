@@ -171,11 +171,20 @@ to store and replay data for tests.
    ```
 
 #### Troubleshooting
-If you got:
-```
-PermissionError: [Errno 13] Permission denied: '/src-packit-service/tests_requre/test_data/test_fedpkg'
-```
-You have to create all directories locally first. So in this case calling `mkdir -p tests_requre/test_data/test_fedpkg` will solve the problem.
+ * If you got:
+   ```
+   PermissionError: [Errno 13] Permission denied: '/src-packit-service/tests_requre/test_data/test_fedpkg'
+   ```
+   You have to create test data directory `mkdir -p tests_requre/test_data`. This directory is part of git repo, so it should not be deleted.
+ * If you have troubles with requre data regeneration
+   * Stop your openshift cluster first
+     ```
+     oc cluster down
+     ```
+   * Remove all docker images (including openshift itself) (there is some issue, that openshift uses sometimes some old images)
+     ```
+     docker rmi -f $(docker images -q)
+     ```
 
 ### Check it without secrets
 
