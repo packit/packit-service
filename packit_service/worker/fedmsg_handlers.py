@@ -68,6 +68,13 @@ def do_we_process_fedmsg_topic(topic: str) -> bool:
     return topic in PROCESSED_FEDMSG_TOPICS
 
 
+def get_copr_build_url(event: CoprBuildEvent) -> str:
+    return (
+        "https://copr.fedorainfracloud.org/coprs/"
+        f"{event.owner}/{event.project_name}/build/{event.build_id}/"
+    )
+
+
 def copr_url_from_event(event: CoprBuildEvent):
     """
     Get url to builder-live.log.gz bound to single event
@@ -202,6 +209,7 @@ class CoprBuildEndHandler(FedmsgHandler):
 
         r = BuildStatusReporter(self.event.get_project(), build["commit_sha"])
         url = copr_url_from_event(self.event)
+        build_url = get_copr_build_url(self.event)
 
         msg = "RPMs failed to be built."
         gh_state = "failure"
@@ -220,7 +228,7 @@ class CoprBuildEndHandler(FedmsgHandler):
 
             if not self.was_last_build_successful():
                 msg = (
-                    f"Congratulations! The build [has finished]({url})"
+                    f"Congratulations! The build [has finished]({build_url})"
                     " successfully. :champagne:\n\n"
                     "You can install the built RPMs by following these steps:\n\n"
                     "* `sudo yum install -y dnf-plugins-core` on RHEL 8\n"
