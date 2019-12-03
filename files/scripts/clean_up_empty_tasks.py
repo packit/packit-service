@@ -2,10 +2,13 @@ from os import getenv
 from redis import Redis
 import json
 
-
+# We don't need this at the moment.
+# It's here just in case you ever wanted to remove empty tasks results in Redis.
 # https://github.com/packit-service/packit-service/issues/196
+
+
 def clean_up_empty_tasks(db):
-    keys = db.keys("celery-tasks-meta-*")
+    keys = db.keys("celery-task-meta-*")
 
     for key in keys:
         value = json.loads(db.get(key))
