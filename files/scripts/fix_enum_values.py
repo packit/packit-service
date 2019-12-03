@@ -22,7 +22,7 @@ def fix_enum_values(db, hash):
 if __name__ == "__main__":
     db = Redis(
         host=getenv("REDIS_SERVICE_HOST", "localhost"),
-        port=getenv("REDIS_SERVICE_PORT", "6379"),
+        port=int(getenv("REDIS_SERVICE_PORT", "6379")),
         db=1,
         decode_responses=True,
     )
