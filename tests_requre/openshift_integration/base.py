@@ -2,7 +2,7 @@ import os
 import unittest
 import inspect
 from pathlib import Path
-from requre.storage import PersistentObjectStorage
+from requre.storage import PersistentObjectStorage, DataMiner, StorageKeysInspectSimple
 from packit.config import RunCommandType
 from packit_service.worker.jobs import SteveJobs
 
@@ -25,6 +25,7 @@ class PackitServiceTestCase(unittest.TestCase):
         return testdata_dirname / test_class_name
 
     def setUp(self) -> None:
+        DataMiner().key_stategy_cls = StorageKeysInspectSimple
         if self.get_datafile_filename().exists():
             # if already exists, do not regenerate test file, what is stored inside tests dir
             PersistentObjectStorage().storage_file = str(self.get_datafile_filename())
