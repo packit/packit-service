@@ -23,8 +23,10 @@ import logging
 from typing import Union, List, Optional
 
 from ogr.abstract import GitProject
+from ogr.services.github import GithubProject
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobType, JobConfig
+from packit.config.aliases import get_build_targets
 from packit.exceptions import FailedCreateSRPM
 from packit.local_project import LocalProject
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
@@ -41,6 +43,11 @@ from packit_service.worker.handler import (
 
 logger = logging.getLogger(__name__)
 
+MSG_RETRIGGER = (
+    f"You can re-trigger copr build by adding a comment (`/packit copr-build`) "
+    f"into this pull request."
+)
+
 
 class CoprBuildHandler(object):
     def __init__(
@@ -54,12 +61,16 @@ class CoprBuildHandler(object):
         self.package_config: PackageConfig = package_config
         self.project: GitProject = project
         self.event: Union[PullRequestEvent, PullRequestCommentEvent] = event
-        self._api: PackitAPI = None
-        self._local_project: LocalProject = None
-        self._copr_build_model: CoprBuild = None
-        self.job_project: str = ""
-        self.job_owner: str = ""
-        self.job_chroots: List[str] = []
+
+        # lazy properties
+        self._api = None
+        self._copr_build_model = None
+        self._job_copr_build = None
+        self._job_tests = None
+        self._local_project = None
+        self._status_reporter = None
+        self._test_check_names: Optional[List[str]] = None
+        self._build_check_names: Optional[List[str]] = None
 
     @property
     def local_project(self) -> LocalProject:
@@ -79,103 +90,122 @@ class CoprBuildHandler(object):
         return self._api
 
     @property
+    def build_chroots(self) -> List[str]:
+        configured_targets = self.job_copr_build.metadata.get("targets", [])
+        return list(get_build_targets(*configured_targets))
+
+    @property
+    def tests_chroots(self) -> List[str]:
+        configured_targets = self.job_tests.metadata.get("targets", [])
+        return list(get_build_targets(*configured_targets))
+
+    @property
     def copr_build_model(self) -> CoprBuild:
         if self._copr_build_model is None:
             self._copr_build_model = CoprBuild.create(
-                project=self.job_project, owner=self.job_owner, chroots=self.job_chroots
+                project=self.job_project,
+                owner=self.job_owner,
+                chroots=self.build_chroots,
             )
         return self._copr_build_model
 
-    def get_job_copr_build_metadata(self) -> Optional[JobConfig]:
-        """
-        Check if there are copr_build defined
-        :return: JobConfig or None
-        """
-        for job in self.package_config.jobs:
-            if job.job == JobType.copr_build:
-                return job
-        return None
+    @property
+    def job_project(self) -> Optional[str]:
+        return self.job_copr_build.metadata.get("project") or self.default_project_name
 
-    def cfg_has_job_tests(self) -> bool:
-        """
-        Check if there is tests job configured
-        :return: bool
-        """
-        return any(job.job == JobType.tests for job in self.package_config.jobs)
+    @property
+    def job_owner(self) -> Optional[str]:
+        return self.job_copr_build.metadata.get("owner") or self.api.copr.config.get(
+            "username"
+        )
 
-    def run_copr_build(self) -> HandlerResults:
+    @property
+    def default_project_name(self):
         # add suffix stg when using stg app
         stg = "-stg" if self.config.deployment == Deployment.stg else ""
-        default_project_name = (
-            f"{self.project.namespace}-{self.project.repo}-{self.event.pr_id}{stg}"
-        )
-        job = self.get_job_copr_build_metadata()
-        if not job:
+        return f"{self.project.namespace}-{self.project.repo}-{self.event.pr_id}{stg}"
+
+    @property
+    def job_copr_build(self) -> Optional[JobConfig]:
+        """
+        Check if there is JobConfig for copr builds defined
+        :return: JobConfig or None
+        """
+        if not self._job_copr_build:
+            for job in self.package_config.jobs:
+                if job.job == JobType.copr_build:
+                    self._job_copr_build = job
+        return self._job_copr_build
+
+    @property
+    def job_tests(self) -> Optional[JobConfig]:
+        """
+        Check if there is JobConfig for tests defined
+        :return: JobConfig or None
+        """
+        if not self._job_tests:
+            for job in self.package_config.jobs:
+                if job.job == JobType.tests:
+                    self._job_tests = job
+        return self._job_tests
+
+    @property
+    def status_reporter(self):
+        if not self._status_reporter:
+            self.project: GithubProject
+            self._status_reporter = BuildStatusReporter(
+                self.project, self.event.commit_sha, self.copr_build_model
+            )
+        return self._status_reporter
+
+    @property
+    def test_check_names(self) -> List[str]:
+        if not self._test_check_names:
+            self._test_check_names = [
+                PRCheckName.get_testing_farm_check(chroot)
+                for chroot in self.build_chroots
+            ]
+        return self._test_check_names
+
+    @property
+    def build_check_names(self) -> List[str]:
+        if not self._build_check_names:
+            self._build_check_names = [
+                PRCheckName.get_build_check(chroot) for chroot in self.build_chroots
+            ]
+        return self._build_check_names
+
+    def run_copr_build(self) -> HandlerResults:
+
+        if not self.job_copr_build:
             msg = "No copr_build defined"
             # we can't report it to end-user at this stage
             return HandlerResults(success=False, details={"msg": msg})
 
-        self.job_project = job.metadata.get("project") or default_project_name
-        self.job_owner = job.metadata.get("owner") or self.api.copr.config.get(
-            "username"
-        )
-        if not job.metadata.get("targets"):
+        if not self.job_copr_build.metadata.get("targets"):
             msg = "'targets' value is required in packit config for copr_build job"
             self.project.pr_comment(self.event.pr_id, msg)
             return HandlerResults(success=False, details={"msg": msg})
 
-        self.job_chroots = job.metadata.get("targets", [])
-        if self.cfg_has_job_tests():
-            for test_check_name in (
-                f"{PRCheckName.get_testing_farm_check(x)}" for x in self.job_chroots
-            ):
-                self.project.set_commit_status(
-                    self.event.commit_sha,
-                    "pending",
-                    "",
-                    "Waiting for a successful RPM build",
-                    test_check_name,
-                    trim=True,
-                )
-        r = BuildStatusReporter(
-            self.project, self.event.commit_sha, self.copr_build_model
-        )
-        build_check_names = [
-            f"{PRCheckName.get_build_check(x)}" for x in self.job_chroots
-        ]
-        msg_retrigger = (
-            f"You can re-trigger copr build by adding a comment (`/packit copr-build`) "
-            f"into this pull request."
-        )
-        try:
-            r.report(
-                "pending",
-                "SRPM build has just started...",
-                check_names=PRCheckName.get_srpm_build_check(),
+        if self.job_tests:
+            self.status_reporter.report_tests_waiting_for_build(
+                test_check_names=self.test_check_names
             )
-            r.report(
-                "pending",
-                "RPM build is waiting for succesfull SPRM build",
-                check_names=build_check_names,
+
+        try:
+            self.status_reporter.report_srpm_build_start(
+                build_check_names=self.build_check_names
             )
             build_id, _ = self.api.run_copr_build(
-                project=self.job_project, chroots=self.job_chroots, owner=self.job_owner
+                project=self.job_project,
+                chroots=self.build_chroots,
+                owner=self.job_owner,
             )
-            r.report(
-                "success",
-                "SRPM was built successfully.",
-                check_names=PRCheckName.get_srpm_build_check(),
-            )
-            # provide common build url while waiting on response from copr
-            url = (
-                "https://copr.fedorainfracloud.org/coprs/"
-                f"{self.job_owner}/{self.job_project}/build/{build_id}/"
-            )
-            r.report(
-                "pending",
-                "RPM build has just started...",
-                check_names=build_check_names,
-                url=url,
+            self.status_reporter.report_srpm_build_finish()
+            self.status_reporter.report_rpm_build_start(
+                build_check_names=self.build_check_names,
+                url="https://copr.fedorainfracloud.org/coprs/"
+                f"{self.job_owner}/{self.job_project}/build/{build_id}/",
             )
             # Save copr build with commit information to be able to report status back
             # after fedmsg copr.build.end arrives
@@ -191,62 +221,79 @@ class CoprBuildHandler(object):
             )
 
         except SandcastleTimeoutReached:
-            msg = f"You have reached 10-minute timeout while creating the SRPM. {msg_retrigger}"
-            self.project.pr_comment(self.event.pr_id, msg)
-            msg = "Timeout reached while creating a SRPM."
-            r.report("failure", msg, check_names=build_check_names)
-            return HandlerResults(success=False, details={"msg": msg})
+            return self._process_timeout()
 
         except SandcastleCommandFailed as ex:
-            max_log_size = 1024 * 16  # is 16KB enough?
-            if len(ex.output) > max_log_size:
-                output = "Earlier output was truncated\n\n" + ex.output[-max_log_size:]
-            else:
-                output = ex.output
-            msg = (
-                f"There was an error while creating a SRPM. {msg_retrigger}\n"
-                "\nOutput:"
-                "\n```\n"
-                f"{output}"
-                "\n```"
-                f"\nReturn code: {ex.rc}"
-            )
-            self.project.pr_comment(self.event.pr_id, msg)
-            import sentry_sdk
-
-            sentry_sdk.capture_exception(output)
-
-            msg = "Failed to create a SRPM."
-            r.report("failure", msg, check_names=PRCheckName.get_srpm_build_check())
-            return HandlerResults(success=False, details={"msg": msg})
+            return self._process_failed_command(ex)
 
         except FailedCreateSRPM as ex:
-            # so that we don't have to have sentry sdk installed locally
-            import sentry_sdk
-
-            sentry_sdk.capture_exception(ex)
-
-            msg = f"Failed to create a SRPM: {ex}"
-            r.report("failure", ex, check_names=PRCheckName.get_srpm_build_check())
-            return HandlerResults(success=False, details={"msg": msg})
+            return self._process_failed_srpm_build(ex)
 
         except Exception as ex:
-            # so that we don't have to have sentry sdk installed locally
-            import sentry_sdk
-
-            sentry_sdk.capture_exception(ex)
-
-            msg = f"There was an error while running a copr build:\n```\n{ex}\n```\n"
-            logger.error(msg)
-            self.project.pr_comment(self.event.pr_id, f"{msg}\n{msg_retrigger}")
-            r.report(
-                "failure",
-                "Build failed, check latest comment for details.",
-                check_names=build_check_names,
-            )
-            return HandlerResults(success=False, details={"msg": msg})
+            return self._process_general_exception(ex)
 
         self.copr_build_model.build_id = build_id
         self.copr_build_model.save()
 
         return HandlerResults(success=True, details={})
+
+    def send_to_sentry(self, ex):
+        # so that we don't have to have sentry sdk installed locally
+        import sentry_sdk
+
+        sentry_sdk.capture_exception(ex)
+
+    def _process_general_exception(self, ex):
+        self.send_to_sentry(ex)
+        msg = f"There was an error while running a copr build:\n```\n{ex}\n```\n"
+        logger.error(msg)
+        self.project.pr_comment(self.event.pr_id, f"{msg}\n{MSG_RETRIGGER}")
+        self.status_reporter.report(
+            state="failure",
+            description="Build failed, check latest comment for details.",
+            check_names=self.build_check_names,
+        )
+        return HandlerResults(success=False, details={"msg": msg})
+
+    def _process_failed_srpm_build(self, ex):
+        self.send_to_sentry(ex)
+        msg = f"Failed to create a SRPM: {ex}"
+        self.status_reporter.report(
+            state="failure",
+            description=str(ex),
+            check_names=PRCheckName.get_srpm_build_check(),
+        )
+        return HandlerResults(success=False, details={"msg": msg})
+
+    def _process_failed_command(self, ex):
+        max_log_size = 1024 * 16  # is 16KB enough?
+        if len(ex.output) > max_log_size:
+            output = "Earlier output was truncated\n\n" + ex.output[-max_log_size:]
+        else:
+            output = ex.output
+        msg = (
+            f"There was an error while creating a SRPM. {MSG_RETRIGGER}\n"
+            "\nOutput:"
+            "\n```\n"
+            f"{output}"
+            "\n```"
+            f"\nReturn code: {ex.rc}"
+        )
+        self.project.pr_comment(self.event.pr_id, msg)
+        self.send_to_sentry(output)
+        msg = "Failed to create a SRPM."
+        self.status_reporter.report(
+            state="failure",
+            description=msg,
+            check_names=PRCheckName.get_srpm_build_check(),
+        )
+        return HandlerResults(success=False, details={"msg": msg})
+
+    def _process_timeout(self):
+        msg = f"You have reached 10-minute timeout while creating the SRPM. {MSG_RETRIGGER}"
+        self.project.pr_comment(self.event.pr_id, msg)
+        msg = "Timeout reached while creating a SRPM."
+        self.status_reporter.report(
+            state="failure", description=msg, check_names=self.build_check_names
+        )
+        return HandlerResults(success=False, details={"msg": msg})
