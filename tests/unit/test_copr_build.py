@@ -33,7 +33,7 @@ class FakeCoprBuildModel:
         pass
 
 
-def build_handler(metadata=None, trigger=None):
+def build_handler(metadata=None, trigger=None, jobs=None):
     if not metadata:
         metadata = {
             "owner": "nobody",
@@ -44,13 +44,14 @@ def build_handler(metadata=None, trigger=None):
                 "fedora-rawhide-x86_64",
             ],
         }
-    jobs = [
+    jobs = jobs or []
+    jobs.append(
         JobConfig(
             job=JobType.copr_build,
             trigger=trigger or JobTriggerType.pull_request,
             metadata=metadata,
         )
-    ]
+    )
     pkg_conf = PackageConfig(jobs=jobs, downstream_package_name="dummy")
     event = Parser.parse_pr_event(pull_request())
     handler = CoprBuildHandler(
@@ -84,22 +85,39 @@ def test_copr_build_check_names():
         url="https://copr.fedorainfracloud.org/coprs/nobody/--342-stg/build/1/",
     ).and_return()
 
-    flexmock(GitProject).should_receive("set_commit_status").and_return().times(1)
+    flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(CoprBuildDB).should_receive("add_build").and_return().once()
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None)
     assert handler.run_copr_build()["success"]
 
 
-def test_copr_build_success():
+def test_copr_build_success_set_test_check():
     # status is set for:
     #  - srpm build pending and success (2)
     # forevery target (4) when:
     #  - reset test status 4
     #  - build in progress 4
     #  - build finished 4
+    test_job = JobConfig(
+        job=JobType.tests, trigger=JobTriggerType.pull_request, metadata={},
+    )
+    handler = build_handler(jobs=[test_job])
+    flexmock(GitProject).should_receive("set_commit_status").and_return().times(14)
+    flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
+    flexmock(CoprBuildDB).should_receive("add_build").and_return().once()
+    flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
+    print(handler.run_copr_build())
+
+
+def test_copr_build_success():
+    # status is set for:
+    #  - srpm build pending and success (2)
+    # forevery target (4) when:
+    #  - build in progress 4
+    #  - build finished 4
     handler = build_handler()
-    flexmock(GitProject).should_receive("set_commit_status").and_return(14)
+    flexmock(GitProject).should_receive("set_commit_status").and_return().times(10)
     flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(CoprBuildDB).should_receive("add_build").and_return().once()
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
@@ -108,7 +126,7 @@ def test_copr_build_success():
 
 def test_copr_build_fails_in_packit():
     handler = build_handler()
-    flexmock(GitProject).should_receive("set_commit_status").and_return().times(10)
+    flexmock(GitProject).should_receive("set_commit_status").and_return().times(6)
     flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(CoprBuildDB).should_receive("add_build").never()
     flexmock(PackitAPI).should_receive("run_copr_build").and_raise(FailedCreateSRPM)

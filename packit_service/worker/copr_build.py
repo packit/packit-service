@@ -96,6 +96,13 @@ class CoprBuildHandler(object):
                 return job
         return None
 
+    def cfg_has_job_tests(self) -> bool:
+        """
+        Check if there is tests job configured
+        :return: bool
+        """
+        return any(job.job == JobType.tests for job in self.package_config.jobs)
+
     def run_copr_build(self) -> HandlerResults:
         # add suffix stg when using stg app
         stg = "-stg" if self.config.deployment == Deployment.stg else ""
@@ -118,17 +125,18 @@ class CoprBuildHandler(object):
             return HandlerResults(success=False, details={"msg": msg})
 
         self.job_chroots = job.metadata.get("targets", [])
-        for test_check_name in (
-            f"{PRCheckName.get_testing_farm_check(x)}" for x in self.job_chroots
-        ):
-            self.project.set_commit_status(
-                self.event.commit_sha,
-                "pending",
-                "",
-                "Waiting for a successful RPM build",
-                test_check_name,
-                trim=True,
-            )
+        if self.cfg_has_job_tests():
+            for test_check_name in (
+                f"{PRCheckName.get_testing_farm_check(x)}" for x in self.job_chroots
+            ):
+                self.project.set_commit_status(
+                    self.event.commit_sha,
+                    "pending",
+                    "",
+                    "Waiting for a successful RPM build",
+                    test_check_name,
+                    trim=True,
+                )
         r = BuildStatusReporter(
             self.project, self.event.commit_sha, self.copr_build_model
         )
