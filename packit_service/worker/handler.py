@@ -28,7 +28,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, Any, Optional, Type, List, Union
 
-from ogr.abstract import GitProject
+from ogr.services.github import GithubProject
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobTriggerType, JobType
 
@@ -103,11 +103,11 @@ def add_to_mapping(kls: Type["JobHandler"]):
 class BuildStatusReporter:
     def __init__(
         self,
-        gh_proj: GitProject,
+        github_project: GithubProject,
         commit_sha: str,
         copr_build_model: Optional[CoprBuild] = None,
     ):
-        self.gh_proj = gh_proj
+        self.github_project = github_project
         self.commit_sha = commit_sha
         self.copr_build_model = copr_build_model
 
@@ -138,8 +138,43 @@ class BuildStatusReporter:
 
     def set_status(self, state: str, description: str, check_name: str, url: str = ""):
         logger.debug(description)
-        self.gh_proj.set_commit_status(
+        self.github_project.set_commit_status(
             self.commit_sha, state, url, description, check_name, trim=True
+        )
+
+    def report_srpm_build_start(self, build_check_names):
+        self.report(
+            state="pending",
+            description="SRPM build has just started...",
+            check_names=PRCheckName.get_srpm_build_check(),
+        )
+        self.report(
+            state="pending",
+            description="RPM build is waiting for succesfull SPRM build",
+            check_names=build_check_names,
+        )
+
+    def report_srpm_build_finish(self):
+        self.report(
+            state="success",
+            description="SRPM was built successfully.",
+            check_names=PRCheckName.get_srpm_build_check(),
+        )
+
+    def report_rpm_build_start(self, url, build_check_names):
+        self.report(
+            state="pending",
+            description="RPM build has just started...",
+            check_names=build_check_names,
+            url=url,
+        )
+
+    def report_tests_waiting_for_build(self, test_check_names):
+        self.report(
+            state="pending",
+            url="",
+            description="Waiting for a successful RPM build",
+            check_names=test_check_names,
         )
 
 
