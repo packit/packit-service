@@ -19,9 +19,12 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import json
 import logging
+from json import JSONDecodeError
 from typing import Union, List, Optional
 
+from kubernetes.client.rest import ApiException
 from ogr.abstract import GitProject
 from ogr.services.github import GithubProject
 from packit.api import PackitAPI
@@ -226,6 +229,9 @@ class CoprBuildHandler(object):
         except SandcastleCommandFailed as ex:
             return self._process_failed_command(ex)
 
+        except ApiException as ex:
+            return self._process_openshift_error(ex)
+
         except FailedCreateSRPM as ex:
             return self._process_failed_srpm_build(ex)
 
@@ -295,5 +301,43 @@ class CoprBuildHandler(object):
         msg = "Timeout reached while creating a SRPM."
         self.status_reporter.report(
             state="failure", description=msg, check_names=self.build_check_names
+        )
+        return HandlerResults(success=False, details={"msg": msg})
+
+    def _process_openshift_error(self, ex: ApiException):
+        self.send_to_sentry(ex)
+
+        error_message = f"({ex.status})\nReason: {ex.reason}\n"
+        if ex.headers:
+            error_message += f"HTTP response headers: {ex.headers}\n"
+
+        if ex.body:
+            try:
+                json_content = json.loads(ex.body)
+                formatted_json = json.dumps(json_content, indent=2)
+                error_message += f"HTTP response body:\n{formatted_json}\n"
+            except JSONDecodeError:
+                error_message += f"HTTP response body: {ex.body}\n"
+
+        msg = (
+            f"There was a problem in the environment the service is running in:\n"
+            f"```\n"
+            f"{error_message}\n"
+            f"```\n"
+        )
+
+        logger.error(msg)
+        comment_msg = (
+            f"{msg}\n"
+            f"{MSG_RETRIGGER}\n"
+            f"\n"
+            f"Please, contact @packit-service/the-packit-team if the re-trigger did not help."
+        )
+        self.project.pr_comment(self.event.pr_id, comment_msg)
+
+        self.status_reporter.report(
+            state="failure",
+            description="Build failed, check latest comment for details.",
+            check_names=self.build_check_names,
         )
         return HandlerResults(success=False, details={"msg": msg})
