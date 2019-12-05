@@ -241,7 +241,7 @@ class Parser:
             logger.warning("No GitHub login name from event.")
             return None
         if github_login in {"packit-as-a-service[bot]", "packit-as-a-service-stg[bot]"}:
-            logger.info("Our own comment.")
+            logger.debug("Our own comment.")
             return None
 
         target_repo = nested_get(event, "repository", "full_name")
