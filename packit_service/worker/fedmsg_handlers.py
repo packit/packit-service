@@ -25,9 +25,9 @@ This file defines classes for job handlers specific for Fedmsg events
 """
 
 import logging
-import requests
 from typing import Type, Optional
 
+import requests
 from packit.api import PackitAPI
 from packit.config import (
     JobType,
@@ -35,11 +35,11 @@ from packit.config import (
     JobConfig,
     get_package_config_from_repo,
 )
-from packit.exceptions import PackitException
 from packit.distgit import DistGit
 from packit.local_project import LocalProject
 from packit.utils import get_namespace_and_repo_name
 
+from packit_service.config import ServiceConfig
 from packit_service.service.events import Event, DistGitEvent, CoprBuildEvent
 from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.github_handlers import GithubTestingFarmHandler
@@ -50,7 +50,6 @@ from packit_service.worker.handler import (
     BuildStatusReporter,
     PRCheckName,
 )
-from packit_service.config import ServiceConfig
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +67,13 @@ def do_we_process_fedmsg_topic(topic: str) -> bool:
     return topic in PROCESSED_FEDMSG_TOPICS
 
 
+def get_copr_build_url(event: CoprBuildEvent) -> str:
+    return (
+        "https://copr.fedorainfracloud.org/coprs/"
+        f"{event.owner}/{event.project_name}/build/{event.build_id}/"
+    )
+
+
 def copr_url_from_event(event: CoprBuildEvent):
     """
     Get url to builder-live.log.gz bound to single event
@@ -82,7 +88,7 @@ def copr_url_from_event(event: CoprBuildEvent):
     # make sure we provide valid url in status, let sentry handle if not
     try:
         logger.debug(f"Reaching url {url}")
-        r = requests.get(url)
+        r = requests.head(url)
         r.raise_for_status()
     except requests.RequestException:
         # we might want sentry to know but don't want to start handling things?
@@ -91,13 +97,8 @@ def copr_url_from_event(event: CoprBuildEvent):
             "https://copr.fedorainfracloud.org/coprs/"
             f"{event.owner}/{event.project_name}/build/{event.build_id}/"
         )
-        try:
-            logger.debug(f"Reaching url {url}")
-            r = requests.get(url)
-            r.raise_for_status()
-        except Exception:
-            logger.error(f"Failed to reach url with copr build.")
-            raise PackitException("Error while getting copr build url")
+    # return the frontend URL no matter what
+    # we don't want to fail on this step; the error log is just enough
     return url
 
 
@@ -202,6 +203,7 @@ class CoprBuildEndHandler(FedmsgHandler):
 
         r = BuildStatusReporter(self.event.get_project(), build["commit_sha"])
         url = copr_url_from_event(self.event)
+        build_url = get_copr_build_url(self.event)
 
         msg = "RPMs failed to be built."
         gh_state = "failure"
@@ -220,7 +222,7 @@ class CoprBuildEndHandler(FedmsgHandler):
 
             if not self.was_last_build_successful():
                 msg = (
-                    f"Congratulations! The build [has finished]({url})"
+                    f"Congratulations! The build [has finished]({build_url})"
                     " successfully. :champagne:\n\n"
                     "You can install the built RPMs by following these steps:\n\n"
                     "* `sudo yum install -y dnf-plugins-core` on RHEL 8\n"

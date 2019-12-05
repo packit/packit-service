@@ -1,6 +1,6 @@
 *.py[co]
 .tox
-secrets/
+secrets
 
 .idea/
 .eggs/

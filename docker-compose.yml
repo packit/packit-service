@@ -70,6 +70,7 @@ services:
     command: /usr/bin/run_httpd.sh
     depends_on:
       - redis
+      - fedora-messaging
     ports:
       - 8443:8443
     environment:
@@ -80,9 +81,22 @@ services:
       # There's no secrets/ by default. You have to create (or symlink to other dir) it yourself.
       # Make sure that httpd-packit.conf is present, otherwise you'll be getting 404
       - ./secrets/dev/httpd-packit.conf:/etc/httpd/conf.d/httpd-packit.conf:ro,Z
+      # Make sure to set `command_handler: local` since there is no kube in d-c
       - ./secrets/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
       - ./secrets/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
       - ./secrets/dev/private-key.pem:/secrets/private-key.pem:ro,z
       - ./secrets/dev/fullchain.pem:/secrets/fullchain.pem:ro,z
       - ./secrets/dev/privkey.pem:/secrets/privkey.pem:ro,z
+    user: "123123"
+
+  fedora-messaging:
+    container_name: fedora-messaging
+    image: usercont/packit-service-fedmsg:latest
+    # command: listen-to-fedora-messaging
+    environment:
+      FEDORA_MESSAGING_CONF: /home/packit/.config/fedora.toml
+      REDIS_SERVICE_HOST: redis
+    volumes:
+      # get it from secrets
+      - ./secrets/dev/fedora.toml:/home/packit/.config/fedora.toml:ro,z
     user: "123123"
