@@ -199,16 +199,22 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
         )
 
         self.api = PackitAPI(self.config, self.package_config, self.local_project)
-        try:
-            for branch in get_branches(
-                self.job.metadata.get("dist-git-branch", "master")
-            ):
+
+        errors = []
+        for branch in get_branches(self.job.metadata.get("dist-git-branch", "master")):
+            try:
                 self.api.sync_release(
                     dist_git_branch=branch, version=self.event.tag_name
                 )
-        except Exception as ex:
-            send_to_sentry(ex)
-            return HandlerResults(success=False, details={"msg": str(ex)})
+            except Exception as ex:
+                send_to_sentry(ex)
+                errors.append(f"Propose update for branch {branch} failed: {ex}")
+
+        if errors:
+            return HandlerResults(
+                success=False,
+                details={"msg": "Propose update failed.", "errors": errors},
+            )
 
         return HandlerResults(success=True, details={})
 
