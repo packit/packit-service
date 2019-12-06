@@ -19,7 +19,8 @@
     pip:
       name:
       - git+https://github.com/packit-service/sandcastle.git
-      - git+https://github.com/packit-service/ogr.git
+      # ogr (released version) is installed in packit image
+      # - git+https://github.com/packit-service/ogr.git
       - persistentdict
       # "We recommend you update your SDK from version 0.12.2 to version 0.12.3"
       - sentry-sdk==0.12.3
