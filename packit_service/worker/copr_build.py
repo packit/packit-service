@@ -37,6 +37,7 @@ from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.service.events import PullRequestEvent, PullRequestCommentEvent
 from packit_service.service.models import CoprBuild
+from packit_service.worker import sentry_integration
 from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.handler import (
     HandlerResults,
@@ -243,14 +244,8 @@ class CoprBuildHandler(object):
 
         return HandlerResults(success=True, details={})
 
-    def send_to_sentry(self, ex):
-        # so that we don't have to have sentry sdk installed locally
-        import sentry_sdk
-
-        sentry_sdk.capture_exception(ex)
-
     def _process_general_exception(self, ex):
-        self.send_to_sentry(ex)
+        sentry_integration.send_to_sentry(ex)
         msg = f"There was an error while running a copr build:\n```\n{ex}\n```\n"
         logger.error(msg)
         self.project.pr_comment(self.event.pr_id, f"{msg}\n{MSG_RETRIGGER}")
@@ -262,7 +257,7 @@ class CoprBuildHandler(object):
         return HandlerResults(success=False, details={"msg": msg})
 
     def _process_failed_srpm_build(self, ex):
-        self.send_to_sentry(ex)
+        sentry_integration.send_to_sentry(ex)
         msg = f"Failed to create a SRPM: {ex}"
         self.status_reporter.report(
             state="failure",
@@ -286,7 +281,7 @@ class CoprBuildHandler(object):
             f"\nReturn code: {ex.rc}"
         )
         self.project.pr_comment(self.event.pr_id, msg)
-        self.send_to_sentry(output)
+        sentry_integration.send_to_sentry(output)
         msg = "Failed to create a SRPM."
         self.status_reporter.report(
             state="failure",
@@ -305,7 +300,7 @@ class CoprBuildHandler(object):
         return HandlerResults(success=False, details={"msg": msg})
 
     def _process_openshift_error(self, ex: ApiException):
-        self.send_to_sentry(ex)
+        sentry_integration.send_to_sentry(ex)
 
         error_message = f"({ex.status})\nReason: {ex.reason}\n"
         if ex.headers:

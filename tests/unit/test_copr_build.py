@@ -9,6 +9,7 @@ from packit.exceptions import FailedCreateSRPM
 
 from packit_service.config import ServiceConfig
 from packit_service.service.models import CoprBuild
+from packit_service.worker import sentry_integration
 from packit_service.worker.copr_build import CoprBuildHandler
 from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.handler import BuildStatusReporter
@@ -131,7 +132,7 @@ def test_copr_build_fails_in_packit():
     handler = build_handler()
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(6)
     flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
-    flexmock(CoprBuildHandler).should_receive("send_to_sentry").and_return().once()
+    flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
     flexmock(CoprBuildDB).should_receive("add_build").never()
     flexmock(PackitAPI).should_receive("run_copr_build").and_raise(FailedCreateSRPM)
     assert not handler.run_copr_build()["success"]

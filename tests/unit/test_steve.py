@@ -28,10 +28,10 @@ from json import dumps
 import pytest
 from flexmock import flexmock
 from github import Github
-
 from ogr.services.github import GithubProject
 from packit.api import PackitAPI
 from packit.local_project import LocalProject
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.worker.jobs import SteveJobs
@@ -60,6 +60,7 @@ def test_process_message(event):
         "synced_files": [],
         "jobs": [{"trigger": "release", "job": "propose_downstream"}],
     }
+
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     flexmock(
         GithubProject,
@@ -70,9 +71,8 @@ def test_process_message(event):
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
-
     flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="master", version="1.2.3", create_pr=False
+        dist_git_branch="master", version="1.2.3"
     ).once()
     flexmock(Whitelist, check_and_report=True)
     flexmock(SteveJobs, _is_private=False)

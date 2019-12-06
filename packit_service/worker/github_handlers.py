@@ -39,6 +39,7 @@ from packit.config import (
     PackageConfig,
     get_package_config_from_repo,
 )
+from packit.config.aliases import get_branches
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 
@@ -53,6 +54,7 @@ from packit_service.service.events import (
     CoprBuildEvent,
 )
 from packit_service.service.models import Installation
+from packit_service.worker import sentry_integration
 from packit_service.worker.comment_action_handler import (
     CommentAction,
     add_to_comment_action_mapping,
@@ -197,14 +199,22 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
         )
 
         self.api = PackitAPI(self.config, self.package_config, self.local_project)
-        # create_pr is set to False.
-        # Each upstream project decides
-        # if creates PR or pushes directly into dist-git directly from packit.yaml file.
-        self.api.sync_release(
-            dist_git_branch=self.job.metadata.get("dist-git-branch", "master"),
-            version=self.event.tag_name,
-            create_pr=False,
-        )
+
+        errors = []
+        for branch in get_branches(self.job.metadata.get("dist-git-branch", "master")):
+            try:
+                self.api.sync_release(
+                    dist_git_branch=branch, version=self.event.tag_name
+                )
+            except Exception as ex:
+                sentry_integration.send_to_sentry(ex)
+                errors.append(f"Propose update for branch {branch} failed: {ex}")
+
+        if errors:
+            return HandlerResults(
+                success=False,
+                details={"msg": "Propose update failed.", "errors": errors},
+            )
 
         return HandlerResults(success=True, details={})
 
@@ -514,16 +524,21 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
             raise ValueError(f"No config file found in {self.project.full_repo_name}")
         self.package_config.upstream_project_url = event.project_url
 
-    def get_build_metadata_for_build(self) -> List[str]:
+    @property
+    def dist_git_branches_to_sync(self) -> List[str]:
         """
-        Check if there are propose-update defined
-        :return: JobConfig or Empty list
+        Get the dist-git branches to sync to with the aliases expansion.
+
+        :return: list of dist-git branches
         """
-        return [
+        configured_branches = [
             job.metadata.get("dist-git-branch")
             for job in self.package_config.jobs
             if job.job == JobType.propose_downstream
         ]
+        if configured_branches:
+            return list(get_branches(*configured_branches))
+        return []
 
     def run(self) -> HandlerResults:
         self.local_project = LocalProject(
@@ -538,16 +553,17 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
             self.project.issue_comment(self.event.issue_id, msg)
             return HandlerResults(success=True, details={"msg": msg})
 
-        branches = self.get_build_metadata_for_build()
         sync_failed = False
-        for brn in branches:
+        for branch in self.dist_git_branches_to_sync:
             msg = (
                 f"a new update for the Fedora package "
                 f"`{self.package_config.downstream_package_name}`"
-                f"with the tag `{self.event.tag_name}` in the `{brn}` branch.\n"
+                f"with the tag `{self.event.tag_name}` in the `{branch}` branch.\n"
             )
             try:
-                self.api.sync_release(dist_git_branch=brn, version=self.event.tag_name)
+                self.api.sync_release(
+                    dist_git_branch=branch, version=self.event.tag_name
+                )
                 msg = f"Packit-as-a-Service proposed {msg}"
                 self.project.issue_comment(self.event.issue_id, msg)
             except PackitException as ex:
