@@ -300,7 +300,7 @@ class CoprBuildHandler(object):
         return HandlerResults(success=False, details={"msg": msg})
 
     def _process_openshift_error(self, ex: ApiException):
-        self.send_to_sentry(ex)
+        sentry_integration.send_to_sentry(ex)
 
         error_message = f"({ex.status})\nReason: {ex.reason}\n"
         if ex.headers:
