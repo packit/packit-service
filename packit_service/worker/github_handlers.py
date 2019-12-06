@@ -59,6 +59,7 @@ from packit_service.worker.comment_action_handler import (
     CommentAction,
     add_to_comment_action_mapping,
     CommentActionHandler,
+    add_to_comment_action_mapping_with_name,
 )
 from packit_service.worker.copr_build import CoprBuildHandler
 from packit_service.worker.handler import (
@@ -455,6 +456,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
 
 
 @add_to_comment_action_mapping
+@add_to_comment_action_mapping_with_name(name=CommentAction.build)
 class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
     """ Handler for PR comment `/packit copr-build` """
 

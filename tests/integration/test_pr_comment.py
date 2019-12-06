@@ -79,6 +79,17 @@ def test_pr_comment_copr_build_handler(
     assert results["jobs"]["pull_request_action"]["success"]
 
 
+def test_pr_comment_build_handler(
+    mock_pr_comment_functionality, pr_build_comment_event
+):
+    flexmock(CoprBuildHandler).should_receive("run_copr_build").and_return(
+        HandlerResults(success=True, details={})
+    )
+    flexmock(SteveJobs, _is_private=False)
+    results = SteveJobs().process_message(pr_build_comment_event)
+    assert results["jobs"]["pull_request_action"]["success"]
+
+
 def test_pr_comment_empty_handler(
     mock_pr_comment_functionality, pr_empty_comment_event
 ):
