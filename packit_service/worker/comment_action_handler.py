@@ -39,6 +39,7 @@ class CommentAction(enum.Enum):
     copr_build = "copr-build"
     propose_update = "propose-update"
     test = "test"
+    build = "build"
 
 
 COMMENT_ACTION_HANDLER_MAPPING: Dict[CommentAction, Type["CommentActionHandler"]] = {}
@@ -47,6 +48,16 @@ COMMENT_ACTION_HANDLER_MAPPING: Dict[CommentAction, Type["CommentActionHandler"]
 def add_to_comment_action_mapping(kls: Type["CommentActionHandler"]):
     COMMENT_ACTION_HANDLER_MAPPING[kls.name] = kls
     return kls
+
+
+def add_to_comment_action_mapping_with_name(name):
+    def add_to_comment_action_mapping_with_name_inner(
+        kls: Type["CommentActionHandler"],
+    ):
+        COMMENT_ACTION_HANDLER_MAPPING[name] = kls
+        return kls
+
+    return add_to_comment_action_mapping_with_name_inner
 
 
 class CommentActionHandler(Handler):
