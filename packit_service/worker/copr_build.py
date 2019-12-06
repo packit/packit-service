@@ -37,13 +37,13 @@ from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.service.events import PullRequestEvent, PullRequestCommentEvent
 from packit_service.service.models import CoprBuild
+from packit_service.worker import sentry_integration
 from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.handler import (
     HandlerResults,
     BuildStatusReporter,
     PRCheckName,
 )
-from packit_service.worker.integration import send_to_sentry
 
 logger = logging.getLogger(__name__)
 
@@ -245,7 +245,7 @@ class CoprBuildHandler(object):
         return HandlerResults(success=True, details={})
 
     def _process_general_exception(self, ex):
-        send_to_sentry(ex)
+        sentry_integration.send_to_sentry(ex)
         msg = f"There was an error while running a copr build:\n```\n{ex}\n```\n"
         logger.error(msg)
         self.project.pr_comment(self.event.pr_id, f"{msg}\n{MSG_RETRIGGER}")
@@ -257,7 +257,7 @@ class CoprBuildHandler(object):
         return HandlerResults(success=False, details={"msg": msg})
 
     def _process_failed_srpm_build(self, ex):
-        send_to_sentry(ex)
+        sentry_integration.send_to_sentry(ex)
         msg = f"Failed to create a SRPM: {ex}"
         self.status_reporter.report(
             state="failure",
@@ -281,7 +281,7 @@ class CoprBuildHandler(object):
             f"\nReturn code: {ex.rc}"
         )
         self.project.pr_comment(self.event.pr_id, msg)
-        send_to_sentry(output)
+        sentry_integration.send_to_sentry(output)
         msg = "Failed to create a SRPM."
         self.status_reporter.report(
             state="failure",

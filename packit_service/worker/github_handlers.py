@@ -54,6 +54,7 @@ from packit_service.service.events import (
     CoprBuildEvent,
 )
 from packit_service.service.models import Installation
+from packit_service.worker import sentry_integration
 from packit_service.worker.comment_action_handler import (
     CommentAction,
     add_to_comment_action_mapping,
@@ -67,7 +68,6 @@ from packit_service.worker.handler import (
     BuildStatusReporter,
     PRCheckName,
 )
-from packit_service.worker.integration import send_to_sentry
 from packit_service.worker.whitelist import Whitelist
 
 logger = logging.getLogger(__name__)
@@ -207,7 +207,7 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
                     dist_git_branch=branch, version=self.event.tag_name
                 )
             except Exception as ex:
-                send_to_sentry(ex)
+                sentry_integration.send_to_sentry(ex)
                 errors.append(f"Propose update for branch {branch} failed: {ex}")
 
         if errors:
