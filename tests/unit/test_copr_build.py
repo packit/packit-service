@@ -1,7 +1,7 @@
 import json
 
-import flexmock
 import pytest
+from flexmock import flexmock
 from ogr.abstract import GitProject, GitService
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobConfig, JobType, JobTriggerType
@@ -74,7 +74,7 @@ def test_copr_build_check_names():
     ).and_return()
     flexmock(BuildStatusReporter).should_receive("report").with_args(
         state="pending",
-        description="RPM build is waiting for succesfull SPRM build",
+        description="RPM build is waiting for successful SPRM build",
         check_names=["packit-stg/rpm-build-bright-future-x86_64"],
     ).and_return()
     flexmock(BuildStatusReporter).should_receive("report").with_args(
@@ -98,16 +98,18 @@ def test_copr_build_check_names():
 
 def test_copr_build_success_set_test_check():
     # status is set for:
-    #  - srpm build pending and success (2)
-    # forevery target (4) when:
-    #  - reset test status 4
-    #  - build in progress 4
-    #  - build finished 4
+    #  - SRPM build has just started...
+    #  - SRPM was built successfully.
+    # for every build-target (4) when:
+    #  - RPM build is waiting for successful SPRM build
+    #  - RPM build has just started...
+    # for every test-target (2) when:
+    #  - Waiting for a successful RPM build
     test_job = JobConfig(
         job=JobType.tests, trigger=JobTriggerType.pull_request, metadata={}
     )
     handler = build_handler(jobs=[test_job])
-    flexmock(GitProject).should_receive("set_commit_status").and_return().times(14)
+    flexmock(GitProject).should_receive("set_commit_status").and_return().times(12)
     flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(CoprBuildDB).should_receive("add_build").and_return().once()
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
@@ -129,12 +131,20 @@ def test_copr_build_success():
 
 
 def test_copr_build_fails_in_packit():
+    # status is set for:
+    #  - SRPM build has just started...
+    #  - 'packit-stg/srpm-build': some error
+    #  - 'packit-stg/rpm-build': RPM build failed. No tests will be run.
+    # for every build-target (4) when:
+    #  - RPM build is waiting for succesfull SPRM build
     handler = build_handler()
-    flexmock(GitProject).should_receive("set_commit_status").and_return().times(6)
+    flexmock(GitProject).should_receive("set_commit_status").and_return().times(7)
     flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
     flexmock(CoprBuildDB).should_receive("add_build").never()
-    flexmock(PackitAPI).should_receive("run_copr_build").and_raise(FailedCreateSRPM)
+    flexmock(PackitAPI).should_receive("run_copr_build").and_raise(
+        FailedCreateSRPM, "some error"
+    )
     assert not handler.run_copr_build()["success"]
 
 

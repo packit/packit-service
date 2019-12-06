@@ -99,6 +99,8 @@ class CoprBuildHandler(object):
 
     @property
     def tests_chroots(self) -> List[str]:
+        if not self.job_tests:
+            return []
         configured_targets = self.job_tests.metadata.get("targets", [])
         return list(get_build_targets(*configured_targets))
 
@@ -165,7 +167,7 @@ class CoprBuildHandler(object):
         if not self._test_check_names:
             self._test_check_names = [
                 PRCheckName.get_testing_farm_check(chroot)
-                for chroot in self.build_chroots
+                for chroot in self.tests_chroots
             ]
         return self._test_check_names
 
@@ -252,6 +254,9 @@ class CoprBuildHandler(object):
             description="Build failed, check latest comment for details.",
             check_names=self.build_check_names,
         )
+        self.status_reporter.report_tests_failed_because_of_the_build(
+            test_check_names=self.test_check_names
+        )
         return HandlerResults(success=False, details={"msg": msg})
 
     def _process_failed_srpm_build(self, ex):
@@ -261,6 +266,9 @@ class CoprBuildHandler(object):
             state="failure",
             description=str(ex),
             check_names=PRCheckName.get_srpm_build_check(),
+        )
+        self.status_reporter.report_tests_failed_because_of_the_build(
+            test_check_names=self.test_check_names
         )
         return HandlerResults(success=False, details={"msg": msg})
 
@@ -294,6 +302,9 @@ class CoprBuildHandler(object):
         msg = "Timeout reached while creating a SRPM."
         self.status_reporter.report(
             state="failure", description=msg, check_names=self.build_check_names
+        )
+        self.status_reporter.report_tests_failed_because_of_the_build(
+            test_check_names=self.test_check_names
         )
         return HandlerResults(success=False, details={"msg": msg})
 
@@ -332,5 +343,8 @@ class CoprBuildHandler(object):
             state="failure",
             description="Build failed, check latest comment for details.",
             check_names=self.build_check_names,
+        )
+        self.status_reporter.report_tests_failed_because_of_the_build(
+            test_check_names=self.test_check_names
         )
         return HandlerResults(success=False, details={"msg": msg})

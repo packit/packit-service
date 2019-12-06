@@ -137,10 +137,13 @@ class BuildStatusReporter:
             self.set_status(state, description, check, url)
 
     def set_status(self, state: str, description: str, check_name: str, url: str = ""):
-        logger.debug(description)
+        logger.debug(f"Setting status for check '{check_name}': {description}")
         self.project.set_commit_status(
             self.commit_sha, state, url, description, check_name, trim=True
         )
+
+    def get_statuses(self):
+        self.project.get_commit_statuses(commit=self.commit_sha)
 
     def report_srpm_build_start(self, build_check_names):
         self.report(
@@ -150,7 +153,7 @@ class BuildStatusReporter:
         )
         self.report(
             state="pending",
-            description="RPM build is waiting for succesfull SPRM build",
+            description="RPM build is waiting for successful SPRM build",
             check_names=build_check_names,
         )
 
@@ -174,6 +177,14 @@ class BuildStatusReporter:
             state="pending",
             url="",
             description="Waiting for a successful RPM build",
+            check_names=test_check_names,
+        )
+
+    def report_tests_failed_because_of_the_build(self, test_check_names):
+        self.report(
+            state="failure",
+            url="",
+            description="RPM build failed. No tests will be run.",
             check_names=test_check_names,
         )
 
