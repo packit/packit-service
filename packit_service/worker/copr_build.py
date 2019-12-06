@@ -26,7 +26,6 @@ from typing import Union, List, Optional
 
 from kubernetes.client.rest import ApiException
 from ogr.abstract import GitProject
-from ogr.services.github import GithubProject
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobType, JobConfig
 from packit.config.aliases import get_build_targets
@@ -156,7 +155,6 @@ class CoprBuildHandler(object):
     @property
     def status_reporter(self):
         if not self._status_reporter:
-            self.project: GithubProject
             self._status_reporter = BuildStatusReporter(
                 self.project, self.event.commit_sha, self.copr_build_model
             )

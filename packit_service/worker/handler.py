@@ -28,7 +28,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, Any, Optional, Type, List, Union
 
-from ogr.services.github import GithubProject
+from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobTriggerType, JobType
 
@@ -103,11 +103,11 @@ def add_to_mapping(kls: Type["JobHandler"]):
 class BuildStatusReporter:
     def __init__(
         self,
-        github_project: GithubProject,
+        project: GitProject,
         commit_sha: str,
         copr_build_model: Optional[CoprBuild] = None,
     ):
-        self.github_project = github_project
+        self.project = project
         self.commit_sha = commit_sha
         self.copr_build_model = copr_build_model
 
@@ -138,7 +138,7 @@ class BuildStatusReporter:
 
     def set_status(self, state: str, description: str, check_name: str, url: str = ""):
         logger.debug(description)
-        self.github_project.set_commit_status(
+        self.project.set_commit_status(
             self.commit_sha, state, url, description, check_name, trim=True
         )
 
