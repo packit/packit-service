@@ -64,13 +64,11 @@
         PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
         DOCKER_CONFIG: "/etc/docker/daemon.json"
       become: true
-
     - name: Create sandbox project
       command: oc new-project packit-dev-sandbox
       environment:
         PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
       become: true
-
     - name: Switch back to myproject
       command: oc project myproject
       environment:

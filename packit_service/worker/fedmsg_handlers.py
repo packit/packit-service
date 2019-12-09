@@ -40,10 +40,15 @@ from packit.local_project import LocalProject
 from packit.utils import get_namespace_and_repo_name
 
 from packit_service.config import ServiceConfig
-from packit_service.service.events import Event, DistGitEvent, CoprBuildEvent
+from packit_service.service.events import (
+    Event,
+    DistGitEvent,
+    CoprBuildEvent,
+    get_copr_build_logs_url,
+)
+from packit_service.service.urls import get_p_s_logs_url
 from packit_service.worker.copr_build import CoprBuildJobHelper
 from packit_service.worker.copr_db import CoprBuildDB
-from packit_service.worker.github_handlers import GithubTestingFarmHandler
 from packit_service.worker.handler import (
     JobHandler,
     HandlerResults,
@@ -209,6 +214,13 @@ class CoprBuildEndHandler(FedmsgHandler):
 
         url = copr_url_from_event(self.event)
 
+        build_frontend_url = get_copr_build_url(self.event)
+        build_logs_url = get_copr_build_logs_url(self.event)
+        p_s_logs_url = get_p_s_logs_url(self.event)
+
+        msg = "RPMs failed to be built."
+        gh_state = "failure"
+
         # https://pagure.io/copr/copr/blob/master/f/common/copr_common/enums.py#_42
         if self.event.status == 1:
 
@@ -233,11 +245,11 @@ class CoprBuildEndHandler(FedmsgHandler):
                 )
                 self.project.pr_comment(pr_id=self.event.pr_id, body=msg)
 
-            self.build_job_helper.report_status_for_chroot(
-                state="success",
-                description="RPMs were built successfully.",
-                url=url,
-                chroot=self.event.chroot,
+            r.report(
+                state=gh_state,
+                description=check_msg,
+                url=p_s_logs_url,
+                check_names=PRCheckName.get_build_check(self.event.chroot),
             )
 
             if (
@@ -259,6 +271,20 @@ class CoprBuildEndHandler(FedmsgHandler):
         failed_msg = "RPMs failed to be built."
         self.build_job_helper.report_status_for_chroot(
             state="failure", description=failed_msg, url=url, chroot=self.event.chroot,
+        )
+        # FIXME: there is still a race condition here if 2 events happen at the same time
+        db = CoprBuildDB()
+        build = db.get_build(self.event.build_id)
+        build_target = build["targets"][self.event.chroot]
+        build_target["state"] = gh_state
+        build_target["build_logs"] = build_logs_url
+        db.set_build(self.event.build_id, build_target)
+
+        r.report(
+            gh_state,
+            msg,
+            url=p_s_logs_url,
+            check_names=PRCheckName.get_build_check(self.event.chroot),
         )
         return HandlerResults(success=False, details={"msg": failed_msg})
 
@@ -295,10 +321,15 @@ class CoprBuildStartHandler(FedmsgHandler):
             return HandlerResults(success=True, details={"msg": msg})
 
         self.build_job_helper.report_status_for_chroot(
+        check_name = PRCheckName.get_build_check(self.event.chroot)
+        url = get_p_s_logs_url(self.event)
+        r.report(
             state="pending",
             description="RPM build has started...",
             url=copr_url_from_event(self.event),
             chroot=self.event.chroot,
+            url=url,
+            check_names=check_name,
         )
         msg = f"Build on {self.event.chroot} in copr has started..."
         return HandlerResults(success=True, details={"msg": msg})

@@ -21,7 +21,8 @@
 # SOFTWARE.
 import json
 import logging
-from typing import Union, List, Optional
+from io import StringIO
+from typing import Union, List, Optional, Dict
 
 from kubernetes.client.rest import ApiException
 from ogr.abstract import GitProject
@@ -33,6 +34,7 @@ from packit.exceptions import (
     PackitCoprProjectException,
 )
 from packit.local_project import LocalProject
+from packit.utils import PackitFormatter
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
 from packit_service.config import ServiceConfig, Deployment
@@ -43,6 +45,7 @@ from packit_service.service.events import (
     CoprBuildEvent,
 )
 from packit_service.service.models import CoprBuild
+from packit_service.service.urls import get_p_s_logs_url
 from packit_service.worker import sentry_integration
 from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.handler import (
@@ -50,6 +53,7 @@ from packit_service.worker.handler import (
     BuildStatusReporter,
     PRCheckName,
 )
+from packit_service.worker.utils import get_copr_build_url_for_values
 
 try:
     from packit.exceptions import PackitSRPMException
@@ -329,11 +333,23 @@ class CoprBuildJobHelper(JobHelper):
 
         try:
             self.report_status_to_all(description="Building SRPM ...", state="pending")
+
+            # we want to get packit logs from the SRPM creation process
+            # so we stuff them into a StringIO buffer
+            stream = StringIO()
+            handler = logging.StreamHandler(stream)
+            packit_logger = logging.getLogger("packit")
+            packit_logger.setLevel(logging.DEBUG)
+            packit_logger.addHandler(handler)
+            formatter = PackitFormatter(None, "%H:%M:%S")
+            handler.setFormatter(formatter)
+
             build_id, _ = self.api.run_copr_build(
                 project=self.job_project,
                 chroots=self.build_chroots,
                 owner=self.job_owner,
             )
+
             self.report_status_to_all(
                 description="Building RPM ...",
                 state="pending",
@@ -341,9 +357,26 @@ class CoprBuildJobHelper(JobHelper):
                 f"{self.job_owner}/{self.job_project}/build/{build_id}/",
             )
 
+            packit_logger.removeHandler(handler)
+            stream.seek(0)
+            self.status_reporter.report_srpm_build_finish()
+            web_url = get_copr_build_url_for_values(
+                self.job_owner, self.job_project, build_id
+            )
+
             # Save copr build with commit information to be able to report status back
             # after fedmsg copr.build.end arrives
             copr_build_db = CoprBuildDB()
+            targets_db: Dict[str, Dict[str, str]] = {}
+            for chroot in self.build_chroots:
+                url = get_p_s_logs_url(None, build_id=build_id, target=chroot)
+                self.status_reporter.report(
+                    state="pending",
+                    description="RPM build has just started...",
+                    url=url,
+                    check_names=PRCheckName.get_build_check(chroot),
+                )
+                targets_db.setdefault(chroot, {"state": "pending"})
             copr_build_db.add_build(
                 build_id,
                 self.event.commit_sha,
@@ -352,6 +385,9 @@ class CoprBuildJobHelper(JobHelper):
                 self.event.base_repo_namespace,
                 self.base_ref,
                 self.event.project_url,
+                logs=stream.read(),
+                targets=targets_db,
+                web_url=web_url,
             )
 
         except SandcastleTimeoutReached:

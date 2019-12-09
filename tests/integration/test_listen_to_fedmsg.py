@@ -33,14 +33,19 @@ from packit.local_project import LocalProject
 
 from packit_service.constants import PACKIT_STG_CHECK, PACKIT_STG_TESTING_FARM_CHECK
 from packit_service.service.events import CoprBuildEvent
+from packit_service.service.urls import get_p_s_logs_url
 from packit_service.worker.copr_build import CoprBuildJobHelper
 from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.fedmsg_handlers import CoprBuildEndHandler
 from packit_service.worker.github_handlers import GithubTestingFarmHandler
-from packit_service.worker.handler import BuildStatusReporter, PRCheckName
+from packit_service.worker.handler import BuildStatusReporter
+from packit_service.worker.handler import PRCheckName
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 from tests.spellbook import DATA_DIR
+
+CHROOT = "fedora-rawhide-x86_64"
+EXPECTED_CHECK_NAME = f"{PACKIT_STG_CHECK}-{CHROOT}"
 
 
 @pytest.fixture()
@@ -95,11 +100,7 @@ def test_copr_build_end(copr_build_end):
         }
     )
 
-    url = (
-        f"https://copr-be.cloud.fedoraproject.org/results/"
-        f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
-        f"01044215-hello/builder-live.log"
-    )
+    url = get_p_s_logs_url(None, target=CHROOT, build_id=1044215)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
@@ -107,7 +108,7 @@ def test_copr_build_end(copr_build_end):
         state="success",
         description="RPMs were built successfully.",
         url=url,
-        check_names=PACKIT_STG_CHECK,
+        check_names=EXPECTED_CHECK_NAME,
     ).once()
 
     # skip testing farm
@@ -513,15 +514,11 @@ def test_copr_build_just_tests_defined(copr_build_start):
         }
     )
 
-    url = (
-        f"https://copr-be.cloud.fedoraproject.org/results/"
-        f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
-        f"01044215-hello/builder-live.log"
-    )
+    url = get_p_s_logs_url(None, target=CHROOT, build_id=1044215)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 
-    # check if packit-service set correct PR status
+    # check if packit-service sets the correct PR status
     flexmock(BuildStatusReporter).should_receive("report").with_args(
         state="pending",
         description="RPM build has started...",
@@ -533,7 +530,7 @@ def test_copr_build_just_tests_defined(copr_build_start):
         state="pending",
         description="RPM build has started...",
         url=url,
-        check_names=PACKIT_STG_TESTING_FARM_CHECK,
+        check_names=EXPECTED_CHECK_NAME,
     ).once()
 
     steve.process_message(copr_build_start)
@@ -565,6 +562,7 @@ def test_copr_build_not_comment_on_success(copr_build_end):
         )
     )
     flexmock(PRCheckName).should_receive("get_build_check").and_return(PACKIT_STG_CHECK)
+    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(flexmock())
 
     flexmock(CoprBuildEndHandler).should_receive(
         "was_last_build_successful"
@@ -582,11 +580,7 @@ def test_copr_build_not_comment_on_success(copr_build_end):
         }
     )
 
-    url = (
-        f"https://copr-be.cloud.fedoraproject.org/results/"
-        f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
-        f"01044215-hello/builder-live.log"
-    )
+    url = get_p_s_logs_url(None, target=CHROOT, build_id=1044215)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 
@@ -595,7 +589,7 @@ def test_copr_build_not_comment_on_success(copr_build_end):
         state="success",
         description="RPMs were built successfully.",
         url=url,
-        check_names=PACKIT_STG_CHECK,
+        check_names=EXPECTED_CHECK_NAME,
     ).once()
 
     # skip testing farm

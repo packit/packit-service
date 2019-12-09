@@ -8,6 +8,7 @@ from packit.exceptions import FailedCreateSRPM
 
 from packit_service.config import ServiceConfig
 from packit_service.service.models import CoprBuild
+from packit_service.service.urls import get_p_s_logs_url
 from packit_service.worker import sentry_integration
 from packit_service.worker.copr_build import CoprBuildJobHelper
 from packit_service.worker.copr_db import CoprBuildDB
@@ -58,7 +59,7 @@ def build_handler(metadata=None, trigger=None, jobs=None):
         project=GitProject("", GitService(), ""),
         event=event,
     )
-    handler._api = PackitAPI(ServiceConfig, pkg_conf)
+    handler._api = PackitAPI(ServiceConfig(), pkg_conf)
     return handler
 
 

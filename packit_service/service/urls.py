@@ -1,7 +1,7 @@
 # MIT License
 #
-# Copyright (c) 2019 Red Hat, Inc.
-#
+# Copyright (c) 2018-2019 Red Hat, Inc.
+
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -19,29 +19,27 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from typing import Optional
 
-import logging
+from flask import url_for
 
-from flask import Flask
-from packit.utils import set_logging
+from packit_service.service.app import application
+from packit_service.service.events import CoprBuildEvent
 
-from packit_service.config import ServiceConfig
-from packit_service.service.api import blueprint
-from packit_service.service.views import builds_blueprint
 
-set_logging(logger_name="packit_service", level=logging.DEBUG)
-
-application = Flask(__name__)
-application.register_blueprint(blueprint)
-application.register_blueprint(builds_blueprint)
-
-s = ServiceConfig.get_service_config()
-# https://flask.palletsprojects.com/en/1.1.x/config/#SERVER_NAME
-application.config["SERVER_NAME"] = s.server_name
-application.config["PREFERRED_URL_SCHEME"] = "https"
-
-logger = logging.getLogger("packit_service")
-logger.info(f"server name = {s.server_name}, all HTTP requests need to use this URL!")
-
-# no need to thank me, just buy me a beer
-logger.debug(f"URL map = {application.url_map}")
+def get_p_s_logs_url(
+    event: Optional[CoprBuildEvent],
+    target: Optional[str] = None,
+    build_id: Optional[int] = None,
+) -> str:
+    """
+    provide absolute URL to p-s, build logs view
+    """
+    # flask magic
+    with application.app_context():
+        if event:
+            return url_for(
+                "builds.get_build_logs", build_id=event.build_id, target=event.chroot,
+            )
+        else:
+            return url_for("builds.get_build_logs", build_id=build_id, target=target,)

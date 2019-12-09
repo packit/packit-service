@@ -53,6 +53,7 @@ class Deployment(enum.Enum):
 
 class ServiceConfig(Config):
     service_config = None
+    SCHEMA = SERVICE_CONFIG_SCHEMA
 
     def __init__(
         self,
@@ -60,10 +61,9 @@ class ServiceConfig(Config):
         webhook_secret: str = "",
         testing_farm_secret: str = "",
         validate_webhooks: bool = True,
-        admins: list = [],
+        admins: list = None,
         **kwargs,
     ):
-
         super().__init__(**kwargs)
 
         self.deployment = deployment
@@ -78,7 +78,10 @@ class ServiceConfig(Config):
         self.fas_password: Optional[str] = ""
 
         # List of github users who are allowed to trigger p-s on any repository
-        self.admins: Set[str] = set(admins)
+        self.admins: Set[str] = set(admins or [])
+
+        # for flask SERVER_NAME so we can create links to logs
+        self.server_name: str = ""
 
         # for flask SERVER_NAME so we can create links to logs
         self.server_name: str = ""
@@ -90,6 +93,12 @@ class ServiceConfig(Config):
 
         config = ServiceConfigSchema(strict=True).load(raw_dict).data
 
+        config.webhook_secret = raw_dict.get("webhook_secret", "")
+        config.testing_farm_secret = raw_dict.get("testing_farm_secret", "")
+        config.deployment = Deployment(raw_dict.get("deployment", ""))
+        config.validate_webhooks = raw_dict.get("validate_webhooks", False)
+        config.fas_password = raw_dict.get("fas_password", None)
+        config.admins = set(raw_dict.get("admins", []))
         config.server_name = raw_dict.get("server_name", "localhost:5000")
 
         config.command_handler = RunCommandType.local
