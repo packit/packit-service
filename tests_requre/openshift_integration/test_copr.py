@@ -21,9 +21,7 @@
 # SOFTWARE.
 
 import json
-import flexmock
 
-from packit_service.worker.whitelist import Whitelist
 from tests_requre.openshift_integration.base import PackitServiceTestCase, DATA_DIR
 
 
@@ -49,9 +47,6 @@ def pr_comment_event_not_collaborator():
 
 class Copr(PackitServiceTestCase):
     def test_submit_copr_build_pr_event(self):
-        # flexmock whitelist
-        flexmock(Whitelist, check_and_report=True)
-
         result = self.steve.process_message(pr_event())
         self.assertTrue(result)
         self.assertIn("copr_build", result["jobs"])
