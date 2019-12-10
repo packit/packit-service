@@ -48,6 +48,7 @@ class Deployment(enum.Enum):
 
 class ServiceConfig(Config):
     SCHEMA = SERVICE_CONFIG_SCHEMA
+    service_config = None
 
     def __init__(self):
         super().__init__()
@@ -120,17 +121,16 @@ class ServiceConfig(Config):
 
     @classmethod
     def get_service_config(cls) -> "ServiceConfig":
-        directory = Path.home() / ".config"
-        config_file_name_full = directory / CONFIG_FILE_NAME
-        logger.debug(f"Loading service config from directory: {directory}")
+        if cls.service_config is None:
+            directory = Path.home() / ".config"
+            config_file_name_full = directory / CONFIG_FILE_NAME
+            logger.debug(f"Loading service config from directory: {directory}")
 
-        try:
-            loaded_config = safe_load(open(config_file_name_full))
-        except Exception as ex:
-            logger.error(f"Cannot load service config '{config_file_name_full}'.")
-            raise PackitException(f"Cannot load service config: {ex}.")
+            try:
+                loaded_config = safe_load(open(config_file_name_full))
+            except Exception as ex:
+                logger.error(f"Cannot load service config '{config_file_name_full}'.")
+                raise PackitException(f"Cannot load service config: {ex}.")
 
-        return ServiceConfig.get_from_dict(raw_dict=loaded_config)
-
-
-service_config = ServiceConfig.get_service_config()
+            cls.service_config = ServiceConfig.get_from_dict(raw_dict=loaded_config)
+        return cls.service_config

@@ -112,15 +112,13 @@ class TestEvents:
 
     @pytest.fixture()
     def mock_config(self):
-        service_config = flexmock(ServiceConfig)
+        service_config = ServiceConfig()
         service_config.github_app_id = 123123
         service_config.github_app_cert_path = None
         service_config.github_token = "token"
         service_config.dry_run = False
         service_config.github_requests_log_path = "/path"
-        service_config.should_receive("get_service_config").and_return(
-            flexmock(ServiceConfig)
-        )
+        ServiceConfig.service_config = service_config
 
     # https://stackoverflow.com/questions/35413134/what-does-indirect-true-false-in-pytest-mark-parametrize-do-mean
     @pytest.mark.parametrize("installation", ["added", "created"], indirect=True)
@@ -170,7 +168,6 @@ class TestEvents:
             raise FileNotFoundError()
 
         flexmock(GithubProject, get_file_content=_get_f_c)
-        flexmock(ServiceConfig, get_service_config=ServiceConfig())
         assert event_object.get_package_config() is None
 
     def test_parse_pr_comment_created(self, pr_comment_created_request):
@@ -289,9 +286,6 @@ class TestEvents:
 
         assert isinstance(event_object, PullRequestEvent)
 
-        flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-            flexmock(ServiceConfig)
-        )
         project = event_object.get_project()
 
         assert isinstance(project, GithubProject)
