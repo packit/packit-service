@@ -333,9 +333,10 @@ class CoprBuildHandler(object):
         logger.error(msg)
         comment_msg = (
             f"{msg}\n"
-            f"{MSG_RETRIGGER}\n"
-            f"\n"
-            f"Please, contact @packit-service/the-packit-team if the re-trigger did not help."
+            f"{MSG_RETRIGGER}\n\n"
+            "Please, contact "
+            "[Packit team](https://github.com/orgs/packit-service/teams/the-packit-team) "
+            "if the re-trigger did not help."
         )
         self.project.pr_comment(self.event.pr_id, comment_msg)
 
