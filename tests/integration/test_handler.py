@@ -19,8 +19,10 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import os
 from pathlib import Path
 
+import pytest
 from packit.config import JobConfig, JobType, JobTriggerType
 
 from packit_service.config import ServiceConfig
@@ -28,7 +30,14 @@ from packit_service.service.events import Event
 from packit_service.worker.handler import JobHandler
 
 
-def test_handler_cleanup(tmpdir):
+@pytest.fixture()
+def trick_p_s_with_k8s():
+    os.environ["KUBERNETES_SERVICE_HOST"] = "YEAH"  # trick p-s
+    yield
+    del os.environ["KUBERNETES_SERVICE_HOST"]
+
+
+def test_handler_cleanup(tmpdir, trick_p_s_with_k8s):
     t = Path(tmpdir)
     t.joinpath("a").mkdir()
     t.joinpath("b").write_text("a")

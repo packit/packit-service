@@ -25,6 +25,7 @@ This file defines generic job handler
 """
 import logging
 import shutil
+from os import getenv
 from pathlib import Path
 from typing import Dict, Any, Optional, Type, List, Union
 
@@ -233,6 +234,10 @@ class Handler:
             self.clean()
 
     def _clean_workplace(self):
+        # clean only when we are in k8s for sure
+        if not getenv("KUBERNETES_SERVICE_HOST"):
+            logger.debug("this is not a kubernetes pod, won't clean")
+            return
         logger.debug("removing contents of the PV")
         p = Path(self.config.command_handler_work_dir)
         # Do not clean dir if does not exist
