@@ -213,11 +213,13 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
 
         if errors:
             branch_errors = "\n".join(
-                f"- '{branch}: `{err}`" for branch, err in errors.items()
+                f"| `{branch}` | `{err}` |" for branch, err in errors.items()
             )
 
             body_msg = (
                 f"Packit failed on creating pull-requests in dist-git:\n\n"
+                f"| dist-git branch | error |\n"
+                f"| --------------- | ----- |\n"
                 f"{branch_errors}\n\n"
                 "You can re-trigger the update by adding `/packit propose-update`"
                 " to the issue comment.\n"
