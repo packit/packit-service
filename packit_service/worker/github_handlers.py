@@ -201,7 +201,7 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
 
         self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
-        errors = []
+        errors = {}
         for branch in get_branches(self.job.metadata.get("dist-git-branch", "master")):
             try:
                 self.api.sync_release(
@@ -209,9 +209,25 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
                 )
             except Exception as ex:
                 sentry_integration.send_to_sentry(ex)
-                errors.append(f"Propose update for branch {branch} failed: {ex}")
+                errors[branch] = str(ex)
 
         if errors:
+            branch_errors = "\n".join(
+                f"- '{branch}: `{err}`" for branch, err in errors.items()
+            )
+
+            body_msg = (
+                f"Packit failed on creating pull-requests in dist-git:\n\n"
+                f"{branch_errors}\n\n"
+                "You can re-trigger the update by adding `/packit propose-update`"
+                " to the issue comment.\n"
+            )
+
+            self.project.create_issue(
+                title=f"[packit] Propose update failed for release {self.event.tag_name}",
+                body=body_msg,
+            )
+
             return HandlerResults(
                 success=False,
                 details={"msg": "Propose update failed.", "errors": errors},
