@@ -188,6 +188,14 @@ class BuildStatusReporter:
             check_names=test_check_names,
         )
 
+    def report_tests_failed_because_of_the_build_submit(self, test_check_names):
+        self.report(
+            state="failure",
+            url="",
+            description="Submitting of the build failed. Cannot get the build results.",
+            check_names=test_check_names,
+        )
+
 
 class HandlerResults(dict):
     """

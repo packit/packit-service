@@ -29,7 +29,11 @@ from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobType, JobConfig
 from packit.config.aliases import get_build_targets
-from packit.exceptions import FailedCreateSRPM
+from packit.exceptions import (
+    FailedCreateSRPM,
+    PackitCoprException,
+    PackitCoprProjectException,
+)
 from packit.local_project import LocalProject
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
@@ -120,9 +124,9 @@ class CoprBuildHandler(object):
 
     @property
     def job_owner(self) -> Optional[str]:
-        return self.job_copr_build.metadata.get("owner") or self.api.copr.config.get(
-            "username"
-        )
+        return self.job_copr_build.metadata.get(
+            "owner"
+        ) or self.api.copr_helper.copr_client.config.get("username")
 
     @property
     def default_project_name(self):
@@ -236,6 +240,12 @@ class CoprBuildHandler(object):
         except FailedCreateSRPM as ex:
             return self._process_failed_srpm_build(ex)
 
+        except PackitCoprProjectException as ex:
+            return self._process_copr_submit_exception(ex)
+
+        except PackitCoprException as ex:
+            return self._process_general_exception(ex)
+
         except Exception as ex:
             return self._process_general_exception(ex)
 
@@ -243,6 +253,27 @@ class CoprBuildHandler(object):
         self.copr_build_model.save()
 
         return HandlerResults(success=True, details={})
+
+    def _process_copr_submit_exception(self, ex):
+        sentry_integration.send_to_sentry(ex)
+        msg = (
+            f"There was an error while submitting a Copr build:\n"
+            f"```\n"
+            f"{ex}\n"
+            f"```\n"
+            f"Check carefully your configuration.\n"
+        )
+        logger.error(msg)
+        self.project.pr_comment(self.event.pr_id, f"{msg}\n{MSG_RETRIGGER}")
+        self.status_reporter.report(
+            state="failure",
+            description="Submit of the build failed, check latest comment for details.",
+            check_names=self.build_check_names,
+        )
+        self.status_reporter.report_tests_failed_because_of_the_build_submit(
+            test_check_names=self.test_check_names
+        )
+        return HandlerResults(success=False, details={"msg": msg})
 
     def _process_general_exception(self, ex):
         sentry_integration.send_to_sentry(ex)
