@@ -19,19 +19,24 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from packit.schema import USER_CONFIG_SCHEMA
+from marshmallow import fields, post_load
 
-_SERVICE_CONFIG_SCHEMA_PROPERTIES = {
-    "deployment": {"type": "string"},
-    "webhook_secret": {"type": "string"},
-    "testing_farm_secret": {"type": "string"},
-    "validate_webhooks": {"type": "boolean"},
-    "fas_password": {"type": "string"},
-    "admins": {"type": "array"},
-}
-_SERVICE_CONFIG_SCHEMA_REQUIRED = ["deployment"]
+from packit.schema import UserConfigSchema
+from packit_service.config import ServiceConfig
 
-SERVICE_CONFIG_SCHEMA = USER_CONFIG_SCHEMA.copy()
-SERVICE_CONFIG_SCHEMA["properties"].update(_SERVICE_CONFIG_SCHEMA_PROPERTIES)
-SERVICE_CONFIG_SCHEMA.setdefault("required", [])
-SERVICE_CONFIG_SCHEMA["required"] += _SERVICE_CONFIG_SCHEMA_REQUIRED
+
+class ServiceConfigSchema(UserConfigSchema):
+    """
+    Schema for processing ServiceConfig data.
+    """
+
+    deployment = fields.String(required=True)
+    webhook_secret = fields.String()
+    testing_farm_secret = fields.String()
+    validate_webhooks = fields.Boolean()
+    fas_password = fields.String()
+    admins = fields.List(fields.String())
+
+    @post_load
+    def make_instance(self, data):
+        return ServiceConfig(**data)

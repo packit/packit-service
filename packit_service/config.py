@@ -26,7 +26,7 @@ from typing import Set, Optional
 
 from yaml import safe_load
 
-from packit.config import RunCommandType, Config
+from packit.config import Config
 from packit.exceptions import PackitException
 from packit_service.constants import (
     SANDCASTLE_WORK_DIR,
@@ -35,7 +35,6 @@ from packit_service.constants import (
     SANDCASTLE_DEFAULT_PROJECT,
     CONFIG_FILE_NAME,
 )
-from packit_service.schema import SERVICE_CONFIG_SCHEMA
 
 logger = logging.getLogger(__name__)
 
@@ -47,76 +46,59 @@ class Deployment(enum.Enum):
 
 
 class ServiceConfig(Config):
-    SCHEMA = SERVICE_CONFIG_SCHEMA
+    def __init__(
+        self,
+        debug: bool = False,
+        dry_run: bool = False,
+        fas_user: Optional[str] = None,
+        keytab_path: Optional[str] = None,
+        webhook_secret: str = "",
+        deployment: Deployment = Deployment.stg,
+        testing_farm_secret: str = "",
+        validate_webhooks: bool = True,
+        fas_password: Optional[str] = None,
+        admins: Set[str] = None,
+        command_handler: str = None,
+        command_handler_work_dir: str = SANDCASTLE_WORK_DIR,
+        command_handler_pvc_env_var: str = SANDCASTLE_PVC,
+        command_handler_image_reference: str = SANDCASTLE_IMAGE,
+        command_handler_k8s_namespace: str = SANDCASTLE_DEFAULT_PROJECT,
+    ):
 
-    def __init__(self):
-        super().__init__()
+        super().__init__(
+            debug,
+            dry_run,
+            fas_user,
+            keytab_path,
+            webhook_secret,
+            command_handler,
+            command_handler_work_dir,
+            command_handler_pvc_env_var,
+            command_handler_image_reference,
+            command_handler_k8s_namespace,
+        )
 
-        self.deployment: Deployment = Deployment.stg
-
-        self.webhook_secret: str = ""
-        self.testing_farm_secret: str = ""
-        self.validate_webhooks: bool = True
+        self.deployment: Deployment = deployment
+        self.webhook_secret: str = webhook_secret
+        self.testing_farm_secret: str = testing_farm_secret
+        self.validate_webhooks: bool = validate_webhooks
 
         # fas.fedoraproject.org needs password to authenticate
         # 'fas_user' is inherited from packit.config.Config
-        self.fas_password: Optional[str] = None
+        self.fas_password: Optional[str] = fas_password
 
         # List of github users who are allowed to trigger p-s on any repository
-        self.admins: Set[str] = set()
-
-        # %%% ACTIONS HANDLER CONFIGURATION %%%
-        # these values are specific to packit service when we run actions in a sandbox
-
-        # name of the handler to run actions and commands, default to current env
-        self.command_handler: RunCommandType = RunCommandType.local
-        # a dir where the PV is mounted: both in sandbox and in worker
-        self.command_handler_work_dir: str = ""
-        # name of the PVC so that the sandbox has the same volume mounted
-        self.command_handler_pvc_env_var: str = ""  # pointer to pointer, lol
-        # name of sandbox container image
-        self.command_handler_image_reference: str = SANDCASTLE_IMAGE
-        # do I really need to explain this?
-        self.command_handler_k8s_namespace: str = SANDCASTLE_DEFAULT_PROJECT
+        self.admins: Set[str] = admins or set()
 
         # path to a file where OGR should store HTTP requests
         self.github_requests_log_path: str = ""
 
     @classmethod
-    def get_from_dict(cls, raw_dict: dict, validate=True) -> "ServiceConfig":
-        if validate:
-            cls.validate(raw_dict)
+    def get_from_dict(cls, raw_dict: dict) -> "ServiceConfig":
+        # required to avoid cyclical imports
+        from packit_service.schema import ServiceConfigSchema
 
-        user_config = super().get_from_dict(raw_dict=raw_dict, validate=False)
-        config = ServiceConfig()
-        config.__dict__.update(user_config.__dict__)
-
-        config.webhook_secret = raw_dict.get("webhook_secret", "")
-        config.testing_farm_secret = raw_dict.get("testing_farm_secret", "")
-        config.deployment = Deployment(raw_dict.get("deployment", ""))
-        config.validate_webhooks = raw_dict.get("validate_webhooks", False)
-        config.fas_password = raw_dict.get("fas_password", None)
-        config.admins = set(raw_dict.get("admins", []))
-
-        config.command_handler = RunCommandType.local
-        a_h = raw_dict.get("command_handler")
-        if a_h:
-            config.command_handler = RunCommandType(a_h)
-        config.command_handler_work_dir = raw_dict.get(
-            "command_handler_work_dir", SANDCASTLE_WORK_DIR
-        )
-        config.command_handler_pvc_env_var = raw_dict.get(
-            "command_handler_pvc_env_var", SANDCASTLE_PVC
-        )
-        config.command_handler_image_reference = raw_dict.get(
-            "command_handler_image_reference", SANDCASTLE_IMAGE
-        )
-        # default project for oc cluster up
-        config.command_handler_k8s_namespace = raw_dict.get(
-            "command_handler_k8s_namespace", SANDCASTLE_DEFAULT_PROJECT
-        )
-
-        return config
+        return ServiceConfigSchema(strict=True).load(raw_dict).data
 
     @classmethod
     def get_service_config(cls) -> "ServiceConfig":
