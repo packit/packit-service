@@ -21,7 +21,6 @@
 # SOFTWARE.
 import json
 import logging
-from json import JSONDecodeError
 from typing import Union, List, Optional
 
 from kubernetes.client.rest import ApiException
@@ -351,7 +350,7 @@ class CoprBuildHandler(object):
                 json_content = json.loads(ex.body)
                 formatted_json = json.dumps(json_content, indent=2)
                 error_message += f"HTTP response body:\n{formatted_json}\n"
-            except JSONDecodeError:
+            except json.JSONDecodeError:
                 error_message += f"HTTP response body: {ex.body}\n"
 
         msg = (
