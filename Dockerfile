@@ -1,6 +1,6 @@
 # Image for the web service (httpd), for celery worker see Dockerfile.worker
 
-FROM fedora:30
+FROM fedora:31
 
 ENV LANG=en_US.UTF-8 \
     ANSIBLE_STDOUT_CALLBACK=debug \
