@@ -7,8 +7,6 @@
       name:
       - python3-ipdb  # for easy debugging
       - nss_wrapper  # openshift anyuid passwd madness
-      - python3-celery # (#107)
-      - python3-redis
       - redis  # redis-cli for debugging
       - origin-clients # for sandcastle
       - python3-kubernetes # for sandcastle
@@ -19,8 +17,6 @@
     pip:
       name:
       - git+https://github.com/packit-service/sandcastle.git
-      # ogr RPM is installed in base packit image
-      # - git+https://github.com/packit-service/ogr.git
       - persistentdict
       # "We recommend you update your SDK from version 0.12.2 to version 0.12.3"
       - sentry-sdk==0.12.3

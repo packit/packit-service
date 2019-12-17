@@ -22,4 +22,4 @@ install -m 0400 /packit-ssh/config .
 grep -q pkgs.fedoraproject.org known_hosts || ssh-keyscan pkgs.fedoraproject.org >>known_hosts
 popd
 
-exec celery-3 worker --app="${APP}" --loglevel=${LOGLEVEL} --concurrency=1
+exec celery worker --app="${APP}" --loglevel=${LOGLEVEL} --concurrency=1
