@@ -1,12 +1,11 @@
 import json
 
-import pytest
 from flexmock import flexmock
+
 from ogr.abstract import GitProject, GitService
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobConfig, JobType, JobTriggerType
 from packit.exceptions import FailedCreateSRPM
-
 from packit_service.config import ServiceConfig
 from packit_service.service.models import CoprBuild
 from packit_service.worker import sentry_integration
@@ -17,7 +16,6 @@ from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 
 
-@pytest.fixture()
 def pull_request():
     with open(DATA_DIR / "webhooks" / "github_pr_event.json", "r") as outfile:
         return json.load(outfile)
