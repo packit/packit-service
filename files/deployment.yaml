@@ -60,6 +60,7 @@
       - copr
       - ssh_config
       - fedora.toml
+      - extra-vars.yml
     become: true
 
   - name: Create dev.yml
