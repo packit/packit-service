@@ -32,6 +32,8 @@ from packit_service.service.events import (
     PullRequestCommentEvent,
     PullRequestAction,
     PullRequestCommentAction,
+    IssueCommentEvent,
+    IssueCommentAction,
 )
 from packit_service.service.events import WhitelistStatus
 from packit_service.worker.whitelist import Whitelist
@@ -116,26 +118,58 @@ def test_is_packager(whitelist, account_name, person_object, raises, is_packager
     assert whitelist._is_packager(account_name) == is_packager
 
 
-def test_check_and_report_pr_comment_reject(whitelist):
-    event = PullRequestCommentEvent(
-        PullRequestAction["opened"], 0, "brcalnik", "", "", "", "", "rakosnicek", ""
-    )
+@pytest.mark.parametrize(
+    "event, method, approved",
+    [
+        (
+            PullRequestCommentEvent(
+                PullRequestCommentAction.created,
+                0,
+                "brcalnik",
+                "",
+                "",
+                "",
+                "",
+                "rakosnicek",
+                "",
+            ),
+            "pr_comment",
+            False,
+        ),
+        (
+            IssueCommentEvent(
+                IssueCommentAction.created, 0, "brcalnik", "", "", "", "rakosnicek", "",
+            ),
+            "issue_comment",
+            False,
+        ),
+        (
+            PullRequestCommentEvent(
+                PullRequestCommentAction.created, 0, "", "", "", "", "", "lojzo", "",
+            ),
+            "pr_comment",
+            True,
+        ),
+        (
+            IssueCommentEvent(
+                IssueCommentAction.created, 0, "", "", "", "", "lojzo", "",
+            ),
+            "issue_comment",
+            True,
+        ),
+    ],
+)
+def test_check_and_report_calls_method(whitelist, event, method, approved):
     gp = GitProject("", GitService(), "")
-    flexmock(gp).should_receive("pr_comment").with_args(
-        0, "Neither account rakosnicek nor owner brcalnik are on our whitelist!"
-    ).once()
-    assert not whitelist.check_and_report(event, gp)
-
-
-def test_check_and_report_pr_comment_approve(whitelist):
-    event = PullRequestCommentEvent(
-        PullRequestAction["opened"], 0, "", "", "", "", "", "lojzo", ""
+    mocked_gp = (
+        flexmock(gp)
+        .should_receive(method)
+        .with_args(
+            0, "Neither account rakosnicek nor owner brcalnik are on our whitelist!"
+        )
     )
-    gp = GitProject("", GitService(), "")
-    flexmock(gp).should_receive("pr_comment").with_args(
-        0, "Account is not whitelisted!"
-    ).never()
-    assert whitelist.check_and_report(event, gp)
+    mocked_gp.never() if approved else mocked_gp.once()
+    assert whitelist.check_and_report(event, gp) is approved
 
 
 @pytest.mark.parametrize(
@@ -256,4 +290,4 @@ def test_check_and_report(event, should_pass):
         issue_comment=lambda *args, **kwargs: None,
     )
     git_project = GithubProject("", GithubService(), "")
-    assert w.check_and_report(event, git_project) == should_pass
+    assert w.check_and_report(event, git_project) is should_pass
