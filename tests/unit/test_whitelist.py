@@ -19,6 +19,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from typing import List, Tuple
+
 import pytest
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
@@ -34,6 +36,7 @@ from packit_service.service.events import (
     PullRequestCommentAction,
     IssueCommentEvent,
     IssueCommentAction,
+    AbstractGithubEvent,
 )
 from packit_service.service.events import WhitelistStatus
 from packit_service.worker.whitelist import Whitelist
@@ -123,22 +126,14 @@ def test_is_packager(whitelist, account_name, person_object, raises, is_packager
     [
         (
             PullRequestCommentEvent(
-                PullRequestCommentAction.created,
-                0,
-                "brcalnik",
-                "",
-                "",
-                "",
-                "",
-                "rakosnicek",
-                "",
+                PullRequestCommentAction.created, 0, "foo", "", "", "", "", "bar", "",
             ),
             "pr_comment",
             False,
         ),
         (
             IssueCommentEvent(
-                IssueCommentAction.created, 0, "brcalnik", "", "", "", "rakosnicek", "",
+                IssueCommentAction.created, 0, "foo", "", "", "", "bar", "",
             ),
             "issue_comment",
             False,
@@ -164,125 +159,82 @@ def test_check_and_report_calls_method(whitelist, event, method, approved):
     mocked_gp = (
         flexmock(gp)
         .should_receive(method)
-        .with_args(
-            0, "Neither account rakosnicek nor owner brcalnik are on our whitelist!"
-        )
+        .with_args(0, "Neither account bar nor owner foo are on our whitelist!")
     )
     mocked_gp.never() if approved else mocked_gp.once()
     assert whitelist.check_and_report(event, gp) is approved
 
 
-@pytest.mark.parametrize(
-    "event,should_pass",
-    (
-        (ReleaseEvent("yoda", "", "", ""), True),
-        (ReleaseEvent("vader", "", "", ""), False),
-        (
-            PullRequestEvent(
-                PullRequestAction.opened,
-                1,
-                "death-star",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "darth-criplicus",
-            ),
-            False,
-        ),
-        (
-            PullRequestEvent(
-                PullRequestAction.opened,
-                1,
-                "naboo",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "darth-criplicus",
-            ),
-            True,
-        ),
-        (
-            PullRequestEvent(
-                PullRequestAction.opened, 1, "death-star", "", "", "", "", "", "anakin"
-            ),
-            True,
-        ),
-        (
-            PullRequestEvent(
-                PullRequestAction.opened, 1, "naboo", "", "", "", "", "", "anakin"
-            ),
-            True,
-        ),
-        (
-            PullRequestCommentEvent(
-                PullRequestCommentAction.created,
-                1,
-                "death-star",
-                "",
-                "",
-                "",
-                "",
-                "darth-criplicus",
-                "",
-            ),
-            False,
-        ),
-        (
-            PullRequestCommentEvent(
-                PullRequestCommentAction.created,
-                1,
-                "naboo",
-                "",
-                "",
-                "",
-                "",
-                "darth-criplicus",
-                "",
-            ),
-            True,
-        ),
-        (
-            PullRequestCommentEvent(
-                PullRequestCommentAction.created,
-                1,
-                "death-star",
-                "",
-                "",
-                "",
-                "",
-                "anakin",
-                "",
-            ),
-            True,
-        ),
-        (
-            PullRequestCommentEvent(
-                PullRequestCommentAction.created,
-                1,
-                "naboo",
-                "",
-                "",
-                "",
-                "",
-                "anakin",
-                "",
-            ),
-            True,
-        ),
-    ),
-)
-def test_check_and_report(event, should_pass):
-    w = Whitelist()
-    w.db = {
-        "anakin": {"status": "approved_manually"},
-        "yoda": {"status": "approved_manually"},
-        "naboo": {"status": "approved_manually"},
-    }
+@pytest.fixture()
+def events(request) -> List[Tuple[AbstractGithubEvent, bool]]:
+    """
+    :param request: event type to create Event instances of that type
+    :return: list of Events that check_and_report accepts together with whether they should pass
+    """
+    approved_accounts = [
+        ("foo", "bar", False),
+        ("foo", "lojzo", True),
+        ("lojzo", "bar", True),
+        ("lojzo", "fero", True),
+    ]
 
+    if request.param == "release":
+        return [
+            (ReleaseEvent("foo", "", "", ""), False),
+            (ReleaseEvent("lojzo", "", "", ""), True),
+        ]
+    elif request.param == "pr":
+        return [
+            (
+                PullRequestEvent(
+                    PullRequestAction.opened, 1, namespace, "", "", "", "", "", login
+                ),
+                approved,
+            )
+            for namespace, login, approved in approved_accounts
+        ]
+    elif request.param == "pr_comment":
+        return [
+            (
+                PullRequestCommentEvent(
+                    PullRequestCommentAction.created,
+                    1,
+                    namespace,
+                    "",
+                    "",
+                    "",
+                    "",
+                    login,
+                    "",
+                ),
+                approved,
+            )
+            for namespace, login, approved in approved_accounts
+        ]
+    elif request.param == "issue_comment":
+        return [
+            (
+                IssueCommentEvent(
+                    IssueCommentAction.created, 1, namespace, "", "", "", login, "",
+                ),
+                approved,
+            )
+            for namespace, login, approved in approved_accounts
+        ]
+    return []
+
+
+# https://stackoverflow.com/questions/35413134/what-does-indirect-true-false-in-pytest-mark-parametrize-do-mean
+@pytest.mark.parametrize(
+    "events", ["release", "pr", "pr_comment", "issue_comment"], indirect=True,
+)
+def test_check_and_report(
+    whitelist: Whitelist, events: List[Tuple[AbstractGithubEvent, bool]]
+):
+    """
+    :param whitelist: fixture
+    :param events: fixture: [(Event, should-be-approved)]
+    """
     flexmock(
         GithubProject,
         pr_comment=lambda *args, **kwargs: None,
@@ -290,4 +242,5 @@ def test_check_and_report(event, should_pass):
         issue_comment=lambda *args, **kwargs: None,
     )
     git_project = GithubProject("", GithubService(), "")
-    assert w.check_and_report(event, git_project) is should_pass
+    for event in events:
+        assert whitelist.check_and_report(event[0], git_project) is event[1]
