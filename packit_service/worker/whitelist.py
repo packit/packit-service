@@ -216,6 +216,8 @@ class Whitelist:
             if not account_name:
                 raise KeyError(f"Failed to get account_name from {type(event)}")
             namespace = event.base_repo_namespace
+            # FIXME:
+            #  Why check account_name when we whitelist namespace only (in whitelist.add_account())?
             if not (self.is_approved(account_name) or self.is_approved(namespace)):
                 msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
                 logger.error(msg)
@@ -240,6 +242,8 @@ class Whitelist:
             if not account_name:
                 raise KeyError(f"Failed to get account_name from {type(event)}")
             namespace = event.base_repo_namespace
+            # FIXME:
+            #  Why check account_name when we whitelist namespace only (in whitelist.add_account())?
             if not (self.is_approved(account_name) or self.is_approved(namespace)):
                 msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
                 logger.error(msg)
