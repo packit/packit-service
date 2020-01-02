@@ -216,6 +216,8 @@ class Whitelist:
             if not account_name:
                 raise KeyError(f"Failed to get account_name from {type(event)}")
             namespace = event.base_repo_namespace
+            # FIXME:
+            #  Why check account_name when we whitelist namespace only (in whitelist.add_account())?
             if not (self.is_approved(account_name) or self.is_approved(namespace)):
                 msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
                 logger.error(msg)
@@ -239,12 +241,15 @@ class Whitelist:
             account_name = event.github_login
             if not account_name:
                 raise KeyError(f"Failed to get account_name from {type(event)}")
-            if not self.is_approved(account_name):
-                logger.error(f"User {account_name} is not approved on whitelist!")
+            namespace = event.base_repo_namespace
+            # FIXME:
+            #  Why check account_name when we whitelist namespace only (in whitelist.add_account())?
+            if not (self.is_approved(account_name) or self.is_approved(namespace)):
+                msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
+                logger.error(msg)
+                project.issue_comment(event.issue_id, msg)
                 # TODO also check blacklist,
                 # but for that we need to know who triggered the action
-                msg = "Account is not whitelisted!"
-                project.issue_comment(event.issue_id, msg)
                 return False
             return True
 

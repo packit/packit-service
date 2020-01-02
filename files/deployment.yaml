@@ -89,7 +89,6 @@
         # image worker
         image_worker: docker.io/usercont/packit-service-worker
         worker_replicas: 1
-        skopeo_transport: "docker-daemon:"
       dest: "{{ deployment_dir }}/vars/dev.yml"
     become: true
   - name: Actually deploy
