@@ -29,7 +29,6 @@ from packit.api import PackitAPI
 from packit.config import PackageConfig, JobType, JobConfig
 from packit.config.aliases import get_build_targets
 from packit.exceptions import (
-    FailedCreateSRPM,
     PackitCoprException,
     PackitCoprProjectException,
 )
@@ -46,6 +45,12 @@ from packit_service.worker.handler import (
     BuildStatusReporter,
     PRCheckName,
 )
+
+try:
+    from packit.exceptions import PackitSRPMException
+except ImportError:
+    # Backwards compatibility
+    from packit.exceptions import FailedCreateSRPM as PackitSRPMException
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +241,7 @@ class CoprBuildHandler(object):
         except ApiException as ex:
             return self._process_openshift_error(ex)
 
-        except FailedCreateSRPM as ex:
+        except PackitSRPMException as ex:
             return self._process_failed_srpm_build(ex)
 
         except PackitCoprProjectException as ex:
