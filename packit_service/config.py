@@ -35,7 +35,6 @@ from packit_service.constants import (
     SANDCASTLE_DEFAULT_PROJECT,
     CONFIG_FILE_NAME,
 )
-from packit_service.schema import SERVICE_CONFIG_SCHEMA
 
 logger = logging.getLogger(__name__)
 
@@ -47,60 +46,44 @@ class Deployment(enum.Enum):
 
 
 class ServiceConfig(Config):
-    SCHEMA = SERVICE_CONFIG_SCHEMA
     service_config = None
 
-    def __init__(self):
-        super().__init__()
+    def __init__(
+        self,
+        deployment: Deployment = Deployment.stg,
+        webhook_secret: str = "",
+        testing_farm_secret: str = "",
+        validate_webhooks: bool = True,
+        admins: list = [],
+        **kwargs,
+    ):
 
-        self.deployment: Deployment = Deployment.stg
+        super().__init__(**kwargs)
 
-        self.webhook_secret: str = ""
-        self.testing_farm_secret: str = ""
-        self.validate_webhooks: bool = True
+        self.deployment = deployment
+
+        # duplicate - also in Config -> can be removed?
+        self.webhook_secret = webhook_secret
+        self.testing_farm_secret = testing_farm_secret
+        self.validate_webhooks = validate_webhooks
 
         # fas.fedoraproject.org needs password to authenticate
         # 'fas_user' is inherited from packit.config.Config
         self.fas_password: Optional[str] = ""
 
         # List of github users who are allowed to trigger p-s on any repository
-        self.admins: Set[str] = set()
-
-        # %%% ACTIONS HANDLER CONFIGURATION %%%
-        # these values are specific to packit service when we run actions in a sandbox
-
-        # name of the handler to run actions and commands, default to current env
-        self.command_handler: RunCommandType = RunCommandType.local
-        # a dir where the PV is mounted: both in sandbox and in worker
-        self.command_handler_work_dir: str = ""
-        # name of the PVC so that the sandbox has the same volume mounted
-        self.command_handler_pvc_env_var: str = ""  # pointer to pointer, lol
-        # name of sandbox container image
-        self.command_handler_image_reference: str = SANDCASTLE_IMAGE
-        # do I really need to explain this?
-        self.command_handler_k8s_namespace: str = SANDCASTLE_DEFAULT_PROJECT
-
-        # path to a file where OGR should store HTTP requests
-        self.github_requests_log_path: str = ""
+        self.admins: Set[str] = set(admins)
 
         # for flask SERVER_NAME so we can create links to logs
         self.server_name: str = ""
 
     @classmethod
-    def get_from_dict(cls, raw_dict: dict, validate=True) -> "ServiceConfig":
-        if validate:
-            cls.validate(raw_dict)
+    def get_from_dict(cls, raw_dict: dict) -> "ServiceConfig":
+        # required to avoid circular imports
+        from packit_service.schema import ServiceConfigSchema
 
-        user_config = super().get_from_dict(raw_dict=raw_dict, validate=False)
-        config = ServiceConfig()
-        config.__dict__.update(user_config.__dict__)
+        config = ServiceConfigSchema(strict=True).load(raw_dict).data
 
-        config.webhook_secret = raw_dict.get("webhook_secret", "")
-        config.testing_farm_secret = raw_dict.get("testing_farm_secret", "")
-        config.deployment = Deployment(raw_dict.get("deployment", ""))
-        config.validate_webhooks = raw_dict.get("validate_webhooks", False)
-        config.fas_password = raw_dict.get("fas_password", "")
-        config.admins = set(raw_dict.get("admins", []))
         config.server_name = raw_dict.get("server_name", "localhost:8443")
 
         config.command_handler = RunCommandType.local

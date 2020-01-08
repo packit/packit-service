@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import pytest
-from packit.exceptions import PackitInvalidConfigException
+from marshmallow import ValidationError
 
 from packit_service.config import ServiceConfig, Deployment
 
@@ -85,12 +85,12 @@ def test_parse_valid(service_config_valid):
 
 
 def test_parse_invalid(service_config_invalid):
-    with pytest.raises(PackitInvalidConfigException):
+    with pytest.raises(ValidationError):
         ServiceConfig.get_from_dict(service_config_invalid)
 
 
 def test_parse_missing(service_config_missing):
-    with pytest.raises(PackitInvalidConfigException):
+    with pytest.raises(ValidationError):
         ServiceConfig.get_from_dict(service_config_missing)
 
 
