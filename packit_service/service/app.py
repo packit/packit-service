@@ -23,11 +23,19 @@
 import logging
 
 from flask import Flask
-
 from packit.utils import set_logging
+
+from packit_service.config import ServiceConfig
 from packit_service.service.api import blueprint
 
 set_logging(logger_name="packit_service", level=logging.DEBUG)
 
 application = Flask(__name__)
 application.register_blueprint(blueprint)
+
+application.config["SERVER_NAME"] = ServiceConfig.get_service_config().server_name
+application.config["PREFERRED_URL_SCHEME"] = "https"
+
+logger = logging.getLogger("packit_service")
+# no need to thank me, just buy me a beer
+logger.debug(f"URL map = {application.url_map}")

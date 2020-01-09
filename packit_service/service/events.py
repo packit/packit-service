@@ -31,7 +31,8 @@ from typing import Optional, List, Union
 
 from ogr.abstract import GitProject
 from packit.config import JobTriggerType, get_package_config_from_repo, PackageConfig
-from packit_service.config import service_config
+
+from packit_service.config import ServiceConfig
 from packit_service.worker.copr_db import CoprBuildDB
 
 logger = logging.getLogger(__name__)
@@ -144,7 +145,7 @@ class AbstractGithubEvent(Event):
         self.project_url: str = project_url
 
     def get_project(self) -> GitProject:
-        return service_config.get_project(url=self.project_url)
+        return ServiceConfig.get_service_config().get_project(url=self.project_url)
 
 
 class ReleaseEvent(AbstractGithubEvent):
@@ -355,7 +356,7 @@ class DistGitEvent(Event):
         return get_package_config_from_repo(self.get_project(), self.ref)
 
     def get_project(self) -> GitProject:
-        return service_config.get_project(self.project_url)
+        return ServiceConfig.get_service_config().get_project(self.project_url)
 
 
 class TestingFarmResultsEvent(AbstractGithubEvent):
