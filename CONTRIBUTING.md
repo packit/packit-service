@@ -100,6 +100,71 @@ Options:
   --help               Show this message and exit.
 ```
 
+### Database
+
+We are using two databases right now: redis (task scheduler for celery) and postgres (persistent data store).
+
+Take a look at [alembic](https://alembic.sqlalchemy.org/en/latest/cookbook.html#building-uptodate), the project which handles migrations and schema versioning for sqlalchemy.
+
+#### How to check what's inside postgres?
+
+Get shell inside the container (or pod). E.g. with docker-compose:
+
+```
+$ docker-compose exec -ti postgres bash
+bash-4.2$
+```
+
+Invoke psql interactive shell:
+
+```
+bash-4.2$ psql
+psql (10.6)
+Type "help" for help.
+
+postgres=#
+```
+
+Connect to packit database:
+
+```
+postgres=# \connect packit
+You are now connected to database "packit" as user "postgres".
+packit=#
+```
+
+Get help
+
+```
+packit=# \?
+```
+
+or
+
+```
+packit=# \h
+```
+
+List tables
+
+```
+packit=# \dt
+             List of relations
+ Schema |      Name       | Type  | Owner
+--------+-----------------+-------+--------
+ public | alembic_version | table | packit
+ public | github_projects | table | packit
+```
+
+Look inside a table
+
+```
+packit=# select * from github_projects;
+ id | namespace | repo_name
+----+-----------+-----------
+(0 rows)
+```
+
 # Testing
 
 Tests are stored in [tests/](/tests) directory and tests using [requre](https://github.com/packit-service/requre) are stored in [tests-requre/](/tests-requre).

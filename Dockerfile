@@ -25,6 +25,9 @@ RUN cd /src/ \
     && ansible-playbook -vv -c local -i localhost, recipe.yaml \
     && rm -rf /src/
 
+COPY alembic.ini /src/
+COPY alembic/ /src/alembic/
+
 EXPOSE 8443
 
 CMD ["/usr/bin/run_httpd.sh"]

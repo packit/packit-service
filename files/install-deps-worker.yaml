@@ -12,6 +12,9 @@
           - python3-kubernetes # for sandcastle
           - python3-fedora # to access FAS
           - python3-requests
+          - python3-alembic
+          - python3-sqlalchemy
+          - python3-psycopg2
         state: present
     - name: Install pip deps
       pip:

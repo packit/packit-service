@@ -42,11 +42,15 @@ services:
     tty: true
     depends_on:
       - redis
+      - postgres
     environment:
       DEPLOYMENT: dev
       REDIS_SERVICE_HOST: redis
       APP: packit_service.worker.tasks
       KRB5CCNAME: FILE:/tmp/krb5cc_packit
+      POSTGRESQL_USER: packit
+      POSTGRESQL_PASSWORD: secret-password
+      POSTGRESQL_DATABASE: packit
     volumes:
       - ./packit_service:/src-packit-service/packit_service:ro,z
       # worker should not require packit-service.yaml
@@ -70,11 +74,15 @@ services:
     depends_on:
       - redis
       - fedora-messaging
+      - postgres
     ports:
       - 8443:8443
     environment:
       DEPLOYMENT: dev
       REDIS_SERVICE_HOST: redis
+      POSTGRESQL_USER: packit
+      POSTGRESQL_PASSWORD: secret-password
+      POSTGRESQL_DATABASE: packit
     volumes:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
       # There's no secrets/ by default. You have to create (or symlink to other dir) it yourself.
@@ -99,3 +107,11 @@ services:
       # get it from secrets
       - ./secrets/dev/fedora.toml:/home/packit/.config/fedora.toml:ro,z
     user: "123123"
+
+  postgres:
+    container_name: postgres
+    image: registry.access.redhat.com/rhscl/postgresql-10-rhel7
+    environment:
+      POSTGRESQL_USER: packit
+      POSTGRESQL_PASSWORD: secret-password
+      POSTGRESQL_DATABASE: packit
