@@ -296,16 +296,27 @@ class CoprBuildHandler(object):
 
     def _process_failed_srpm_build(self, ex):
         sentry_integration.send_to_sentry(ex)
-        msg = f"Failed to create a SRPM: {ex}"
+        msg = (
+            f"There was an error while creating the SRPM. {MSG_RETRIGGER}\n"
+            "\nOutput:"
+            "\n```\n"
+            f"{ex}"
+            "\n```"
+        )
+        self.project.pr_comment(self.event.pr_id, msg)
+        short_msg = "Failed to create the SRPM."
         self.status_reporter.report(
             state="failure",
-            description=str(ex),
+            description=short_msg,
             check_names=PRCheckName.get_srpm_build_check(),
+        )
+        self.status_reporter.report_rpm_build_failed_because_of_the_srpm_fail(
+            build_check_names=self.build_check_names
         )
         self.status_reporter.report_tests_failed_because_of_the_build(
             test_check_names=self.test_check_names
         )
-        return HandlerResults(success=False, details={"msg": msg})
+        return HandlerResults(success=False, details={"msg": short_msg})
 
     def _process_failed_command(self, ex):
         max_log_size = 1024 * 16  # is 16KB enough?

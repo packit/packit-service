@@ -140,6 +140,7 @@ def test_copr_build_fails_in_packit():
     # the 8, 9, and 10 happens when the generic error is reported
     #  - Dominika is trying to fix this, hello!
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(10)
+    flexmock(GitProject).should_receive("pr_comment").and_return().once()
     flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
     flexmock(CoprBuildDB).should_receive("add_build").never()
