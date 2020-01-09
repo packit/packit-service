@@ -181,6 +181,14 @@ class BuildStatusReporter:
             check_names=test_check_names,
         )
 
+    def report_rpm_build_failed_because_of_the_srpm_fail(self, build_check_names):
+        self.report(
+            state="failure",
+            url="",
+            description="Failed to create the SRPM. No RPM build will be run.",
+            check_names=build_check_names,
+        )
+
     def report_tests_failed_because_of_the_build(self, test_check_names):
         self.report(
             state="failure",

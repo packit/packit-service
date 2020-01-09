@@ -310,6 +310,9 @@ class CoprBuildHandler(object):
             description=short_msg,
             check_names=PRCheckName.get_srpm_build_check(),
         )
+        self.status_reporter.report_rpm_build_failed_because_of_the_srpm_fail(
+            build_check_names=self.build_check_names
+        )
         self.status_reporter.report_tests_failed_because_of_the_build(
             test_check_names=self.test_check_names
         )
