@@ -83,6 +83,9 @@ class ServiceConfig(Config):
         # path to a file where OGR should store HTTP requests
         self.github_requests_log_path: str = ""
 
+        # for flask SERVER_NAME so we can create links to logs
+        self.server_name: str = ""
+
     @classmethod
     def get_from_dict(cls, raw_dict: dict, validate=True) -> "ServiceConfig":
         if validate:
@@ -98,6 +101,7 @@ class ServiceConfig(Config):
         config.validate_webhooks = raw_dict.get("validate_webhooks", False)
         config.fas_password = raw_dict.get("fas_password", None)
         config.admins = set(raw_dict.get("admins", []))
+        config.server_name = raw_dict.get("server_name", "localhost:8443")
 
         config.command_handler = RunCommandType.local
         a_h = raw_dict.get("command_handler")
