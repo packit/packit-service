@@ -128,12 +128,19 @@ class CoprBuildHandler(object):
         1. If the job is not defined, use the test_chroots.
         2. If the job is defined, but not the targets, use "fedora-stable" alias otherwise.
         """
-        if not self.job_copr_build:
+        if (
+            (not self.job_copr_build or "targets" not in self.job_copr_build.metadata)
+            and self.job_tests
+            and "targets" in self.job_tests.metadata
+        ):
             return self.tests_chroots
-        configured_targets = self.job_copr_build.metadata.get(
-            "targets", ["fedora-stable"]
-        )
-        return list(get_build_targets(*configured_targets))
+
+        if not self.job_copr_build:
+            raw_targets = ["fedora-stable"]
+        else:
+            raw_targets = self.job_copr_build.metadata.get("targets", ["fedora-stable"])
+
+        return list(get_build_targets(*raw_targets))
 
     @property
     def tests_chroots(self) -> List[str]:
