@@ -26,7 +26,7 @@ This file defines classes for job handlers specific for Github hooks
 import json
 import logging
 import uuid
-from typing import Union, Any, Optional, List
+from typing import Union, Any, Optional, List, Callable
 
 import requests
 from ogr.abstract import GitProject
@@ -68,6 +68,7 @@ from packit_service.worker.handler import (
     add_to_mapping,
     BuildStatusReporter,
     PRCheckName,
+    add_to_mapping_for_job,
 )
 from packit_service.worker.whitelist import Whitelist
 
@@ -239,6 +240,7 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
 
 
 @add_to_mapping
+@add_to_mapping_for_job(job_type=JobType.tests)
 class GithubCoprBuildHandler(AbstractGithubJobHandler):
     name = JobType.copr_build
     triggers = [JobTriggerType.pull_request, JobTriggerType.release]
@@ -294,6 +296,19 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
         return handler_results
 
     def run(self) -> HandlerResults:
+        is_copr_build: Callable[
+            [JobConfig], bool
+        ] = lambda job: job.type == JobType.copr_build
+
+        if self.job.job == JobType.tests and any(
+            filter(is_copr_build, self.package_config.jobs)
+        ):
+            return HandlerResults(
+                success=False,
+                details={
+                    "msg": "Skipping build for testing. The COPR build is defined in the config."
+                },
+            )
         if self.event.trigger == JobTriggerType.pull_request:
             return self.handle_pull_request()
         # We do not support this workflow officially
@@ -507,7 +522,6 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
         return None
 
     def run(self) -> HandlerResults:
-
         collaborators = self.project.who_can_merge_pr()
         if self.event.github_login not in collaborators | self.config.admins:
             msg = "Only collaborators can trigger Packit-as-a-Service"
