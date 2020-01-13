@@ -429,10 +429,10 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
                 msg = "Failed to post request to testing farm API."
                 logger.debug("Failed to post request to testing farm API.")
                 r.report(
-                    "failure",
-                    msg,
-                    None,
-                    "",
+                    state="failure",
+                    description=msg,
+                    build_id=None,
+                    url="",
                     check_names=PRCheckName.get_testing_farm_check(chroot),
                 )
                 return HandlerResults(success=False, details={"msg": msg})
@@ -455,18 +455,18 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
                     # something went wrong
                     msg = req.json()["message"]
                     r.report(
-                        "failure",
-                        msg,
-                        None,
+                        state="failure",
+                        description=msg,
+                        build_id=None,
                         check_names=PRCheckName.get_testing_farm_check(chroot),
                     )
                     return HandlerResults(success=False, details={"msg": msg})
 
                 r.report(
-                    "pending",
-                    "Tests are running ...",
-                    None,
-                    req.json()["url"],
+                    state="pending",
+                    description="Tests are running ...",
+                    build_id=None,
+                    url=req.json()["url"],
                     check_names=PRCheckName.get_testing_farm_check(chroot),
                 )
 

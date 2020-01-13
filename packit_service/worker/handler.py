@@ -72,16 +72,11 @@ class PRCheckName:
         return PACKIT_STG_SRPM_CHECK
 
     @staticmethod
-    def get_build_check(chroot: str = None) -> str:
+    def get_build_check(chroot: str) -> str:
         config = ServiceConfig.get_service_config()
         if config.deployment == Deployment.prod:
-            if chroot:
-                return f"{PACKIT_PROD_CHECK}-{chroot}"
-            return PACKIT_PROD_CHECK
-
-        if chroot:
-            return f"{PACKIT_STG_CHECK}-{chroot}"
-        return PACKIT_STG_CHECK
+            return f"{PACKIT_PROD_CHECK}-{chroot}"
+        return f"{PACKIT_STG_CHECK}-{chroot}"
 
     @staticmethod
     def get_testing_farm_check(chroot: str = None) -> str:
@@ -116,9 +111,9 @@ class BuildStatusReporter:
         self,
         state: str,
         description: str,
+        check_names: Union[str, list, None],
         build_id: Optional[str] = None,
         url: str = "",
-        check_names: Union[str, list, None] = None,
     ):
 
         logger.debug(
@@ -129,9 +124,7 @@ class BuildStatusReporter:
             self.copr_build_model.status = state
             self.copr_build_model.save()
 
-        if not check_names:
-            check_names = [PRCheckName.get_build_check()]
-        elif isinstance(check_names, str):
+        if isinstance(check_names, str):
             check_names = [check_names]
 
         for check in check_names:
@@ -190,6 +183,8 @@ class BuildStatusReporter:
         )
 
     def report_tests_failed_because_of_the_build(self, test_check_names):
+        if not test_check_names:
+            return
         self.report(
             state="failure",
             url="",
