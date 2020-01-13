@@ -73,7 +73,7 @@ def test_pr_comment_copr_build_handler(
 ):
     flexmock(CoprBuildHandler).should_receive("run_copr_build").and_return(
         HandlerResults(success=True, details={})
-    )
+    ).once()
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(pr_copr_build_comment_event)
     assert results["jobs"]["pull_request_action"]["success"]

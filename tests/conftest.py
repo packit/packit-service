@@ -23,13 +23,13 @@ import os
 from pathlib import Path
 
 import pytest
-from copr.v3.client import Client as CoprClient
 from flexmock import flexmock
 from github import Github
 from github.GitRelease import GitRelease as PyGithubRelease
 from ogr.abstract import GitTag
 from ogr.services.github import GithubProject, GithubRelease
 from packit.local_project import LocalProject
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.worker.whitelist import Whitelist
@@ -68,12 +68,39 @@ def dump_http_com():
     return f
 
 
-@pytest.fixture()
-def mock_pr_comment_functionality():
+@pytest.fixture(
+    params=[
+        [
+            {
+                "trigger": "pull_request",
+                "job": "copr_build",
+                "metadata": {"targets": "fedora-rawhide-x86_64"},
+            }
+        ],
+        [
+            {
+                "trigger": "pull_request",
+                "job": "tests",
+                "metadata": {"targets": "fedora-rawhide-x86_64"},
+            }
+        ],
+        [
+            {
+                "trigger": "pull_request",
+                "job": "copr_build",
+                "metadata": {"targets": "fedora-rawhide-x86_64"},
+            },
+            {
+                "trigger": "pull_request",
+                "job": "tests",
+                "metadata": {"targets": "fedora-rawhide-x86_64"},
+            },
+        ],
+    ]
+)
+def mock_pr_comment_functionality(request):
     packit_yaml = (
-        "{'specfile_path': '', 'synced_files': [],"
-        "'jobs': [{'trigger': 'pull_request', 'job': 'copr_build',"
-        "'metadata': {'targets': 'fedora-rawhide-x86_64'}}]}"
+        "{'specfile_path': '', 'synced_files': [], 'jobs': " + str(request.param) + "}"
     )
     flexmock(
         GithubProject,
@@ -81,23 +108,16 @@ def mock_pr_comment_functionality():
         full_repo_name="packit-service/hello-world",
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
-    flexmock(GithubProject).should_receive("who_can_merge_pr").and_return({"phracek"})
+    flexmock(GithubProject).should_receive("who_can_merge_pr").and_return(
+        {"phracek"}
+    ).once()
     flexmock(GithubProject).should_receive("get_all_pr_commits").with_args(
         9
-    ).and_return(["528b803be6f93e19ca4130bf4976f2800a3004c4"])
+    ).and_return(["528b803be6f93e19ca4130bf4976f2800a3004c4"]).once()
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
-    copr_dict = {
-        "login": "stevejobs",
-        "username": "stevejobs",
-        "token": "apple",
-        "copr_url": "https://copr.fedorainfracloud.org",
-    }
 
-    flexmock(CoprClient).should_receive("create_from_config_file").and_return(
-        CoprClient(copr_dict)
-    )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
 
