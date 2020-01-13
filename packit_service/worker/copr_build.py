@@ -102,14 +102,38 @@ class CoprBuildHandler(object):
 
     @property
     def build_chroots(self) -> List[str]:
-        configured_targets = self.job_copr_build.metadata.get("targets", [])
+        """
+        Return the chroots to build.
+
+        1. If the job is not defined, use the test_chroots.
+        2. If the job is defined, but not the targets, use "fedora-stable" alias otherwise.
+        """
+        if not self.job_copr_build:
+            return self.tests_chroots
+        configured_targets = self.job_copr_build.metadata.get(
+            "targets", ["fedora-stable"]
+        )
         return list(get_build_targets(*configured_targets))
 
     @property
     def tests_chroots(self) -> List[str]:
+        """
+        Return the list of chroots used in the testing farm.
+        Has to be a sub-set of the `build_chroots`.
+
+        Return an empty list if there is no job configured.
+
+        If not defined:
+        1. use the build_chroots if the job si configured
+        2. use "fedora-stable" alias otherwise
+        """
         if not self.job_tests:
             return []
-        configured_targets = self.job_tests.metadata.get("targets", [])
+
+        if "targets" not in self.job_tests.metadata and self.job_copr_build:
+            return self.build_chroots
+
+        configured_targets = self.job_tests.metadata.get("targets", ["fedora-stable"])
         return list(get_build_targets(*configured_targets))
 
     @property
@@ -124,17 +148,32 @@ class CoprBuildHandler(object):
 
     @property
     def job_project(self) -> Optional[str]:
-        return self.job_copr_build.metadata.get("project") or self.default_project_name
+        """
+        The job definition from the config file.
+        """
+        if self.job_copr_build:
+            return self.job_copr_build.metadata.get(
+                "project", self.default_project_name
+            )
+        return self.default_project_name
 
     @property
     def job_owner(self) -> Optional[str]:
-        return self.job_copr_build.metadata.get(
-            "owner"
-        ) or self.api.copr_helper.copr_client.config.get("username")
+        """
+        Owner used for the copr build -- search the config or use the copr's config.
+        """
+        if self.job_copr_build:
+            owner = self.job_copr_build.metadata.get("owner")
+            if owner:
+                return owner
+
+        return self.api.copr_helper.copr_client.config.get("username")
 
     @property
     def default_project_name(self):
-        # add suffix stg when using stg app
+        """
+        Project name for copr -- add `-stg` suffix for the stg app.
+        """
         stg = "-stg" if self.config.deployment == Deployment.stg else ""
         return f"{self.project.namespace}-{self.project.repo}-{self.event.pr_id}{stg}"
 
@@ -189,14 +228,9 @@ class CoprBuildHandler(object):
 
     def run_copr_build(self) -> HandlerResults:
 
-        if not self.job_copr_build:
-            msg = "No copr_build defined"
+        if not (self.job_copr_build or self.job_tests):
+            msg = "No copr_build or tests job defined."
             # we can't report it to end-user at this stage
-            return HandlerResults(success=False, details={"msg": msg})
-
-        if not self.job_copr_build.metadata.get("targets"):
-            msg = "'targets' value is required in packit config for copr_build job"
-            self.project.pr_comment(self.event.pr_id, msg)
             return HandlerResults(success=False, details={"msg": msg})
 
         if self.job_tests:
