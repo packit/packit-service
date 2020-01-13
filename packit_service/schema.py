@@ -19,19 +19,40 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from packit.schema import USER_CONFIG_SCHEMA
+import typing
 
-_SERVICE_CONFIG_SCHEMA_PROPERTIES = {
-    "deployment": {"type": "string"},
-    "webhook_secret": {"type": "string"},
-    "testing_farm_secret": {"type": "string"},
-    "validate_webhooks": {"type": "boolean"},
-    "fas_password": {"type": "string"},
-    "admins": {"type": "array"},
-}
-_SERVICE_CONFIG_SCHEMA_REQUIRED = ["deployment"]
+from marshmallow import fields, post_load, ValidationError
+from packit.schema import UserConfigSchema
 
-SERVICE_CONFIG_SCHEMA = USER_CONFIG_SCHEMA.copy()
-SERVICE_CONFIG_SCHEMA["properties"].update(_SERVICE_CONFIG_SCHEMA_PROPERTIES)
-SERVICE_CONFIG_SCHEMA.setdefault("required", [])
-SERVICE_CONFIG_SCHEMA["required"] += _SERVICE_CONFIG_SCHEMA_REQUIRED
+from packit_service.config import ServiceConfig, Deployment
+
+
+class DeploymentField(fields.Field):
+    def _serialize(self, value: typing.Any, attr: str, obj: typing.Any, **kwargs):
+        raise NotImplementedError
+
+    def _deserialize(
+        self,
+        value: typing.Any,
+        attr: typing.Optional[str],
+        data: typing.Optional[typing.Mapping[str, typing.Any]],
+        **kwargs,
+    ) -> Deployment:
+
+        if not isinstance(value, str):
+            raise ValidationError("Invalid data provided. str required")
+
+        return Deployment(value)
+
+
+class ServiceConfigSchema(UserConfigSchema):
+    deployment = DeploymentField(required=True)
+    webhook_secret = fields.String()
+    testing_farm_secret = fields.String()
+    fas_password = fields.String(default="")
+    validate_webhooks = fields.Bool(default=False)
+    admins = fields.List(fields.String())
+
+    @post_load
+    def make_instance(self, data, **kwargs):
+        return ServiceConfig(**data)
