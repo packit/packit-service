@@ -92,3 +92,23 @@ def test_parse_invalid(service_config_invalid):
 def test_parse_missing(service_config_missing):
     with pytest.raises(PackitInvalidConfigException):
         ServiceConfig.get_from_dict(service_config_missing)
+
+
+@pytest.mark.parametrize(
+    "sc", ((ServiceConfig.get_from_dict({"deployment": "stg"})), (ServiceConfig()),)
+)
+def test_config_opts(sc):
+    """ test that ServiceConfig knows all the options """
+    assert sc.server_name is not None
+    assert sc.deployment == Deployment.stg
+    assert sc.admins is not None
+    assert sc.command_handler is not None
+    assert sc.command_handler_work_dir is not None
+    assert sc.command_handler_pvc_env_var is not None
+    assert sc.command_handler_image_reference is not None
+    assert sc.command_handler_k8s_namespace is not None
+    assert sc.fas_password is not None
+    assert sc.testing_farm_secret is not None
+    assert sc.github_requests_log_path is not None
+    assert sc.webhook_secret is not None
+    assert sc.validate_webhooks is not None
