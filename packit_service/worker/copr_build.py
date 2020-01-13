@@ -36,7 +36,11 @@ from packit.local_project import LocalProject
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
 from packit_service.config import ServiceConfig, Deployment
-from packit_service.service.events import PullRequestEvent, PullRequestCommentEvent
+from packit_service.service.events import (
+    PullRequestEvent,
+    PullRequestCommentEvent,
+    CoprBuildEvent,
+)
 from packit_service.service.models import CoprBuild
 from packit_service.worker import sentry_integration
 from packit_service.worker.copr_db import CoprBuildDB
@@ -66,12 +70,22 @@ class CoprBuildHandler(object):
         config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
-        event: Union[PullRequestEvent, PullRequestCommentEvent],
+        event: Union[
+            PullRequestEvent,
+            PullRequestCommentEvent,
+            CoprBuildEvent,
+            PullRequestCommentEvent,
+        ],
     ):
         self.config: ServiceConfig = config
         self.package_config: PackageConfig = package_config
         self.project: GitProject = project
-        self.event: Union[PullRequestEvent, PullRequestCommentEvent] = event
+        self.event: Union[
+            PullRequestEvent,
+            PullRequestCommentEvent,
+            CoprBuildEvent,
+            PullRequestCommentEvent,
+        ] = event
 
         # lazy properties
         self._api = None
@@ -89,7 +103,7 @@ class CoprBuildHandler(object):
             self._local_project = LocalProject(
                 git_project=self.project,
                 working_dir=self.config.command_handler_work_dir,
-                ref=self.event.base_ref,
+                ref=self.base_ref,
                 pr_id=self.event.pr_id,
             )
         return self._local_project
@@ -99,6 +113,12 @@ class CoprBuildHandler(object):
         if not self._api:
             self._api = PackitAPI(self.config, self.package_config, self.local_project)
         return self._api
+
+    @property
+    def base_ref(self) -> Optional[str]:
+        if isinstance(self.event, (PullRequestEvent, PullRequestCommentEvent)):
+            return self.event.base_ref
+        return None
 
     @property
     def build_chroots(self) -> List[str]:
@@ -262,7 +282,7 @@ class CoprBuildHandler(object):
                 self.event.pr_id,
                 self.event.base_repo_name,
                 self.event.base_repo_namespace,
-                self.event.base_ref,
+                self.base_ref,
                 self.event.project_url,
             )
 

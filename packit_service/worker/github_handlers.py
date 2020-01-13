@@ -405,9 +405,12 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
 
         r = BuildStatusReporter(self.project, self.event.commit_sha)
 
-        chroots = self.job.metadata.get("targets")
-        logger.debug(f"Testing farm chroots: {chroots}")
-        for chroot in chroots:
+        copr_build_handler = CoprBuildHandler(
+            self.config, self.package_config, self.project, self.event
+        )
+        tests_chroots = copr_build_handler.tests_chroots
+        logger.debug(f"Testing farm chroots: {tests_chroots}")
+        for chroot in tests_chroots:
             pipeline_id = str(uuid.uuid4())
             logger.debug(f"Pipeline id: {pipeline_id}")
             payload: dict = {
