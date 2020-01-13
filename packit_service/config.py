@@ -61,7 +61,7 @@ class ServiceConfig(Config):
 
         # fas.fedoraproject.org needs password to authenticate
         # 'fas_user' is inherited from packit.config.Config
-        self.fas_password: Optional[str] = None
+        self.fas_password: Optional[str] = ""
 
         # List of github users who are allowed to trigger p-s on any repository
         self.admins: Set[str] = set()
@@ -99,7 +99,7 @@ class ServiceConfig(Config):
         config.testing_farm_secret = raw_dict.get("testing_farm_secret", "")
         config.deployment = Deployment(raw_dict.get("deployment", ""))
         config.validate_webhooks = raw_dict.get("validate_webhooks", False)
-        config.fas_password = raw_dict.get("fas_password", None)
+        config.fas_password = raw_dict.get("fas_password", "")
         config.admins = set(raw_dict.get("admins", []))
         config.server_name = raw_dict.get("server_name", "localhost:8443")
 
