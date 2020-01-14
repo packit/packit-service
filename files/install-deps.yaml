@@ -15,12 +15,14 @@
       - mod_md
       - mod_ssl
       - nss_wrapper
-      # web service needs packit just for few bits (see #109), so hopefully we don't need it from master and RPM is enough
-      - python3-packit
+      # temporary workaround for sake of marhsmallow
+      # - python3-packit
       - python3-pip # not included in base fedora:31 image, needed for next task
       state: present
   - name: Install pip deps
     pip:
       name:
       - persistentdict
+      # temporary workaround for sake of marhsmallow
+      - git+https://github.com/packit-service/packit.git
       executable: pip3
