@@ -18,6 +18,10 @@
       # temporary workaround for sake of marhsmallow
       # - python3-packit
       - python3-pip # not included in base fedora:31 image, needed for next task
+      # temporary depdendencies
+      - krb5-devel
+      - gcc
+      - python3-devel
       state: present
   - name: Install pip deps
     pip:
