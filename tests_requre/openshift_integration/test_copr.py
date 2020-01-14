@@ -22,6 +22,7 @@
 
 import json
 import flexmock
+import pytest
 
 from packit_service.worker.whitelist import Whitelist
 from tests_requre.openshift_integration.base import PackitServiceTestCase, DATA_DIR
@@ -48,6 +49,7 @@ def pr_comment_event_not_collaborator():
 
 
 class Copr(PackitServiceTestCase):
+    @pytest.mark.skip(reason="offline data needs to be regenerated for this test")
     def test_submit_copr_build_pr_event(self):
         # flexmock whitelist
         flexmock(Whitelist, check_and_report=True)
