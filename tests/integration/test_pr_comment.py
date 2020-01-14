@@ -24,8 +24,9 @@ import json
 
 import pytest
 from flexmock import flexmock
+from ogr.services.github import GithubProject
 
-from packit_service.worker.copr_build import CoprBuildHandler
+from packit_service.worker.copr_build import CoprBuildJobHelper
 from packit_service.worker.handler import HandlerResults
 from packit_service.worker.jobs import SteveJobs
 from tests.spellbook import DATA_DIR
@@ -71,9 +72,15 @@ def pr_wrong_packit_comment_event():
 def test_pr_comment_copr_build_handler(
     mock_pr_comment_functionality, pr_copr_build_comment_event
 ):
-    flexmock(CoprBuildHandler).should_receive("run_copr_build").and_return(
+    flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         HandlerResults(success=True, details={})
     ).once()
+    flexmock(GithubProject).should_receive("who_can_merge_pr").and_return(
+        {"phracek"}
+    ).once()
+    flexmock(GithubProject).should_receive("get_all_pr_commits").with_args(
+        9
+    ).and_return(["528b803be6f93e19ca4130bf4976f2800a3004c4"]).once()
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(pr_copr_build_comment_event)
     assert results["jobs"]["pull_request_action"]["success"]
@@ -82,9 +89,15 @@ def test_pr_comment_copr_build_handler(
 def test_pr_comment_build_handler(
     mock_pr_comment_functionality, pr_build_comment_event
 ):
-    flexmock(CoprBuildHandler).should_receive("run_copr_build").and_return(
+    flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         HandlerResults(success=True, details={})
     )
+    flexmock(GithubProject).should_receive("who_can_merge_pr").and_return(
+        {"phracek"}
+    ).once()
+    flexmock(GithubProject).should_receive("get_all_pr_commits").with_args(
+        9
+    ).and_return(["528b803be6f93e19ca4130bf4976f2800a3004c4"]).once()
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(pr_build_comment_event)
     assert results["jobs"]["pull_request_action"]["success"]

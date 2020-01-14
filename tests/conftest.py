@@ -108,12 +108,7 @@ def mock_pr_comment_functionality(request):
         full_repo_name="packit-service/hello-world",
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
-    flexmock(GithubProject).should_receive("who_can_merge_pr").and_return(
-        {"phracek"}
-    ).once()
-    flexmock(GithubProject).should_receive("get_all_pr_commits").with_args(
-        9
-    ).and_return(["528b803be6f93e19ca4130bf4976f2800a3004c4"]).once()
+
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)

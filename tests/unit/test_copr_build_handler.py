@@ -2,7 +2,7 @@ import pytest
 from flexmock import flexmock
 from packit.config import PackageConfig, JobConfig, JobType, JobTriggerType
 
-from packit_service.worker.copr_build import CoprBuildHandler
+from packit_service.worker.copr_build import CoprBuildJobHelper
 
 
 @pytest.mark.parametrize(
@@ -104,7 +104,7 @@ from packit_service.worker.copr_build import CoprBuildHandler
     ],
 )
 def test_targets(jobs, build_targets, test_targets):
-    copr_build_handler = CoprBuildHandler(
+    copr_build_handler = CoprBuildJobHelper(
         config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
         project=flexmock(),

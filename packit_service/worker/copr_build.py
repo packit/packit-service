@@ -64,7 +64,7 @@ MSG_RETRIGGER = (
 )
 
 
-class CoprBuildHandler(object):
+class JobHelper:
     def __init__(
         self,
         config: ServiceConfig,
@@ -164,39 +164,6 @@ class CoprBuildHandler(object):
         return list(get_build_targets(*configured_targets))
 
     @property
-    def copr_build_model(self) -> CoprBuild:
-        if self._copr_build_model is None:
-            self._copr_build_model = CoprBuild.create(
-                project=self.job_project,
-                owner=self.job_owner,
-                chroots=self.build_chroots,
-            )
-        return self._copr_build_model
-
-    @property
-    def job_project(self) -> Optional[str]:
-        """
-        The job definition from the config file.
-        """
-        if self.job_copr_build:
-            return self.job_copr_build.metadata.get(
-                "project", self.default_project_name
-            )
-        return self.default_project_name
-
-    @property
-    def job_owner(self) -> Optional[str]:
-        """
-        Owner used for the copr build -- search the config or use the copr's config.
-        """
-        if self.job_copr_build:
-            owner = self.job_copr_build.metadata.get("owner")
-            if owner:
-                return owner
-
-        return self.api.copr_helper.copr_client.config.get("username")
-
-    @property
     def default_project_name(self):
         """
         Project name for copr -- add `-stg` suffix for the stg app.
@@ -232,7 +199,7 @@ class CoprBuildHandler(object):
     def status_reporter(self):
         if not self._status_reporter:
             self._status_reporter = BuildStatusReporter(
-                self.project, self.event.commit_sha, self.copr_build_model
+                self.project, self.event.commit_sha, copr_build_model=None
             )
         return self._status_reporter
 
@@ -252,6 +219,49 @@ class CoprBuildHandler(object):
                 PRCheckName.get_build_check(chroot) for chroot in self.build_chroots
             ]
         return self._build_check_names
+
+    @property
+    def job_project(self) -> Optional[str]:
+        """
+        The job definition from the config file.
+        """
+        if self.job_copr_build:
+            return self.job_copr_build.metadata.get(
+                "project", self.default_project_name
+            )
+        return self.default_project_name
+
+
+class CoprBuildJobHelper(JobHelper):
+    @property
+    def status_reporter(self):
+        if not self._status_reporter:
+            self._status_reporter = BuildStatusReporter(
+                self.project, self.event.commit_sha, self.copr_build_model
+            )
+        return self._status_reporter
+
+    @property
+    def copr_build_model(self) -> CoprBuild:
+        if self._copr_build_model is None:
+            self._copr_build_model = CoprBuild.create(
+                project=self.job_project,
+                owner=self.job_owner,
+                chroots=self.build_chroots,
+            )
+        return self._copr_build_model
+
+    @property
+    def job_owner(self) -> Optional[str]:
+        """
+        Owner used for the copr build -- search the config or use the copr's config.
+        """
+        if self.job_copr_build:
+            owner = self.job_copr_build.metadata.get("owner")
+            if owner:
+                return owner
+
+        return self.api.copr_helper.copr_client.config.get("username")
 
     def run_copr_build(self) -> HandlerResults:
 
