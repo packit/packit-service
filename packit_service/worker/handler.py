@@ -101,6 +101,14 @@ def add_to_mapping(kls: Type["JobHandler"]):
     return kls
 
 
+def add_to_mapping_for_job(job_type: JobType):
+    def _add_to_mapping(kls: Type["JobHandler"]):
+        JOB_NAME_HANDLER_MAPPING[job_type] = kls
+        return kls
+
+    return _add_to_mapping
+
+
 class BuildStatusReporter:
     def __init__(
         self,

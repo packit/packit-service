@@ -36,7 +36,11 @@ from packit.local_project import LocalProject
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
 from packit_service.config import ServiceConfig, Deployment
-from packit_service.service.events import PullRequestEvent, PullRequestCommentEvent
+from packit_service.service.events import (
+    PullRequestEvent,
+    PullRequestCommentEvent,
+    CoprBuildEvent,
+)
 from packit_service.service.models import CoprBuild
 from packit_service.worker import sentry_integration
 from packit_service.worker.copr_db import CoprBuildDB
@@ -60,18 +64,28 @@ MSG_RETRIGGER = (
 )
 
 
-class CoprBuildHandler(object):
+class JobHelper:
     def __init__(
         self,
         config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
-        event: Union[PullRequestEvent, PullRequestCommentEvent],
+        event: Union[
+            PullRequestEvent,
+            PullRequestCommentEvent,
+            CoprBuildEvent,
+            PullRequestCommentEvent,
+        ],
     ):
         self.config: ServiceConfig = config
         self.package_config: PackageConfig = package_config
         self.project: GitProject = project
-        self.event: Union[PullRequestEvent, PullRequestCommentEvent] = event
+        self.event: Union[
+            PullRequestEvent,
+            PullRequestCommentEvent,
+            CoprBuildEvent,
+            PullRequestCommentEvent,
+        ] = event
 
         # lazy properties
         self._api = None
@@ -89,7 +103,7 @@ class CoprBuildHandler(object):
             self._local_project = LocalProject(
                 git_project=self.project,
                 working_dir=self.config.command_handler_work_dir,
-                ref=self.event.base_ref,
+                ref=self.base_ref,
                 pr_id=self.event.pr_id,
             )
         return self._local_project
@@ -101,40 +115,59 @@ class CoprBuildHandler(object):
         return self._api
 
     @property
+    def base_ref(self) -> Optional[str]:
+        if isinstance(self.event, (PullRequestEvent, PullRequestCommentEvent)):
+            return self.event.base_ref
+        return None
+
+    @property
     def build_chroots(self) -> List[str]:
-        configured_targets = self.job_copr_build.metadata.get("targets", [])
-        return list(get_build_targets(*configured_targets))
+        """
+        Return the chroots to build.
+
+        1. If the job is not defined, use the test_chroots.
+        2. If the job is defined, but not the targets, use "fedora-stable" alias otherwise.
+        """
+        if (
+            (not self.job_copr_build or "targets" not in self.job_copr_build.metadata)
+            and self.job_tests
+            and "targets" in self.job_tests.metadata
+        ):
+            return self.tests_chroots
+
+        if not self.job_copr_build:
+            raw_targets = ["fedora-stable"]
+        else:
+            raw_targets = self.job_copr_build.metadata.get("targets", ["fedora-stable"])
+
+        return list(get_build_targets(*raw_targets))
 
     @property
     def tests_chroots(self) -> List[str]:
+        """
+        Return the list of chroots used in the testing farm.
+        Has to be a sub-set of the `build_chroots`.
+
+        Return an empty list if there is no job configured.
+
+        If not defined:
+        1. use the build_chroots if the job si configured
+        2. use "fedora-stable" alias otherwise
+        """
         if not self.job_tests:
             return []
-        configured_targets = self.job_tests.metadata.get("targets", [])
+
+        if "targets" not in self.job_tests.metadata and self.job_copr_build:
+            return self.build_chroots
+
+        configured_targets = self.job_tests.metadata.get("targets", ["fedora-stable"])
         return list(get_build_targets(*configured_targets))
 
     @property
-    def copr_build_model(self) -> CoprBuild:
-        if self._copr_build_model is None:
-            self._copr_build_model = CoprBuild.create(
-                project=self.job_project,
-                owner=self.job_owner,
-                chroots=self.build_chroots,
-            )
-        return self._copr_build_model
-
-    @property
-    def job_project(self) -> Optional[str]:
-        return self.job_copr_build.metadata.get("project") or self.default_project_name
-
-    @property
-    def job_owner(self) -> Optional[str]:
-        return self.job_copr_build.metadata.get(
-            "owner"
-        ) or self.api.copr_helper.copr_client.config.get("username")
-
-    @property
     def default_project_name(self):
-        # add suffix stg when using stg app
+        """
+        Project name for copr -- add `-stg` suffix for the stg app.
+        """
         stg = "-stg" if self.config.deployment == Deployment.stg else ""
         return f"{self.project.namespace}-{self.project.repo}-{self.event.pr_id}{stg}"
 
@@ -166,7 +199,7 @@ class CoprBuildHandler(object):
     def status_reporter(self):
         if not self._status_reporter:
             self._status_reporter = BuildStatusReporter(
-                self.project, self.event.commit_sha, self.copr_build_model
+                self.project, self.event.commit_sha, copr_build_model=None
             )
         return self._status_reporter
 
@@ -187,16 +220,54 @@ class CoprBuildHandler(object):
             ]
         return self._build_check_names
 
+    @property
+    def job_project(self) -> Optional[str]:
+        """
+        The job definition from the config file.
+        """
+        if self.job_copr_build:
+            return self.job_copr_build.metadata.get(
+                "project", self.default_project_name
+            )
+        return self.default_project_name
+
+
+class CoprBuildJobHelper(JobHelper):
+    @property
+    def status_reporter(self):
+        if not self._status_reporter:
+            self._status_reporter = BuildStatusReporter(
+                self.project, self.event.commit_sha, self.copr_build_model
+            )
+        return self._status_reporter
+
+    @property
+    def copr_build_model(self) -> CoprBuild:
+        if self._copr_build_model is None:
+            self._copr_build_model = CoprBuild.create(
+                project=self.job_project,
+                owner=self.job_owner,
+                chroots=self.build_chroots,
+            )
+        return self._copr_build_model
+
+    @property
+    def job_owner(self) -> Optional[str]:
+        """
+        Owner used for the copr build -- search the config or use the copr's config.
+        """
+        if self.job_copr_build:
+            owner = self.job_copr_build.metadata.get("owner")
+            if owner:
+                return owner
+
+        return self.api.copr_helper.copr_client.config.get("username")
+
     def run_copr_build(self) -> HandlerResults:
 
-        if not self.job_copr_build:
-            msg = "No copr_build defined"
+        if not (self.job_copr_build or self.job_tests):
+            msg = "No copr_build or tests job defined."
             # we can't report it to end-user at this stage
-            return HandlerResults(success=False, details={"msg": msg})
-
-        if not self.job_copr_build.metadata.get("targets"):
-            msg = "'targets' value is required in packit config for copr_build job"
-            self.project.pr_comment(self.event.pr_id, msg)
             return HandlerResults(success=False, details={"msg": msg})
 
         if self.job_tests:
@@ -228,7 +299,7 @@ class CoprBuildHandler(object):
                 self.event.pr_id,
                 self.event.base_repo_name,
                 self.event.base_repo_namespace,
-                self.event.base_ref,
+                self.base_ref,
                 self.event.project_url,
             )
 

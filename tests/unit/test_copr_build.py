@@ -1,15 +1,15 @@
 import json
 
 from flexmock import flexmock
-
 from ogr.abstract import GitProject, GitService
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobConfig, JobType, JobTriggerType
 from packit.exceptions import FailedCreateSRPM
+
 from packit_service.config import ServiceConfig
 from packit_service.service.models import CoprBuild
 from packit_service.worker import sentry_integration
-from packit_service.worker.copr_build import CoprBuildHandler
+from packit_service.worker.copr_build import CoprBuildJobHelper
 from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.handler import BuildStatusReporter
 from packit_service.worker.parser import Parser
@@ -52,7 +52,7 @@ def build_handler(metadata=None, trigger=None, jobs=None):
     )
     pkg_conf = PackageConfig(jobs=jobs, downstream_package_name="dummy")
     event = Parser.parse_pr_event(pull_request())
-    handler = CoprBuildHandler(
+    handler = CoprBuildJobHelper(
         config=ServiceConfig(),
         package_config=pkg_conf,
         project=GitProject("", GitService(), ""),
@@ -101,13 +101,13 @@ def test_copr_build_success_set_test_check():
     # for every build-target (4) when:
     #  - RPM build is waiting for successful SPRM build
     #  - RPM build has just started...
-    # for every test-target (2) when:
+    # for every test-target (copied from the build => 4) when:
     #  - Waiting for a successful RPM build
     test_job = JobConfig(
         job=JobType.tests, trigger=JobTriggerType.pull_request, metadata={}
     )
     handler = build_handler(jobs=[test_job])
-    flexmock(GitProject).should_receive("set_commit_status").and_return().times(12)
+    flexmock(GitProject).should_receive("set_commit_status").and_return().times(14)
     flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(CoprBuildDB).should_receive("add_build").and_return().once()
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
@@ -151,12 +151,14 @@ def test_copr_build_fails_in_packit():
 
 
 def test_copr_build_no_targets():
-    metadata = {"owner": "nobody"}
-    handler = build_handler(metadata)
-    flexmock(GitProject).should_receive("pr_comment").with_args(
-        342, "'targets' value is required in packit config for copr_build job"
-    ).and_return().once()
-    flexmock(GitProject).should_receive("set_commit_status").never()
-    flexmock(CoprBuildDB).should_receive("add_build").never()
-    flexmock(PackitAPI).should_receive("run_copr_build").never()
-    assert not handler.run_copr_build()["success"]
+    # status is set for:
+    #  - srpm build pending and success (2)
+    # for every target (fedora-stable => 2) when:
+    #  - build in progress 2
+    #  - build finished 2
+    handler = build_handler(metadata={"owner": "nobody"})
+    flexmock(GitProject).should_receive("set_commit_status").and_return().times(6)
+    flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
+    flexmock(CoprBuildDB).should_receive("add_build").and_return().once()
+    flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
+    assert handler.run_copr_build()["success"]
