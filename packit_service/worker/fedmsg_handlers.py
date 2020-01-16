@@ -302,3 +302,5 @@ class CoprBuildStartHandler(FedmsgHandler):
             url=copr_url_from_event(self.event),
             check_names=PRCheckName.get_build_check(self.event.chroot),
         )
+        msg = f"Build on {self.event.chroot} in copr has started..."
+        return HandlerResults(success=True, details={"msg": msg})
