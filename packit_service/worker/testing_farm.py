@@ -95,7 +95,8 @@ class TestingFarmJobHelper(JobHelper):
 
     def run_testing_farm(self, chroot: str) -> HandlerResults:
         if chroot not in self.tests_chroots:
-            # Who triggered that?
+            # Leaving here just to be sure that we will discover this situation if it occurs.
+            # Currently not possible to trigger this situation.
             msg = f"Target '{chroot}' not defined for tests but triggered."
             logger.error(msg)
             send_to_sentry(PackitConfigException(msg))

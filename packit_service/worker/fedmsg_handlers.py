@@ -295,7 +295,7 @@ class CoprBuildStartHandler(FedmsgHandler):
             logger.debug(msg)
             return HandlerResults(success=True, details={"msg": msg})
 
-        self.build_job_helper.status_reporter(
+        self.build_job_helper.status_reporter.report(
             state="pending",
             description="RPM build has started...",
             url=copr_url_from_event(self.event),

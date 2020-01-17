@@ -382,7 +382,7 @@ class CoprBuildJobHelper(JobHelper):
     def _process_failed_srpm_build(self, ex):
         sentry_integration.send_to_sentry(ex)
         msg = (
-            f"There was an error while creating the SRPM. {MSG_RETRIGGER}\n"
+            f"There was an error while creating SRPM. {MSG_RETRIGGER}\n"
             "\nOutput:"
             "\n```\n"
             f"{ex}"
@@ -400,7 +400,7 @@ class CoprBuildJobHelper(JobHelper):
         else:
             output = ex.output
         msg = (
-            f"There was an error while creating the SRPM. {MSG_RETRIGGER}\n"
+            f"There was an error while creating SRPM. {MSG_RETRIGGER}\n"
             "\nOutput:"
             "\n```\n"
             f"{output}"
@@ -416,7 +416,7 @@ class CoprBuildJobHelper(JobHelper):
         return HandlerResults(success=False, details={"msg": msg})
 
     def _process_timeout(self):
-        msg = f"You have reached 10-minute timeout while creating the SRPM. {MSG_RETRIGGER}"
+        msg = f"You have reached 10-minute timeout while creating SRPM. {MSG_RETRIGGER}"
         self.project.pr_comment(self.event.pr_id, msg)
         msg = "Timeout reached while creating a SRPM."
         self.report_status_to_all(
