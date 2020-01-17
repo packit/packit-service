@@ -25,9 +25,11 @@ import pytest
 import requests
 from flexmock import flexmock
 from ogr.services.github import GithubProject
+from packit.config import JobConfig, JobType, JobTriggerType
 
 from packit_service.constants import PACKIT_STG_CHECK
 from packit_service.service.events import CoprBuildEvent
+from packit_service.worker.copr_build import CoprBuildJobHelper
 from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.fedmsg_handlers import CoprBuildEndHandler
 from packit_service.worker.handler import BuildStatusReporter, PRCheckName
@@ -48,7 +50,17 @@ def copr_build_end():
 def test_copr_build_end(copr_build_end):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(flexmock())
+    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+        flexmock(
+            jobs=[
+                JobConfig(
+                    job=JobType.copr_build,
+                    trigger=JobTriggerType.pull_request,
+                    metadata={},
+                )
+            ]
+        )
+    )
     flexmock(PRCheckName).should_receive("get_build_check").and_return(PACKIT_STG_CHECK)
     flexmock(CoprBuildEndHandler).should_receive(
         "was_last_build_successful"
@@ -73,7 +85,6 @@ def test_copr_build_end(copr_build_end):
     )
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
-
     # check if packit-service set correct PR status
     flexmock(BuildStatusReporter).should_receive("report").with_args(
         state="success",
@@ -83,7 +94,7 @@ def test_copr_build_end(copr_build_end):
     ).once()
 
     # skip testing farm
-    flexmock(CoprBuildEndHandler).should_receive("get_tests_for_build").and_return(None)
+    flexmock(CoprBuildJobHelper).should_receive("job_tests").and_return(None)
 
     steve.process_message(copr_build_end)
 

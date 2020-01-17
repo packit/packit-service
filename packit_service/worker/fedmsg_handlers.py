@@ -25,7 +25,7 @@ This file defines classes for job handlers specific for Fedmsg events
 """
 
 import logging
-from typing import Type, Optional
+from typing import Type
 
 import requests
 from packit.api import PackitAPI
@@ -41,13 +41,13 @@ from packit.utils import get_namespace_and_repo_name
 
 from packit_service.config import ServiceConfig
 from packit_service.service.events import Event, DistGitEvent, CoprBuildEvent
+from packit_service.worker.copr_build import CoprBuildJobHelper
 from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.github_handlers import GithubTestingFarmHandler
 from packit_service.worker.handler import (
     JobHandler,
     HandlerResults,
     add_to_mapping,
-    BuildStatusReporter,
     PRCheckName,
 )
 
@@ -178,6 +178,12 @@ class CoprBuildEndHandler(FedmsgHandler):
         super().__init__(config=config, job=job, event=event)
         self.project = self.event.get_project()
         self.package_config = self.event.get_package_config()
+        self.build_job_helper = CoprBuildJobHelper(
+            config=self.config,
+            package_config=self.package_config,
+            project=self.project,
+            event=event,
+        )
 
     def was_last_build_successful(self):
         """
@@ -201,12 +207,8 @@ class CoprBuildEndHandler(FedmsgHandler):
             logger.warning(msg)
             return HandlerResults(success=False, details={"msg": msg})
 
-        r = BuildStatusReporter(self.event.get_project(), build["commit_sha"])
         url = copr_url_from_event(self.event)
-        build_url = get_copr_build_url(self.event)
-
-        msg = "RPMs failed to be built."
-        gh_state = "failure"
+        check_name = PRCheckName.get_build_check(self.event.chroot)
 
         # https://pagure.io/copr/copr/blob/master/f/common/copr_common/enums.py#_42
         if self.event.status == 1:
@@ -217,13 +219,12 @@ class CoprBuildEndHandler(FedmsgHandler):
                 logger.debug(msg)
                 return HandlerResults(success=True, details={"msg": msg})
 
-            check_msg = "RPMs were built successfully."
-            gh_state = "success"
-
-            if not self.was_last_build_successful():
+            if (
+                self.build_job_helper.job_copr_build
+                and not self.was_last_build_successful()
+            ):
                 msg = (
-                    f"Congratulations! The build [has finished]({build_url})"
-                    " successfully. :champagne:\n\n"
+                    f"Congratulations! One of the builds has completed. :champagne:\n\n"
                     "You can install the built RPMs by following these steps:\n\n"
                     "* `sudo yum install -y dnf-plugins-core` on RHEL 8\n"
                     "* `sudo dnf install -y dnf-plugins-core` on Fedora\n"
@@ -232,17 +233,23 @@ class CoprBuildEndHandler(FedmsgHandler):
                     "\nPlease note that the RPMs should be used only in a testing environment."
                 )
                 self.project.pr_comment(pr_id=self.event.pr_id, body=msg)
-            r.report(
-                state=gh_state,
-                description=check_msg,
+
+            self.build_job_helper.status_reporter.report(
+                state="success",
+                description="RPMs were built successfully.",
                 url=url,
-                check_names=PRCheckName.get_build_check(self.event.chroot),
+                check_names=check_name,
             )
 
-            test_job_config = self.get_tests_for_build()
-            if test_job_config:
+            if (
+                self.build_job_helper.job_tests
+                and self.event.chroot in self.build_job_helper.tests_chroots
+            ):
                 testing_farm_handler = GithubTestingFarmHandler(
-                    self.config, test_job_config, self.event
+                    config=self.config,
+                    job=self.build_job_helper.job_tests,
+                    event=self.event,
+                    chroot=self.event.chroot,
                 )
                 testing_farm_handler.run()
             else:
@@ -250,23 +257,11 @@ class CoprBuildEndHandler(FedmsgHandler):
 
             return HandlerResults(success=True, details={})
 
-        r.report(
-            gh_state,
-            msg,
-            url=url,
-            check_names=PRCheckName.get_build_check(self.event.chroot),
+        failed_msg = "RPMs failed to be built."
+        self.build_job_helper.status_reporter(
+            state="failure", description=failed_msg, url=url, check_names=check_name,
         )
-        return HandlerResults(success=False, details={"msg": msg})
-
-    def get_tests_for_build(self) -> Optional[JobConfig]:
-        """
-        Check if there are tests defined
-        :return: JobConfig or None
-        """
-        for job in self.package_config.jobs:
-            if job.job == JobType.tests:
-                return job
-        return None
+        return HandlerResults(success=False, details={"msg": failed_msg})
 
 
 @add_topic
@@ -279,6 +274,12 @@ class CoprBuildStartHandler(FedmsgHandler):
         super().__init__(config=config, job=job, event=event)
         self.project = self.event.get_project()
         self.package_config = self.event.get_package_config()
+        self.build_job_helper = CoprBuildJobHelper(
+            config=self.config,
+            package_config=self.package_config,
+            project=self.project,
+            event=event,
+        )
 
     def run(self):
         build = CoprBuildDB().get_build(self.event.build_id)
@@ -288,15 +289,13 @@ class CoprBuildStartHandler(FedmsgHandler):
             logger.warning(msg)
             return HandlerResults(success=False, details={"msg": msg})
 
-        r = BuildStatusReporter(self.event.get_project(), build["commit_sha"])
-
         if self.event.chroot == "srpm-builds":
             # we don't want to set check for this
             msg = "SRPM build in copr has started"
             logger.debug(msg)
             return HandlerResults(success=True, details={"msg": msg})
 
-        r.report(
+        self.build_job_helper.status_reporter(
             state="pending",
             description="RPM build has started...",
             url=copr_url_from_event(self.event),

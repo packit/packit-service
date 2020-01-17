@@ -30,6 +30,7 @@ import requests
 from ogr.abstract import GitProject
 from ogr.utils import RequestResponse
 from packit.config import PackageConfig
+from packit.exceptions import PackitConfigException
 
 from packit_service.config import Deployment, ServiceConfig
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
@@ -43,6 +44,7 @@ from packit_service.worker.handler import (
     HandlerResults,
     PRCheckName,
 )
+from packit_service.worker.sentry_integration import send_to_sentry
 
 logger = logging.getLogger(__name__)
 
@@ -67,84 +69,119 @@ class TestingFarmJobHelper(JobHelper):
         self.session.mount("https://", adapter)
         self.header: dict = {"Content-Type": "application/json"}
 
-    def run_testing_farm(self):
+    def report_missing_build_chroot(self, chroot: str):
+        self.status_reporter.report(
+            state="error",
+            description=f"No build defined for the target '{chroot}'.",
+            check_names=PRCheckName.get_testing_farm_check(chroot),
+        )
+
+    def run_testing_farm_on_all(self):
+        failed = {}
         for chroot in self.tests_chroots:
-            pipeline_id = str(uuid.uuid4())
-            logger.debug(f"Pipeline id: {pipeline_id}")
-            payload: dict = {
-                "pipeline": {"id": pipeline_id},
-                "api": {"token": self.config.testing_farm_secret},
-            }
+            result = self.run_testing_farm(chroot)
+            if not result["success"]:
+                failed[chroot] = result.get("details")
 
-            logger.debug(f"Payload: {payload}")
+        if not failed:
+            return HandlerResults(success=True, details={})
 
-            stg = "-stg" if self.config.deployment == Deployment.stg else ""
-            copr_repo_name = (
-                f"packit/{self.project.namespace}-{self.project.repo}-"
-                f"{self.event.pr_id}{stg}"
+        return HandlerResults(
+            success=False,
+            details={"msg": f"Failed testing farm targets: '{failed.keys()}'."}.update(
+                failed
+            ),
+        )
+
+    def run_testing_farm(self, chroot: str) -> HandlerResults:
+        if chroot not in self.tests_chroots:
+            # Who triggered that?
+            msg = f"Target '{chroot}' not defined for tests but triggered."
+            logger.error(msg)
+            send_to_sentry(PackitConfigException(msg))
+            return HandlerResults(success=False, details={"msg": msg},)
+
+        if chroot not in self.build_chroots:
+            self.report_missing_build_chroot(chroot)
+            return HandlerResults(
+                success=False,
+                details={
+                    "msg": f"Target '{chroot}' not defined for build. "
+                    f"Cannot run tests without build."
+                },
             )
 
-            payload["artifact"] = {
-                "repo-name": self.event.base_repo_name,
-                "repo-namespace": self.event.base_repo_namespace,
-                "copr-repo-name": copr_repo_name,
-                "copr-chroot": chroot,
-                "commit-sha": self.event.commit_sha,
-                "git-url": self.event.project_url,
-                "git-ref": self.base_ref,
-            }
+        check_name = PRCheckName.get_testing_farm_check(chroot)
+        pipeline_id = str(uuid.uuid4())
+        logger.debug(f"Pipeline id: {pipeline_id}")
+        payload: dict = {
+            "pipeline": {"id": pipeline_id},
+            "api": {"token": self.config.testing_farm_secret},
+        }
 
-            logger.debug("Sending testing farm request...")
-            logger.debug(payload)
+        logger.debug(f"Payload: {payload}")
 
-            req = self.send_testing_farm_request(
-                TESTING_FARM_TRIGGER_URL, "POST", {}, json.dumps(payload)
+        stg = "-stg" if self.config.deployment == Deployment.stg else ""
+        copr_repo_name = (
+            f"packit/{self.project.namespace}-{self.project.repo}-"
+            f"{self.event.pr_id}{stg}"
+        )
+
+        payload["artifact"] = {
+            "repo-name": self.event.base_repo_name,
+            "repo-namespace": self.event.base_repo_namespace,
+            "copr-repo-name": copr_repo_name,
+            "copr-chroot": chroot,
+            "commit-sha": self.event.commit_sha,
+            "git-url": self.event.project_url,
+            "git-ref": self.base_ref,
+        }
+
+        logger.debug("Sending testing farm request...")
+        logger.debug(payload)
+
+        req = self.send_testing_farm_request(
+            TESTING_FARM_TRIGGER_URL, "POST", {}, json.dumps(payload)
+        )
+        logger.debug(f"Request sent: {req}")
+        if not req:
+            msg = "Failed to post request to testing farm API."
+            logger.debug("Failed to post request to testing farm API.")
+            self.status_reporter.report(
+                state="failure", description=msg, check_names=check_name,
             )
-            logger.debug(f"Request sent: {req}")
-            if not req:
-                msg = "Failed to post request to testing farm API."
-                logger.debug("Failed to post request to testing farm API.")
+            return HandlerResults(success=False, details={"msg": msg})
+        else:
+            logger.debug(
+                f"Submitted to testing farm with return code: {req.status_code}"
+            )
+
+            """
+            Response:
+            {
+                "id": "9fa3cbd1-83f2-4326-a118-aad59f5",
+                "success": true,
+                "url": "https://console-testing-farm.apps.ci.centos.org/pipeline/<id>"
+            }
+            """
+
+            # success set check on pending
+            if req.status_code != 200:
+                # something went wrong
+                msg = req.json()["message"]
                 self.status_reporter.report(
-                    "failure",
-                    msg,
-                    None,
-                    "",
-                    check_names=PRCheckName.get_testing_farm_check(chroot),
+                    state="failure",
+                    description=req.json()["message"],
+                    check_names=check_name,
                 )
                 return HandlerResults(success=False, details={"msg": msg})
-            else:
-                logger.debug(
-                    f"Submitted to testing farm with return code: {req.status_code}"
-                )
 
-                """
-                Response:
-                {
-                    "id": "9fa3cbd1-83f2-4326-a118-aad59f5",
-                    "success": true,
-                    "url": "https://console-testing-farm.apps.ci.centos.org/pipeline/<id>"
-                }
-                """
-
-                # success set check on pending
-                if req.status_code != 200:
-                    # something went wrong
-                    msg = req.json()["message"]
-                    self.status_reporter.report(
-                        "failure",
-                        msg,
-                        None,
-                        check_names=PRCheckName.get_testing_farm_check(chroot),
-                    )
-                    return HandlerResults(success=False, details={"msg": msg})
-
-                self.status_reporter.report(
-                    "pending",
-                    "Tests are running ...",
-                    None,
-                    req.json()["url"],
-                    check_names=PRCheckName.get_testing_farm_check(chroot),
-                )
+            self.status_reporter.report(
+                state="pending",
+                description="Tests are running ...",
+                url=req.json()["url"],
+                check_names=check_name,
+            )
 
         return HandlerResults(success=True, details={})
 
