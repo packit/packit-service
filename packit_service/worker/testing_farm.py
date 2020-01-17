@@ -120,8 +120,6 @@ class TestingFarmJobHelper(JobHelper):
             "api": {"token": self.config.testing_farm_secret},
         }
 
-        logger.debug(f"Payload: {payload}")
-
         stg = "-stg" if self.config.deployment == Deployment.stg else ""
         copr_repo_name = (
             f"packit/{self.project.namespace}-{self.project.repo}-"
