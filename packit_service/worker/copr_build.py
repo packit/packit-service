@@ -231,6 +231,30 @@ class JobHelper:
             )
         return self.default_project_name
 
+    def report_status_to_all(
+        self, description: str, state: str, url: str = None
+    ) -> None:
+        self.report_status_to_build(description, state, url)
+        self.report_status_to_tests(description, state, url)
+
+    def report_status_to_build(self, description, state, url: str = None):
+        if self.job_copr_build:
+            self.status_reporter.report(
+                description=description,
+                state=state,
+                url=url,
+                check_names=self.build_check_names,
+            )
+
+    def report_status_to_tests(self, description, state, url: str = None):
+        if self.job_tests:
+            self.status_reporter.report(
+                description=description,
+                state=state,
+                url=url,
+                check_names=self.test_check_names,
+            )
+
 
 class CoprBuildJobHelper(JobHelper):
     @property
@@ -270,26 +294,20 @@ class CoprBuildJobHelper(JobHelper):
             # we can't report it to end-user at this stage
             return HandlerResults(success=False, details={"msg": msg})
 
-        if self.job_tests:
-            self.status_reporter.report_tests_waiting_for_build(
-                test_check_names=self.test_check_names
-            )
-
         try:
-            self.status_reporter.report_srpm_build_start(
-                build_check_names=self.build_check_names
-            )
+            self.report_status_to_all(description="Building SRPM ...", state="pending")
             build_id, _ = self.api.run_copr_build(
                 project=self.job_project,
                 chroots=self.build_chroots,
                 owner=self.job_owner,
             )
-            self.status_reporter.report_srpm_build_finish()
-            self.status_reporter.report_rpm_build_start(
-                build_check_names=self.build_check_names,
+            self.report_status_to_all(
+                description="Building RPM ...",
+                state="pending",
                 url="https://copr.fedorainfracloud.org/coprs/"
                 f"{self.job_owner}/{self.job_project}/build/{build_id}/",
             )
+
             # Save copr build with commit information to be able to report status back
             # after fedmsg copr.build.end arrives
             copr_build_db = CoprBuildDB()
@@ -340,13 +358,9 @@ class CoprBuildJobHelper(JobHelper):
         )
         logger.error(msg)
         self.project.pr_comment(self.event.pr_id, f"{msg}\n{MSG_RETRIGGER}")
-        self.status_reporter.report(
-            state="failure",
-            description="Submit of the build failed, check latest comment for details.",
-            check_names=self.build_check_names,
-        )
-        self.status_reporter.report_tests_failed_because_of_the_build_submit(
-            test_check_names=self.test_check_names
+        self.report_status_to_all(
+            state="error",
+            description="Submit of the build failed, check comments for details.",
         )
         return HandlerResults(success=False, details={"msg": msg})
 
@@ -355,38 +369,28 @@ class CoprBuildJobHelper(JobHelper):
         msg = f"There was an error while running a copr build:\n```\n{ex}\n```\n"
         logger.error(msg)
         self.project.pr_comment(self.event.pr_id, f"{msg}\n{MSG_RETRIGGER}")
-        self.status_reporter.report(
+        self.report_status_to_build(
             state="failure",
             description="Build failed, check latest comment for details.",
-            check_names=self.build_check_names,
         )
-        self.status_reporter.report_tests_failed_because_of_the_build(
-            test_check_names=self.test_check_names
+        self.report_status_to_tests(
+            state="error",
+            description="Build failed, check latest comment for details.",
         )
         return HandlerResults(success=False, details={"msg": msg})
 
     def _process_failed_srpm_build(self, ex):
         sentry_integration.send_to_sentry(ex)
         msg = (
-            f"There was an error while creating the SRPM. {MSG_RETRIGGER}\n"
+            f"There was an error while creating SRPM. {MSG_RETRIGGER}\n"
             "\nOutput:"
             "\n```\n"
             f"{ex}"
             "\n```"
         )
         self.project.pr_comment(self.event.pr_id, msg)
-        short_msg = "Failed to create the SRPM."
-        self.status_reporter.report(
-            state="failure",
-            description=short_msg,
-            check_names=PRCheckName.get_srpm_build_check(),
-        )
-        self.status_reporter.report_rpm_build_failed_because_of_the_srpm_fail(
-            build_check_names=self.build_check_names
-        )
-        self.status_reporter.report_tests_failed_because_of_the_build(
-            test_check_names=self.test_check_names
-        )
+        short_msg = "Failed to create SRPM."
+        self.report_status_to_all(description=short_msg, state="error")
         return HandlerResults(success=False, details={"msg": short_msg})
 
     def _process_failed_command(self, ex):
@@ -396,7 +400,7 @@ class CoprBuildJobHelper(JobHelper):
         else:
             output = ex.output
         msg = (
-            f"There was an error while creating a SRPM. {MSG_RETRIGGER}\n"
+            f"There was an error while creating SRPM. {MSG_RETRIGGER}\n"
             "\nOutput:"
             "\n```\n"
             f"{output}"
@@ -405,23 +409,18 @@ class CoprBuildJobHelper(JobHelper):
         )
         self.project.pr_comment(self.event.pr_id, msg)
         sentry_integration.send_to_sentry(output)
-        msg = "Failed to create a SRPM."
-        self.status_reporter.report(
-            state="failure",
-            description=msg,
-            check_names=PRCheckName.get_srpm_build_check(),
+        msg = "Failed to create SRPM."
+        self.report_status_to_all(
+            state="error", description=msg,
         )
         return HandlerResults(success=False, details={"msg": msg})
 
     def _process_timeout(self):
-        msg = f"You have reached 10-minute timeout while creating the SRPM. {MSG_RETRIGGER}"
+        msg = f"You have reached 10-minute timeout while creating SRPM. {MSG_RETRIGGER}"
         self.project.pr_comment(self.event.pr_id, msg)
         msg = "Timeout reached while creating a SRPM."
-        self.status_reporter.report(
-            state="failure", description=msg, check_names=self.build_check_names
-        )
-        self.status_reporter.report_tests_failed_because_of_the_build(
-            test_check_names=self.test_check_names
+        self.report_status_to_all(
+            state="error", description=msg,
         )
         return HandlerResults(success=False, details={"msg": msg})
 
@@ -457,12 +456,7 @@ class CoprBuildJobHelper(JobHelper):
         )
         self.project.pr_comment(self.event.pr_id, comment_msg)
 
-        self.status_reporter.report(
-            state="failure",
-            description="Build failed, check latest comment for details.",
-            check_names=self.build_check_names,
-        )
-        self.status_reporter.report_tests_failed_because_of_the_build(
-            test_check_names=self.test_check_names
+        self.report_status_to_all(
+            state="error", description="Build failed, check the comments for details.",
         )
         return HandlerResults(success=False, details={"msg": msg})

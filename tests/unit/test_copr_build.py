@@ -65,25 +65,16 @@ def build_handler(metadata=None, trigger=None, jobs=None):
 def test_copr_build_check_names():
     metadata = {"owner": "nobody", "targets": ["bright-future-x86_64"]}
     handler = build_handler(metadata)
-    flexmock(BuildStatusReporter).should_receive("report").with_args(
+    flexmock(BuildStatusReporter).should_receive("set_status").with_args(
         state="pending",
-        description="SRPM build has just started...",
-        check_names="packit-stg/srpm-build",
+        description="Building SRPM ...",
+        check_name="packit-stg/rpm-build-bright-future-x86_64",
+        url=None,
     ).and_return()
-    flexmock(BuildStatusReporter).should_receive("report").with_args(
+    flexmock(BuildStatusReporter).should_receive("set_status").with_args(
         state="pending",
-        description="RPM build is waiting for successful SPRM build",
-        check_names=["packit-stg/rpm-build-bright-future-x86_64"],
-    ).and_return()
-    flexmock(BuildStatusReporter).should_receive("report").with_args(
-        state="success",
-        description="SRPM was built successfully.",
-        check_names="packit-stg/srpm-build",
-    ).and_return()
-    flexmock(BuildStatusReporter).should_receive("report").with_args(
-        state="pending",
-        description="RPM build has just started...",
-        check_names=["packit-stg/rpm-build-bright-future-x86_64"],
+        description="Building RPM ...",
+        check_name="packit-stg/rpm-build-bright-future-x86_64",
         url="https://copr.fedorainfracloud.org/coprs/nobody/--342-stg/build/1/",
     ).and_return()
 
@@ -95,19 +86,17 @@ def test_copr_build_check_names():
 
 
 def test_copr_build_success_set_test_check():
-    # status is set for:
-    #  - SRPM build has just started...
-    #  - SRPM was built successfully.
-    # for every build-target (4) when:
-    #  - RPM build is waiting for successful SPRM build
-    #  - RPM build has just started...
-    # for every test-target (copied from the build => 4) when:
-    #  - Waiting for a successful RPM build
+    # status is set for each build-target (4x):
+    #  - Building SRPM ...
+    #  - Building RPM ...
+    # status is set for each test-target (4x):
+    #  - Building SRPM ...
+    #  - Building RPM ...
     test_job = JobConfig(
         job=JobType.tests, trigger=JobTriggerType.pull_request, metadata={}
     )
     handler = build_handler(jobs=[test_job])
-    flexmock(GitProject).should_receive("set_commit_status").and_return().times(14)
+    flexmock(GitProject).should_receive("set_commit_status").and_return().times(16)
     flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(CoprBuildDB).should_receive("add_build").and_return().once()
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
@@ -115,13 +104,11 @@ def test_copr_build_success_set_test_check():
 
 
 def test_copr_build_success():
-    # status is set for:
-    #  - srpm build pending and success (2)
-    # forevery target (4) when:
-    #  - build in progress 4
-    #  - build finished 4
+    # status is set for each build-target (4x):
+    #  - Building SRPM ...
+    #  - Building RPM ...
     handler = build_handler()
-    flexmock(GitProject).should_receive("set_commit_status").and_return().times(10)
+    flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(CoprBuildDB).should_receive("add_build").and_return().once()
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
@@ -129,17 +116,12 @@ def test_copr_build_success():
 
 
 def test_copr_build_fails_in_packit():
+    # status is set for each build-target (4x):
+    #  - Building SRPM ...
+    #  - Build failed, check latest comment for details.
     handler = build_handler()
     flexmock(GitProject, pr_comment=lambda *args, **kw: None)
-    # status is set for:
-    #  - SRPM build has just started...
-    #  - 'packit-stg/srpm-build': some error
-    #  - 'packit-stg/rpm-build': RPM build failed. No tests will be run.
-    # for every build-target (4) when:
-    #  - RPM build is waiting for succesfull SPRM build
-    # the 8, 9, and 10 happens when the generic error is reported
-    #  - Dominika is trying to fix this, hello!
-    flexmock(GitProject).should_receive("set_commit_status").and_return().times(10)
+    flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(GitProject).should_receive("pr_comment").and_return().once()
     flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
@@ -151,13 +133,11 @@ def test_copr_build_fails_in_packit():
 
 
 def test_copr_build_no_targets():
-    # status is set for:
-    #  - srpm build pending and success (2)
-    # for every target (fedora-stable => 2) when:
-    #  - build in progress 2
-    #  - build finished 2
+    # status is set for each build-target (fedora-stable => 2x):
+    #  - Building SRPM ...
+    #  - Building RPM ...
     handler = build_handler(metadata={"owner": "nobody"})
-    flexmock(GitProject).should_receive("set_commit_status").and_return().times(6)
+    flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
     flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(CoprBuildDB).should_receive("add_build").and_return().once()
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()

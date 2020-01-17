@@ -78,10 +78,9 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
             status = "failure"
 
         r.report(
-            status,
-            self.event.message,
-            None,
-            self.event.log_url,
+            state=status,
+            description=self.event.message,
+            url=self.event.log_url,
             check_names=PRCheckName.get_testing_farm_check(self.event.copr_chroot),
         )
 

@@ -351,8 +351,10 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
         config: ServiceConfig,
         job: JobConfig,
         event: Union[CoprBuildEvent, PullRequestCommentEvent],
+        chroot: str,
     ):
         super().__init__(config=config, job=job, event=event)
+        self.chroot = chroot
         self.project: GitProject = event.get_project()
         if isinstance(event, CoprBuildEvent):
             self.base_ref = event.ref
@@ -368,6 +370,9 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
             self.project, self.base_ref, pr_id
         )
         self.package_config.upstream_project_url = event.project_url
+        self.testing_farm_helper = TestingFarmJobHelper(
+            self.config, self.package_config, self.project, self.event
+        )
 
     def run(self) -> HandlerResults:
         self.local_project = LocalProject(
@@ -375,12 +380,8 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
         )
 
         logger.info("Running testing farm")
-        testing_farm_helper = TestingFarmJobHelper(
-            self.config, self.package_config, self.project, self.event
-        )
-        tests_chroots = testing_farm_helper.tests_chroots
-        logger.debug(f"Testing farm chroots: {tests_chroots}")
-        return testing_farm_helper.run_testing_farm()
+
+        return self.testing_farm_helper.run_testing_farm(chroot=self.chroot)
 
 
 @add_to_comment_action_mapping
@@ -530,16 +531,9 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
         if not self.package_config:
             raise ValueError(f"No config file found in {self.project.full_repo_name}")
         self.package_config.upstream_project_url = event.project_url
-
-    def get_tests_for_build(self) -> Optional[JobConfig]:
-        """
-        Check if there are tests defined
-        :return: JobConfig or None
-        """
-        for job in self.package_config.jobs:
-            if job.job == JobType.tests:
-                return job
-        return None
+        self.testing_farm_helper = TestingFarmJobHelper(
+            self.config, self.package_config, self.project, self.event
+        )
 
     def run(self) -> HandlerResults:
 
@@ -551,13 +545,9 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
 
         handler_results = HandlerResults(success=True, details={})
 
-        test_job_config = self.get_tests_for_build()
-        logger.debug(f"Test job config: {test_job_config}")
-        if test_job_config:
-            testing_farm_handler = GithubTestingFarmHandler(
-                self.config, test_job_config, self.event
-            )
-            handler_results = testing_farm_handler.run()
+        logger.debug(f"Test job config: {self.testing_farm_helper.job_tests}")
+        if self.testing_farm_helper.job_tests:
+            self.testing_farm_helper.run_testing_farm_on_all()
         else:
             logger.debug("Testing farm not in the job config.")
 
