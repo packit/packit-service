@@ -143,7 +143,9 @@ class BuildStatusReporter:
             check_names = [check_names]
 
         for check in check_names:
-            self.set_status(state, description, check, url)
+            self.set_status(
+                state=state, description=description, check_name=check, url=url
+            )
 
     def set_status(self, state: str, description: str, check_name: str, url: str = ""):
         logger.debug(f"Setting status for check '{check_name}': {description}")
@@ -153,65 +155,6 @@ class BuildStatusReporter:
 
     def get_statuses(self):
         self.project.get_commit_statuses(commit=self.commit_sha)
-
-    def report_srpm_build_start(self, build_check_names):
-        self.report(
-            state="pending",
-            description="SRPM build has just started...",
-            check_names=PRCheckName.get_srpm_build_check(),
-        )
-        self.report(
-            state="pending",
-            description="RPM build is waiting for successful SPRM build",
-            check_names=build_check_names,
-        )
-
-    def report_srpm_build_finish(self):
-        self.report(
-            state="success",
-            description="SRPM was built successfully.",
-            check_names=PRCheckName.get_srpm_build_check(),
-        )
-
-    def report_rpm_build_start(self, url, build_check_names):
-        self.report(
-            state="pending",
-            description="RPM build has just started...",
-            check_names=build_check_names,
-            url=url,
-        )
-
-    def report_tests_waiting_for_build(self, test_check_names):
-        self.report(
-            state="pending",
-            url="",
-            description="Waiting for a successful RPM build",
-            check_names=test_check_names,
-        )
-
-    def report_rpm_build_failed_because_of_the_srpm_fail(self, build_check_names):
-        self.report(
-            state="failure",
-            url="",
-            description="Failed to create the SRPM. No RPM build will be run.",
-            check_names=build_check_names,
-        )
-
-    def report_tests_failed_because_of_the_build(self, test_check_names):
-        self.report(
-            state="failure",
-            url="",
-            description="RPM build failed. No tests will be run.",
-            check_names=test_check_names,
-        )
-
-    def report_tests_failed_because_of_the_build_submit(self, test_check_names):
-        self.report(
-            state="failure",
-            url="",
-            description="Submitting of the build failed. Cannot get the build results.",
-            check_names=test_check_names,
-        )
 
 
 class HandlerResults(dict):
