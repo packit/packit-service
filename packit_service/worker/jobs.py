@@ -260,8 +260,8 @@ class SteveJobs:
 
         task_results = {"jobs": jobs_results, "event": event_object.get_dict()}
 
-        if any(not (v and v["success"]) for v in jobs_results.values()):
-            # Any job handler failed, mark task state as FAILURE
-            logger.error(task_results)
-        # Task state SUCCESS
+        for v in jobs_results.values():
+            if not (v and v["success"]):
+                logger.warning(task_results)
+                logger.error(v["details"]["msg"])
         return task_results

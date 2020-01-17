@@ -478,7 +478,9 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
                 logger.error(f"error while running a build: {ex}")
                 sync_failed = True
         if sync_failed:
-            return HandlerResults(success=False, details={})
+            return HandlerResults(
+                success=False, details={"msg": "Propose update failed"}
+            )
 
         # Close issue if propose-update was successful in all branches
         self.project.issue_close(self.event.issue_id)
