@@ -111,5 +111,8 @@ def test_targets(jobs, build_targets, test_targets):
         event=flexmock(),
     )
 
+    assert copr_build_handler.package_config.jobs
+    assert [j.job for j in copr_build_handler.package_config.jobs]
+
     assert set(copr_build_handler.build_chroots) == build_targets
     assert set(copr_build_handler.tests_chroots) == test_targets
