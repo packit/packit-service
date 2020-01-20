@@ -98,7 +98,7 @@ def test_copr_build_end(copr_build_end):
     url = (
         f"https://copr-be.cloud.fedoraproject.org/results/"
         f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
-        f"01044215-hello/builder-live.log.gz"
+        f"01044215-hello/builder-live.log"
     )
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -171,7 +171,7 @@ def test_copr_build_end_testing_farm(copr_build_end):
     url = (
         f"https://copr-be.cloud.fedoraproject.org/results/"
         f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
-        f"01044215-hello/builder-live.log.gz"
+        f"01044215-hello/builder-live.log"
     )
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -264,7 +264,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end):
     url = (
         f"https://copr-be.cloud.fedoraproject.org/results/"
         f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
-        f"01044215-hello/builder-live.log.gz"
+        f"01044215-hello/builder-live.log"
     )
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -356,7 +356,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end):
     url = (
         f"https://copr-be.cloud.fedoraproject.org/results/"
         f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
-        f"01044215-hello/builder-live.log.gz"
+        f"01044215-hello/builder-live.log"
     )
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -435,7 +435,7 @@ def test_copr_build_start(copr_build_start):
     url = (
         f"https://copr-be.cloud.fedoraproject.org/results/"
         f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
-        f"01044215-hello/builder-live.log.gz"
+        f"01044215-hello/builder-live.log"
     )
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -497,7 +497,7 @@ def test_copr_build_not_comment_on_success(copr_build_end):
     url = (
         f"https://copr-be.cloud.fedoraproject.org/results/"
         f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
-        f"01044215-hello/builder-live.log.gz"
+        f"01044215-hello/builder-live.log"
     )
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
