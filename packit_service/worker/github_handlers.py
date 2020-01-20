@@ -71,31 +71,38 @@ from packit_service.worker.whitelist import Whitelist
 logger = logging.getLogger(__name__)
 
 
-class AbstractGithubJobHandler(JobHandler):
-    pass
-
-
-def _get_package_config_from_repo(
-    project: GitProject, reference: str, pr_id: int = None
-):
-    try:
-        package_config: PackageConfig = get_package_config_from_repo(project, reference)
-        if not package_config:
-            raise PackitConfigException(
-                f"No config file found in {project.full_repo_name}"
+class GithubPackageConfigGetter:
+    def get_package_config_from_repo(
+        self, project: GitProject, reference: str, pr_id: int = None
+    ):
+        """
+        Get the package config and catch the no-config scenario.
+        Static because of the easier mocking.
+        """
+        try:
+            package_config: PackageConfig = get_package_config_from_repo(
+                project, reference
             )
-    except PackitConfigException as ex:
-        if pr_id:
-            project.pr_comment(pr_id, ex)
-        else:
-            # TODO: filter when https://github.com/packit-service/ogr/issues/308 fixed
-            issues = project.get_issue_list()
-            if "Invalid packit config" not in [x.title for x in issues]:
-                # TODO: store in DB
-                i = project.create_issue("[packit] Invalid config", ex)
-                logger.debug(f"Created issue for invalid packit config: {i.url}")
-        raise ex
-    return package_config
+            if not package_config:
+                raise PackitConfigException(
+                    f"No config file found in {project.full_repo_name}"
+                )
+        except PackitConfigException as ex:
+            if pr_id:
+                project.pr_comment(pr_id, ex)
+            else:
+                # TODO: filter when https://github.com/packit-service/ogr/issues/308 fixed
+                issues = project.get_issue_list()
+                if "Invalid packit config" not in [x.title for x in issues]:
+                    # TODO: store in DB
+                    i = project.create_issue("[packit] Invalid config", ex)
+                    logger.debug(f"Created issue for invalid packit config: {i.url}")
+            raise ex
+        return package_config
+
+
+class AbstractGithubJobHandler(JobHandler, GithubPackageConfigGetter):
+    pass
 
 
 @add_to_mapping
@@ -111,7 +118,7 @@ class GithubPullRequestHandler(AbstractGithubJobHandler):
         super().__init__(config=config, job=job, event=pr_event)
         self.pr_event = pr_event
         self.project: GitProject = pr_event.get_project()
-        self.package_config: PackageConfig = _get_package_config_from_repo(
+        self.package_config: PackageConfig = self.get_package_config_from_repo(
             self.project, pr_event.base_ref, pr_event.pr_id
         )
         self.package_config.upstream_project_url = pr_event.project_url
@@ -201,7 +208,7 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
         super().__init__(config=config, job=job, event=release_event)
 
         self.project: GitProject = release_event.get_project()
-        self.package_config: PackageConfig = _get_package_config_from_repo(
+        self.package_config: PackageConfig = self.get_package_config_from_repo(
             self.project, release_event.tag_name
         )
         self.package_config.upstream_project_url = release_event.project_url
@@ -281,7 +288,7 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             )
 
         self.project: GitProject = event.get_project()
-        self.package_config: PackageConfig = _get_package_config_from_repo(
+        self.package_config: PackageConfig = self.get_package_config_from_repo(
             self.project, base_ref, pr_id
         )
         self.package_config.upstream_project_url = event.project_url
@@ -366,7 +373,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
             raise PackitException(
                 "Unknown event, only PREvent and CoprBuildEvent are accepted."
             )
-        self.package_config: PackageConfig = _get_package_config_from_repo(
+        self.package_config: PackageConfig = self.get_package_config_from_repo(
             self.project, self.base_ref, pr_id
         )
         self.package_config.upstream_project_url = event.project_url
@@ -380,13 +387,14 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
         )
 
         logger.info("Running testing farm")
-
         return self.testing_farm_helper.run_testing_farm(chroot=self.chroot)
 
 
 @add_to_comment_action_mapping
 @add_to_comment_action_mapping_with_name(name=CommentAction.build)
-class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
+class GitHubPullRequestCommentCoprBuildHandler(
+    CommentActionHandler, GithubPackageConfigGetter
+):
     """ Handler for PR comment `/packit copr-build` """
 
     name = CommentAction.copr_build
@@ -400,7 +408,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
         # Get the latest pull request commit
         self.event.commit_sha = self.project.get_all_pr_commits(self.event.pr_id)[-1]
         self.event.base_ref = self.event.commit_sha
-        self.package_config: PackageConfig = _get_package_config_from_repo(
+        self.package_config: PackageConfig = self.get_package_config_from_repo(
             self.project, self.event.commit_sha, self.event.pr_id
         )
         self.package_config.upstream_project_url = event.project_url
@@ -431,7 +439,9 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
 
 
 @add_to_comment_action_mapping
-class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
+class GitHubIssueCommentProposeUpdateHandler(
+    CommentActionHandler, GithubPackageConfigGetter
+):
     """ Handler for issue comment `/packit propose-update` """
 
     name = CommentAction.propose_update
@@ -445,7 +455,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
         self.project = self.event.get_project()
         # Get the latest tag release
         self.event.tag_name = self.project.get_latest_release().tag_name
-        self.package_config: PackageConfig = _get_package_config_from_repo(
+        self.package_config: PackageConfig = self.get_package_config_from_repo(
             self.project, self.event.tag_name
         )
         if not self.package_config:
@@ -511,7 +521,9 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
 
 
 @add_to_comment_action_mapping
-class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
+class GitHubPullRequestCommentTestingFarmHandler(
+    CommentActionHandler, GithubPackageConfigGetter
+):
     """ Issue handler for comment `/packit test` """
 
     name = CommentAction.test
@@ -525,7 +537,7 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
         # Get the latest pull request commit
         self.event.commit_sha = self.project.get_all_pr_commits(self.event.pr_id)[-1]
         self.event.base_ref = self.event.commit_sha
-        self.package_config: PackageConfig = _get_package_config_from_repo(
+        self.package_config: PackageConfig = self.get_package_config_from_repo(
             self.project, self.event.commit_sha, self.event.pr_id
         )
         if not self.package_config:

@@ -111,8 +111,14 @@ class TestingFarmJobHelper(JobHelper):
                     f"Cannot run tests without build."
                 },
             )
-
         check_name = PRCheckName.get_testing_farm_check(chroot)
+
+        self.status_reporter.report(
+            state="pending",
+            description="Build succeeded. Submitting the tests ...",
+            check_names=check_name,
+        )
+
         pipeline_id = str(uuid.uuid4())
         logger.debug(f"Pipeline id: {pipeline_id}")
         payload: dict = {
