@@ -81,10 +81,7 @@ class JobHelper:
         self.package_config: PackageConfig = package_config
         self.project: GitProject = project
         self.event: Union[
-            PullRequestEvent,
-            PullRequestCommentEvent,
-            CoprBuildEvent,
-            PullRequestCommentEvent,
+            PullRequestEvent, PullRequestCommentEvent, CoprBuildEvent,
         ] = event
 
         # lazy properties
@@ -115,10 +112,15 @@ class JobHelper:
         return self._api
 
     @property
-    def base_ref(self) -> Optional[str]:
-        if isinstance(self.event, (PullRequestEvent, PullRequestCommentEvent)):
+    def base_ref(self) -> str:
+        if isinstance(self.event, PullRequestEvent):
             return self.event.base_ref
-        return None
+
+        if isinstance(self.event, CoprBuildEvent):
+            return self.event.ref
+
+        if isinstance(self.event, PullRequestCommentEvent):
+            return self.event.commit_sha
 
     @property
     def build_chroots(self) -> List[str]:
