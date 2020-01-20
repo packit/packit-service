@@ -76,14 +76,15 @@ def get_copr_build_url(event: CoprBuildEvent) -> str:
 
 def copr_url_from_event(event: CoprBuildEvent):
     """
-    Get url to builder-live.log.gz bound to single event
+    Get url to builder-live.log bound to single event
+    After build is finished copr redirects it automatically to builder-live.log.gz
     :param event: fedora messaging event from topic copr.build.start or copr.build.end
     :return: reachable url
     """
     url = (
         f"https://copr-be.cloud.fedoraproject.org/results/{event.owner}/"
         f"{event.project_name}/{event.chroot}/"
-        f"{event.build_id:08d}-{event.pkg}/builder-live.log.gz"
+        f"{event.build_id:08d}-{event.pkg}/builder-live.log"
     )
     # make sure we provide valid url in status, let sentry handle if not
     try:
