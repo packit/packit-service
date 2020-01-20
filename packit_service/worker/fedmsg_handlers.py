@@ -258,7 +258,7 @@ class CoprBuildEndHandler(FedmsgHandler):
             return HandlerResults(success=True, details={})
 
         failed_msg = "RPMs failed to be built."
-        self.build_job_helper.status_reporter(
+        self.build_job_helper.status_reporter.report(
             state="failure", description=failed_msg, url=url, check_names=check_name,
         )
         return HandlerResults(success=False, details={"msg": failed_msg})
