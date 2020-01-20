@@ -36,6 +36,7 @@ from packit.local_project import LocalProject
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
 from packit_service.config import ServiceConfig, Deployment
+from packit_service.constants import MSG_RETRIGGER
 from packit_service.service.events import (
     PullRequestEvent,
     PullRequestCommentEvent,
@@ -57,11 +58,6 @@ except ImportError:
     from packit.exceptions import FailedCreateSRPM as PackitSRPMException
 
 logger = logging.getLogger(__name__)
-
-MSG_RETRIGGER = (
-    f"You can re-trigger copr build by adding a comment (`/packit copr-build`) "
-    f"into this pull request."
-)
 
 
 class JobHelper:
@@ -93,6 +89,10 @@ class JobHelper:
         self._status_reporter = None
         self._test_check_names: Optional[List[str]] = None
         self._build_check_names: Optional[List[str]] = None
+
+        self.msg_retrigger: str = MSG_RETRIGGER.format(
+            build="copr-build" if self.job_copr_build else "build"
+        )
 
     @property
     def local_project(self) -> LocalProject:
@@ -357,7 +357,7 @@ class CoprBuildJobHelper(JobHelper):
             f"Check carefully your configuration.\n"
         )
         logger.error(msg)
-        self.project.pr_comment(self.event.pr_id, f"{msg}\n{MSG_RETRIGGER}")
+        self.project.pr_comment(self.event.pr_id, f"{msg}\n{self.msg_retrigger}")
         self.report_status_to_all(
             state="error",
             description="Submit of the build failed, check comments for details.",
@@ -368,7 +368,7 @@ class CoprBuildJobHelper(JobHelper):
         sentry_integration.send_to_sentry(ex)
         msg = f"There was an error while running a copr build:\n```\n{ex}\n```\n"
         logger.error(msg)
-        self.project.pr_comment(self.event.pr_id, f"{msg}\n{MSG_RETRIGGER}")
+        self.project.pr_comment(self.event.pr_id, f"{msg}\n{self.msg_retrigger}")
         self.report_status_to_build(
             state="failure",
             description="Build failed, check latest comment for details.",
@@ -382,7 +382,7 @@ class CoprBuildJobHelper(JobHelper):
     def _process_failed_srpm_build(self, ex):
         sentry_integration.send_to_sentry(ex)
         msg = (
-            f"There was an error while creating SRPM. {MSG_RETRIGGER}\n"
+            f"There was an error while creating SRPM. {self.msg_retrigger}\n"
             "\nOutput:"
             "\n```\n"
             f"{ex}"
@@ -400,7 +400,7 @@ class CoprBuildJobHelper(JobHelper):
         else:
             output = ex.output
         msg = (
-            f"There was an error while creating SRPM. {MSG_RETRIGGER}\n"
+            f"There was an error while creating SRPM. {self.msg_retrigger}\n"
             "\nOutput:"
             "\n```\n"
             f"{output}"
@@ -416,7 +416,7 @@ class CoprBuildJobHelper(JobHelper):
         return HandlerResults(success=False, details={"msg": msg})
 
     def _process_timeout(self):
-        msg = f"You have reached 10-minute timeout while creating SRPM. {MSG_RETRIGGER}"
+        msg = f"You have reached 10-minute timeout while creating SRPM. {self.msg_retrigger}"
         self.project.pr_comment(self.event.pr_id, msg)
         msg = "Timeout reached while creating a SRPM."
         self.report_status_to_all(
@@ -449,7 +449,7 @@ class CoprBuildJobHelper(JobHelper):
         logger.error(msg)
         comment_msg = (
             f"{msg}\n"
-            f"{MSG_RETRIGGER}\n\n"
+            f"{self.msg_retrigger}\n\n"
             "Please, contact "
             "[Packit team](https://github.com/orgs/packit-service/teams/the-packit-team) "
             "if the re-trigger did not help."

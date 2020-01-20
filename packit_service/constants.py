@@ -18,3 +18,8 @@ PACKIT_STG_TESTING_FARM_CHECK = "packit-stg/testing-farm"
 TESTING_FARM_TRIGGER_URL = (
     "https://scheduler-testing-farm.apps.ci.centos.org/v0/trigger"
 )
+
+MSG_RETRIGGER = (
+    "You can re-trigger build by adding a comment (`/packit {build}`) "
+    "into this pull request."
+)
