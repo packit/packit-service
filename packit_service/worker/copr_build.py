@@ -231,13 +231,11 @@ class JobHelper:
             )
         return self.default_project_name
 
-    def report_status_to_all(
-        self, description: str, state: str, url: str = None
-    ) -> None:
+    def report_status_to_all(self, description: str, state: str, url: str = "") -> None:
         self.report_status_to_build(description, state, url)
         self.report_status_to_tests(description, state, url)
 
-    def report_status_to_build(self, description, state, url: str = None):
+    def report_status_to_build(self, description, state, url: str = ""):
         if self.job_copr_build:
             self.status_reporter.report(
                 description=description,
@@ -246,7 +244,7 @@ class JobHelper:
                 check_names=self.build_check_names,
             )
 
-    def report_status_to_tests(self, description, state, url: str = None):
+    def report_status_to_tests(self, description, state, url: str = ""):
         if self.job_tests:
             self.status_reporter.report(
                 description=description,

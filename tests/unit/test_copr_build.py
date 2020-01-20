@@ -69,7 +69,7 @@ def test_copr_build_check_names():
         state="pending",
         description="Building SRPM ...",
         check_name="packit-stg/rpm-build-bright-future-x86_64",
-        url=None,
+        url="",
     ).and_return()
     flexmock(BuildStatusReporter).should_receive("set_status").with_args(
         state="pending",
