@@ -167,11 +167,13 @@ class TestingFarmJobHelper(JobHelper):
             # success set check on pending
             if req.status_code != 200:
                 # something went wrong
-                msg = req.json()["message"]
+                if req.json() and "message" in req.json():
+                    msg = req.json()["message"]
+                else:
+                    msg = f"Failed to submit tests: {req.reason}"
+                    logger.error(msg)
                 self.status_reporter.report(
-                    state="failure",
-                    description=req.json()["message"],
-                    check_names=check_name,
+                    state="failure", description=msg, check_names=check_name,
                 )
                 return HandlerResults(success=False, details={"msg": msg})
 
