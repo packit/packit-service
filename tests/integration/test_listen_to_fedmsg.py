@@ -187,7 +187,10 @@ def test_copr_build_end_testing_farm(copr_build_end):
         "send_testing_farm_request"
     ).and_return(
         RequestResponse(
-            status_code=200, ok=True, content=flexmock(), json={"url": "some-url"}
+            status_code=200,
+            ok=True,
+            content='{"url": "some-url"}'.encode(),
+            json={"url": "some-url"},
         )
     )
 
@@ -279,7 +282,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end):
         RequestResponse(
             status_code=400,
             ok=False,
-            content=flexmock(),
+            content='{"message": "some error"}'.encode(),
             json={"message": "some error"},
         )
     )
@@ -371,7 +374,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end):
         RequestResponse(
             status_code=400,
             ok=False,
-            content=flexmock(),
+            content="some text error".encode(),
             reason="some text error",
             json=None,
         )
