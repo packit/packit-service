@@ -313,7 +313,7 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
     def run(self) -> HandlerResults:
         is_copr_build: Callable[
             [JobConfig], bool
-        ] = lambda job: job.type == JobType.copr_build
+        ] = lambda job: job.job == JobType.copr_build
 
         if self.job.job == JobType.tests and any(
             filter(is_copr_build, self.package_config.jobs)
