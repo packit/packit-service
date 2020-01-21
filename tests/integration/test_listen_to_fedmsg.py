@@ -183,6 +183,13 @@ def test_copr_build_end_testing_farm(copr_build_end):
         check_names=PACKIT_STG_CHECK,
     ).once()
 
+    flexmock(BuildStatusReporter).should_receive("report").with_args(
+        state="success",
+        description="RPMs were built successfully.",
+        url=url,
+        check_names=f"{PACKIT_STG_TESTING_FARM_CHECK}-fedora-rawhide-x86_64",
+    ).once()
+
     flexmock(TestingFarmJobHelper).should_receive(
         "send_testing_farm_request"
     ).and_return(
@@ -276,6 +283,13 @@ def test_copr_build_end_failed_testing_farm(copr_build_end):
         check_names=PACKIT_STG_CHECK,
     ).once()
 
+    flexmock(BuildStatusReporter).should_receive("report").with_args(
+        state="success",
+        description="RPMs were built successfully.",
+        url=url,
+        check_names=f"{PACKIT_STG_TESTING_FARM_CHECK}-fedora-rawhide-x86_64",
+    ).once()
+
     flexmock(TestingFarmJobHelper).should_receive(
         "send_testing_farm_request"
     ).and_return(
@@ -366,6 +380,13 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end):
         description="RPMs were built successfully.",
         url=url,
         check_names=PACKIT_STG_CHECK,
+    ).once()
+
+    flexmock(BuildStatusReporter).should_receive("report").with_args(
+        state="success",
+        description="RPMs were built successfully.",
+        url=url,
+        check_names=f"{PACKIT_STG_TESTING_FARM_CHECK}-fedora-rawhide-x86_64",
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive(
