@@ -141,6 +141,8 @@ class JobHelper:
             raw_targets = ["fedora-stable"]
         else:
             raw_targets = self.job_copr_build.metadata.get("targets", ["fedora-stable"])
+            if isinstance(raw_targets, str):
+                raw_targets = [raw_targets]
 
         return list(get_build_targets(*raw_targets))
 
@@ -163,6 +165,9 @@ class JobHelper:
             return self.build_chroots
 
         configured_targets = self.job_tests.metadata.get("targets", ["fedora-stable"])
+        if isinstance(configured_targets, str):
+            configured_targets = [configured_targets]
+
         return list(get_build_targets(*configured_targets))
 
     @property
