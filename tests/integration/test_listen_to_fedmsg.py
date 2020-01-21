@@ -472,6 +472,71 @@ def test_copr_build_start(copr_build_start):
     steve.process_message(copr_build_start)
 
 
+def test_copr_build_just_tests_defined(copr_build_start):
+    steve = SteveJobs()
+    flexmock(SteveJobs, _is_private=False)
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(
+            config={
+                "copr_url": "https://copr.fedorainfracloud.org",
+                "username": "some-owner",
+            }
+        )
+    )
+    flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
+        flexmock()
+    )
+    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+        flexmock(
+            jobs=[
+                JobConfig(
+                    job=JobType.tests, trigger=JobTriggerType.pull_request, metadata={},
+                )
+            ]
+        )
+    )
+    flexmock(PRCheckName).should_receive("get_build_check").and_return(PACKIT_STG_CHECK)
+    flexmock(PRCheckName).should_receive("get_testing_farm_check").and_return(
+        PACKIT_STG_TESTING_FARM_CHECK
+    )
+
+    flexmock(CoprBuildDB).should_receive("get_build").and_return(
+        {
+            "commit_sha": "XXXXX",
+            "pr_id": 24,
+            "repo_name": "hello-world",
+            "repo_namespace": "packit-service",
+            "ref": "XXXX",
+            "https_url": "https://github.com/packit-service/hello-world",
+        }
+    )
+
+    url = (
+        f"https://copr-be.cloud.fedoraproject.org/results/"
+        f"packit/packit-service-hello-world-24-stg/fedora-rawhide-x86_64/"
+        f"01044215-hello/builder-live.log"
+    )
+    flexmock(requests).should_receive("get").and_return(requests.Response())
+    flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
+
+    # check if packit-service set correct PR status
+    flexmock(BuildStatusReporter).should_receive("report").with_args(
+        state="pending",
+        description="RPM build has started...",
+        url=url,
+        check_names=PACKIT_STG_CHECK,
+    ).never()
+
+    flexmock(BuildStatusReporter).should_receive("report").with_args(
+        state="pending",
+        description="RPM build has started...",
+        url=url,
+        check_names=PACKIT_STG_TESTING_FARM_CHECK,
+    ).once()
+
+    steve.process_message(copr_build_start)
+
+
 def test_copr_build_not_comment_on_success(copr_build_end):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
