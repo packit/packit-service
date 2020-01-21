@@ -287,6 +287,34 @@ class CoprBuildJobHelper(JobHelper):
 
         return self.api.copr_helper.copr_client.config.get("username")
 
+    def report_status_for_chroot(
+        self, description: str, state: str, url: str = "", chroot: str = ""
+    ):
+        self.report_status_to_build_for_chroot(description, state, url, chroot)
+        self.report_status_to_test_for_chroot(description, state, url, chroot)
+
+    def report_status_to_build_for_chroot(
+        self, description, state, url: str = "", chroot: str = ""
+    ):
+        if self.job_copr_build:
+            self.status_reporter.report(
+                description=description,
+                state=state,
+                url=url,
+                check_names=PRCheckName.get_build_check(chroot),
+            )
+
+    def report_status_to_test_for_chroot(
+        self, description, state, url: str = "", chroot: str = ""
+    ):
+        if self.job_tests:
+            self.status_reporter.report(
+                description=description,
+                state=state,
+                url=url,
+                check_names=PRCheckName.get_testing_farm_check(chroot),
+            )
+
     def run_copr_build(self) -> HandlerResults:
 
         if not (self.job_copr_build or self.job_tests):
