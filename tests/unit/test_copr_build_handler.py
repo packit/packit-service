@@ -101,6 +101,23 @@ from packit_service.worker.copr_build import CoprBuildJobHelper
             {"fedora-29-x86_64", "fedora-31-x86_64"},
             id="build_without_target&test_with_targets",
         ),
+        pytest.param(
+            [
+                JobConfig(
+                    job=JobType.copr_build,
+                    trigger=JobTriggerType.pull_request,
+                    metadata={},
+                ),
+                JobConfig(
+                    job=JobType.tests,
+                    trigger=JobTriggerType.pull_request,
+                    metadata={"targets": "fedora-29"},
+                ),
+            ],
+            {"fedora-29-x86_64"},
+            {"fedora-29-x86_64"},
+            id="build_without_target&test_with_one_str_target",
+        ),
     ],
 )
 def test_targets(jobs, build_targets, test_targets):
