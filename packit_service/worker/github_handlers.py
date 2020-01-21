@@ -97,8 +97,16 @@ class GithubPackageConfigGetter:
                 issues = project.get_issue_list()
                 if "Invalid packit config" not in [x.title for x in issues]:
                     # TODO: store in DB
+                    message = (
+                        f"Failed to load packit config file:\n```\n{str(ex)}\n```\n"
+                        "For more info, please check out the documentation: "
+                        "http://packit.dev/packit-as-a-service/ or contact us - "
+                        "[Packit team]"
+                        "(https://github.com/orgs/packit-service/teams/the-packit-team)"
+                    )
+
                     i = project.create_issue(
-                        title="[packit] Invalid config", body=str(ex)
+                        title="[packit] Invalid config", body=message
                     )
                     logger.debug(f"Created issue for invalid packit config: {i.url}")
             raise ex
