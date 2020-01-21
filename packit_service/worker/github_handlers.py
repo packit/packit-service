@@ -95,7 +95,9 @@ class GithubPackageConfigGetter:
                 issues = project.get_issue_list()
                 if "Invalid packit config" not in [x.title for x in issues]:
                     # TODO: store in DB
-                    i = project.create_issue("[packit] Invalid config", ex)
+                    i = project.create_issue(
+                        title="[packit] Invalid config", body=str(ex)
+                    )
                     logger.debug(f"Created issue for invalid packit config: {i.url}")
             raise ex
         return package_config
