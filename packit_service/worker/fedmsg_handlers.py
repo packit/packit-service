@@ -48,7 +48,6 @@ from packit_service.worker.handler import (
     JobHandler,
     HandlerResults,
     add_to_mapping,
-    PRCheckName,
 )
 
 logger = logging.getLogger(__name__)
@@ -209,7 +208,6 @@ class CoprBuildEndHandler(FedmsgHandler):
             return HandlerResults(success=False, details={"msg": msg})
 
         url = copr_url_from_event(self.event)
-        check_name = PRCheckName.get_build_check(self.event.chroot)
 
         # https://pagure.io/copr/copr/blob/master/f/common/copr_common/enums.py#_42
         if self.event.status == 1:
@@ -235,11 +233,11 @@ class CoprBuildEndHandler(FedmsgHandler):
                 )
                 self.project.pr_comment(pr_id=self.event.pr_id, body=msg)
 
-            self.build_job_helper.status_reporter.report(
+            self.build_job_helper.report_status_for_chroot(
                 state="success",
                 description="RPMs were built successfully.",
                 url=url,
-                check_names=check_name,
+                chroot=self.event.chroot,
             )
 
             if (
@@ -259,8 +257,8 @@ class CoprBuildEndHandler(FedmsgHandler):
             return HandlerResults(success=True, details={})
 
         failed_msg = "RPMs failed to be built."
-        self.build_job_helper.status_reporter.report(
-            state="failure", description=failed_msg, url=url, check_names=check_name,
+        self.build_job_helper.report_status_for_chroot(
+            state="failure", description=failed_msg, url=url, chroot=self.event.chroot,
         )
         return HandlerResults(success=False, details={"msg": failed_msg})
 
