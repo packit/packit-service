@@ -235,9 +235,12 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
                 errors[branch] = str(ex)
 
         if errors:
-            branch_errors = "\n".join(
-                f"| `{branch}` | `{err}` |" for branch, err in errors.items()
-            )
+            branch_errors = ""
+            for branch, err in sorted(
+                errors.items(), key=lambda branch_error: branch_error[0]
+            ):
+                err_without_new_lines = err.replace("\n", " ")
+                branch_errors += f"| `{branch}` | `{err_without_new_lines}` |\n"
 
             body_msg = (
                 f"Packit failed on creating pull-requests in dist-git:\n\n"

@@ -132,7 +132,17 @@ def test_dist_git_push_release_handle_all_failed(release_event):
         GithubProject,
         get_file_content=lambda path, ref: packit_yaml,
         full_repo_name="packit-service/hello-world",
-    ).should_receive("create_issue").once()
+    ).should_receive("create_issue").with_args(
+        title="[packit] Propose update failed for release 0.3.0",
+        body="Packit failed on creating pull-requests in dist-git:\n\n"
+        "| dist-git branch | error |\n"
+        "| --------------- | ----- |\n"
+        "| `f30` | `Failed` |\n"
+        "| `f31` | `Failed` |\n"
+        "| `master` | `Failed` |\n\n\n"
+        "You can re-trigger the update by adding `/packit propose-update`"
+        " to the issue comment.\n",
+    ).once()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
     flexmock(SteveJobs, _is_private=False)
