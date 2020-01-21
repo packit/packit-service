@@ -89,7 +89,9 @@ class GithubPackageConfigGetter:
                 )
         except PackitConfigException as ex:
             if pr_id:
-                project.pr_comment(pr_id, ex)
+                project.pr_comment(
+                    pr_id, f"Failed to load packit config file:\n```\n{str(ex)}\n```"
+                )
             else:
                 # TODO: filter when https://github.com/packit-service/ogr/issues/308 fixed
                 issues = project.get_issue_list()
