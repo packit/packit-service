@@ -28,11 +28,9 @@ from ogr.abstract import GitProject
 from packit.config import (
     JobType,
     JobTriggerType,
-    PackageConfig,
     JobConfig,
     get_package_config_from_repo,
 )
-from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
 from packit_service.service.events import TestingFarmResultsEvent, TestingFarmResult
@@ -59,27 +57,41 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
     ):
         super().__init__(config=config, job=job, event=test_results_event)
         self.project: GitProject = test_results_event.get_project()
-        self.package_config: PackageConfig = get_package_config_from_repo(
-            self.project, test_results_event.ref
+        self.package_config = self.get_package_config_from_repo(
+            project=self.project, reference=self.event.ref
         )
         if not self.package_config:
             raise ValueError(f"No config file found in {self.project.full_repo_name}")
+
         self.package_config.upstream_project_url = test_results_event.project_url
 
+    def get_package_config_from_repo(
+        self, project: GitProject, reference: str, pr_id: int = None
+    ):
+        return get_package_config_from_repo(self.project, self.event.ref)
+
     def run(self) -> HandlerResults:
-        self.local_project = LocalProject(
-            git_project=self.project, working_dir=self.config.command_handler_work_dir
-        )
 
         r = BuildStatusReporter(self.project, self.event.commit_sha)
+
         if self.event.result == TestingFarmResult.passed:
             status = "success"
+            passed = True
         else:
             status = "failure"
+            passed = False
+
+        if (
+            len(self.event.tests) == 1
+            and self.event.tests[0].name == "/install/copr-build"
+        ):
+            short_msg = "Installation passed" if passed else "Installation failed"
+        else:
+            short_msg = self.event.message
 
         r.report(
             state=status,
-            description=self.event.message,
+            description=short_msg,
             url=self.event.log_url,
             check_names=PRCheckName.get_testing_farm_check(self.event.copr_chroot),
         )
