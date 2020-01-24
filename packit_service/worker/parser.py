@@ -27,6 +27,7 @@ import logging
 from typing import Optional, Union, List
 
 from packit.utils import nested_get
+
 from packit_service.service.events import (
     PullRequestEvent,
     PullRequestCommentEvent,
@@ -393,7 +394,14 @@ class Parser:
         ref: str = nested_get(event, "artifact", "git-ref")
         https_url: str = nested_get(event, "artifact", "git-url")
         commit_sha: str = nested_get(event, "artifact", "commit-sha")
-        tests: List[TestResult] = []
+        tests: List[TestResult] = [
+            TestResult(
+                name=raw_test["name"],
+                result=TestingFarmResult(raw_test["result"]),
+                log_url=raw_test.get("log"),
+            )
+            for raw_test in event.get("tests")
+        ]
 
         logger.info(f"Results from Testing farm event. Pipeline ID: {pipeline_id}")
         logger.debug(

@@ -81,10 +81,23 @@ class TestResult:
         self.log_url = log_url
 
     def __str__(self) -> str:
-        return f"TestResult(name='{self.name}', result='{self.result}', log_url='{self.log_url}')"
+        return f"TestResult(name='{self.name}', result={self.result}, log_url='{self.log_url}')"
 
     def __repr__(self):
         return self.__str__()
+
+    def __hash__(self) -> int:
+        return hash(self.__str__())
+
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, TestResult):
+            return False
+
+        return (
+            self.name == o.name
+            and self.result == o.result
+            and self.log_url == o.log_url
+        )
 
 
 class Event:

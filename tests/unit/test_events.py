@@ -49,6 +49,7 @@ from packit_service.service.events import (
     CoprBuildDB,
     FedmsgTopic,
     DistGitEvent,
+    TestResult,
 )
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
@@ -244,6 +245,19 @@ class TestEvents:
         assert event_object.environment == "Fedora-Cloud-Base-29-1.2.x86_64.qcow2"
         assert event_object.copr_repo_name == "packit/packit-service-hello-world-10-stg"
         assert event_object.copr_chroot == "fedora-29-x86_64"
+        assert event_object.tests
+        assert {
+            TestResult(
+                name="test1",
+                result=TestingFarmResult.failed,
+                log_url="https://somewhere.com/43e310b6/artifacts/test1.log",
+            ),
+            TestResult(
+                name="test2",
+                result=TestingFarmResult.passed,
+                log_url="https://somewhere.com/43e310b6/artifacts/test2.log",
+            ),
+        } == set(event_object.tests)
 
     def test_parse_copr_build_event_start(self, copr_build_results_start):
         flexmock(CoprBuildDB).should_receive("get_build").and_return(
