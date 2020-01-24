@@ -80,6 +80,12 @@ class TestResult:
         self.result = result
         self.log_url = log_url
 
+    def __str__(self) -> str:
+        return f"TestResult(name='{self.name}', result='{self.result}', log_url='{self.log_url}')"
+
+    def __repr__(self):
+        return self.__str__()
+
 
 class Event:
     def __init__(

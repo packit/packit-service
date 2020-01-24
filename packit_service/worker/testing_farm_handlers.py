@@ -23,6 +23,7 @@
 """
 This file defines classes for job handlers specific for Testing farm
 """
+import logging
 
 from ogr.abstract import GitProject
 from packit.config import (
@@ -41,6 +42,8 @@ from packit_service.worker.handler import (
     BuildStatusReporter,
     PRCheckName,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @add_to_mapping
@@ -72,7 +75,8 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
 
     def run(self) -> HandlerResults:
 
-        r = BuildStatusReporter(self.project, self.event.commit_sha)
+        logger.debug(f"Received testing-farm result:\n{self.event.result}")
+        logger.debug(f"Received testing-farm test results:\n{self.event.tests}")
 
         if self.event.result == TestingFarmResult.passed:
             status = "success"
@@ -85,10 +89,12 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
             len(self.event.tests) == 1
             and self.event.tests[0].name == "/install/copr-build"
         ):
+            logger.debug("No-fmf scenario discovered.")
             short_msg = "Installation passed" if passed else "Installation failed"
         else:
             short_msg = self.event.message
 
+        r = BuildStatusReporter(self.project, self.event.commit_sha)
         r.report(
             state=status,
             description=short_msg,
