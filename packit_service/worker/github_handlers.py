@@ -33,13 +33,12 @@ from packit.config import (
     JobTriggerType,
     JobType,
     PackageConfig,
-    get_package_config_from_repo,
 )
 from packit.config.aliases import get_branches
-from packit.exceptions import PackitException, PackitConfigException
+from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 
-from packit_service.config import ServiceConfig
+from packit_service.config import ServiceConfig, GithubPackageConfigGetter
 from packit_service.service.events import (
     PullRequestEvent,
     InstallationEvent,
@@ -69,48 +68,6 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper
 from packit_service.worker.whitelist import Whitelist
 
 logger = logging.getLogger(__name__)
-
-
-class GithubPackageConfigGetter:
-    def get_package_config_from_repo(
-        self, project: GitProject, reference: str, pr_id: int = None
-    ):
-        """
-        Get the package config and catch the no-config scenario.
-        Static because of the easier mocking.
-        """
-        try:
-            package_config: PackageConfig = get_package_config_from_repo(
-                project, reference
-            )
-            if not package_config:
-                raise PackitConfigException(
-                    f"No config file found in {project.full_repo_name}"
-                )
-        except PackitConfigException as ex:
-            if pr_id:
-                project.pr_comment(
-                    pr_id, f"Failed to load packit config file:\n```\n{str(ex)}\n```"
-                )
-            else:
-                # TODO: filter when https://github.com/packit-service/ogr/issues/308 fixed
-                issues = project.get_issue_list()
-                if "Invalid packit config" not in [x.title for x in issues]:
-                    # TODO: store in DB
-                    message = (
-                        f"Failed to load packit config file:\n```\n{str(ex)}\n```\n"
-                        "For more info, please check out the documentation: "
-                        "http://packit.dev/packit-as-a-service/ or contact us - "
-                        "[Packit team]"
-                        "(https://github.com/orgs/packit-service/teams/the-packit-team)"
-                    )
-
-                    i = project.create_issue(
-                        title="[packit] Invalid config", body=message
-                    )
-                    logger.debug(f"Created issue for invalid packit config: {i.url}")
-            raise ex
-        return package_config
 
 
 class AbstractGithubJobHandler(JobHandler, GithubPackageConfigGetter):

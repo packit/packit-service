@@ -69,7 +69,11 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
         self.package_config.upstream_project_url = test_results_event.project_url
 
     def get_package_config_from_repo(
-        self, project: GitProject, reference: str, pr_id: int = None
+        self,
+        project: GitProject,
+        reference: str,
+        pr_id: int = None,
+        fail_when_missing: bool = False,
     ):
         return get_package_config_from_repo(self.project, self.event.ref)
 

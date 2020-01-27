@@ -24,10 +24,16 @@ import logging
 from pathlib import Path
 from typing import Set, Optional
 
+from ogr.abstract import GitProject
 from yaml import safe_load
 
-from packit.config import RunCommandType, Config
-from packit.exceptions import PackitException
+from packit.config import (
+    RunCommandType,
+    Config,
+    get_package_config_from_repo,
+    PackageConfig,
+)
+from packit.exceptions import PackitException, PackitConfigException
 from packit_service.constants import (
     SANDCASTLE_WORK_DIR,
     SANDCASTLE_PVC,
@@ -121,3 +127,49 @@ class ServiceConfig(Config):
 
             cls.service_config = ServiceConfig.get_from_dict(raw_dict=loaded_config)
         return cls.service_config
+
+
+class GithubPackageConfigGetter:
+    def get_package_config_from_repo(
+        self,
+        project: GitProject,
+        reference: str,
+        pr_id: int = None,
+        fail_when_missing: bool = True,
+    ):
+        """
+        Get the package config and catch the invalid config scenario and possibly no-config scenario
+        Static because of the easier mocking.
+        """
+        try:
+            package_config: PackageConfig = get_package_config_from_repo(
+                project, reference
+            )
+            if not package_config and fail_when_missing:
+                raise PackitConfigException(
+                    f"No config file found in {project.full_repo_name}"
+                )
+        except PackitConfigException as ex:
+            if pr_id:
+                project.pr_comment(
+                    pr_id, f"Failed to load packit config file:\n```\n{str(ex)}\n```"
+                )
+            else:
+                # TODO: filter when https://github.com/packit-service/ogr/issues/308 fixed
+                issues = project.get_issue_list()
+                if "Invalid packit config" not in [x.title for x in issues]:
+                    # TODO: store in DB
+                    message = (
+                        f"Failed to load packit config file:\n```\n{str(ex)}\n```\n"
+                        "For more info, please check out the documentation: "
+                        "http://packit.dev/packit-as-a-service/ or contact us - "
+                        "[Packit team]"
+                        "(https://github.com/orgs/packit-service/teams/the-packit-team)"
+                    )
+
+                    i = project.create_issue(
+                        title="[packit] Invalid config", body=message
+                    )
+                    logger.debug(f"Created issue for invalid packit config: {i.url}")
+            raise ex
+        return package_config
