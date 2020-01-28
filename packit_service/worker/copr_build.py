@@ -301,7 +301,7 @@ class CoprBuildJobHelper(JobHelper):
     def report_status_to_build_for_chroot(
         self, description, state, url: str = "", chroot: str = ""
     ):
-        if self.job_copr_build:
+        if self.job_copr_build and chroot in self.build_chroots:
             self.status_reporter.report(
                 description=description,
                 state=state,
@@ -312,7 +312,7 @@ class CoprBuildJobHelper(JobHelper):
     def report_status_to_test_for_chroot(
         self, description, state, url: str = "", chroot: str = ""
     ):
-        if self.job_tests:
+        if self.job_tests and chroot in self.tests_chroots:
             self.status_reporter.report(
                 description=description,
                 state=state,
