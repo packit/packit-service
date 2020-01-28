@@ -73,7 +73,7 @@ def test_copr_build_end(copr_build_end):
                 JobConfig(
                     job=JobType.copr_build,
                     trigger=JobTriggerType.pull_request,
-                    metadata={},
+                    metadata={"targets": ["fedora-all"]},
                 )
             ]
         )
@@ -435,7 +435,7 @@ def test_copr_build_start(copr_build_start):
                 JobConfig(
                     job=JobType.copr_build,
                     trigger=JobTriggerType.pull_request,
-                    metadata={},
+                    metadata={"targets": ["fedora-all"]},
                 )
             ]
         )
@@ -490,7 +490,9 @@ def test_copr_build_just_tests_defined(copr_build_start):
         flexmock(
             jobs=[
                 JobConfig(
-                    job=JobType.tests, trigger=JobTriggerType.pull_request, metadata={},
+                    job=JobType.tests,
+                    trigger=JobTriggerType.pull_request,
+                    metadata={"targets": ["fedora-all"]},
                 )
             ]
         )
@@ -557,7 +559,7 @@ def test_copr_build_not_comment_on_success(copr_build_end):
                 JobConfig(
                     job=JobType.copr_build,
                     trigger=JobTriggerType.pull_request,
-                    metadata={},
+                    metadata={"targets": ["fedora-all"]},
                 )
             ]
         )
