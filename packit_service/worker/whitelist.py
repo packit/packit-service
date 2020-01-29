@@ -101,10 +101,10 @@ class Whitelist:
 
     def add_account(self, github_app: InstallationEvent) -> bool:
         """
-        Add account to whitelist, if automatic verification of user
-        (check if user is packager in fedora) fails, account is still inserted in whitelist
-         with status : `waiting`.
-         Then a scripts in files/scripts have to be executed for manual approval
+        Add account to whitelist.
+        Status is set to 'waiting' or to 'approved_automatically'
+        if the account is a packager in Fedora.
+
         :param github_app: github app installation info
         :return: was the account (auto/already)-whitelisted?
         """
@@ -121,18 +121,8 @@ class Whitelist:
         if self._is_packager(github_app.sender_login):
             github_app.status = WhitelistStatus.approved_automatically
             self.db[github_app.account_login] = github_app.get_dict()
-            logger.info(
-                f"{github_app.account_type} {github_app.account_login} whitelisted!"
-            )
             return True
         else:
-            logger.info(
-                "Failed to verify that user is Fedora packager. "
-                "This could be caused by different github username than FAS username "
-                "or that user is not a packager."
-                f"{github_app.account_type} {github_app.account_login} inserted "
-                "to whitelist with status: waiting for approval"
-            )
             return False
 
     def approve_account(self, account_name: str) -> bool:
