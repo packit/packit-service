@@ -22,4 +22,7 @@ install -m 0400 /packit-ssh/config .
 grep -q pkgs.fedoraproject.org known_hosts || ssh-keyscan pkgs.fedoraproject.org >>known_hosts
 popd
 
-exec celery worker --app="${APP}" --loglevel=${LOGLEVEL} --concurrency=1
+# concurrency: Number of concurrent worker processes/threads/green threads executing tasks.
+# prefetch-multiplier: How many messages to prefetch at a time multiplied by the number of concurrent processes.
+# http://docs.celeryproject.org/en/latest/userguide/optimizing.html#prefetch-limits
+exec celery worker --app="${APP}" --loglevel=${LOGLEVEL} --concurrency=1 --prefetch-multiplier=1
