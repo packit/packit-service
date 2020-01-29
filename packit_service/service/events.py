@@ -32,7 +32,7 @@ from typing import Optional, List, Union
 from ogr.abstract import GitProject
 from packit.config import JobTriggerType, get_package_config_from_repo, PackageConfig
 
-from packit_service.config import ServiceConfig
+from packit_service.config import ServiceConfig, GithubPackageConfigGetter
 from packit_service.worker.copr_db import CoprBuildDB
 
 logger = logging.getLogger(__name__)
@@ -158,7 +158,7 @@ class Event:
         return f"{self.__class__.__name__}({self.get_dict()})"
 
 
-class AbstractGithubEvent(Event):
+class AbstractGithubEvent(Event, GithubPackageConfigGetter):
     def __init__(self, trigger: JobTriggerType, project_url: str):
         super().__init__(trigger)
         self.project_url: str = project_url
@@ -177,8 +177,8 @@ class ReleaseEvent(AbstractGithubEvent):
         self.tag_name = tag_name
 
     def get_package_config(self) -> Optional[PackageConfig]:
-        package_config: PackageConfig = get_package_config_from_repo(
-            self.get_project(), self.tag_name
+        package_config: PackageConfig = self.get_package_config_from_repo(
+            project=self.get_project(), reference=self.tag_name, fail_when_missing=False
         )
         if not package_config:
             return None
@@ -215,8 +215,11 @@ class PullRequestEvent(AbstractGithubEvent):
         return result
 
     def get_package_config(self) -> Optional[PackageConfig]:
-        package_config: PackageConfig = get_package_config_from_repo(
-            self.get_project(), self.base_ref
+        package_config: PackageConfig = self.get_package_config_from_repo(
+            project=self.get_project(),
+            reference=self.base_ref,
+            pr_id=self.pr_id,
+            fail_when_missing=False,
         )
         if not package_config:
             return None
@@ -257,8 +260,11 @@ class PullRequestCommentEvent(AbstractGithubEvent):
     def get_package_config(self) -> Optional[PackageConfig]:
         if not self.base_ref:
             self.base_ref = self.get_project().get_pr_info(self.pr_id).source_branch
-        package_config: PackageConfig = get_package_config_from_repo(
-            self.get_project(), self.base_ref
+        package_config: PackageConfig = self.get_package_config_from_repo(
+            project=self.get_project(),
+            reference=self.base_ref,
+            pr_id=self.pr_id,
+            fail_when_missing=False,
         )
         if not package_config:
             return None
@@ -303,8 +309,8 @@ class IssueCommentEvent(AbstractGithubEvent):
 
         if releases:
             self.tag_name = releases[0].tag_name
-        package_config: PackageConfig = get_package_config_from_repo(
-            self.get_project(), self.tag_name
+        package_config: PackageConfig = self.get_package_config_from_repo(
+            project=self.get_project(), reference=self.tag_name, fail_when_missing=False
         )
         if not package_config:
             return None
@@ -417,8 +423,8 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         return result
 
     def get_package_config(self):
-        package_config: PackageConfig = get_package_config_from_repo(
-            self.get_project(), self.ref
+        package_config: PackageConfig = self.get_package_config_from_repo(
+            project=self.get_project(), reference=self.ref, fail_when_missing=False
         )
         if not package_config:
             return None
@@ -494,7 +500,9 @@ class CoprBuildEvent(AbstractGithubEvent):
         if not project:
             return None
 
-        package_config: PackageConfig = get_package_config_from_repo(project, self.ref)
+        package_config: PackageConfig = self.get_package_config_from_repo(
+            project=project, reference=self.ref, fail_when_missing=False
+        )
         if not package_config:
             return None
 
