@@ -3,6 +3,7 @@
 FROM fedora:31
 
 ENV LANG=en_US.UTF-8 \
+    ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3 \
     ANSIBLE_STDOUT_CALLBACK=debug \
     USER=packit \
     HOME=/home/packit
