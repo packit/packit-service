@@ -1,7 +1,6 @@
 version: "2"
 
 services:
-
   redis:
     image: registry.fedoraproject.org/f31/redis
     container_name: redis

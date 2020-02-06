@@ -34,9 +34,7 @@
     "prerelease": false,
     "created_at": "2019-06-28T11:26:06Z",
     "published_at": "2019-07-11T13:51:51Z",
-    "assets": [
-
-    ],
+    "assets": [],
     "tarball_url": "https://api.github.com/repos/packit-service/hello-world/tarball/0.3.0",
     "zipball_url": "https://api.github.com/repos/packit-service/hello-world/zipball/0.3.0",
     "body": "testing release"

@@ -6,14 +6,14 @@
     "image": "Fedora-Cloud-Base-29-1.2.x86_64.qcow2"
   },
   "artifact": {
-	"repo-name": "hello-world",
-	"repo-namespace": "packit-service",
-	"copr-repo-name": "packit/packit-service-hello-world-10-stg",
-	"copr-chroot": "fedora-29-x86_64",
-	"commit-sha": "46597d9b66a1927b50376f73bdb1ec1a5757c330",
-	"git-url": "https://github.com/packit-service/hello-world",
-	"git-ref": "pull/10/head"
- },
+    "repo-name": "hello-world",
+    "repo-namespace": "packit-service",
+    "copr-repo-name": "packit/packit-service-hello-world-10-stg",
+    "copr-chroot": "fedora-29-x86_64",
+    "commit-sha": "46597d9b66a1927b50376f73bdb1ec1a5757c330",
+    "git-url": "https://github.com/packit-service/hello-world",
+    "git-ref": "pull/10/head"
+  },
   "result": "passed",
   "message": "Error or info message to display",
   "tests": [

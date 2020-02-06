@@ -2,17 +2,17 @@
 - name: This is a recipe for a container image where packit-service tests will run
   hosts: all
   tasks:
-  - name: Install test RPM dependencies
-    dnf:
-      name:
-      - python3-flexmock
-      - python3-pytest
-      - python3-pytest-cov
-      - tar
-      - rsync
-      state: present
-  - name: Install pip deps
-    pip:
-      name:
-      - git+https://github.com/packit-service/requre.git
-      executable: pip3
+    - name: Install test RPM dependencies
+      dnf:
+        name:
+          - python3-flexmock
+          - python3-pytest
+          - python3-pytest-cov
+          - tar
+          - rsync
+        state: present
+    - name: Install pip deps
+      pip:
+        name:
+          - git+https://github.com/packit-service/requre.git
+        executable: pip3

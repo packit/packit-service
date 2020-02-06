@@ -30,100 +30,100 @@
     get_data_template_path: "./test-in-openshift-get-data.yaml"
     tests_job_name: "packit-tests"
   tasks:
-  - name: get kubeconfig token
-    command: oc whoami -t
-    register: kubeconfig_token
-  - name: get project
-    command: oc project --short=true
-    register: oc_project
-  - name: get server
-    command: oc whoami --show-server
-    register: oc_server
-  - name: Delete old test job if it exists
-    k8s:
-      host: "{{ oc_server.stdout }}"
-      api_key: "{{ kubeconfig_token.stdout }}"
-      verify_ssl: no
-      namespace: "{{ oc_project.stdout }}"
-      name: "{{ tests_job_name }}"
-      api_version: v1
-      kind: Job
-      state: absent
-  - name: Delete old pod for syncing requre data
-    k8s:
-      host: "{{ oc_server.stdout }}"
-      api_key: "{{ kubeconfig_token.stdout }}"
-      verify_ssl: no
-      namespace: "{{ oc_project.stdout }}"
-      name: get-requre-data
-      api_version: v1
-      kind: Pod
-      state: absent
-  - name: delete all pods
-    # Do we need this?
-    command: oc delete pods --all
-    ignore_errors: yes
-  - name: Delete old PersistentVolumeClaim
-    k8s:
-      host: "{{ oc_server.stdout }}"
-      api_key: "{{ kubeconfig_token.stdout }}"
-      verify_ssl: no
-      namespace: "{{ oc_project.stdout }}"
-      name: test-data-pvc
-      api_version: v1
-      kind: PersistentVolumeClaim
-      state: absent
-  # Why k8s module can't be used here:
-  # https://github.com/ansible/ansible/issues/55221#issuecomment-501792651
-  - name: create test job in openshift
-    shell: oc process -f {{ test_job_template_path }} | oc create -f -
-  - name: Create directory for response files
-    file:
-      path: ../tests/test_data
-      state: directory
-  - name: Wait for tests to finish
-    k8s:
-      host: "{{ oc_server.stdout }}"
-      api_key: "{{ kubeconfig_token.stdout }}"
-      verify_ssl: no
-      namespace: "{{ oc_project.stdout }}"
-      name: "{{ tests_job_name }}"
-      api_version: v1
-      kind: Job
-      wait: yes
-      wait_condition:
-        type: Complete
-      wait_timeout: 300
-    ignore_errors: yes # we want to see logs either way
-  - name: get test results
-    k8s_info:
-      kind: Job
-      host: "{{ oc_server.stdout }}"
-      api_key: "{{ kubeconfig_token.stdout }}"
-      verify_ssl: no
-      namespace: "{{ oc_project.stdout }}"
-    register: test_results
-  - name: get test logs
-    command: oc logs job/{{ tests_job_name }}
-    # if the tests fail, halt
-  - name: get test result
-    shell: oc get job {{ tests_job_name }} -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' | grep True
-    # run a new pod, mount the PV with the recorded responses to the new pod
-  - name: start pod which will gather the data
-    shell: oc process -f {{ get_data_template_path }} | oc create -f -
-  - name: wait for the pod to be in a running state so we can copy the files
-    k8s:
-      host: "{{ oc_server.stdout }}"
-      api_key: "{{ kubeconfig_token.stdout }}"
-      verify_ssl: no
-      namespace: "{{ oc_project.stdout }}"
-      name: get-requre-data
-      api_version: v1
-      kind: Pod
-      wait: yes
-      wait_condition:
-        type: Ready
-      wait_timeout: 100
-  # rsync works only on a running pod
-  - name: get generated responses from the pod
-    command: oc rsync pod/get-requre-data:{{ remote_data_dir }} {{ local_data_dir }}
+    - name: get kubeconfig token
+      command: oc whoami -t
+      register: kubeconfig_token
+    - name: get project
+      command: oc project --short=true
+      register: oc_project
+    - name: get server
+      command: oc whoami --show-server
+      register: oc_server
+    - name: Delete old test job if it exists
+      k8s:
+        host: "{{ oc_server.stdout }}"
+        api_key: "{{ kubeconfig_token.stdout }}"
+        verify_ssl: no
+        namespace: "{{ oc_project.stdout }}"
+        name: "{{ tests_job_name }}"
+        api_version: v1
+        kind: Job
+        state: absent
+    - name: Delete old pod for syncing requre data
+      k8s:
+        host: "{{ oc_server.stdout }}"
+        api_key: "{{ kubeconfig_token.stdout }}"
+        verify_ssl: no
+        namespace: "{{ oc_project.stdout }}"
+        name: get-requre-data
+        api_version: v1
+        kind: Pod
+        state: absent
+    - name: delete all pods
+      # Do we need this?
+      command: oc delete pods --all
+      ignore_errors: yes
+    - name: Delete old PersistentVolumeClaim
+      k8s:
+        host: "{{ oc_server.stdout }}"
+        api_key: "{{ kubeconfig_token.stdout }}"
+        verify_ssl: no
+        namespace: "{{ oc_project.stdout }}"
+        name: test-data-pvc
+        api_version: v1
+        kind: PersistentVolumeClaim
+        state: absent
+    # Why k8s module can't be used here:
+    # https://github.com/ansible/ansible/issues/55221#issuecomment-501792651
+    - name: create test job in openshift
+      shell: oc process -f {{ test_job_template_path }} | oc create -f -
+    - name: Create directory for response files
+      file:
+        path: ../tests/test_data
+        state: directory
+    - name: Wait for tests to finish
+      k8s:
+        host: "{{ oc_server.stdout }}"
+        api_key: "{{ kubeconfig_token.stdout }}"
+        verify_ssl: no
+        namespace: "{{ oc_project.stdout }}"
+        name: "{{ tests_job_name }}"
+        api_version: v1
+        kind: Job
+        wait: yes
+        wait_condition:
+          type: Complete
+        wait_timeout: 300
+      ignore_errors: yes # we want to see logs either way
+    - name: get test results
+      k8s_info:
+        kind: Job
+        host: "{{ oc_server.stdout }}"
+        api_key: "{{ kubeconfig_token.stdout }}"
+        verify_ssl: no
+        namespace: "{{ oc_project.stdout }}"
+      register: test_results
+    - name: get test logs
+      command: oc logs job/{{ tests_job_name }}
+      # if the tests fail, halt
+    - name: get test result
+      shell: oc get job {{ tests_job_name }} -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' | grep True
+      # run a new pod, mount the PV with the recorded responses to the new pod
+    - name: start pod which will gather the data
+      shell: oc process -f {{ get_data_template_path }} | oc create -f -
+    - name: wait for the pod to be in a running state so we can copy the files
+      k8s:
+        host: "{{ oc_server.stdout }}"
+        api_key: "{{ kubeconfig_token.stdout }}"
+        verify_ssl: no
+        namespace: "{{ oc_project.stdout }}"
+        name: get-requre-data
+        api_version: v1
+        kind: Pod
+        wait: yes
+        wait_condition:
+          type: Ready
+        wait_timeout: 100
+    # rsync works only on a running pod
+    - name: get generated responses from the pod
+      command: oc rsync pod/get-requre-data:{{ remote_data_dir }} {{ local_data_dir }}

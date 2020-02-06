@@ -5,5 +5,5 @@
     home_path: "{{ lookup('env', 'HOME') }}"
     packit_service_path: /src
   tasks:
-  - import_tasks: common.yaml
-  - import_tasks: httpd.yaml
+    - import_tasks: common.yaml
+    - import_tasks: httpd.yaml

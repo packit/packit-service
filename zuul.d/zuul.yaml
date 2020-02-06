@@ -44,7 +44,6 @@
         - name: test-node
           label: cloud-fedora-30
 
-
 - job:
     name: packit-service-tests
     parent: packit-service-base
