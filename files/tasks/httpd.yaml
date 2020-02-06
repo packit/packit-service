@@ -1,43 +1,43 @@
 - name: httpd.conf - comment out the default :80 port
   lineinfile:
     path: /etc/httpd/conf/httpd.conf
-    regexp: '^(Listen.+)$'
+    regexp: "^(Listen.+)$"
     line: '# \1'
     backrefs: yes
 - name: httpd.conf - user packit
   lineinfile:
     path: /etc/httpd/conf/httpd.conf
-    regexp: '^User apache'
+    regexp: "^User apache"
     line: User packit
 - name: httpd.conf - group root
   lineinfile:
     path: /etc/httpd/conf/httpd.conf
-    regexp: '^Group apache'
+    regexp: "^Group apache"
     line: Group root
 - name: httpd.conf - ErrorLog
   lineinfile:
     path: /etc/httpd/conf/httpd.conf
-    regexp: '^ErrorLog'
+    regexp: "^ErrorLog"
     line: ErrorLog |/usr/bin/cat
 - name: ssl.conf - ensure the default port is 8443
   lineinfile:
     path: /etc/httpd/conf.d/ssl.conf
-    regexp: '^Listen '
+    regexp: "^Listen "
     line: Listen 0.0.0.0:8443 https
 - name: ssl.conf - SSL Virtual Host port
   lineinfile:
     path: /etc/httpd/conf.d/ssl.conf
-    regexp: '^<VirtualHost _default_:443>'
+    regexp: "^<VirtualHost _default_:443>"
     line: <VirtualHost _default_:8443>
 - name: ssl.conf - ErrorLog
   lineinfile:
     path: /etc/httpd/conf.d/ssl.conf
-    regexp: '^ErrorLog'
+    regexp: "^ErrorLog"
     line: ErrorLog |/usr/bin/cat
 - name: ssl.conf - TransferLog
   lineinfile:
     path: /etc/httpd/conf.d/ssl.conf
-    regexp: '^TransferLog'
+    regexp: "^TransferLog"
     line: TransferLog |/usr/bin/cat
 - name: chmod a+rwx httpd dirs
   file:

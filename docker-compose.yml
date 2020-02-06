@@ -1,9 +1,8 @@
 version: "2"
 
 services:
-
   redis:
-    image: registry.fedoraproject.org/f28/redis
+    image: registry.fedoraproject.org/f31/redis
     container_name: redis
     ports:
       - 6379:6379

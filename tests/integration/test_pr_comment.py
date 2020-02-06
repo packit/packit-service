@@ -81,6 +81,7 @@ def test_pr_comment_copr_build_handler(
     flexmock(GithubProject).should_receive("get_all_pr_commits").with_args(
         9
     ).and_return(["528b803be6f93e19ca4130bf4976f2800a3004c4"]).once()
+    flexmock(GithubProject, get_files="foo.spec")
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(pr_copr_build_comment_event)
     assert results["jobs"]["pull_request_action"]["success"]
@@ -98,6 +99,7 @@ def test_pr_comment_build_handler(
     flexmock(GithubProject).should_receive("get_all_pr_commits").with_args(
         9
     ).and_return(["528b803be6f93e19ca4130bf4976f2800a3004c4"]).once()
+    flexmock(GithubProject, get_files="foo.spec")
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(pr_build_comment_event)
     assert results["jobs"]["pull_request_action"]["success"]

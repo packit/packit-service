@@ -11,21 +11,21 @@
         cmd: run_worker.sh
       working_container:
         volumes:
-        - '{{ playbook_dir }}:{{ packit_service_path }}:Z'
+          - "{{ playbook_dir }}:{{ packit_service_path }}:Z"
   tasks:
-  - import_tasks: common.yaml
-  - name: Create /sandcastle
-    # working dir for the upstream git which is mapped to the sandbox pod
-    file:
-      state: directory
-      path: /sandcastle
-      mode: 0777
-  - name: Copy gitconfig
-    copy:
-      src: gitconfig
-      dest: '{{ home_path }}/.gitconfig'
-  - name: Copy run_worker.sh
-    copy:
-      src: run_worker.sh
-      dest: /usr/bin/run_worker.sh
-      mode: 0777
+    - import_tasks: common.yaml
+    - name: Create /sandcastle
+      # working dir for the upstream git which is mapped to the sandbox pod
+      file:
+        state: directory
+        path: /sandcastle
+        mode: 0777
+    - name: Copy gitconfig
+      copy:
+        src: gitconfig
+        dest: "{{ home_path }}/.gitconfig"
+    - name: Copy run_worker.sh
+      copy:
+        src: run_worker.sh
+        dest: /usr/bin/run_worker.sh
+        mode: 0777

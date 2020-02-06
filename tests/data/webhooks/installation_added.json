@@ -74,9 +74,7 @@
       "private": false
     }
   ],
-  "repositories_removed": [
-
-  ],
+  "repositories_removed": [],
   "sender": {
     "login": "jpopelka",
     "id": 288686,

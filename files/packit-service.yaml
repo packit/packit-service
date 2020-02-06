@@ -1,4 +1,4 @@
 ---
 deployment: stg
-github_app_id: '123'
-github_app_cert_path: '/dev/null'
+github_app_id: "123"
+github_app_cert_path: "/dev/null"
