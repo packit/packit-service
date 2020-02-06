@@ -56,7 +56,7 @@ from packit_service.worker.whitelist import Whitelist
 )
 def test_process_message(event):
     packit_yaml = {
-        "specfile_path": "",
+        "specfile_path": "bar.spec",
         "synced_files": [],
         "jobs": [{"trigger": "release", "job": "propose_downstream"}],
     }

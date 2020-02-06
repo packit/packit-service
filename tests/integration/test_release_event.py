@@ -22,7 +22,7 @@ def release_event():
 
 def test_dist_git_push_release_handle(release_event):
     packit_yaml = (
-        "{'specfile_path': '', 'synced_files': []"
+        "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, metadata: {targets:[]}}]}"
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
@@ -49,7 +49,7 @@ def test_dist_git_push_release_handle(release_event):
 
 def test_dist_git_push_release_handle_multiple_branches(release_event):
     packit_yaml = (
-        "{'specfile_path': '', 'synced_files': []"
+        "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, "
         "metadata: {targets:[], dist-git-branch: fedora-all}}]}"
     )
@@ -85,7 +85,7 @@ def test_dist_git_push_release_handle_multiple_branches(release_event):
 
 def test_dist_git_push_release_handle_one_failed(release_event):
     packit_yaml = (
-        "{'specfile_path': '', 'synced_files': []"
+        "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, "
         "metadata: {targets:[], dist-git-branch: fedora-all}}]}"
     )
@@ -123,7 +123,7 @@ def test_dist_git_push_release_handle_one_failed(release_event):
 
 def test_dist_git_push_release_handle_all_failed(release_event):
     packit_yaml = (
-        "{'specfile_path': '', 'synced_files': []"
+        "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, "
         "metadata: {targets:[], dist-git-branch: fedora-all}}]}"
     )
