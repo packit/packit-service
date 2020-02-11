@@ -2,6 +2,8 @@
 # deploy an openshift cluster to the current env - e.g. in Zuul
 - name: Install dependencies for packit service.
   hosts: all
+  roles:
+    - role: clear-firewall
   tasks:
     - name: Install basic utilities which should be in environment.
       dnf:
