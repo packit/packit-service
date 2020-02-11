@@ -9,7 +9,6 @@
           - git
           - rpmdevtools
           - docker
-          - podman
         state: present
       become: true
     - name: Downgrade containernetwork-plugins
