@@ -37,10 +37,6 @@ from packit_service.config import Deployment, ServiceConfig
 from packit_service.constants import (
     PACKIT_PROD_CHECK,
     PACKIT_STG_CHECK,
-    PACKIT_PROD_ACCOUNT_CHECK,
-    PACKIT_STG_ACCOUNT_CHECK,
-    PACKIT_PROD_SRPM_CHECK,
-    PACKIT_STG_SRPM_CHECK,
     PACKIT_PROD_TESTING_FARM_CHECK,
     PACKIT_STG_TESTING_FARM_CHECK,
 )
@@ -56,20 +52,6 @@ class PRCheckName:
     """
     This is class providing static methods for getting check names according to deployment
     """
-
-    @staticmethod
-    def get_account_check() -> str:
-        config = ServiceConfig.get_service_config()
-        if config.deployment == Deployment.prod:
-            return PACKIT_PROD_ACCOUNT_CHECK
-        return PACKIT_STG_ACCOUNT_CHECK
-
-    @staticmethod
-    def get_srpm_build_check() -> str:
-        config = ServiceConfig.get_service_config()
-        if config.deployment == Deployment.prod:
-            return PACKIT_PROD_SRPM_CHECK
-        return PACKIT_STG_SRPM_CHECK
 
     @staticmethod
     def get_build_check(chroot: str = None) -> str:

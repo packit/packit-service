@@ -6,12 +6,8 @@ SANDCASTLE_PVC = "SANDCASTLE_PVC"
 
 CONFIG_FILE_NAME = "packit-service.yaml"
 
-PACKIT_PROD_ACCOUNT_CHECK = "packit/authorized-to-build"
-PACKIT_STG_ACCOUNT_CHECK = "packit-stg/authorized-to-build"
 PACKIT_PROD_CHECK = "packit/rpm-build"
 PACKIT_STG_CHECK = "packit-stg/rpm-build"
-PACKIT_PROD_SRPM_CHECK = "packit/srpm-build"
-PACKIT_STG_SRPM_CHECK = "packit-stg/srpm-build"
 PACKIT_PROD_TESTING_FARM_CHECK = "packit/testing-farm"
 PACKIT_STG_TESTING_FARM_CHECK = "packit-stg/testing-farm"
 
