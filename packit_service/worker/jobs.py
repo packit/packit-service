@@ -30,6 +30,7 @@ from typing import Optional, Dict, Union, Type
 from ogr.abstract import GitProject
 from ogr.services.github import GithubProject
 from packit.config import JobTriggerType, JobType
+
 from packit_service.config import ServiceConfig
 from packit_service.service.events import (
     PullRequestCommentEvent,
@@ -116,7 +117,9 @@ class SteveJobs:
                 github_login = getattr(event, "github_login", None)
                 if github_login and github_login in self.config.admins:
                     logger.info(f"{github_login} is admin, you shall pass")
-                elif not whitelist.check_and_report(event, event.get_project()):
+                elif not whitelist.check_and_report(
+                    event, event.get_project(), config=self.config
+                ):
                     handlers_results[job.job.value] = HandlerResults(
                         success=False, details={"msg": "Account is not whitelisted!"}
                     )
@@ -175,7 +178,9 @@ class SteveJobs:
         github_login = getattr(event, "github_login", None)
         if github_login and github_login in self.config.admins:
             logger.info(f"{github_login} is admin, you shall pass")
-        elif not whitelist.check_and_report(event, event.get_project()):
+        elif not whitelist.check_and_report(
+            event, event.get_project(), config=self.config
+        ):
             return HandlerResults(
                 success=True, details={"msg": "Account is not whitelisted!"}
             )
