@@ -11,6 +11,8 @@
     gate:
       jobs:
         - packit-service-pre-commit
+        - packit-service-tests
+        - packit-service-tests-requre
 
 - job:
     name: packit-service-pre-commit
