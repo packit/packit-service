@@ -8,7 +8,21 @@
         name:
           - git
           - rpmdevtools
-          - docker
+        state: present
+      become: true
+    # Docs: https://docs.docker.com/install/linux/docker-ce/fedora/
+    - name: Setup Docker CE repo
+      get_url:
+        url: https://download.docker.com/linux/fedora/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+        mode: 0644
+      become: true
+    - name: Install Docker CE
+      dnf:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
         state: present
       become: true
     - name: Put SELinux in permissive mode, logging actions that would be blocked.
