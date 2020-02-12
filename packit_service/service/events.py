@@ -67,15 +67,16 @@ class WhitelistStatus(enum.Enum):
     approved_manually = "approved_manually"
 
 
-class TestingFarmResult(enum.Enum):
+class TestingFarmResult(str, enum.Enum):
     passed = "passed"
     failed = "failed"
     error = "error"
     running = "running"
 
 
-class TestResult:
+class TestResult(dict):
     def __init__(self, name: str, result: TestingFarmResult, log_url: str):
+        dict.__init__(self, name=name, result=result, log_url=log_url)
         self.name = name
         self.result = result
         self.log_url = log_url
@@ -86,7 +87,7 @@ class TestResult:
     def __repr__(self):
         return self.__str__()
 
-    def __hash__(self) -> int:
+    def __hash__(self) -> int:  # type: ignore
         return hash(self.__str__())
 
     def __eq__(self, o: object) -> bool:
