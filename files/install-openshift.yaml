@@ -2,8 +2,6 @@
 # deploy an openshift cluster to the current env - e.g. in Zuul
 - name: Install dependencies for packit service.
   hosts: all
-  roles:
-    - role: clear-firewall
   tasks:
     - name: Install basic utilities which should be in environment.
       dnf:
@@ -12,13 +10,6 @@
           - rpmdevtools
           - docker
         state: present
-      become: true
-    - name: Downgrade containernetwork-plugins
-      dnf:
-        name:
-          - "https://kojipkgs.fedoraproject.org//packages/containernetworking-plugins/0.8.2/2.git485be65.fc30/x86_64/containernetworking-plugins-0.8.2-2.git485be65.fc30.x86_64.rpm"
-        state: present
-        allow_downgrade: true
       become: true
     - name: Put SELinux in permissive mode, logging actions that would be blocked.
       selinux:
@@ -54,7 +45,7 @@
         state: present
       become: true
     - name: Start Openshift cluster
-      command: oc cluster up --base-dir=/tmp
+      command: oc cluster up -v 5 --base-dir=/tmp
       environment:
         PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
         DOCKER_CONFIG: "/etc/docker/daemon.json"
