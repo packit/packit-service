@@ -21,13 +21,14 @@
 import logging
 from typing import Optional, Any
 
-from fedora.client.fas2 import AccountSystem
 from fedora.client import AuthError, FedoraServiceError
+from fedora.client.fas2 import AccountSystem
 from ogr.abstract import GitProject
 from packit.config import JobTriggerType
-from persistentdict.dict_in_redis import PersistentDict
 from packit.exceptions import PackitException
+from persistentdict.dict_in_redis import PersistentDict
 
+from packit_service.config import ServiceConfig
 from packit_service.constants import FAQ_URL
 from packit_service.service.events import (
     PullRequestEvent,
@@ -40,7 +41,7 @@ from packit_service.service.events import (
     TestingFarmResultsEvent,
     DistGitEvent,
 )
-from packit_service.worker.handler import BuildStatusReporter, PRCheckName
+from packit_service.worker.copr_build import JobHelper
 
 logger = logging.getLogger(__name__)
 
@@ -180,9 +181,12 @@ class Whitelist:
             if WhitelistStatus(item["status"]) == WhitelistStatus.waiting
         ]
 
-    def check_and_report(self, event: Optional[Any], project: GitProject) -> bool:
+    def check_and_report(
+        self, event: Optional[Any], project: GitProject, config: ServiceConfig
+    ) -> bool:
         """
         Check if account is approved and report status back in case of PR
+        :param config: service config
         :param event: PullRequest and Release TODO: handle more
         :param project: GitProject
         :return:
@@ -216,13 +220,15 @@ class Whitelist:
                 if event.trigger == JobTriggerType.comment:
                     project.pr_comment(event.pr_id, msg)
                 else:
+                    job_helper = JobHelper(
+                        config=config,
+                        package_config=event.get_package_config(),
+                        project=project,
+                        event=event,
+                    )
                     msg = "Account is not whitelisted!"  # needs to be shorter
-                    r = BuildStatusReporter(project, event.commit_sha, None)
-                    r.report(
-                        "failure",
-                        msg,
-                        url=FAQ_URL,
-                        check_names=PRCheckName.get_account_check(),
+                    job_helper.report_status_to_all(
+                        description=msg, state="error", url=FAQ_URL
                     )
                 return False
             # TODO: clear failing check when present

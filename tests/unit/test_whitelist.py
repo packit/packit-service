@@ -27,7 +27,9 @@ from fedora.client.fas2 import AccountSystem
 from flexmock import flexmock
 from ogr.abstract import GitProject, GitService
 from ogr.services.github import GithubProject, GithubService
+from packit.config import JobType, JobConfig, JobTriggerType
 
+from packit_service.config import Deployment
 from packit_service.service.events import (
     ReleaseEvent,
     PullRequestEvent,
@@ -162,7 +164,12 @@ def test_check_and_report_calls_method(whitelist, event, method, approved):
         .with_args(0, "Neither account bar nor owner foo are on our whitelist!")
     )
     mocked_gp.never() if approved else mocked_gp.once()
-    assert whitelist.check_and_report(event, gp) is approved
+    assert (
+        whitelist.check_and_report(
+            event, gp, config=flexmock(deployment=Deployment.stg)
+        )
+        is approved
+    )
 
 
 @pytest.fixture()
@@ -241,6 +248,20 @@ def test_check_and_report(
         set_commit_status=lambda *args, **kwargs: None,
         issue_comment=lambda *args, **kwargs: None,
     )
+    flexmock(PullRequestEvent).should_receive("get_package_config").and_return(
+        flexmock(
+            jobs=[
+                JobConfig(
+                    job=JobType.tests, trigger=JobTriggerType.pull_request, metadata={}
+                )
+            ]
+        )
+    )
     git_project = GithubProject("", GithubService(), "")
     for event in events:
-        assert whitelist.check_and_report(event[0], git_project) is event[1]
+        assert (
+            whitelist.check_and_report(
+                event[0], git_project, config=flexmock(deployment=Deployment.stg)
+            )
+            is event[1]
+        )
