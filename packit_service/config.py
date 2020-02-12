@@ -90,7 +90,7 @@ class ServiceConfig(Config):
 
         config = ServiceConfigSchema(strict=True).load(raw_dict).data
 
-        config.server_name = raw_dict.get("server_name", "localhost:8443")
+        config.server_name = raw_dict.get("server_name", "localhost:5000")
 
         config.command_handler = RunCommandType.local
         a_h = raw_dict.get("command_handler")

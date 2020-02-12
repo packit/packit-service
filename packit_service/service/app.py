@@ -33,9 +33,13 @@ set_logging(logger_name="packit_service", level=logging.DEBUG)
 application = Flask(__name__)
 application.register_blueprint(blueprint)
 
-application.config["SERVER_NAME"] = ServiceConfig.get_service_config().server_name
+s = ServiceConfig.get_service_config()
+# https://flask.palletsprojects.com/en/1.1.x/config/#SERVER_NAME
+application.config["SERVER_NAME"] = s.server_name
 application.config["PREFERRED_URL_SCHEME"] = "https"
 
 logger = logging.getLogger("packit_service")
+logger.info(f"server name = {s.server_name}, all HTTP requests need to use this URL!")
+
 # no need to thank me, just buy me a beer
 logger.debug(f"URL map = {application.url_map}")
