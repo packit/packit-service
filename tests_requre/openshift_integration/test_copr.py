@@ -22,8 +22,8 @@
 
 import json
 
-import flexmock
 import pytest
+from flexmock import flexmock
 
 from packit_service.worker.whitelist import Whitelist
 from tests_requre.openshift_integration.base import PackitServiceTestCase, DATA_DIR
