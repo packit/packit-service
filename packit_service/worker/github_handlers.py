@@ -26,6 +26,8 @@ This file defines classes for job handlers specific for Github hooks
 import logging
 from typing import Union, Any, Optional, List, Callable
 
+from github import UnknownObjectException
+
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import (
@@ -426,13 +428,27 @@ class GitHubIssueCommentProposeUpdateHandler(
         self.event = event
         self.project = self.event.get_project()
         # Get the latest tag release
-        self.event.tag_name = self.project.get_latest_release().tag_name
+        self.event.tag_name = self.get_tag_name()
         self.package_config: PackageConfig = self.get_package_config_from_repo(
             self.project, self.event.tag_name
         )
         if not self.package_config:
             raise ValueError(f"No config file found in {self.project.full_repo_name}")
         self.package_config.upstream_project_url = event.project_url
+
+    def get_tag_name(self) -> Optional[str]:
+        """
+        Get the tag name of the latest upstream release.
+
+        :return: tag name
+        """
+        try:
+            tag_name = self.project.get_latest_release().tag_name
+            logger.debug(f"found the tag name of the latest release: {tag_name}")
+            return tag_name
+        except UnknownObjectException:
+            logger.debug("no upstream release found")
+            return None
 
     @property
     def dist_git_branches_to_sync(self) -> List[str]:
@@ -462,6 +478,16 @@ class GitHubIssueCommentProposeUpdateHandler(
             msg = "Only collaborators can trigger Packit-as-a-Service"
             self.project.issue_comment(self.event.issue_id, msg)
             return HandlerResults(success=True, details={"msg": msg})
+
+        if not self.event.tag_name:
+            msg = (
+                "There was an error while proposing a new update for the Fedora package: "
+                "no upstream release found."
+            )
+            self.project.issue_comment(self.event.issue_id, msg)
+            return HandlerResults(
+                success=False, details={"msg": "Propose update failed"}
+            )
 
         sync_failed = False
         for branch in self.dist_git_branches_to_sync:
