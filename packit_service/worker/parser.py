@@ -400,7 +400,7 @@ class Parser:
                 result=TestingFarmResult(raw_test["result"]),
                 log_url=raw_test.get("log"),
             )
-            for raw_test in event.get("tests")
+            for raw_test in event.get("tests", [])
         ]
 
         logger.info(f"Results from Testing farm event. Pipeline ID: {pipeline_id}")
