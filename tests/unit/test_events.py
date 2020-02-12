@@ -85,6 +85,13 @@ class TestEvents:
             return json.load(outfile)
 
     @pytest.fixture()
+    def testing_farm_results_error(self):
+        with open(
+            DATA_DIR / "webhooks" / "testing_farm_results_error.json", "r"
+        ) as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
     def pr_comment_created_request(self):
         with open(
             DATA_DIR / "webhooks" / "github_pr_comment_copr_build.json", "r"
@@ -259,6 +266,26 @@ class TestEvents:
             ),
         } == set(event_object.tests)
 
+    def test_parse_testing_farm_results_error(self, testing_farm_results_error):
+        event_object = Parser.parse_event(testing_farm_results_error)
+
+        assert isinstance(event_object, TestingFarmResultsEvent)
+        assert event_object.trigger == JobTriggerType.testing_farm_results
+        assert event_object.pipeline_id == "43e310b6-c1f1-4d3e-a95c-6c1eca235296"
+        assert event_object.result == TestingFarmResult.failed
+        assert event_object.repo_namespace == "packit-service"
+        assert event_object.repo_name == "hello-world"
+        assert event_object.ref == "pull/10/head"
+        assert (
+            event_object.project_url == "https://github.com/packit-service/hello-world"
+        )
+        assert event_object.commit_sha == "46597d9b66a1927b50376f73bdb1ec1a5757c330"
+        assert event_object.message == "Bad error"
+        assert event_object.environment == "Fedora-Cloud-Base-29-1.2.x86_64.qcow2"
+        assert event_object.copr_repo_name == "packit/packit-service-hello-world-10-stg"
+        assert event_object.copr_chroot == "fedora-29-x86_64"
+        assert event_object.tests == []
+
     def test_parse_copr_build_event_start(self, copr_build_results_start):
         flexmock(CoprBuildDB).should_receive("get_build").and_return(
             {"repo_name": "foo", "https_url": "url"}
@@ -341,3 +368,13 @@ class TestEvents:
         assert event_object.ref == "abcd"
         assert event_object.branch == "master"
         assert event_object.msg_id == "2019-49c02775-6d37-40a9-b108-879e3511c49a"
+
+    def test_json_testing_farm_result(self, testing_farm_results):
+        event_object = Parser.parse_event(testing_farm_results)
+        assert json.dumps(event_object.tests)
+        assert json.dumps(event_object.result)
+
+    def test_json_testing_farm_result_error(self, testing_farm_results_error):
+        event_object = Parser.parse_event(testing_farm_results_error)
+        assert json.dumps(event_object.tests)
+        assert json.dumps(event_object.result)
