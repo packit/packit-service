@@ -21,11 +21,7 @@
 # SOFTWARE.
 
 import json
-
-import pytest
-from flexmock import flexmock
-
-from packit_service.worker.whitelist import Whitelist
+import unittest
 from tests_requre.openshift_integration.base import PackitServiceTestCase, DATA_DIR
 
 
@@ -37,7 +33,7 @@ def pr_event():
 
 def pr_comment_event():
     return json.loads(
-        (DATA_DIR / "webhooks" / "copr_build" / "pr_comment.json").read_text()
+        (DATA_DIR / "webhooks" / "github_pr_comment_copr_build.json").read_text()
     )
 
 
@@ -50,24 +46,19 @@ def pr_comment_event_not_collaborator():
 
 
 class Copr(PackitServiceTestCase):
-    @pytest.mark.skip(reason="offline data needs to be regenerated for this test")
+    @unittest.skipIf(True, "troubles with whitelisting")
     def test_submit_copr_build_pr_event(self):
-        # flexmock whitelist
-        flexmock(Whitelist, check_and_report=True)
-
         result = self.steve.process_message(pr_event())
         self.assertTrue(result)
         self.assertIn("copr_build", result["jobs"])
         self.assertTrue(result["jobs"]["copr_build"]["success"])
 
-    @pytest.mark.skip(reason="Cannot connect to redis -- we need to fix that.")
     def test_submit_copr_build_pr_comment(self):
         result = self.steve.process_message(pr_comment_event())
         self.assertTrue(result)
         self.assertIn("pull_request_action", result["jobs"])
         self.assertTrue(result["jobs"]["pull_request_action"]["success"])
 
-    @pytest.mark.skip(reason="Cannot connect to redis -- we need to fix that.")
     def test_not_collaborator(self):
         result = self.steve.process_message(pr_comment_event_not_collaborator())
         action = result["jobs"]["pull_request_action"]
