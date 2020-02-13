@@ -36,7 +36,11 @@ def configure_sentry():
     # https://docs.sentry.io/platforms/python/celery/
     from sentry_sdk.integrations.celery import CeleryIntegration
 
-    return sentry_sdk.init(secret_key, integrations=[CeleryIntegration()])
+    sentry_sdk.init(
+        secret_key, integrations=[CeleryIntegration()], environment=getenv("DEPLOYMENT")
+    )
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag("runner-type", "packit-worker")
 
 
 class Celerizer:
