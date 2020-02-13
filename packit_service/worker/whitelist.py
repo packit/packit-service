@@ -53,7 +53,7 @@ class Whitelist:
             username=fas_user, password=fas_password
         )
 
-    def _is_packager(self, account_login: str) -> bool:
+    def _signed_fpca(self, account_login: str) -> bool:
         """
         Check if the user is a packager, by checking if their GitHub
         username is in the 'packager' group in FAS. Works only the user's
@@ -77,11 +77,11 @@ class Whitelist:
             return False
 
         for membership in person.get("memberships", []):
-            if membership.get("name") == "packager":
-                logger.info(f"User {account_login!r} is a packager in Fedora!")
+            if membership.get("name") == "cla_fpca":
+                logger.info(f"User {account_login!r} signed FPCA!")
                 return True
 
-        logger.info(f"Cannot verify whether {account_login!r} is a packager in Fedora.")
+        logger.info(f"Cannot verify whether {account_login!r} signed FPCA.")
         return False
 
     def get_account(self, account_name: str) -> Optional[dict]:
@@ -118,8 +118,9 @@ class Whitelist:
         github_app.status = WhitelistStatus.waiting
         self.db[github_app.account_login] = github_app.get_dict()
 
-        # we want to verify if user who installed the application (sender_login) is packager
-        if self._is_packager(github_app.sender_login):
+        # we want to verify if user who installed the application (sender_login) signed FPCA
+        # https://fedoraproject.org/wiki/Legal:Fedora_Project_Contributor_Agreement
+        if self._signed_fpca(github_app.sender_login):
             github_app.status = WhitelistStatus.approved_automatically
             self.db[github_app.account_login] = github_app.get_dict()
             return True

@@ -87,28 +87,28 @@ def test_is_approved(whitelist, account_name, is_approved):
 
 
 @pytest.mark.parametrize(
-    "account_name,person_object,raises,is_packager",
+    "account_name,person_object,raises,signed_fpca",
     [
         (
             "me",
             {
                 "memberships": [
                     {"name": "unicorns"},
-                    {"name": "packager"},
+                    {"name": "cla_fpca"},
                     {"name": "builder"},
                 ]
             },
             None,
             True,
         ),
-        ("you", {"memberships": [{"name": "packagers"}]}, None, False),
+        ("you", {"memberships": [{"name": "packager"}]}, None, False),
         ("they", {}, None, False),
         ("parrot", {"some": "data"}, None, False),
         ("we", None, AuthError, False),
         ("bear", None, FedoraServiceError, False),
     ],
 )
-def test_is_packager(whitelist, account_name, person_object, raises, is_packager):
+def test_signed_fpca(whitelist, account_name, person_object, raises, signed_fpca):
     fas = (
         flexmock(AccountSystem)
         .should_receive("person_by_username")
@@ -120,7 +120,7 @@ def test_is_packager(whitelist, account_name, person_object, raises, is_packager
     if raises is not None:
         fas.and_raise(raises)
 
-    assert whitelist._is_packager(account_name) == is_packager
+    assert whitelist._signed_fpca(account_name) is signed_fpca
 
 
 @pytest.mark.parametrize(
