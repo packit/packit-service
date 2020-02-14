@@ -27,6 +27,7 @@ import logging
 import shutil
 from os import getenv
 from pathlib import Path
+from sentry_sdk import push_scope
 from typing import Dict, Any, Optional, Type, List, Union
 
 from ogr.abstract import GitProject
@@ -168,9 +169,24 @@ class Handler:
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")
 
+    def get_tag_info(self) -> dict:
+        tags = {"handler": getattr(self, "name", "generic-handler")}
+        # repository info for easier filtering events that were grouped based on event type
+        if self.local_project:
+            tags.update(
+                {
+                    "repository": self.local_project.repo_name,
+                    "namespace": self.local_project.namespace,
+                }
+            )
+        return tags
+
     def run_n_clean(self) -> HandlerResults:
         try:
-            return self.run()
+            with push_scope() as scope:
+                for k, v in self.get_tag_info().items():
+                    scope.set_tag(k, v)
+                return self.run()
         finally:
             self.clean()
 
