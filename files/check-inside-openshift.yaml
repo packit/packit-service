@@ -59,10 +59,6 @@
         api_version: v1
         kind: Pod
         state: absent
-    - name: delete all pods
-      # Do we need this?
-      command: oc delete pods --all
-      ignore_errors: yes
     - name: Delete old PersistentVolumeClaim
       k8s:
         host: "{{ oc_server.stdout }}"
