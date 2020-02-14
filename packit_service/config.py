@@ -64,7 +64,6 @@ class ServiceConfig(Config):
         fas_password: Optional[str] = "",
         **kwargs,
     ):
-
         super().__init__(**kwargs)
 
         self.deployment = deployment

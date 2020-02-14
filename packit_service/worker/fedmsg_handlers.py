@@ -40,7 +40,14 @@ from packit.local_project import LocalProject
 from packit.utils import get_namespace_and_repo_name
 
 from packit_service.config import ServiceConfig
-from packit_service.service.events import Event, DistGitEvent, CoprBuildEvent
+from packit_service.models import CoprBuild
+from packit_service.service.events import (
+    Event,
+    DistGitEvent,
+    CoprBuildEvent,
+    get_copr_build_logs_url,
+)
+from packit_service.service.urls import get_log_url
 from packit_service.worker.copr_build import CoprBuildJobHelper
 from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.github_handlers import GithubTestingFarmHandler
@@ -200,24 +207,37 @@ class CoprBuildEndHandler(FedmsgHandler):
         return False
 
     def run(self):
-        build = CoprBuildDB().get_build(self.event.build_id)
-        if not build:
-            # TODO: how could this happen?
-            msg = f"Copr build {self.event.build_id} not in CoprBuildDB"
-            logger.warning(msg)
-            return HandlerResults(success=False, details={"msg": msg})
+        if self.event.chroot == "srpm-builds":
+            # we don't want to set check for this
+            msg = "SRPM build in copr has finished"
+            logger.debug(msg)
+            return HandlerResults(success=True, details={"msg": msg})
+        # TODO: drop the code below once we move to PG completely; the build is present in event
+        # pg
+        build_pg = CoprBuild.get_by_build_id(
+            str(self.event.build_id), self.event.chroot
+        )
+        if not build_pg:
+            logger.info(
+                f"build {self.event.build_id} is not in pg, falling back to redis"
+            )
 
-        url = copr_url_from_event(self.event)
+            # redis - old school
+            build = CoprBuildDB().get_build(self.event.build_id)
+            if not build:
+                # TODO: how could this happen?
+                msg = f"Copr build {self.event.build_id} not in CoprBuildDB"
+                logger.warning(msg)
+                return HandlerResults(success=False, details={"msg": msg})
+
+        if build_pg:
+            url = get_log_url(build_pg.id)
+        else:
+            url = copr_url_from_event(self.event)
+        gh_state = "failure"
 
         # https://pagure.io/copr/copr/blob/master/f/common/copr_common/enums.py#_42
         if self.event.status == 1:
-
-            if self.event.chroot == "srpm-builds":
-                # we don't want to set check for this
-                msg = "SRPM build in copr has finished"
-                logger.debug(msg)
-                return HandlerResults(success=True, details={"msg": msg})
-
             if (
                 self.build_job_helper.job_copr_build
                 and not self.was_last_build_successful()
@@ -233,8 +253,9 @@ class CoprBuildEndHandler(FedmsgHandler):
                 )
                 self.project.pr_comment(pr_id=self.event.pr_id, body=msg)
 
+            gh_state = "success"
             self.build_job_helper.report_status_for_chroot(
-                state="success",
+                state=gh_state,
                 description="RPMs were built successfully.",
                 url=url,
                 chroot=self.event.chroot,
@@ -258,8 +279,11 @@ class CoprBuildEndHandler(FedmsgHandler):
 
         failed_msg = "RPMs failed to be built."
         self.build_job_helper.report_status_for_chroot(
-            state="failure", description=failed_msg, url=url, chroot=self.event.chroot,
+            state=gh_state, description=failed_msg, url=url, chroot=self.event.chroot,
         )
+        if build_pg:
+            build_pg.set_build_logs_url(get_copr_build_logs_url(self.event))
+            build_pg.set_status(gh_state)
         return HandlerResults(success=False, details={"msg": failed_msg})
 
 
@@ -281,23 +305,41 @@ class CoprBuildStartHandler(FedmsgHandler):
         )
 
     def run(self):
-        build = CoprBuildDB().get_build(self.event.build_id)
-        if not build:
-            # TODO: how could this happen?
-            msg = f"Copr build {self.event.build_id} not in CoprBuildDB"
-            logger.warning(msg)
-            return HandlerResults(success=False, details={"msg": msg})
-
         if self.event.chroot == "srpm-builds":
-            # we don't want to set check for this
+            # we don't want to set the check status for this
             msg = "SRPM build in copr has started"
             logger.debug(msg)
             return HandlerResults(success=True, details={"msg": msg})
 
+        # TODO: drop the code below once we move to PG completely; the build is present in event
+        # pg
+        build_pg = CoprBuild.get_by_build_id(
+            str(self.event.build_id), self.event.chroot
+        )
+        if not build_pg:
+            logger.info(
+                f"build {self.event.build_id} is not in pg, falling back to redis"
+            )
+
+            # redis - old school
+            build = CoprBuildDB().get_build(self.event.build_id)
+            if not build:
+                # TODO: how could this happen?
+                msg = f"Copr build {self.event.build_id} not in CoprBuildDB"
+                logger.warning(msg)
+                return HandlerResults(success=False, details={"msg": msg})
+
+        status = "pending"
+        if build_pg:
+            url = get_log_url(build_pg.id)
+            build_pg.set_status(status)
+        else:
+            url = copr_url_from_event(self.event)
+
         self.build_job_helper.report_status_for_chroot(
-            state="pending",
             description="RPM build has started...",
-            url=copr_url_from_event(self.event),
+            state=status,
+            url=url,
             chroot=self.event.chroot,
         )
         msg = f"Build on {self.event.chroot} in copr has started..."

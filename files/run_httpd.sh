@@ -9,9 +9,15 @@ export LD_PRELOAD=libnss_wrapper.so
 export NSS_WRAPPER_PASSWD=${HOME}/passwd
 export NSS_WRAPPER_GROUP=/etc/group
 
-# uncomment this after we have some migrations
-# pushd /src
-# alembic upgrade head
-# popd
-
+pushd /src
+# if all containers started at the same time, pg is definitely not ready to serve
+# so let's try this for a few times
+n=0
+until [ $n -ge 7 ]
+do
+  alembic upgrade head && break
+  n=$[$n+1]
+  sleep 2
+done
+popd  # pushd /src
 httpd -DFOREGROUND

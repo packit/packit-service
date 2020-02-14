@@ -158,13 +158,13 @@ packit=# \dt
  Schema |      Name       | Type  | Owner
 --------+-----------------+-------+--------
  public | alembic_version | table | packit
- public | github_projects | table | packit
+ public | git_projects    | table | packit
 ```
 
 Look inside a table
 
 ```
-packit=# select * from github_projects;
+packit=# select * from git_projects;
  id | namespace | repo_name
 ----+-----------+-----------
 (0 rows)
