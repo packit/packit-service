@@ -385,7 +385,7 @@ The service configuration is an extension of the user configuration from packit.
 
 To add a new service-related property you need to:
 
-1. Add a property to `ServiceConfig.__init__` in [config.py](/packit_service/config.py).
+1. Add a property to `ServiceConfig.__init__` in [config.py](/packit_service/config.py) and set it as attribute.
 2. Load the property in `ServiceConfig.get_from_dict`.
 3. Add it to the validation schema (`_SERVICE_CONFIG_SCHEMA_PROPERTIES`) in [schema.py](/packit_service/schema.py).
    - Add the property to the `_SERVICE_CONFIG_SCHEMA_REQUIRED` if the property is required.
