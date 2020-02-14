@@ -61,6 +61,7 @@ class ServiceConfig(Config):
         testing_farm_secret: str = "",
         validate_webhooks: bool = True,
         admins: list = [],
+        fas_password: Optional[str] = "",
         **kwargs,
     ):
 
@@ -75,7 +76,7 @@ class ServiceConfig(Config):
 
         # fas.fedoraproject.org needs password to authenticate
         # 'fas_user' is inherited from packit.config.Config
-        self.fas_password: Optional[str] = ""
+        self.fas_password = fas_password
 
         # List of github users who are allowed to trigger p-s on any repository
         self.admins: Set[str] = set(admins)
