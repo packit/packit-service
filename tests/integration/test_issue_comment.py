@@ -45,9 +45,6 @@ def test_issue_comment_propose_update_handler(
     flexmock(PackitAPI).should_receive("sync_release").and_return(
         HandlerResults(success=True, details={})
     )
-    flexmock(
-        GithubProject, get_files=lambda filter_regex: [],
-    )
-    flexmock(SteveJobs, _is_private=False)
+    flexmock(GithubProject, get_files=lambda filter_regex: [], is_private=False)
     results = SteveJobs().process_message(issue_comment_propose_update_event)
     assert results["jobs"]["pull_request_action"]["success"]

@@ -32,10 +32,10 @@ def test_dist_git_push_release_handle(release_event):
         get_file_content=lambda path, ref: packit_yaml,
         full_repo_name="packit-service/hello-world",
         get_files=lambda filter_regex: [],
+        is_private=False,
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
-    flexmock(SteveJobs, _is_private=False)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
@@ -61,10 +61,10 @@ def test_dist_git_push_release_handle_multiple_branches(release_event):
         get_file_content=lambda path, ref: packit_yaml,
         full_repo_name="packit-service/hello-world",
         get_files=lambda filter_regex: [],
+        is_private=False,
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
-    flexmock(SteveJobs, _is_private=False)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
@@ -102,10 +102,10 @@ def test_dist_git_push_release_handle_one_failed(release_event):
         get_file_content=lambda path, ref: packit_yaml,
         full_repo_name="packit-service/hello-world",
         get_files=lambda filter_regex: [],
+        is_private=False,
     ).should_receive("create_issue").once()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
-    flexmock(SteveJobs, _is_private=False)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
@@ -145,6 +145,7 @@ def test_dist_git_push_release_handle_all_failed(release_event):
         get_file_content=lambda path, ref: packit_yaml,
         full_repo_name="packit-service/hello-world",
         get_files=lambda filter_regex: [],
+        is_private=False,
     ).should_receive("create_issue").with_args(
         title="[packit] Propose update failed for release 0.3.0",
         body="Packit failed on creating pull-requests in dist-git:\n\n"
@@ -159,7 +160,6 @@ def test_dist_git_push_release_handle_all_failed(release_event):
     ).once()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
-    flexmock(SteveJobs, _is_private=False)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)

@@ -67,6 +67,7 @@ def test_process_message(event):
         get_file_content=lambda path, ref: dumps(packit_yaml),
         full_repo_name="foo/bar",
         get_files=lambda filter_regex: [],
+        is_private=False,
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     config = ServiceConfig()
@@ -76,7 +77,6 @@ def test_process_message(event):
         dist_git_branch="master", version="1.2.3"
     ).once()
     flexmock(Whitelist, check_and_report=True)
-    flexmock(SteveJobs, _is_private=False)
 
     results = SteveJobs().process_message(event)
     assert "propose_downstream" in results["jobs"]

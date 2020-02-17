@@ -118,7 +118,7 @@ def test_copr_build_end(
     copr_build_end, pc_build_pr, copr_build, pc_comment_pr_succ, pr_comment_called
 ):
     steve = SteveJobs()
-    flexmock(SteveJobs, _is_private=False)
+    flexmock(GithubProject, is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(
             config={
@@ -294,7 +294,7 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build):
 
 def test_copr_build_end_testing_farm(copr_build_end, copr_build):
     steve = SteveJobs()
-    flexmock(SteveJobs, _is_private=False)
+    flexmock(GithubProject, is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(
             config={
@@ -392,7 +392,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build):
 
 def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build):
     steve = SteveJobs()
-    flexmock(SteveJobs, _is_private=False)
+    flexmock(GithubProject, is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(
             config={
@@ -489,7 +489,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build):
 
 def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build):
     steve = SteveJobs()
-    flexmock(SteveJobs, _is_private=False)
+    flexmock(GithubProject, is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(
             config={
@@ -589,7 +589,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build):
 
 def test_copr_build_start(copr_build_start, pc_build_pr, copr_build):
     steve = SteveJobs()
-    flexmock(SteveJobs, _is_private=False)
+    flexmock(GithubProject, is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(
             config={
@@ -639,7 +639,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build):
 
 def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build):
     steve = SteveJobs()
-    flexmock(SteveJobs, _is_private=False)
+    flexmock(GithubProject, is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(
             config={
@@ -697,7 +697,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build):
 
 def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_build):
     steve = SteveJobs()
-    flexmock(SteveJobs, _is_private=False)
+    flexmock(GithubProject, is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(
             config={

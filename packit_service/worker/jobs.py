@@ -78,13 +78,6 @@ class SteveJobs:
             self._config = ServiceConfig.get_service_config()
         return self._config
 
-    @staticmethod
-    def _is_private(project: GitProject) -> bool:
-        github_project = GithubProject(
-            repo=project.repo, service=project.service, namespace=project.namespace
-        )
-        return github_project.github_repo.private
-
     def process_jobs(self, event: Event) -> Dict[str, HandlerResults]:
         """
         Run a job handler (if trigger matches) for every job defined in config.
@@ -233,7 +226,7 @@ class SteveJobs:
             project = event_object.get_project()
             # CoprBuildEvent.get_project returns None when the build id is not in redis
             if project:
-                is_private_repository = self._is_private(project)
+                is_private_repository = project.is_private()
         except NotImplementedError:
             logger.warning("Cannot obtain project from this event!")
             logger.warning("Skipping private repository check!")
