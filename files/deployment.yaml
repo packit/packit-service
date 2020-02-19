@@ -26,10 +26,12 @@
       with_items:
         - private-key.pem
         - privkey.pem
+        - dashboard-privkey.pem
     - name: Generate dummy certs
-      command: "openssl req -x509 -new -key {{ deployment_dir }}/secrets/dev/privkey.pem -out {{ deployment_dir }}/secrets/dev/{{ item }} -days 1 -subj '/CN=just.for.the.ci' -passin pass:somepassword -passout pass:anotherpassword -nodes"
+      command: "openssl req -x509 -new -key {{ deployment_dir }}/secrets/dev/{{ item.key }} -out {{ deployment_dir }}/secrets/dev/{{ item.out }} -days 1 -subj '/CN=just.for.the.ci' -passin pass:somepassword -passout pass:anotherpassword -nodes"
       with_items:
-        - fullchain.pem
+        - { key: privkey.pem, out: fullchain.pem }
+        - { key: dashboard-privkey.pem, out: dashboard-fullchain.pem }
 
     - name: Generate /etc/ssh/ RSA host key
       command: "ssh-keygen -q -t rsa -f {{ deployment_dir }}/secrets/dev/id_rsa -C '' -N ''"
@@ -89,6 +91,7 @@
           # image worker
           image_worker: docker.io/usercont/packit-service-worker
           worker_replicas: 1
+          without_dashboard: true
         dest: "{{ deployment_dir }}/vars/dev.yml"
       become: true
     - name: Actually deploy
