@@ -39,12 +39,12 @@ from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import MSG_RETRIGGER
+from packit_service.models import CoprBuild, SRPMBuild
 from packit_service.service.events import (
     PullRequestEvent,
     PullRequestCommentEvent,
     CoprBuildEvent,
 )
-from packit_service.models import CoprBuild, SRPMBuild
 from packit_service.service.models import CoprBuild as RedisCoprBuild
 from packit_service.service.urls import get_log_url
 from packit_service.worker import sentry_integration
