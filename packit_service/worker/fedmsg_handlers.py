@@ -260,6 +260,8 @@ class CoprBuildEndHandler(FedmsgHandler):
                 url=url,
                 chroot=self.event.chroot,
             )
+            if build_pg:
+                build_pg.set_status(gh_state)
 
             if (
                 self.build_job_helper.job_tests
@@ -282,7 +284,6 @@ class CoprBuildEndHandler(FedmsgHandler):
             state=gh_state, description=failed_msg, url=url, chroot=self.event.chroot,
         )
         if build_pg:
-            build_pg.set_build_logs_url(get_copr_build_logs_url(self.event))
             build_pg.set_status(gh_state)
         return HandlerResults(success=False, details={"msg": failed_msg})
 
@@ -333,6 +334,8 @@ class CoprBuildStartHandler(FedmsgHandler):
         if build_pg:
             url = get_log_url(build_pg.id)
             build_pg.set_status(status)
+            copr_build_logs = get_copr_build_logs_url(self.event)
+            build_pg.set_build_logs_url(copr_build_logs)
         else:
             url = copr_url_from_event(self.event)
 

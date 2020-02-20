@@ -107,6 +107,7 @@ def test_copr_build_end(copr_build_end, pc_build, copr_build):
     flexmock(GithubProject).should_receive("pr_comment")
 
     flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
+    flexmock(CoprBuild).should_receive("set_status").with_args("success")
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
         {
             "commit_sha": "XXXXX",
@@ -176,6 +177,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build):
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
     flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
+    flexmock(CoprBuild).should_receive("set_status").with_args("success")
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
         {
             "commit_sha": "XXXXX",
@@ -272,6 +274,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build):
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
     flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
+    flexmock(CoprBuild).should_receive("set_status").with_args("success")
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
         {
             "commit_sha": "XXXXX",
@@ -366,6 +369,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build):
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
     flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
+    flexmock(CoprBuild).should_receive("set_status").with_args("success")
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
         {
             "commit_sha": "XXXXX",
@@ -455,7 +459,8 @@ def test_copr_build_start(copr_build_start, pc_build, copr_build):
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 
-    flexmock(CoprBuild).should_receive("set_status").with_args("pending")
+    flexmock(CoprBuild).should_receive("set_status").with_args("pending").once()
+    flexmock(CoprBuild).should_receive("set_build_logs_url")
     # check if packit-service set correct PR status
     flexmock(BuildStatusReporter).should_receive("report").with_args(
         state="pending",
@@ -504,6 +509,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build):
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 
     flexmock(CoprBuild).should_receive("set_status").with_args("pending")
+    flexmock(CoprBuild).should_receive("set_build_logs_url")
     # check if packit-service sets the correct PR status
     flexmock(BuildStatusReporter).should_receive("report").with_args(
         state="pending",
@@ -545,6 +551,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build, copr_build)
     flexmock(GithubProject).should_receive("pr_comment").never()
 
     flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
+    flexmock(CoprBuild).should_receive("set_status").with_args("success")
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
         {
             "commit_sha": "XXXXX",
