@@ -1,6 +1,6 @@
 ---
 # This file is the entrypoint to deploy packit-service to an openshift cluster (e.g. in Zuul)
-- name: Build packit-service image from current src dir.
+- name: Deploy dev version of packit-service into zuul.
   hosts: all
   vars:
     deployment_dir: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/packit-service/deployment'].src_dir }}"

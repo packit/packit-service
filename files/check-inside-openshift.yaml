@@ -59,10 +59,6 @@
         api_version: v1
         kind: Pod
         state: absent
-    - name: delete all pods
-      # Do we need this?
-      command: oc delete pods --all
-      ignore_errors: yes
     - name: Delete old PersistentVolumeClaim
       k8s:
         host: "{{ oc_server.stdout }}"
@@ -73,6 +69,10 @@
         api_version: v1
         kind: PersistentVolumeClaim
         state: absent
+        wait: yes
+        wait_condition:
+          type: Complete
+        wait_timeout: 300
     # Why k8s module can't be used here:
     # https://github.com/ansible/ansible/issues/55221#issuecomment-501792651
     - name: create test job in openshift

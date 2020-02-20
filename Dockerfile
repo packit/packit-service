@@ -22,8 +22,9 @@ COPY .git /src/.git
 COPY packit_service/ /src/packit_service/
 
 RUN cd /src/ \
-    && ansible-playbook -vv -c local -i localhost, recipe.yaml \
-    && rm -rf /src/
+    && ansible-playbook -vv -c local -i localhost, recipe.yaml
+
+# no need to rm /src, it will stay in the image anyway
 
 COPY alembic.ini /src/
 COPY alembic/ /src/alembic/

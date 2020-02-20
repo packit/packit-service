@@ -7,10 +7,10 @@ from packit.config import PackageConfig, JobConfig, JobType, JobTriggerType
 from packit.exceptions import FailedCreateSRPM
 
 from packit_service.config import ServiceConfig
-from packit_service.service.models import CoprBuild
+from packit_service.models import CoprBuild, SRPMBuild
+from packit_service.service.models import CoprBuild as RedisCoprBuild
 from packit_service.worker import sentry_integration
 from packit_service.worker.copr_build import CoprBuildJobHelper
-from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.handler import BuildStatusReporter
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
@@ -58,7 +58,7 @@ def build_handler(metadata=None, trigger=None, jobs=None):
         project=GitProject("", GitService(), ""),
         event=event,
     )
-    handler._api = PackitAPI(ServiceConfig, pkg_conf)
+    handler._api = PackitAPI(ServiceConfig(), pkg_conf)
     return handler
 
 
@@ -75,12 +75,13 @@ def test_copr_build_check_names():
         state="pending",
         description="Building RPM ...",
         check_name="packit-stg/rpm-build-bright-future-x86_64",
-        url="https://copr.fedorainfracloud.org/coprs/nobody/--342-stg/build/1/",
+        url="https://localhost:5000/copr-build/1/logs",
     ).and_return()
 
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
-    flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
-    flexmock(CoprBuildDB).should_receive("add_build").and_return().once()
+    flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
+    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
+    flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None)
     assert handler.run_copr_build()["success"]
 
@@ -97,10 +98,11 @@ def test_copr_build_success_set_test_check():
     )
     handler = build_handler(jobs=[test_job])
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(16)
-    flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
-    flexmock(CoprBuildDB).should_receive("add_build").and_return().once()
+    flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
+    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
+    flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
-    print(handler.run_copr_build())
+    assert handler.run_copr_build()["success"]
 
 
 def test_copr_build_success():
@@ -109,8 +111,9 @@ def test_copr_build_success():
     #  - Building RPM ...
     handler = build_handler()
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
-    flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
-    flexmock(CoprBuildDB).should_receive("add_build").and_return().once()
+    flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
+    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
+    flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
     assert handler.run_copr_build()["success"]
 
@@ -123,9 +126,10 @@ def test_copr_build_fails_in_packit():
     flexmock(GitProject, pr_comment=lambda *args, **kw: None)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(GitProject).should_receive("pr_comment").and_return().once()
-    flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
+    flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
+    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
+    flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
-    flexmock(CoprBuildDB).should_receive("add_build").never()
     flexmock(PackitAPI).should_receive("run_copr_build").and_raise(
         FailedCreateSRPM, "some error"
     )
@@ -138,7 +142,8 @@ def test_copr_build_no_targets():
     #  - Building RPM ...
     handler = build_handler(metadata={"owner": "nobody"})
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
-    flexmock(CoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
-    flexmock(CoprBuildDB).should_receive("add_build").and_return().once()
+    flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
+    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
+    flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
     assert handler.run_copr_build()["success"]

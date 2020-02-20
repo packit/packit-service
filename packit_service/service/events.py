@@ -27,13 +27,16 @@ import copy
 import enum
 import logging
 from datetime import datetime, timezone
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Dict
 
+import requests
 from ogr.abstract import GitProject
 from packit.config import JobTriggerType, get_package_config_from_repo, PackageConfig
 
 from packit_service.config import ServiceConfig, GithubPackageConfigGetter
+from packit_service.models import CoprBuild
 from packit_service.worker.copr_db import CoprBuildDB
+from packit_service.worker.utils import get_copr_build_url_for_values
 
 logger = logging.getLogger(__name__)
 
@@ -131,8 +134,9 @@ class Event:
             event["created_at"] = datetime.fromtimestamp(created_at).isoformat()
         return event
 
-    def get_dict(self) -> dict:
-        d = copy.deepcopy(self.__dict__)
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        d = default_dict or self.__dict__
+        d = copy.deepcopy(d)
         # whole dict have to be JSON serializable because of redis
         d["trigger"] = d["trigger"].value
         d["created_at"] = int(d["created_at"].timestamp())
@@ -210,7 +214,7 @@ class PullRequestEvent(AbstractGithubEvent):
         self.commit_sha = commit_sha
         self.github_login = github_login
 
-    def get_dict(self) -> dict:
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
@@ -253,7 +257,7 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         self.github_login = github_login
         self.comment = comment
 
-    def get_dict(self) -> dict:
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
@@ -300,7 +304,7 @@ class IssueCommentEvent(AbstractGithubEvent):
         self.github_login = github_login
         self.comment = comment
 
-    def get_dict(self) -> dict:
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
@@ -347,7 +351,7 @@ class InstallationEvent(Event):
         self.sender_login = sender_login
         self.status = status
 
-    def get_dict(self) -> dict:
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["status"] = result["status"].value
         return result
@@ -373,7 +377,7 @@ class DistGitEvent(Event):
         self.msg_id = msg_id
         self.project_url = project_url
 
-    def get_dict(self) -> dict:
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["topic"] = result["topic"].value
         return result
@@ -418,7 +422,7 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         self.ref: str = ref
         self.commit_sha: str = commit_sha
 
-    def get_dict(self) -> dict:
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["result"] = result["result"].value
         return result
@@ -445,8 +449,25 @@ class CoprBuildEvent(AbstractGithubEvent):
         owner: str,
         project_name: str,
         pkg: str,
+        build_pg: Optional[CoprBuild] = None,
     ):
-        super().__init__(trigger=JobTriggerType.commit, project_url=build["https_url"])
+        if build_pg:
+            self.pr_id = build_pg.pr.pr_id
+            self.commit_sha = build_pg.commit_sha
+            self.ref = self.commit_sha  # ref should be name of the branch, not a hash
+            self.base_repo_name = build_pg.pr.project.repo_name
+            self.base_repo_namespace = build_pg.pr.project.namespace
+            # FIXME: hardcoded, move this to PG
+            https_url = f"https://github.com/{self.base_repo_namespace}/{self.base_repo_name}.git"
+        else:
+            self.pr_id = build.get("pr_id")
+            self.ref = build.get("ref", "")
+            self.commit_sha = build.get("commit_sha", "")
+            self.base_repo_name = build.get("repo_name")
+            self.base_repo_namespace = build.get("repo_namespace")
+            https_url = build["https_url"]
+
+        super().__init__(trigger=JobTriggerType.commit, project_url=https_url)
         self.topic = FedmsgTopic(topic)
         self.build_id = build_id
         self.build = build
@@ -455,16 +476,7 @@ class CoprBuildEvent(AbstractGithubEvent):
         self.owner = owner
         self.project_name = project_name
         self.pkg = pkg
-        self.base_repo_name = ""
-        self.base_repo_namespace = ""
-        self.pr_id = 0
-        self.ref = ""
-        self.commit_sha = ""
-        self.base_repo_name = build.get("repo_name")
-        self.base_repo_namespace = build.get("repo_namespace")
-        self.pr_id = build.get("pr_id")
-        self.ref = build.get("ref")
-        self.commit_sha = build.get("commit_sha")
+        self.build_pg = build_pg
 
     @classmethod
     def from_build_id(
@@ -478,21 +490,38 @@ class CoprBuildEvent(AbstractGithubEvent):
         pkg: str,
     ) -> Optional["CoprBuildEvent"]:
         """ Return cls instance or None if build_id not in CoprBuildDB"""
-        build = CoprBuildDB().get_build(build_id)
-        if not build:
-            logger.warning(f"Build id: {build_id} not in CoprBuildDB")
-            return None
-        return cls(topic, build_id, build, chroot, status, owner, project_name, pkg)
+        # pg
+        build_pg = CoprBuild.get_by_build_id(str(build_id), chroot)
+        build = None
+        if not build_pg:
+            # let's try redis now
+            build = CoprBuildDB().get_build(build_id)
+            if not build:
+                logger.warning(f"Build id: {build_id} not in CoprBuildDB")
+                return None
+        return cls(
+            topic,
+            build_id,
+            build,
+            chroot,
+            status,
+            owner,
+            project_name,
+            pkg,
+            build_pg=build_pg,
+        )
 
     def pre_check(self):
-        if not self.build:
+        if not self.build and not self.build_pg:
             logger.warning("Copr build is not handled by this deployment.")
             return False
 
         return True
 
-    def get_dict(self) -> dict:
-        result = super().get_dict()
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        d = self.__dict__
+        d.pop("build_pg")
+        result = super().get_dict(d)
         result["topic"] = result["topic"].value
         return result
 
@@ -509,3 +538,40 @@ class CoprBuildEvent(AbstractGithubEvent):
 
         package_config.upstream_project_url = self.project_url
         return package_config
+
+
+def get_copr_build_url(event: CoprBuildEvent) -> str:
+    return get_copr_build_url_for_values(
+        event.owner, event.project_name, event.build_id
+    )
+
+
+def get_copr_build_logs_url(event: CoprBuildEvent) -> str:
+    return (
+        f"https://copr-be.cloud.fedoraproject.org/results/{event.owner}/"
+        f"{event.project_name}/{event.chroot}/"
+        f"{event.build_id:08d}-{event.pkg}/builder-live.log.gz"
+    )
+
+
+def copr_url_from_event(event: CoprBuildEvent):
+    """
+    Get url to builder-live.log.gz bound to single event
+    :param event: fedora messaging event from topic copr.build.start or copr.build.end
+    :return: reachable url
+    """
+    url = get_copr_build_logs_url(event)
+    # make sure we provide valid url in status, let sentry handle if not
+    try:
+        logger.debug(f"Reaching url {url}")
+        r = requests.head(url)
+        r.raise_for_status()
+    except requests.RequestException:
+        # we might want sentry to know but don't want to start handling things?
+        logger.error(f"Failed to reach url with copr chroot build result.")
+        url = get_copr_build_url_for_values(
+            event.owner, event.project_name, event.build_id
+        )
+    # return the frontend URL no matter what
+    # we don't want to fail on this step; the error log is just enough
+    return url

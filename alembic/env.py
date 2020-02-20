@@ -1,10 +1,10 @@
-import os
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
-from alembic import context
+from packit_service.models import get_pg_url
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -24,14 +24,6 @@ target_metadata = None
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-
-
-def get_pg_url() -> str:
-    url = (
-        f"postgres+psycopg2://{os.getenv('POSTGRESQL_USER')}"
-        f":{os.getenv('POSTGRESQL_PASSWORD')}@postgres:5432/{os.getenv('POSTGRESQL_DATABASE')}"
-    )
-    return url
 
 
 def run_migrations_offline():

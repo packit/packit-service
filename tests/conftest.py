@@ -32,6 +32,7 @@ from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
+from packit_service.models import GitProject, PullRequest, CoprBuild
 from packit_service.worker.whitelist import Whitelist
 from tests.spellbook import SAVED_HTTPD_REQS
 
@@ -149,3 +150,13 @@ def mock_issue_comment_functionality():
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
+
+
+@pytest.fixture()
+def copr_build():
+    proj = GitProject(id=1, repo_name="bar", namespace="foo")
+    pr = PullRequest(id=1, pr_id=123)
+    pr.project = proj
+    c = CoprBuild(id=1)
+    c.pr = pr
+    return c

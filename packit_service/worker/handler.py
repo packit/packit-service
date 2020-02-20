@@ -111,6 +111,16 @@ class BuildStatusReporter:
         url: str = "",
         check_names: Union[str, list, None] = None,
     ):
+        """
+        set commit check status
+
+        :param state: state accepted by github
+        :param description: the long text
+        :param build_id: copr build id
+        :param url: url to point to (logs usually)
+        :param check_names: those in bold
+        :return: nuthin'
+        """
 
         logger.debug(
             f"Reporting state of copr build ID={build_id}"

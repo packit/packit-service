@@ -60,11 +60,10 @@ class ServiceConfig(Config):
         webhook_secret: str = "",
         testing_farm_secret: str = "",
         validate_webhooks: bool = True,
-        admins: list = [],
+        admins: list = None,
         fas_password: Optional[str] = "",
         **kwargs,
     ):
-
         super().__init__(**kwargs)
 
         self.deployment = deployment
@@ -79,7 +78,7 @@ class ServiceConfig(Config):
         self.fas_password = fas_password
 
         # List of github users who are allowed to trigger p-s on any repository
-        self.admins: Set[str] = set(admins)
+        self.admins: Set[str] = set(admins or [])
 
         # for flask SERVER_NAME so we can create links to logs
         self.server_name: str = ""

@@ -115,3 +115,5 @@ services:
       POSTGRESQL_USER: packit
       POSTGRESQL_PASSWORD: secret-password
       POSTGRESQL_DATABASE: packit
+    ports:
+      - 5432:5432

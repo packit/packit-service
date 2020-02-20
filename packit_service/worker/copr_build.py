@@ -21,6 +21,7 @@
 # SOFTWARE.
 import json
 import logging
+from io import StringIO
 from typing import Union, List, Optional
 
 from kubernetes.client.rest import ApiException
@@ -33,6 +34,7 @@ from packit.exceptions import (
     PackitCoprProjectException,
 )
 from packit.local_project import LocalProject
+from packit.utils import PackitFormatter
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
 from packit_service.config import ServiceConfig, Deployment
@@ -42,14 +44,16 @@ from packit_service.service.events import (
     PullRequestCommentEvent,
     CoprBuildEvent,
 )
-from packit_service.service.models import CoprBuild
+from packit_service.models import CoprBuild, SRPMBuild
+from packit_service.service.models import CoprBuild as RedisCoprBuild
+from packit_service.service.urls import get_log_url
 from packit_service.worker import sentry_integration
-from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.handler import (
     HandlerResults,
     BuildStatusReporter,
     PRCheckName,
 )
+from packit_service.worker.utils import get_copr_build_url_for_values
 
 try:
     from packit.exceptions import PackitSRPMException
@@ -117,7 +121,10 @@ class JobHelper:
             return self.event.base_ref
 
         if isinstance(self.event, CoprBuildEvent):
-            return self.event.ref
+            if self.event.ref:
+                # FIXME: return commit sha always once on PG
+                return self.event.ref
+            return self.event.commit_sha
 
         if isinstance(self.event, PullRequestCommentEvent):
             return self.event.commit_sha
@@ -270,10 +277,11 @@ class CoprBuildJobHelper(JobHelper):
             )
         return self._status_reporter
 
+    # TODO: remove this once we're fully on psql
     @property
-    def copr_build_model(self) -> CoprBuild:
+    def copr_build_model(self) -> RedisCoprBuild:
         if self._copr_build_model is None:
-            self._copr_build_model = CoprBuild.create(
+            self._copr_build_model = RedisCoprBuild.create(
                 project=self.job_project,
                 owner=self.job_owner,
                 chroots=self.build_chroots,
@@ -302,11 +310,9 @@ class CoprBuildJobHelper(JobHelper):
         self, description, state, url: str = "", chroot: str = ""
     ):
         if self.job_copr_build and chroot in self.build_chroots:
+            cs = PRCheckName.get_build_check(chroot)
             self.status_reporter.report(
-                description=description,
-                state=state,
-                url=url,
-                check_names=PRCheckName.get_build_check(chroot),
+                description=description, state=state, url=url, check_names=cs,
             )
 
     def report_status_to_test_for_chroot(
@@ -329,30 +335,60 @@ class CoprBuildJobHelper(JobHelper):
 
         try:
             self.report_status_to_all(description="Building SRPM ...", state="pending")
+
+            # we want to get packit logs from the SRPM creation process
+            # so we stuff them into a StringIO buffer
+            stream = StringIO()
+            handler = logging.StreamHandler(stream)
+            packit_logger = logging.getLogger("packit")
+            packit_logger.setLevel(logging.DEBUG)
+            packit_logger.addHandler(handler)
+            formatter = PackitFormatter(None, "%H:%M:%S")
+            handler.setFormatter(formatter)
+
             build_id, _ = self.api.run_copr_build(
                 project=self.job_project,
                 chroots=self.build_chroots,
                 owner=self.job_owner,
             )
-            self.report_status_to_all(
-                description="Building RPM ...",
-                state="pending",
-                url="https://copr.fedorainfracloud.org/coprs/"
-                f"{self.job_owner}/{self.job_project}/build/{build_id}/",
+
+            packit_logger.removeHandler(handler)
+            stream.seek(0)
+            logs = stream.read()
+            web_url = get_copr_build_url_for_values(
+                self.job_owner, self.job_project, build_id
             )
 
-            # Save copr build with commit information to be able to report status back
-            # after fedmsg copr.build.end arrives
-            copr_build_db = CoprBuildDB()
-            copr_build_db.add_build(
-                build_id,
-                self.event.commit_sha,
-                self.event.pr_id,
-                self.event.base_repo_name,
-                self.event.base_repo_namespace,
-                self.base_ref,
-                self.event.project_url,
-            )
+            srpm_build = SRPMBuild.create(logs)
+
+            status = "pending"
+            description = "Building RPM ..."
+            for chroot in self.build_chroots:
+                copr_build = CoprBuild.get_or_create(
+                    pr_id=self.event.pr_id,
+                    build_id=str(build_id),
+                    commit_sha=self.event.commit_sha,
+                    repo_name=self.event.base_repo_name,
+                    namespace=self.event.base_repo_namespace,
+                    web_url=web_url,
+                    target=chroot,
+                    status=status,
+                    srpm_build=srpm_build,
+                )
+                url = get_log_url(id_=copr_build.id)
+                self.status_reporter.report(
+                    state=status,
+                    description=description,
+                    url=url,
+                    check_names=PRCheckName.get_build_check(chroot),
+                )
+                if chroot in self.tests_chroots:
+                    self.status_reporter.report(
+                        state=status,
+                        description=description,
+                        url=url,
+                        check_names=PRCheckName.get_testing_farm_check(chroot),
+                    )
 
         except SandcastleTimeoutReached:
             return self._process_timeout()

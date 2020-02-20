@@ -1,14 +1,12 @@
 """
 Data models for jobs, tasks, builds, etc. The models are mapped to redis.
+
+TODO: once we move from redis to psql, this file should be removed
 """
 import copy
-import os
-from typing import List, Dict, Union, TYPE_CHECKING
+from typing import List, Dict, Union
 
 from persistentdict.dict_in_redis import PersistentDict
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, JSON, create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker, Session
 
 from packit_service.service.events import InstallationEvent, WhitelistStatus
 
@@ -152,63 +150,3 @@ class CoprBuild(Build):
         if save:
             b.save()
         return b
-
-
-def get_sa_session() -> Session:
-    """ get SQLAlchemy session """
-    global session_instance
-    if session_instance is None:
-        url = (
-            f"postgres+psycopg2://{os.getenv('POSTGRESQL_USER')}"
-            f":{os.getenv('POSTGRESQL_PASSWORD')}@postgres:5432/{os.getenv('POSTGRESQL_DATABASE')}"
-        )
-        engine = create_engine(url)
-        Session = sessionmaker(bind=engine)
-        session_instance = Session()
-    return session_instance
-
-
-# https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
-if TYPE_CHECKING:
-    Base = object
-else:
-    Base = declarative_base()
-
-
-class GitHubProject(Base):
-    __tablename__ = "github_projects"
-    id = Column(Integer, primary_key=True)
-    namespace = Column(String)
-    repo_name = Column(String)
-
-
-class PullRequest(Base):
-    __tablename__ = "pull_requests"
-    id = Column(Integer, primary_key=True)  # our database PK
-    pr_id = Column(
-        String, index=True
-    )  # GitHub PR ID - let's not make this PK since we can't control it
-    project_id = Column(Integer, ForeignKey("github_projects.id"))
-    project = relationship("GitHubProject")
-
-
-# Franta suggests to consider enums here: whoever takes this, research how
-# enums are handled in postgres and sqlalch
-JOB_TYPE_SRPM = "SRPM"
-JOB_TYPE_COPR_RPM = "COPR-RPM"
-JOB_TYPE_TFT = "TFT"
-
-
-class JobRun(Base):
-    """ a line in the commit status check """
-
-    __tablename__ = "job_runs"
-    id = Column(Integer, primary_key=True)
-    pr_id = Column(Integer, ForeignKey("pull_requests.id"))
-    pr = relationship("PullRequest")
-    logs = Column(Text)
-    commit_sha = Column(String)
-    status = Column(String)
-    job_type = Column(String)  # SRPM, COPR-RPM, TFT
-    # metadata is reserved to sqlalch
-    data = Column(JSON)
