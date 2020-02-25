@@ -19,6 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from contextlib import contextmanager
 
 
 def send_to_sentry(ex):
@@ -26,3 +27,22 @@ def send_to_sentry(ex):
     import sentry_sdk
 
     sentry_sdk.capture_exception(ex)
+
+
+@contextmanager
+def push_scope_to_sentry():
+    try:
+        # so that we don't have to have sentry sdk installed locally
+        import sentry_sdk
+
+    except ImportError:
+
+        class SentryMocker:
+            def set_tag(self, k, v):
+                pass
+
+        yield SentryMocker()
+    else:
+
+        with sentry_sdk.push_scope as scope:
+            yield scope

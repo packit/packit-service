@@ -27,7 +27,6 @@ import logging
 import shutil
 from os import getenv
 from pathlib import Path
-from sentry_sdk import push_scope
 from typing import Dict, Any, Optional, Type, List, Union
 
 from ogr.abstract import GitProject
@@ -43,6 +42,7 @@ from packit_service.constants import (
 )
 from packit_service.service.events import Event
 from packit_service.service.models import CoprBuild
+from packit_service.worker.sentry_integration import push_scope_to_sentry
 
 logger = logging.getLogger(__name__)
 
@@ -193,7 +193,7 @@ class Handler:
 
     def run_n_clean(self) -> HandlerResults:
         try:
-            with push_scope() as scope:
+            with push_scope_to_sentry() as scope:
                 for k, v in self.get_tag_info().items():
                     scope.set_tag(k, v)
                 return self.run()
