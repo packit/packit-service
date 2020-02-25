@@ -46,7 +46,6 @@ from packit_service.service.models import CoprBuild as RedisCoprBuild
 from packit_service.service.urls import get_log_url
 from packit_service.worker import sentry_integration
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
-from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.handler import HandlerResults
 from packit_service.worker.utils import get_copr_build_url_for_values
 
@@ -85,12 +84,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         # lazy properties
         self._copr_build_model = None
-
-    @property
-    def status_reporter(self):
-        if not self._status_reporter:
-            self._status_reporter = StatusReporter(self.project, self.event.commit_sha)
-        return self._status_reporter
 
     @property
     def default_project_name(self):
@@ -142,33 +135,13 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         try:
             self.report_status_to_all(description="Building SRPM ...", state="pending")
 
-            # we want to get packit logs from the SRPM creation process
-            # so we stuff them into a StringIO buffer
-            stream = StringIO()
-            handler = logging.StreamHandler(stream)
-            packit_logger = logging.getLogger("packit")
-            packit_logger.setLevel(logging.DEBUG)
-            packit_logger.addHandler(handler)
-            formatter = PackitFormatter(None, "%H:%M:%S")
-            handler.setFormatter(formatter)
-
-            build_id, _ = self.api.run_copr_build(
-                project=self.job_project,
-                chroots=self.build_chroots,
-                owner=self.job_owner,
-            )
-
-            packit_logger.removeHandler(handler)
-            stream.seek(0)
-            logs = stream.read()
+            build_id, logs = self._run_copr_build_and_save_output()
             web_url = get_copr_build_url_for_values(
                 self.job_owner, self.job_project, build_id
             )
 
-            srpm_build = SRPMBuild.create(logs)
+            srpm_build_model = SRPMBuild.create(logs)
 
-            status = "pending"
-            description = "Building RPM ..."
             for chroot in self.build_chroots:
                 copr_build = CoprBuild.get_or_create(
                     pr_id=self.event.pr_id,
@@ -178,12 +151,15 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     namespace=self.event.base_repo_namespace,
                     web_url=web_url,
                     target=chroot,
-                    status=status,
-                    srpm_build=srpm_build,
+                    status="pending",
+                    srpm_build=srpm_build_model,
                 )
                 url = get_log_url(id_=copr_build.id)
                 self.report_status_to_all_for_chroot(
-                    state=status, description=description, url=url, chroot=chroot,
+                    state="pending",
+                    description="Building RPM ...",
+                    url=url,
+                    chroot=chroot,
                 )
 
         except SandcastleTimeoutReached:
@@ -211,6 +187,24 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         self.copr_build_model.save()
 
         return HandlerResults(success=True, details={})
+
+    def _run_copr_build_and_save_output(self):
+        # we want to get packit logs from the SRPM creation process
+        # so we stuff them into a StringIO buffer
+        stream = StringIO()
+        handler = logging.StreamHandler(stream)
+        packit_logger = logging.getLogger("packit")
+        packit_logger.setLevel(logging.DEBUG)
+        packit_logger.addHandler(handler)
+        formatter = PackitFormatter(None, "%H:%M:%S")
+        handler.setFormatter(formatter)
+        build_id, _ = self.api.run_copr_build(
+            project=self.job_project, chroots=self.build_chroots, owner=self.job_owner,
+        )
+        packit_logger.removeHandler(handler)
+        stream.seek(0)
+        logs = stream.read()
+        return build_id, logs
 
     def _process_copr_submit_exception(self, ex):
         sentry_integration.send_to_sentry(ex)
