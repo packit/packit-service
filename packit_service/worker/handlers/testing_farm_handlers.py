@@ -35,12 +35,10 @@ from packit.config import (
 
 from packit_service.config import ServiceConfig
 from packit_service.service.events import TestingFarmResultsEvent, TestingFarmResult
+from packit_service.worker.handlers import AbstractGithubJobHandler
+from packit_service.worker.result import HandlerResults
+from packit_service.worker.handlers.abstract import add_to_mapping
 from packit_service.worker.reporting import StatusReporter
-from packit_service.worker.github_handlers import AbstractGithubJobHandler
-from packit_service.worker.handler import (
-    add_to_mapping,
-    HandlerResults,
-)
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 
 logger = logging.getLogger(__name__)

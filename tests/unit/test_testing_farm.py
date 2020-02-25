@@ -30,7 +30,7 @@ from packit_service.service.events import (
     TestResult,
 )
 from packit_service.worker.reporting import StatusReporter
-from packit_service.worker.testing_farm_handlers import TestingFarmResultsHandler
+from packit_service.worker.handlers import TestingFarmResultsHandler
 
 
 @pytest.mark.parametrize(

@@ -27,7 +27,7 @@ from flexmock import flexmock
 from ogr.services.github import GithubProject
 
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
-from packit_service.worker.handler import HandlerResults
+from packit_service.worker.result import HandlerResults
 from packit_service.worker.jobs import SteveJobs
 from tests.spellbook import DATA_DIR
 

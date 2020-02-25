@@ -35,12 +35,11 @@ from packit.local_project import LocalProject
 from packit_service.models import CoprBuild
 from packit_service.service.events import CoprBuildEvent
 from packit_service.service.urls import get_log_url
-from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.copr_db import CoprBuildDB
-from packit_service.worker.fedmsg_handlers import CoprBuildEndHandler
-from packit_service.worker.github_handlers import GithubTestingFarmHandler
+from packit_service.worker.handlers import CoprBuildEndHandler, GithubTestingFarmHandler
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 from tests.spellbook import DATA_DIR
 

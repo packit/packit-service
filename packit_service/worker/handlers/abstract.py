@@ -27,7 +27,7 @@ import logging
 import shutil
 from os import getenv
 from pathlib import Path
-from typing import Dict, Any, Optional, Type, List
+from typing import Dict, Optional, Type, List
 
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobTriggerType, JobType
@@ -35,6 +35,7 @@ from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
 from packit_service.service.events import Event
+from packit_service.worker.result import HandlerResults
 from packit_service.worker.sentry_integration import push_scope_to_sentry
 
 logger = logging.getLogger(__name__)
@@ -53,26 +54,6 @@ def add_to_mapping_for_job(job_type: JobType):
         return kls
 
     return _add_to_mapping
-
-
-class HandlerResults(dict):
-    """
-    Job handler results.
-    Inherit from dict to be JSON serializable.
-    """
-
-    def __init__(self, success: bool, details: Dict[str, Any] = None):
-        """
-
-        :param success: has the job handler succeeded:
-                          True - we processed the event
-                          False - there was an error while processing it -
-                                  usually an exception
-        :param details: more info from job handler
-                        (optional) 'msg' key contains a message
-                        more keys to be defined
-        """
-        super().__init__(self, success=success, details=details or {})
 
 
 class Handler:
