@@ -50,12 +50,7 @@ class BaseBuildJobHelper:
         config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
-        event: Union[
-            PullRequestEvent,
-            PullRequestCommentEvent,
-            CoprBuildEvent,
-            PullRequestCommentEvent,
-        ],
+        event: Union[PullRequestEvent, PullRequestCommentEvent, CoprBuildEvent],
     ):
         self.config: ServiceConfig = config
         self.package_config: PackageConfig = package_config
@@ -165,6 +160,7 @@ class BaseBuildJobHelper:
             for job in self.package_config.jobs:
                 if job.job == self.job_type_build:
                     self._job_build = job
+                    break
         return self._job_build
 
     @property
@@ -180,6 +176,7 @@ class BaseBuildJobHelper:
             for job in self.package_config.jobs:
                 if job.job == self.job_type_test:
                     self._job_tests = job
+                    break
         return self._job_tests
 
     @property
