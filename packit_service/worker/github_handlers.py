@@ -380,16 +380,6 @@ class GitHubPullRequestCommentCoprBuildHandler(
         )
         self.package_config.upstream_project_url = event.project_url
 
-    def get_tests_for_build(self) -> Optional[JobConfig]:
-        """
-        Check if there are tests defined
-        :return: JobConfig or None
-        """
-        for job in self.package_config.jobs:
-            if job.job == JobType.tests:
-                return job
-        return None
-
     def run(self) -> HandlerResults:
         collaborators = self.project.who_can_merge_pr()
         if self.event.github_login not in collaborators | self.config.admins:
