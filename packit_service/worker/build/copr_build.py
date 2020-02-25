@@ -35,6 +35,7 @@ from packit.utils import PackitFormatter
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
 from packit_service.config import ServiceConfig, Deployment
+from packit_service.constants import MSG_RETRIGGER
 from packit_service.models import CoprBuild, SRPMBuild
 from packit_service.service.events import (
     PullRequestEvent,
@@ -44,10 +45,8 @@ from packit_service.service.events import (
 from packit_service.service.models import CoprBuild as RedisCoprBuild
 from packit_service.service.urls import get_log_url
 from packit_service.worker import sentry_integration
-from packit_service.worker.build.build_helper import (
-    BaseBuildJobHelper,
-    BuildStatusReporter,
-)
+from packit_service.worker.build.build_helper import BaseBuildJobHelper
+from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.handler import HandlerResults
 from packit_service.worker.utils import get_copr_build_url_for_values
 
@@ -80,15 +79,17 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
     ):
         super().__init__(config, package_config, project, event)
 
+        self.msg_retrigger: str = MSG_RETRIGGER.format(
+            build="copr-build" if self.job_build else "build"
+        )
+
         # lazy properties
         self._copr_build_model = None
 
     @property
     def status_reporter(self):
         if not self._status_reporter:
-            self._status_reporter = BuildStatusReporter(
-                self.project, self.event.commit_sha, self.copr_build_model
-            )
+            self._status_reporter = StatusReporter(self.project, self.event.commit_sha)
         return self._status_reporter
 
     @property

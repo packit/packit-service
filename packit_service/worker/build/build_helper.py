@@ -29,13 +29,12 @@ from packit.config.aliases import get_build_targets
 from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig, Deployment
-from packit_service.constants import MSG_RETRIGGER
 from packit_service.service.events import (
     PullRequestEvent,
     PullRequestCommentEvent,
     CoprBuildEvent,
 )
-from packit_service.service.models import CoprBuild
+from packit_service.worker.reporting import StatusReporter
 
 logger = logging.getLogger(__name__)
 
@@ -73,10 +72,6 @@ class BaseBuildJobHelper:
         self._status_reporter = None
         self._test_check_names: Optional[List[str]] = None
         self._build_check_names: Optional[List[str]] = None
-
-        self.msg_retrigger: str = MSG_RETRIGGER.format(
-            build="copr-build" if self.job_build else "build"
-        )
 
     @property
     def local_project(self) -> LocalProject:
@@ -190,9 +185,7 @@ class BaseBuildJobHelper:
     @property
     def status_reporter(self):
         if not self._status_reporter:
-            self._status_reporter = BuildStatusReporter(
-                self.project, self.event.commit_sha, copr_build_model=None
-            )
+            self._status_reporter = StatusReporter(self.project, self.event.commit_sha)
         return self._status_reporter
 
     @property
@@ -229,13 +222,28 @@ class BaseBuildJobHelper:
         chroot_str = f"-{chroot}" if chroot else ""
         return f"{deployment_str}/{cls.status_name_test}{chroot_str}"
 
+    def _report(
+        self,
+        state: str,
+        description: str,
+        url: str = "",
+        check_names: Union[str, list, None] = None,
+    ) -> None:
+        """
+        The status reporting should be done through this method
+        so we can extend it in subclasses easily.
+        """
+        self.status_reporter.report(
+            description=description, state=state, url=url, check_names=check_names,
+        )
+
     def report_status_to_all(self, description: str, state: str, url: str = "") -> None:
         self.report_status_to_build(description, state, url)
         self.report_status_to_tests(description, state, url)
 
     def report_status_to_build(self, description, state, url: str = "") -> None:
         if self.job_build:
-            self.status_reporter.report(
+            self._report(
                 description=description,
                 state=state,
                 url=url,
@@ -244,7 +252,7 @@ class BaseBuildJobHelper:
 
     def report_status_to_tests(self, description, state, url: str = "") -> None:
         if self.job_tests:
-            self.status_reporter.report(
+            self._report(
                 description=description,
                 state=state,
                 url=url,
@@ -256,7 +264,7 @@ class BaseBuildJobHelper:
     ) -> None:
         if self.job_build and chroot in self.build_chroots:
             cs = self.get_build_check(chroot)
-            self.status_reporter.report(
+            self._report(
                 description=description, state=state, url=url, check_names=cs,
             )
 
@@ -264,7 +272,7 @@ class BaseBuildJobHelper:
         self, description, state, url: str = "", chroot: str = ""
     ) -> None:
         if self.job_tests and chroot in self.tests_chroots:
-            self.status_reporter.report(
+            self._report(
                 description=description,
                 state=state,
                 url=url,
@@ -276,61 +284,3 @@ class BaseBuildJobHelper:
     ):
         self.report_status_to_build_for_chroot(description, state, url, chroot)
         self.report_status_to_test_for_chroot(description, state, url, chroot)
-
-
-class BuildStatusReporter:
-    def __init__(
-        self,
-        project: GitProject,
-        commit_sha: str,
-        copr_build_model: Optional[CoprBuild] = None,
-    ):
-        self.project = project
-        self.commit_sha = commit_sha
-        self.copr_build_model = copr_build_model
-
-    def report(
-        self,
-        state: str,
-        description: str,
-        build_id: Optional[str] = None,
-        url: str = "",
-        check_names: Union[str, list, None] = None,
-    ) -> None:
-        """
-        set commit check status
-
-        :param state: state accepted by github
-        :param description: the long text
-        :param build_id: copr build id
-        :param url: url to point to (logs usually)
-        :param check_names: those in bold
-        """
-
-        logger.debug(
-            f"Reporting state of copr build ID={build_id}"
-            f" state={state}, commit={self.commit_sha}"
-        )
-        if self.copr_build_model:
-            self.copr_build_model.status = state
-            self.copr_build_model.save()
-
-        if not check_names:
-            # TODO: We don't want to use this behaviour.
-            check_names = [BaseBuildJobHelper.get_build_check()]
-        elif isinstance(check_names, str):
-            check_names = [check_names]
-
-        for check in check_names:
-            self.set_status(
-                state=state, description=description, check_name=check, url=url
-            )
-
-    def set_status(self, state: str, description: str, check_name: str, url: str = ""):
-        logger.debug(f"Setting status for check '{check_name}': {description}")
-        self.project.set_commit_status(
-            self.commit_sha, state, url, description, check_name, trim=True
-        )
-
-    def get_statuses(self):
-        self.project.get_commit_statuses(commit=self.commit_sha)

@@ -29,7 +29,7 @@ from typing import Union
 import requests
 from ogr.abstract import GitProject
 from ogr.utils import RequestResponse
-from packit.config import PackageConfig, JobType
+from packit.config import PackageConfig
 from packit.exceptions import PackitConfigException
 
 from packit_service.config import Deployment, ServiceConfig
@@ -39,19 +39,14 @@ from packit_service.service.events import (
     PullRequestCommentEvent,
     CoprBuildEvent,
 )
-from packit_service.worker.build import BaseBuildJobHelper
+from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.handler import HandlerResults
 from packit_service.worker.sentry_integration import send_to_sentry
 
 logger = logging.getLogger(__name__)
 
 
-class TestingFarmJobHelper(BaseBuildJobHelper):
-    job_type_build = JobType.copr_build
-    job_type_test = JobType.tests
-    status_name_build: str = "rpm-build"
-    status_name_test: str = "testing-farm"
-
+class TestingFarmJobHelper(CoprBuildJobHelper):
     def __init__(
         self,
         config: ServiceConfig,

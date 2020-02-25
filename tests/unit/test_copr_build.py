@@ -11,7 +11,7 @@ from packit_service.models import CoprBuild, SRPMBuild
 from packit_service.service.models import CoprBuild as RedisCoprBuild
 from packit_service.worker import sentry_integration
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
-from packit_service.worker.build.build_helper import BuildStatusReporter
+from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
 
@@ -65,13 +65,13 @@ def build_handler(metadata=None, trigger=None, jobs=None):
 def test_copr_build_check_names():
     metadata = {"owner": "nobody", "targets": ["bright-future-x86_64"]}
     handler = build_handler(metadata)
-    flexmock(BuildStatusReporter).should_receive("set_status").with_args(
+    flexmock(StatusReporter).should_receive("set_status").with_args(
         state="pending",
         description="Building SRPM ...",
         check_name="packit-stg/rpm-build-bright-future-x86_64",
         url="",
     ).and_return()
-    flexmock(BuildStatusReporter).should_receive("set_status").with_args(
+    flexmock(StatusReporter).should_receive("set_status").with_args(
         state="pending",
         description="Building RPM ...",
         check_name="packit-stg/rpm-build-bright-future-x86_64",

@@ -29,7 +29,7 @@ from packit_service.service.events import (
     TestingFarmResult,
     TestResult,
 )
-from packit_service.worker.build import BuildStatusReporter
+from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.testing_farm_handlers import TestingFarmResultsHandler
 
 
@@ -186,7 +186,7 @@ def test_testing_farm_response(
             commit_sha=flexmock(),
         ),
     )
-    flexmock(BuildStatusReporter).should_receive("report").with_args(
+    flexmock(StatusReporter).should_receive("report").with_args(
         state=status_status,
         description=status_message,
         url="some url",

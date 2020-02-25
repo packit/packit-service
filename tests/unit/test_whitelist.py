@@ -46,7 +46,7 @@ from packit_service.service.events import (
 )
 from packit_service.service.events import WhitelistStatus
 from packit_service.service.models import Model
-from packit_service.worker.build import BuildStatusReporter
+from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.whitelist import Whitelist
 
 EXPECTED_TESTING_FARM_CHECK_NAME = f"packit-stg/testing-farm-fedora-rawhide-x86_64"
@@ -285,7 +285,7 @@ def test_check_and_report(
             )
             flexmock(LocalProject).should_receive("checkout_pr").and_return(None)
             flexmock(Model).should_receive("save").and_return(None)
-            flexmock(BuildStatusReporter).should_receive("report").with_args(
+            flexmock(StatusReporter).should_receive("report").with_args(
                 description="Account is not whitelisted!",
                 state="error",
                 url=FAQ_URL,
