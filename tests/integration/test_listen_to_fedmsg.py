@@ -32,22 +32,21 @@ from packit.config.package_config import PackageConfig
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 
-from packit_service.constants import PACKIT_STG_CHECK, PACKIT_STG_TESTING_FARM_CHECK
 from packit_service.models import CoprBuild
 from packit_service.service.events import CoprBuildEvent
 from packit_service.service.urls import get_log_url
-from packit_service.worker.copr_build import CoprBuildJobHelper
+from packit_service.worker.build.build_helper import BuildStatusReporter
+from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.fedmsg_handlers import CoprBuildEndHandler
 from packit_service.worker.github_handlers import GithubTestingFarmHandler
-from packit_service.worker.handler import BuildStatusReporter
-from packit_service.worker.handler import PRCheckName
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 from tests.spellbook import DATA_DIR
 
 CHROOT = "fedora-rawhide-x86_64"
-EXPECTED_CHECK_NAME = f"{PACKIT_STG_CHECK}-{CHROOT}"
+EXPECTED_BUILD_CHECK_NAME = f"packit-stg/rpm-build-{CHROOT}"
+EXPECTED_TESTING_FARM_CHECK_NAME = f"packit-stg/testing-farm-{CHROOT}"
 
 
 @pytest.fixture()
@@ -127,7 +126,7 @@ def test_copr_build_end(copr_build_end, pc_build, copr_build):
         state="success",
         description="RPMs were built successfully.",
         url=url,
-        check_names=PRCheckName.get_build_check(copr_build_end["chroot"]),
+        check_names=CoprBuildJobHelper.get_build_check(copr_build_end["chroot"]),
     ).once()
 
     # skip testing farm
@@ -197,14 +196,14 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build):
         state="success",
         description="RPMs were built successfully.",
         url=url,
-        check_names=EXPECTED_CHECK_NAME,
+        check_names=EXPECTED_BUILD_CHECK_NAME,
     ).once()
 
     flexmock(BuildStatusReporter).should_receive("report").with_args(
-        state="success",
+        state="pending",
         description="RPMs were built successfully.",
         url=url,
-        check_names=f"{PACKIT_STG_TESTING_FARM_CHECK}-{CHROOT}",
+        check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive(
@@ -221,13 +220,14 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build):
     flexmock(BuildStatusReporter).should_receive("report").with_args(
         state="pending",
         description="Build succeeded. Submitting the tests ...",
-        check_names=f"{PACKIT_STG_TESTING_FARM_CHECK}-{CHROOT}",
+        check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
+        url="",
     ).once()
     flexmock(BuildStatusReporter).should_receive("report").with_args(
         state="pending",
         description="Tests are running ...",
         url="some-url",
-        check_names=f"{PACKIT_STG_TESTING_FARM_CHECK}-{CHROOT}",
+        check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
     ).once()
 
     steve.process_message(copr_build_end)
@@ -293,14 +293,14 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build):
         state="success",
         description="RPMs were built successfully.",
         url="https://localhost:5000/copr-build/1/logs",
-        check_names=EXPECTED_CHECK_NAME,
+        check_names=EXPECTED_BUILD_CHECK_NAME,
     ).once()
 
     flexmock(BuildStatusReporter).should_receive("report").with_args(
-        state="success",
+        state="pending",
         description="RPMs were built successfully.",
         url="https://localhost:5000/copr-build/1/logs",
-        check_names=f"{PACKIT_STG_TESTING_FARM_CHECK}-fedora-rawhide-x86_64",
+        check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive(
@@ -317,12 +317,14 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build):
     flexmock(BuildStatusReporter).should_receive("report").with_args(
         state="pending",
         description="Build succeeded. Submitting the tests ...",
-        check_names=f"{PACKIT_STG_TESTING_FARM_CHECK}-fedora-rawhide-x86_64",
+        check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
+        url="",
     ).once()
     flexmock(BuildStatusReporter).should_receive("report").with_args(
         state="failure",
         description="some error",
-        check_names=f"{PACKIT_STG_TESTING_FARM_CHECK}-fedora-rawhide-x86_64",
+        check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
+        url="",
     ).once()
 
     steve.process_message(copr_build_end)
@@ -389,14 +391,14 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build):
         state="success",
         description="RPMs were built successfully.",
         url=url,
-        check_names=EXPECTED_CHECK_NAME,
+        check_names=EXPECTED_BUILD_CHECK_NAME,
     ).once()
 
     flexmock(BuildStatusReporter).should_receive("report").with_args(
-        state="success",
+        state="pending",
         description="RPMs were built successfully.",
         url=url,
-        check_names=f"{PACKIT_STG_TESTING_FARM_CHECK}-fedora-rawhide-x86_64",
+        check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive(
@@ -415,12 +417,14 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build):
     flexmock(BuildStatusReporter).should_receive("report").with_args(
         state="pending",
         description="Build succeeded. Submitting the tests ...",
-        check_names=f"{PACKIT_STG_TESTING_FARM_CHECK}-fedora-rawhide-x86_64",
+        check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
+        url="",
     ).once()
     flexmock(BuildStatusReporter).should_receive("report").with_args(
         state="failure",
         description="Failed to submit tests: some text error",
-        check_names=f"{PACKIT_STG_TESTING_FARM_CHECK}-fedora-rawhide-x86_64",
+        check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
+        url="",
     ).once()
 
     steve.process_message(copr_build_end)
@@ -441,7 +445,9 @@ def test_copr_build_start(copr_build_start, pc_build, copr_build):
         flexmock()
     )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(pc_build)
-    flexmock(PRCheckName).should_receive("get_build_check").and_return(PACKIT_STG_CHECK)
+    flexmock(CoprBuildJobHelper).should_receive("get_build_check").and_return(
+        EXPECTED_BUILD_CHECK_NAME
+    )
 
     flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
@@ -466,7 +472,7 @@ def test_copr_build_start(copr_build_start, pc_build, copr_build):
         state="pending",
         description="RPM build has started...",
         url=url,
-        check_names=PACKIT_STG_CHECK,
+        check_names=EXPECTED_BUILD_CHECK_NAME,
     ).once()
 
     steve.process_message(copr_build_start)
@@ -487,9 +493,11 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build):
         flexmock()
     )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(pc_tests)
-    flexmock(PRCheckName).should_receive("get_build_check").and_return(PACKIT_STG_CHECK)
-    flexmock(PRCheckName).should_receive("get_testing_farm_check").and_return(
-        PACKIT_STG_TESTING_FARM_CHECK
+    flexmock(TestingFarmJobHelper).should_receive("get_build_check").and_return(
+        EXPECTED_BUILD_CHECK_NAME
+    )
+    flexmock(TestingFarmJobHelper).should_receive("get_test_check").and_return(
+        EXPECTED_TESTING_FARM_CHECK_NAME
     )
 
     flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
@@ -515,14 +523,14 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build):
         state="pending",
         description="RPM build has started...",
         url=url,
-        check_names=PACKIT_STG_CHECK,
+        check_names=EXPECTED_BUILD_CHECK_NAME,
     ).never()
 
     flexmock(BuildStatusReporter).should_receive("report").with_args(
         state="pending",
         description="RPM build has started...",
         url=url,
-        check_names=PRCheckName.get_testing_farm_check(copr_build_start["chroot"]),
+        check_names=TestingFarmJobHelper.get_test_check(copr_build_start["chroot"]),
     ).once()
 
     steve.process_message(copr_build_start)
@@ -543,7 +551,9 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build, copr_build)
         flexmock()
     )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(pc_build)
-    flexmock(PRCheckName).should_receive("get_build_check").and_return(PACKIT_STG_CHECK)
+    flexmock(CoprBuildJobHelper).should_receive("get_build_check").and_return(
+        EXPECTED_BUILD_CHECK_NAME
+    )
 
     flexmock(CoprBuildEndHandler).should_receive(
         "was_last_build_successful"
@@ -572,7 +582,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build, copr_build)
         state="success",
         description="RPMs were built successfully.",
         url=url,
-        check_names=PRCheckName.get_build_check(copr_build_end["chroot"]),
+        check_names=CoprBuildJobHelper.get_build_check(copr_build_end["chroot"]),
     ).once()
 
     # skip testing farm

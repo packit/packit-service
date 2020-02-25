@@ -1,7 +1,7 @@
 # MIT License
 #
 # Copyright (c) 2018-2019 Red Hat, Inc.
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -19,30 +19,15 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from contextlib import contextmanager
+from packit.config import JobType
+
+from packit_service.worker.build.copr_build import BaseBuildJobHelper
+from packit_service.worker.handler import HandlerResults
 
 
-def send_to_sentry(ex):
-    # so that we don't have to have sentry sdk installed locally
-    import sentry_sdk
+class KojiBuildJobHelper(BaseBuildJobHelper):
+    job_type_build = JobType.production_build
+    job_type_test = None
 
-    sentry_sdk.capture_exception(ex)
-
-
-@contextmanager
-def push_scope_to_sentry():
-    try:
-        # so that we don't have to have sentry sdk installed locally
-        import sentry_sdk
-
-    except ImportError:
-
-        class SentryMocker:
-            def set_tag(self, k, v):
-                pass
-
-        yield SentryMocker()
-    else:
-
-        with sentry_sdk.push_scope() as scope:
-            yield scope
+    def run_koji_build(self, scratch: bool = False) -> HandlerResults:
+        raise NotImplementedError()

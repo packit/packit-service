@@ -41,7 +41,7 @@ from packit_service.service.events import (
     TestingFarmResultsEvent,
     DistGitEvent,
 )
-from packit_service.worker.copr_build import JobHelper
+from packit_service.worker.build import CoprBuildJobHelper
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +221,7 @@ class Whitelist:
                 if event.trigger == JobTriggerType.comment:
                     project.pr_comment(event.pr_id, msg)
                 else:
-                    job_helper = JobHelper(
+                    job_helper = CoprBuildJobHelper(
                         config=config,
                         package_config=event.get_package_config(),
                         project=project,

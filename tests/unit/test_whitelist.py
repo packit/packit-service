@@ -22,14 +22,18 @@
 from typing import List, Tuple
 
 import pytest
+from copr.v3 import Client
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
 from flexmock import flexmock
 from ogr.abstract import GitProject, GitService
 from ogr.services.github import GithubProject, GithubService
 from packit.config import JobType, JobConfig, JobTriggerType
+from packit.copr_helper import CoprHelper
+from packit.local_project import LocalProject
 
 from packit_service.config import Deployment
+from packit_service.constants import FAQ_URL
 from packit_service.service.events import (
     ReleaseEvent,
     PullRequestEvent,
@@ -41,7 +45,11 @@ from packit_service.service.events import (
     AbstractGithubEvent,
 )
 from packit_service.service.events import WhitelistStatus
+from packit_service.service.models import Model
+from packit_service.worker.build import BuildStatusReporter
 from packit_service.worker.whitelist import Whitelist
+
+EXPECTED_TESTING_FARM_CHECK_NAME = f"packit-stg/testing-farm-fedora-rawhide-x86_64"
 
 
 class GracefulDict(dict):
@@ -252,16 +260,42 @@ def test_check_and_report(
         flexmock(
             jobs=[
                 JobConfig(
-                    job=JobType.tests, trigger=JobTriggerType.pull_request, metadata={}
+                    job=JobType.tests,
+                    trigger=JobTriggerType.pull_request,
+                    metadata={"targets": ["fedora-rawhide"]},
                 )
-            ]
+            ],
         )
     )
+
     git_project = GithubProject("", GithubService(), "")
-    for event in events:
+    for event, is_valid in events:
+        if isinstance(event, PullRequestEvent) and not is_valid:
+            # Report the status
+            flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+                Client(
+                    config={
+                        "copr_url": "https://copr.fedorainfracloud.org",
+                        "username": "some-owner",
+                    }
+                )
+            )
+            flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(
+                None
+            )
+            flexmock(LocalProject).should_receive("checkout_pr").and_return(None)
+            flexmock(Model).should_receive("save").and_return(None)
+            flexmock(BuildStatusReporter).should_receive("report").with_args(
+                description="Account is not whitelisted!",
+                state="error",
+                url=FAQ_URL,
+                check_names=[EXPECTED_TESTING_FARM_CHECK_NAME],
+            ).once()
         assert (
             whitelist.check_and_report(
-                event[0], git_project, config=flexmock(deployment=Deployment.stg)
+                event,
+                git_project,
+                config=flexmock(deployment=Deployment.stg, command_handler_work_dir=""),
             )
-            is event[1]
+            is is_valid
         )

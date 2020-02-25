@@ -2,7 +2,7 @@ import pytest
 from flexmock import flexmock
 from packit.config import PackageConfig, JobConfig, JobType, JobTriggerType
 
-from packit_service.worker.copr_build import CoprBuildJobHelper
+from packit_service.worker.build.copr_build import CoprBuildJobHelper
 
 
 @pytest.mark.parametrize(

@@ -39,9 +39,9 @@ from packit_service.worker.github_handlers import AbstractGithubJobHandler
 from packit_service.worker.handler import (
     add_to_mapping,
     HandlerResults,
-    BuildStatusReporter,
-    PRCheckName,
 )
+from packit_service.worker.build.build_helper import BuildStatusReporter
+from packit_service.worker.testing_farm import TestingFarmJobHelper
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
             state=status,
             description=short_msg,
             url=self.event.log_url,
-            check_names=PRCheckName.get_testing_farm_check(self.event.copr_chroot),
+            check_names=TestingFarmJobHelper.get_test_check(self.event.copr_chroot),
         )
 
         return HandlerResults(success=True, details={})

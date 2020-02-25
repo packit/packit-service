@@ -48,7 +48,7 @@ from packit_service.service.events import (
     get_copr_build_logs_url,
 )
 from packit_service.service.urls import get_log_url
-from packit_service.worker.copr_build import CoprBuildJobHelper
+from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.github_handlers import GithubTestingFarmHandler
 from packit_service.worker.handler import (
@@ -234,58 +234,62 @@ class CoprBuildEndHandler(FedmsgHandler):
             url = get_log_url(build_pg.id)
         else:
             url = copr_url_from_event(self.event)
-        gh_state = "failure"
 
         # https://pagure.io/copr/copr/blob/master/f/common/copr_common/enums.py#_42
-        if self.event.status == 1:
-            if (
-                self.build_job_helper.job_copr_build
-                and not self.was_last_build_successful()
-            ):
-                msg = (
-                    f"Congratulations! One of the builds has completed. :champagne:\n\n"
-                    "You can install the built RPMs by following these steps:\n\n"
-                    "* `sudo yum install -y dnf-plugins-core` on RHEL 8\n"
-                    "* `sudo dnf install -y dnf-plugins-core` on Fedora\n"
-                    f"* `dnf copr enable {self.event.owner}/{self.event.project_name}`\n"
-                    "* And now you can install the packages.\n"
-                    "\nPlease note that the RPMs should be used only in a testing environment."
-                )
-                self.project.pr_comment(pr_id=self.event.pr_id, body=msg)
-
-            gh_state = "success"
-            self.build_job_helper.report_status_for_chroot(
-                state=gh_state,
-                description="RPMs were built successfully.",
+        if self.event.status != 1:
+            failed_msg = "RPMs failed to be built."
+            self.build_job_helper.report_status_to_all_for_chroot(
+                state="failure",
+                description=failed_msg,
                 url=url,
                 chroot=self.event.chroot,
             )
             if build_pg:
-                build_pg.set_status(gh_state)
+                build_pg.set_status("failure")
+            return HandlerResults(success=False, details={"msg": failed_msg})
 
-            if (
-                self.build_job_helper.job_tests
-                and self.event.chroot in self.build_job_helper.tests_chroots
-            ):
-                testing_farm_handler = GithubTestingFarmHandler(
-                    config=self.config,
-                    job=self.build_job_helper.job_tests,
-                    event=self.event,
-                    chroot=self.event.chroot,
-                )
-                testing_farm_handler.run()
-            else:
-                logger.debug("Testing farm not in the job config.")
+        if self.build_job_helper.job_build and not self.was_last_build_successful():
+            msg = (
+                f"Congratulations! One of the builds has completed. :champagne:\n\n"
+                "You can install the built RPMs by following these steps:\n\n"
+                "* `sudo yum install -y dnf-plugins-core` on RHEL 8\n"
+                "* `sudo dnf install -y dnf-plugins-core` on Fedora\n"
+                f"* `dnf copr enable {self.event.owner}/{self.event.project_name}`\n"
+                "* And now you can install the packages.\n"
+                "\nPlease note that the RPMs should be used only in a testing environment."
+            )
+            self.project.pr_comment(pr_id=self.event.pr_id, body=msg)
 
-            return HandlerResults(success=True, details={})
-
-        failed_msg = "RPMs failed to be built."
-        self.build_job_helper.report_status_for_chroot(
-            state=gh_state, description=failed_msg, url=url, chroot=self.event.chroot,
+        self.build_job_helper.report_status_to_build_for_chroot(
+            state="success",
+            description="RPMs were built successfully.",
+            url=url,
+            chroot=self.event.chroot,
+        )
+        self.build_job_helper.report_status_to_test_for_chroot(
+            state="pending",
+            description="RPMs were built successfully.",
+            url=url,
+            chroot=self.event.chroot,
         )
         if build_pg:
-            build_pg.set_status(gh_state)
-        return HandlerResults(success=False, details={"msg": failed_msg})
+            build_pg.set_status("success")
+
+        if (
+            self.build_job_helper.job_tests
+            and self.event.chroot in self.build_job_helper.tests_chroots
+        ):
+            testing_farm_handler = GithubTestingFarmHandler(
+                config=self.config,
+                job=self.build_job_helper.job_tests,
+                event=self.event,
+                chroot=self.event.chroot,
+            )
+            testing_farm_handler.run()
+        else:
+            logger.debug("Testing farm not in the job config.")
+
+        return HandlerResults(success=True, details={})
 
 
 @add_topic
@@ -339,7 +343,7 @@ class CoprBuildStartHandler(FedmsgHandler):
         else:
             url = copr_url_from_event(self.event)
 
-        self.build_job_helper.report_status_for_chroot(
+        self.build_job_helper.report_status_to_all_for_chroot(
             description="RPM build has started...",
             state=status,
             url=url,

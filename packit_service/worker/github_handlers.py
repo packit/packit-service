@@ -27,7 +27,6 @@ import logging
 from typing import Union, Any, Optional, List, Callable
 
 from github import UnknownObjectException
-
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import (
@@ -51,19 +50,17 @@ from packit_service.service.events import (
 )
 from packit_service.service.models import Installation
 from packit_service.worker import sentry_integration
+from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.comment_action_handler import (
     CommentAction,
     add_to_comment_action_mapping,
     CommentActionHandler,
     add_to_comment_action_mapping_with_name,
 )
-from packit_service.worker.copr_build import CoprBuildJobHelper
 from packit_service.worker.handler import (
     JobHandler,
     HandlerResults,
     add_to_mapping,
-    BuildStatusReporter,
-    PRCheckName,
     add_to_mapping_for_job,
 )
 from packit_service.worker.testing_farm import TestingFarmJobHelper
@@ -275,18 +272,14 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             return HandlerResults(success=False, details={"msg": msg})
 
         collaborators = self.project.who_can_merge_pr()
-        r = BuildStatusReporter(self.project, self.event.commit_sha)
-        if self.event.github_login not in collaborators | self.config.admins:
-            msg = "Only collaborators can trigger Packit-as-a-Service"
-            check_names = [
-                f"{PRCheckName.get_build_check(x)}"
-                for x in self.job.metadata.get("targets")
-            ]
-            r.report("failure", msg, check_names=check_names)
-            return HandlerResults(success=False, details={"msg": msg})
         cbh = CoprBuildJobHelper(
             self.config, self.package_config, self.project, self.event
         )
+        if self.event.github_login not in collaborators | self.config.admins:
+            msg = "Only collaborators can trigger Packit-as-a-Service"
+            cbh.report_status_to_all("failure", msg)
+            return HandlerResults(success=False, details={"msg": msg})
+
         handler_results = cbh.run_copr_build()
 
         return handler_results

@@ -29,7 +29,7 @@ from packit_service.service.events import (
     TestingFarmResult,
     TestResult,
 )
-from packit_service.worker.handler import BuildStatusReporter
+from packit_service.worker.build import BuildStatusReporter
 from packit_service.worker.testing_farm_handlers import TestingFarmResultsHandler
 
 
