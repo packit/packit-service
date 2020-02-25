@@ -31,6 +31,7 @@ from typing import Dict, Any, Optional, Type, List
 
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobTriggerType, JobType
+from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
 from packit_service.service.events import Event
@@ -78,7 +79,7 @@ class Handler:
     def __init__(self, config: ServiceConfig):
         self.config: ServiceConfig = config
         self.api: Optional[PackitAPI] = None
-        self.local_project: Optional[PackitAPI] = None
+        self.local_project: Optional[LocalProject] = None
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")
