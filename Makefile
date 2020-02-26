@@ -6,6 +6,7 @@ TEST_TARGET ?= ./tests/unit ./tests/integration/
 CONTAINER_ENGINE ?= docker
 ANSIBLE_PYTHON ?= /usr/bin/python3
 AP ?= ansible-playbook -vv -c local -i localhost, -e ansible_python_interpreter=$(ANSIBLE_PYTHON)
+PATH_TO_SECRETS ?= $(CURDIR)/secrets/
 
 service: files/install-deps.yaml files/recipe.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(SERVICE_IMAGE) .
