@@ -94,3 +94,31 @@ def test_copr_build_set_build_logs_url(a_copr_build):
     assert a_copr_build.build_logs_url == url
     b = CoprBuild.get_by_build_id(a_copr_build.build_id, TARGET)
     assert b.build_logs_url == url
+
+
+# def test_get_or_create_pr():
+#     s = get_sa_session()
+#     assert s.query(PullRequest).count() == 0, "Found leftover PR's at the test begginig"
+#
+#     expected_pr = PullRequest.get_or_create(
+#         pr_id=42, namespace="clapton", repo_name="layla"
+#     )
+#     actual_pr = PullRequest.get_or_create(
+#         pr_id=42, namespace="clapton", repo_name="layla"
+#     )
+#
+#     assert s.query(PullRequest).count() == 1
+#     assert expected_pr.project_id == actual_pr.project_id
+#
+#     expected_pr = PullRequest.get_or_create(
+#         pr_id=42, namespace="clapton", repo_name="cocaine"
+#     )
+#     actual_pr = PullRequest.get_or_create(
+#         pr_id=42, namespace="clapton", repo_name="cocaine"
+#     )
+#
+#     assert s.query(PullRequest).count() == 2
+#     assert expected_pr.project_id == actual_pr.project_id
+#
+#     s.query(PullRequest).delete()
+#     s.commit()
