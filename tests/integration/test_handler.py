@@ -27,7 +27,7 @@ from packit.config import JobConfig, JobType, JobTriggerType
 
 from packit_service.config import ServiceConfig
 from packit_service.service.events import Event
-from packit_service.worker.handler import JobHandler
+from packit_service.worker.handlers import JobHandler
 
 
 @pytest.fixture()

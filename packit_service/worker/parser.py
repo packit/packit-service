@@ -43,7 +43,7 @@ from packit_service.service.events import (
     IssueCommentAction,
     CoprBuildEvent,
 )
-from packit_service.worker.fedmsg_handlers import NewDistGitCommit
+from packit_service.worker.handlers import NewDistGitCommitHandler
 
 logger = logging.getLogger(__name__)
 
@@ -340,7 +340,7 @@ class Parser:
     def parse_distgit_event(event) -> Optional[DistGitEvent]:
         """ this corresponds to dist-git event when someone pushes new commits """
         topic = event.get("topic")
-        if topic != NewDistGitCommit.topic:
+        if topic != NewDistGitCommitHandler.topic:
             return None
 
         logger.info(f"Dist-git commit event, topic: {topic}")

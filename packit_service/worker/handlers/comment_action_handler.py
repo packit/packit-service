@@ -30,7 +30,8 @@ from typing import Dict, Type, Union
 
 from packit_service.config import ServiceConfig
 from packit_service.service.events import PullRequestCommentEvent, IssueCommentEvent
-from packit_service.worker.handler import HandlerResults, Handler
+from packit_service.worker.handlers import Handler
+from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
 

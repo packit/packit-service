@@ -46,7 +46,7 @@ from packit_service.service.models import CoprBuild as RedisCoprBuild
 from packit_service.service.urls import get_log_url
 from packit_service.worker import sentry_integration
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
-from packit_service.worker.handler import HandlerResults
+from packit_service.worker.result import HandlerResults
 from packit_service.worker.utils import get_copr_build_url_for_values
 
 try:

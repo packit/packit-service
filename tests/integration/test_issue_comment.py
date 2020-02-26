@@ -24,9 +24,9 @@ import json
 
 import pytest
 from flexmock import flexmock
-
 from packit.api import PackitAPI
-from packit_service.worker.handler import HandlerResults
+
+from packit_service.worker.result import HandlerResults
 from packit_service.worker.jobs import SteveJobs
 from tests.spellbook import DATA_DIR
 

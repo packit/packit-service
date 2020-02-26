@@ -50,12 +50,10 @@ from packit_service.service.events import (
 from packit_service.service.urls import get_log_url
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.copr_db import CoprBuildDB
-from packit_service.worker.github_handlers import GithubTestingFarmHandler
-from packit_service.worker.handler import (
-    JobHandler,
-    HandlerResults,
-    add_to_mapping,
-)
+from packit_service.worker.handlers.abstract import JobHandler
+from packit_service.worker.handlers.abstract import add_to_mapping
+from packit_service.worker.handlers.github_handlers import GithubTestingFarmHandler
+from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +122,7 @@ class FedmsgHandler(JobHandler):
 
 @add_topic
 @add_to_mapping
-class NewDistGitCommit(FedmsgHandler):
+class NewDistGitCommitHandler(FedmsgHandler):
     """ A new flag was added to a dist-git pull request """
 
     topic = "org.fedoraproject.prod.git.receive"

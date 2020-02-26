@@ -40,23 +40,21 @@ from packit_service.service.events import (
     CoprBuildEvent,
     FedmsgTopic,
 )
-from packit_service.worker.comment_action_handler import (
-    COMMENT_ACTION_HANDLER_MAPPING,
-    CommentAction,
-    CommentActionHandler,
-)
-from packit_service.worker.fedmsg_handlers import (
+from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
-)
-from packit_service.worker.github_handlers import GithubAppInstallationHandler
-from packit_service.worker.handler import (
-    HandlerResults,
-    JOB_NAME_HANDLER_MAPPING,
+    GithubAppInstallationHandler,
+    CommentActionHandler,
+    TestingFarmResultsHandler,
     JobHandler,
 )
+from packit_service.worker.result import HandlerResults
+from packit_service.worker.handlers.abstract import JOB_NAME_HANDLER_MAPPING
+from packit_service.worker.handlers.comment_action_handler import (
+    COMMENT_ACTION_HANDLER_MAPPING,
+    CommentAction,
+)
 from packit_service.worker.parser import Parser
-from packit_service.worker.testing_farm_handlers import TestingFarmResultsHandler
 from packit_service.worker.whitelist import Whitelist
 
 REQUESTED_PULL_REQUEST_COMMENT = "/packit"

@@ -24,7 +24,7 @@ import logging
 from packit.config import JobType
 
 from packit_service.worker.build.copr_build import BaseBuildJobHelper
-from packit_service.worker.handler import HandlerResults
+from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
 

@@ -51,17 +51,19 @@ from packit_service.service.events import (
 from packit_service.service.models import Installation
 from packit_service.worker import sentry_integration
 from packit_service.worker.build import CoprBuildJobHelper
-from packit_service.worker.comment_action_handler import (
-    CommentAction,
-    add_to_comment_action_mapping,
+from packit_service.worker.handlers import (
     CommentActionHandler,
-    add_to_comment_action_mapping_with_name,
-)
-from packit_service.worker.handler import (
     JobHandler,
-    HandlerResults,
+)
+from packit_service.worker.result import HandlerResults
+from packit_service.worker.handlers.abstract import (
     add_to_mapping,
     add_to_mapping_for_job,
+)
+from packit_service.worker.handlers.comment_action_handler import (
+    add_to_comment_action_mapping,
+    add_to_comment_action_mapping_with_name,
+    CommentAction,
 )
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 from packit_service.worker.whitelist import Whitelist
