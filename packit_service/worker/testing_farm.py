@@ -39,17 +39,14 @@ from packit_service.service.events import (
     PullRequestCommentEvent,
     CoprBuildEvent,
 )
-from packit_service.worker.copr_build import JobHelper
-from packit_service.worker.handler import (
-    HandlerResults,
-    PRCheckName,
-)
+from packit_service.worker.build import CoprBuildJobHelper
+from packit_service.worker.handler import HandlerResults
 from packit_service.worker.sentry_integration import send_to_sentry
 
 logger = logging.getLogger(__name__)
 
 
-class TestingFarmJobHelper(JobHelper):
+class TestingFarmJobHelper(CoprBuildJobHelper):
     def __init__(
         self,
         config: ServiceConfig,
@@ -70,10 +67,10 @@ class TestingFarmJobHelper(JobHelper):
         self.header: dict = {"Content-Type": "application/json"}
 
     def report_missing_build_chroot(self, chroot: str):
-        self.status_reporter.report(
+        self.report_status_to_test_for_chroot(
             state="error",
             description=f"No build defined for the target '{chroot}'.",
-            check_names=PRCheckName.get_testing_farm_check(chroot),
+            chroot=chroot,
         )
 
     def run_testing_farm_on_all(self):
@@ -111,12 +108,11 @@ class TestingFarmJobHelper(JobHelper):
                     f"Cannot run tests without build."
                 },
             )
-        check_name = PRCheckName.get_testing_farm_check(chroot)
 
-        self.status_reporter.report(
+        self.report_status_to_test_for_chroot(
             state="pending",
             description="Build succeeded. Submitting the tests ...",
-            check_names=check_name,
+            chroot=chroot,
         )
 
         pipeline_id = str(uuid.uuid4())
@@ -152,8 +148,8 @@ class TestingFarmJobHelper(JobHelper):
         if not req:
             msg = "Failed to post request to testing farm API."
             logger.debug("Failed to post request to testing farm API.")
-            self.status_reporter.report(
-                state="failure", description=msg, check_names=check_name,
+            self.report_status_to_test_for_chroot(
+                state="failure", description=msg, chroot=chroot,
             )
             return HandlerResults(success=False, details={"msg": msg})
         else:
@@ -178,16 +174,16 @@ class TestingFarmJobHelper(JobHelper):
                 else:
                     msg = f"Failed to submit tests: {req.reason}"
                     logger.error(msg)
-                self.status_reporter.report(
-                    state="failure", description=msg, check_names=check_name,
+                self.report_status_to_test_for_chroot(
+                    state="failure", description=msg, chroot=chroot,
                 )
                 return HandlerResults(success=False, details={"msg": msg})
 
-            self.status_reporter.report(
+            self.report_status_to_test_for_chroot(
                 state="pending",
                 description="Tests are running ...",
                 url=req.json()["url"],
-                check_names=check_name,
+                chroot=chroot,
             )
 
         return HandlerResults(success=True, details={})

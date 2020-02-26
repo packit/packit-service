@@ -27,56 +27,19 @@ import logging
 import shutil
 from os import getenv
 from pathlib import Path
-from sentry_sdk import push_scope
-from typing import Dict, Any, Optional, Type, List, Union
+from typing import Dict, Any, Optional, Type, List
 
-from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobTriggerType, JobType
+from packit.local_project import LocalProject
 
-from packit_service.config import Deployment, ServiceConfig
-from packit_service.constants import (
-    PACKIT_PROD_CHECK,
-    PACKIT_STG_CHECK,
-    PACKIT_PROD_TESTING_FARM_CHECK,
-    PACKIT_STG_TESTING_FARM_CHECK,
-)
+from packit_service.config import ServiceConfig
 from packit_service.service.events import Event
-from packit_service.service.models import CoprBuild
+from packit_service.worker.sentry_integration import push_scope_to_sentry
 
 logger = logging.getLogger(__name__)
 
 JOB_NAME_HANDLER_MAPPING: Dict[JobType, Type["JobHandler"]] = {}
-
-
-class PRCheckName:
-    """
-    This is class providing static methods for getting check names according to deployment
-    """
-
-    @staticmethod
-    def get_build_check(chroot: str = None) -> str:
-        config = ServiceConfig.get_service_config()
-        if config.deployment == Deployment.prod:
-            if chroot:
-                return f"{PACKIT_PROD_CHECK}-{chroot}"
-            return PACKIT_PROD_CHECK
-
-        if chroot:
-            return f"{PACKIT_STG_CHECK}-{chroot}"
-        return PACKIT_STG_CHECK
-
-    @staticmethod
-    def get_testing_farm_check(chroot: str = None) -> str:
-        config = ServiceConfig.get_service_config()
-        if config.deployment == Deployment.prod:
-            if chroot:
-                return f"{PACKIT_PROD_TESTING_FARM_CHECK}-{chroot}"
-            return PACKIT_PROD_TESTING_FARM_CHECK
-
-        if chroot:
-            return f"{PACKIT_STG_TESTING_FARM_CHECK}-{chroot}"
-        return PACKIT_STG_TESTING_FARM_CHECK
 
 
 def add_to_mapping(kls: Type["JobHandler"]):
@@ -90,64 +53,6 @@ def add_to_mapping_for_job(job_type: JobType):
         return kls
 
     return _add_to_mapping
-
-
-class BuildStatusReporter:
-    def __init__(
-        self,
-        project: GitProject,
-        commit_sha: str,
-        copr_build_model: Optional[CoprBuild] = None,
-    ):
-        self.project = project
-        self.commit_sha = commit_sha
-        self.copr_build_model = copr_build_model
-
-    def report(
-        self,
-        state: str,
-        description: str,
-        build_id: Optional[str] = None,
-        url: str = "",
-        check_names: Union[str, list, None] = None,
-    ):
-        """
-        set commit check status
-
-        :param state: state accepted by github
-        :param description: the long text
-        :param build_id: copr build id
-        :param url: url to point to (logs usually)
-        :param check_names: those in bold
-        :return: nuthin'
-        """
-
-        logger.debug(
-            f"Reporting state of copr build ID={build_id}"
-            f" state={state}, commit={self.commit_sha}"
-        )
-        if self.copr_build_model:
-            self.copr_build_model.status = state
-            self.copr_build_model.save()
-
-        if not check_names:
-            check_names = [PRCheckName.get_build_check()]
-        elif isinstance(check_names, str):
-            check_names = [check_names]
-
-        for check in check_names:
-            self.set_status(
-                state=state, description=description, check_name=check, url=url
-            )
-
-    def set_status(self, state: str, description: str, check_name: str, url: str = ""):
-        logger.debug(f"Setting status for check '{check_name}': {description}")
-        self.project.set_commit_status(
-            self.commit_sha, state, url, description, check_name, trim=True
-        )
-
-    def get_statuses(self):
-        self.project.get_commit_statuses(commit=self.commit_sha)
 
 
 class HandlerResults(dict):
@@ -174,7 +79,7 @@ class Handler:
     def __init__(self, config: ServiceConfig):
         self.config: ServiceConfig = config
         self.api: Optional[PackitAPI] = None
-        self.local_project: Optional[PackitAPI] = None
+        self.local_project: Optional[LocalProject] = None
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")
@@ -193,7 +98,7 @@ class Handler:
 
     def run_n_clean(self) -> HandlerResults:
         try:
-            with push_scope() as scope:
+            with push_scope_to_sentry() as scope:
                 for k, v in self.get_tag_info().items():
                     scope.set_tag(k, v)
                 return self.run()

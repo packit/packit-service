@@ -22,18 +22,15 @@
 import json
 import logging
 from io import StringIO
-from typing import Union, List, Optional
+from typing import Union, Optional
 
 from kubernetes.client.rest import ApiException
 from ogr.abstract import GitProject
-from packit.api import PackitAPI
-from packit.config import PackageConfig, JobType, JobConfig
-from packit.config.aliases import get_build_targets
+from packit.config import PackageConfig, JobType
 from packit.exceptions import (
     PackitCoprException,
     PackitCoprProjectException,
 )
-from packit.local_project import LocalProject
 from packit.utils import PackitFormatter
 from sandcastle import SandcastleCommandFailed, SandcastleTimeoutReached
 
@@ -48,11 +45,8 @@ from packit_service.service.events import (
 from packit_service.service.models import CoprBuild as RedisCoprBuild
 from packit_service.service.urls import get_log_url
 from packit_service.worker import sentry_integration
-from packit_service.worker.handler import (
-    HandlerResults,
-    BuildStatusReporter,
-    PRCheckName,
-)
+from packit_service.worker.build.build_helper import BaseBuildJobHelper
+from packit_service.worker.handler import HandlerResults
 from packit_service.worker.utils import get_copr_build_url_for_values
 
 try:
@@ -64,7 +58,12 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-class JobHelper:
+class CoprBuildJobHelper(BaseBuildJobHelper):
+    job_type_build = JobType.copr_build
+    job_type_test = JobType.tests
+    status_name_build: str = "rpm-build"
+    status_name_test: str = "testing-farm"
+
     def __init__(
         self,
         config: ServiceConfig,
@@ -77,105 +76,14 @@ class JobHelper:
             PullRequestCommentEvent,
         ],
     ):
-        self.config: ServiceConfig = config
-        self.package_config: PackageConfig = package_config
-        self.project: GitProject = project
-        self.event: Union[
-            PullRequestEvent, PullRequestCommentEvent, CoprBuildEvent,
-        ] = event
-
-        # lazy properties
-        self._api = None
-        self._copr_build_model = None
-        self._job_copr_build = None
-        self._job_tests = None
-        self._local_project = None
-        self._status_reporter = None
-        self._test_check_names: Optional[List[str]] = None
-        self._build_check_names: Optional[List[str]] = None
+        super().__init__(config, package_config, project, event)
 
         self.msg_retrigger: str = MSG_RETRIGGER.format(
-            build="copr-build" if self.job_copr_build else "build"
+            build="copr-build" if self.job_build else "build"
         )
 
-    @property
-    def local_project(self) -> LocalProject:
-        if self._local_project is None:
-            self._local_project = LocalProject(
-                git_project=self.project,
-                working_dir=self.config.command_handler_work_dir,
-                ref=self.base_ref,
-                pr_id=self.event.pr_id,
-            )
-        return self._local_project
-
-    @property
-    def api(self) -> PackitAPI:
-        if not self._api:
-            self._api = PackitAPI(self.config, self.package_config, self.local_project)
-        return self._api
-
-    @property
-    def base_ref(self) -> str:
-        if isinstance(self.event, PullRequestEvent):
-            return self.event.base_ref
-
-        if isinstance(self.event, CoprBuildEvent):
-            if self.event.ref:
-                # FIXME: return commit sha always once on PG
-                return self.event.ref
-            return self.event.commit_sha
-
-        if isinstance(self.event, PullRequestCommentEvent):
-            return self.event.commit_sha
-
-    @property
-    def build_chroots(self) -> List[str]:
-        """
-        Return the chroots to build.
-
-        1. If the job is not defined, use the test_chroots.
-        2. If the job is defined, but not the targets, use "fedora-stable" alias otherwise.
-        """
-        if (
-            (not self.job_copr_build or "targets" not in self.job_copr_build.metadata)
-            and self.job_tests
-            and "targets" in self.job_tests.metadata
-        ):
-            return self.tests_chroots
-
-        if not self.job_copr_build:
-            raw_targets = ["fedora-stable"]
-        else:
-            raw_targets = self.job_copr_build.metadata.get("targets", ["fedora-stable"])
-            if isinstance(raw_targets, str):
-                raw_targets = [raw_targets]
-
-        return list(get_build_targets(*raw_targets))
-
-    @property
-    def tests_chroots(self) -> List[str]:
-        """
-        Return the list of chroots used in the testing farm.
-        Has to be a sub-set of the `build_chroots`.
-
-        Return an empty list if there is no job configured.
-
-        If not defined:
-        1. use the build_chroots if the job si configured
-        2. use "fedora-stable" alias otherwise
-        """
-        if not self.job_tests:
-            return []
-
-        if "targets" not in self.job_tests.metadata and self.job_copr_build:
-            return self.build_chroots
-
-        configured_targets = self.job_tests.metadata.get("targets", ["fedora-stable"])
-        if isinstance(configured_targets, str):
-            configured_targets = [configured_targets]
-
-        return list(get_build_targets(*configured_targets))
+        # lazy properties
+        self._copr_build_model = None
 
     @property
     def default_project_name(self):
@@ -186,96 +94,13 @@ class JobHelper:
         return f"{self.project.namespace}-{self.project.repo}-{self.event.pr_id}{stg}"
 
     @property
-    def job_copr_build(self) -> Optional[JobConfig]:
-        """
-        Check if there is JobConfig for copr builds defined
-        :return: JobConfig or None
-        """
-        if not self._job_copr_build:
-            for job in self.package_config.jobs:
-                if job.job == JobType.copr_build:
-                    self._job_copr_build = job
-        return self._job_copr_build
-
-    @property
-    def job_tests(self) -> Optional[JobConfig]:
-        """
-        Check if there is JobConfig for tests defined
-        :return: JobConfig or None
-        """
-        if not self._job_tests:
-            for job in self.package_config.jobs:
-                if job.job == JobType.tests:
-                    self._job_tests = job
-        return self._job_tests
-
-    @property
-    def status_reporter(self):
-        if not self._status_reporter:
-            self._status_reporter = BuildStatusReporter(
-                self.project, self.event.commit_sha, copr_build_model=None
-            )
-        return self._status_reporter
-
-    @property
-    def test_check_names(self) -> List[str]:
-        if not self._test_check_names:
-            self._test_check_names = [
-                PRCheckName.get_testing_farm_check(chroot)
-                for chroot in self.tests_chroots
-            ]
-        return self._test_check_names
-
-    @property
-    def build_check_names(self) -> List[str]:
-        if not self._build_check_names:
-            self._build_check_names = [
-                PRCheckName.get_build_check(chroot) for chroot in self.build_chroots
-            ]
-        return self._build_check_names
-
-    @property
     def job_project(self) -> Optional[str]:
         """
         The job definition from the config file.
         """
-        if self.job_copr_build:
-            return self.job_copr_build.metadata.get(
-                "project", self.default_project_name
-            )
+        if self.job_build:
+            return self.job_build.metadata.get("project", self.default_project_name)
         return self.default_project_name
-
-    def report_status_to_all(self, description: str, state: str, url: str = "") -> None:
-        self.report_status_to_build(description, state, url)
-        self.report_status_to_tests(description, state, url)
-
-    def report_status_to_build(self, description, state, url: str = ""):
-        if self.job_copr_build:
-            self.status_reporter.report(
-                description=description,
-                state=state,
-                url=url,
-                check_names=self.build_check_names,
-            )
-
-    def report_status_to_tests(self, description, state, url: str = ""):
-        if self.job_tests:
-            self.status_reporter.report(
-                description=description,
-                state=state,
-                url=url,
-                check_names=self.test_check_names,
-            )
-
-
-class CoprBuildJobHelper(JobHelper):
-    @property
-    def status_reporter(self):
-        if not self._status_reporter:
-            self._status_reporter = BuildStatusReporter(
-                self.project, self.event.commit_sha, self.copr_build_model
-            )
-        return self._status_reporter
 
     # TODO: remove this once we're fully on psql
     @property
@@ -293,42 +118,16 @@ class CoprBuildJobHelper(JobHelper):
         """
         Owner used for the copr build -- search the config or use the copr's config.
         """
-        if self.job_copr_build:
-            owner = self.job_copr_build.metadata.get("owner")
+        if self.job_build:
+            owner = self.job_build.metadata.get("owner")
             if owner:
                 return owner
 
         return self.api.copr_helper.copr_client.config.get("username")
 
-    def report_status_for_chroot(
-        self, description: str, state: str, url: str = "", chroot: str = ""
-    ):
-        self.report_status_to_build_for_chroot(description, state, url, chroot)
-        self.report_status_to_test_for_chroot(description, state, url, chroot)
-
-    def report_status_to_build_for_chroot(
-        self, description, state, url: str = "", chroot: str = ""
-    ):
-        if self.job_copr_build and chroot in self.build_chroots:
-            cs = PRCheckName.get_build_check(chroot)
-            self.status_reporter.report(
-                description=description, state=state, url=url, check_names=cs,
-            )
-
-    def report_status_to_test_for_chroot(
-        self, description, state, url: str = "", chroot: str = ""
-    ):
-        if self.job_tests and chroot in self.tests_chroots:
-            self.status_reporter.report(
-                description=description,
-                state=state,
-                url=url,
-                check_names=PRCheckName.get_testing_farm_check(chroot),
-            )
-
     def run_copr_build(self) -> HandlerResults:
 
-        if not (self.job_copr_build or self.job_tests):
+        if not (self.job_build or self.job_tests):
             msg = "No copr_build or tests job defined."
             # we can't report it to end-user at this stage
             return HandlerResults(success=False, details={"msg": msg})
@@ -336,33 +135,13 @@ class CoprBuildJobHelper(JobHelper):
         try:
             self.report_status_to_all(description="Building SRPM ...", state="pending")
 
-            # we want to get packit logs from the SRPM creation process
-            # so we stuff them into a StringIO buffer
-            stream = StringIO()
-            handler = logging.StreamHandler(stream)
-            packit_logger = logging.getLogger("packit")
-            packit_logger.setLevel(logging.DEBUG)
-            packit_logger.addHandler(handler)
-            formatter = PackitFormatter(None, "%H:%M:%S")
-            handler.setFormatter(formatter)
-
-            build_id, _ = self.api.run_copr_build(
-                project=self.job_project,
-                chroots=self.build_chroots,
-                owner=self.job_owner,
-            )
-
-            packit_logger.removeHandler(handler)
-            stream.seek(0)
-            logs = stream.read()
+            build_id, logs = self._run_copr_build_and_save_output()
             web_url = get_copr_build_url_for_values(
                 self.job_owner, self.job_project, build_id
             )
 
-            srpm_build = SRPMBuild.create(logs)
+            srpm_build_model = SRPMBuild.create(logs)
 
-            status = "pending"
-            description = "Building RPM ..."
             for chroot in self.build_chroots:
                 copr_build = CoprBuild.get_or_create(
                     pr_id=self.event.pr_id,
@@ -372,23 +151,16 @@ class CoprBuildJobHelper(JobHelper):
                     namespace=self.event.base_repo_namespace,
                     web_url=web_url,
                     target=chroot,
-                    status=status,
-                    srpm_build=srpm_build,
+                    status="pending",
+                    srpm_build=srpm_build_model,
                 )
                 url = get_log_url(id_=copr_build.id)
-                self.status_reporter.report(
-                    state=status,
-                    description=description,
+                self.report_status_to_all_for_chroot(
+                    state="pending",
+                    description="Building RPM ...",
                     url=url,
-                    check_names=PRCheckName.get_build_check(chroot),
+                    chroot=chroot,
                 )
-                if chroot in self.tests_chroots:
-                    self.status_reporter.report(
-                        state=status,
-                        description=description,
-                        url=url,
-                        check_names=PRCheckName.get_testing_farm_check(chroot),
-                    )
 
         except SandcastleTimeoutReached:
             return self._process_timeout()
@@ -415,6 +187,24 @@ class CoprBuildJobHelper(JobHelper):
         self.copr_build_model.save()
 
         return HandlerResults(success=True, details={})
+
+    def _run_copr_build_and_save_output(self):
+        # we want to get packit logs from the SRPM creation process
+        # so we stuff them into a StringIO buffer
+        stream = StringIO()
+        handler = logging.StreamHandler(stream)
+        packit_logger = logging.getLogger("packit")
+        packit_logger.setLevel(logging.DEBUG)
+        packit_logger.addHandler(handler)
+        formatter = PackitFormatter(None, "%H:%M:%S")
+        handler.setFormatter(formatter)
+        build_id, _ = self.api.run_copr_build(
+            project=self.job_project, chroots=self.build_chroots, owner=self.job_owner,
+        )
+        packit_logger.removeHandler(handler)
+        stream.seek(0)
+        logs = stream.read()
+        return build_id, logs
 
     def _process_copr_submit_exception(self, ex):
         sentry_integration.send_to_sentry(ex)
