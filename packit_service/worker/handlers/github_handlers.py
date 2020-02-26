@@ -268,11 +268,6 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
 
     def handle_pull_request(self):
 
-        if not self.job.metadata.get("targets"):
-            msg = "'targets' value is required in packit config for copr_build job"
-            self.project.pr_comment(self.event.pr_id, msg)
-            return HandlerResults(success=False, details={"msg": msg})
-
         collaborators = self.project.who_can_merge_pr()
         cbh = CoprBuildJobHelper(
             self.config, self.package_config, self.project, self.event
