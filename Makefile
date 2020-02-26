@@ -45,7 +45,7 @@ check-inside-openshift: worker test_image
 	@#   Invalid value: "hostPath": hostPath volumes are not allowed to be used
 	@#   username system:admin is invalid for basic auth
 	@#-p PACKIT_SERVICE_SRC_LOCAL_PATH=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
-	ANSIBLE_STDOUT_CALLBACK=debug $(AP) -e path_to_secrets=$(PATH_TO_SECRETS) files/test-in-openshift-secrets.yaml
+	ANSIBLE_STDOUT_CALLBACK=debug $(AP) -K -e path_to_secrets=$(PATH_TO_SECRETS) files/deployment.yaml
 	ANSIBLE_STDOUT_CALLBACK=debug $(AP) files/check-inside-openshift.yaml
 
 check-inside-openshift-zuul: test_image
