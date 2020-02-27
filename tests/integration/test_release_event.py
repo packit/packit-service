@@ -5,6 +5,7 @@ from flexmock import flexmock
 from github import Github
 from ogr.services.github import GithubProject
 from packit.api import PackitAPI
+from packit.fedpkg import FedPKG
 from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
@@ -71,12 +72,16 @@ def test_dist_git_push_release_handle_multiple_branches(release_event):
     ).once()
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="f30", version="0.3.0"
+        dist_git_branch="f32", version="0.3.0"
     ).once()
-
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="f31", version="0.3.0"
     ).once()
+    flexmock(PackitAPI).should_receive("sync_release").with_args(
+        dist_git_branch="f30", version="0.3.0"
+    ).once()
+
+    flexmock(FedPKG).should_receive("clone").and_return(None)
 
     results = SteveJobs().process_message(release_event)
     assert results["jobs"]["propose_downstream"]["success"]
@@ -107,12 +112,16 @@ def test_dist_git_push_release_handle_one_failed(release_event):
     ).once()
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="f30", version="0.3.0"
+        dist_git_branch="f32", version="0.3.0"
     ).and_raise(Exception, "Failed f30").once()
-
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="f31", version="0.3.0"
     ).once()
+    flexmock(PackitAPI).should_receive("sync_release").with_args(
+        dist_git_branch="f30", version="0.3.0"
+    ).once()
+
+    flexmock(FedPKG).should_receive("clone").and_return(None)
 
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
 
@@ -139,6 +148,7 @@ def test_dist_git_push_release_handle_all_failed(release_event):
         "| --------------- | ----- |\n"
         "| `f30` | `Failed` |\n"
         "| `f31` | `Failed` |\n"
+        "| `f32` | `Failed` |\n"
         "| `master` | `Failed` |\n\n\n"
         "You can re-trigger the update by adding `/packit propose-update`"
         " to the issue comment.\n",
@@ -152,9 +162,10 @@ def test_dist_git_push_release_handle_all_failed(release_event):
     # it would make sense to make LocalProject offline
     flexmock(PackitAPI).should_receive("sync_release").and_raise(
         Exception, "Failed"
-    ).times(3)
+    ).times(4)
 
-    flexmock(sentry_integration).should_receive("send_to_sentry").and_return().times(3)
+    # 4 = master, f32, 31, 30
+    flexmock(sentry_integration).should_receive("send_to_sentry").and_return().times(4)
 
     results = SteveJobs().process_message(release_event)
     assert not results["jobs"]["propose_downstream"]["success"]

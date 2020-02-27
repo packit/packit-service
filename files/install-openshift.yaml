@@ -59,7 +59,7 @@
         state: present
       become: true
     - name: Start Openshift cluster
-      command: oc cluster up --base-dir=/tmp
+      command: oc cluster up --base-dir=/tmp --enable="-centos-imagestreams,-sample-templates,persistent-volumes,registry,router,-web-console"
       environment:
         PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
         DOCKER_CONFIG: "/etc/docker/daemon.json"

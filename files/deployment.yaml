@@ -4,7 +4,19 @@
   hosts: all
   vars:
     deployment_dir: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/packit-service/deployment'].src_dir }}"
+    as_root: true # needs to run as root in zuul
   tasks:
+    - name: clone deployment repo when not running in zuul
+      block:
+        - set_fact: deployment_dir=/tmp/deployment
+        - set_fact: as_root=false
+        - name: clone deployment repository (templates are there)
+          git:
+            repo: "https://github.com/packit-service/deployment.git"
+            dest: "{{ deployment_dir }}"
+            clone: yes
+      when: zuul is not defined
+
     - name: Install packages for deployment
       dnf:
         name:
@@ -16,7 +28,7 @@
     - name: get token
       command: oc whoami -t
       register: kubeconfig_token
-      become: true
+      become: "{{ as_root }}"
     - name: Creates zuul secrets directory
       file:
         path: "{{ deployment_dir }}/secrets/dev"
@@ -63,7 +75,6 @@
         - ssh_config
         - fedora.toml
         - extra-vars.yml
-      become: true
 
     - name: Create dev.yml
       copy:
@@ -80,9 +91,9 @@
           # don't deploy fedmsg dc; good for local testing
           without_fedmsg: false
           # don't deploy redis-commander dc; good for staging deployment
-          without_redis_commander: false
+          without_redis_commander: true
           # don't deploy flower dc; good for staging deployment
-          without_flower: false
+          without_flower: true
           # you can set the sandbox namespace name explicitly like this
           sandbox_namespace: packit-dev-sandbox
           # set tag to latest because images are freshly built with latest tag in CI
@@ -93,7 +104,6 @@
           worker_replicas: 1
           without_dashboard: true
         dest: "{{ deployment_dir }}/vars/dev.yml"
-      become: true
     - name: Actually deploy
       command: make deploy
       environment:
@@ -101,4 +111,4 @@
         ANSIBLE_STDOUT_CALLBACK: debug
       args:
         chdir: "{{ deployment_dir }}"
-      become: true
+      become: "{{ as_root }}"
