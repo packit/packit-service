@@ -126,4 +126,4 @@
         wait_timeout: 100
     # rsync works only on a running pod
     - name: get generated responses from the pod
-      command: oc rsync pod/get-requre-data:{{ remote_data_dir }} {{ local_data_dir }}
+      command: oc rsync pod/get-requre-data:{{ remote_data_dir }}/ {{ local_data_dir }}

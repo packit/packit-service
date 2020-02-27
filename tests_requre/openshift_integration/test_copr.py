@@ -22,7 +22,13 @@
 
 import json
 import unittest
-from tests_requre.openshift_integration.base import PackitServiceTestCase, DATA_DIR
+from requre import RequreTestCase
+from pathlib import Path
+from packit.config import RunCommandType
+
+from packit_service.worker.jobs import SteveJobs
+
+DATA_DIR = Path(__file__).parent.parent.parent / "tests" / "data"
 
 
 def pr_event():
@@ -45,7 +51,13 @@ def pr_comment_event_not_collaborator():
     )
 
 
-class Copr(PackitServiceTestCase):
+class Copr(RequreTestCase):
+    def SetUp(self):
+        super().setUp()
+        self.steve = SteveJobs()
+        self.steve.config.command_handler = RunCommandType.local
+        self.steve.config.command_handler_work_dir = "/tmp/hello-world"
+
     @unittest.skipIf(True, "troubles with whitelisting")
     def test_submit_copr_build_pr_event(self):
         result = self.steve.process_message(pr_event())

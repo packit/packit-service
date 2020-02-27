@@ -22,11 +22,11 @@
 from pathlib import Path
 import tempfile
 import shutil
-from tests_requre.openshift_integration.base import PackitServiceTestCase
+from requre import RequreTestCase
 from packit.fedpkg import FedPKG
 
 
-class FedPkg(PackitServiceTestCase):
+class FedPkg(RequreTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.tmpdir = tempfile.mkdtemp()
