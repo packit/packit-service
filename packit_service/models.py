@@ -105,7 +105,11 @@ class PullRequest(Base):
     def get_or_create(cls, pr_id: int, namespace: str, repo_name: str) -> "PullRequest":
         session = get_sa_session()
         project = GitProject.get_or_create(namespace=namespace, repo_name=repo_name)
-        pr = session.query(PullRequest).filter_by(pr_id=pr_id).first()
+        pr = (
+            session.query(PullRequest)
+            .filter_by(pr_id=pr_id, project_id=project.id)
+            .first()
+        )
         if not pr:
             pr = PullRequest()
             pr.pr_id = pr_id
