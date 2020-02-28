@@ -134,9 +134,13 @@ class SteveJobs:
         self, event: Union[PullRequestCommentEvent, IssueCommentEvent]
     ) -> HandlerResults:
         # packit_command can be `/packit propose-update`
-        msg = f"comment '{event.comment[:35]}'"
+        msg = f"comment '{event.comment}'"
         try:
-            (packit_mark, *packit_command) = event.comment.split(maxsplit=3)
+            cmd_start_index = event.comment.find(REQUESTED_PULL_REQUEST_COMMENT)
+            (packit_mark, *packit_command) = event.comment[cmd_start_index:].split(
+                maxsplit=3
+            )
+            # packit_command[0] has the first cmd and [1] has the second, if needed.
         except ValueError:
             return HandlerResults(success=True, details={"msg": f"{msg} is empty."})
 
