@@ -31,6 +31,7 @@ def test_dist_git_push_release_handle(release_event):
         GithubProject,
         get_file_content=lambda path, ref: packit_yaml,
         full_repo_name="packit-service/hello-world",
+        get_files=lambda filter_regex: [],
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
@@ -59,6 +60,7 @@ def test_dist_git_push_release_handle_multiple_branches(release_event):
         GithubProject,
         get_file_content=lambda path, ref: packit_yaml,
         full_repo_name="packit-service/hello-world",
+        get_files=lambda filter_regex: [],
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
@@ -99,6 +101,7 @@ def test_dist_git_push_release_handle_one_failed(release_event):
         GithubProject,
         get_file_content=lambda path, ref: packit_yaml,
         full_repo_name="packit-service/hello-world",
+        get_files=lambda filter_regex: [],
     ).should_receive("create_issue").once()
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
@@ -141,6 +144,7 @@ def test_dist_git_push_release_handle_all_failed(release_event):
         GithubProject,
         get_file_content=lambda path, ref: packit_yaml,
         full_repo_name="packit-service/hello-world",
+        get_files=lambda filter_regex: [],
     ).should_receive("create_issue").with_args(
         title="[packit] Propose update failed for release 0.3.0",
         body="Packit failed on creating pull-requests in dist-git:\n\n"

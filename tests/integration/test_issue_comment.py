@@ -24,6 +24,7 @@ import json
 
 import pytest
 from flexmock import flexmock
+from ogr.services.github.project import GithubProject
 from packit.api import PackitAPI
 
 from packit_service.worker.result import HandlerResults
@@ -43,6 +44,9 @@ def test_issue_comment_propose_update_handler(
 ):
     flexmock(PackitAPI).should_receive("sync_release").and_return(
         HandlerResults(success=True, details={})
+    )
+    flexmock(
+        GithubProject, get_files=lambda filter_regex: [],
     )
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(issue_comment_propose_update_event)
