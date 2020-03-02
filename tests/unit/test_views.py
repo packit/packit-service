@@ -7,8 +7,7 @@ from flexmock import flexmock
 
 from packit_service.models import CoprBuild, PullRequest, GitProject, SRPMBuild
 from packit_service.service.app import application
-from packit_service.service.urls import get_log_url
-from packit_service.worker.utils import get_copr_build_url_for_values
+from packit_service.service.urls import get_log_url, get_srpm_log_url
 
 
 @pytest.fixture
@@ -50,15 +49,14 @@ def test_get_logs(client):
     srpm_build = SRPMBuild()
     srpm_build.logs = "asd<br>qwe"
 
-    web_url = get_copr_build_url_for_values(
-        project.namespace, project.repo_name, build_id
-    )
     c = CoprBuild()
     c.target = chroot
     c.build_id = str(build_id)
     c.srpm_build = srpm_build
     c.status = state
-    c.web_url = web_url
+    c.web_url = (
+        "https://copr.fedorainfracloud.org/coprs/john-foo-bar/john-foo-bar/build/2/"
+    )
     c.build_logs_url = "https://localhost:5000/build/2/foo-1-x86_64/logs"
     c.pr = pr
 
@@ -79,6 +77,28 @@ def test_get_logs(client):
         f'Build logs: <a href="{c.build_logs_url}">{c.build_logs_url}</a><br>'
         "SRPM creation logs:<br><br>"
         f"<pre>{c.srpm_build.logs}</pre>"
+        "<br></body></html>"
+    )
+    assert resp.data == expected.encode()
+
+
+def test_get_srpm_logs(client):
+    srpm_build = SRPMBuild()
+    srpm_build.id = 2
+    srpm_build.logs = "asd\nqwe"
+
+    flexmock(SRPMBuild).should_receive("get_by_id").and_return(srpm_build)
+
+    url = f"/srpm-build/2/logs"
+    logs_url = get_srpm_log_url(2)
+    assert logs_url.endswith(url)
+
+    resp = client.get(url)
+    expected = (
+        "<html><head>"
+        "<title>SRPM Build id=2</title></head><body>"
+        "SRPM creation logs:<br><br>"
+        "<pre>asd\nqwe</pre>"
         "<br></body></html>"
     )
     assert resp.data == expected.encode()
