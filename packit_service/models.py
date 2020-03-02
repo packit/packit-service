@@ -87,6 +87,12 @@ class GitProject(Base):
             session.commit()
         return project
 
+    def __repr__(self):
+        return f"GitProject(name={self.namespace}/{self.repo_name})"
+
+    def __str__(self):
+        return self.__repr__()
+
 
 class PullRequest(Base):
     __tablename__ = "pull_requests"
@@ -117,6 +123,12 @@ class PullRequest(Base):
             session.add(pr)
             session.commit()
         return pr
+
+    def __repr__(self):
+        return f"PullRequest(id={self.pr_id}, project={self.project})"
+
+    def __str__(self):
+        return self.__repr__()
 
 
 class CoprBuild(Base):
@@ -206,6 +218,12 @@ class CoprBuild(Base):
             session.commit()
         return build
 
+    def __repr__(self):
+        return f"COPRBuild(id={self.id}, pr={self.pr})"
+
+    def __str__(self):
+        return self.__repr__()
+
 
 class SRPMBuild(Base):
     __tablename__ = "srpm_builds"
@@ -222,6 +240,17 @@ class SRPMBuild(Base):
         session.add(srpm_build)
         session.commit()
         return srpm_build
+
+    @classmethod
+    def get_by_id(cls, id_: int,) -> Optional["SRPMBuild"]:
+        session = get_sa_session()
+        return session.query(SRPMBuild).filter_by(id=id_).first()
+
+    def __repr__(self):
+        return f"SRPMBuild(id={self.id})"
+
+    def __str__(self):
+        return self.__repr__()
 
 
 # coming soon
