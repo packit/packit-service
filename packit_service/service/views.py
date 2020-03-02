@@ -25,9 +25,24 @@ Flask views for packit-service
 """
 from flask import Blueprint
 
-from packit_service.models import CoprBuild
+from packit_service.models import CoprBuild, SRPMBuild
 
 builds_blueprint = Blueprint("builds", __name__)
+
+
+@builds_blueprint.route("/srpm-build/<int:id_>/logs", methods=("GET",))
+def get_srpm_build_logs_by_id(id_):
+    srpm_build = SRPMBuild.get_by_id(id_)
+    if srpm_build:
+        response = (
+            "<html><head>"
+            f"<title>SRPM Build id={id_}</title></head><body>"
+            "SRPM creation logs:<br><br>"
+            f"<pre>{srpm_build.logs}</pre>"
+            "<br></body></html>"
+        )
+        return response
+    return f"We can't find any info about SRPM build {id_}.\n"
 
 
 @builds_blueprint.route("/copr-build/<int:id_>/logs", methods=("GET",))
@@ -53,4 +68,4 @@ def get_build_logs_by_id(id_):
             "<br></body></html>"
         )
         return response
-    return f"We can't find any info about build {id_}.\n"
+    return f"We can't find any info about COPR build {id_}.\n"

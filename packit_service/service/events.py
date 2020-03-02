@@ -29,14 +29,12 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional, List, Union, Dict
 
-import requests
 from ogr.abstract import GitProject
 from packit.config import JobTriggerType, get_package_config_from_repo, PackageConfig
 
 from packit_service.config import ServiceConfig, GithubPackageConfigGetter
 from packit_service.models import CoprBuild
 from packit_service.worker.copr_db import CoprBuildDB
-from packit_service.worker.utils import get_copr_build_url_for_values
 
 logger = logging.getLogger(__name__)
 
@@ -540,38 +538,9 @@ class CoprBuildEvent(AbstractGithubEvent):
         return package_config
 
 
-def get_copr_build_url(event: CoprBuildEvent) -> str:
-    return get_copr_build_url_for_values(
-        event.owner, event.project_name, event.build_id
-    )
-
-
 def get_copr_build_logs_url(event: CoprBuildEvent) -> str:
     return (
         f"https://copr-be.cloud.fedoraproject.org/results/{event.owner}/"
         f"{event.project_name}/{event.chroot}/"
         f"{event.build_id:08d}-{event.pkg}/builder-live.log.gz"
     )
-
-
-def copr_url_from_event(event: CoprBuildEvent):
-    """
-    Get url to builder-live.log.gz bound to single event
-    :param event: fedora messaging event from topic copr.build.start or copr.build.end
-    :return: reachable url
-    """
-    url = get_copr_build_logs_url(event)
-    # make sure we provide valid url in status, let sentry handle if not
-    try:
-        logger.debug(f"Reaching url {url}")
-        r = requests.head(url)
-        r.raise_for_status()
-    except requests.RequestException:
-        # we might want sentry to know but don't want to start handling things?
-        logger.error(f"Failed to reach url with copr chroot build result.")
-        url = get_copr_build_url_for_values(
-            event.owner, event.project_name, event.build_id
-        )
-    # return the frontend URL no matter what
-    # we don't want to fail on this step; the error log is just enough
-    return url

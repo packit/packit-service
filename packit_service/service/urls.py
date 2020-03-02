@@ -25,11 +25,23 @@ from flask import url_for
 from packit_service.service.app import application
 
 
+def get_srpm_log_url(id_: int = None,) -> str:
+    """
+    provide absolute URL to p-s srpm build logs view meant to set in a commit status
+    """
+    # flask magic
+    with application.app_context():
+        return url_for(
+            "builds.get_srpm_build_logs_by_id",
+            id_=id_,
+            _external=True,  # _external = generate a URL with FQDN, not a relative one
+        )
+
+
 def get_log_url(id_: int = None,) -> str:
     """
     provide absolute URL to p-s build logs view meant to set in a commit status
     """
-    # flask magic
     with application.app_context():
         return url_for(
             "builds.get_build_logs_by_id",

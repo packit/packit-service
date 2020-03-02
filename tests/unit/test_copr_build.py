@@ -123,11 +123,27 @@ def test_copr_build_fails_in_packit():
     #  - Building SRPM ...
     #  - Build failed, check latest comment for details.
     handler = build_handler()
-    flexmock(GitProject, pr_comment=lambda *args, **kw: None)
-    flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
-    flexmock(GitProject).should_receive("pr_comment").and_return().once()
+    templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
+    for v in ["29", "30", "31", "rawhide"]:
+        flexmock(GitProject).should_receive("set_commit_status").with_args(
+            "528b803be6f93e19ca4130bf4976f2800a3004c4",
+            "pending",
+            "",
+            "Building SRPM ...",
+            templ.format(ver=v),
+            trim=True,
+        ).and_return().once()
+    for v in ["29", "30", "31", "rawhide"]:
+        flexmock(GitProject).should_receive("set_commit_status").with_args(
+            "528b803be6f93e19ca4130bf4976f2800a3004c4",
+            "failed",
+            "https://localhost:5000/srpm-build/2/logs",
+            "SRPM build failed, check the logs for details.",
+            templ.format(ver=v),
+            trim=True,
+        ).and_return().once()
     flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
-    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
+    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild(id=2))
     flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
     flexmock(PackitAPI).should_receive("run_copr_build").and_raise(
