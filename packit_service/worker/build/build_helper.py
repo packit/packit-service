@@ -33,6 +33,8 @@ from packit_service.service.events import (
     PullRequestEvent,
     PullRequestCommentEvent,
     CoprBuildEvent,
+    PushGitHubEvent,
+    ReleaseEvent,
 )
 from packit_service.worker.reporting import StatusReporter
 
@@ -50,23 +52,41 @@ class BaseBuildJobHelper:
         config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
-        event: Union[PullRequestEvent, PullRequestCommentEvent, CoprBuildEvent],
+        event: Union[
+            PullRequestEvent,
+            PullRequestCommentEvent,
+            CoprBuildEvent,
+            PushGitHubEvent,
+            ReleaseEvent,
+        ],
+        job: Optional[JobConfig] = None,
     ):
         self.config: ServiceConfig = config
         self.package_config: PackageConfig = package_config
         self.project: GitProject = project
         self.event: Union[
-            PullRequestEvent, PullRequestCommentEvent, CoprBuildEvent,
+            PullRequestEvent,
+            PullRequestCommentEvent,
+            CoprBuildEvent,
+            PushGitHubEvent,
+            ReleaseEvent,
         ] = event
+        self.pr_id = (
+            self.event.pr_id
+            if isinstance(self.event, (PullRequestEvent, PullRequestCommentEvent))
+            else None
+        )
 
         # lazy properties
         self._api = None
-        self._job_build = None
-        self._job_tests = None
         self._local_project = None
         self._status_reporter = None
         self._test_check_names: Optional[List[str]] = None
         self._build_check_names: Optional[List[str]] = None
+
+        # lazy properties, current job by default
+        self._job_build = job if job and job.job == self.job_type_build else None
+        self._job_tests = job if job and job.job == self.job_type_test else None
 
     @property
     def local_project(self) -> LocalProject:
@@ -74,8 +94,8 @@ class BaseBuildJobHelper:
             self._local_project = LocalProject(
                 git_project=self.project,
                 working_dir=self.config.command_handler_work_dir,
-                ref=self.base_ref,
-                pr_id=self.event.pr_id,
+                ref=self.event.ref,
+                pr_id=self.pr_id,
             )
         return self._local_project
 
@@ -84,20 +104,6 @@ class BaseBuildJobHelper:
         if not self._api:
             self._api = PackitAPI(self.config, self.package_config, self.local_project)
         return self._api
-
-    @property
-    def base_ref(self) -> str:
-        if isinstance(self.event, PullRequestEvent):
-            return self.event.base_ref
-
-        if isinstance(self.event, CoprBuildEvent):
-            if self.event.ref:
-                # FIXME: return commit sha always once on PG
-                return self.event.ref
-            return self.event.commit_sha
-
-        if isinstance(self.event, PullRequestCommentEvent):
-            return self.event.commit_sha
 
     @property
     def build_chroots(self) -> List[str]:
@@ -158,7 +164,7 @@ class BaseBuildJobHelper:
 
         if not self._job_build:
             for job in self.package_config.jobs:
-                if job.job == self.job_type_build:
+                if job.job == self.job_type_build and job.trigger == self.event.trigger:
                     self._job_build = job
                     break
         return self._job_build
@@ -174,7 +180,7 @@ class BaseBuildJobHelper:
 
         if not self._job_tests:
             for job in self.package_config.jobs:
-                if job.job == self.job_type_test:
+                if job.job == self.job_type_test and job.trigger == self.event.trigger:
                     self._job_tests = job
                     break
         return self._job_tests

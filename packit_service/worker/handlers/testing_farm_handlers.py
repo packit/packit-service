@@ -24,6 +24,7 @@
 This file defines classes for job handlers specific for Testing farm
 """
 import logging
+from typing import Optional
 
 from ogr.abstract import GitProject
 from packit.config import (
@@ -36,9 +37,9 @@ from packit.config import (
 from packit_service.config import ServiceConfig
 from packit_service.service.events import TestingFarmResultsEvent, TestingFarmResult
 from packit_service.worker.handlers import AbstractGithubJobHandler
-from packit_service.worker.result import HandlerResults
 from packit_service.worker.handlers.abstract import add_to_mapping
 from packit_service.worker.reporting import StatusReporter
+from packit_service.worker.result import HandlerResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,7 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
     def __init__(
         self,
         config: ServiceConfig,
-        job: JobConfig,
+        job: Optional[JobConfig],
         test_results_event: TestingFarmResultsEvent,
     ):
         super().__init__(config=config, job=job, event=test_results_event)

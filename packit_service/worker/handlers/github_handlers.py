@@ -119,7 +119,7 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
     def __init__(
         self,
         config: ServiceConfig,
-        job: JobConfig,
+        job: Optional[JobConfig],
         installation_event: Union[InstallationEvent, Any],
     ):
         super().__init__(config=config, job=job, event=installation_event)
@@ -235,64 +235,65 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
         return HandlerResults(success=True, details={})
 
 
-@add_to_mapping
-@add_to_mapping_for_job(job_type=JobType.tests)
-class GithubCoprBuildHandler(AbstractGithubJobHandler):
+class AbstractGithubCoprBuildHandler(AbstractGithubJobHandler):
     name = JobType.copr_build
-    triggers = [
-        JobTriggerType.pull_request,
-        JobTriggerType.release,
-        JobTriggerType.commit,
-    ]
     event: Union[PullRequestEvent, ReleaseEvent, PushGitHubEvent]
 
     def __init__(
         self,
         config: ServiceConfig,
         job: JobConfig,
-        event: Union[PullRequestEvent, ReleaseEvent],
+        event: Union[PullRequestEvent, ReleaseEvent, PushGitHubEvent],
     ):
         super().__init__(config=config, job=job, event=event)
 
-        if isinstance(event, PullRequestEvent):
-            base_ref = event.base_ref
-            pr_id = event.pr_id
-        elif isinstance(event, ReleaseEvent):
-            base_ref = event.tag_name
-            pr_id = None
-        elif isinstance(event, PushGitHubEvent):
-            base_ref = event.head_commit
-            pr_id = None
-        else:
+        if not isinstance(event, (PullRequestEvent, PushGitHubEvent, ReleaseEvent)):
             raise PackitException(
-                "Unknown event, only PREvent and ReleaseEvent are accepted."
+                "Unknown event, only "
+                "PullRequestEvent, ReleaseEvent, and PushGitHubEvent "
+                "are accepted."
             )
 
-        self.project: GitProject = event.get_project()
-        self.package_config: PackageConfig = self.get_package_config_from_repo(
-            self.project, base_ref, pr_id
-        )
-        self.package_config.upstream_project_url = event.project_url
+        # lazy property
+        self._copr_build_helper: Optional[CoprBuildJobHelper] = None
+        self._package_config: Optional[PackageConfig] = None
+        self._project: Optional[GitProject] = None
 
-    def handle_pull_request(self):
-
-        collaborators = self.project.who_can_merge_pr()
-        cbh = CoprBuildJobHelper(
-            self.config, self.package_config, self.project, self.event
-        )
-        if self.event.github_login not in collaborators | self.config.admins:
-            msg = (
-                "Only users with write or admin permissions to the repository "
-                "can trigger Packit-as-a-Service"
+    @property
+    def copr_build_helper(self) -> CoprBuildJobHelper:
+        if not self._copr_build_helper:
+            self._copr_build_helper = CoprBuildJobHelper(
+                config=self.config,
+                package_config=self.package_config,
+                project=self.project,
+                event=self.event,
+                job=self.job,
             )
-            cbh.report_status_to_all("failure", msg)
-            return HandlerResults(success=False, details={"msg": msg})
+        return self._copr_build_helper
 
-        handler_results = cbh.run_copr_build()
+    @property
+    def package_config(self) -> PackageConfig:
+        if not self._package_config:
+            self._package_config = self.get_package_config_from_repo(
+                project=self.project,
+                reference=self.event.commit_sha or str(self.event.ref),
+                pr_id=self.event.pr_id
+                if isinstance(self.event, (PullRequestEvent, PullRequestCommentEvent))
+                else None,
+            )
+            self._package_config.upstream_project_url = self.event.project_url
+        return self._package_config
 
-        return handler_results
+    @property
+    def project(self) -> GitProject:
+        if not self._project:
+            self._project = self.event.get_project()
+        return self._project
 
     def run(self) -> HandlerResults:
+        return self.copr_build_helper.run_copr_build()
+
+    def pre_check(self) -> bool:
         is_copr_build: Callable[
             [JobConfig], bool
         ] = lambda job: job.job == JobType.copr_build
@@ -300,22 +301,102 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
         if self.job.job == JobType.tests and any(
             filter(is_copr_build, self.package_config.jobs)
         ):
-            return HandlerResults(
-                success=False,
-                details={
-                    "msg": "Skipping build for testing. The COPR build is defined in the config."
-                },
+            logger.info(
+                "Skipping build for testing. The COPR build is defined in the config."
             )
-        if self.event.trigger == JobTriggerType.pull_request:
-            return self.handle_pull_request()
-        # We do not support this workflow officially
-        # elif self.triggered_by == JobTriggerType.release:
-        #     self.handle_release()
-        else:
-            return HandlerResults(
-                success=False,
-                details={"msg": f"No handler for {str(self.event.trigger)}"},
+            return False
+        return True
+
+
+@add_to_mapping
+@add_to_mapping_for_job(job_type=JobType.tests)
+class ReleaseGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
+    triggers = [
+        JobTriggerType.release,
+    ]
+
+    event: ReleaseEvent
+
+    def __init__(
+        self, config: ServiceConfig, job: JobConfig, event: ReleaseEvent,
+    ):
+        super().__init__(config=config, job=job, event=event)
+        self.base_ref = event.tag_name
+
+    def pre_check(self) -> bool:
+        return (
+            super().pre_check()
+            and isinstance(self.event, ReleaseEvent)
+            and self.event.trigger == JobTriggerType.release
+        )
+
+
+@add_to_mapping
+@add_to_mapping_for_job(job_type=JobType.tests)
+class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
+    triggers = [
+        JobTriggerType.pull_request,
+    ]
+    event: PullRequestEvent
+
+    def __init__(
+        self, config: ServiceConfig, job: JobConfig, event: PullRequestEvent,
+    ):
+        super().__init__(config=config, job=job, event=event)
+
+    def run(self) -> HandlerResults:
+        if isinstance(self.event, GithubPullRequestHandler):
+            collaborators = self.project.who_can_merge_pr()
+            if self.event.github_login not in collaborators | self.config.admins:
+                msg = (
+                    "Only users with write or admin permissions to the repository "
+                    "can trigger Packit-as-a-Service"
+                )
+                self.copr_build_helper.report_status_to_all("failure", msg)
+                return HandlerResults(success=False, details={"msg": msg})
+        return super().run()
+
+    def pre_check(self) -> bool:
+        return (
+            super().pre_check()
+            and isinstance(self.event, PullRequestEvent)
+            and self.event.trigger == JobTriggerType.pull_request
+        )
+
+
+@add_to_mapping
+@add_to_mapping_for_job(job_type=JobType.tests)
+class PushGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
+    triggers = [
+        JobTriggerType.commit,
+    ]
+    event: PushGitHubEvent
+
+    def __init__(
+        self, config: ServiceConfig, job: JobConfig, event: PushGitHubEvent,
+    ):
+        super().__init__(config=config, job=job, event=event)
+        self.base_ref = event.commit_sha
+
+    def pre_check(self) -> bool:
+        valid = (
+            super().pre_check()
+            and isinstance(self.event, PushGitHubEvent)
+            and self.event.trigger == JobTriggerType.commit
+        )
+        if not valid:
+            return False
+
+        configured_branch = self.copr_build_helper.job_build.metadata.get(
+            "branch", "master"
+        )
+        if configured_branch != self.event.ref:
+            logger.info(
+                f"Skipping build on {self.event.ref}'. "
+                f"Push configured only for ('{configured_branch}')."
             )
+            return False
+        return True
 
 
 class GithubTestingFarmHandler(AbstractGithubJobHandler):

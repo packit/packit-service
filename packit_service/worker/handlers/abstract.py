@@ -112,6 +112,14 @@ class Handler:
             else:
                 shutil.rmtree(item)
 
+    def pre_check(self) -> bool:
+        """
+        Validate the input.
+
+        :return: False if we can skip the run.
+        """
+        return True
+
     def clean(self):
         """ clean up the mess once we're done """
         logger.info("cleaning up the mess")
@@ -126,9 +134,9 @@ class JobHandler(Handler):
     name: JobType
     triggers: List[JobTriggerType]
 
-    def __init__(self, config: ServiceConfig, job: JobConfig, event: Event):
+    def __init__(self, config: ServiceConfig, job: Optional[JobConfig], event: Event):
         super().__init__(config)
-        self.job: JobConfig = job
+        self.job: Optional[JobConfig] = job
         self.event = event
         self._clean_workplace()
 

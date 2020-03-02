@@ -159,4 +159,5 @@ def copr_build():
     pr.project = proj
     c = CoprBuild(id=1)
     c.pr = pr
+    c.commit_sha = "0011223344"
     return c

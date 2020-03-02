@@ -125,7 +125,7 @@ def test_targets(jobs, build_targets, test_targets):
         config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
         project=flexmock(),
-        event=flexmock(),
+        event=flexmock(trigger=JobTriggerType.pull_request),
     )
 
     assert copr_build_handler.package_config.jobs

@@ -191,7 +191,7 @@ class Parser:
         """
         Look into the provided event and see if it's one for a new push to the github branch.
         """
-        ref = event.get("ref")
+        raw_ref = event.get("ref")
         before = event.get("before")
         pusher = nested_get(event, "pusher", "name")
 
@@ -202,15 +202,17 @@ class Parser:
             event.get("head") or event.get("after") or event.get("head_commit")
         )
 
-        if not (ref and head_commit and before and pusher):
+        if not (raw_ref and head_commit and before and pusher):
             return None
 
         number_of_commits = event.get("size")
         if number_of_commits is None and "commits" in event:
             number_of_commits = len(event.get("commits"))
 
+        ref = raw_ref.split("/", maxsplit=2)[-1]
+
         logger.info(
-            f"GitHub push event on '{ref}': {before[:8]} -> {head_commit[:8]} "
+            f"GitHub push event on '{raw_ref}': {before[:8]} -> {head_commit[:8]} "
             f"by {pusher} "
             f"({number_of_commits} {'commit' if number_of_commits == 1 else 'commits'})"
         )
@@ -229,7 +231,7 @@ class Parser:
             repo_name=repo_name,
             ref=ref,
             https_url=repo_url,
-            head_commit=head_commit,
+            commit_sha=head_commit,
         )
 
     @staticmethod

@@ -124,18 +124,17 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         stg = "-stg" if self.config.deployment == Deployment.stg else ""
         copr_repo_name = (
-            f"packit/{self.project.namespace}-{self.project.repo}-"
-            f"{self.event.pr_id}{stg}"
+            f"packit/{self.project.namespace}-{self.project.repo}-" f"{self.pr_id}{stg}"
         )
 
         payload["artifact"] = {
-            "repo-name": self.event.base_repo_name,
-            "repo-namespace": self.event.base_repo_namespace,
+            "repo-name": self.project.repo,
+            "repo-namespace": self.project.namespace,
             "copr-repo-name": copr_repo_name,
             "copr-chroot": chroot,
             "commit-sha": self.event.commit_sha,
             "git-url": self.event.project_url,
-            "git-ref": self.base_ref,
+            "git-ref": self.event.ref,
         }
 
         logger.debug("Sending testing farm request...")

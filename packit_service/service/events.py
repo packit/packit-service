@@ -178,6 +178,8 @@ class ReleaseEvent(AbstractGithubEvent):
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.tag_name = tag_name
+        self.ref = tag_name
+        self.commit_sha = None
 
     def get_package_config(self) -> Optional[PackageConfig]:
         package_config: PackageConfig = self.get_package_config_from_repo(
@@ -196,18 +198,18 @@ class PushGitHubEvent(AbstractGithubEvent):
         repo_name: str,
         ref: str,
         https_url: str,
-        head_commit: str,
+        commit_sha: str,
     ):
         super().__init__(trigger=JobTriggerType.commit, project_url=https_url)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
-        self.ref = ref  # e.g "refs/tags/simple-tag"
-        self.head_commit = head_commit
+        self.ref = ref
+        self.commit_sha = commit_sha
 
     def get_package_config(self) -> Optional[PackageConfig]:
         package_config: PackageConfig = self.get_package_config_from_repo(
             project=self.get_project(),
-            reference=self.head_commit,
+            reference=self.commit_sha,
             fail_when_missing=False,
         )
         if not package_config:
@@ -238,6 +240,7 @@ class PullRequestEvent(AbstractGithubEvent):
         self.target_repo = target_repo
         self.commit_sha = commit_sha
         self.github_login = github_login
+        self.ref = pr_id
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
@@ -281,6 +284,7 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         self.target_repo = target_repo
         self.github_login = github_login
         self.comment = comment
+        self.ref = pr_id
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
@@ -464,6 +468,8 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
 
 # Wait, what? copr build event doesn't sound like github event
 class CoprBuildEvent(AbstractGithubEvent):
+    build_pg: Optional[CoprBuild]
+
     def __init__(
         self,
         topic: str,
@@ -476,6 +482,7 @@ class CoprBuildEvent(AbstractGithubEvent):
         pkg: str,
         build_pg: Optional[CoprBuild] = None,
     ):
+
         if build_pg:
             self.pr_id = build_pg.pr.pr_id
             self.commit_sha = build_pg.commit_sha
@@ -492,7 +499,7 @@ class CoprBuildEvent(AbstractGithubEvent):
             self.base_repo_namespace = build.get("repo_namespace")
             https_url = build["https_url"]
 
-        super().__init__(trigger=JobTriggerType.commit, project_url=https_url)
+        super().__init__(trigger=JobTriggerType.pull_request, project_url=https_url)
         self.topic = FedmsgTopic(topic)
         self.build_id = build_id
         self.build = build
@@ -545,9 +552,10 @@ class CoprBuildEvent(AbstractGithubEvent):
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         d = self.__dict__
-        d.pop("build_pg")
+        build_pg = d.pop("build_pg")
         result = super().get_dict(d)
         result["topic"] = result["topic"].value
+        self.build_pg = build_pg
         return result
 
     def get_package_config(self) -> Optional[PackageConfig]:
@@ -556,7 +564,7 @@ class CoprBuildEvent(AbstractGithubEvent):
             return None
 
         package_config: PackageConfig = self.get_package_config_from_repo(
-            project=project, reference=self.ref, fail_when_missing=False
+            project=project, reference=self.commit_sha, fail_when_missing=False
         )
         if not package_config:
             return None
