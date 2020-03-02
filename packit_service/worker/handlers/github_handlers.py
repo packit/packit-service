@@ -47,6 +47,7 @@ from packit_service.service.events import (
     PullRequestCommentEvent,
     IssueCommentEvent,
     CoprBuildEvent,
+    PushGitHubEvent,
 )
 from packit_service.service.models import Installation
 from packit_service.worker import sentry_integration
@@ -55,7 +56,6 @@ from packit_service.worker.handlers import (
     CommentActionHandler,
     JobHandler,
 )
-from packit_service.worker.result import HandlerResults
 from packit_service.worker.handlers.abstract import (
     add_to_mapping,
     add_to_mapping_for_job,
@@ -65,6 +65,7 @@ from packit_service.worker.handlers.comment_action_handler import (
     add_to_comment_action_mapping_with_name,
     CommentAction,
 )
+from packit_service.worker.result import HandlerResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 from packit_service.worker.whitelist import Whitelist
 
@@ -238,8 +239,12 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
 @add_to_mapping_for_job(job_type=JobType.tests)
 class GithubCoprBuildHandler(AbstractGithubJobHandler):
     name = JobType.copr_build
-    triggers = [JobTriggerType.pull_request, JobTriggerType.release]
-    event: Union[PullRequestEvent, ReleaseEvent]
+    triggers = [
+        JobTriggerType.pull_request,
+        JobTriggerType.release,
+        JobTriggerType.commit,
+    ]
+    event: Union[PullRequestEvent, ReleaseEvent, PushGitHubEvent]
 
     def __init__(
         self,
@@ -254,6 +259,9 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             pr_id = event.pr_id
         elif isinstance(event, ReleaseEvent):
             base_ref = event.tag_name
+            pr_id = None
+        elif isinstance(event, PushGitHubEvent):
+            base_ref = event.head_commit
             pr_id = None
         else:
             raise PackitException(

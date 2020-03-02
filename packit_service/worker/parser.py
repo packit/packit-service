@@ -42,6 +42,7 @@ from packit_service.service.events import (
     IssueCommentEvent,
     IssueCommentAction,
     CoprBuildEvent,
+    PushGitHubEvent,
 )
 from packit_service.worker.handlers import NewDistGitCommitHandler
 
@@ -67,6 +68,7 @@ class Parser:
             PullRequestCommentEvent,
             IssueCommentEvent,
             CoprBuildEvent,
+            PushGitHubEvent,
         ]
     ]:
         """
@@ -89,6 +91,7 @@ class Parser:
                 PullRequestCommentEvent,
                 IssueCommentEvent,
                 CoprBuildEvent,
+                PushGitHubEvent,
             ]
         ] = Parser.parse_pr_event(event)
         if response:
@@ -103,6 +106,10 @@ class Parser:
             return response
 
         response = Parser.parse_release_event(event)
+        if response:
+            return response
+
+        response = Parser.parse_push_event(event)
         if response:
             return response
 
@@ -177,6 +184,52 @@ class Parser:
             https_url,
             commit_sha,
             github_login,
+        )
+
+    @staticmethod
+    def parse_push_event(event) -> Optional[PushGitHubEvent]:
+        """
+        Look into the provided event and see if it's one for a new push to the github branch.
+        """
+        ref = event.get("ref")
+        before = event.get("before")
+        pusher = nested_get(event, "pusher", "name")
+
+        # https://developer.github.com/v3/activity/events/types/#pushevent
+        # > Note: The webhook payload example following the table differs
+        # > significantly from the Events API payload described in the table.
+        head_commit = (
+            event.get("head") or event.get("after") or event.get("head_commit")
+        )
+
+        if not (ref and head_commit and before and pusher):
+            return None
+
+        number_of_commits = event.get("size")
+        if number_of_commits is None and "commits" in event:
+            number_of_commits = len(event.get("commits"))
+
+        logger.info(
+            f"GitHub push event on '{ref}': {before[:8]} -> {head_commit[:8]} "
+            f"by {pusher} "
+            f"({number_of_commits} {'commit' if number_of_commits == 1 else 'commits'})"
+        )
+
+        repo_namespace = nested_get(event, "repository", "owner", "login")
+        repo_name = nested_get(event, "repository", "name")
+
+        if not (repo_namespace and repo_name):
+            logger.warning("No full name of the repository.")
+            return None
+
+        repo_url = nested_get(event, "repository", "html_url")
+
+        return PushGitHubEvent(
+            repo_namespace=repo_namespace,
+            repo_name=repo_name,
+            ref=ref,
+            https_url=repo_url,
+            head_commit=head_commit,
         )
 
     @staticmethod

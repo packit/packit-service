@@ -189,6 +189,33 @@ class ReleaseEvent(AbstractGithubEvent):
         return package_config
 
 
+class PushGitHubEvent(AbstractGithubEvent):
+    def __init__(
+        self,
+        repo_namespace: str,
+        repo_name: str,
+        ref: str,
+        https_url: str,
+        head_commit: str,
+    ):
+        super().__init__(trigger=JobTriggerType.commit, project_url=https_url)
+        self.repo_namespace = repo_namespace
+        self.repo_name = repo_name
+        self.ref = ref  # e.g "refs/tags/simple-tag"
+        self.head_commit = head_commit
+
+    def get_package_config(self) -> Optional[PackageConfig]:
+        package_config: PackageConfig = self.get_package_config_from_repo(
+            project=self.get_project(),
+            reference=self.head_commit,
+            fail_when_missing=False,
+        )
+        if not package_config:
+            return None
+        package_config.upstream_project_url = self.project_url
+        return package_config
+
+
 class PullRequestEvent(AbstractGithubEvent):
     def __init__(
         self,
