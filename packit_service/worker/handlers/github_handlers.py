@@ -273,7 +273,10 @@ class GithubCoprBuildHandler(AbstractGithubJobHandler):
             self.config, self.package_config, self.project, self.event
         )
         if self.event.github_login not in collaborators | self.config.admins:
-            msg = "Only collaborators can trigger Packit-as-a-Service"
+            msg = (
+                "Only users with write or admin permissions to the repository "
+                "can trigger Packit-as-a-Service"
+            )
             cbh.report_status_to_all("failure", msg)
             return HandlerResults(success=False, details={"msg": msg})
 
@@ -380,7 +383,10 @@ class GitHubPullRequestCommentCoprBuildHandler(
     def run(self) -> HandlerResults:
         collaborators = self.project.who_can_merge_pr()
         if self.event.github_login not in collaborators | self.config.admins:
-            msg = "Only collaborators can trigger Packit-as-a-Service"
+            msg = (
+                "Only users with write or admin permissions to the repository "
+                "can trigger Packit-as-a-Service"
+            )
             self.project.pr_comment(self.event.pr_id, msg)
             return HandlerResults(success=True, details={"msg": msg})
 
@@ -455,7 +461,10 @@ class GitHubIssueCommentProposeUpdateHandler(
 
         collaborators = self.project.who_can_merge_pr()
         if self.event.github_login not in collaborators | self.config.admins:
-            msg = "Only collaborators can trigger Packit-as-a-Service"
+            msg = (
+                "Only users with write or admin permissions to the repository "
+                "can trigger Packit-as-a-Service"
+            )
             self.project.issue_comment(self.event.issue_id, msg)
             return HandlerResults(success=True, details={"msg": msg})
 
@@ -529,7 +538,10 @@ class GitHubPullRequestCommentTestingFarmHandler(
 
         collaborators = self.project.who_can_merge_pr()
         if self.event.github_login not in collaborators | self.config.admins:
-            msg = "Only collaborators can trigger Packit-as-a-Service"
+            msg = (
+                "Only users with write or admin permissions to the repository "
+                "can trigger Packit-as-a-Service"
+            )
             self.project.pr_comment(self.event.pr_id, msg)
             return HandlerResults(success=True, details={"msg": msg})
 
