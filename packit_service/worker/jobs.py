@@ -130,27 +130,44 @@ class SteveJobs:
 
         return handlers_results
 
+    def find_packit_command(self, comment):
+        packit_command = []
+        pr_comment_error_msg = ""
+
+        if not comment:
+            pr_comment_error_msg = f"comment '{comment}' is empty."
+            return packit_command, pr_comment_error_msg
+
+        cmd_start_index = comment.find(REQUESTED_PULL_REQUEST_COMMENT)
+        (packit_mark, *packit_command) = comment[cmd_start_index:].split(maxsplit=3)
+        # packit_command[0] has the first cmd and [1] has the second, if needed.
+
+        if packit_mark != REQUESTED_PULL_REQUEST_COMMENT:
+            pr_comment_error_msg = (
+                f"comment '{comment}' is not handled by packit-service."
+            )
+            return packit_command, pr_comment_error_msg
+
+        if not packit_command:
+            pr_comment_error_msg = (
+                f"comment '{comment}' does not contain a packit-service command."
+            )
+            return packit_command, pr_comment_error_msg
+
+        # Returns a list of commands, after /packit
+        return packit_command, pr_comment_error_msg
+
     def process_comment_jobs(
         self, event: Union[PullRequestCommentEvent, IssueCommentEvent]
     ) -> HandlerResults:
-        # packit_command can be `/packit propose-update`
-        msg = f"comment '{event.comment[:35]}'"
-        try:
-            (packit_mark, *packit_command) = event.comment.split(maxsplit=3)
-        except ValueError:
-            return HandlerResults(success=True, details={"msg": f"{msg} is empty."})
 
-        if packit_mark != REQUESTED_PULL_REQUEST_COMMENT:
-            return HandlerResults(
-                success=True,
-                details={"msg": f"{msg} is not handled by packit-service."},
-            )
+        msg = f"comment '{event.comment}'"
+        packit_command, pr_comment_error_msg = self.find_packit_command(
+            str(event.comment)
+        )
 
-        if not packit_command:
-            return HandlerResults(
-                success=True,
-                details={"msg": f"{msg} does not contain a packit-service command."},
-            )
+        if pr_comment_error_msg:
+            return HandlerResults(success=True, details={"msg": pr_comment_error_msg},)
 
         # packit has command `copr-build`. But PullRequestCommentAction has enum `copr_build`.
         try:
