@@ -22,7 +22,7 @@
 import logging
 from typing import Union, List, Optional
 
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobType, JobConfig
 from packit.config.aliases import get_build_targets
@@ -227,7 +227,7 @@ class BaseBuildJobHelper:
 
     def _report(
         self,
-        state: str,
+        state: Union[CommitStatus, str],
         description: str,
         url: str = "",
         check_names: Union[str, list, None] = None,
@@ -240,7 +240,9 @@ class BaseBuildJobHelper:
             description=description, state=state, url=url, check_names=check_names,
         )
 
-    def report_status_to_all(self, description: str, state: str, url: str = "") -> None:
+    def report_status_to_all(
+        self, description: str, state: Union[CommitStatus, str], url: str = ""
+    ) -> None:
         self.report_status_to_build(description, state, url)
         self.report_status_to_tests(description, state, url)
 

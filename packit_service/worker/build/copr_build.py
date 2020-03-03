@@ -24,13 +24,13 @@ from io import StringIO
 from typing import Union, Optional
 
 from kubernetes.client.rest import ApiException
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, CommitStatus
 from packit.config import PackageConfig, JobType, JobConfig
 from packit.utils import PackitFormatter
 from sandcastle import SandcastleTimeoutReached
 
 from packit_service.config import ServiceConfig, Deployment
-from packit_service.constants import MSG_RETRIGGER, GITHUB_FAILURE_STATUS
+from packit_service.constants import MSG_RETRIGGER
 from packit_service.models import CoprBuild, SRPMBuild
 from packit_service.service.events import (
     PullRequestEvent,
@@ -133,7 +133,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             # we can't report it to end-user at this stage
             return HandlerResults(success=False, details={"msg": msg})
 
-        self.report_status_to_all(description="Building SRPM ...", state="pending")
+        self.report_status_to_all(
+            description="Building SRPM ...", state=CommitStatus.pending
+        )
 
         build_metadata = self._run_copr_build_and_save_output()
 
@@ -142,7 +144,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         if build_metadata.srpm_failed:
             msg = "SRPM build failed, check the logs for details."
             self.report_status_to_all(
-                state=GITHUB_FAILURE_STATUS,
+                state=CommitStatus.failure,
                 description=msg,
                 url=get_srpm_log_url(srpm_build_model.id),
             )
@@ -162,7 +164,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
             url = get_log_url(id_=copr_build.id)
             self.report_status_to_all_for_chroot(
-                state="pending", description="Building RPM ...", url=url, chroot=chroot,
+                state=CommitStatus.pending,
+                description="Building RPM ...",
+                url=url,
+                chroot=chroot,
             )
 
         self.copr_build_model.build_id = build_metadata.copr_build_id

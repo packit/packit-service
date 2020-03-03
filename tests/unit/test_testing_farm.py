@@ -21,6 +21,8 @@
 # SOFTWARE.
 import pytest
 from flexmock import flexmock
+
+from ogr.abstract import CommitStatus
 from packit.config import JobConfig, JobType, JobTriggerType
 from packit.local_project import LocalProject
 
@@ -46,7 +48,7 @@ from packit_service.worker.handlers import TestingFarmResultsHandler
                     log_url="some specific url",
                 )
             ],
-            "success",
+            CommitStatus.success,
             "Installation passed",
             id="only_instalation_passed",
         ),
@@ -60,7 +62,7 @@ from packit_service.worker.handlers import TestingFarmResultsHandler
                     log_url="some specific url",
                 )
             ],
-            "failure",
+            CommitStatus.failure,
             "Installation failed",
             id="only_instalation_failed",
         ),
@@ -74,7 +76,7 @@ from packit_service.worker.handlers import TestingFarmResultsHandler
                     log_url="some specific url",
                 )
             ],
-            "success",
+            CommitStatus.success,
             "some message",
             id="only_instalation_not_provided_passed",
         ),
@@ -88,7 +90,7 @@ from packit_service.worker.handlers import TestingFarmResultsHandler
                     log_url="some specific url",
                 )
             ],
-            "failure",
+            CommitStatus.failure,
             "some message",
             id="only_instalation_not_provided_failed",
         ),
@@ -107,7 +109,7 @@ from packit_service.worker.handlers import TestingFarmResultsHandler
                     log_url="some specific url",
                 ),
             ],
-            "success",
+            CommitStatus.success,
             "some message",
             id="only_instalation_mutliple_results_passed",
         ),
@@ -126,7 +128,7 @@ from packit_service.worker.handlers import TestingFarmResultsHandler
                     log_url="some specific url",
                 ),
             ],
-            "failure",
+            CommitStatus.failure,
             "some message",
             id="only_instalation_mutliple_results_failed",
         ),
@@ -145,7 +147,7 @@ from packit_service.worker.handlers import TestingFarmResultsHandler
                     log_url="some specific url",
                 ),
             ],
-            "failure",
+            CommitStatus.failure,
             "some message",
             id="only_instalation_mutliple_results_failed_different",
         ),

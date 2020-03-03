@@ -26,7 +26,7 @@ from copr.v3 import Client
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
 from flexmock import flexmock
-from ogr.abstract import GitProject, GitService
+from ogr.abstract import GitProject, GitService, CommitStatus
 from ogr.services.github import GithubProject, GithubService
 from packit.config import JobType, JobConfig, JobTriggerType
 from packit.copr_helper import CoprHelper
@@ -287,7 +287,7 @@ def test_check_and_report(
             flexmock(Model).should_receive("save").and_return(None)
             flexmock(StatusReporter).should_receive("report").with_args(
                 description="Account is not whitelisted!",
-                state="error",
+                state=CommitStatus.error,
                 url=FAQ_URL,
                 check_names=[EXPECTED_TESTING_FARM_CHECK_NAME],
             ).once()

@@ -28,6 +28,7 @@ import logging
 from typing import Type, Optional
 
 import requests
+from ogr.abstract import CommitStatus
 from packit.api import PackitAPI
 from packit.config import (
     JobType,
@@ -239,7 +240,7 @@ class CoprBuildEndHandler(FedmsgHandler):
         if self.event.status != 1:
             failed_msg = "RPMs failed to be built."
             self.build_job_helper.report_status_to_all_for_chroot(
-                state="failure",
+                state=CommitStatus.failure,
                 description=failed_msg,
                 url=url,
                 chroot=self.event.chroot,
@@ -261,13 +262,13 @@ class CoprBuildEndHandler(FedmsgHandler):
             self.project.pr_comment(pr_id=self.event.pr_id, body=msg)
 
         self.build_job_helper.report_status_to_build_for_chroot(
-            state="success",
+            state=CommitStatus.success,
             description="RPMs were built successfully.",
             url=url,
             chroot=self.event.chroot,
         )
         self.build_job_helper.report_status_to_test_for_chroot(
-            state="pending",
+            state=CommitStatus.pending,
             description="RPMs were built successfully.",
             url=url,
             chroot=self.event.chroot,
@@ -336,10 +337,9 @@ class CoprBuildStartHandler(FedmsgHandler):
                 logger.warning(msg)
                 return HandlerResults(success=False, details={"msg": msg})
 
-        status = "pending"
         if build_pg:
             url = get_log_url(build_pg.id)
-            build_pg.set_status(status)
+            build_pg.set_status("pending")
             copr_build_logs = get_copr_build_logs_url(self.event)
             build_pg.set_build_logs_url(copr_build_logs)
         else:
@@ -347,7 +347,7 @@ class CoprBuildStartHandler(FedmsgHandler):
 
         self.build_job_helper.report_status_to_all_for_chroot(
             description="RPM build has started...",
-            state=status,
+            state=CommitStatus.pending,
             url=url,
             chroot=self.event.chroot,
         )

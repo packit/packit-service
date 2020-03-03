@@ -23,7 +23,7 @@ from typing import Optional, Any
 
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, CommitStatus
 from packit.config import JobTriggerType
 from packit.exceptions import PackitException
 from persistentdict.dict_in_redis import PersistentDict
@@ -229,7 +229,7 @@ class Whitelist:
                     )
                     msg = "Account is not whitelisted!"  # needs to be shorter
                     job_helper.report_status_to_all(
-                        description=msg, state="error", url=FAQ_URL
+                        description=msg, state=CommitStatus.error, url=FAQ_URL
                     )
                 return False
             # TODO: clear failing check when present

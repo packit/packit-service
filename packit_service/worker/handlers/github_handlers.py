@@ -27,7 +27,7 @@ import logging
 from typing import Union, Any, Optional, List, Callable
 
 from github import UnknownObjectException
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
 from packit.config import (
     JobConfig,

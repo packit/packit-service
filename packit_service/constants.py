@@ -14,5 +14,3 @@ MSG_RETRIGGER = (
     "You can re-trigger build by adding a comment (`/packit {build}`) "
     "into this pull request."
 )
-
-GITHUB_FAILURE_STATUS = "failure"
