@@ -47,6 +47,13 @@ def pr_build_comment_event():
 
 
 @pytest.fixture()
+def pr_embedded_command_comment_event():
+    return json.loads(
+        (DATA_DIR / "webhooks" / "github_pr_comment_embedded_command.json").read_text()
+    )
+
+
+@pytest.fixture()
 def pr_empty_comment_event():
     return json.loads(
         (DATA_DIR / "webhooks" / "github_pr_comment_empty.json").read_text()
@@ -102,6 +109,34 @@ def test_pr_comment_build_handler(
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(pr_build_comment_event)
+    assert results["jobs"]["pull_request_action"]["success"]
+
+
+@pytest.mark.parametrize(
+    "comments_list",
+    (
+        "/packit build",
+        "asd\n/packit build\n",
+        "Should be fixed now, lets /packit build it.",
+    ),
+)
+def test_pr_embedded_command_handler(
+    mock_pr_comment_functionality, pr_embedded_command_comment_event, comments_list
+):
+
+    pr_embedded_command_comment_event["comment"]["body"] = comments_list
+    flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
+        HandlerResults(success=True, details={})
+    )
+    flexmock(GithubProject).should_receive("who_can_merge_pr").and_return(
+        {"phracek"}
+    ).once()
+    flexmock(GithubProject).should_receive("get_all_pr_commits").with_args(
+        9
+    ).and_return(["528b803be6f93e19ca4130bf4976f2800a3004c4"]).once()
+    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(SteveJobs, _is_private=False)
+    results = SteveJobs().process_message(pr_embedded_command_comment_event)
     assert results["jobs"]["pull_request_action"]["success"]
 
 
