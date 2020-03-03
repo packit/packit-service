@@ -30,7 +30,7 @@ from packit.utils import PackitFormatter
 from sandcastle import SandcastleTimeoutReached
 
 from packit_service.config import ServiceConfig, Deployment
-from packit_service.constants import MSG_RETRIGGER
+from packit_service.constants import MSG_RETRIGGER, GITHUB_FAILURE_STATUS
 from packit_service.models import CoprBuild, SRPMBuild
 from packit_service.service.events import (
     PullRequestEvent,
@@ -139,7 +139,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         if build_metadata.srpm_failed:
             msg = "SRPM build failed, check the logs for details."
             self.report_status_to_all(
-                state="failed",
+                state=GITHUB_FAILURE_STATUS,
                 description=msg,
                 url=get_srpm_log_url(srpm_build_model.id),
             )
