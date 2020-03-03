@@ -227,7 +227,7 @@ class BaseBuildJobHelper:
 
     def _report(
         self,
-        state: Union[CommitStatus, str],
+        state: CommitStatus,
         description: str,
         url: str = "",
         check_names: Union[str, list, None] = None,
@@ -241,7 +241,7 @@ class BaseBuildJobHelper:
         )
 
     def report_status_to_all(
-        self, description: str, state: Union[CommitStatus, str], url: str = ""
+        self, description: str, state: CommitStatus, url: str = ""
     ) -> None:
         self.report_status_to_build(description, state, url)
         self.report_status_to_tests(description, state, url)

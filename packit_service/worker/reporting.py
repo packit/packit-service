@@ -36,7 +36,7 @@ class StatusReporter:
 
     def report(
         self,
-        state: Union[CommitStatus, str],
+        state: CommitStatus,
         description: str,
         url: str = "",
         check_names: Union[str, list, None] = None,
@@ -63,11 +63,7 @@ class StatusReporter:
             )
 
     def set_status(
-        self,
-        state: Union[CommitStatus, str],
-        description: str,
-        check_name: str,
-        url: str = "",
+        self, state: CommitStatus, description: str, check_name: str, url: str = "",
     ):
         logger.debug(f"Setting status for check '{check_name}': {description}")
         self.project.set_commit_status(
