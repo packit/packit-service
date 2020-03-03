@@ -25,7 +25,7 @@ from typing import Union, Optional
 
 from kubernetes.client.rest import ApiException
 from ogr.abstract import GitProject
-from packit.config import PackageConfig, JobType
+from packit.config import PackageConfig, JobType, JobConfig
 from packit.utils import PackitFormatter
 from sandcastle import SandcastleTimeoutReached
 
@@ -36,13 +36,14 @@ from packit_service.service.events import (
     PullRequestEvent,
     PullRequestCommentEvent,
     CoprBuildEvent,
+    PushGitHubEvent,
+    ReleaseEvent,
 )
 from packit_service.service.models import CoprBuild as RedisCoprBuild
 from packit_service.service.urls import get_log_url, get_srpm_log_url
 from packit_service.worker import sentry_integration
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.result import HandlerResults
-
 
 logger = logging.getLogger(__name__)
 
@@ -71,10 +72,12 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             PullRequestEvent,
             PullRequestCommentEvent,
             CoprBuildEvent,
-            PullRequestCommentEvent,
+            PushGitHubEvent,
+            ReleaseEvent,
         ],
+        job: Optional[JobConfig] = None,
     ):
-        super().__init__(config, package_config, project, event)
+        super().__init__(config, package_config, project, event, job)
 
         self.msg_retrigger: str = MSG_RETRIGGER.format(
             build="copr-build" if self.job_build else "build"
@@ -84,12 +87,12 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         self._copr_build_model = None
 
     @property
-    def default_project_name(self):
+    def default_project_name(self) -> str:
         """
         Project name for copr -- add `-stg` suffix for the stg app.
         """
         stg = "-stg" if self.config.deployment == Deployment.stg else ""
-        return f"{self.project.namespace}-{self.project.repo}-{self.event.pr_id}{stg}"
+        return f"{self.project.namespace}-{self.project.repo}-{self.event.ref}{stg}"
 
     @property
     def job_project(self) -> Optional[str]:
@@ -147,11 +150,11 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         for chroot in self.build_chroots:
             copr_build = CoprBuild.get_or_create(
-                pr_id=self.event.pr_id,
+                pr_id=self.pr_id,
                 build_id=str(build_metadata.copr_build_id),
                 commit_sha=self.event.commit_sha,
-                repo_name=self.event.base_repo_name,
-                namespace=self.event.base_repo_namespace,
+                repo_name=self.project.repo,
+                namespace=self.project.namespace,
                 web_url=build_metadata.copr_web_url,
                 target=chroot,
                 status="pending",

@@ -32,7 +32,7 @@ from ogr.utils import RequestResponse
 from packit.config import PackageConfig
 from packit.exceptions import PackitConfigException
 
-from packit_service.config import Deployment, ServiceConfig
+from packit_service.config import ServiceConfig
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.service.events import (
     PullRequestEvent,
@@ -117,25 +117,19 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         pipeline_id = str(uuid.uuid4())
         logger.debug(f"Pipeline id: {pipeline_id}")
+
         payload: dict = {
             "pipeline": {"id": pipeline_id},
             "api": {"token": self.config.testing_farm_secret},
-        }
-
-        stg = "-stg" if self.config.deployment == Deployment.stg else ""
-        copr_repo_name = (
-            f"packit/{self.project.namespace}-{self.project.repo}-"
-            f"{self.event.pr_id}{stg}"
-        )
-
-        payload["artifact"] = {
-            "repo-name": self.event.base_repo_name,
-            "repo-namespace": self.event.base_repo_namespace,
-            "copr-repo-name": copr_repo_name,
-            "copr-chroot": chroot,
-            "commit-sha": self.event.commit_sha,
-            "git-url": self.event.project_url,
-            "git-ref": self.base_ref,
+            "artifact": {
+                "repo-name": self.project.repo,
+                "repo-namespace": self.project.namespace,
+                "copr-repo-name": self.default_project_name,
+                "copr-chroot": chroot,
+                "commit-sha": self.event.commit_sha,
+                "git-url": self.event.project_url,
+                "git-ref": self.event.ref,
+            },
         }
 
         logger.debug("Sending testing farm request...")

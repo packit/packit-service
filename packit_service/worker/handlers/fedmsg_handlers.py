@@ -25,7 +25,7 @@ This file defines classes for job handlers specific for Fedmsg events
 """
 
 import logging
-from typing import Type
+from typing import Type, Optional
 
 import requests
 from packit.api import PackitAPI
@@ -179,7 +179,9 @@ class CoprBuildEndHandler(FedmsgHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
     name = JobType.copr_build_finished
 
-    def __init__(self, config: ServiceConfig, job: JobConfig, event: CoprBuildEvent):
+    def __init__(
+        self, config: ServiceConfig, job: Optional[JobConfig], event: CoprBuildEvent
+    ):
         super().__init__(config=config, job=job, event=event)
         self.project = self.event.get_project()
         self.package_config = self.event.get_package_config()
@@ -296,7 +298,9 @@ class CoprBuildStartHandler(FedmsgHandler):
     topic = "org.fedoraproject.prod.copr.build.start"
     name = JobType.copr_build_started
 
-    def __init__(self, config: ServiceConfig, job: JobConfig, event: CoprBuildEvent):
+    def __init__(
+        self, config: ServiceConfig, job: Optional[JobConfig], event: CoprBuildEvent
+    ):
         super().__init__(config=config, job=job, event=event)
         self.project = self.event.get_project()
         self.package_config = self.event.get_package_config()

@@ -50,6 +50,7 @@ from packit_service.service.events import (
     FedmsgTopic,
     DistGitEvent,
     TestResult,
+    PushGitHubEvent,
 )
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
@@ -101,6 +102,11 @@ class TestEvents:
     @pytest.fixture()
     def pr_comment_empty_request(self):
         with open(DATA_DIR / "webhooks" / "github_pr_comment_empty.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def github_push(self):
+        with open(DATA_DIR / "webhooks" / "github_push.json") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -233,6 +239,17 @@ class TestEvents:
         assert event_object.project_url == "https://github.com/packit-service/packit"
         assert event_object.github_login == "phracek"
         assert event_object.comment == "/packit propose-update"
+
+    def test_parse_github_push(self, github_push):
+        event_object = Parser.parse_event(github_push)
+
+        assert isinstance(event_object, PushGitHubEvent)
+        assert event_object.trigger == JobTriggerType.commit
+        assert event_object.repo_namespace == "some-user"
+        assert event_object.repo_name == "some-repo"
+        assert event_object.commit_sha == "0000000000000000000000000000000000000000"
+        assert event_object.project_url == "https://github.com/some-user/some-repo"
+        assert event_object.ref == "simple-tag"
 
     def test_parse_testing_farm_results(self, testing_farm_results):
         event_object = Parser.parse_event(testing_farm_results)
