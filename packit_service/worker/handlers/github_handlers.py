@@ -352,7 +352,9 @@ class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
                     "Only users with write or admin permissions to the repository "
                     "can trigger Packit-as-a-Service"
                 )
-                self.copr_build_helper.report_status_to_all("failure", msg)
+                self.copr_build_helper.report_status_to_all(
+                    description=msg, state=CommitStatus.failure
+                )
                 return HandlerResults(success=False, details={"msg": msg})
         return super().run()
 
