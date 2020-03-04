@@ -277,7 +277,7 @@ class AbstractGithubCoprBuildHandler(AbstractGithubJobHandler):
         if not self._package_config:
             self._package_config = self.get_package_config_from_repo(
                 project=self.project,
-                reference=self.event.commit_sha or str(self.event.ref),
+                reference=self.event.commit_sha or str(self.event.git_ref),
                 pr_id=self.event.pr_id
                 if isinstance(self.event, (PullRequestEvent, PullRequestCommentEvent))
                 else None,
@@ -392,9 +392,9 @@ class PushGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
         configured_branch = self.copr_build_helper.job_build.metadata.get(
             "branch", "master"
         )
-        if configured_branch != self.event.ref:
+        if configured_branch != self.event.git_ref:
             logger.info(
-                f"Skipping build on {self.event.ref}'. "
+                f"Skipping build on {self.event.git_ref}'. "
                 f"Push configured only for ('{configured_branch}')."
             )
             return False
@@ -422,7 +422,7 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
         self.chroot = chroot
         self.project: GitProject = event.get_project()
         if isinstance(event, CoprBuildEvent):
-            self.base_ref = event.ref
+            self.base_ref = event.git_ref
             pr_id = None
         elif isinstance(event, PullRequestCommentEvent):
             self.base_ref = event.commit_sha

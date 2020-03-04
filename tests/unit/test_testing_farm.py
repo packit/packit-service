@@ -183,7 +183,7 @@ def test_testing_farm_response(
             tests=tests_tests,
             repo_namespace=flexmock(),
             repo_name=flexmock(),
-            ref=flexmock(),
+            git_ref=flexmock(),
             https_url=flexmock(),
             commit_sha=flexmock(),
         ),

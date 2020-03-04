@@ -149,8 +149,9 @@ class Event:
     def pre_check(self) -> bool:
         """
         Implement this method for those events, where you want to check if event properties are
-        correct. If this method returns false during runtime, execution of service code is skipped.
-        :return:
+        correct. If this method returns False during runtime, execution of service code is skipped.
+
+        :return: False if we can ignore the event
         """
         return True
 
@@ -165,6 +166,10 @@ class AbstractGithubEvent(Event, GithubPackageConfigGetter):
     def __init__(self, trigger: JobTriggerType, project_url: str):
         super().__init__(trigger)
         self.project_url: str = project_url
+        self.git_ref: Optional[str] = None  # git ref that can be 'git checkout'-ed
+        self.identifier: Optional[str] = (
+            None  # will be shown to users -- e.g. in logs or in the copr-project name
+        )
 
     def get_project(self) -> GitProject:
         return ServiceConfig.get_service_config().get_project(url=self.project_url)
@@ -178,7 +183,8 @@ class ReleaseEvent(AbstractGithubEvent):
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.tag_name = tag_name
-        self.ref = tag_name
+        self.git_ref = tag_name
+        self.identifier = tag_name
         self.commit_sha = None
 
     def get_package_config(self) -> Optional[PackageConfig]:
@@ -196,15 +202,16 @@ class PushGitHubEvent(AbstractGithubEvent):
         self,
         repo_namespace: str,
         repo_name: str,
-        ref: str,
+        git_ref: str,
         https_url: str,
         commit_sha: str,
     ):
         super().__init__(trigger=JobTriggerType.commit, project_url=https_url)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
-        self.ref = ref
+        self.git_ref = git_ref
         self.commit_sha = commit_sha
+        self.identifier = git_ref
 
     def get_package_config(self) -> Optional[PackageConfig]:
         package_config: PackageConfig = self.get_package_config_from_repo(
@@ -240,7 +247,8 @@ class PullRequestEvent(AbstractGithubEvent):
         self.target_repo = target_repo
         self.commit_sha = commit_sha
         self.github_login = github_login
-        self.ref = pr_id
+        self.identifier = str(pr_id)
+        self.git_ref = None  # pr_id will be used for checkout
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
@@ -284,7 +292,8 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         self.target_repo = target_repo
         self.github_login = github_login
         self.comment = comment
-        self.ref = pr_id
+        self.identifier = str(pr_id)
+        self.git_ref = None  # pr_id will be used for checkout
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
@@ -332,6 +341,7 @@ class IssueCommentEvent(AbstractGithubEvent):
         self.target_repo = target_repo
         self.github_login = github_login
         self.comment = comment
+        self.identifier = str(issue_id)
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
@@ -392,7 +402,7 @@ class DistGitEvent(Event):
         topic: str,
         repo_namespace: str,
         repo_name: str,
-        ref: str,
+        git_ref: str,
         branch: str,
         msg_id: str,
         project_url: str,
@@ -401,10 +411,11 @@ class DistGitEvent(Event):
         self.topic = FedmsgTopic(topic)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
-        self.ref = ref
+        self.git_ref = git_ref
         self.branch = branch
         self.msg_id = msg_id
         self.project_url = project_url
+        self.identifier = branch
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
@@ -412,7 +423,7 @@ class DistGitEvent(Event):
         return result
 
     def get_package_config(self):
-        return get_package_config_from_repo(self.get_project(), self.ref)
+        return get_package_config_from_repo(self.get_project(), self.git_ref)
 
     def get_project(self) -> GitProject:
         return ServiceConfig.get_service_config().get_project(self.project_url)
@@ -431,7 +442,7 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         tests: List[TestResult],
         repo_namespace: str,
         repo_name: str,
-        ref: str,
+        git_ref: str,
         https_url: str,
         commit_sha: str,
     ):
@@ -448,8 +459,9 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         self.tests = tests
         self.repo_name = repo_name
         self.repo_namespace = repo_namespace
-        self.ref: str = ref
+        self.git_ref: str = git_ref
         self.commit_sha: str = commit_sha
+        self.identifier = git_ref
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
@@ -458,7 +470,7 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
 
     def get_package_config(self):
         package_config: PackageConfig = self.get_package_config_from_repo(
-            project=self.get_project(), reference=self.ref, fail_when_missing=False
+            project=self.get_project(), reference=self.git_ref, fail_when_missing=False
         )
         if not package_config:
             return None
@@ -486,14 +498,16 @@ class CoprBuildEvent(AbstractGithubEvent):
         if build_pg:
             self.pr_id = build_pg.pr.pr_id
             self.commit_sha = build_pg.commit_sha
-            self.ref = self.commit_sha  # ref should be name of the branch, not a hash
+            self.git_ref = (
+                self.commit_sha
+            )  # ref should be name of the branch, not a hash
             self.base_repo_name = build_pg.pr.project.repo_name
             self.base_repo_namespace = build_pg.pr.project.namespace
             # FIXME: hardcoded, move this to PG
             https_url = f"https://github.com/{self.base_repo_namespace}/{self.base_repo_name}.git"
         else:
             self.pr_id = build.get("pr_id")
-            self.ref = build.get("ref", "")
+            self.git_ref = build.get("ref", "")
             self.commit_sha = build.get("commit_sha", "")
             self.base_repo_name = build.get("repo_name")
             self.base_repo_namespace = build.get("repo_namespace")
@@ -509,6 +523,7 @@ class CoprBuildEvent(AbstractGithubEvent):
         self.project_name = project_name
         self.pkg = pkg
         self.build_pg = build_pg
+        self.identifier = self.pr_id
 
     @classmethod
     def from_build_id(

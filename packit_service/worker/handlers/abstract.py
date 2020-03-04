@@ -114,9 +114,10 @@ class Handler:
 
     def pre_check(self) -> bool:
         """
-        Validate the input.
+        Implement this method for those handlers, where you want to check if the properties are
+        correct. If this method returns False during runtime, execution of service code is skipped.
 
-        :return: False if we can skip the run.
+        :return: False if we can skip the job execution.
         """
         return True
 

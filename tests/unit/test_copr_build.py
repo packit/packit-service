@@ -11,14 +11,32 @@ from packit_service.models import CoprBuild, SRPMBuild
 from packit_service.service.models import CoprBuild as RedisCoprBuild
 from packit_service.worker import sentry_integration
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
-from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.parser import Parser
+from packit_service.worker.reporting import StatusReporter
 from tests.spellbook import DATA_DIR
 
 
-def pull_request():
+def pull_request_webhhok():
     with open(DATA_DIR / "webhooks" / "github_pr_event.json", "r") as outfile:
         return json.load(outfile)
+
+
+def branch_push_webhook():
+    with open(DATA_DIR / "webhooks" / "github_push_branch.json", "r") as outfile:
+        return json.load(outfile)
+
+
+def release_webhook():
+    with open(DATA_DIR / "webhooks" / "github_release_event.json", "r") as outfile:
+        return json.load(outfile)
+
+
+def branch_push_event():
+    return Parser.parse_pr_event(branch_push_webhook())
+
+
+def release_event():
+    return Parser.parse_pr_event(release_webhook())
 
 
 class FakeCoprBuildModel:
@@ -31,7 +49,7 @@ class FakeCoprBuildModel:
         pass
 
 
-def build_handler(metadata=None, trigger=None, jobs=None):
+def build_helper(metadata=None, trigger=None, jobs=None, event=None):
     if not metadata:
         metadata = {
             "owner": "nobody",
@@ -51,7 +69,7 @@ def build_handler(metadata=None, trigger=None, jobs=None):
         )
     )
     pkg_conf = PackageConfig(jobs=jobs, downstream_package_name="dummy")
-    event = Parser.parse_pr_event(pull_request())
+    event = event or Parser.parse_pr_event(pull_request_webhhok())
     handler = CoprBuildJobHelper(
         config=ServiceConfig(),
         package_config=pkg_conf,
@@ -64,7 +82,7 @@ def build_handler(metadata=None, trigger=None, jobs=None):
 
 def test_copr_build_check_names():
     metadata = {"owner": "nobody", "targets": ["bright-future-x86_64"]}
-    handler = build_handler(metadata)
+    helper = build_helper(metadata)
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building SRPM ...",
@@ -83,7 +101,7 @@ def test_copr_build_check_names():
     flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
     flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None)
-    assert handler.run_copr_build()["success"]
+    assert helper.run_copr_build()["success"]
 
 
 def test_copr_build_success_set_test_check():
@@ -96,33 +114,67 @@ def test_copr_build_success_set_test_check():
     test_job = JobConfig(
         job=JobType.tests, trigger=JobTriggerType.pull_request, metadata={}
     )
-    handler = build_handler(jobs=[test_job])
+    helper = build_helper(jobs=[test_job])
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(16)
     flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
     flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
-    assert handler.run_copr_build()["success"]
+    assert helper.run_copr_build()["success"]
+
+
+def test_copr_build_for_branch():
+    # status is set for each build-target (4x):
+    #  - Building SRPM ...
+    #  - Building RPM ...
+    branch_build_job = JobConfig(
+        job=JobType.build,
+        trigger=JobTriggerType.commit,
+        metadata={"branch": "build-branch"},
+    )
+    helper = build_helper(jobs=[branch_build_job], event=branch_push_event())
+    flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
+    flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
+    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
+    flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
+    flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
+    assert helper.run_copr_build()["success"]
+
+
+def test_copr_build_for_release():
+    # status is set for each build-target (4x):
+    #  - Building SRPM ...
+    #  - Building RPM ...
+    branch_build_job = JobConfig(
+        job=JobType.build, trigger=JobTriggerType.release, metadata={},
+    )
+    helper = build_helper(jobs=[branch_build_job], event=release_event())
+    flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
+    flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
+    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
+    flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
+    flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
+    assert helper.run_copr_build()["success"]
 
 
 def test_copr_build_success():
     # status is set for each build-target (4x):
     #  - Building SRPM ...
     #  - Building RPM ...
-    handler = build_handler()
+    helper = build_helper()
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
     flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
-    assert handler.run_copr_build()["success"]
+    assert helper.run_copr_build()["success"]
 
 
 def test_copr_build_fails_in_packit():
     # status is set for each build-target (4x):
     #  - Building SRPM ...
     #  - Build failed, check latest comment for details.
-    handler = build_handler()
+    helper = build_helper()
     templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
     for v in ["29", "30", "31", "rawhide"]:
         flexmock(GitProject).should_receive("set_commit_status").with_args(
@@ -149,17 +201,17 @@ def test_copr_build_fails_in_packit():
     flexmock(PackitAPI).should_receive("run_copr_build").and_raise(
         FailedCreateSRPM, "some error"
     )
-    assert not handler.run_copr_build()["success"]
+    assert not helper.run_copr_build()["success"]
 
 
 def test_copr_build_no_targets():
     # status is set for each build-target (fedora-stable => 2x):
     #  - Building SRPM ...
     #  - Building RPM ...
-    handler = build_handler(metadata={"owner": "nobody"})
+    helper = build_helper(metadata={"owner": "nobody"})
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
     flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
     flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
-    assert handler.run_copr_build()["success"]
+    assert helper.run_copr_build()["success"]

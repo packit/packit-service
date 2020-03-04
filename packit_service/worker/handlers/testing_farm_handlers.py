@@ -60,7 +60,7 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
         super().__init__(config=config, job=job, event=test_results_event)
         self.project: GitProject = test_results_event.get_project()
         self.package_config = self.get_package_config_from_repo(
-            project=self.project, reference=self.event.ref
+            project=self.project, reference=self.event.git_ref
         )
         if not self.package_config:
             raise ValueError(f"No config file found in {self.project.full_repo_name}")
@@ -74,7 +74,7 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
         pr_id: int = None,
         fail_when_missing: bool = False,
     ):
-        return get_package_config_from_repo(self.project, self.event.ref)
+        return get_package_config_from_repo(self.project, self.event.git_ref)
 
     def run(self) -> HandlerResults:
 
