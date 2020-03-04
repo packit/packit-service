@@ -5,7 +5,7 @@ TODO: once we move from redis to psql, this file should be removed
 """
 import copy
 from typing import List, Dict, Union
-import time
+from datetime import datetime
 from persistentdict.dict_in_redis import PersistentDict
 
 from packit_service.service.events import InstallationEvent, WhitelistStatus
@@ -120,9 +120,9 @@ class Build(Model):
 
     status: str
     build_id: int
-    build_submitted_time: int = None
-    build_start_time: int = None
-    build_finished_time: int = None
+    build_submitted_time: str = None
+    build_start_time: str = None
+    build_finished_time: str = None
 
 
 class CoprBuild(Build):
@@ -144,14 +144,14 @@ class CoprBuild(Build):
         chroots: List[str],
         identifier: int = None,
         save: bool = True,
-        build_submitted_time: int = None,
+        build_submitted_time: str = None,
     ):
         b = cls()
         b.identifier = identifier  # generate new ID if None
         b.project = project
         b.owner = owner
         b.chroots = chroots
-        b.build_submitted_time = int(time.time())
+        b.build_submitted_time = str(datetime.utcnow())
         if save:
             b.save()
         return b
