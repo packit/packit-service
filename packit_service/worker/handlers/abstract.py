@@ -116,7 +116,8 @@ class Handler:
         """
         Implement this method for those handlers, where you want to check if the properties are
         correct. If this method returns False during runtime, execution of service code is skipped.
-        :return:
+
+        :return: False if we can skip the job execution.
         """
         return True
 
