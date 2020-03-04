@@ -137,7 +137,7 @@ class NewDistGitCommitHandler(FedmsgHandler):
         self.distgit_event = distgit_event
         self.project = distgit_event.get_project()
         self.package_config = get_package_config_from_repo(
-            self.project, distgit_event.ref
+            self.project, distgit_event.git_ref
         )
         if not self.package_config:
             raise ValueError(f"No config file found in {self.project.full_repo_name}")

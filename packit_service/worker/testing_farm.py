@@ -128,7 +128,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 "copr-chroot": chroot,
                 "commit-sha": self.event.commit_sha,
                 "git-url": self.event.project_url,
-                "git-ref": self.event.ref,
+                "git-ref": self.event.git_ref,
             },
         }
 

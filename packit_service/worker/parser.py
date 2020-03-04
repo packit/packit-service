@@ -229,7 +229,7 @@ class Parser:
         return PushGitHubEvent(
             repo_namespace=repo_namespace,
             repo_name=repo_name,
-            ref=ref,
+            git_ref=ref,
             https_url=repo_url,
             commit_sha=head_commit,
         )
@@ -425,7 +425,7 @@ class Parser:
             topic=topic,
             repo_namespace=repo_namespace,
             repo_name=repo_name,
-            ref=rev,
+            git_ref=rev,
             branch=branch,
             msg_id=msg_id,
             project_url=project_url,

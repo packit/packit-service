@@ -92,7 +92,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         Project name for copr -- add `-stg` suffix for the stg app.
         """
         stg = "-stg" if self.config.deployment == Deployment.stg else ""
-        return f"{self.project.namespace}-{self.project.repo}-{self.event.ref}{stg}"
+        return (
+            f"{self.project.namespace}-{self.project.repo}-{self.event.identifier}{stg}"
+        )
 
     @property
     def job_project(self) -> Optional[str]:

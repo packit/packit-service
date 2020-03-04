@@ -254,7 +254,7 @@ class TestEvents:
         assert event_object.repo_name == "some-repo"
         assert event_object.commit_sha == "0000000000000000000000000000000000000000"
         assert event_object.project_url == "https://github.com/some-user/some-repo"
-        assert event_object.ref == "simple-tag"
+        assert event_object.git_ref == "simple-tag"
 
     def test_parse_github_push_branch(self, github_push_branch):
         event_object = Parser.parse_event(github_push_branch)
@@ -267,7 +267,7 @@ class TestEvents:
         assert (
             event_object.project_url == "https://github.com/packit-service/hello-world"
         )
-        assert event_object.ref == "build-branch"
+        assert event_object.git_ref == "build-branch"
 
     def test_parse_testing_farm_results(self, testing_farm_results):
         event_object = Parser.parse_event(testing_farm_results)
@@ -278,7 +278,7 @@ class TestEvents:
         assert event_object.result == TestingFarmResult.passed
         assert event_object.repo_namespace == "packit-service"
         assert event_object.repo_name == "hello-world"
-        assert event_object.ref == "pull/10/head"
+        assert event_object.git_ref == "pull/10/head"
         assert (
             event_object.project_url == "https://github.com/packit-service/hello-world"
         )
@@ -310,7 +310,7 @@ class TestEvents:
         assert event_object.result == TestingFarmResult.failed
         assert event_object.repo_namespace == "packit-service"
         assert event_object.repo_name == "hello-world"
-        assert event_object.ref == "pull/10/head"
+        assert event_object.git_ref == "pull/10/head"
         assert (
             event_object.project_url == "https://github.com/packit-service/hello-world"
         )
@@ -397,7 +397,7 @@ class TestEvents:
         assert event_object.topic == FedmsgTopic.dist_git_push
         assert event_object.repo_namespace == "rpms"
         assert event_object.repo_name == "buildah"
-        assert event_object.ref == "abcd"
+        assert event_object.git_ref == "abcd"
         assert event_object.branch == "master"
         assert event_object.msg_id == "2019-49c02775-6d37-40a9-b108-879e3511c49a"
 
