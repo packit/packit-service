@@ -40,6 +40,7 @@ from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig, GithubPackageConfigGetter
+from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
 from packit_service.service.events import (
     PullRequestEvent,
     InstallationEvent,
@@ -348,14 +349,13 @@ class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
         if isinstance(self.event, GithubPullRequestHandler):
             collaborators = self.project.who_can_merge_pr()
             if self.event.github_login not in collaborators | self.config.admins:
-                msg = (
-                    "Only users with write or admin permissions to the repository "
-                    "can trigger Packit-as-a-Service"
-                )
                 self.copr_build_helper.report_status_to_all(
-                    description=msg, state=CommitStatus.failure
+                    description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
+                    state=CommitStatus.failure,
                 )
-                return HandlerResults(success=False, details={"msg": msg})
+                return HandlerResults(
+                    success=False, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
+                )
         return super().run()
 
     def pre_check(self) -> bool:
@@ -474,12 +474,10 @@ class GitHubPullRequestCommentCoprBuildHandler(
     def run(self) -> HandlerResults:
         collaborators = self.project.who_can_merge_pr()
         if self.event.github_login not in collaborators | self.config.admins:
-            msg = (
-                "Only users with write or admin permissions to the repository "
-                "can trigger Packit-as-a-Service"
+            self.project.pr_comment(self.event.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN)
+            return HandlerResults(
+                success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
             )
-            self.project.pr_comment(self.event.pr_id, msg)
-            return HandlerResults(success=True, details={"msg": msg})
 
         cbh = CoprBuildJobHelper(
             self.config, self.package_config, self.project, self.event
@@ -552,12 +550,12 @@ class GitHubIssueCommentProposeUpdateHandler(
 
         collaborators = self.project.who_can_merge_pr()
         if self.event.github_login not in collaborators | self.config.admins:
-            msg = (
-                "Only users with write or admin permissions to the repository "
-                "can trigger Packit-as-a-Service"
+            self.project.issue_comment(
+                self.event.issue_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )
-            self.project.issue_comment(self.event.issue_id, msg)
-            return HandlerResults(success=True, details={"msg": msg})
+            return HandlerResults(
+                success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
+            )
 
         if not self.event.tag_name:
             msg = (
@@ -629,12 +627,10 @@ class GitHubPullRequestCommentTestingFarmHandler(
 
         collaborators = self.project.who_can_merge_pr()
         if self.event.github_login not in collaborators | self.config.admins:
-            msg = (
-                "Only users with write or admin permissions to the repository "
-                "can trigger Packit-as-a-Service"
+            self.project.pr_comment(self.event.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN)
+            return HandlerResults(
+                success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
             )
-            self.project.pr_comment(self.event.pr_id, msg)
-            return HandlerResults(success=True, details={"msg": msg})
 
         handler_results = HandlerResults(success=True, details={})
 
