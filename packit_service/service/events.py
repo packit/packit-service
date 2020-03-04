@@ -149,7 +149,7 @@ class Event:
     def pre_check(self) -> bool:
         """
         Implement this method for those events, where you want to check if event properties are
-        correct. If this method returns false during runtime, execution of service code is skipped.
+        correct. If this method returns False during runtime, execution of service code is skipped.
         :return:
         """
         return True

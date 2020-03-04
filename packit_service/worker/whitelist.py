@@ -40,6 +40,7 @@ from packit_service.service.events import (
     CoprBuildEvent,
     TestingFarmResultsEvent,
     DistGitEvent,
+    PushGitHubEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
 
@@ -193,7 +194,7 @@ class Whitelist:
         :return:
         """
         # TODO: modify event hierarchy so we can use some abstract classes instead
-        if isinstance(event, ReleaseEvent):
+        if isinstance(event, (ReleaseEvent, PushGitHubEvent)):
             account_name = event.repo_namespace
             if not account_name:
                 raise KeyError(f"Failed to get account_name from {type(event)}")
