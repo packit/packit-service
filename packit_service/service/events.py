@@ -165,6 +165,7 @@ class AbstractGithubEvent(Event, GithubPackageConfigGetter):
     def __init__(self, trigger: JobTriggerType, project_url: str):
         super().__init__(trigger)
         self.project_url: str = project_url
+        self.ref: Optional[str] = None
 
     def get_project(self) -> GitProject:
         return ServiceConfig.get_service_config().get_project(url=self.project_url)
@@ -240,7 +241,7 @@ class PullRequestEvent(AbstractGithubEvent):
         self.target_repo = target_repo
         self.commit_sha = commit_sha
         self.github_login = github_login
-        self.ref = pr_id
+        self.ref = None
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
@@ -284,7 +285,7 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         self.target_repo = target_repo
         self.github_login = github_login
         self.comment = comment
-        self.ref = pr_id
+        self.ref = None
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
