@@ -110,6 +110,11 @@ class TestEvents:
             return json.load(outfile)
 
     @pytest.fixture()
+    def github_push_branch(self):
+        with open(DATA_DIR / "webhooks" / "github_push_branch.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
     def distgit_commit(self):
         with open(DATA_DIR / "webhooks" / "distgit_commit.json") as outfile:
             return json.load(outfile)
@@ -250,6 +255,19 @@ class TestEvents:
         assert event_object.commit_sha == "0000000000000000000000000000000000000000"
         assert event_object.project_url == "https://github.com/some-user/some-repo"
         assert event_object.ref == "simple-tag"
+
+    def test_parse_github_push_branch(self, github_push_branch):
+        event_object = Parser.parse_event(github_push_branch)
+
+        assert isinstance(event_object, PushGitHubEvent)
+        assert event_object.trigger == JobTriggerType.commit
+        assert event_object.repo_namespace == "packit-service"
+        assert event_object.repo_name == "hello-world"
+        assert event_object.commit_sha == "04885ff850b0fa0e206cd09db73565703d48f99b"
+        assert (
+            event_object.project_url == "https://github.com/packit-service/hello-world"
+        )
+        assert event_object.ref == "build-branch"
 
     def test_parse_testing_farm_results(self, testing_farm_results):
         event_object = Parser.parse_event(testing_farm_results)
