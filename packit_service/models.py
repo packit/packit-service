@@ -25,7 +25,7 @@ Data layer on top of PSQL using sqlalch
 """
 import os
 from typing import TYPE_CHECKING, Optional, Union
-
+import time
 from sqlalchemy import Column, Integer, String, ForeignKey, Text
 from sqlalchemy import JSON, create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -151,6 +151,11 @@ class CoprBuild(Base):
     web_url = Column(String)
     # url to copr build logs
     build_logs_url = Column(String)
+    # time.time instead of time.time() because its an argument to the function
+    # so it will run when the copr build is initiated, not when the table is made
+    build_submitted_time = Column(Integer, default=time.time)
+    build_start_time = Column(Integer)
+    build_finished_time = Column(Integer)
     # metadata for the build which didn't make it to schema yet
     # metadata is reserved to sqlalch
     data = Column(JSON)
