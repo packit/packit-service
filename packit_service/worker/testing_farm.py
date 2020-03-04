@@ -27,7 +27,7 @@ import uuid
 from typing import Union
 
 import requests
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, CommitStatus
 from ogr.utils import RequestResponse
 from packit.config import PackageConfig
 from packit.exceptions import PackitConfigException
@@ -68,7 +68,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def report_missing_build_chroot(self, chroot: str):
         self.report_status_to_test_for_chroot(
-            state="error",
+            state=CommitStatus.error,
             description=f"No build defined for the target '{chroot}'.",
             chroot=chroot,
         )
@@ -110,7 +110,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             )
 
         self.report_status_to_test_for_chroot(
-            state="pending",
+            state=CommitStatus.pending,
             description="Build succeeded. Submitting the tests ...",
             chroot=chroot,
         )
@@ -143,7 +143,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             msg = "Failed to post request to testing farm API."
             logger.debug("Failed to post request to testing farm API.")
             self.report_status_to_test_for_chroot(
-                state="failure", description=msg, chroot=chroot,
+                state=CommitStatus.failure, description=msg, chroot=chroot,
             )
             return HandlerResults(success=False, details={"msg": msg})
         else:
@@ -169,12 +169,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                     msg = f"Failed to submit tests: {req.reason}"
                     logger.error(msg)
                 self.report_status_to_test_for_chroot(
-                    state="failure", description=msg, chroot=chroot,
+                    state=CommitStatus.failure, description=msg, chroot=chroot,
                 )
                 return HandlerResults(success=False, details={"msg": msg})
 
             self.report_status_to_test_for_chroot(
-                state="pending",
+                state=CommitStatus.pending,
                 description="Tests are running ...",
                 url=req.json()["url"],
                 chroot=chroot,

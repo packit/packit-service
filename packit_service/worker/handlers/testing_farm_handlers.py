@@ -26,7 +26,7 @@ This file defines classes for job handlers specific for Testing farm
 import logging
 from typing import Optional
 
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, CommitStatus
 from packit.config import (
     JobType,
     JobTriggerType,
@@ -82,10 +82,10 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
         logger.debug(f"Received testing-farm test results:\n{self.event.tests}")
 
         if self.event.result == TestingFarmResult.passed:
-            status = "success"
+            status = CommitStatus.success
             passed = True
         else:
-            status = "failure"
+            status = CommitStatus.failure
             passed = False
 
         if (

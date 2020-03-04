@@ -1,8 +1,7 @@
 import json
 
 from flexmock import flexmock
-from ogr.abstract import GitProject, GitService
-from ogr.services.github.flag import GithubCommitFlag
+from ogr.abstract import GitProject, GitService, CommitStatus
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobConfig, JobType, JobTriggerType
 from packit.exceptions import FailedCreateSRPM
@@ -67,13 +66,13 @@ def test_copr_build_check_names():
     metadata = {"owner": "nobody", "targets": ["bright-future-x86_64"]}
     handler = build_handler(metadata)
     flexmock(StatusReporter).should_receive("set_status").with_args(
-        state="pending",
+        state=CommitStatus.pending,
         description="Building SRPM ...",
         check_name="packit-stg/rpm-build-bright-future-x86_64",
         url="",
     ).and_return()
     flexmock(StatusReporter).should_receive("set_status").with_args(
-        state="pending",
+        state=CommitStatus.pending,
         description="Building RPM ...",
         check_name="packit-stg/rpm-build-bright-future-x86_64",
         url="https://localhost:5000/copr-build/1/logs",
@@ -128,20 +127,16 @@ def test_copr_build_fails_in_packit():
     for v in ["29", "30", "31", "rawhide"]:
         flexmock(GitProject).should_receive("set_commit_status").with_args(
             "528b803be6f93e19ca4130bf4976f2800a3004c4",
-            "pending",
+            CommitStatus.pending,
             "",
             "Building SRPM ...",
             templ.format(ver=v),
             trim=True,
         ).and_return().once()
-    status = "failure"
-    assert GithubCommitFlag._states[
-        status
-    ]  # making sure we set the correct string here
     for v in ["29", "30", "31", "rawhide"]:
         flexmock(GitProject).should_receive("set_commit_status").with_args(
             "528b803be6f93e19ca4130bf4976f2800a3004c4",
-            status,
+            CommitStatus.failure,
             "https://localhost:5000/srpm-build/2/logs",
             "SRPM build failed, check the logs for details.",
             templ.format(ver=v),

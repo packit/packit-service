@@ -22,7 +22,7 @@
 import logging
 from typing import Union
 
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, CommitStatus
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class StatusReporter:
 
     def report(
         self,
-        state: str,
+        state: CommitStatus,
         description: str,
         url: str = "",
         check_names: Union[str, list, None] = None,
@@ -62,7 +62,9 @@ class StatusReporter:
                 state=state, description=description, check_name=check, url=url
             )
 
-    def set_status(self, state: str, description: str, check_name: str, url: str = ""):
+    def set_status(
+        self, state: CommitStatus, description: str, check_name: str, url: str = "",
+    ):
         logger.debug(f"Setting status for check '{check_name}': {description}")
         self.project.set_commit_status(
             self.commit_sha, state, url, description, check_name, trim=True
