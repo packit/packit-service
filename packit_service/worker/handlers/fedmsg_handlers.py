@@ -249,7 +249,11 @@ class CoprBuildEndHandler(FedmsgHandler):
                 build_pg.set_status("failure")
             return HandlerResults(success=False, details={"msg": failed_msg})
 
-        if self.build_job_helper.job_build and not self.was_last_build_successful():
+        if (
+            self.build_job_helper.job_build
+            and not self.was_last_build_successful()
+            and self.package_config.notifications.pull_request.successful_build
+        ):
             msg = (
                 f"Congratulations! One of the builds has completed. :champagne:\n\n"
                 "You can install the built RPMs by following these steps:\n\n"
