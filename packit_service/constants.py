@@ -14,3 +14,8 @@ MSG_RETRIGGER = (
     "You can re-trigger build by adding a comment (`/packit {build}`) "
     "into this pull request."
 )
+
+PERMISSIONS_ERROR_WRITE_OR_ADMIN = (
+    "Only users with write or admin permissions to the repository "
+    "can trigger Packit-as-a-Service"
+)
