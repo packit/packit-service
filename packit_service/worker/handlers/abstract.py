@@ -114,9 +114,9 @@ class Handler:
 
     def pre_check(self) -> bool:
         """
-        Validate the input.
+        Validate the input and skip the run if this returns False.
 
-        :return: False if we can skip the run.
+        :return: if False, we will skip the run.
         """
         return True
 
