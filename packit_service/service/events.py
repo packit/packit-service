@@ -166,7 +166,7 @@ class AbstractGithubEvent(Event, GithubPackageConfigGetter):
     def __init__(self, trigger: JobTriggerType, project_url: str):
         super().__init__(trigger)
         self.project_url: str = project_url
-        self.git_ref: Optional[str] = None  # git ref that can 'git checkout'-ed
+        self.git_ref: Optional[str] = None  # git ref that can be 'git checkout'-ed
         self.identifier: Optional[str] = (
             None  # will be shown to users -- e.g. in logs or in the copr-project name
         )
