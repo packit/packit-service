@@ -28,7 +28,7 @@ from fedora.client.fas2 import AccountSystem
 from flexmock import flexmock
 from ogr.abstract import GitProject, GitService, CommitStatus
 from ogr.services.github import GithubProject, GithubService
-from packit.config import JobType, JobConfig, JobTriggerType
+from packit.config import JobType, JobConfig, JobConfigTriggerType
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 
@@ -260,8 +260,8 @@ def test_check_and_report(
         flexmock(
             jobs=[
                 JobConfig(
-                    job=JobType.tests,
-                    trigger=JobTriggerType.pull_request,
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
                     metadata={"targets": ["fedora-rawhide"]},
                 )
             ],

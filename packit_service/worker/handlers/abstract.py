@@ -30,11 +30,11 @@ from pathlib import Path
 from typing import Dict, Optional, Type, List
 
 from packit.api import PackitAPI
-from packit.config import JobConfig, JobTriggerType, JobType
+from packit.config import JobConfig, JobType
 from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
-from packit_service.service.events import Event
+from packit_service.service.events import Event, TheJobTriggerType
 from packit_service.worker.result import HandlerResults
 from packit_service.sentry_integration import push_scope_to_sentry
 
@@ -133,11 +133,13 @@ class JobHandler(Handler):
     """ Generic interface to handle different type of inputs """
 
     name: JobType
-    triggers: List[JobTriggerType]
+    triggers: List[TheJobTriggerType]
 
-    def __init__(self, config: ServiceConfig, job: Optional[JobConfig], event: Event):
+    def __init__(
+        self, config: ServiceConfig, job_config: Optional[JobConfig], event: Event
+    ):
         super().__init__(config)
-        self.job: Optional[JobConfig] = job
+        self.job_config: Optional[JobConfig] = job_config
         self.event = event
         self._clean_workplace()
 

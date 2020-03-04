@@ -30,7 +30,6 @@ from datetime import datetime, timezone
 import pytest
 from flexmock import flexmock
 from ogr.services.github import GithubProject, GithubService
-from packit.config import JobTriggerType
 
 from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuild
@@ -51,6 +50,7 @@ from packit_service.service.events import (
     DistGitEvent,
     TestResult,
     PushGitHubEvent,
+    TheJobTriggerType,
 )
 from packit_service.worker.parser import Parser
 from tests.spellbook import DATA_DIR
@@ -145,7 +145,7 @@ class TestEvents:
         event_object = Parser.parse_event(installation)
 
         assert isinstance(event_object, InstallationEvent)
-        assert event_object.trigger == JobTriggerType.installation
+        assert event_object.trigger == TheJobTriggerType.installation
         assert event_object.installation_id == 1708454
         assert event_object.account_login == "packit-service"
         assert event_object.account_id == 46870917
@@ -163,7 +163,7 @@ class TestEvents:
         event_object = Parser.parse_event(release)
 
         assert isinstance(event_object, ReleaseEvent)
-        assert event_object.trigger == JobTriggerType.release
+        assert event_object.trigger == TheJobTriggerType.release
         assert event_object.repo_namespace == "Codertocat"
         assert event_object.repo_name == "Hello-World"
         assert event_object.tag_name == "0.0.1"
@@ -173,7 +173,7 @@ class TestEvents:
         event_object = Parser.parse_event(pull_request)
 
         assert isinstance(event_object, PullRequestEvent)
-        assert event_object.trigger == JobTriggerType.pull_request
+        assert event_object.trigger == TheJobTriggerType.pull_request
         assert event_object.action == PullRequestAction.opened
         assert event_object.pr_id == 342
         assert event_object.base_repo_namespace == "packit-service"
@@ -193,7 +193,7 @@ class TestEvents:
         event_object = Parser.parse_event(pr_comment_created_request)
 
         assert isinstance(event_object, PullRequestCommentEvent)
-        assert event_object.trigger == JobTriggerType.comment
+        assert event_object.trigger == TheJobTriggerType.comment
         assert event_object.action == PullRequestCommentAction.created
         assert event_object.pr_id == 9
         assert event_object.base_repo_namespace == "packit-service"
@@ -212,7 +212,7 @@ class TestEvents:
         event_object = Parser.parse_event(pr_comment_empty_request)
 
         assert isinstance(event_object, PullRequestCommentEvent)
-        assert event_object.trigger == JobTriggerType.comment
+        assert event_object.trigger == TheJobTriggerType.comment
         assert event_object.action == PullRequestCommentAction.created
         assert event_object.pr_id == 9
         assert event_object.base_repo_namespace == "packit-service"
@@ -231,7 +231,7 @@ class TestEvents:
         event_object = Parser.parse_event(issue_comment_request)
 
         assert isinstance(event_object, IssueCommentEvent)
-        assert event_object.trigger == JobTriggerType.comment
+        assert event_object.trigger == TheJobTriggerType.comment
         assert event_object.action == IssueCommentAction.created
         assert event_object.issue_id == 512
         assert event_object.base_repo_namespace == "packit-service"
@@ -249,7 +249,7 @@ class TestEvents:
         event_object = Parser.parse_event(github_push)
 
         assert isinstance(event_object, PushGitHubEvent)
-        assert event_object.trigger == JobTriggerType.commit
+        assert event_object.trigger == TheJobTriggerType.push
         assert event_object.repo_namespace == "some-user"
         assert event_object.repo_name == "some-repo"
         assert event_object.commit_sha == "0000000000000000000000000000000000000000"
@@ -260,7 +260,7 @@ class TestEvents:
         event_object = Parser.parse_event(github_push_branch)
 
         assert isinstance(event_object, PushGitHubEvent)
-        assert event_object.trigger == JobTriggerType.commit
+        assert event_object.trigger == TheJobTriggerType.push
         assert event_object.repo_namespace == "packit-service"
         assert event_object.repo_name == "hello-world"
         assert event_object.commit_sha == "04885ff850b0fa0e206cd09db73565703d48f99b"
@@ -273,7 +273,7 @@ class TestEvents:
         event_object = Parser.parse_event(testing_farm_results)
 
         assert isinstance(event_object, TestingFarmResultsEvent)
-        assert event_object.trigger == JobTriggerType.testing_farm_results
+        assert event_object.trigger == TheJobTriggerType.testing_farm_results
         assert event_object.pipeline_id == "43e310b6-c1f1-4d3e-a95c-6c1eca235296"
         assert event_object.result == TestingFarmResult.passed
         assert event_object.repo_namespace == "packit-service"
@@ -305,7 +305,7 @@ class TestEvents:
         event_object = Parser.parse_event(testing_farm_results_error)
 
         assert isinstance(event_object, TestingFarmResultsEvent)
-        assert event_object.trigger == JobTriggerType.testing_farm_results
+        assert event_object.trigger == TheJobTriggerType.testing_farm_results
         assert event_object.pipeline_id == "43e310b6-c1f1-4d3e-a95c-6c1eca235296"
         assert event_object.result == TestingFarmResult.failed
         assert event_object.repo_namespace == "packit-service"

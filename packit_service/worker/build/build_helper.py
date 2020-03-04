@@ -164,7 +164,7 @@ class BaseBuildJobHelper:
 
         if not self._job_build:
             for job in self.package_config.jobs:
-                if job.job == self.job_type_build:
+                if job.type == self.job_type_build:
                     self._job_build = job
                     break
         return self._job_build
@@ -180,7 +180,7 @@ class BaseBuildJobHelper:
 
         if not self._job_tests:
             for job in self.package_config.jobs:
-                if job.job == self.job_type_test:
+                if job.type == self.job_type_test:
                     self._job_tests = job
                     break
         return self._job_tests

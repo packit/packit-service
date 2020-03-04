@@ -28,7 +28,7 @@ from flexmock import flexmock
 from ogr.abstract import CommitStatus
 from ogr.services.github import GithubProject
 from ogr.utils import RequestResponse
-from packit.config import JobConfig, JobType, JobTriggerType
+from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.package_config import PackageConfig
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
@@ -64,8 +64,8 @@ def pc_build():
     return PackageConfig(
         jobs=[
             JobConfig(
-                job=JobType.copr_build,
-                trigger=JobTriggerType.pull_request,
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
                 metadata={"targets": ["fedora-all"]},
             )
         ]
@@ -77,8 +77,8 @@ def pc_tests():
     return PackageConfig(
         jobs=[
             JobConfig(
-                job=JobType.tests,
-                trigger=JobTriggerType.pull_request,
+                type=JobType.tests,
+                trigger=JobConfigTriggerType.pull_request,
                 metadata={"targets": ["fedora-all"]},
             )
         ]
@@ -161,13 +161,13 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build):
     config = PackageConfig(
         jobs=[
             JobConfig(
-                job=JobType.copr_build,
-                trigger=JobTriggerType.pull_request,
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
                 metadata={"targets": ["fedora-rawhide"]},
             ),
             JobConfig(
-                job=JobType.tests,
-                trigger=JobTriggerType.pull_request,
+                type=JobType.tests,
+                trigger=JobConfigTriggerType.pull_request,
                 metadata={"targets": ["fedora-rawhide"]},
             ),
         ]
@@ -259,13 +259,13 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build):
     config = PackageConfig(
         jobs=[
             JobConfig(
-                job=JobType.copr_build,
-                trigger=JobTriggerType.pull_request,
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
                 metadata={"targets": ["fedora-rawhide"]},
             ),
             JobConfig(
-                job=JobType.tests,
-                trigger=JobTriggerType.pull_request,
+                type=JobType.tests,
+                trigger=JobConfigTriggerType.pull_request,
                 metadata={"targets": ["fedora-rawhide"]},
             ),
         ]
@@ -356,13 +356,13 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build):
     config = PackageConfig(
         jobs=[
             JobConfig(
-                job=JobType.copr_build,
-                trigger=JobTriggerType.pull_request,
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
                 metadata={"targets": ["fedora-rawhide"]},
             ),
             JobConfig(
-                job=JobType.tests,
-                trigger=JobTriggerType.pull_request,
+                type=JobType.tests,
+                trigger=JobConfigTriggerType.pull_request,
                 metadata={"targets": ["fedora-rawhide"]},
             ),
         ]

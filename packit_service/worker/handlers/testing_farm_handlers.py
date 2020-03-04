@@ -29,13 +29,16 @@ from typing import Optional
 from ogr.abstract import GitProject, CommitStatus
 from packit.config import (
     JobType,
-    JobTriggerType,
     JobConfig,
     get_package_config_from_repo,
 )
 
 from packit_service.config import ServiceConfig
-from packit_service.service.events import TestingFarmResultsEvent, TestingFarmResult
+from packit_service.service.events import (
+    TestingFarmResultsEvent,
+    TestingFarmResult,
+    TheJobTriggerType,
+)
 from packit_service.worker.handlers import AbstractGithubJobHandler
 from packit_service.worker.handlers.abstract import add_to_mapping
 from packit_service.worker.reporting import StatusReporter
@@ -48,16 +51,16 @@ logger = logging.getLogger(__name__)
 @add_to_mapping
 class TestingFarmResultsHandler(AbstractGithubJobHandler):
     name = JobType.report_test_results
-    triggers = [JobTriggerType.testing_farm_results]
+    triggers = [TheJobTriggerType.testing_farm_results]
     event: TestingFarmResultsEvent
 
     def __init__(
         self,
         config: ServiceConfig,
-        job: Optional[JobConfig],
+        job_config: Optional[JobConfig],
         test_results_event: TestingFarmResultsEvent,
     ):
-        super().__init__(config=config, job=job, event=test_results_event)
+        super().__init__(config=config, job_config=job_config, event=test_results_event)
         self.project: GitProject = test_results_event.get_project()
         self.package_config = self.get_package_config_from_repo(
             project=self.project, reference=self.event.git_ref
