@@ -30,8 +30,11 @@ $ docker-compose -d postgres
 $ alembic upgrade head
 ```
 """
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
+from sqlalchemy.exc import ProgrammingError
+
 from packit_service.models import (
     CoprBuild,
     get_sa_session,
@@ -44,30 +47,28 @@ TARGET = "fedora-42-x86_64"
 
 
 def clean_db():
-    s = get_sa_session()
-    s.query(CoprBuild).delete()
-    s.query(PullRequest).delete()
-    s.query(GitProject).delete()
-    s.commit()
+    with get_sa_session() as session:
+        session.query(CoprBuild).delete()
+        session.query(PullRequest).delete()
+        session.query(GitProject).delete()
 
 
 @pytest.fixture()
 def a_copr_build():
-    s = get_sa_session()
-    s.query(CoprBuild).delete()
-    s.commit()
-    srpm_build = SRPMBuild.create("asd\nqwe\n")
-    yield CoprBuild.get_or_create(
-        pr_id=1,
-        build_id="123456",
-        commit_sha="687abc76d67d",
-        repo_name="lithium",
-        namespace="nirvana",
-        web_url="https://copr.something.somewhere/123456",
-        target=TARGET,
-        status="pending",
-        srpm_build=srpm_build,
-    )
+    with get_sa_session() as session:
+        session.query(CoprBuild).delete()
+        srpm_build = SRPMBuild.create("asd\nqwe\n")
+        yield CoprBuild.get_or_create(
+            pr_id=1,
+            build_id="123456",
+            commit_sha="687abc76d67d",
+            repo_name="lithium",
+            namespace="nirvana",
+            web_url="https://copr.something.somewhere/123456",
+            target=TARGET,
+            status="pending",
+            srpm_build=srpm_build,
+        )
     clean_db()
 
 
@@ -117,27 +118,40 @@ def test_copr_build_set_build_logs_url(a_copr_build):
 
 def test_get_or_create_pr():
     clean_db()
-    s = get_sa_session()
+    with get_sa_session() as session:
+        try:
+            expected_pr = PullRequest.get_or_create(
+                pr_id=42, namespace="clapton", repo_name="layla"
+            )
+            actual_pr = PullRequest.get_or_create(
+                pr_id=42, namespace="clapton", repo_name="layla"
+            )
 
-    try:
-        expected_pr = PullRequest.get_or_create(
-            pr_id=42, namespace="clapton", repo_name="layla"
-        )
-        actual_pr = PullRequest.get_or_create(
-            pr_id=42, namespace="clapton", repo_name="layla"
-        )
+            assert session.query(PullRequest).count() == 1
+            assert expected_pr.project_id == actual_pr.project_id
 
-        assert s.query(PullRequest).count() == 1
-        assert expected_pr.project_id == actual_pr.project_id
+            expected_pr = PullRequest.get_or_create(
+                pr_id=42, namespace="clapton", repo_name="cocaine"
+            )
+            actual_pr = PullRequest.get_or_create(
+                pr_id=42, namespace="clapton", repo_name="cocaine"
+            )
 
-        expected_pr = PullRequest.get_or_create(
-            pr_id=42, namespace="clapton", repo_name="cocaine"
-        )
-        actual_pr = PullRequest.get_or_create(
-            pr_id=42, namespace="clapton", repo_name="cocaine"
-        )
+            assert session.query(PullRequest).count() == 2
+            assert expected_pr.project_id == actual_pr.project_id
+        finally:
+            clean_db()
 
-        assert s.query(PullRequest).count() == 2
-        assert expected_pr.project_id == actual_pr.project_id
-    finally:
-        clean_db()
+
+def test_errors_while_doing_db():
+    with get_sa_session() as session:
+        try:
+            try:
+                PullRequest.get_or_create(pr_id="nope", namespace="", repo_name=False)
+            except ProgrammingError:
+                pass
+            assert len(session.query(PullRequest).all()) == 0
+            PullRequest.get_or_create(pr_id=111, namespace="asd", repo_name="qwe")
+            assert len(session.query(PullRequest).all()) == 1
+        finally:
+            clean_db()
