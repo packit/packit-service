@@ -4,7 +4,11 @@ from alembic import context
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
+from typing import TYPE_CHECKING
+
+from packit_service.models import Base
 from packit_service.models import get_pg_url
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -18,7 +22,10 @@ fileConfig(config.config_file_name)
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+
+# issue highlighted in sqlalchemy models.py
+if not TYPE_CHECKING:
+    target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

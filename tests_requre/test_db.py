@@ -31,7 +31,7 @@ $ alembic upgrade head
 ```
 """
 import pytest
-
+from datetime import datetime, timedelta
 from packit_service.models import (
     CoprBuild,
     get_sa_session,
@@ -82,6 +82,10 @@ def test_create_copr_build(a_copr_build):
     assert a_copr_build.srpm_build.logs == "asd\nqwe\n"
     assert a_copr_build.target == TARGET
     assert a_copr_build.status == "pending"
+    # Since datetime.utcnow() will return different results in every time its called,
+    # we will check if a_copr_build has build_submitted_time value thats within the past hour
+    time_last_hour = datetime.utcnow() - timedelta(hours=1)
+    assert a_copr_build.build_submitted_time > time_last_hour
 
 
 def test_get_copr_build(a_copr_build):
