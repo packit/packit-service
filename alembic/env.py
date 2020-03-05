@@ -24,9 +24,7 @@ fileConfig(config.config_file_name)
 # target_metadata = mymodel.Base.metadata
 
 # issue highlighted in sqlalchemy models.py
-if TYPE_CHECKING:
-    pass
-else:
+if not TYPE_CHECKING:
     target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
