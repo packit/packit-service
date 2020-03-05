@@ -193,7 +193,7 @@ class TestEvents:
         event_object = Parser.parse_event(pr_comment_created_request)
 
         assert isinstance(event_object, PullRequestCommentEvent)
-        assert event_object.trigger == TheJobTriggerType.comment
+        assert event_object.trigger == TheJobTriggerType.pr_comment
         assert event_object.action == PullRequestCommentAction.created
         assert event_object.pr_id == 9
         assert event_object.base_repo_namespace == "packit-service"
@@ -212,7 +212,7 @@ class TestEvents:
         event_object = Parser.parse_event(pr_comment_empty_request)
 
         assert isinstance(event_object, PullRequestCommentEvent)
-        assert event_object.trigger == TheJobTriggerType.comment
+        assert event_object.trigger == TheJobTriggerType.pr_comment
         assert event_object.action == PullRequestCommentAction.created
         assert event_object.pr_id == 9
         assert event_object.base_repo_namespace == "packit-service"
@@ -231,7 +231,7 @@ class TestEvents:
         event_object = Parser.parse_event(issue_comment_request)
 
         assert isinstance(event_object, IssueCommentEvent)
-        assert event_object.trigger == TheJobTriggerType.comment
+        assert event_object.trigger == TheJobTriggerType.issue_comment
         assert event_object.action == IssueCommentAction.created
         assert event_object.issue_id == 512
         assert event_object.base_repo_namespace == "packit-service"

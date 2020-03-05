@@ -85,7 +85,8 @@ class TheJobTriggerType(str, enum.Enum):
     commit = "commit"
     installation = "installation"
     testing_farm_results = "testing_farm_results"
-    comment = "comment"
+    pr_comment = "pr_comment"
+    issue_comment = "issue_comment"
 
 
 class TestResult(dict):
@@ -295,7 +296,7 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         comment: str,
         commit_sha: str = "",
     ):
-        super().__init__(trigger=TheJobTriggerType.comment, project_url=https_url)
+        super().__init__(trigger=TheJobTriggerType.pr_comment, project_url=https_url)
         self.action = action
         self.pr_id = pr_id
         self.base_repo_namespace = base_repo_namespace
@@ -344,7 +345,7 @@ class IssueCommentEvent(AbstractGithubEvent):
             str
         ] = "master",  # default is master when working with issues
     ):
-        super().__init__(trigger=TheJobTriggerType.comment, project_url=https_url)
+        super().__init__(trigger=TheJobTriggerType.issue_comment, project_url=https_url)
         self.action = action
         self.issue_id = issue_id
         self.base_repo_namespace = base_repo_namespace

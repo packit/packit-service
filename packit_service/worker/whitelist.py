@@ -219,7 +219,7 @@ class Whitelist:
                 logger.error(msg)
                 # TODO also check blacklist,
                 # but for that we need to know who triggered the action
-                if event.trigger == TheJobTriggerType.comment:
+                if event.trigger == TheJobTriggerType.pr_comment:
                     project.pr_comment(event.pr_id, msg)
                 else:
                     job_helper = CoprBuildJobHelper(

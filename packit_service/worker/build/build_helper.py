@@ -36,6 +36,7 @@ from packit_service.service.events import (
     PushGitHubEvent,
     ReleaseEvent,
 )
+from packit_service.trigger_mapping import is_trigger_matching_job_config
 from packit_service.worker.reporting import StatusReporter
 
 logger = logging.getLogger(__name__)
@@ -164,7 +165,9 @@ class BaseBuildJobHelper:
 
         if not self._job_build:
             for job in self.package_config.jobs:
-                if job.type == self.job_type_build:
+                if job.type == self.job_type_build and is_trigger_matching_job_config(
+                    trigger=self.event.trigger, job_config=job
+                ):
                     self._job_build = job
                     break
         return self._job_build
@@ -180,7 +183,9 @@ class BaseBuildJobHelper:
 
         if not self._job_tests:
             for job in self.package_config.jobs:
-                if job.type == self.job_type_test:
+                if job.type == self.job_type_test and is_trigger_matching_job_config(
+                    trigger=self.event.trigger, job_config=job
+                ):
                     self._job_tests = job
                     break
         return self._job_tests

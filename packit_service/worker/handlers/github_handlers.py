@@ -537,7 +537,7 @@ class GitHubIssueCommentProposeUpdateHandler(
         configured_branches = [
             job.metadata.get("dist-git-branch")
             for job in self.package_config.jobs
-            if job.job == JobType.propose_downstream
+            if job.type == JobType.propose_downstream
         ]
         if configured_branches:
             return list(get_branches(*configured_branches))

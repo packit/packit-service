@@ -41,6 +41,7 @@ from packit_service.service.events import (
     FedmsgTopic,
     TheJobTriggerType,
 )
+from packit_service.trigger_mapping import is_trigger_matching_job_config
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -102,7 +103,8 @@ class SteveJobs:
             return handlers_results
 
         for job in package_config.jobs:
-            if event.trigger == job.trigger:
+
+            if is_trigger_matching_job_config(trigger=event.trigger, job_config=job):
                 handler_kls: Type[JobHandler] = JOB_NAME_HANDLER_MAPPING.get(
                     job.type, None
                 )
@@ -119,7 +121,7 @@ class SteveJobs:
                 elif not whitelist.check_and_report(
                     event, event.get_project(), config=self.config
                 ):
-                    handlers_results[job.job.value] = HandlerResults(
+                    handlers_results[job.type.value] = HandlerResults(
                         success=False, details={"msg": "Account is not whitelisted!"}
                     )
                     return handlers_results
@@ -127,7 +129,7 @@ class SteveJobs:
                 logger.debug(f"Running handler: {str(handler_kls)}")
                 handler = handler_kls(self.config, job, event)
                 if handler.pre_check():
-                    handlers_results[job.job.value] = handler.run_n_clean()
+                    handlers_results[job.type.value] = handler.run_n_clean()
                 # don't break here, other handlers may react to the same event
 
         return handlers_results
@@ -279,9 +281,10 @@ class SteveJobs:
             else:
                 raise ValueError(f"Unknown topic {event_object.topic}")
             jobs_results[job_type] = handler.run_n_clean()
-        elif event_object.trigger == TheJobTriggerType.comment and (
-            isinstance(event_object, (PullRequestCommentEvent, IssueCommentEvent))
-        ):
+        elif event_object.trigger in {
+            TheJobTriggerType.issue_comment,
+            TheJobTriggerType.pr_comment,
+        } and (isinstance(event_object, (PullRequestCommentEvent, IssueCommentEvent))):
             job_type = JobType.pull_request_action.value
             jobs_results[job_type] = self.process_comment_jobs(event_object)
         else:
