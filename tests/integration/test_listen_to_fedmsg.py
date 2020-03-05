@@ -85,7 +85,12 @@ def pc_tests():
     )
 
 
-def test_copr_build_end(copr_build_end, pc_build, copr_build):
+@pytest.mark.parametrize(
+    "pc_comment_pr_succ,pr_comment_called", ((True, True), (False, False),)
+)
+def test_copr_build_end(
+    copr_build_end, pc_build, copr_build, pc_comment_pr_succ, pr_comment_called
+):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -99,11 +104,15 @@ def test_copr_build_end(copr_build_end, pc_build, copr_build):
     flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
         flexmock()
     )
+    pc_build.notifications.pull_request.successful_build = pc_comment_pr_succ
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(pc_build)
     flexmock(CoprBuildEndHandler).should_receive(
         "was_last_build_successful"
     ).and_return(False)
-    flexmock(GithubProject).should_receive("pr_comment")
+    if pr_comment_called:
+        flexmock(GithubProject).should_receive("pr_comment")
+    else:
+        flexmock(GithubProject).should_receive("pr_comment").never()
 
     flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
     flexmock(CoprBuild).should_receive("set_status").with_args("success")
