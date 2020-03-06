@@ -112,3 +112,9 @@
       args:
         chdir: "{{ deployment_dir }}"
       become: "{{ as_root }}"
+    - name: Make sure the worker is up and running
+      shell: oc get pods/packit-worker-0 | grep Running
+      become: "{{ as_root }}"
+    - name: Make sure packit-service httpd is up and running
+      shell: oc get -o jsonpath='{.status.replicas}' dc/packit-service | grep 1
+      become: "{{ as_root }}"
