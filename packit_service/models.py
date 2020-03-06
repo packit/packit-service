@@ -23,15 +23,19 @@
 """
 Data layer on top of PSQL using sqlalch
 """
+import logging
 import os
-from typing import TYPE_CHECKING, Optional, Union
+from contextlib import contextmanager
 from datetime import datetime
+from typing import TYPE_CHECKING, Optional, Union
+
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy import JSON, create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, relationship
 
+
+logger = logging.getLogger(__name__)
 # SQLAlchemy session, get it with `get_sa_session`
 session_instance = None
 
@@ -45,14 +49,25 @@ def get_pg_url() -> str:
     )
 
 
+@contextmanager
 def get_sa_session() -> Session:
     """ get SQLAlchemy session """
+    # we need to keep one session for all the operations b/c SA objects
+    # are bound to this session and we can use them, otherwise we'd need
+    # add objects into all newly created sessions:
+    #   Instance <PullRequest> is not bound to a Session; attribute refresh operation cannot proceed
     global session_instance
     if session_instance is None:
         engine = create_engine(get_pg_url())
         Session = sessionmaker(bind=engine)
         session_instance = Session()
-    return session_instance
+    try:
+        yield session_instance
+        session_instance.commit()
+    except Exception as ex:
+        logger.warning(f"Exception while working with database: {ex!r}")
+        session_instance.rollback()
+        raise
 
 
 # https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
@@ -73,19 +88,18 @@ class GitProject(Base):
 
     @classmethod
     def get_or_create(cls, namespace: str, repo_name: str) -> "GitProject":
-        session = get_sa_session()
-        project = (
-            session.query(GitProject)
-            .filter_by(namespace=namespace, repo_name=repo_name)
-            .first()
-        )
-        if not project:
-            project = cls()
-            project.repo_name = repo_name
-            project.namespace = namespace
-            session.add(project)
-            session.commit()
-        return project
+        with get_sa_session() as session:
+            project = (
+                session.query(GitProject)
+                .filter_by(namespace=namespace, repo_name=repo_name)
+                .first()
+            )
+            if not project:
+                project = cls()
+                project.repo_name = repo_name
+                project.namespace = namespace
+                session.add(project)
+            return project
 
     def __repr__(self):
         return f"GitProject(name={self.namespace}/{self.repo_name})"
@@ -109,20 +123,19 @@ class PullRequest(Base):
 
     @classmethod
     def get_or_create(cls, pr_id: int, namespace: str, repo_name: str) -> "PullRequest":
-        session = get_sa_session()
-        project = GitProject.get_or_create(namespace=namespace, repo_name=repo_name)
-        pr = (
-            session.query(PullRequest)
-            .filter_by(pr_id=pr_id, project_id=project.id)
-            .first()
-        )
-        if not pr:
-            pr = PullRequest()
-            pr.pr_id = pr_id
-            pr.project_id = project.id
-            session.add(pr)
-            session.commit()
-        return pr
+        with get_sa_session() as session:
+            project = GitProject.get_or_create(namespace=namespace, repo_name=repo_name)
+            pr = (
+                session.query(PullRequest)
+                .filter_by(pr_id=pr_id, project_id=project.id)
+                .first()
+            )
+            if not pr:
+                pr = PullRequest()
+                pr.pr_id = pr_id
+                pr.project_id = project.id
+                session.add(pr)
+            return pr
 
     def __repr__(self):
         return f"PullRequest(id={self.pr_id}, project={self.project})"
@@ -161,21 +174,19 @@ class CoprBuild(Base):
     data = Column(JSON)
 
     def set_status(self, status: str):
-        session = get_sa_session()
-        self.status = status
-        session.add(self)
-        session.commit()
+        with get_sa_session() as session:
+            self.status = status
+            session.add(self)
 
     def set_build_logs_url(self, build_logs: str):
-        session = get_sa_session()
-        self.build_logs_url = build_logs
-        session.add(self)
-        session.commit()
+        with get_sa_session() as session:
+            self.build_logs_url = build_logs
+            session.add(self)
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["CoprBuild"]:
-        session = get_sa_session()
-        return session.query(CoprBuild).filter_by(id=id_).first()
+        with get_sa_session() as session:
+            return session.query(CoprBuild).filter_by(id=id_).first()
 
     @classmethod
     def get_by_build_id(
@@ -187,10 +198,12 @@ class CoprBuild(Base):
             #   HINT:  No operator matches the given name and argument type(s).
             #   You might need to add explicit type casts.
             build_id = str(build_id)
-        session = get_sa_session()
-        return (
-            session.query(CoprBuild).filter_by(build_id=build_id, target=target).first()
-        )
+        with get_sa_session() as session:
+            return (
+                session.query(CoprBuild)
+                .filter_by(build_id=build_id, target=target)
+                .first()
+            )
 
     @classmethod
     def get_or_create(
@@ -205,23 +218,22 @@ class CoprBuild(Base):
         status: str,
         srpm_build: "SRPMBuild",
     ) -> "CoprBuild":
-        session = get_sa_session()
-        build = cls.get_by_build_id(build_id, target)
-        if not build:
-            pr = PullRequest.get_or_create(
-                pr_id=pr_id, namespace=namespace, repo_name=repo_name
-            )
-            build = cls()
-            build.build_id = build_id
-            build.pr_id = pr.id
-            build.srpm_build_id = srpm_build.id
-            build.status = status
-            build.commit_sha = commit_sha
-            build.web_url = web_url
-            build.target = target
-            session.add(build)
-            session.commit()
-        return build
+        with get_sa_session() as session:
+            build = cls.get_by_build_id(build_id, target)
+            if not build:
+                pr = PullRequest.get_or_create(
+                    pr_id=pr_id, namespace=namespace, repo_name=repo_name
+                )
+                build = cls()
+                build.build_id = build_id
+                build.pr_id = pr.id
+                build.srpm_build_id = srpm_build.id
+                build.status = status
+                build.commit_sha = commit_sha
+                build.web_url = web_url
+                build.target = target
+                session.add(build)
+            return build
 
     def __repr__(self):
         return f"COPRBuild(id={self.id}, pr={self.pr})"
@@ -239,17 +251,16 @@ class SRPMBuild(Base):
 
     @classmethod
     def create(cls, logs: str) -> "SRPMBuild":
-        session = get_sa_session()
-        srpm_build = cls()
-        srpm_build.logs = logs
-        session.add(srpm_build)
-        session.commit()
-        return srpm_build
+        with get_sa_session() as session:
+            srpm_build = cls()
+            srpm_build.logs = logs
+            session.add(srpm_build)
+            return srpm_build
 
     @classmethod
     def get_by_id(cls, id_: int,) -> Optional["SRPMBuild"]:
-        session = get_sa_session()
-        return session.query(SRPMBuild).filter_by(id=id_).first()
+        with get_sa_session() as session:
+            return session.query(SRPMBuild).filter_by(id=id_).first()
 
     def __repr__(self):
         return f"SRPMBuild(id={self.id})"
