@@ -252,6 +252,8 @@ class CoprBuildEndHandler(FedmsgHandler):
 
         if (
             self.build_job_helper.job_build
+            and self.build_job_helper.job_build.trigger
+            == TheJobTriggerType.pull_request
             and not self.was_last_build_successful()
             and self.package_config.notifications.pull_request.successful_build
         ):
