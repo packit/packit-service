@@ -9,7 +9,7 @@ from packit.exceptions import FailedCreateSRPM
 from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuild, SRPMBuild
 from packit_service.service.models import CoprBuild as RedisCoprBuild
-from packit_service.worker import sentry_integration
+from packit_service import sentry_integration
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.parser import Parser
 from packit_service.worker.reporting import StatusReporter

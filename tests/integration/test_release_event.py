@@ -10,7 +10,7 @@ from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
-from packit_service.worker import sentry_integration
+from packit_service import sentry_integration
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
 from tests.spellbook import DATA_DIR

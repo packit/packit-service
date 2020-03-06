@@ -41,7 +41,7 @@ from packit_service.service.events import (
 )
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.result import HandlerResults
-from packit_service.worker.sentry_integration import send_to_sentry
+from packit_service.sentry_integration import send_to_sentry
 
 logger = logging.getLogger(__name__)
 

@@ -20,27 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from celery import Celery
 from os import getenv
 
+from celery import Celery
 
-def configure_sentry():
-    """ Optionally returns sentry client """
-    secret_key = getenv("SENTRY_SECRET")
-    if not secret_key:
-        return
-
-    # so that we don't have to have sentry sdk installed locally
-    import sentry_sdk
-
-    # https://docs.sentry.io/platforms/python/celery/
-    from sentry_sdk.integrations.celery import CeleryIntegration
-
-    sentry_sdk.init(
-        secret_key, integrations=[CeleryIntegration()], environment=getenv("DEPLOYMENT")
-    )
-    with sentry_sdk.configure_scope() as scope:
-        scope.set_tag("runner-type", "packit-worker")
+from packit_service.sentry_integration import configure_sentry
 
 
 class Celerizer:
@@ -64,4 +48,6 @@ class Celerizer:
 
 celerizer = Celerizer()
 celery_app = celerizer.celery_app
-configure_sentry()
+configure_sentry(
+    runner_type="packit-worker", celery_integration=True, sqlalchemy_integration=True
+)

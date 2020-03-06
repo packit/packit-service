@@ -36,7 +36,7 @@ from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.service.events import Event
 from packit_service.worker.result import HandlerResults
-from packit_service.worker.sentry_integration import push_scope_to_sentry
+from packit_service.sentry_integration import push_scope_to_sentry
 
 logger = logging.getLogger(__name__)
 

@@ -20,6 +20,47 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from contextlib import contextmanager
+from os import getenv
+
+
+def configure_sentry(
+    runner_type: str,
+    celery_integration: bool = False,
+    flask_integration: bool = False,
+    sqlalchemy_integration: bool = False,
+) -> None:
+    secret_key = getenv("SENTRY_SECRET")
+    if not secret_key:
+        return
+
+    # so that we don't have to have sentry sdk installed locally
+    import sentry_sdk
+
+    integrations = []
+
+    if celery_integration:
+        # https://docs.sentry.io/platforms/python/celery/
+        from sentry_sdk.integrations.celery import CeleryIntegration
+
+        integrations.append(CeleryIntegration())
+
+    if flask_integration:
+        # https://docs.sentry.io/platforms/python/flask/
+        from sentry_sdk.integrations.flask import FlaskIntegration
+
+        integrations.append(FlaskIntegration())
+
+    if sqlalchemy_integration:
+        # https://docs.sentry.io/platforms/python/sqlalchemy/
+        from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+
+        integrations.append(SqlalchemyIntegration())
+
+    sentry_sdk.init(
+        secret_key, integrations=integrations, environment=getenv("DEPLOYMENT"),
+    )
+    with sentry_sdk.configure_scope() as scope:
+        scope.set_tag("runner-type", runner_type)
 
 
 def send_to_sentry(ex):

@@ -51,7 +51,7 @@ from packit_service.service.events import (
     PushGitHubEvent,
 )
 from packit_service.service.models import Installation
-from packit_service.worker import sentry_integration
+from packit_service import sentry_integration
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.handlers import (
     CommentActionHandler,

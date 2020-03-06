@@ -26,10 +26,18 @@ from flask import Flask
 from packit.utils import set_logging
 
 from packit_service.config import ServiceConfig
+from packit_service.sentry_integration import configure_sentry
 from packit_service.service.api import blueprint
 from packit_service.service.views import builds_blueprint
 
 set_logging(logger_name="packit_service", level=logging.DEBUG)
+
+configure_sentry(
+    runner_type="packit-service",
+    celery_integration=True,
+    sqlalchemy_integration=True,
+    flask_integration=True,
+)
 
 application = Flask(__name__)
 application.register_blueprint(blueprint)
