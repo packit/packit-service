@@ -29,7 +29,7 @@ from typing import Optional, Dict, Union, Type
 
 from ogr.abstract import GitProject
 from ogr.services.github import GithubProject
-from packit.config import JobTriggerType, JobType
+from packit.config import JobType
 
 from packit_service.config import ServiceConfig
 from packit_service.service.events import (
@@ -39,7 +39,9 @@ from packit_service.service.events import (
     TestingFarmResultsEvent,
     CoprBuildEvent,
     FedmsgTopic,
+    TheJobTriggerType,
 )
+from packit_service.trigger_mapping import is_trigger_matching_job_config
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -48,7 +50,7 @@ from packit_service.worker.handlers import (
     TestingFarmResultsHandler,
     JobHandler,
 )
-from packit_service.worker.handlers.abstract import JOB_NAME_HANDLER_MAPPING
+from packit_service.worker.handlers.abstract import JOB_NAME_HANDLER_MAPPING, Handler
 from packit_service.worker.handlers.comment_action_handler import (
     COMMENT_ACTION_HANDLER_MAPPING,
     CommentAction,
@@ -101,9 +103,10 @@ class SteveJobs:
             return handlers_results
 
         for job in package_config.jobs:
-            if event.trigger == job.trigger:
+
+            if is_trigger_matching_job_config(trigger=event.trigger, job_config=job):
                 handler_kls: Type[JobHandler] = JOB_NAME_HANDLER_MAPPING.get(
-                    job.job, None
+                    job.type, None
                 )
                 if not handler_kls:
                     logger.warning(f"There is no handler for job {job}")
@@ -118,7 +121,7 @@ class SteveJobs:
                 elif not whitelist.check_and_report(
                     event, event.get_project(), config=self.config
                 ):
-                    handlers_results[job.job.value] = HandlerResults(
+                    handlers_results[job.type.value] = HandlerResults(
                         success=False, details={"msg": "Account is not whitelisted!"}
                     )
                     return handlers_results
@@ -126,7 +129,7 @@ class SteveJobs:
                 logger.debug(f"Running handler: {str(handler_kls)}")
                 handler = handler_kls(self.config, job, event)
                 if handler.pre_check():
-                    handlers_results[job.job.value] = handler.run_n_clean()
+                    handlers_results[job.type.value] = handler.run_n_clean()
                 # don't break here, other handlers may react to the same event
 
         return handlers_results
@@ -201,7 +204,8 @@ class SteveJobs:
                 success=True, details={"msg": "Account is not whitelisted!"}
             )
 
-        return handler_kls(self.config, event).run_n_clean()
+        handler_instance: Handler = handler_kls(config=self.config, event=event)
+        return handler_instance.run_n_clean()
 
     def process_message(self, event: dict, topic: str = None) -> Optional[dict]:
         """
@@ -246,37 +250,41 @@ class SteveJobs:
         jobs_results: Dict[str, HandlerResults] = {}
         # installation is handled differently b/c app is installed to GitHub account
         # not repository, so package config with jobs is missing
-        if event_object.trigger == JobTriggerType.installation:
+        if event_object.trigger == TheJobTriggerType.installation:
             handler = GithubAppInstallationHandler(
-                self.config, job=None, installation_event=event_object
+                self.config, job_config=None, installation_event=event_object
             )
             job_type = JobType.add_to_whitelist.value
             jobs_results[job_type] = handler.run_n_clean()
         # Results from testing farm is another job which is not defined in packit.yaml so
         # it needs to be handled outside process_jobs method
-        elif event_object.trigger == JobTriggerType.testing_farm_results and isinstance(
-            event_object, TestingFarmResultsEvent
+        elif (
+            event_object.trigger == TheJobTriggerType.testing_farm_results
+            and isinstance(event_object, TestingFarmResultsEvent)
         ):
             handler = TestingFarmResultsHandler(
-                self.config, job=None, test_results_event=event_object
+                self.config, job_config=None, test_results_event=event_object
             )
             job_type = JobType.report_test_results.value
             jobs_results[job_type] = handler.run_n_clean()
         elif isinstance(event_object, CoprBuildEvent):
             if event_object.topic == FedmsgTopic.copr_build_started:
                 handler = CoprBuildStartHandler(
-                    self.config, job=None, event=event_object
+                    self.config, job_config=None, event=event_object
                 )
                 job_type = JobType.copr_build_started.value
             elif event_object.topic == FedmsgTopic.copr_build_finished:
-                handler = CoprBuildEndHandler(self.config, job=None, event=event_object)
+                handler = CoprBuildEndHandler(
+                    self.config, job_config=None, event=event_object
+                )
                 job_type = JobType.copr_build_finished.value
             else:
                 raise ValueError(f"Unknown topic {event_object.topic}")
             jobs_results[job_type] = handler.run_n_clean()
-        elif event_object.trigger == JobTriggerType.comment and (
-            isinstance(event_object, (PullRequestCommentEvent, IssueCommentEvent))
-        ):
+        elif event_object.trigger in {
+            TheJobTriggerType.issue_comment,
+            TheJobTriggerType.pr_comment,
+        } and (isinstance(event_object, (PullRequestCommentEvent, IssueCommentEvent))):
             job_type = JobType.pull_request_action.value
             jobs_results[job_type] = self.process_comment_jobs(event_object)
         else:

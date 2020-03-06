@@ -32,7 +32,6 @@ from ogr.abstract import CommitStatus
 from packit.api import PackitAPI
 from packit.config import (
     JobType,
-    JobTriggerType,
     JobConfig,
     get_package_config_from_repo,
 )
@@ -47,6 +46,7 @@ from packit_service.service.events import (
     DistGitEvent,
     CoprBuildEvent,
     get_copr_build_logs_url,
+    TheJobTriggerType,
 )
 from packit_service.service.urls import get_log_url
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
@@ -113,8 +113,8 @@ class FedmsgHandler(JobHandler):
 
     topic: str
 
-    def __init__(self, config: ServiceConfig, job: JobConfig, event: Event):
-        super().__init__(config=config, job=job, event=event)
+    def __init__(self, config: ServiceConfig, job_config: JobConfig, event: Event):
+        super().__init__(config=config, job_config=job_config, event=event)
         self._pagure_service = None
 
     def run(self) -> HandlerResults:
@@ -124,21 +124,19 @@ class FedmsgHandler(JobHandler):
 @add_topic
 @add_to_mapping
 class NewDistGitCommitHandler(FedmsgHandler):
-    """ A new flag was added to a dist-git pull request """
+    """Sync new changes to upstream after a new git push in the dist-git."""
 
     topic = "org.fedoraproject.prod.git.receive"
     name = JobType.sync_from_downstream
-    triggers = [JobTriggerType.commit]
+    triggers = [TheJobTriggerType.commit]
 
     def __init__(
-        self, config: ServiceConfig, job: JobConfig, distgit_event: DistGitEvent
+        self, config: ServiceConfig, job_config: JobConfig, event: DistGitEvent
     ):
-        super().__init__(config=config, job=job, event=distgit_event)
-        self.distgit_event = distgit_event
-        self.project = distgit_event.get_project()
-        self.package_config = get_package_config_from_repo(
-            self.project, distgit_event.git_ref
-        )
+        super().__init__(config=config, job_config=job_config, event=event)
+        self.distgit_event = event
+        self.project = event.get_project()
+        self.package_config = get_package_config_from_repo(self.project, event.git_ref)
         if not self.package_config:
             raise ValueError(f"No config file found in {self.project.full_repo_name}")
 
@@ -181,9 +179,12 @@ class CoprBuildEndHandler(FedmsgHandler):
     name = JobType.copr_build_finished
 
     def __init__(
-        self, config: ServiceConfig, job: Optional[JobConfig], event: CoprBuildEvent
+        self,
+        config: ServiceConfig,
+        job_config: Optional[JobConfig],
+        event: CoprBuildEvent,
     ):
-        super().__init__(config=config, job=job, event=event)
+        super().__init__(config=config, job_config=job_config, event=event)
         self.project = self.event.get_project()
         self.package_config = self.event.get_package_config()
         self.build_job_helper = CoprBuildJobHelper(
@@ -251,6 +252,8 @@ class CoprBuildEndHandler(FedmsgHandler):
 
         if (
             self.build_job_helper.job_build
+            and self.build_job_helper.job_build.trigger
+            == TheJobTriggerType.pull_request
             and not self.was_last_build_successful()
             and self.package_config.notifications.pull_request.successful_build
         ):
@@ -286,7 +289,7 @@ class CoprBuildEndHandler(FedmsgHandler):
         ):
             testing_farm_handler = GithubTestingFarmHandler(
                 config=self.config,
-                job=self.build_job_helper.job_tests,
+                job_config=self.build_job_helper.job_tests,
                 event=self.event,
                 chroot=self.event.chroot,
             )
@@ -304,9 +307,12 @@ class CoprBuildStartHandler(FedmsgHandler):
     name = JobType.copr_build_started
 
     def __init__(
-        self, config: ServiceConfig, job: Optional[JobConfig], event: CoprBuildEvent
+        self,
+        config: ServiceConfig,
+        job_config: Optional[JobConfig],
+        event: CoprBuildEvent,
     ):
-        super().__init__(config=config, job=job, event=event)
+        super().__init__(config=config, job_config=job_config, event=event)
         self.project = self.event.get_project()
         self.package_config = self.event.get_package_config()
         self.build_job_helper = CoprBuildJobHelper(

@@ -3,7 +3,7 @@ import json
 from flexmock import flexmock
 from ogr.abstract import GitProject, GitService, CommitStatus
 from packit.api import PackitAPI
-from packit.config import PackageConfig, JobConfig, JobType, JobTriggerType
+from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.exceptions import FailedCreateSRPM
 
 from packit_service.config import ServiceConfig
@@ -63,8 +63,8 @@ def build_helper(metadata=None, trigger=None, jobs=None, event=None):
     jobs = jobs or []
     jobs.append(
         JobConfig(
-            job=JobType.copr_build,
-            trigger=trigger or JobTriggerType.pull_request,
+            type=JobType.copr_build,
+            trigger=trigger or JobConfigTriggerType.pull_request,
             metadata=metadata,
         )
     )
@@ -112,7 +112,7 @@ def test_copr_build_success_set_test_check():
     #  - Building SRPM ...
     #  - Building RPM ...
     test_job = JobConfig(
-        job=JobType.tests, trigger=JobTriggerType.pull_request, metadata={}
+        type=JobType.tests, trigger=JobConfigTriggerType.pull_request, metadata={}
     )
     helper = build_helper(jobs=[test_job])
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(16)
@@ -128,8 +128,8 @@ def test_copr_build_for_branch():
     #  - Building SRPM ...
     #  - Building RPM ...
     branch_build_job = JobConfig(
-        job=JobType.build,
-        trigger=JobTriggerType.commit,
+        type=JobType.build,
+        trigger=JobConfigTriggerType.commit,
         metadata={"branch": "build-branch"},
     )
     helper = build_helper(jobs=[branch_build_job], event=branch_push_event())
@@ -146,7 +146,7 @@ def test_copr_build_for_release():
     #  - Building SRPM ...
     #  - Building RPM ...
     branch_build_job = JobConfig(
-        job=JobType.build, trigger=JobTriggerType.release, metadata={},
+        type=JobType.build, trigger=JobConfigTriggerType.release, metadata={},
     )
     helper = build_helper(jobs=[branch_build_job], event=release_event())
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)

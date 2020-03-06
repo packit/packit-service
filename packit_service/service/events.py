@@ -30,7 +30,10 @@ from datetime import datetime, timezone
 from typing import Optional, List, Union, Dict
 
 from ogr.abstract import GitProject
-from packit.config import JobTriggerType, get_package_config_from_repo, PackageConfig
+from packit.config import (
+    get_package_config_from_repo,
+    PackageConfig,
+)
 
 from packit_service.config import ServiceConfig, GithubPackageConfigGetter
 from packit_service.models import CoprBuild
@@ -75,6 +78,17 @@ class TestingFarmResult(str, enum.Enum):
     running = "running"
 
 
+class TheJobTriggerType(str, enum.Enum):
+    release = "release"
+    pull_request = "pull_request"
+    push = "push"
+    commit = "commit"
+    installation = "installation"
+    testing_farm_results = "testing_farm_results"
+    pr_comment = "pr_comment"
+    issue_comment = "issue_comment"
+
+
 class TestResult(dict):
     def __init__(self, name: str, result: TestingFarmResult, log_url: str):
         dict.__init__(self, name=name, result=result, log_url=log_url)
@@ -104,9 +118,9 @@ class TestResult(dict):
 
 class Event:
     def __init__(
-        self, trigger: JobTriggerType, created_at: Union[int, float, str] = None
+        self, trigger: TheJobTriggerType, created_at: Union[int, float, str] = None
     ):
-        self.trigger: JobTriggerType = trigger
+        self.trigger: TheJobTriggerType = trigger
         self.created_at: datetime
         if created_at:
             if isinstance(created_at, (int, float)):
@@ -163,7 +177,7 @@ class Event:
 
 
 class AbstractGithubEvent(Event, GithubPackageConfigGetter):
-    def __init__(self, trigger: JobTriggerType, project_url: str):
+    def __init__(self, trigger: TheJobTriggerType, project_url: str):
         super().__init__(trigger)
         self.project_url: str = project_url
         self.git_ref: Optional[str] = None  # git ref that can be 'git checkout'-ed
@@ -179,7 +193,7 @@ class ReleaseEvent(AbstractGithubEvent):
     def __init__(
         self, repo_namespace: str, repo_name: str, tag_name: str, https_url: str
     ):
-        super().__init__(trigger=JobTriggerType.release, project_url=https_url)
+        super().__init__(trigger=TheJobTriggerType.release, project_url=https_url)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.tag_name = tag_name
@@ -206,7 +220,7 @@ class PushGitHubEvent(AbstractGithubEvent):
         https_url: str,
         commit_sha: str,
     ):
-        super().__init__(trigger=JobTriggerType.commit, project_url=https_url)
+        super().__init__(trigger=TheJobTriggerType.push, project_url=https_url)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.git_ref = git_ref
@@ -238,7 +252,7 @@ class PullRequestEvent(AbstractGithubEvent):
         commit_sha: str,
         github_login: str,
     ):
-        super().__init__(trigger=JobTriggerType.pull_request, project_url=https_url)
+        super().__init__(trigger=TheJobTriggerType.pull_request, project_url=https_url)
         self.action = action
         self.pr_id = pr_id
         self.base_repo_namespace = base_repo_namespace
@@ -282,7 +296,7 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         comment: str,
         commit_sha: str = "",
     ):
-        super().__init__(trigger=JobTriggerType.comment, project_url=https_url)
+        super().__init__(trigger=TheJobTriggerType.pr_comment, project_url=https_url)
         self.action = action
         self.pr_id = pr_id
         self.base_repo_namespace = base_repo_namespace
@@ -331,7 +345,7 @@ class IssueCommentEvent(AbstractGithubEvent):
             str
         ] = "master",  # default is master when working with issues
     ):
-        super().__init__(trigger=JobTriggerType.comment, project_url=https_url)
+        super().__init__(trigger=TheJobTriggerType.issue_comment, project_url=https_url)
         self.action = action
         self.issue_id = issue_id
         self.base_repo_namespace = base_repo_namespace
@@ -376,7 +390,7 @@ class InstallationEvent(Event):
         sender_login: str,
         status: WhitelistStatus = WhitelistStatus.waiting,
     ):
-        super().__init__(JobTriggerType.installation, created_at)
+        super().__init__(TheJobTriggerType.installation, created_at)
         self.installation_id = installation_id
         # account == namespace (user/organization) into which the app has been installed
         self.account_login = account_login
@@ -407,7 +421,7 @@ class DistGitEvent(Event):
         msg_id: str,
         project_url: str,
     ):
-        super().__init__(JobTriggerType.commit)
+        super().__init__(trigger=TheJobTriggerType.commit)
         self.topic = FedmsgTopic(topic)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
@@ -447,7 +461,7 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         commit_sha: str,
     ):
         super().__init__(
-            trigger=JobTriggerType.testing_farm_results, project_url=https_url
+            trigger=TheJobTriggerType.testing_farm_results, project_url=https_url
         )
         self.pipeline_id = pipeline_id
         self.result = result
@@ -513,7 +527,7 @@ class CoprBuildEvent(AbstractGithubEvent):
             self.base_repo_namespace = build.get("repo_namespace")
             https_url = build["https_url"]
 
-        super().__init__(trigger=JobTriggerType.pull_request, project_url=https_url)
+        super().__init__(trigger=TheJobTriggerType.pull_request, project_url=https_url)
         self.topic = FedmsgTopic(topic)
         self.build_id = build_id
         self.build = build

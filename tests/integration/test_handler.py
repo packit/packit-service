@@ -23,10 +23,10 @@ import os
 from pathlib import Path
 
 import pytest
-from packit.config import JobConfig, JobType, JobTriggerType
+from packit.config import JobConfig, JobType, JobConfigTriggerType
 
 from packit_service.config import ServiceConfig
-from packit_service.service.events import Event
+from packit_service.service.events import Event, TheJobTriggerType
 from packit_service.worker.handlers import JobHandler
 
 
@@ -50,8 +50,12 @@ def test_handler_cleanup(tmpdir, trick_p_s_with_k8s):
 
     c = ServiceConfig()
     c.command_handler_work_dir = t
-    jc = JobConfig(JobType.copr_build, JobTriggerType.pull_request, {})
-    j = JobHandler(c, jc, Event(JobTriggerType.pull_request))
+    jc = JobConfig(
+        type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request, metadata={}
+    )
+    j = JobHandler(
+        config=c, job_config=jc, event=Event(trigger=TheJobTriggerType.pull_request)
+    )
 
     j._clean_workplace()
 

@@ -31,7 +31,6 @@ from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
 from packit.config import (
     JobConfig,
-    JobTriggerType,
     JobType,
     PackageConfig,
 )
@@ -49,6 +48,7 @@ from packit_service.service.events import (
     IssueCommentEvent,
     CoprBuildEvent,
     PushGitHubEvent,
+    TheJobTriggerType,
 )
 from packit_service.service.models import Installation
 from packit_service import sentry_integration
@@ -80,14 +80,14 @@ class AbstractGithubJobHandler(JobHandler, GithubPackageConfigGetter):
 @add_to_mapping
 class GithubPullRequestHandler(AbstractGithubJobHandler):
     name = JobType.check_downstream
-    triggers = [JobTriggerType.pull_request]
+    triggers = [TheJobTriggerType.pull_request]
 
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
 
     def __init__(
-        self, config: ServiceConfig, job: JobConfig, pr_event: PullRequestEvent
+        self, config: ServiceConfig, job_config: JobConfig, pr_event: PullRequestEvent
     ):
-        super().__init__(config=config, job=job, event=pr_event)
+        super().__init__(config=config, job_config=job_config, event=pr_event)
         self.pr_event = pr_event
         self.project: GitProject = pr_event.get_project()
         self.package_config: PackageConfig = self.get_package_config_from_repo(
@@ -104,7 +104,7 @@ class GithubPullRequestHandler(AbstractGithubJobHandler):
 
         self.api.sync_pr(
             pr_id=self.pr_event.pr_id,
-            dist_git_branch=self.job.metadata.get("dist-git-branch", "master"),
+            dist_git_branch=self.job_config.metadata.get("dist-git-branch", "master"),
             # TODO: figure out top upstream commit for source-git here
         )
         return HandlerResults(success=True, details={})
@@ -113,17 +113,17 @@ class GithubPullRequestHandler(AbstractGithubJobHandler):
 @add_to_mapping
 class GithubAppInstallationHandler(AbstractGithubJobHandler):
     name = JobType.add_to_whitelist
-    triggers = [JobTriggerType.installation]
+    triggers = [TheJobTriggerType.installation]
 
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
 
     def __init__(
         self,
         config: ServiceConfig,
-        job: Optional[JobConfig],
+        job_config: Optional[JobConfig],
         installation_event: Union[InstallationEvent, Any],
     ):
-        super().__init__(config=config, job=job, event=installation_event)
+        super().__init__(config=config, job_config=job_config, event=installation_event)
 
         self.installation_event = installation_event
         self.project = self.config.get_project(
@@ -171,13 +171,13 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
 @add_to_mapping
 class GithubReleaseHandler(AbstractGithubJobHandler):
     name = JobType.propose_downstream
-    triggers = [JobTriggerType.release]
+    triggers = [TheJobTriggerType.release]
     event: ReleaseEvent
 
     def __init__(
-        self, config: ServiceConfig, job: JobConfig, release_event: ReleaseEvent
+        self, config: ServiceConfig, job_config: JobConfig, release_event: ReleaseEvent
     ):
-        super().__init__(config=config, job=job, event=release_event)
+        super().__init__(config=config, job_config=job_config, event=release_event)
 
         self.project: GitProject = release_event.get_project()
         self.package_config: PackageConfig = self.get_package_config_from_repo(
@@ -197,7 +197,9 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
         self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
         errors = {}
-        for branch in get_branches(self.job.metadata.get("dist-git-branch", "master")):
+        for branch in get_branches(
+            self.job_config.metadata.get("dist-git-branch", "master")
+        ):
             try:
                 self.api.sync_release(
                     dist_git_branch=branch, version=self.event.tag_name
@@ -243,10 +245,10 @@ class AbstractGithubCoprBuildHandler(AbstractGithubJobHandler):
     def __init__(
         self,
         config: ServiceConfig,
-        job: JobConfig,
+        job_config: JobConfig,
         event: Union[PullRequestEvent, ReleaseEvent, PushGitHubEvent],
     ):
-        super().__init__(config=config, job=job, event=event)
+        super().__init__(config=config, job_config=job_config, event=event)
 
         if not isinstance(event, (PullRequestEvent, PushGitHubEvent, ReleaseEvent)):
             raise PackitException(
@@ -268,7 +270,7 @@ class AbstractGithubCoprBuildHandler(AbstractGithubJobHandler):
                 package_config=self.package_config,
                 project=self.project,
                 event=self.event,
-                job=self.job,
+                job=self.job_config,
             )
         return self._copr_build_helper
 
@@ -299,7 +301,7 @@ class AbstractGithubCoprBuildHandler(AbstractGithubJobHandler):
             [JobConfig], bool
         ] = lambda job: job.job == JobType.copr_build
 
-        if self.job.job == JobType.tests and any(
+        if self.job_config.job == JobType.tests and any(
             filter(is_copr_build, self.package_config.jobs)
         ):
             logger.info(
@@ -313,22 +315,22 @@ class AbstractGithubCoprBuildHandler(AbstractGithubJobHandler):
 @add_to_mapping_for_job(job_type=JobType.tests)
 class ReleaseGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
     triggers = [
-        JobTriggerType.release,
+        TheJobTriggerType.release,
     ]
 
     event: ReleaseEvent
 
     def __init__(
-        self, config: ServiceConfig, job: JobConfig, event: ReleaseEvent,
+        self, config: ServiceConfig, job_config: JobConfig, event: ReleaseEvent,
     ):
-        super().__init__(config=config, job=job, event=event)
+        super().__init__(config=config, job_config=job_config, event=event)
         self.base_ref = event.tag_name
 
     def pre_check(self) -> bool:
         return (
             super().pre_check()
             and isinstance(self.event, ReleaseEvent)
-            and self.event.trigger == JobTriggerType.release
+            and self.event.trigger == TheJobTriggerType.release
         )
 
 
@@ -336,14 +338,14 @@ class ReleaseGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
 @add_to_mapping_for_job(job_type=JobType.tests)
 class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
     triggers = [
-        JobTriggerType.pull_request,
+        TheJobTriggerType.pull_request,
     ]
     event: PullRequestEvent
 
     def __init__(
-        self, config: ServiceConfig, job: JobConfig, event: PullRequestEvent,
+        self, config: ServiceConfig, job_config: JobConfig, event: PullRequestEvent,
     ):
-        super().__init__(config=config, job=job, event=event)
+        super().__init__(config=config, job_config=job_config, event=event)
 
     def run(self) -> HandlerResults:
         if isinstance(self.event, GithubPullRequestHandler):
@@ -362,7 +364,7 @@ class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
         return (
             super().pre_check()
             and isinstance(self.event, PullRequestEvent)
-            and self.event.trigger == JobTriggerType.pull_request
+            and self.event.trigger == TheJobTriggerType.pull_request
         )
 
 
@@ -370,21 +372,21 @@ class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
 @add_to_mapping_for_job(job_type=JobType.tests)
 class PushGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
     triggers = [
-        JobTriggerType.commit,
+        TheJobTriggerType.commit,
     ]
     event: PushGitHubEvent
 
     def __init__(
-        self, config: ServiceConfig, job: JobConfig, event: PushGitHubEvent,
+        self, config: ServiceConfig, job_config: JobConfig, event: PushGitHubEvent,
     ):
-        super().__init__(config=config, job=job, event=event)
+        super().__init__(config=config, job_config=job_config, event=event)
         self.base_ref = event.commit_sha
 
     def pre_check(self) -> bool:
         valid = (
             super().pre_check()
             and isinstance(self.event, PushGitHubEvent)
-            and self.event.trigger == JobTriggerType.commit
+            and self.event.trigger == TheJobTriggerType.commit
         )
         if not valid:
             return False
@@ -408,17 +410,17 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
     """
 
     name = JobType.tests
-    triggers = [JobTriggerType.pull_request]
+    triggers = [TheJobTriggerType.pull_request]
     event: Union[CoprBuildEvent, PullRequestCommentEvent]
 
     def __init__(
         self,
         config: ServiceConfig,
-        job: JobConfig,
+        job_config: JobConfig,
         event: Union[CoprBuildEvent, PullRequestCommentEvent],
         chroot: str,
     ):
-        super().__init__(config=config, job=job, event=event)
+        super().__init__(config=config, job_config=job_config, event=event)
         self.chroot = chroot
         self.project: GitProject = event.get_project()
         if isinstance(event, CoprBuildEvent):
@@ -535,7 +537,7 @@ class GitHubIssueCommentProposeUpdateHandler(
         configured_branches = [
             job.metadata.get("dist-git-branch")
             for job in self.package_config.jobs
-            if job.job == JobType.propose_downstream
+            if job.type == JobType.propose_downstream
         ]
         if configured_branches:
             return list(get_branches(*configured_branches))

@@ -24,7 +24,6 @@ from typing import Optional, Any
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
 from ogr.abstract import GitProject, CommitStatus
-from packit.config import JobTriggerType
 from packit.exceptions import PackitException
 from persistentdict.dict_in_redis import PersistentDict
 
@@ -41,6 +40,7 @@ from packit_service.service.events import (
     TestingFarmResultsEvent,
     DistGitEvent,
     PushGitHubEvent,
+    TheJobTriggerType,
 )
 from packit_service.worker.build import CoprBuildJobHelper
 
@@ -219,7 +219,7 @@ class Whitelist:
                 logger.error(msg)
                 # TODO also check blacklist,
                 # but for that we need to know who triggered the action
-                if event.trigger == JobTriggerType.comment:
+                if event.trigger == TheJobTriggerType.pr_comment:
                     project.pr_comment(event.pr_id, msg)
                 else:
                     job_helper = CoprBuildJobHelper(

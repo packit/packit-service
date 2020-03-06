@@ -25,8 +25,6 @@ from pathlib import Path
 from typing import Set, Optional
 
 from ogr.abstract import GitProject
-from yaml import safe_load
-
 from packit.config import (
     RunCommandType,
     Config,
@@ -34,6 +32,8 @@ from packit.config import (
     PackageConfig,
 )
 from packit.exceptions import PackitException, PackitConfigException
+from yaml import safe_load
+
 from packit_service.constants import (
     SANDCASTLE_WORK_DIR,
     SANDCASTLE_PVC,

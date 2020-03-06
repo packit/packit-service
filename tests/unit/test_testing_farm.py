@@ -21,9 +21,8 @@
 # SOFTWARE.
 import pytest
 from flexmock import flexmock
-
 from ogr.abstract import CommitStatus
-from packit.config import JobConfig, JobType, JobTriggerType
+from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.local_project import LocalProject
 
 from packit_service.service.events import (
@@ -31,8 +30,8 @@ from packit_service.service.events import (
     TestingFarmResult,
     TestResult,
 )
-from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.handlers import TestingFarmResultsHandler
+from packit_service.worker.reporting import StatusReporter
 
 
 @pytest.mark.parametrize(
@@ -162,8 +161,8 @@ def test_testing_farm_response(
         flexmock(
             jobs=[
                 JobConfig(
-                    job=JobType.copr_build,
-                    trigger=JobTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                     metadata={},
                 )
             ],
@@ -171,7 +170,7 @@ def test_testing_farm_response(
     )
     test_farm_handler = TestingFarmResultsHandler(
         config=flexmock(command_handler_work_dir=flexmock()),
-        job=flexmock(),
+        job_config=flexmock(),
         test_results_event=TestingFarmResultsEvent(
             pipeline_id="id",
             result=tests_result,
