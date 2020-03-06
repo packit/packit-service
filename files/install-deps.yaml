@@ -32,4 +32,6 @@
           - persistentdict
           # temporary workaround for sake of marhsmallow
           - git+https://github.com/packit-service/packit.git
+          - sentry-sdk==0.14.2
+          - sentry-sdk[flask]==0.14.2
         executable: pip3
