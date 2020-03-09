@@ -572,18 +572,17 @@ class GitHubIssueCommentProposeUpdateHandler(
         sync_failed = False
         for branch in self.dist_git_branches_to_sync:
             msg = (
-                f"a new update for the Fedora package "
-                f"`{self.package_config.downstream_package_name}`"
+                f"for the Fedora package `{self.package_config.downstream_package_name}`"
                 f"with the tag `{self.event.tag_name}` in the `{branch}` branch.\n"
             )
             try:
-                self.api.sync_release(
-                    dist_git_branch=branch, version=self.event.tag_name
+                new_pr = self.api.sync_release(
+                    dist_git_branch=branch, version=self.event.tag_name, create_pr=True
                 )
-                msg = f"Packit-as-a-Service proposed {msg}"
+                msg = f"Packit-as-a-Service proposed [a new update]({new_pr.url}) {msg}"
                 self.project.issue_comment(self.event.issue_id, msg)
             except PackitException as ex:
-                msg = f"There was an error while proposing {msg} Traceback is: `{ex}`"
+                msg = f"There was an error while proposing a new update {msg} Traceback is: `{ex}`"
                 self.project.issue_comment(self.event.issue_id, msg)
                 logger.error(f"error while running a build: {ex}")
                 sync_failed = True
