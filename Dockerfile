@@ -22,6 +22,8 @@ COPY .git /src/.git
 COPY packit_service/ /src/packit_service/
 
 RUN cd /src/ \
+    && git rev-parse HEAD >/.packit-service.git.commit.hash \
+    && git show --quiet --format=%B HEAD >/.packit-service.git.commit.message \
     && ansible-playbook -vv -c local -i localhost, recipe.yaml
 
 # no need to rm /src, it will stay in the image anyway
