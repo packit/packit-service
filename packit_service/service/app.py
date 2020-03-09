@@ -23,6 +23,7 @@
 import logging
 
 from flask import Flask
+from lazy_object_proxy import Proxy
 from packit.utils import set_logging
 
 from packit_service.config import ServiceConfig
@@ -32,24 +33,28 @@ from packit_service.service.views import builds_blueprint
 
 set_logging(logger_name="packit_service", level=logging.DEBUG)
 
-configure_sentry(
-    runner_type="packit-service",
-    celery_integration=True,
-    sqlalchemy_integration=True,
-    flask_integration=True,
-)
 
-application = Flask(__name__)
-application.register_blueprint(blueprint)
-application.register_blueprint(builds_blueprint)
+def get_flask_application():
+    configure_sentry(
+        runner_type="packit-service",
+        celery_integration=True,
+        sqlalchemy_integration=True,
+        flask_integration=True,
+    )
+    app = Flask(__name__)
+    app.register_blueprint(blueprint)
+    app.register_blueprint(builds_blueprint)
+    s = ServiceConfig.get_service_config()
+    # https://flask.palletsprojects.com/en/1.1.x/config/#SERVER_NAME
+    app.config["SERVER_NAME"] = s.server_name
+    app.config["PREFERRED_URL_SCHEME"] = "https"
+    logger = logging.getLogger("packit_service")
+    logger.info(
+        f"server name = {s.server_name}, all HTTP requests need to use this URL!"
+    )
+    # no need to thank me, just buy me a beer
+    logger.debug(f"URL map = {app.url_map}")
+    return app
 
-s = ServiceConfig.get_service_config()
-# https://flask.palletsprojects.com/en/1.1.x/config/#SERVER_NAME
-application.config["SERVER_NAME"] = s.server_name
-application.config["PREFERRED_URL_SCHEME"] = "https"
 
-logger = logging.getLogger("packit_service")
-logger.info(f"server name = {s.server_name}, all HTTP requests need to use this URL!")
-
-# no need to thank me, just buy me a beer
-logger.debug(f"URL map = {application.url_map}")
+application = Proxy(get_flask_application)
