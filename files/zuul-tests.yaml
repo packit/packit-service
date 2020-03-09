@@ -7,5 +7,5 @@
     - name: Run tests within a container
       command: "make check_in_container"
       args:
-        chdir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+        chdir: "{{ project_dir }}"
       become: true

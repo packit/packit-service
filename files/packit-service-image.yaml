@@ -2,14 +2,15 @@
 - name: Build packit-service image form current src dir.
   hosts: all
   tasks:
+    - include_tasks: tasks/zuul-project-setup.yaml
     - name: Build packit-service image from current src dir
       command: "make service"
       args:
-        chdir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+        chdir: "{{ project_dir }}"
       become: true
 
     - name: Build packit-service worker image from current src dir
       command: "make worker"
       args:
-        chdir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+        chdir: "{{ project_dir }}"
       become: true
