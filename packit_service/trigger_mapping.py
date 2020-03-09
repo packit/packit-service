@@ -22,7 +22,7 @@
 
 from typing import Dict, Optional
 
-from packit.config import JobConfigTriggerType, JobConfig
+from packit.config import JobConfigTriggerType, JobConfig, JobType
 
 from packit_service.service.events import TheJobTriggerType
 
@@ -49,3 +49,10 @@ def is_trigger_matching_job_config(
     """
     config_trigger = JOB_TRIGGER_TO_CONFIG_MAPPING.get(trigger)
     return bool(config_trigger and job_config.trigger == config_trigger)
+
+
+def are_job_types_same(first: JobType, second: JobType) -> bool:
+    """
+    We need to treat `build` alias in a special way.
+    """
+    return first == second or {first, second} == {JobType.build, JobType.copr_build}

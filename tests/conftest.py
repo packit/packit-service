@@ -19,6 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import json
 import os
 from pathlib import Path
 
@@ -33,8 +34,14 @@ from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import GitProject, PullRequest, CoprBuild
+from packit_service.service.events import (
+    PullRequestEvent,
+    PushGitHubEvent,
+    ReleaseEvent,
+)
+from packit_service.worker.parser import Parser
 from packit_service.worker.whitelist import Whitelist
-from tests.spellbook import SAVED_HTTPD_REQS
+from tests.spellbook import SAVED_HTTPD_REQS, DATA_DIR
 
 
 @pytest.fixture()
@@ -161,3 +168,36 @@ def copr_build():
     c.pr = pr
     c.commit_sha = "0011223344"
     return c
+
+
+@pytest.fixture()
+def pull_request_webhhok() -> dict:
+    with open(DATA_DIR / "webhooks" / "github_pr_event.json", "r") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def branch_push_webhook() -> dict:
+    with open(DATA_DIR / "webhooks" / "github_push_branch.json", "r") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def release_webhook() -> dict:
+    with open(DATA_DIR / "webhooks" / "github_release_event.json", "r") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def branch_push_event(branch_push_webhook) -> PushGitHubEvent:
+    return Parser.parse_push_event(branch_push_webhook)
+
+
+@pytest.fixture()
+def release_event(release_webhook) -> ReleaseEvent:
+    return Parser.parse_release_event(release_webhook)
+
+
+@pytest.fixture()
+def pull_request_event(pull_request_webhhok) -> PullRequestEvent:
+    return Parser.parse_pr_event(pull_request_webhhok)

@@ -38,6 +38,7 @@ from packit.config.aliases import get_branches
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 
+from packit_service import sentry_integration
 from packit_service.config import ServiceConfig, GithubPackageConfigGetter
 from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
 from packit_service.service.events import (
@@ -51,7 +52,6 @@ from packit_service.service.events import (
     TheJobTriggerType,
 )
 from packit_service.service.models import Installation
-from packit_service import sentry_integration
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.handlers import (
     CommentActionHandler,
@@ -299,9 +299,9 @@ class AbstractGithubCoprBuildHandler(AbstractGithubJobHandler):
     def pre_check(self) -> bool:
         is_copr_build: Callable[
             [JobConfig], bool
-        ] = lambda job: job.job == JobType.copr_build
+        ] = lambda job: job.type == JobType.copr_build
 
-        if self.job_config.job == JobType.tests and any(
+        if self.job_config.type == JobType.tests and any(
             filter(is_copr_build, self.package_config.jobs)
         ):
             logger.info(
