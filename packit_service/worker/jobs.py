@@ -138,6 +138,8 @@ class SteveJobs:
         packit_command = []
         pr_comment_error_msg = ""
 
+        comment = comment.strip()
+
         if not comment:
             pr_comment_error_msg = f"comment '{comment}' is empty."
             return packit_command, pr_comment_error_msg

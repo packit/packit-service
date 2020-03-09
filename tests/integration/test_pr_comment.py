@@ -118,6 +118,8 @@ def test_pr_comment_build_handler(
         "/packit build",
         "asd\n/packit build\n",
         "Should be fixed now, lets /packit build it.",
+        "/packit build ",
+        " /packit build ",
     ),
 )
 def test_pr_embedded_command_handler(
