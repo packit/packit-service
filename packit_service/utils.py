@@ -19,43 +19,28 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import logging
 
-from os import getenv
-
-from celery import Celery
-from lazy_object_proxy import Proxy
-
-from packit_service.sentry_integration import configure_sentry
+logger = logging.getLogger(__name__)
 
 
-class Celerizer:
-    def __init__(self):
-        self._celery_app = None
+class only_once(object):
+    """
+    Use as a function decorator to run function only once.
+    """
 
-    @property
-    def celery_app(self):
-        if self._celery_app is None:
-            redis_host = getenv("REDIS_SERVICE_HOST", "localhost")
-            redis_port = getenv("REDIS_SERVICE_PORT", "6379")
-            redis_db = getenv("REDIS_SERVICE_DB", "0")
-            redis_url = "redis://{host}:{port}/{db}".format(
-                host=redis_host, port=redis_port, db=redis_db
-            )
+    def __init__(self, func):
+        self.func = func
+        self.configured = False
 
-            # http://docs.celeryproject.org/en/latest/reference/celery.html#celery.Celery
-            self._celery_app = Celery(backend=redis_url, broker=redis_url)
-        return self._celery_app
+    def __call__(self, *args, **kwargs):
+        if self.configured:
+            logger.debug(f"Function {self.func.__name__} already called. Skipping.")
+            return
 
-
-def get_celery_application():
-    celerizer = Celerizer()
-    app = celerizer.celery_app
-    configure_sentry(
-        runner_type="packit-worker",
-        celery_integration=True,
-        sqlalchemy_integration=True,
-    )
-    return app
-
-
-celery_app = Proxy(get_celery_application)
+        self.configured = True
+        logger.debug(
+            f"Function {self.func.__name__} called for the first time with "
+            f"args: {args} and kwargs: {kwargs}"
+        )
+        return self.func(*args, **kwargs)

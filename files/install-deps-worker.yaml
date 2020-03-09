@@ -16,6 +16,7 @@
           - python3-alembic
           - python3-sqlalchemy
           - python3-psycopg2
+          - python3-lazy-object-proxy
         state: present
     - name: Install pip deps
       pip:
