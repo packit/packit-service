@@ -21,15 +21,16 @@
 # SOFTWARE.
 
 import json
+from datetime import datetime
 
 import pytest
 from flexmock import flexmock
+from tests.spellbook import DATA_DIR
+
+from ogr.abstract import PullRequest, PRStatus
 from ogr.services.github.project import GithubProject
 from packit.api import PackitAPI
-
-from packit_service.worker.result import HandlerResults
 from packit_service.worker.jobs import SteveJobs
-from tests.spellbook import DATA_DIR
 
 
 @pytest.fixture()
@@ -43,7 +44,17 @@ def test_issue_comment_propose_update_handler(
     mock_issue_comment_functionality, issue_comment_propose_update_event
 ):
     flexmock(PackitAPI).should_receive("sync_release").and_return(
-        HandlerResults(success=True, details={})
+        PullRequest(
+            title="foo",
+            description="bar",
+            target_branch="baz",
+            source_branch="yet",
+            id=1,
+            status=PRStatus.open,
+            url="https://xyz",
+            author="me",
+            created=datetime.now(),
+        )
     )
     flexmock(
         GithubProject, get_files=lambda filter_regex: [],
