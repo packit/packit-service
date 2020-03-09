@@ -36,7 +36,10 @@ from packit_service.service.events import (
     PushGitHubEvent,
     ReleaseEvent,
 )
-from packit_service.trigger_mapping import is_trigger_matching_job_config
+from packit_service.trigger_mapping import (
+    is_trigger_matching_job_config,
+    are_job_types_same,
+)
 from packit_service.worker.reporting import StatusReporter
 
 logger = logging.getLogger(__name__)
@@ -86,8 +89,12 @@ class BaseBuildJobHelper:
         self._build_check_names: Optional[List[str]] = None
 
         # lazy properties, current job by default
-        self._job_build = job if job and job.job == self.job_type_build else None
-        self._job_tests = job if job and job.job == self.job_type_test else None
+        self._job_build = (
+            job if job and are_job_types_same(job.type, self.job_type_build) else None
+        )
+        self._job_tests = (
+            job if job and are_job_types_same(job.type, self.job_type_test) else None
+        )
 
     @property
     def local_project(self) -> LocalProject:
@@ -165,7 +172,9 @@ class BaseBuildJobHelper:
 
         if not self._job_build:
             for job in self.package_config.jobs:
-                if job.type == self.job_type_build and is_trigger_matching_job_config(
+                if are_job_types_same(
+                    job.type, self.job_type_build
+                ) and is_trigger_matching_job_config(
                     trigger=self.event.trigger, job_config=job
                 ):
                     self._job_build = job
@@ -183,7 +192,9 @@ class BaseBuildJobHelper:
 
         if not self._job_tests:
             for job in self.package_config.jobs:
-                if job.type == self.job_type_test and is_trigger_matching_job_config(
+                if are_job_types_same(
+                    job.type, self.job_type_test
+                ) and is_trigger_matching_job_config(
                     trigger=self.event.trigger, job_config=job
                 ):
                     self._job_tests = job

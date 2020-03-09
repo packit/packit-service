@@ -23,11 +23,15 @@ import os
 from pathlib import Path
 
 import pytest
-from packit.config import JobConfig, JobType, JobConfigTriggerType
+from flexmock import flexmock
+from packit.config import JobConfig, JobType, JobConfigTriggerType, PackageConfig
 
 from packit_service.config import ServiceConfig
 from packit_service.service.events import Event, TheJobTriggerType
 from packit_service.worker.handlers import JobHandler
+from packit_service.worker.handlers.github_handlers import (
+    AbstractGithubCoprBuildHandler,
+)
 
 
 @pytest.fixture()
@@ -60,3 +64,63 @@ def test_handler_cleanup(tmpdir, trick_p_s_with_k8s):
     j._clean_workplace()
 
     assert len(list(t.iterdir())) == 0
+
+
+def test_precheck(pull_request_event):
+    flexmock(AbstractGithubCoprBuildHandler).should_receive(
+        "get_package_config_from_repo"
+    ).and_return(
+        PackageConfig(
+            jobs=[
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata={},
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata={},
+                ),
+            ]
+        )
+    )
+    copr_build_handler = AbstractGithubCoprBuildHandler(
+        config=flexmock(),
+        job_config=JobConfig(
+            type=JobType.copr_build,
+            trigger=JobConfigTriggerType.pull_request,
+            metadata={},
+        ),
+        event=pull_request_event,
+    )
+    assert copr_build_handler.pre_check()
+
+
+def test_precheck_skip_tests_when_build_defined(pull_request_event):
+    flexmock(AbstractGithubCoprBuildHandler).should_receive(
+        "get_package_config_from_repo"
+    ).and_return(
+        PackageConfig(
+            jobs=[
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata={},
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata={},
+                ),
+            ]
+        )
+    )
+    copr_build_handler = AbstractGithubCoprBuildHandler(
+        config=flexmock(),
+        job_config=JobConfig(
+            type=JobType.tests, trigger=JobConfigTriggerType.pull_request, metadata={},
+        ),
+        event=pull_request_event,
+    )
+    assert not copr_build_handler.pre_check()
