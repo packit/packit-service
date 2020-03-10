@@ -20,20 +20,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Dict, Optional
+from typing import Dict
 
 from packit.config import JobConfigTriggerType, JobConfig, JobType
 
 from packit_service.service.events import TheJobTriggerType
 
-JOB_TRIGGER_TO_CONFIG_MAPPING: Dict[
-    TheJobTriggerType, Optional[JobConfigTriggerType]
-] = {
+JOB_TRIGGER_TO_CONFIG_MAPPING: Dict[TheJobTriggerType, JobConfigTriggerType] = {
     TheJobTriggerType.commit: JobConfigTriggerType.commit,
     TheJobTriggerType.release: JobConfigTriggerType.release,
     TheJobTriggerType.pull_request: JobConfigTriggerType.pull_request,
     TheJobTriggerType.push: JobConfigTriggerType.commit,
     TheJobTriggerType.pr_comment: JobConfigTriggerType.pull_request,
+    TheJobTriggerType.copr_start: JobConfigTriggerType.pull_request,
+    TheJobTriggerType.copr_end: JobConfigTriggerType.pull_request,
 }
 
 

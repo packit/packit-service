@@ -47,11 +47,20 @@ COMMENT_ACTION_HANDLER_MAPPING: Dict[CommentAction, Type["CommentActionHandler"]
 
 
 def add_to_comment_action_mapping(kls: Type["CommentActionHandler"]):
-    COMMENT_ACTION_HANDLER_MAPPING[kls.name] = kls
+    """
+    [class decorator]
+    Add a comment handler to the mapping.
+    """
+    COMMENT_ACTION_HANDLER_MAPPING[kls.type] = kls
     return kls
 
 
-def add_to_comment_action_mapping_with_name(name):
+def add_to_comment_action_mapping_with_name(name: CommentAction):
+    """
+    [class decorator]
+    Use this handler for the given comment action.
+    """
+
     def add_to_comment_action_mapping_with_name_inner(
         kls: Type["CommentActionHandler"],
     ):
@@ -62,7 +71,7 @@ def add_to_comment_action_mapping_with_name(name):
 
 
 class CommentActionHandler(Handler):
-    name: CommentAction
+    type: CommentAction
 
     def __init__(
         self,

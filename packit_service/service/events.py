@@ -87,6 +87,8 @@ class TheJobTriggerType(str, enum.Enum):
     testing_farm_results = "testing_farm_results"
     pr_comment = "pr_comment"
     issue_comment = "issue_comment"
+    copr_start = "copr_start"
+    copr_end = "copr_end"
 
 
 class TestResult(dict):
