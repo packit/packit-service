@@ -17,7 +17,7 @@ def cli():
 def add(account_name, reason):
     blacklist = Blacklist()
     if blacklist.add_account(account_name, reason):
-        print(f"Account: {account_name} approved successfully")
+        print(f"Account: {account_name} was added to the blacklist!")
 
 
 @click.command("remove")
