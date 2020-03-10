@@ -86,8 +86,6 @@ services:
     volumes:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
       # There's no secrets/ by default. You have to create (or symlink to other dir) it yourself.
-      # Make sure that httpd-packit.conf is present, otherwise you'll be getting 404
-      - ./secrets/dev/httpd-packit.conf:/etc/httpd/conf.d/httpd-packit.conf:ro,Z
       # Make sure to set `command_handler: local` since there is no kube in d-c
       - ./secrets/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
       - ./secrets/dev/fedora.keytab:/secrets/fedora.keytab:ro,z

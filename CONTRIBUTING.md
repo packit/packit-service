@@ -90,6 +90,47 @@ When you are contributing to changelog, please follow these suggestions:
   trying to convince the person to use the project and that the changelog
   should help with that.
 
+### Running packit-service locally
+
+Since packit-service is already a fairly complex system, it's not trivial to
+run it locally. This is why we are running everything in containers.
+
+This repository contains composefile for
+[docker-compose](https://github.com/docker/compose). Before you run it, we
+suggest you to open file and read all the comments.
+
+You can also run only certain pieces of packit-service for local development
+(e.g. worker, database or httpd).
+
+When you are running httpd and making requests to it, make sure that `server_name` configuration file in `packit-service.yaml` is set. Then you **need** to make requests to httpd using that hostname (which can be done by creating a new entry in `/etc/hosts` on your laptop). Flask literally checks if the request is meant for it by comparing `Host` from the HTTP request with the value of [`SERVER_NAME`](https://flask.palletsprojects.com/en/1.1.x/config/#SERVER_NAME). The `SERVER_NAME` value also has to include port number if it differs from the default, hence your `packit-service.yaml` should contain something like this:
+
+```yaml
+server_name: "stg.packit.dev:8443"
+```
+
+and `/etc/hosts`:
+
+```
+172.18.0.5  stg.packit.dev
+```
+
+With these you should be able to make requests:
+
+```
+$ curl -k --head https://stg.packit.dev:8443/api/
+HTTP/1.1 200 OK
+Date: Mon, 09 Mar 2020 15:06:35 GMT
+Server: Apache/2.4.41 (Fedora) OpenSSL/1.1.1d mod_wsgi/4.6.6 Python/3.7
+Content-Length: 3851
+Content-Type: text/html; charset=utf-8
+```
+
+Proof:
+
+```
+packit-service           | 172.18.0.1 - - [09/Mar/2020:15:06:35 +0000] "HEAD /api/ HTTP/1.1" 200 -
+```
+
 ### Generating GitHub webhooks
 
 If you need to create a webhook payload, you can utilize script `files/scripts/webhook.py`. It is able to create a minimal json with the webhook payload and send it to p-s instance of your choice (the default is localhost:8443). Pull request changes are only supported right now. For more info, check out the readme:

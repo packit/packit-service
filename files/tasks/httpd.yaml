@@ -59,6 +59,23 @@
   with_items:
     - /etc/pki/tls/certs/localhost.crt
     - /etc/pki/tls/private/localhost.key
+- name: symlink dev certs to expected prod location
+  block:
+    - file:
+        path: /secrets
+        state: directory
+    - file:
+        state: link
+        src: /etc/pki/tls/{{ item.local }}
+        dest: /secrets/{{ item.expected }}
+      with_items:
+        - { local: certs/localhost.crt, expected: fullchain.pem }
+        - { local: private/localhost.key, expected: privkey.pem }
+- name: Copy packit-httpd.conf
+  copy:
+    src: packit-httpd.conf
+    dest: /etc/httpd/conf.d/httpd-packit.conf
+    mode: 0644
 - name: Copy packit.wsgi file
   copy:
     src: packit.wsgi

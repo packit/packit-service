@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import logging
+from os import getenv
 
 from flask import Flask
 from lazy_object_proxy import Proxy
@@ -46,8 +47,12 @@ def get_flask_application():
     app.register_blueprint(builds_blueprint)
     s = ServiceConfig.get_service_config()
     # https://flask.palletsprojects.com/en/1.1.x/config/#SERVER_NAME
+    # also needs to contain port if it's not 443
     app.config["SERVER_NAME"] = s.server_name
     app.config["PREFERRED_URL_SCHEME"] = "https"
+    if getenv("DEPLOYMENT") in ("dev", "stg"):
+        app.config["DEBUG"] = True
+    app.logger.setLevel(logging.DEBUG)
     logger = logging.getLogger("packit_service")
     logger.info(
         f"server name = {s.server_name}, all HTTP requests need to use this URL!"
@@ -58,3 +63,16 @@ def get_flask_application():
 
 
 application = Proxy(get_flask_application)
+
+
+# With the code below, you can debug ALL requests coming to flask
+# @application.before_request
+# def log_request():
+#     from flask import request, url_for
+#     import logging
+#     logger = logging.getLogger(__name__)
+#     logger.info("Request Headers %s", request.headers)
+#     logger.info("sample URL: %s", url_for(
+#         "api.doc",
+#         _external=True,  # _external = generate a URL with FQDN, not a relative one
+#     ))
