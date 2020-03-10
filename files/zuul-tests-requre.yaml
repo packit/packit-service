@@ -6,7 +6,7 @@
     - include_tasks: tasks/zuul-project-setup.yaml
     - name: Creates zuul secrets directory
       file:
-        path: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/secrets/dev"
+        path: "{{ project_dir }}/secrets/dev"
         state: directory
     #  - name: Copy secrets to packit-service dir
     #    copy:
@@ -26,5 +26,5 @@
     - name: Run tests which are executed within openshift
       command: make check-inside-openshift-zuul
       args:
-        chdir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+        chdir: "{{ project_dir }}"
       become: true
