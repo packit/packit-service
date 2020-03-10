@@ -11,8 +11,8 @@ ENV LANG=en_US.UTF-8 \
 
 # Ansible doesn't like /tmp
 COPY files/install-deps-worker.yaml $PS_PATH/files/
-RUN cd $PS_PATH/ && \
-    ansible-playbook -vv -c local -i localhost, files/install-deps-worker.yaml \
+RUN cd $PS_PATH/ \
+    && ansible-playbook -vv -c local -i localhost, files/install-deps-worker.yaml \
     && dnf clean all
 
 COPY setup.py setup.cfg files/recipe-worker.yaml files/tasks/common.yaml files/run_worker.sh files/gitconfig .git_archival.txt .gitattributes $PS_PATH/
@@ -20,8 +20,10 @@ COPY setup.py setup.cfg files/recipe-worker.yaml files/tasks/common.yaml files/r
 COPY .git $PS_PATH/.git
 COPY packit_service/ $PS_PATH/packit_service/
 
-RUN cd $PS_PATH && \
-    ansible-playbook -vv -c local -i localhost, recipe-worker.yaml
+RUN cd $PS_PATH \
+    && git rev-parse HEAD >/.packit-service.git.commit.hash \
+    && git show --quiet --format=%B HEAD >/.packit-service.git.commit.message \
+    && ansible-playbook -vv -c local -i localhost, recipe-worker.yaml
 
 COPY . $PS_PATH
 WORKDIR $PS_PATH
