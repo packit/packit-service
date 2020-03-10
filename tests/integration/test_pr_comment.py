@@ -113,13 +113,37 @@ def test_pr_comment_build_handler(
 
 
 @pytest.mark.parametrize(
+    "comment",
+    (
+        "",
+        " ",
+        "   ",
+        "some unrelated",
+        "some\nmore\nunrelated\ntext",
+        "even\nsome → unicode",
+        " stuff",
+        " \n ",
+        "x ",
+    ),
+)
+def test_pr_comment_invalid(comment):
+    s = SteveJobs()
+    command, err_msg = s.find_packit_command(comment)
+    assert len(command) == 0
+    assert err_msg
+
+
+@pytest.mark.parametrize(
     "comments_list",
     (
         "/packit build",
-        "asd\n/packit build\n",
-        "Should be fixed now, lets /packit build it.",
         "/packit build ",
+        "/packit  build ",
+        " /packit build",
         " /packit build ",
+        "asd\n/packit build\n",
+        "asd\n /packit build \n",
+        "Should be fixed now, lets /packit build it.",
     ),
 )
 def test_pr_embedded_command_handler(
