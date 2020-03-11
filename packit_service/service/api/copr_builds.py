@@ -27,8 +27,7 @@ from flask import make_response
 from flask_restplus import Namespace, Resource
 
 from packit_service.service.api.parsers import indices, pagination_arguments
-from packit_service.models import CoprBuild, get_sa_session
-
+from packit_service.models import CoprBuild
 
 logger = getLogger("packit_service")
 
@@ -46,58 +45,11 @@ class CoprBuildsList(Resource):
         # Return relevant info thats concise
         # Usecases like the packit-dashboard copr-builds table
 
-        with get_sa_session() as session:
-            builds_list = session.query(CoprBuild).all()
-            result = []
-            checklist = []
-            for build in builds_list:
-                if int(build.build_id) not in checklist:
-                    build_dict = {
-                        "project": build.project_name,
-                        "owner": build.owner,
-                        "repo_name": build.pr.project.repo_name,
-                        "build_id": build.build_id,
-                        "status": build.status,
-                        "chroots": [],
-                        "build_submitted_time": build.build_submitted_time.strftime(
-                            "%d/%m/%Y %H:%M:%S"
-                        ),
-                        "repo_namespace": build.pr.project.namespace,
-                        "web_url": build.web_url,
-                    }
-                    # same_buildid_builds are copr builds created due to the same trigger
-                    # multiple identical builds are created which differ only in target
-                    # so we merge them into one
-                    same_buildid_builds = session.query(CoprBuild).filter(
-                        CoprBuild.build_id == build.build_id
-                    )
-                    for sbid_build in same_buildid_builds:
-                        build_dict["chroots"].append(sbid_build.target)
-
-                    checklist.append(int(build.build_id))
-                    result.append(build_dict)
-
-            first, last = indices()
-            resp = make_response(dumps(result[first:last]), HTTPStatus.PARTIAL_CONTENT)
-            resp.headers[
-                "Content-Range"
-            ] = f"copr-builds {first + 1}-{last}/{len(result)}"
-            resp.headers["Content-Type"] = "application/json"
-
-            return resp
-
-
-@ns.route("/<int:id>")
-@ns.param("id", "Copr build identifier")
-class InstallationItem(Resource):
-    @ns.response(HTTPStatus.OK, "OK, copr build details follow")
-    @ns.response(HTTPStatus.NO_CONTENT, "Copr build identifier not in db/hash")
-    def get(self, id):
-        """A specific copr build details. From copr_build hash, filled by worker."""
-        with get_sa_session() as session:
-            builds_list = session.query(CoprBuild).filter(CoprBuild.build_id == str(id))
-            if bool(builds_list.first()):
-                build = builds_list[0]
+        builds_list = CoprBuild.get_all_builds_info()
+        result = []
+        checklist = []
+        for build in builds_list:
+            if int(build.build_id) not in checklist:
                 build_dict = {
                     "project": build.project_name,
                     "owner": build.owner,
@@ -108,27 +60,68 @@ class InstallationItem(Resource):
                     "build_submitted_time": build.build_submitted_time.strftime(
                         "%d/%m/%Y %H:%M:%S"
                     ),
-                    "build_start_time": build.build_start_time,
-                    "build_finished_time": build.build_finished_time,
-                    "pr_id": build.pr.pr_id,
-                    "commit_sha": build.commit_sha,
                     "repo_namespace": build.pr.project.namespace,
                     "web_url": build.web_url,
-                    "srpm_logs": build.srpm_build.logs,
-                    "git_repo": f"https://github.com/{build.pr.project.namespace}/"
-                    "{build.pr.project.repo_name}",
-                    # For backwards compatability with the redis API
-                    "ref": build.commit_sha,
-                    "https_url": f"https://github.com/{build.pr.project.namespace}/"
-                    "{build.pr.project.repo_name}.git",
                 }
-                # merge chroots into one
-                for sbid_build in builds_list:
+                # same_buildid_builds are copr builds created due to the same trigger
+                # multiple identical builds are created which differ only in target
+                # so we merge them into one
+                same_buildid_builds = CoprBuild.get_all_build_id(str(build.build_id))
+                for sbid_build in same_buildid_builds:
                     build_dict["chroots"].append(sbid_build.target)
 
-                build = make_response(dumps(build_dict))
-                build.headers["Content-Type"] = "application/json"
-                return build if build else ("", HTTPStatus.NO_CONTENT)
+                checklist.append(int(build.build_id))
+                result.append(build_dict)
 
-            else:
-                return ("", HTTPStatus.NO_CONTENT)
+        first, last = indices()
+        resp = make_response(dumps(result[first:last]), HTTPStatus.PARTIAL_CONTENT)
+        resp.headers["Content-Range"] = f"copr-builds {first + 1}-{last}/{len(result)}"
+        resp.headers["Content-Type"] = "application/json"
+
+        return resp
+
+
+@ns.route("/<int:id>")
+@ns.param("id", "Copr build identifier")
+class InstallationItem(Resource):
+    @ns.response(HTTPStatus.OK, "OK, copr build details follow")
+    @ns.response(HTTPStatus.NO_CONTENT, "Copr build identifier not in db/hash")
+    def get(self, id):
+        """A specific copr build details. From copr_build hash, filled by worker."""
+        builds_list = CoprBuild.get_all_build_id(str(id))
+        if bool(builds_list.first()):
+            build = builds_list[0]
+            build_dict = {
+                "project": build.project_name,
+                "owner": build.owner,
+                "repo_name": build.pr.project.repo_name,
+                "build_id": build.build_id,
+                "status": build.status,
+                "chroots": [],
+                "build_submitted_time": build.build_submitted_time.strftime(
+                    "%d/%m/%Y %H:%M:%S"
+                ),
+                "build_start_time": build.build_start_time,
+                "build_finished_time": build.build_finished_time,
+                "pr_id": build.pr.pr_id,
+                "commit_sha": build.commit_sha,
+                "repo_namespace": build.pr.project.namespace,
+                "web_url": build.web_url,
+                "srpm_logs": build.srpm_build.logs,
+                "git_repo": f"https://github.com/{build.pr.project.namespace}"
+                "{build.pr.project.repo_name}",
+                # For backwards compatability with the redis API
+                "ref": build.commit_sha,
+                "https_url": f"https://github.com/{build.pr.project.namespace}/"
+                "{build.pr.project.repo_name}.git",
+            }
+            # merge chroots into one
+            for sbid_build in builds_list:
+                build_dict["chroots"].append(sbid_build.target)
+
+            build = make_response(dumps(build_dict))
+            build.headers["Content-Type"] = "application/json"
+            return build if build else ("", HTTPStatus.NO_CONTENT)
+
+        else:
+            return ("", HTTPStatus.NO_CONTENT)

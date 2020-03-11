@@ -86,6 +86,10 @@ class GitProject(Base):
     repo_name = Column(String, index=True)
     pull_requests = relationship("PullRequest", back_populates="project")
 
+    # Git URL of the repo
+    # Example: https://github.com/packit-service/hello-world.git
+    https_url = Column(String)
+
     @classmethod
     def get_or_create(cls, namespace: str, repo_name: str) -> "GitProject":
         with get_sa_session() as session:
@@ -169,8 +173,7 @@ class CoprBuild(Base):
     build_submitted_time = Column(DateTime, default=datetime.utcnow)
     build_start_time = Column(DateTime)
     build_finished_time = Column(DateTime)
-    # git url
-    https_url = Column(String)
+
     # project name as shown in copr
     project_name = Column(String)
     owner = Column(String)
@@ -194,6 +197,21 @@ class CoprBuild(Base):
         with get_sa_session() as session:
             return session.query(CoprBuild).filter_by(id=id_).first()
 
+    @classmethod
+    def get_all_builds_info(cls) -> Optional["CoprBuild"]:
+        with get_sa_session() as session:
+            return session.query(CoprBuild).all()
+
+    # Returns all builds with that build_id, irrespective of target
+    @classmethod
+    def get_all_build_id(cls, build_id: Union[str, int]) -> Optional["CoprBuild"]:
+        if isinstance(build_id, int):
+            # See the comment in get_by_build_id()
+            build_id = str(build_id)
+        with get_sa_session() as session:
+            return session.query(CoprBuild).filter_by(build_id=build_id)
+
+    # returns the build matching the build_id and the target
     @classmethod
     def get_by_build_id(
         cls, build_id: Union[str, int], target: str
