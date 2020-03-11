@@ -48,13 +48,13 @@ from packit_service.worker.handlers import (
 )
 from packit_service.worker.handlers.abstract import (
     Handler,
-    MAP_EVENT_TRIGGER_TO_HANDLER,
+    MAP_EVENT_TRIGGER_TO_HANDLERS,
     MAP_HANDLER_TO_JOB_TYPES,
-    JOB_REQUIRED_MAPPING,
+    MAP_REQUIRED_JOB_TO_HANDLERS,
     JobHandler,
 )
 from packit_service.worker.handlers.comment_action_handler import (
-    COMMENT_ACTION_HANDLER_MAPPING,
+    MAP_COMMENT_ACTION_TO_HANDLER,
     CommentAction,
 )
 from packit_service.worker.parser import Parser
@@ -77,14 +77,14 @@ def get_handlers_for_event(
     :return: set of handler instances
     """
     handlers: Set[Type[JobHandler]] = set()
-    classes_for_trigger = MAP_EVENT_TRIGGER_TO_HANDLER[event.trigger]
+    classes_for_trigger = MAP_EVENT_TRIGGER_TO_HANDLERS[event.trigger]
 
     for job in package_config.jobs:
         if is_trigger_matching_job_config(trigger=event.trigger, job_config=job):
             for pos_handler in classes_for_trigger:
                 if job.type in MAP_HANDLER_TO_JOB_TYPES[pos_handler]:
                     handlers.add(pos_handler)
-        required_handlers = JOB_REQUIRED_MAPPING[job.type]
+        required_handlers = MAP_REQUIRED_JOB_TO_HANDLERS[job.type]
         for pos_handler in required_handlers:
             for trigger in pos_handler.triggers:
                 if trigger == event.trigger:
@@ -96,13 +96,21 @@ def get_handlers_for_event(
 def get_config_for_handler_kls(
     handler_kls: Type[JobHandler], event: Event, package_config: PackageConfig
 ) -> Optional[JobConfig]:
+    """
+    Get a JobConfig relevant to event and the handler class.
+
+    :param handler_kls: class that will use the JobConfig
+    :param event: which we are reacting to
+    :param package_config: we pick the JobConfig from this package_config instance
+    :return: JobConfig
+    """
     for job in package_config.jobs:
         if job.type in MAP_HANDLER_TO_JOB_TYPES[
             handler_kls
         ] and is_trigger_matching_job_config(trigger=event.trigger, job_config=job):
             return job
 
-        required_handlers = JOB_REQUIRED_MAPPING[job.type]
+        required_handlers = MAP_REQUIRED_JOB_TO_HANDLERS[job.type]
         for pos_handler in required_handlers:
             for trigger in pos_handler.triggers:
                 if trigger == event.trigger:
@@ -231,7 +239,7 @@ class SteveJobs:
                     "msg": f"{msg} does not contain a valid packit-service command."
                 },
             )
-        handler_kls: Type[CommentActionHandler] = COMMENT_ACTION_HANDLER_MAPPING.get(
+        handler_kls: Type[CommentActionHandler] = MAP_COMMENT_ACTION_TO_HANDLER.get(
             packit_action, None
         )
         if not handler_kls:

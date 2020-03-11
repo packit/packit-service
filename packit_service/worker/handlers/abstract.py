@@ -41,9 +41,9 @@ from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
 
-JOB_REQUIRED_MAPPING: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(set)
+MAP_REQUIRED_JOB_TO_HANDLERS: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(set)
 
-MAP_EVENT_TRIGGER_TO_HANDLER: Dict[
+MAP_EVENT_TRIGGER_TO_HANDLERS: Dict[
     TheJobTriggerType, Set[Type["JobHandler"]]
 ] = defaultdict(set)
 
@@ -56,7 +56,7 @@ def add_to_mapping(kls: Type["JobHandler"]):
     Add the handler to the trigger->handler mapping.
     """
     for trigger in kls.triggers:
-        MAP_EVENT_TRIGGER_TO_HANDLER[trigger].add(kls)
+        MAP_EVENT_TRIGGER_TO_HANDLERS[trigger].add(kls)
     return kls
 
 
@@ -69,7 +69,7 @@ def add_alias(job_type: JobType):
 
     def _add_to_mapping(kls: Type["JobHandler"]):
         for trigger in kls.triggers:
-            MAP_EVENT_TRIGGER_TO_HANDLER[trigger].add(kls)
+            MAP_EVENT_TRIGGER_TO_HANDLERS[trigger].add(kls)
         MAP_HANDLER_TO_JOB_TYPES[kls].add(job_type)
         return kls
 
@@ -85,7 +85,7 @@ def required_by(job_type: JobType):
     """
 
     def _add_to_mapping(kls: Type["JobHandler"]):
-        JOB_REQUIRED_MAPPING[job_type].add(kls)
+        MAP_REQUIRED_JOB_TO_HANDLERS[job_type].add(kls)
         return kls
 
     return _add_to_mapping
