@@ -3,14 +3,12 @@
   hosts: all
   tasks:
     - include_tasks: tasks/zuul-project-setup.yaml
-    - name: Build packit-service image from current src dir
-      command: "make service"
-      args:
-        chdir: "{{ project_dir }}"
-      become: true
 
-    - name: Build packit-service worker image from current src dir
-      command: "make worker"
+    - name: Build service and worker images
+      command: "make {{ item }}"
       args:
         chdir: "{{ project_dir }}"
       become: true
+      with_items:
+        - service
+        - worker
