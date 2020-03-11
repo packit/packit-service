@@ -179,15 +179,15 @@ class ProposeDownstreamHandler(AbstractGithubJobHandler):
     event: ReleaseEvent
 
     def __init__(
-        self, config: ServiceConfig, job_config: JobConfig, release_event: ReleaseEvent
+        self, config: ServiceConfig, job_config: JobConfig, event: ReleaseEvent
     ):
-        super().__init__(config=config, job_config=job_config, event=release_event)
+        super().__init__(config=config, job_config=job_config, event=event)
 
-        self.project: GitProject = release_event.get_project()
+        self.project: GitProject = event.get_project()
         self.package_config: PackageConfig = self.get_package_config_from_repo(
-            self.project, release_event.tag_name
+            self.project, event.tag_name
         )
-        self.package_config.upstream_project_url = release_event.project_url
+        self.package_config.upstream_project_url = event.project_url
 
     def run(self) -> HandlerResults:
         """
@@ -505,6 +505,7 @@ class GitHubIssueCommentProposeUpdateHandler(
     """ Handler for issue comment `/packit propose-update` """
 
     type = CommentAction.propose_update
+    triggers = [TheJobTriggerType.issue_comment]
     event: IssueCommentEvent
 
     def __init__(self, config: ServiceConfig, event: IssueCommentEvent):
@@ -614,7 +615,7 @@ class GitHubPullRequestCommentTestingFarmHandler(
 
     type = CommentAction.test
     event: PullRequestCommentEvent
-    trgggers = [TheJobTriggerType.pr_comment]
+    triggers = [TheJobTriggerType.pr_comment]
 
     def __init__(self, config: ServiceConfig, event: PullRequestCommentEvent):
         super().__init__(config=config, event=event)

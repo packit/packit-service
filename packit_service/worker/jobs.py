@@ -36,9 +36,6 @@ from packit_service.service.events import (
     PullRequestCommentEvent,
     IssueCommentEvent,
     Event,
-    TestingFarmResultsEvent,
-    CoprBuildEvent,
-    FedmsgTopic,
     TheJobTriggerType,
 )
 from packit_service.trigger_mapping import is_trigger_matching_job_config
@@ -104,6 +101,12 @@ def get_config_for_handler_kls(
             handler_kls
         ] and is_trigger_matching_job_config(trigger=event.trigger, job_config=job):
             return job
+
+        required_handlers = JOB_REQUIRED_MAPPING[job.type]
+        for pos_handler in required_handlers:
+            for trigger in pos_handler.triggers:
+                if trigger == event.trigger:
+                    return job
     return None
 
 
@@ -170,7 +173,7 @@ class SteveJobs:
                 return handlers_results
 
             logger.debug(f"Running handler: {str(handler_kls)}")
-            handler = handler_kls(self.config, job, event)
+            handler = handler_kls(config=self.config, job_config=job, event=event)
             if handler.pre_check():
                 handlers_results[job.type.value] = handler.run_n_clean()
             # don't break here, other handlers may react to the same event
@@ -300,31 +303,6 @@ class SteveJobs:
                 self.config, job_config=None, installation_event=event_object
             )
             job_type = JobType.add_to_whitelist.value
-            jobs_results[job_type] = handler.run_n_clean()
-        # Results from testing farm is another job which is not defined in packit.yaml so
-        # it needs to be handled outside process_jobs method
-        elif (
-            event_object.trigger == TheJobTriggerType.testing_farm_results
-            and isinstance(event_object, TestingFarmResultsEvent)
-        ):
-            handler = TestingFarmResultsHandler(
-                self.config, job_config=None, test_results_event=event_object
-            )
-            job_type = JobType.report_test_results.value
-            jobs_results[job_type] = handler.run_n_clean()
-        elif isinstance(event_object, CoprBuildEvent):
-            if event_object.topic == FedmsgTopic.copr_build_started:
-                handler = CoprBuildStartHandler(
-                    self.config, job_config=None, event=event_object
-                )
-                job_type = JobType.copr_build_started.value
-            elif event_object.topic == FedmsgTopic.copr_build_finished:
-                handler = CoprBuildEndHandler(
-                    self.config, job_config=None, event=event_object
-                )
-                job_type = JobType.copr_build_finished.value
-            else:
-                raise ValueError(f"Unknown topic {event_object.topic}")
             jobs_results[job_type] = handler.run_n_clean()
         elif event_object.trigger in {
             TheJobTriggerType.issue_comment,

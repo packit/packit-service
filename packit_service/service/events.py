@@ -529,8 +529,16 @@ class CoprBuildEvent(AbstractGithubEvent):
             self.base_repo_namespace = build.get("repo_namespace")
             https_url = build["https_url"]
 
-        super().__init__(trigger=TheJobTriggerType.pull_request, project_url=https_url)
         self.topic = FedmsgTopic(topic)
+        if self.topic == FedmsgTopic.copr_build_started:
+            trigger = TheJobTriggerType.copr_start
+        elif self.topic == FedmsgTopic.copr_build_finished:
+            trigger = TheJobTriggerType.copr_end
+        else:
+            raise ValueError(f"Unknown topic for CoprEvent: '{self.topic}'")
+
+        super().__init__(trigger=trigger, project_url=https_url)
+
         self.build_id = build_id
         self.build = build
         self.chroot = chroot
