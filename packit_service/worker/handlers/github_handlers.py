@@ -59,9 +59,7 @@ from packit_service.worker.handlers import (
     JobHandler,
 )
 from packit_service.worker.handlers.abstract import (
-    add_to_mapping,
     required_by,
-    add_alias,
     use_for,
 )
 from packit_service.worker.handlers.comment_action_handler import (
@@ -80,7 +78,6 @@ class AbstractGithubJobHandler(JobHandler, GithubPackageConfigGetter):
     pass
 
 
-@add_to_mapping
 @use_for(job_type=JobType.check_downstream)
 class PullRequestGithubCheckDownstreamHandler(AbstractGithubJobHandler):
     type = JobType.check_downstream
@@ -114,7 +111,6 @@ class PullRequestGithubCheckDownstreamHandler(AbstractGithubJobHandler):
         return HandlerResults(success=True, details={})
 
 
-@add_to_mapping
 class GithubAppInstallationHandler(AbstractGithubJobHandler):
     type = JobType.add_to_whitelist
     triggers = [TheJobTriggerType.installation]
@@ -172,7 +168,6 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
         return HandlerResults(success=True, details={"msg": msg})
 
 
-@add_to_mapping
 @use_for(job_type=JobType.propose_downstream)
 class ProposeDownstreamHandler(AbstractGithubJobHandler):
     type = JobType.propose_downstream
@@ -316,10 +311,9 @@ class AbstractGithubCoprBuildHandler(AbstractGithubJobHandler):
         return True
 
 
-@add_to_mapping
-@add_alias(job_type=JobType.build)
-@required_by(job_type=JobType.tests)
 @use_for(job_type=JobType.copr_build)
+@use_for(job_type=JobType.build)
+@required_by(job_type=JobType.tests)
 class ReleaseGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
     triggers = [
         TheJobTriggerType.release,
@@ -341,10 +335,9 @@ class ReleaseGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
         )
 
 
-@add_to_mapping
-@add_alias(job_type=JobType.build)
-@required_by(job_type=JobType.tests)
 @use_for(job_type=JobType.copr_build)
+@use_for(job_type=JobType.build)
+@required_by(job_type=JobType.tests)
 class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
     triggers = [
         TheJobTriggerType.pull_request,
@@ -377,10 +370,9 @@ class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
         )
 
 
-@add_to_mapping
-@add_alias(job_type=JobType.build)
-@required_by(job_type=JobType.tests)
 @use_for(job_type=JobType.copr_build)
+@use_for(job_type=JobType.build)
+@required_by(job_type=JobType.tests)
 class PushGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
     triggers = [
         TheJobTriggerType.push,
@@ -488,7 +480,6 @@ class AbstractGithubKojiBuildHandler(AbstractGithubJobHandler):
         return True
 
 
-@add_to_mapping
 @use_for(job_type=JobType.production_build)
 class ReleaseGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     triggers = [
@@ -511,7 +502,6 @@ class ReleaseGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
         )
 
 
-@add_to_mapping
 @use_for(job_type=JobType.production_build)
 class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     triggers = [
@@ -545,7 +535,6 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
         )
 
 
-@add_to_mapping
 @use_for(job_type=JobType.production_build)
 class PushGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     triggers = [

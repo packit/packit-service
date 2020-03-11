@@ -52,7 +52,6 @@ from packit_service.service.urls import get_log_url
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.handlers.abstract import JobHandler, use_for, required_by
-from packit_service.worker.handlers.abstract import add_to_mapping
 from packit_service.worker.handlers.github_handlers import GithubTestingFarmHandler
 from packit_service.worker.result import HandlerResults
 
@@ -122,7 +121,6 @@ class FedmsgHandler(JobHandler):
 
 
 @add_topic
-@add_to_mapping
 @use_for(job_type=JobType.sync_from_downstream)
 class NewDistGitCommitHandler(FedmsgHandler):
     """Sync new changes to upstream after a new git push in the dist-git."""
@@ -173,7 +171,6 @@ class NewDistGitCommitHandler(FedmsgHandler):
 
 
 @add_topic
-@add_to_mapping
 @use_for(job_type=JobType.copr_build)
 @required_by(job_type=JobType.tests)
 class CoprBuildEndHandler(FedmsgHandler):
@@ -303,7 +300,6 @@ class CoprBuildEndHandler(FedmsgHandler):
 
 
 @add_topic
-@add_to_mapping
 @use_for(job_type=JobType.copr_build)
 @required_by(job_type=JobType.tests)
 class CoprBuildStartHandler(FedmsgHandler):
