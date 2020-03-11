@@ -50,32 +50,6 @@ MAP_EVENT_TRIGGER_TO_HANDLERS: Dict[
 MAP_HANDLER_TO_JOB_TYPES: Dict[Type["JobHandler"], Set[JobType]] = defaultdict(set)
 
 
-def add_to_mapping(kls: Type["JobHandler"]):
-    """
-    [class decorator]
-    Add the handler to the trigger->handler mapping.
-    """
-    for trigger in kls.triggers:
-        MAP_EVENT_TRIGGER_TO_HANDLERS[trigger].add(kls)
-    return kls
-
-
-def add_alias(job_type: JobType):
-    """
-    [class decorator]
-    Use the given type as an alias for this job class.
-    This decorator will updated needed mapping so users can combine all and new types.
-    """
-
-    def _add_to_mapping(kls: Type["JobHandler"]):
-        for trigger in kls.triggers:
-            MAP_EVENT_TRIGGER_TO_HANDLERS[trigger].add(kls)
-        MAP_HANDLER_TO_JOB_TYPES[kls].add(job_type)
-        return kls
-
-    return _add_to_mapping
-
-
 def required_by(job_type: JobType):
     """
     [class decorator]
@@ -98,6 +72,8 @@ def use_for(job_type: JobType):
     """
 
     def _add_to_mapping(kls: Type["JobHandler"]):
+        for trigger in kls.triggers:
+            MAP_EVENT_TRIGGER_TO_HANDLERS[trigger].add(kls)
         MAP_HANDLER_TO_JOB_TYPES[kls].add(job_type)
         return kls
 
