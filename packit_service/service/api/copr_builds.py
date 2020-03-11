@@ -22,7 +22,6 @@
 from http import HTTPStatus
 from json import dumps
 from logging import getLogger
-from datetime import datetime
 
 from flask import make_response
 from flask_restplus import Namespace, Resource
@@ -116,10 +115,12 @@ class InstallationItem(Resource):
                     "repo_namespace": build.pr.project.namespace,
                     "web_url": build.web_url,
                     "srpm_logs": build.srpm_build.logs,
-                    "git_repo": f"https://github.com/{build.pr.project.namespace}/{build.pr.project.repo_name}",
+                    "git_repo": f"https://github.com/{build.pr.project.namespace}/"
+                    "{build.pr.project.repo_name}",
                     # For backwards compatability with the redis API
                     "ref": build.commit_sha,
-                    "https_url": f"https://github.com/{build.pr.project.namespace}/{build.pr.project.repo_name}.git",
+                    "https_url": f"https://github.com/{build.pr.project.namespace}/"
+                    "{build.pr.project.repo_name}.git",
                 }
                 # merge chroots into one
                 for sbid_build in builds_list:

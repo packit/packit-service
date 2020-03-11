@@ -160,7 +160,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 repo_name=self.project.repo,
                 namespace=self.project.namespace,
                 project_name=self.job_project,
-                owner = self.job_owner,
+                owner=self.job_owner,
                 web_url=build_metadata.copr_web_url,
                 target=chroot,
                 status="pending",
@@ -173,8 +173,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 url=url,
                 chroot=chroot,
             )
-
-        
 
         self.copr_build_model.build_id = build_metadata.copr_build_id
         self.copr_build_model.save()
