@@ -53,6 +53,7 @@ from packit_service.service.events import (
 )
 from packit_service.service.models import Installation
 from packit_service.worker.build import CoprBuildJobHelper
+from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.handlers import (
     CommentActionHandler,
     JobHandler,
@@ -379,8 +380,10 @@ class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
 @add_to_mapping
 @add_alias(job_type=JobType.build)
 @required_by(job_type=JobType.tests)
+@use_for(job_type=JobType.copr_build)
 class PushGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
     triggers = [
+        TheJobTriggerType.push,
         TheJobTriggerType.commit,
     ]
     event: PushGitHubEvent
@@ -395,12 +398,178 @@ class PushGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
         valid = (
             super().pre_check()
             and isinstance(self.event, PushGitHubEvent)
-            and self.event.trigger == TheJobTriggerType.commit
+            and self.event.trigger == TheJobTriggerType.push
         )
         if not valid:
             return False
 
         configured_branch = self.copr_build_helper.job_build.metadata.get(
+            "branch", "master"
+        )
+        if configured_branch != self.event.git_ref:
+            logger.info(
+                f"Skipping build on {self.event.git_ref}'. "
+                f"Push configured only for ('{configured_branch}')."
+            )
+            return False
+        return True
+
+
+class AbstractGithubKojiBuildHandler(AbstractGithubJobHandler):
+    type = JobType.production_build
+    event: Union[PullRequestEvent, ReleaseEvent, PushGitHubEvent]
+
+    def __init__(
+        self,
+        config: ServiceConfig,
+        job_config: JobConfig,
+        event: Union[PullRequestEvent, ReleaseEvent, PushGitHubEvent],
+    ):
+        super().__init__(config=config, job_config=job_config, event=event)
+
+        if not isinstance(event, (PullRequestEvent, PushGitHubEvent, ReleaseEvent)):
+            raise PackitException(
+                "Unknown event, only "
+                "PullRequestEvent, ReleaseEvent, and PushGitHubEvent "
+                "are accepted."
+            )
+
+        # lazy property
+        self._koji_build_helper: Optional[KojiBuildJobHelper] = None
+        self._package_config: Optional[PackageConfig] = None
+        self._project: Optional[GitProject] = None
+
+    @property
+    def koji_build_helper(self) -> KojiBuildJobHelper:
+        if not self._koji_build_helper:
+            self._koji_build_helper = KojiBuildJobHelper(
+                config=self.config,
+                package_config=self.package_config,
+                project=self.project,
+                event=self.event,
+                job=self.job_config,
+            )
+        return self._koji_build_helper
+
+    @property
+    def package_config(self) -> PackageConfig:
+        if not self._package_config:
+            self._package_config = self.get_package_config_from_repo(
+                project=self.project,
+                reference=self.event.commit_sha or str(self.event.git_ref),
+                pr_id=self.event.pr_id
+                if isinstance(self.event, (PullRequestEvent, PullRequestCommentEvent))
+                else None,
+            )
+            self._package_config.upstream_project_url = self.event.project_url
+        return self._package_config
+
+    @property
+    def project(self) -> GitProject:
+        if not self._project:
+            self._project = self.event.get_project()
+        return self._project
+
+    def run(self) -> HandlerResults:
+        return self.koji_build_helper.run_koji_build()
+
+    def pre_check(self) -> bool:
+        is_copr_build: Callable[
+            [JobConfig], bool
+        ] = lambda job: job.type == JobType.copr_build
+
+        if self.job_config.type == JobType.tests and any(
+            filter(is_copr_build, self.package_config.jobs)
+        ):
+            logger.info(
+                "Skipping build for testing. The COPR build is defined in the config."
+            )
+            return False
+        return True
+
+
+@add_to_mapping
+@use_for(job_type=JobType.production_build)
+class ReleaseGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
+    triggers = [
+        TheJobTriggerType.release,
+    ]
+
+    event: ReleaseEvent
+
+    def __init__(
+        self, config: ServiceConfig, job_config: JobConfig, event: ReleaseEvent,
+    ):
+        super().__init__(config=config, job_config=job_config, event=event)
+        self.base_ref = event.tag_name
+
+    def pre_check(self) -> bool:
+        return (
+            super().pre_check()
+            and isinstance(self.event, ReleaseEvent)
+            and self.event.trigger == TheJobTriggerType.release
+        )
+
+
+@add_to_mapping
+@use_for(job_type=JobType.production_build)
+class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
+    triggers = [
+        TheJobTriggerType.pull_request,
+    ]
+    event: PullRequestEvent
+
+    def __init__(
+        self, config: ServiceConfig, job_config: JobConfig, event: PullRequestEvent,
+    ):
+        super().__init__(config=config, job_config=job_config, event=event)
+
+    def run(self) -> HandlerResults:
+        if isinstance(self.event, PullRequestEvent):
+            collaborators = self.project.who_can_merge_pr()
+            if self.event.github_login not in collaborators | self.config.admins:
+                self.koji_build_helper.report_status_to_all(
+                    description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
+                    state=CommitStatus.failure,
+                )
+                return HandlerResults(
+                    success=False, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
+                )
+        return super().run()
+
+    def pre_check(self) -> bool:
+        return (
+            super().pre_check()
+            and isinstance(self.event, PullRequestEvent)
+            and self.event.trigger == TheJobTriggerType.pull_request
+        )
+
+
+@add_to_mapping
+@use_for(job_type=JobType.production_build)
+class PushGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
+    triggers = [
+        TheJobTriggerType.push,
+        TheJobTriggerType.commit,
+    ]
+    event: PushGitHubEvent
+
+    def __init__(
+        self, config: ServiceConfig, job_config: JobConfig, event: PushGitHubEvent,
+    ):
+        super().__init__(config=config, job_config=job_config, event=event)
+        self.base_ref = event.commit_sha
+
+    def pre_check(self) -> bool:
+        valid = (
+            super().pre_check()
+            and isinstance(self.event, PushGitHubEvent)
+            and self.event.trigger == TheJobTriggerType.push
+        )
+        if not valid:
+            return False
+
+        configured_branch = self.koji_build_helper.job_build.metadata.get(
             "branch", "master"
         )
         if configured_branch != self.event.git_ref:

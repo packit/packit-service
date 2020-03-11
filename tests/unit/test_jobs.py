@@ -30,6 +30,12 @@ from packit_service.worker.handlers import (
     CoprBuildStartHandler,
     CoprBuildEndHandler,
 )
+from packit_service.worker.handlers.github_handlers import (
+    PullRequestGithubKojiBuildHandler,
+    PushGithubKojiBuildHandler,
+    PushGithubCoprBuildHandler,
+    ReleaseGithubKojiBuildHandler,
+)
 from packit_service.worker.jobs import get_handlers_for_event
 
 
@@ -62,6 +68,30 @@ from packit_service.worker.jobs import get_handlers_for_event
             ],
             {PullRequestGithubCoprBuildHandler},
             id="config=build@trigger=pull_request",
+        ),
+        pytest.param(
+            TheJobTriggerType.push,
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata={},
+                )
+            ],
+            {PushGithubCoprBuildHandler},
+            id="config=copr_build_on_push@trigger=push",
+        ),
+        pytest.param(
+            TheJobTriggerType.commit,
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata={},
+                )
+            ],
+            {PushGithubCoprBuildHandler},
+            id="config=copr_build_on_push@trigger=commit",
         ),
         pytest.param(
             TheJobTriggerType.release,
@@ -230,14 +260,77 @@ from packit_service.worker.jobs import get_handlers_for_event
             {CoprBuildStartHandler},
             id="config=tests_and_copr_build_and_propose_and_sync@trigger=copr_start",
         ),
+        pytest.param(
+            TheJobTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata={},
+                ),
+            ],
+            {PullRequestGithubKojiBuildHandler},
+            id="config=production_build@trigger=pull_request",
+        ),
+        pytest.param(
+            TheJobTriggerType.push,
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata={},
+                ),
+            ],
+            {PushGithubKojiBuildHandler},
+            id="config=production_build@trigger=push",
+        ),
+        pytest.param(
+            TheJobTriggerType.commit,
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata={},
+                ),
+            ],
+            {PushGithubKojiBuildHandler},
+            id="config=production_build@trigger=commit",
+        ),
+        pytest.param(
+            TheJobTriggerType.release,
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata={},
+                ),
+            ],
+            {ReleaseGithubKojiBuildHandler},
+            id="config=production_build@trigger=release",
+        ),
+        pytest.param(
+            TheJobTriggerType.push,
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata={},
+                ),
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata={},
+                ),
+            ],
+            {PushGithubKojiBuildHandler},
+            id="config=production_build_on_pull_request_and_commit@trigger=commit",
+        ),
     ],
 )
 def test_get_handlers_for_event(trigger, jobs, result):
-    assert (
-        set(
-            get_handlers_for_event(
-                event=flexmock(trigger=trigger), package_config=flexmock(jobs=jobs)
-            )
+    event_handlers = set(
+        get_handlers_for_event(
+            event=flexmock(trigger=trigger), package_config=flexmock(jobs=jobs)
         )
-        == result
     )
+    assert event_handlers == result
