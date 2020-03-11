@@ -40,7 +40,7 @@ from packit_service.service.events import (
     TheJobTriggerType,
 )
 from packit_service.worker.handlers import AbstractGithubJobHandler
-from packit_service.worker.handlers.abstract import add_to_mapping
+from packit_service.worker.handlers.abstract import add_to_mapping, use_for
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import HandlerResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
@@ -49,8 +49,9 @@ logger = logging.getLogger(__name__)
 
 
 @add_to_mapping
+@use_for(job_type=JobType.tests)
 class TestingFarmResultsHandler(AbstractGithubJobHandler):
-    name = JobType.report_test_results
+    type = JobType.report_test_results
     triggers = [TheJobTriggerType.testing_farm_results]
     event: TestingFarmResultsEvent
 

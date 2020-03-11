@@ -59,7 +59,9 @@ from packit_service.worker.handlers import (
 )
 from packit_service.worker.handlers.abstract import (
     add_to_mapping,
-    add_to_mapping_for_job,
+    required_by,
+    add_alias,
+    use_for,
 )
 from packit_service.worker.handlers.comment_action_handler import (
     add_to_comment_action_mapping,
@@ -78,8 +80,9 @@ class AbstractGithubJobHandler(JobHandler, GithubPackageConfigGetter):
 
 
 @add_to_mapping
-class GithubPullRequestHandler(AbstractGithubJobHandler):
-    name = JobType.check_downstream
+@use_for(job_type=JobType.check_downstream)
+class PullRequestGithubCheckDownstreamHandler(AbstractGithubJobHandler):
+    type = JobType.check_downstream
     triggers = [TheJobTriggerType.pull_request]
 
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
@@ -112,7 +115,7 @@ class GithubPullRequestHandler(AbstractGithubJobHandler):
 
 @add_to_mapping
 class GithubAppInstallationHandler(AbstractGithubJobHandler):
-    name = JobType.add_to_whitelist
+    type = JobType.add_to_whitelist
     triggers = [TheJobTriggerType.installation]
 
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
@@ -169,21 +172,22 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
 
 
 @add_to_mapping
-class GithubReleaseHandler(AbstractGithubJobHandler):
-    name = JobType.propose_downstream
+@use_for(job_type=JobType.propose_downstream)
+class ProposeDownstreamHandler(AbstractGithubJobHandler):
+    type = JobType.propose_downstream
     triggers = [TheJobTriggerType.release]
     event: ReleaseEvent
 
     def __init__(
-        self, config: ServiceConfig, job_config: JobConfig, release_event: ReleaseEvent
+        self, config: ServiceConfig, job_config: JobConfig, event: ReleaseEvent
     ):
-        super().__init__(config=config, job_config=job_config, event=release_event)
+        super().__init__(config=config, job_config=job_config, event=event)
 
-        self.project: GitProject = release_event.get_project()
+        self.project: GitProject = event.get_project()
         self.package_config: PackageConfig = self.get_package_config_from_repo(
-            self.project, release_event.tag_name
+            self.project, event.tag_name
         )
-        self.package_config.upstream_project_url = release_event.project_url
+        self.package_config.upstream_project_url = event.project_url
 
     def run(self) -> HandlerResults:
         """
@@ -239,7 +243,7 @@ class GithubReleaseHandler(AbstractGithubJobHandler):
 
 
 class AbstractGithubCoprBuildHandler(AbstractGithubJobHandler):
-    name = JobType.copr_build
+    type = JobType.copr_build
     event: Union[PullRequestEvent, ReleaseEvent, PushGitHubEvent]
 
     def __init__(
@@ -312,7 +316,9 @@ class AbstractGithubCoprBuildHandler(AbstractGithubJobHandler):
 
 
 @add_to_mapping
-@add_to_mapping_for_job(job_type=JobType.tests)
+@add_alias(job_type=JobType.build)
+@required_by(job_type=JobType.tests)
+@use_for(job_type=JobType.copr_build)
 class ReleaseGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
     triggers = [
         TheJobTriggerType.release,
@@ -335,7 +341,9 @@ class ReleaseGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
 
 
 @add_to_mapping
-@add_to_mapping_for_job(job_type=JobType.tests)
+@add_alias(job_type=JobType.build)
+@required_by(job_type=JobType.tests)
+@use_for(job_type=JobType.copr_build)
 class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
     triggers = [
         TheJobTriggerType.pull_request,
@@ -348,7 +356,7 @@ class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
         super().__init__(config=config, job_config=job_config, event=event)
 
     def run(self) -> HandlerResults:
-        if isinstance(self.event, GithubPullRequestHandler):
+        if isinstance(self.event, PullRequestEvent):
             collaborators = self.project.who_can_merge_pr()
             if self.event.github_login not in collaborators | self.config.admins:
                 self.copr_build_helper.report_status_to_all(
@@ -369,7 +377,8 @@ class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
 
 
 @add_to_mapping
-@add_to_mapping_for_job(job_type=JobType.tests)
+@add_alias(job_type=JobType.build)
+@required_by(job_type=JobType.tests)
 class PushGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
     triggers = [
         TheJobTriggerType.commit,
@@ -409,7 +418,6 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
     trigger is finished copr build.
     """
 
-    name = JobType.tests
     triggers = [TheJobTriggerType.pull_request]
     event: Union[CoprBuildEvent, PullRequestCommentEvent]
 
@@ -457,7 +465,8 @@ class GitHubPullRequestCommentCoprBuildHandler(
 ):
     """ Handler for PR comment `/packit copr-build` """
 
-    name = CommentAction.copr_build
+    type = CommentAction.copr_build
+    triggers = [TheJobTriggerType.pr_comment]
     event: PullRequestCommentEvent
 
     def __init__(self, config: ServiceConfig, event: PullRequestCommentEvent):
@@ -495,7 +504,8 @@ class GitHubIssueCommentProposeUpdateHandler(
 ):
     """ Handler for issue comment `/packit propose-update` """
 
-    name = CommentAction.propose_update
+    type = CommentAction.propose_update
+    triggers = [TheJobTriggerType.issue_comment]
     event: IssueCommentEvent
 
     def __init__(self, config: ServiceConfig, event: IssueCommentEvent):
@@ -603,8 +613,9 @@ class GitHubPullRequestCommentTestingFarmHandler(
 ):
     """ Issue handler for comment `/packit test` """
 
-    name = CommentAction.test
+    type = CommentAction.test
     event: PullRequestCommentEvent
+    triggers = [TheJobTriggerType.pr_comment]
 
     def __init__(self, config: ServiceConfig, event: PullRequestCommentEvent):
         super().__init__(config=config, event=event)

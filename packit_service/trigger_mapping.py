@@ -20,20 +20,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Dict, Optional
+from typing import Dict
 
 from packit.config import JobConfigTriggerType, JobConfig, JobType
 
 from packit_service.service.events import TheJobTriggerType
 
-JOB_TRIGGER_TO_CONFIG_MAPPING: Dict[
-    TheJobTriggerType, Optional[JobConfigTriggerType]
+MAP_JOB_TRIGGER_TO_JOB_CONFIG_TRIGGER_TYPE: Dict[
+    TheJobTriggerType, JobConfigTriggerType
 ] = {
     TheJobTriggerType.commit: JobConfigTriggerType.commit,
     TheJobTriggerType.release: JobConfigTriggerType.release,
     TheJobTriggerType.pull_request: JobConfigTriggerType.pull_request,
     TheJobTriggerType.push: JobConfigTriggerType.commit,
     TheJobTriggerType.pr_comment: JobConfigTriggerType.pull_request,
+    TheJobTriggerType.copr_start: JobConfigTriggerType.pull_request,
+    TheJobTriggerType.copr_end: JobConfigTriggerType.pull_request,
 }
 
 
@@ -47,7 +49,7 @@ def is_trigger_matching_job_config(
     e.g. Both pr_comment and pull_request are compatible
          with the pull_request config in the config
     """
-    config_trigger = JOB_TRIGGER_TO_CONFIG_MAPPING.get(trigger)
+    config_trigger = MAP_JOB_TRIGGER_TO_JOB_CONFIG_TRIGGER_TYPE.get(trigger)
     return bool(config_trigger and job_config.trigger == config_trigger)
 
 

@@ -25,20 +25,17 @@ We love you, Steve Jobs.
 """
 
 import logging
-from typing import Optional, Dict, Union, Type
+from typing import Optional, Dict, Union, Type, Set
 
 from ogr.abstract import GitProject
 from ogr.services.github import GithubProject
-from packit.config import JobType
+from packit.config import JobType, PackageConfig, JobConfig
 
 from packit_service.config import ServiceConfig
 from packit_service.service.events import (
     PullRequestCommentEvent,
     IssueCommentEvent,
     Event,
-    TestingFarmResultsEvent,
-    CoprBuildEvent,
-    FedmsgTopic,
     TheJobTriggerType,
 )
 from packit_service.trigger_mapping import is_trigger_matching_job_config
@@ -48,11 +45,16 @@ from packit_service.worker.handlers import (
     GithubAppInstallationHandler,
     CommentActionHandler,
     TestingFarmResultsHandler,
+)
+from packit_service.worker.handlers.abstract import (
+    Handler,
+    MAP_EVENT_TRIGGER_TO_HANDLERS,
+    MAP_HANDLER_TO_JOB_TYPES,
+    MAP_REQUIRED_JOB_TO_HANDLERS,
     JobHandler,
 )
-from packit_service.worker.handlers.abstract import JOB_NAME_HANDLER_MAPPING, Handler
 from packit_service.worker.handlers.comment_action_handler import (
-    COMMENT_ACTION_HANDLER_MAPPING,
+    MAP_COMMENT_ACTION_TO_HANDLER,
     CommentAction,
 )
 from packit_service.worker.parser import Parser
@@ -62,6 +64,58 @@ from packit_service.worker.whitelist import Whitelist
 REQUESTED_PULL_REQUEST_COMMENT = "/packit"
 
 logger = logging.getLogger(__name__)
+
+
+def get_handlers_for_event(
+    event: Event, package_config: PackageConfig
+) -> Set[Type[JobHandler]]:
+    """
+    Get all handlers that we need to run for the given event.
+
+    :param event: event which we are reacting to
+    :param package_config: for checking configured jobs
+    :return: set of handler instances
+    """
+    handlers: Set[Type[JobHandler]] = set()
+    classes_for_trigger = MAP_EVENT_TRIGGER_TO_HANDLERS[event.trigger]
+
+    for job in package_config.jobs:
+        if is_trigger_matching_job_config(trigger=event.trigger, job_config=job):
+            for pos_handler in classes_for_trigger:
+                if job.type in MAP_HANDLER_TO_JOB_TYPES[pos_handler]:
+                    handlers.add(pos_handler)
+        required_handlers = MAP_REQUIRED_JOB_TO_HANDLERS[job.type]
+        for pos_handler in required_handlers:
+            for trigger in pos_handler.triggers:
+                if trigger == event.trigger:
+                    handlers.add(pos_handler)
+
+    return handlers
+
+
+def get_config_for_handler_kls(
+    handler_kls: Type[JobHandler], event: Event, package_config: PackageConfig
+) -> Optional[JobConfig]:
+    """
+    Get a JobConfig relevant to event and the handler class.
+
+    :param handler_kls: class that will use the JobConfig
+    :param event: which we are reacting to
+    :param package_config: we pick the JobConfig from this package_config instance
+    :return: JobConfig
+    """
+    for job in package_config.jobs:
+        if job.type in MAP_HANDLER_TO_JOB_TYPES[
+            handler_kls
+        ] and is_trigger_matching_job_config(trigger=event.trigger, job_config=job):
+            return job
+
+        required_handlers = MAP_REQUIRED_JOB_TO_HANDLERS[job.type]
+        for pos_handler in required_handlers:
+            for trigger in pos_handler.triggers:
+                if trigger == event.trigger:
+                    return job
+    return None
 
 
 class SteveJobs:
@@ -102,35 +156,35 @@ class SteveJobs:
             )
             return handlers_results
 
-        for job in package_config.jobs:
+        handler_classes = get_handlers_for_event(event, package_config)
 
-            if is_trigger_matching_job_config(trigger=event.trigger, job_config=job):
-                handler_kls: Type[JobHandler] = JOB_NAME_HANDLER_MAPPING.get(
-                    job.type, None
+        if not handler_classes:
+            logger.warning(f"There is no handler for {event.trigger} event.")
+            return handlers_results
+
+        for handler_kls in handler_classes:
+            job = get_config_for_handler_kls(
+                handler_kls=handler_kls, event=event, package_config=package_config
+            )
+            # check whitelist approval for every job to be able to track down which jobs
+            # failed because of missing whitelist approval
+            whitelist = Whitelist()
+            github_login = getattr(event, "github_login", None)
+            if github_login and github_login in self.config.admins:
+                logger.info(f"{github_login} is admin, you shall pass")
+            elif not whitelist.check_and_report(
+                event, event.get_project(), config=self.config
+            ):
+                handlers_results[job.type.value] = HandlerResults(
+                    success=False, details={"msg": "Account is not whitelisted!"}
                 )
-                if not handler_kls:
-                    logger.warning(f"There is no handler for job {job}")
-                    continue
+                return handlers_results
 
-                # check whitelist approval for every job to be able to track down which jobs
-                # failed because of missing whitelist approval
-                whitelist = Whitelist()
-                github_login = getattr(event, "github_login", None)
-                if github_login and github_login in self.config.admins:
-                    logger.info(f"{github_login} is admin, you shall pass")
-                elif not whitelist.check_and_report(
-                    event, event.get_project(), config=self.config
-                ):
-                    handlers_results[job.type.value] = HandlerResults(
-                        success=False, details={"msg": "Account is not whitelisted!"}
-                    )
-                    return handlers_results
-
-                logger.debug(f"Running handler: {str(handler_kls)}")
-                handler = handler_kls(self.config, job, event)
-                if handler.pre_check():
-                    handlers_results[job.type.value] = handler.run_n_clean()
-                # don't break here, other handlers may react to the same event
+            logger.debug(f"Running handler: {str(handler_kls)}")
+            handler = handler_kls(config=self.config, job_config=job, event=event)
+            if handler.pre_check():
+                handlers_results[job.type.value] = handler.run_n_clean()
+            # don't break here, other handlers may react to the same event
 
         return handlers_results
 
@@ -185,7 +239,7 @@ class SteveJobs:
                     "msg": f"{msg} does not contain a valid packit-service command."
                 },
             )
-        handler_kls: Type[CommentActionHandler] = COMMENT_ACTION_HANDLER_MAPPING.get(
+        handler_kls: Type[CommentActionHandler] = MAP_COMMENT_ACTION_TO_HANDLER.get(
             packit_action, None
         )
         if not handler_kls:
@@ -219,7 +273,7 @@ class SteveJobs:
             # let's pre-filter messages: we don't need to get debug logs from processing
             # messages when we know beforehand that we are not interested in messages for such topic
             topics = [
-                getattr(h, "topic", None) for h in JOB_NAME_HANDLER_MAPPING.values()
+                getattr(h, "topic", None) for h in MAP_HANDLER_TO_JOB_TYPES.keys()
             ]
 
             if topic not in topics:
@@ -257,31 +311,6 @@ class SteveJobs:
                 self.config, job_config=None, installation_event=event_object
             )
             job_type = JobType.add_to_whitelist.value
-            jobs_results[job_type] = handler.run_n_clean()
-        # Results from testing farm is another job which is not defined in packit.yaml so
-        # it needs to be handled outside process_jobs method
-        elif (
-            event_object.trigger == TheJobTriggerType.testing_farm_results
-            and isinstance(event_object, TestingFarmResultsEvent)
-        ):
-            handler = TestingFarmResultsHandler(
-                self.config, job_config=None, test_results_event=event_object
-            )
-            job_type = JobType.report_test_results.value
-            jobs_results[job_type] = handler.run_n_clean()
-        elif isinstance(event_object, CoprBuildEvent):
-            if event_object.topic == FedmsgTopic.copr_build_started:
-                handler = CoprBuildStartHandler(
-                    self.config, job_config=None, event=event_object
-                )
-                job_type = JobType.copr_build_started.value
-            elif event_object.topic == FedmsgTopic.copr_build_finished:
-                handler = CoprBuildEndHandler(
-                    self.config, job_config=None, event=event_object
-                )
-                job_type = JobType.copr_build_finished.value
-            else:
-                raise ValueError(f"Unknown topic {event_object.topic}")
             jobs_results[job_type] = handler.run_n_clean()
         elif event_object.trigger in {
             TheJobTriggerType.issue_comment,

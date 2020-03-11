@@ -25,32 +25,80 @@ This file defines generic job handler
 """
 import logging
 import shutil
+from collections import defaultdict
 from os import getenv
 from pathlib import Path
-from typing import Dict, Optional, Type, List
+from typing import Dict, Optional, Type, List, Set
 
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobType
 from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
+from packit_service.sentry_integration import push_scope_to_sentry
 from packit_service.service.events import Event, TheJobTriggerType
 from packit_service.worker.result import HandlerResults
-from packit_service.sentry_integration import push_scope_to_sentry
 
 logger = logging.getLogger(__name__)
 
-JOB_NAME_HANDLER_MAPPING: Dict[JobType, Type["JobHandler"]] = {}
+MAP_REQUIRED_JOB_TO_HANDLERS: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(set)
+
+MAP_EVENT_TRIGGER_TO_HANDLERS: Dict[
+    TheJobTriggerType, Set[Type["JobHandler"]]
+] = defaultdict(set)
+
+MAP_HANDLER_TO_JOB_TYPES: Dict[Type["JobHandler"], Set[JobType]] = defaultdict(set)
 
 
 def add_to_mapping(kls: Type["JobHandler"]):
-    JOB_NAME_HANDLER_MAPPING[kls.name] = kls
+    """
+    [class decorator]
+    Add the handler to the trigger->handler mapping.
+    """
+    for trigger in kls.triggers:
+        MAP_EVENT_TRIGGER_TO_HANDLERS[trigger].add(kls)
     return kls
 
 
-def add_to_mapping_for_job(job_type: JobType):
+def add_alias(job_type: JobType):
+    """
+    [class decorator]
+    Use the given type as an alias for this job class.
+    This decorator will updated needed mapping so users can combine all and new types.
+    """
+
     def _add_to_mapping(kls: Type["JobHandler"]):
-        JOB_NAME_HANDLER_MAPPING[job_type] = kls
+        for trigger in kls.triggers:
+            MAP_EVENT_TRIGGER_TO_HANDLERS[trigger].add(kls)
+        MAP_HANDLER_TO_JOB_TYPES[kls].add(job_type)
+        return kls
+
+    return _add_to_mapping
+
+
+def required_by(job_type: JobType):
+    """
+    [class decorator]
+    Set when you need to run for some job even if this one is not configured.
+
+    (e.g. we want to run build for test even if only the test is defined)
+    """
+
+    def _add_to_mapping(kls: Type["JobHandler"]):
+        MAP_REQUIRED_JOB_TO_HANDLERS[job_type].add(kls)
+        return kls
+
+    return _add_to_mapping
+
+
+def use_for(job_type: JobType):
+    """
+    [class decorator]
+    Specify a job type for which we want to use this handler.
+    """
+
+    def _add_to_mapping(kls: Type["JobHandler"]):
+        MAP_HANDLER_TO_JOB_TYPES[kls].add(job_type)
         return kls
 
     return _add_to_mapping
@@ -132,7 +180,7 @@ class Handler:
 class JobHandler(Handler):
     """ Generic interface to handle different type of inputs """
 
-    name: JobType
+    type: JobType
     triggers: List[TheJobTriggerType]
 
     def __init__(
