@@ -79,30 +79,19 @@
     - name: Create dev.yml
       copy:
         content: |
-          # Openshift project/namespace name
+          # this file is described here: https://github.com/packit-service/deployment/blob/master/vars/template.yml
           project: myproject
-          # Openshift cluster url (example: https://192.168.42.66:8443)
           host: https://127.0.0.1:8443
-          # oc login <the above host value>, oc whoami -t
-          # OR via Openshift web GUI: click on your login in top right corner, 'Copy Login Command', take the part after --token=
           api_key: {{ kubeconfig_token.stdout }}
           # To work-around 'SSL: CERTIFICATE_VERIFY_FAILED'
           validate_certs: no
-          # don't deploy fedmsg dc; good for local testing
-          without_fedmsg: false
-          # don't deploy redis-commander dc; good for staging deployment
+          # we don't need these services while testing p-s now
+          without_fedmsg: true
           without_redis_commander: true
-          # don't deploy flower dc; good for staging deployment
           without_flower: true
-          # you can set the sandbox namespace name explicitly like this
-          sandbox_namespace: packit-dev-sandbox
-          # set tag to latest because images are freshly built with latest tag in CI
-          # image packit-service
-          image: docker.io/usercont/packit-service
-          # image worker
-          image_worker: docker.io/usercont/packit-service-worker
-          worker_replicas: 1
           without_dashboard: true
+          sandbox_namespace: packit-dev-sandbox
+          worker_replicas: 1
         dest: "{{ deployment_dir }}/vars/dev.yml"
     - name: Actually deploy
       command: make deploy
