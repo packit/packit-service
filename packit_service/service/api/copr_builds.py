@@ -22,13 +22,14 @@
 from http import HTTPStatus
 from json import dumps
 from logging import getLogger
+from datetime import datetime
 
 from flask import make_response
 from flask_restplus import Namespace, Resource
-from persistentdict.dict_in_redis import PersistentDict
 
 from packit_service.service.api.parsers import indices, pagination_arguments
-from packit_service.service.models import CoprBuild, LAST_PK
+from packit_service.models import CoprBuild, get_sa_session
+
 
 logger = getLogger("packit_service")
 
@@ -41,22 +42,50 @@ class CoprBuildsList(Resource):
     @ns.expect(pagination_arguments)
     @ns.response(HTTPStatus.PARTIAL_CONTENT, "Copr builds list follows")
     def get(self):
-        """ List all Copr builds. From 'copr-builds' hash, filled by service. """
-        # I know it's expensive to first convert whole dict to a list and then slice the list,
-        # but how else would you slice a dict, huh?
-        result = []
-        for k, cb in CoprBuild.db().get_all().items():
-            if k == LAST_PK:
-                # made-up keys, remove LAST_PK
-                continue
-            cb.pop("identifier", None)  # see PR#179
-            result.append(cb)
+        """ List all Copr builds. """
 
-        first, last = indices()
-        resp = make_response(dumps(result[first:last]), HTTPStatus.PARTIAL_CONTENT)
-        resp.headers["Content-Range"] = f"copr-builds {first + 1}-{last}/{len(result)}"
-        resp.headers["Content-Type"] = "application/json"
-        return resp
+        # Return relevant info thats concise
+        # Usecases like the packit-dashboard copr-builds table
+
+        with get_sa_session() as session:
+            builds_list = session.query(CoprBuild).all()
+            result = []
+            checklist = []
+            for build in builds_list:
+                if int(build.build_id) not in checklist:
+                    build_dict = {
+                        "project": build.project_name,
+                        "owner": build.owner,
+                        "repo_name": build.pr.project.repo_name,
+                        "build_id": build.build_id,
+                        "status": build.status,
+                        "chroots": [],
+                        "build_submitted_time": build.build_submitted_time.strftime(
+                            "%d/%m/%Y %H:%M:%S"
+                        ),
+                        "repo_namespace": build.pr.project.namespace,
+                        "web_url": build.web_url,
+                    }
+                    # same_buildid_builds are copr builds created due to the same trigger
+                    # multiple identical builds are created which differ only in target
+                    # so we merge them into one
+                    same_buildid_builds = session.query(CoprBuild).filter(
+                        CoprBuild.build_id == build.build_id
+                    )
+                    for sbid_build in same_buildid_builds:
+                        build_dict["chroots"].append(sbid_build.target)
+
+                    checklist.append(int(build.build_id))
+                    result.append(build_dict)
+
+            first, last = indices()
+            resp = make_response(dumps(result[first:last]), HTTPStatus.PARTIAL_CONTENT)
+            resp.headers[
+                "Content-Range"
+            ] = f"copr-builds {first + 1}-{last}/{len(result)}"
+            resp.headers["Content-Type"] = "application/json"
+
+            return resp
 
 
 @ns.route("/<int:id>")
@@ -66,7 +95,39 @@ class InstallationItem(Resource):
     @ns.response(HTTPStatus.NO_CONTENT, "Copr build identifier not in db/hash")
     def get(self, id):
         """A specific copr build details. From copr_build hash, filled by worker."""
-        # hash name is defined in worker (CoprBuildDB), which I don't want to import from
-        db = PersistentDict(hash_name="copr_build")
-        build = db.get(id)
-        return build if build else ("", HTTPStatus.NO_CONTENT)
+        with get_sa_session() as session:
+            builds_list = session.query(CoprBuild).filter(CoprBuild.build_id == str(id))
+            if bool(builds_list.first()):
+                build = builds_list[0]
+                build_dict = {
+                    "project": build.project_name,
+                    "owner": build.owner,
+                    "repo_name": build.pr.project.repo_name,
+                    "build_id": build.build_id,
+                    "status": build.status,
+                    "chroots": [],
+                    "build_submitted_time": build.build_submitted_time.strftime(
+                        "%d/%m/%Y %H:%M:%S"
+                    ),
+                    "build_start_time": build.build_start_time,
+                    "build_finished_time": build.build_finished_time,
+                    "pr_id": build.pr.pr_id,
+                    "commit_sha": build.commit_sha,
+                    "repo_namespace": build.pr.project.namespace,
+                    "web_url": build.web_url,
+                    "srpm_logs": build.srpm_build.logs,
+                    "git_repo": f"https://github.com/{build.pr.project.namespace}/{build.pr.project.repo_name}",
+                    # For backwards compatability with the redis API
+                    "ref": build.commit_sha,
+                    "https_url": f"https://github.com/{build.pr.project.namespace}/{build.pr.project.repo_name}.git",
+                }
+                # merge chroots into one
+                for sbid_build in builds_list:
+                    build_dict["chroots"].append(sbid_build.target)
+
+                build = make_response(dumps(build_dict))
+                build.headers["Content-Type"] = "application/json"
+                return build if build else ("", HTTPStatus.NO_CONTENT)
+
+            else:
+                return ("", HTTPStatus.NO_CONTENT)

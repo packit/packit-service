@@ -169,6 +169,12 @@ class CoprBuild(Base):
     build_submitted_time = Column(DateTime, default=datetime.utcnow)
     build_start_time = Column(DateTime)
     build_finished_time = Column(DateTime)
+    # git url
+    https_url = Column(String)
+    # project name as shown in copr
+    project_name = Column(String)
+    owner = Column(String)
+
     # metadata for the build which didn't make it to schema yet
     # metadata is reserved to sqlalch
     data = Column(JSON)
@@ -213,6 +219,8 @@ class CoprBuild(Base):
         commit_sha: str,
         repo_name: str,
         namespace: str,
+        project_name: str,
+        owner: str,
         web_url: str,
         target: str,
         status: str,
@@ -229,6 +237,8 @@ class CoprBuild(Base):
                 build.pr_id = pr.id
                 build.srpm_build_id = srpm_build.id
                 build.status = status
+                build.project_name = project_name
+                build.owner = owner
                 build.commit_sha = commit_sha
                 build.web_url = web_url
                 build.target = target
