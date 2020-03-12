@@ -358,7 +358,7 @@ class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
                     state=CommitStatus.failure,
                 )
                 return HandlerResults(
-                    success=False, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
+                    success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
                 )
         return super().run()
 
@@ -523,7 +523,7 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
                     state=CommitStatus.failure,
                 )
                 return HandlerResults(
-                    success=False, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
+                    success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
                 )
         return super().run()
 
