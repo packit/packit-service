@@ -34,6 +34,7 @@ from packit.exceptions import PackitConfigException
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
+from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.events import (
     PullRequestEvent,
     PullRequestCommentEvent,
@@ -41,7 +42,6 @@ from packit_service.service.events import (
 )
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.result import HandlerResults
-from packit_service.sentry_integration import send_to_sentry
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +128,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 "copr-chroot": chroot,
                 "commit-sha": self.event.commit_sha,
                 "git-url": self.event.project_url,
-                "git-ref": self.event.git_ref,
+                "git-ref": self.event.git_ref
+                if self.event.git_ref
+                else self.event.commit_sha,
             },
         }
 
