@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import json
+import uuid
 
 import pytest
 import requests
@@ -33,6 +34,7 @@ from packit.config.package_config import PackageConfig
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 
+from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.models import CoprBuild
 from packit_service.service.events import CoprBuildEvent
 from packit_service.service.urls import get_log_url
@@ -363,9 +365,26 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build):
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
     ).once()
 
+    flexmock(uuid).should_receive("uuid4").and_return(
+        uuid.UUID("5e8079d8-f181-41cf-af96-28e99774eb68")
+    )
+    payload: dict = {
+        "pipeline": {"id": "5e8079d8-f181-41cf-af96-28e99774eb68"},
+        "api": {"token": ""},
+        "artifact": {
+            "repo-name": "bar",
+            "repo-namespace": "foo",
+            "copr-repo-name": "foo-bar-123-stg",
+            "copr-chroot": "fedora-rawhide-x86_64",
+            "commit-sha": "0011223344",
+            "git-url": "https://github.com/foo/bar.git",
+            "git-ref": "0011223344",
+        },
+    }
+
     flexmock(TestingFarmJobHelper).should_receive(
         "send_testing_farm_request"
-    ).and_return(
+    ).with_args(TESTING_FARM_TRIGGER_URL, "POST", {}, json.dumps(payload)).and_return(
         RequestResponse(
             status_code=200,
             ok=True,
