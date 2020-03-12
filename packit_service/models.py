@@ -27,7 +27,7 @@ import logging
 import os
 from contextlib import contextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union, Iterable
 
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy import JSON, create_engine
@@ -198,13 +198,15 @@ class CoprBuild(Base):
             return session.query(CoprBuild).filter_by(id=id_).first()
 
     @classmethod
-    def get_all_builds_info(cls) -> Optional["CoprBuild"]:
+    def get_all(cls) -> Optional[Iterable["CoprBuild"]]:
         with get_sa_session() as session:
             return session.query(CoprBuild).all()
 
     # Returns all builds with that build_id, irrespective of target
     @classmethod
-    def get_all_build_id(cls, build_id: Union[str, int]) -> Optional["CoprBuild"]:
+    def get_all_build_id(
+        cls, build_id: Union[str, int]
+    ) -> Optional[Iterable["CoprBuild"]]:
         if isinstance(build_id, int):
             # See the comment in get_by_build_id()
             build_id = str(build_id)

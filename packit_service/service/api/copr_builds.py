@@ -45,7 +45,7 @@ class CoprBuildsList(Resource):
         # Return relevant info thats concise
         # Usecases like the packit-dashboard copr-builds table
 
-        builds_list = CoprBuild.get_all_builds_info()
+        builds_list = CoprBuild.get_all()
         result = []
         checklist = []
         for build in builds_list:

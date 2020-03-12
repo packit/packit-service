@@ -53,6 +53,7 @@ def clean_db():
         session.query(GitProject).delete()
 
 
+# Create a single build
 @pytest.fixture()
 def a_copr_build():
     with get_sa_session() as session:
@@ -64,11 +65,67 @@ def a_copr_build():
             commit_sha="687abc76d67d",
             repo_name="lithium",
             namespace="nirvana",
+            project_name="SomeUser-hello-world-9",
+            owner="packit",
             web_url="https://copr.something.somewhere/123456",
             target=TARGET,
             status="pending",
             srpm_build=srpm_build,
         )
+    clean_db()
+
+
+# Create multiple builds
+# Used for testing querys
+@pytest.fixture()
+def multiple_copr_builds():
+    with get_sa_session() as session:
+        session.query(CoprBuild).delete()
+        srpm_build = SRPMBuild.create("asd\nqwe\n")
+        yield [
+            CoprBuild.get_or_create(
+                pr_id=1,
+                build_id="123456",
+                commit_sha="687abc76d67d",
+                repo_name="lithium",
+                namespace="nirvana",
+                project_name="SomeUser-hello-world-9",
+                owner="packit",
+                web_url="https://copr.something.somewhere/123456",
+                target="fedora-42-x86_64",
+                status="pending",
+                srpm_build=srpm_build,
+            ),
+            # Same build_id but different chroot
+            CoprBuild.get_or_create(
+                pr_id=1,
+                build_id="123456",
+                commit_sha="687abc76d67d",
+                repo_name="lithium",
+                namespace="nirvana",
+                project_name="SomeUser-hello-world-9",
+                owner="packit",
+                web_url="https://copr.something.somewhere/123456",
+                target="fedora-43-x86_64",
+                status="pending",
+                srpm_build=srpm_build,
+            ),
+            # Completely different build
+            CoprBuild.get_or_create(
+                pr_id=4,
+                build_id="987654",
+                commit_sha="987def76d67e",
+                repo_name="cockpit-project",
+                namespace="cockpit",
+                project_name="SomeUser-random-text-7",
+                owner="cockpit-project",
+                web_url="https://copr.something.somewhere/987654",
+                target="fedora-43-x86_64",
+                status="pending",
+                srpm_build=srpm_build,
+            ),
+        ]
+
     clean_db()
 
 
@@ -79,6 +136,8 @@ def test_create_copr_build(a_copr_build):
     assert a_copr_build.commit_sha == "687abc76d67d"
     assert a_copr_build.pr.project.namespace == "nirvana"
     assert a_copr_build.pr.project.repo_name == "lithium"
+    assert a_copr_build.project_name == "SomeUser-hello-world-9"
+    assert a_copr_build.owner == "packit"
     assert a_copr_build.web_url == "https://copr.something.somewhere/123456"
     assert a_copr_build.srpm_build.logs == "asd\nqwe\n"
     assert a_copr_build.target == TARGET
@@ -155,3 +214,34 @@ def test_errors_while_doing_db():
             assert len(session.query(PullRequest).all()) == 1
         finally:
             clean_db()
+
+
+# return all builds in table
+def test_get_all(multiple_copr_builds):
+    builds_list = CoprBuild.get_all()
+    assert len(builds_list) == 3
+    # we just wanna check if result is iterable
+    # order doesn't matter, so all of them are set to pending in supplied data
+    assert builds_list[1].status == "pending"
+
+
+# return all builds with given build_id
+def test_get_all_build_id(multiple_copr_builds):
+    builds_list = CoprBuild.get_all_build_id(str(123456))
+    assert len(list(builds_list)) == 2
+    # both should have the same project_name
+    assert builds_list[1].project_name == builds_list[0].project_name
+    assert builds_list[1].project_name == "SomeUser-hello-world-9"
+
+
+# returns the first build with given build id and target
+def test_get_by_build_id(multiple_copr_builds):
+    # these are not iterable and thus should be accessible directly
+    build_a = CoprBuild.get_by_build_id(str(123456), "fedora-42-x86_64")
+    assert build_a.project_name == "SomeUser-hello-world-9"
+    assert build_a.target == "fedora-42-x86_64"
+    build_b = CoprBuild.get_by_build_id(str(123456), "fedora-43-x86_64")
+    assert build_b.project_name == "SomeUser-hello-world-9"
+    assert build_b.target == "fedora-43-x86_64"
+    build_c = CoprBuild.get_by_build_id(str(987654), "fedora-43-x86_64")
+    assert build_c.project_name == "SomeUser-random-text-7"
