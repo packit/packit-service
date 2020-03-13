@@ -204,7 +204,7 @@ class CoprBuild(Base):
 
     # Returns all builds with that build_id, irrespective of target
     @classmethod
-    def get_all_build_id(
+    def get_all_by_build_id(
         cls, build_id: Union[str, int]
     ) -> Optional[Iterable["CoprBuild"]]:
         if isinstance(build_id, int):
