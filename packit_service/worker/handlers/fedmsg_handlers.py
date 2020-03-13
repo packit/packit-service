@@ -213,28 +213,16 @@ class CoprBuildEndHandler(FedmsgHandler):
             msg = "SRPM build in copr has finished"
             logger.debug(msg)
             return HandlerResults(success=True, details={"msg": msg})
-        # TODO: drop the code below once we move to PG completely; the build is present in event
-        # pg
         build_pg = CoprBuild.get_by_build_id(
             str(self.event.build_id), self.event.chroot
         )
         if not build_pg:
-            logger.info(
-                f"build {self.event.build_id} is not in pg, falling back to redis"
-            )
+            # TODO: how could this happen?
+            msg = f"Copr build {self.event.build_id} not in CoprBuildDB"
+            logger.warning(msg)
+            return HandlerResults(success=False, details={"msg": msg})
 
-            # redis - old school
-            build = CoprBuildDB().get_build(self.event.build_id)
-            if not build:
-                # TODO: how could this happen?
-                msg = f"Copr build {self.event.build_id} not in CoprBuildDB"
-                logger.warning(msg)
-                return HandlerResults(success=False, details={"msg": msg})
-
-        if build_pg:
-            url = get_log_url(build_pg.id)
-        else:
-            url = copr_url_from_event(self.event)
+        url = get_log_url(build_pg.id)
 
         # https://pagure.io/copr/copr/blob/master/f/common/copr_common/enums.py#_42
         if self.event.status != 1:
@@ -245,8 +233,7 @@ class CoprBuildEndHandler(FedmsgHandler):
                 url=url,
                 chroot=self.event.chroot,
             )
-            if build_pg:
-                build_pg.set_status("failure")
+            build_pg.set_status("failure")
             return HandlerResults(success=False, details={"msg": failed_msg})
 
         if (
@@ -279,8 +266,7 @@ class CoprBuildEndHandler(FedmsgHandler):
             url=url,
             chroot=self.event.chroot,
         )
-        if build_pg:
-            build_pg.set_status("success")
+        build_pg.set_status("success")
 
         if (
             self.build_job_helper.job_tests
