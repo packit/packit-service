@@ -27,7 +27,7 @@ import logging
 import os
 from contextlib import contextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union, Iterable
 
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy import JSON, create_engine
@@ -85,6 +85,10 @@ class GitProject(Base):
     namespace = Column(String, index=True)
     repo_name = Column(String, index=True)
     pull_requests = relationship("PullRequest", back_populates="project")
+
+    # Git URL of the repo
+    # Example: https://github.com/packit-service/hello-world.git
+    https_url = Column(String)
 
     @classmethod
     def get_or_create(cls, namespace: str, repo_name: str) -> "GitProject":
@@ -169,6 +173,11 @@ class CoprBuild(Base):
     build_submitted_time = Column(DateTime, default=datetime.utcnow)
     build_start_time = Column(DateTime)
     build_finished_time = Column(DateTime)
+
+    # project name as shown in copr
+    project_name = Column(String)
+    owner = Column(String)
+
     # metadata for the build which didn't make it to schema yet
     # metadata is reserved to sqlalch
     data = Column(JSON)
@@ -188,6 +197,23 @@ class CoprBuild(Base):
         with get_sa_session() as session:
             return session.query(CoprBuild).filter_by(id=id_).first()
 
+    @classmethod
+    def get_all(cls) -> Optional[Iterable["CoprBuild"]]:
+        with get_sa_session() as session:
+            return session.query(CoprBuild).all()
+
+    # Returns all builds with that build_id, irrespective of target
+    @classmethod
+    def get_all_build_id(
+        cls, build_id: Union[str, int]
+    ) -> Optional[Iterable["CoprBuild"]]:
+        if isinstance(build_id, int):
+            # See the comment in get_by_build_id()
+            build_id = str(build_id)
+        with get_sa_session() as session:
+            return session.query(CoprBuild).filter_by(build_id=build_id)
+
+    # returns the build matching the build_id and the target
     @classmethod
     def get_by_build_id(
         cls, build_id: Union[str, int], target: str
@@ -213,6 +239,8 @@ class CoprBuild(Base):
         commit_sha: str,
         repo_name: str,
         namespace: str,
+        project_name: str,
+        owner: str,
         web_url: str,
         target: str,
         status: str,
@@ -229,6 +257,8 @@ class CoprBuild(Base):
                 build.pr_id = pr.id
                 build.srpm_build_id = srpm_build.id
                 build.status = status
+                build.project_name = project_name
+                build.owner = owner
                 build.commit_sha = commit_sha
                 build.web_url = web_url
                 build.target = target

@@ -159,6 +159,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 commit_sha=self.event.commit_sha,
                 repo_name=self.project.repo,
                 namespace=self.project.namespace,
+                project_name=self.job_project,
+                owner=self.job_owner,
                 web_url=build_metadata.copr_web_url,
                 target=chroot,
                 status="pending",
