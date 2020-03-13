@@ -40,6 +40,11 @@ from packit.local_project import LocalProject
 from packit.utils import get_namespace_and_repo_name
 
 from packit_service.config import ServiceConfig
+from packit_service.constants import (
+    PG_COPR_BUILD_STATUS_FAILURE,
+    PG_COPR_BUILD_STATUS_SUCCESS,
+    COPR_API_SUCC_STATE,
+)
 from packit_service.models import CoprBuild
 from packit_service.service.events import (
     Event,
@@ -221,11 +226,21 @@ class CoprBuildEndHandler(FedmsgHandler):
             msg = f"Copr build {self.event.build_id} not in CoprBuildDB"
             logger.warning(msg)
             return HandlerResults(success=False, details={"msg": msg})
+        if build_pg.status in [
+            PG_COPR_BUILD_STATUS_FAILURE,
+            PG_COPR_BUILD_STATUS_SUCCESS,
+        ]:
+            msg = (
+                f"Copr build {self.event.build_id} is already"
+                f" processed (status={build_pg.status})."
+            )
+            logger.info(msg)
+            return HandlerResults(success=True, details={"msg": msg})
 
         url = get_log_url(build_pg.id)
 
         # https://pagure.io/copr/copr/blob/master/f/common/copr_common/enums.py#_42
-        if self.event.status != 1:
+        if self.event.status != COPR_API_SUCC_STATE:
             failed_msg = "RPMs failed to be built."
             self.build_job_helper.report_status_to_all_for_chroot(
                 state=CommitStatus.failure,
@@ -233,7 +248,7 @@ class CoprBuildEndHandler(FedmsgHandler):
                 url=url,
                 chroot=self.event.chroot,
             )
-            build_pg.set_status("failure")
+            build_pg.set_status(PG_COPR_BUILD_STATUS_FAILURE)
             return HandlerResults(success=False, details={"msg": failed_msg})
 
         if (
@@ -266,7 +281,7 @@ class CoprBuildEndHandler(FedmsgHandler):
             url=url,
             chroot=self.event.chroot,
         )
-        build_pg.set_status("success")
+        build_pg.set_status(PG_COPR_BUILD_STATUS_SUCCESS)
 
         if (
             self.build_job_helper.job_tests

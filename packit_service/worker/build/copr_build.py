@@ -29,6 +29,7 @@ from packit.config import PackageConfig, JobType, JobConfig
 from packit.utils import PackitFormatter
 from sandcastle import SandcastleTimeoutReached
 
+from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import MSG_RETRIGGER
 from packit_service.models import CoprBuild, SRPMBuild
@@ -176,6 +177,13 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         self.copr_build_model.build_id = build_metadata.copr_build_id
         self.copr_build_model.save()
+
+        # release the hounds!
+        celery_app.send_task(
+            "task.babysit_copr_build",
+            args=(build_metadata.copr_build_id,),
+            countdown=120,  # do the first check in 120s
+        )
 
         return HandlerResults(success=True, details={})
 

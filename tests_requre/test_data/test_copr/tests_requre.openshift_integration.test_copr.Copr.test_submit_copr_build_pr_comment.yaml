@@ -13,7 +13,7 @@ unittest.case:
                 requests.sessions:
                   send:
                   - metadata:
-                      latency: 0.42079639434814453
+                      latency: 0.3699362277984619
                       module_call_list:
                       - unittest.case
                       - tests_requre.openshift_integration.test_copr
@@ -49,8 +49,8 @@ unittest.case:
                         downloads_url: https://api.github.com/repos/packit-service/hello-world/downloads
                         events_url: https://api.github.com/repos/packit-service/hello-world/events
                         fork: false
-                        forks: 12
-                        forks_count: 12
+                        forks: 15
+                        forks_count: 15
                         forks_url: https://api.github.com/repos/packit-service/hello-world/forks
                         full_name: packit-service/hello-world
                         git_commits_url: https://api.github.com/repos/packit-service/hello-world/git/commits{/sha}
@@ -83,11 +83,11 @@ unittest.case:
                         milestones_url: https://api.github.com/repos/packit-service/hello-world/milestones{/number}
                         mirror_url: null
                         name: hello-world
-                        network_count: 12
+                        network_count: 15
                         node_id: MDEwOlJlcG9zaXRvcnkxODQ2MzUxMjQ=
                         notifications_url: https://api.github.com/repos/packit-service/hello-world/notifications{?since,all,participating}
-                        open_issues: 21
-                        open_issues_count: 21
+                        open_issues: 24
+                        open_issues_count: 24
                         organization:
                           avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
                           events_url: https://api.github.com/users/packit-service/events{/privacy}
@@ -132,9 +132,9 @@ unittest.case:
                           push: false
                         private: false
                         pulls_url: https://api.github.com/repos/packit-service/hello-world/pulls{/number}
-                        pushed_at: '2020-01-25T06:44:57Z'
+                        pushed_at: '2020-03-12T11:03:16Z'
                         releases_url: https://api.github.com/repos/packit-service/hello-world/releases{/id}
-                        size: 20
+                        size: 21
                         ssh_url: git@github.com:packit-service/hello-world.git
                         stargazers_count: 0
                         stargazers_url: https://api.github.com/repos/packit-service/hello-world/stargazers
@@ -159,7 +159,7 @@ unittest.case:
                         Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
                           X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
                           X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
-                          X-Poll-Interval, X-GitHub-Media-Type
+                          X-Poll-Interval, X-GitHub-Media-Type, Deprecation, Sunset
                         Cache-Control: private, max-age=60, s-maxage=60
                         Content-Encoding: gzip
                         Content-Security-Policy: default-src 'self';script-src 'self'
@@ -189,158 +189,302 @@ unittest.case:
                       raw: !!binary ""
                       reason: OK
                       status_code: 200
-          requests.api:
-            requests.sessions:
-              requre.objects:
-                requests.sessions:
-                  send:
-                  - metadata:
-                      latency: 0.3162379264831543
-                      module_call_list:
-                      - unittest.case
-                      - tests_requre.openshift_integration.test_copr
-                      - packit_service.worker.jobs
-                      - ogr.services.github.project
-                      - github.MainClass
-                      - requests.api
-                      - requests.sessions
-                      - requre.objects
-                      - requests.sessions
-                      - send
-                    output:
-                      __store_indicator: 2
-                      _content:
-                        access_tokens_url: https://api.github.com/app/installations/1924121/access_tokens
-                        account:
-                          avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
-                          events_url: https://api.github.com/users/packit-service/events{/privacy}
-                          followers_url: https://api.github.com/users/packit-service/followers
-                          following_url: https://api.github.com/users/packit-service/following{/other_user}
-                          gists_url: https://api.github.com/users/packit-service/gists{/gist_id}
-                          gravatar_id: ''
-                          html_url: https://github.com/packit-service
-                          id: 46870917
-                          login: packit-service
-                          node_id: MDEyOk9yZ2FuaXphdGlvbjQ2ODcwOTE3
-                          organizations_url: https://api.github.com/users/packit-service/orgs
-                          received_events_url: https://api.github.com/users/packit-service/received_events
-                          repos_url: https://api.github.com/users/packit-service/repos
-                          site_admin: false
-                          starred_url: https://api.github.com/users/packit-service/starred{/owner}{/repo}
-                          subscriptions_url: https://api.github.com/users/packit-service/subscriptions
-                          type: Organization
-                          url: https://api.github.com/users/packit-service
-                        app_id: 29180
-                        app_slug: packit-as-a-service-stg
-                        created_at: '2019-09-16T07:28:35.000Z'
-                        events:
-                        - issue_comment
-                        - pull_request
-                        - release
-                        html_url: https://github.com/organizations/packit-service/settings/installations/1924121
-                        id: 1924121
-                        permissions:
-                          contents: read
-                          issues: write
-                          metadata: read
-                          pull_requests: write
-                          statuses: write
-                        repositories_url: https://api.github.com/installation/repositories
-                        repository_selection: selected
-                        single_file_name: null
-                        target_id: 46870917
-                        target_type: Organization
-                        updated_at: '2019-11-22T12:34:33.000Z'
-                      _next: null
-                      elapsed: 0.2
-                      encoding: utf-8
-                      headers:
-                        Access-Control-Allow-Origin: '*'
-                        Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
-                          X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
-                          X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
-                          X-Poll-Interval, X-GitHub-Media-Type
-                        Cache-Control: public, max-age=60, s-maxage=60
-                        Content-Encoding: gzip
-                        Content-Security-Policy: default-src 'self';script-src 'self'
-                          'nonce-YqLDC0BS8d7iY8mKO7VtBbIne' https://apps.fedoraproject.org;
-                          style-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne'; object-src
-                          'none';base-uri 'self';img-src 'self' https:;
-                        Content-Type: application/json; charset=utf-8
-                        Date: Fri, 01 Nov 2019 13-36-03 GMT
-                        ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
-                        Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
-                        Server: GitHub.com
-                        Status: 200 OK
-                        Strict-Transport-Security: max-age=31536000; includeSubdomains;
-                          preload
-                        Transfer-Encoding: chunked
-                        Vary: Accept, Accept-Encoding, Accept, X-Requested-With
-                        X-Content-Type-Options: nosniff
-                        X-Frame-Options: deny
-                        X-GitHub-Media-Type: github.machine-man-preview; format=json
-                        X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
-                        X-XSS-Protection: 1; mode=block
-                      raw: !!binary ""
-                      reason: OK
-                      status_code: 200
-                  - metadata:
-                      latency: 0.4770691394805908
-                      module_call_list:
-                      - unittest.case
-                      - tests_requre.openshift_integration.test_copr
-                      - packit_service.worker.jobs
-                      - ogr.services.github.project
-                      - github.MainClass
-                      - requests.api
-                      - requests.sessions
-                      - requre.objects
-                      - requests.sessions
-                      - send
-                    output:
-                      __store_indicator: 2
-                      _content:
-                        expires_at: '2019-11-01T14:35:53Z'
-                        permissions:
-                          contents: read
-                          issues: write
-                          metadata: read
-                          pull_requests: write
-                          statuses: write
-                        repository_selection: selected
-                        token: v1.1cd89d399b8c70f8b88e22cbdaa72abbe5e390db
-                      _next: null
-                      elapsed: 0.2
-                      encoding: utf-8
-                      headers:
-                        Access-Control-Allow-Origin: '*'
-                        Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
-                          X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
-                          X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
-                          X-Poll-Interval, X-GitHub-Media-Type
-                        Cache-Control: public, max-age=60, s-maxage=60
-                        Content-Length: '237'
-                        Content-Security-Policy: default-src 'self';script-src 'self'
-                          'nonce-YqLDC0BS8d7iY8mKO7VtBbIne' https://apps.fedoraproject.org;
-                          style-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne'; object-src
-                          'none';base-uri 'self';img-src 'self' https:;
-                        Content-Type: application/json; charset=utf-8
-                        Date: Fri, 01 Nov 2019 13-36-03 GMT
-                        ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
-                        Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
-                        Server: GitHub.com
-                        Status: 201 Created
-                        Strict-Transport-Security: max-age=31536000; includeSubdomains;
-                          preload
-                        Vary: Accept, Accept-Encoding, Accept, X-Requested-With
-                        X-Content-Type-Options: nosniff
-                        X-Frame-Options: deny
-                        X-GitHub-Media-Type: github.machine-man-preview; format=json
-                        X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
-                        X-XSS-Protection: 1; mode=block
-                      raw: !!binary ""
-                      reason: Created
-                      status_code: 201
+          requre.objects:
+            requests.api:
+              get:
+              - metadata:
+                  latency: 0.3310122489929199
+                  module_call_list:
+                  - unittest.case
+                  - tests_requre.openshift_integration.test_copr
+                  - packit_service.worker.jobs
+                  - ogr.services.github.project
+                  - github.MainClass
+                  - requre.objects
+                  - requests.api
+                  - get
+                output:
+                  __store_indicator: 2
+                  _content:
+                    access_tokens_url: https://api.github.com/app/installations/1924121/access_tokens
+                    account:
+                      avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
+                      events_url: https://api.github.com/users/packit-service/events{/privacy}
+                      followers_url: https://api.github.com/users/packit-service/followers
+                      following_url: https://api.github.com/users/packit-service/following{/other_user}
+                      gists_url: https://api.github.com/users/packit-service/gists{/gist_id}
+                      gravatar_id: ''
+                      html_url: https://github.com/packit-service
+                      id: 46870917
+                      login: packit-service
+                      node_id: MDEyOk9yZ2FuaXphdGlvbjQ2ODcwOTE3
+                      organizations_url: https://api.github.com/users/packit-service/orgs
+                      received_events_url: https://api.github.com/users/packit-service/received_events
+                      repos_url: https://api.github.com/users/packit-service/repos
+                      site_admin: false
+                      starred_url: https://api.github.com/users/packit-service/starred{/owner}{/repo}
+                      subscriptions_url: https://api.github.com/users/packit-service/subscriptions
+                      type: Organization
+                      url: https://api.github.com/users/packit-service
+                    app_id: 29180
+                    app_slug: packit-as-a-service-stg
+                    created_at: '2019-09-16T07:28:35.000Z'
+                    events:
+                    - issue_comment
+                    - pull_request
+                    - push
+                    - release
+                    html_url: https://github.com/organizations/packit-service/settings/installations/1924121
+                    id: 1924121
+                    permissions:
+                      contents: read
+                      issues: write
+                      metadata: read
+                      pull_requests: write
+                      statuses: write
+                    repositories_url: https://api.github.com/installation/repositories
+                    repository_selection: selected
+                    single_file_name: null
+                    target_id: 46870917
+                    target_type: Organization
+                    updated_at: '2020-03-04T12:34:46.000Z'
+                  _next: null
+                  elapsed: 0.303344
+                  encoding: utf-8
+                  headers:
+                    Access-Control-Allow-Origin: '*'
+                    Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                      X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset,
+                      X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type,
+                      Deprecation, Sunset
+                    Cache-Control: public, max-age=60, s-maxage=60
+                    Content-Encoding: gzip
+                    Content-Security-Policy: default-src 'none'
+                    Content-Type: application/json; charset=utf-8
+                    Date: Tue, 17 Mar 2020 10:33:32 GMT
+                    ETag: W/"c36f2dd2469b048838c96b8501e4078c"
+                    Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                    Server: GitHub.com
+                    Status: 200 OK
+                    Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                      preload
+                    Transfer-Encoding: chunked
+                    Vary: Accept, Accept-Encoding, Accept, X-Requested-With
+                    X-Content-Type-Options: nosniff
+                    X-Frame-Options: deny
+                    X-GitHub-Media-Type: github.machine-man-preview; format=json
+                    X-GitHub-Request-Id: BA96:22CA3:F24958B:11C3025F:5E70A77B
+                    X-XSS-Protection: 1; mode=block
+                  raw: !!binary ""
+                  reason: OK
+                  status_code: 200
+              post:
+              - metadata:
+                  latency: 0.2862668037414551
+                  module_call_list:
+                  - unittest.case
+                  - tests_requre.openshift_integration.test_copr
+                  - packit_service.worker.jobs
+                  - ogr.services.github.project
+                  - github.MainClass
+                  - requre.objects
+                  - requests.api
+                  - post
+                output:
+                  __store_indicator: 2
+                  _content:
+                    expires_at: '2020-03-17T11:33:32Z'
+                    permissions:
+                      contents: read
+                      issues: write
+                      metadata: read
+                      pull_requests: write
+                      statuses: write
+                    repository_selection: selected
+                    token: v1.f8186477070f5c856431dfcabbf564b2effc2761
+                  _next: null
+                  elapsed: 0.26488
+                  encoding: utf-8
+                  headers:
+                    Access-Control-Allow-Origin: '*'
+                    Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                      X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset,
+                      X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type,
+                      Deprecation, Sunset
+                    Cache-Control: public, max-age=60, s-maxage=60
+                    Content-Length: '237'
+                    Content-Security-Policy: default-src 'none'
+                    Content-Type: application/json; charset=utf-8
+                    Date: Tue, 17 Mar 2020 10:33:32 GMT
+                    ETag: '"df8272f98aeb504c67791578800125b2"'
+                    Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                    Server: GitHub.com
+                    Status: 201 Created
+                    Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                      preload
+                    Vary: Accept, Accept-Encoding, Accept, X-Requested-With
+                    X-Content-Type-Options: nosniff
+                    X-Frame-Options: deny
+                    X-GitHub-Media-Type: github.machine-man-preview; format=json
+                    X-GitHub-Request-Id: BA98:2AC72:BADFCAD:DB381EA:5E70A77C
+                    X-XSS-Protection: 1; mode=block
+                  raw: !!binary ""
+                  reason: Created
+                  status_code: 201
+              requests.sessions:
+                requre.objects:
+                  requests.sessions:
+                    send:
+                    - metadata:
+                        latency: 0.3043687343597412
+                        module_call_list:
+                        - unittest.case
+                        - tests_requre.openshift_integration.test_copr
+                        - packit_service.worker.jobs
+                        - ogr.services.github.project
+                        - github.MainClass
+                        - requre.objects
+                        - requests.api
+                        - requests.sessions
+                        - requre.objects
+                        - requests.sessions
+                        - send
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          access_tokens_url: https://api.github.com/app/installations/1924121/access_tokens
+                          account:
+                            avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
+                            events_url: https://api.github.com/users/packit-service/events{/privacy}
+                            followers_url: https://api.github.com/users/packit-service/followers
+                            following_url: https://api.github.com/users/packit-service/following{/other_user}
+                            gists_url: https://api.github.com/users/packit-service/gists{/gist_id}
+                            gravatar_id: ''
+                            html_url: https://github.com/packit-service
+                            id: 46870917
+                            login: packit-service
+                            node_id: MDEyOk9yZ2FuaXphdGlvbjQ2ODcwOTE3
+                            organizations_url: https://api.github.com/users/packit-service/orgs
+                            received_events_url: https://api.github.com/users/packit-service/received_events
+                            repos_url: https://api.github.com/users/packit-service/repos
+                            site_admin: false
+                            starred_url: https://api.github.com/users/packit-service/starred{/owner}{/repo}
+                            subscriptions_url: https://api.github.com/users/packit-service/subscriptions
+                            type: Organization
+                            url: https://api.github.com/users/packit-service
+                          app_id: 29180
+                          app_slug: packit-as-a-service-stg
+                          created_at: '2019-09-16T07:28:35.000Z'
+                          events:
+                          - issue_comment
+                          - pull_request
+                          - push
+                          - release
+                          html_url: https://github.com/organizations/packit-service/settings/installations/1924121
+                          id: 1924121
+                          permissions:
+                            contents: read
+                            issues: write
+                            metadata: read
+                            pull_requests: write
+                            statuses: write
+                          repositories_url: https://api.github.com/installation/repositories
+                          repository_selection: selected
+                          single_file_name: null
+                          target_id: 46870917
+                          target_type: Organization
+                          updated_at: '2020-03-04T12:34:46.000Z'
+                        _next: null
+                        elapsed: 0.2
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type, Deprecation, Sunset
+                          Cache-Control: public, max-age=60, s-maxage=60
+                          Content-Encoding: gzip
+                          Content-Security-Policy: default-src 'self';script-src 'self'
+                            'nonce-YqLDC0BS8d7iY8mKO7VtBbIne' https://apps.fedoraproject.org;
+                            style-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne'; object-src
+                            'none';base-uri 'self';img-src 'self' https:;
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 200 OK
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Transfer-Encoding: chunked
+                          Vary: Accept, Accept-Encoding, Accept, X-Requested-With
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.machine-man-preview; format=json
+                          X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: OK
+                        status_code: 200
+                    - metadata:
+                        latency: 0.26554393768310547
+                        module_call_list:
+                        - unittest.case
+                        - tests_requre.openshift_integration.test_copr
+                        - packit_service.worker.jobs
+                        - ogr.services.github.project
+                        - github.MainClass
+                        - requre.objects
+                        - requests.api
+                        - requests.sessions
+                        - requre.objects
+                        - requests.sessions
+                        - send
+                      output:
+                        __store_indicator: 2
+                        _content:
+                          expires_at: '2019-11-01T14:35:53Z'
+                          permissions:
+                            contents: read
+                            issues: write
+                            metadata: read
+                            pull_requests: write
+                            statuses: write
+                          repository_selection: selected
+                          token: v1.1cd89d399b8c70f8b88e22cbdaa72abbe5e390db
+                        _next: null
+                        elapsed: 0.2
+                        encoding: utf-8
+                        headers:
+                          Access-Control-Allow-Origin: '*'
+                          Access-Control-Expose-Headers: ETag, Link, Location, Retry-After,
+                            X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                            X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                            X-Poll-Interval, X-GitHub-Media-Type, Deprecation, Sunset
+                          Cache-Control: public, max-age=60, s-maxage=60
+                          Content-Length: '237'
+                          Content-Security-Policy: default-src 'self';script-src 'self'
+                            'nonce-YqLDC0BS8d7iY8mKO7VtBbIne' https://apps.fedoraproject.org;
+                            style-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne'; object-src
+                            'none';base-uri 'self';img-src 'self' https:;
+                          Content-Type: application/json; charset=utf-8
+                          Date: Fri, 01 Nov 2019 13-36-03 GMT
+                          ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                          Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                          Server: GitHub.com
+                          Status: 201 Created
+                          Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                            preload
+                          Vary: Accept, Accept-Encoding, Accept, X-Requested-With
+                          X-Content-Type-Options: nosniff
+                          X-Frame-Options: deny
+                          X-GitHub-Media-Type: github.machine-man-preview; format=json
+                          X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
+                          X-XSS-Protection: 1; mode=block
+                        raw: !!binary ""
+                        reason: Created
+                        status_code: 201
       packit_service.worker.whitelist:
         ogr.read_only:
           deprecated.classic:
@@ -354,7 +498,7 @@ unittest.case:
                           requests.sessions:
                             send:
                             - metadata:
-                                latency: 0.4919412136077881
+                                latency: 0.39930009841918945
                                 module_call_list:
                                 - unittest.case
                                 - tests_requre.openshift_integration.test_copr
@@ -420,8 +564,8 @@ unittest.case:
                                       downloads_url: https://api.github.com/repos/packit-service/hello-world/downloads
                                       events_url: https://api.github.com/repos/packit-service/hello-world/events
                                       fork: false
-                                      forks: 12
-                                      forks_count: 12
+                                      forks: 15
+                                      forks_count: 15
                                       forks_url: https://api.github.com/repos/packit-service/hello-world/forks
                                       full_name: packit-service/hello-world
                                       git_commits_url: https://api.github.com/repos/packit-service/hello-world/git/commits{/sha}
@@ -456,8 +600,8 @@ unittest.case:
                                       name: hello-world
                                       node_id: MDEwOlJlcG9zaXRvcnkxODQ2MzUxMjQ=
                                       notifications_url: https://api.github.com/repos/packit-service/hello-world/notifications{?since,all,participating}
-                                      open_issues: 21
-                                      open_issues_count: 21
+                                      open_issues: 24
+                                      open_issues_count: 24
                                       owner:
                                         avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
                                         events_url: https://api.github.com/users/packit-service/events{/privacy}
@@ -479,9 +623,9 @@ unittest.case:
                                         url: https://api.github.com/users/packit-service
                                       private: false
                                       pulls_url: https://api.github.com/repos/packit-service/hello-world/pulls{/number}
-                                      pushed_at: '2020-01-25T06:44:57Z'
+                                      pushed_at: '2020-03-12T11:03:16Z'
                                       releases_url: https://api.github.com/repos/packit-service/hello-world/releases{/id}
-                                      size: 20
+                                      size: 21
                                       ssh_url: git@github.com:packit-service/hello-world.git
                                       stargazers_count: 0
                                       stargazers_url: https://api.github.com/repos/packit-service/hello-world/stargazers
@@ -521,13 +665,14 @@ unittest.case:
                                     \ \r\nDO NOT MERGE IT."
                                   changed_files: 1
                                   closed_at: '2019-09-04T11:08:47Z'
-                                  comments: 46
+                                  comments: 52
                                   comments_url: https://api.github.com/repos/packit-service/hello-world/issues/9/comments
                                   commits: 1
                                   commits_url: https://api.github.com/repos/packit-service/hello-world/pulls/9/commits
                                   created_at: '2019-07-19T13:50:33Z'
                                   deletions: 0
                                   diff_url: https://github.com/packit-service/hello-world/pull/9.diff
+                                  draft: false
                                   head:
                                     label: phracek:testing_collaborators
                                     ref: testing_collaborators
@@ -674,7 +819,7 @@ unittest.case:
                                   state: closed
                                   statuses_url: https://api.github.com/repos/packit-service/hello-world/statuses/bc250caf6a9bf88a67fd730143fc6bc816722ea1
                                   title: WIP Testing collaborators - DO NOT MERGE
-                                  updated_at: '2020-02-13T09:46:17Z'
+                                  updated_at: '2020-03-17T09:13:19Z'
                                   url: https://api.github.com/repos/packit-service/hello-world/pulls/9
                                   user:
                                     avatar_url: https://avatars2.githubusercontent.com/u/3416672?v=4
@@ -703,7 +848,8 @@ unittest.case:
                                   Access-Control-Expose-Headers: ETag, Link, Location,
                                     Retry-After, X-GitHub-OTP, X-RateLimit-Limit,
                                     X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes,
-                                    X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type
+                                    X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type,
+                                    Deprecation, Sunset
                                   Cache-Control: private, max-age=60, s-maxage=60
                                   Content-Encoding: gzip
                                   Content-Security-Policy: default-src 'self';script-src
@@ -714,7 +860,7 @@ unittest.case:
                                   Content-Type: application/json; charset=utf-8
                                   Date: Fri, 01 Nov 2019 13-36-03 GMT
                                   ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
-                                  Last-Modified: Thu, 13 Feb 2020 09:46:17 GMT
+                                  Last-Modified: Tue, 17 Mar 2020 09:13:19 GMT
                                   Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                                   Server: GitHub.com
                                   Status: 200 OK
@@ -742,7 +888,7 @@ unittest.case:
                             requests.sessions:
                               send:
                               - metadata:
-                                  latency: 0.3114590644836426
+                                  latency: 0.3368113040924072
                                   module_call_list:
                                   - unittest.case
                                   - tests_requre.openshift_integration.test_copr
@@ -784,8 +930,8 @@ unittest.case:
                                     downloads_url: https://api.github.com/repos/packit-service/hello-world/downloads
                                     events_url: https://api.github.com/repos/packit-service/hello-world/events
                                     fork: false
-                                    forks: 12
-                                    forks_count: 12
+                                    forks: 15
+                                    forks_count: 15
                                     forks_url: https://api.github.com/repos/packit-service/hello-world/forks
                                     full_name: packit-service/hello-world
                                     git_commits_url: https://api.github.com/repos/packit-service/hello-world/git/commits{/sha}
@@ -818,11 +964,11 @@ unittest.case:
                                     milestones_url: https://api.github.com/repos/packit-service/hello-world/milestones{/number}
                                     mirror_url: null
                                     name: hello-world
-                                    network_count: 12
+                                    network_count: 15
                                     node_id: MDEwOlJlcG9zaXRvcnkxODQ2MzUxMjQ=
                                     notifications_url: https://api.github.com/repos/packit-service/hello-world/notifications{?since,all,participating}
-                                    open_issues: 21
-                                    open_issues_count: 21
+                                    open_issues: 24
+                                    open_issues_count: 24
                                     organization:
                                       avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
                                       events_url: https://api.github.com/users/packit-service/events{/privacy}
@@ -867,9 +1013,9 @@ unittest.case:
                                       push: false
                                     private: false
                                     pulls_url: https://api.github.com/repos/packit-service/hello-world/pulls{/number}
-                                    pushed_at: '2020-01-25T06:44:57Z'
+                                    pushed_at: '2020-03-12T11:03:16Z'
                                     releases_url: https://api.github.com/repos/packit-service/hello-world/releases{/id}
-                                    size: 20
+                                    size: 21
                                     ssh_url: git@github.com:packit-service/hello-world.git
                                     stargazers_count: 0
                                     stargazers_url: https://api.github.com/repos/packit-service/hello-world/stargazers
@@ -894,7 +1040,8 @@ unittest.case:
                                     Access-Control-Expose-Headers: ETag, Link, Location,
                                       Retry-After, X-GitHub-OTP, X-RateLimit-Limit,
                                       X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes,
-                                      X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type
+                                      X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type,
+                                      Deprecation, Sunset
                                     Cache-Control: private, max-age=60, s-maxage=60
                                     Content-Encoding: gzip
                                     Content-Security-Policy: default-src 'self';script-src
@@ -925,174 +1072,334 @@ unittest.case:
                                   raw: !!binary ""
                                   reason: OK
                                   status_code: 200
-                      requests.api:
-                        requests.sessions:
-                          requre.objects:
-                            requests.sessions:
-                              send:
-                              - metadata:
-                                  latency: 2.0063705444335938
-                                  module_call_list:
-                                  - unittest.case
-                                  - tests_requre.openshift_integration.test_copr
-                                  - packit_service.worker.jobs
-                                  - packit_service.worker.whitelist
-                                  - ogr.read_only
-                                  - deprecated.classic
-                                  - ogr.services.base
-                                  - ogr.services.github.project
-                                  - ogr.services.github.pull_request
-                                  - ogr.services.github.project
-                                  - github.MainClass
-                                  - requests.api
-                                  - requests.sessions
-                                  - requre.objects
-                                  - requests.sessions
-                                  - send
-                                output:
-                                  __store_indicator: 2
-                                  _content:
-                                    access_tokens_url: https://api.github.com/app/installations/1924121/access_tokens
-                                    account:
-                                      avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
-                                      events_url: https://api.github.com/users/packit-service/events{/privacy}
-                                      followers_url: https://api.github.com/users/packit-service/followers
-                                      following_url: https://api.github.com/users/packit-service/following{/other_user}
-                                      gists_url: https://api.github.com/users/packit-service/gists{/gist_id}
-                                      gravatar_id: ''
-                                      html_url: https://github.com/packit-service
-                                      id: 46870917
-                                      login: packit-service
-                                      node_id: MDEyOk9yZ2FuaXphdGlvbjQ2ODcwOTE3
-                                      organizations_url: https://api.github.com/users/packit-service/orgs
-                                      received_events_url: https://api.github.com/users/packit-service/received_events
-                                      repos_url: https://api.github.com/users/packit-service/repos
-                                      site_admin: false
-                                      starred_url: https://api.github.com/users/packit-service/starred{/owner}{/repo}
-                                      subscriptions_url: https://api.github.com/users/packit-service/subscriptions
-                                      type: Organization
-                                      url: https://api.github.com/users/packit-service
-                                    app_id: 29180
-                                    app_slug: packit-as-a-service-stg
-                                    created_at: '2019-09-16T07:28:35.000Z'
-                                    events:
-                                    - issue_comment
-                                    - pull_request
-                                    - release
-                                    html_url: https://github.com/organizations/packit-service/settings/installations/1924121
-                                    id: 1924121
-                                    permissions:
-                                      contents: read
-                                      issues: write
-                                      metadata: read
-                                      pull_requests: write
-                                      statuses: write
-                                    repositories_url: https://api.github.com/installation/repositories
-                                    repository_selection: selected
-                                    single_file_name: null
-                                    target_id: 46870917
-                                    target_type: Organization
-                                    updated_at: '2019-11-22T12:34:33.000Z'
-                                  _next: null
-                                  elapsed: 0.2
-                                  encoding: utf-8
-                                  headers:
-                                    Access-Control-Allow-Origin: '*'
-                                    Access-Control-Expose-Headers: ETag, Link, Location,
-                                      Retry-After, X-GitHub-OTP, X-RateLimit-Limit,
-                                      X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes,
-                                      X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type
-                                    Cache-Control: public, max-age=60, s-maxage=60
-                                    Content-Encoding: gzip
-                                    Content-Security-Policy: default-src 'self';script-src
-                                      'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne' https://apps.fedoraproject.org;
-                                      style-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne';
-                                      object-src 'none';base-uri 'self';img-src 'self'
-                                      https:;
-                                    Content-Type: application/json; charset=utf-8
-                                    Date: Fri, 01 Nov 2019 13-36-03 GMT
-                                    ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
-                                    Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
-                                    Server: GitHub.com
-                                    Status: 200 OK
-                                    Strict-Transport-Security: max-age=31536000; includeSubdomains;
-                                      preload
-                                    Transfer-Encoding: chunked
-                                    Vary: Accept, Accept-Encoding, Accept, X-Requested-With
-                                    X-Content-Type-Options: nosniff
-                                    X-Frame-Options: deny
-                                    X-GitHub-Media-Type: github.machine-man-preview;
-                                      format=json
-                                    X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
-                                    X-XSS-Protection: 1; mode=block
-                                  raw: !!binary ""
-                                  reason: OK
-                                  status_code: 200
-                              - metadata:
-                                  latency: 0.8986325263977051
-                                  module_call_list:
-                                  - unittest.case
-                                  - tests_requre.openshift_integration.test_copr
-                                  - packit_service.worker.jobs
-                                  - packit_service.worker.whitelist
-                                  - ogr.read_only
-                                  - deprecated.classic
-                                  - ogr.services.base
-                                  - ogr.services.github.project
-                                  - ogr.services.github.pull_request
-                                  - ogr.services.github.project
-                                  - github.MainClass
-                                  - requests.api
-                                  - requests.sessions
-                                  - requre.objects
-                                  - requests.sessions
-                                  - send
-                                output:
-                                  __store_indicator: 2
-                                  _content:
-                                    expires_at: '2019-11-01T14:35:53Z'
-                                    permissions:
-                                      contents: read
-                                      issues: write
-                                      metadata: read
-                                      pull_requests: write
-                                      statuses: write
-                                    repository_selection: selected
-                                    token: v1.1cd89d399b8c70f8b88e22cbdaa72abbe5e390db
-                                  _next: null
-                                  elapsed: 0.2
-                                  encoding: utf-8
-                                  headers:
-                                    Access-Control-Allow-Origin: '*'
-                                    Access-Control-Expose-Headers: ETag, Link, Location,
-                                      Retry-After, X-GitHub-OTP, X-RateLimit-Limit,
-                                      X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes,
-                                      X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type
-                                    Cache-Control: public, max-age=60, s-maxage=60
-                                    Content-Length: '237'
-                                    Content-Security-Policy: default-src 'self';script-src
-                                      'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne' https://apps.fedoraproject.org;
-                                      style-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne';
-                                      object-src 'none';base-uri 'self';img-src 'self'
-                                      https:;
-                                    Content-Type: application/json; charset=utf-8
-                                    Date: Fri, 01 Nov 2019 13-36-03 GMT
-                                    ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
-                                    Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
-                                    Server: GitHub.com
-                                    Status: 201 Created
-                                    Strict-Transport-Security: max-age=31536000; includeSubdomains;
-                                      preload
-                                    Vary: Accept, Accept-Encoding, Accept, X-Requested-With
-                                    X-Content-Type-Options: nosniff
-                                    X-Frame-Options: deny
-                                    X-GitHub-Media-Type: github.machine-man-preview;
-                                      format=json
-                                    X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
-                                    X-XSS-Protection: 1; mode=block
-                                  raw: !!binary ""
-                                  reason: Created
-                                  status_code: 201
+                      requre.objects:
+                        requests.api:
+                          get:
+                          - metadata:
+                              latency: 0.34418630599975586
+                              module_call_list:
+                              - unittest.case
+                              - tests_requre.openshift_integration.test_copr
+                              - packit_service.worker.jobs
+                              - packit_service.worker.whitelist
+                              - ogr.read_only
+                              - deprecated.classic
+                              - ogr.services.base
+                              - ogr.services.github.project
+                              - ogr.services.github.pull_request
+                              - ogr.services.github.project
+                              - github.MainClass
+                              - requre.objects
+                              - requests.api
+                              - get
+                            output:
+                              __store_indicator: 2
+                              _content:
+                                access_tokens_url: https://api.github.com/app/installations/1924121/access_tokens
+                                account:
+                                  avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
+                                  events_url: https://api.github.com/users/packit-service/events{/privacy}
+                                  followers_url: https://api.github.com/users/packit-service/followers
+                                  following_url: https://api.github.com/users/packit-service/following{/other_user}
+                                  gists_url: https://api.github.com/users/packit-service/gists{/gist_id}
+                                  gravatar_id: ''
+                                  html_url: https://github.com/packit-service
+                                  id: 46870917
+                                  login: packit-service
+                                  node_id: MDEyOk9yZ2FuaXphdGlvbjQ2ODcwOTE3
+                                  organizations_url: https://api.github.com/users/packit-service/orgs
+                                  received_events_url: https://api.github.com/users/packit-service/received_events
+                                  repos_url: https://api.github.com/users/packit-service/repos
+                                  site_admin: false
+                                  starred_url: https://api.github.com/users/packit-service/starred{/owner}{/repo}
+                                  subscriptions_url: https://api.github.com/users/packit-service/subscriptions
+                                  type: Organization
+                                  url: https://api.github.com/users/packit-service
+                                app_id: 29180
+                                app_slug: packit-as-a-service-stg
+                                created_at: '2019-09-16T07:28:35.000Z'
+                                events:
+                                - issue_comment
+                                - pull_request
+                                - push
+                                - release
+                                html_url: https://github.com/organizations/packit-service/settings/installations/1924121
+                                id: 1924121
+                                permissions:
+                                  contents: read
+                                  issues: write
+                                  metadata: read
+                                  pull_requests: write
+                                  statuses: write
+                                repositories_url: https://api.github.com/installation/repositories
+                                repository_selection: selected
+                                single_file_name: null
+                                target_id: 46870917
+                                target_type: Organization
+                                updated_at: '2020-03-04T12:34:46.000Z'
+                              _next: null
+                              elapsed: 0.319128
+                              encoding: utf-8
+                              headers:
+                                Access-Control-Allow-Origin: '*'
+                                Access-Control-Expose-Headers: ETag, Link, Location,
+                                  Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                                  X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                                  X-Poll-Interval, X-GitHub-Media-Type, Deprecation,
+                                  Sunset
+                                Cache-Control: public, max-age=60, s-maxage=60
+                                Content-Encoding: gzip
+                                Content-Security-Policy: default-src 'none'
+                                Content-Type: application/json; charset=utf-8
+                                Date: Tue, 17 Mar 2020 10:33:33 GMT
+                                ETag: W/"c36f2dd2469b048838c96b8501e4078c"
+                                Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                                Server: GitHub.com
+                                Status: 200 OK
+                                Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                                  preload
+                                Transfer-Encoding: chunked
+                                Vary: Accept, Accept-Encoding, Accept, X-Requested-With
+                                X-Content-Type-Options: nosniff
+                                X-Frame-Options: deny
+                                X-GitHub-Media-Type: github.machine-man-preview; format=json
+                                X-GitHub-Request-Id: BA9E:8D92:BEF313E:E006240:5E70A77D
+                                X-XSS-Protection: 1; mode=block
+                              raw: !!binary ""
+                              reason: OK
+                              status_code: 200
+                          post:
+                          - metadata:
+                              latency: 0.348813533782959
+                              module_call_list:
+                              - unittest.case
+                              - tests_requre.openshift_integration.test_copr
+                              - packit_service.worker.jobs
+                              - packit_service.worker.whitelist
+                              - ogr.read_only
+                              - deprecated.classic
+                              - ogr.services.base
+                              - ogr.services.github.project
+                              - ogr.services.github.pull_request
+                              - ogr.services.github.project
+                              - github.MainClass
+                              - requre.objects
+                              - requests.api
+                              - post
+                            output:
+                              __store_indicator: 2
+                              _content:
+                                expires_at: '2020-03-17T11:33:33Z'
+                                permissions:
+                                  contents: read
+                                  issues: write
+                                  metadata: read
+                                  pull_requests: write
+                                  statuses: write
+                                repository_selection: selected
+                                token: v1.6ec88dae30cad4bed6d3e2593c1700dd93b2283a
+                              _next: null
+                              elapsed: 0.320482
+                              encoding: utf-8
+                              headers:
+                                Access-Control-Allow-Origin: '*'
+                                Access-Control-Expose-Headers: ETag, Link, Location,
+                                  Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+                                  X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
+                                  X-Poll-Interval, X-GitHub-Media-Type, Deprecation,
+                                  Sunset
+                                Cache-Control: public, max-age=60, s-maxage=60
+                                Content-Length: '237'
+                                Content-Security-Policy: default-src 'none'
+                                Content-Type: application/json; charset=utf-8
+                                Date: Tue, 17 Mar 2020 10:33:33 GMT
+                                ETag: '"6f93aa9f8041c8d5a35b398481d957f1"'
+                                Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                                Server: GitHub.com
+                                Status: 201 Created
+                                Strict-Transport-Security: max-age=31536000; includeSubdomains;
+                                  preload
+                                Vary: Accept, Accept-Encoding, Accept, X-Requested-With
+                                X-Content-Type-Options: nosniff
+                                X-Frame-Options: deny
+                                X-GitHub-Media-Type: github.machine-man-preview; format=json
+                                X-GitHub-Request-Id: BAA2:47B46:842A5C5:9AB3775:5E70A77D
+                                X-XSS-Protection: 1; mode=block
+                              raw: !!binary ""
+                              reason: Created
+                              status_code: 201
+                          requests.sessions:
+                            requre.objects:
+                              requests.sessions:
+                                send:
+                                - metadata:
+                                    latency: 0.31951332092285156
+                                    module_call_list:
+                                    - unittest.case
+                                    - tests_requre.openshift_integration.test_copr
+                                    - packit_service.worker.jobs
+                                    - packit_service.worker.whitelist
+                                    - ogr.read_only
+                                    - deprecated.classic
+                                    - ogr.services.base
+                                    - ogr.services.github.project
+                                    - ogr.services.github.pull_request
+                                    - ogr.services.github.project
+                                    - github.MainClass
+                                    - requre.objects
+                                    - requests.api
+                                    - requests.sessions
+                                    - requre.objects
+                                    - requests.sessions
+                                    - send
+                                  output:
+                                    __store_indicator: 2
+                                    _content:
+                                      access_tokens_url: https://api.github.com/app/installations/1924121/access_tokens
+                                      account:
+                                        avatar_url: https://avatars3.githubusercontent.com/u/46870917?v=4
+                                        events_url: https://api.github.com/users/packit-service/events{/privacy}
+                                        followers_url: https://api.github.com/users/packit-service/followers
+                                        following_url: https://api.github.com/users/packit-service/following{/other_user}
+                                        gists_url: https://api.github.com/users/packit-service/gists{/gist_id}
+                                        gravatar_id: ''
+                                        html_url: https://github.com/packit-service
+                                        id: 46870917
+                                        login: packit-service
+                                        node_id: MDEyOk9yZ2FuaXphdGlvbjQ2ODcwOTE3
+                                        organizations_url: https://api.github.com/users/packit-service/orgs
+                                        received_events_url: https://api.github.com/users/packit-service/received_events
+                                        repos_url: https://api.github.com/users/packit-service/repos
+                                        site_admin: false
+                                        starred_url: https://api.github.com/users/packit-service/starred{/owner}{/repo}
+                                        subscriptions_url: https://api.github.com/users/packit-service/subscriptions
+                                        type: Organization
+                                        url: https://api.github.com/users/packit-service
+                                      app_id: 29180
+                                      app_slug: packit-as-a-service-stg
+                                      created_at: '2019-09-16T07:28:35.000Z'
+                                      events:
+                                      - issue_comment
+                                      - pull_request
+                                      - push
+                                      - release
+                                      html_url: https://github.com/organizations/packit-service/settings/installations/1924121
+                                      id: 1924121
+                                      permissions:
+                                        contents: read
+                                        issues: write
+                                        metadata: read
+                                        pull_requests: write
+                                        statuses: write
+                                      repositories_url: https://api.github.com/installation/repositories
+                                      repository_selection: selected
+                                      single_file_name: null
+                                      target_id: 46870917
+                                      target_type: Organization
+                                      updated_at: '2020-03-04T12:34:46.000Z'
+                                    _next: null
+                                    elapsed: 0.2
+                                    encoding: utf-8
+                                    headers:
+                                      Access-Control-Allow-Origin: '*'
+                                      Access-Control-Expose-Headers: ETag, Link, Location,
+                                        Retry-After, X-GitHub-OTP, X-RateLimit-Limit,
+                                        X-RateLimit-Remaining, X-RateLimit-Reset,
+                                        X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval,
+                                        X-GitHub-Media-Type, Deprecation, Sunset
+                                      Cache-Control: public, max-age=60, s-maxage=60
+                                      Content-Encoding: gzip
+                                      Content-Security-Policy: default-src 'self';script-src
+                                        'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne' https://apps.fedoraproject.org;
+                                        style-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne';
+                                        object-src 'none';base-uri 'self';img-src
+                                        'self' https:;
+                                      Content-Type: application/json; charset=utf-8
+                                      Date: Fri, 01 Nov 2019 13-36-03 GMT
+                                      ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                                      Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                                      Server: GitHub.com
+                                      Status: 200 OK
+                                      Strict-Transport-Security: max-age=31536000;
+                                        includeSubdomains; preload
+                                      Transfer-Encoding: chunked
+                                      Vary: Accept, Accept-Encoding, Accept, X-Requested-With
+                                      X-Content-Type-Options: nosniff
+                                      X-Frame-Options: deny
+                                      X-GitHub-Media-Type: github.machine-man-preview;
+                                        format=json
+                                      X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
+                                      X-XSS-Protection: 1; mode=block
+                                    raw: !!binary ""
+                                    reason: OK
+                                    status_code: 200
+                                - metadata:
+                                    latency: 0.320972204208374
+                                    module_call_list:
+                                    - unittest.case
+                                    - tests_requre.openshift_integration.test_copr
+                                    - packit_service.worker.jobs
+                                    - packit_service.worker.whitelist
+                                    - ogr.read_only
+                                    - deprecated.classic
+                                    - ogr.services.base
+                                    - ogr.services.github.project
+                                    - ogr.services.github.pull_request
+                                    - ogr.services.github.project
+                                    - github.MainClass
+                                    - requre.objects
+                                    - requests.api
+                                    - requests.sessions
+                                    - requre.objects
+                                    - requests.sessions
+                                    - send
+                                  output:
+                                    __store_indicator: 2
+                                    _content:
+                                      expires_at: '2019-11-01T14:35:53Z'
+                                      permissions:
+                                        contents: read
+                                        issues: write
+                                        metadata: read
+                                        pull_requests: write
+                                        statuses: write
+                                      repository_selection: selected
+                                      token: v1.1cd89d399b8c70f8b88e22cbdaa72abbe5e390db
+                                    _next: null
+                                    elapsed: 0.2
+                                    encoding: utf-8
+                                    headers:
+                                      Access-Control-Allow-Origin: '*'
+                                      Access-Control-Expose-Headers: ETag, Link, Location,
+                                        Retry-After, X-GitHub-OTP, X-RateLimit-Limit,
+                                        X-RateLimit-Remaining, X-RateLimit-Reset,
+                                        X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval,
+                                        X-GitHub-Media-Type, Deprecation, Sunset
+                                      Cache-Control: public, max-age=60, s-maxage=60
+                                      Content-Length: '237'
+                                      Content-Security-Policy: default-src 'self';script-src
+                                        'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne' https://apps.fedoraproject.org;
+                                        style-src 'self' 'nonce-YqLDC0BS8d7iY8mKO7VtBbIne';
+                                        object-src 'none';base-uri 'self';img-src
+                                        'self' https:;
+                                      Content-Type: application/json; charset=utf-8
+                                      Date: Fri, 01 Nov 2019 13-36-03 GMT
+                                      ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
+                                      Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+                                      Server: GitHub.com
+                                      Status: 201 Created
+                                      Strict-Transport-Security: max-age=31536000;
+                                        includeSubdomains; preload
+                                      Vary: Accept, Accept-Encoding, Accept, X-Requested-With
+                                      X-Content-Type-Options: nosniff
+                                      X-Frame-Options: deny
+                                      X-GitHub-Media-Type: github.machine-man-preview;
+                                        format=json
+                                      X-GitHub-Request-Id: 18FB:AA1A:99616C4:B8092CB:5CC15425
+                                      X-XSS-Protection: 1; mode=block
+                                    raw: !!binary ""
+                                    reason: Created
+                                    status_code: 201
               ogr.services.github.pull_request:
                 github.PullRequest:
                   github.Requester:
@@ -1101,7 +1408,7 @@ unittest.case:
                         requests.sessions:
                           send:
                           - metadata:
-                              latency: 1.1310372352600098
+                              latency: 0.798940896987915
                               module_call_list:
                               - unittest.case
                               - tests_requre.openshift_integration.test_copr
@@ -1123,13 +1430,13 @@ unittest.case:
                                 author_association: NONE
                                 body: Neither account phracek nor owner packit-service
                                   are on our whitelist!
-                                created_at: '2020-02-13T09:55:59Z'
-                                html_url: https://github.com/packit-service/hello-world/pull/9#issuecomment-585644014
-                                id: 585644014
+                                created_at: '2020-03-17T10:33:34Z'
+                                html_url: https://github.com/packit-service/hello-world/pull/9#issuecomment-599996732
+                                id: 599996732
                                 issue_url: https://api.github.com/repos/packit-service/hello-world/issues/9
-                                node_id: MDEyOklzc3VlQ29tbWVudDU4NTY0NDAxNA==
-                                updated_at: '2020-02-13T09:55:59Z'
-                                url: https://api.github.com/repos/packit-service/hello-world/issues/comments/585644014
+                                node_id: MDEyOklzc3VlQ29tbWVudDU5OTk5NjczMg==
+                                updated_at: '2020-03-17T10:33:34Z'
+                                url: https://api.github.com/repos/packit-service/hello-world/issues/comments/599996732
                                 user:
                                   avatar_url: https://avatars0.githubusercontent.com/in/29180?v=4
                                   events_url: https://api.github.com/users/packit-as-a-service-stg%5Bbot%5D/events{/privacy}
@@ -1157,7 +1464,8 @@ unittest.case:
                                 Access-Control-Expose-Headers: ETag, Link, Location,
                                   Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
                                   X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes,
-                                  X-Poll-Interval, X-GitHub-Media-Type
+                                  X-Poll-Interval, X-GitHub-Media-Type, Deprecation,
+                                  Sunset
                                 Cache-Control: private, max-age=60, s-maxage=60
                                 Content-Length: '1696'
                                 Content-Security-Policy: default-src 'self';script-src
@@ -1168,7 +1476,7 @@ unittest.case:
                                 Content-Type: application/json; charset=utf-8
                                 Date: Fri, 01 Nov 2019 13-36-03 GMT
                                 ETag: W/"1e51b8e1c48787a433405211e9e0fe61"
-                                Location: https://api.github.com/repos/packit-service/hello-world/issues/comments/585644014
+                                Location: https://api.github.com/repos/packit-service/hello-world/issues/comments/599996732
                                 Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
                                 Server: GitHub.com
                                 Status: 201 Created

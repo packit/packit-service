@@ -58,4 +58,4 @@ def get_celery_application():
     return app
 
 
-celery_app = Proxy(get_celery_application)
+celery_app: Celery = Proxy(get_celery_application)

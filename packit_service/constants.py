@@ -19,3 +19,11 @@ PERMISSIONS_ERROR_WRITE_OR_ADMIN = (
     "Only users with write or admin permissions to the repository "
     "can trigger Packit-as-a-Service"
 )
+
+COPR_SUCC_STATE = "succeeded"
+COPR_FAILED_STATE = "failed"
+COPR_API_SUCC_STATE = 1
+COPR_API_FAIL_STATE = 2
+
+PG_COPR_BUILD_STATUS_FAILURE = "failure"
+PG_COPR_BUILD_STATUS_SUCCESS = "success"
