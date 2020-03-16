@@ -50,9 +50,3 @@ check-inside-openshift: worker test_image
 
 check-inside-openshift-zuul: test_image
 	ANSIBLE_STDOUT_CALLBACK=debug $(AP) files/check-inside-openshift.yaml
-
-
-# this target is expected to run within an openshift pod
-check-within-openshift:
-	/src-packit-service/files/setup_env_in_openshift.sh
-	pytest-3 -k test_update
