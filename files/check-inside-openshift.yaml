@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 ---
-- name: Deploy secrets for integration tests
+- name: Run requre tests inside an openshift pod
   hosts: localhost
   vars:
     local_data_dir: "../tests_requre"
