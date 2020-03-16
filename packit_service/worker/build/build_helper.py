@@ -180,10 +180,14 @@ class BaseBuildJobHelper:
 
         if not self._job_build:
             for job in self.package_config.jobs:
-                if are_job_types_same(
-                    job.type, self.job_type_build
-                ) and is_trigger_matching_job_config(
-                    trigger=self.event.trigger, job_config=job
+                if are_job_types_same(job.type, self.job_type_build) and (
+                    (
+                        self.event.db_trigger
+                        and self.event.db_trigger.job_config_trigger_type == job.trigger
+                    )
+                    or is_trigger_matching_job_config(
+                        trigger=self.event.trigger, job_config=job
+                    )
                 ):
                     self._job_build = job
                     break
@@ -200,10 +204,14 @@ class BaseBuildJobHelper:
 
         if not self._job_tests:
             for job in self.package_config.jobs:
-                if are_job_types_same(
-                    job.type, self.job_type_test
-                ) and is_trigger_matching_job_config(
-                    trigger=self.event.trigger, job_config=job
+                if are_job_types_same(job.type, self.job_type_test) and (
+                    (
+                        self.event.db_trigger
+                        and self.event.db_trigger.job_config_trigger_type == job.trigger
+                    )
+                    or is_trigger_matching_job_config(
+                        trigger=self.event.trigger, job_config=job
+                    )
                 ):
                     self._job_tests = job
                     break

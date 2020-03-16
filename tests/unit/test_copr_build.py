@@ -30,7 +30,12 @@ from packit.exceptions import FailedCreateSRPM
 
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
-from packit_service.models import CoprBuild, SRPMBuild
+from packit_service.models import CoprBuildModel, SRPMBuildModel
+from packit_service.service.db_triggers import (
+    AddPullRequestDbTrigger,
+    AddBranchPushDbTrigger,
+    AddReleaseDbTrigger,
+)
 from packit_service.service.events import (
     PullRequestEvent,
     PullRequestCommentEvent,
@@ -95,6 +100,9 @@ def build_helper(
 
 
 def test_copr_build_check_names(pull_request_event):
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
+        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
+    )
     helper = build_helper(
         event=pull_request_event,
         metadata={"owner": "nobody", "targets": ["bright-future-x86_64"]},
@@ -114,10 +122,14 @@ def test_copr_build_check_names(pull_request_event):
 
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
-    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
-    flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
+    flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
+    flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
+        CoprBuildModel(id=1)
+    )
+    flexmock(PullRequestEvent).should_receive("db_trigger").and_return(flexmock())
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None)
     flexmock(Celery).should_receive("send_task").once()
+
     assert helper.run_copr_build()["success"]
 
 
@@ -131,11 +143,16 @@ def test_copr_build_success_set_test_check(pull_request_event):
     test_job = JobConfig(
         type=JobType.tests, trigger=JobConfigTriggerType.pull_request, metadata={}
     )
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
+        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
+    )
     helper = build_helper(jobs=[test_job], event=pull_request_event)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(16)
     flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
-    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
-    flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
+    flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
+    flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
+        CoprBuildModel(id=1)
+    )
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -159,11 +176,17 @@ def test_copr_build_for_branch(branch_push_event):
             ],
         },
     )
+    flexmock(AddBranchPushDbTrigger).should_receive("db_trigger").and_return(
+        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
+    )
     helper = build_helper(jobs=[branch_build_job], event=branch_push_event)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
-    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
-    flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
+    flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
+    flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
+        CoprBuildModel(id=1)
+    )
+    flexmock(PushGitHubEvent).should_receive("db_trigger").and_return(flexmock())
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -187,11 +210,17 @@ def test_copr_build_for_release(release_event):
             ],
         },
     )
+    flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
+        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
+    )
     helper = build_helper(jobs=[branch_build_job], event=release_event)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
-    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
-    flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
+    flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
+    flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
+        CoprBuildModel(id=1)
+    )
+    flexmock(ReleaseEvent).should_receive("db_trigger").and_return(flexmock())
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -204,8 +233,11 @@ def test_copr_build_success(pull_request_event):
     helper = build_helper(event=pull_request_event)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
-    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
-    flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
+    flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
+    flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
+        CoprBuildModel(id=1)
+    )
+    flexmock(PullRequestEvent).should_receive("db_trigger").and_return(flexmock())
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -236,8 +268,10 @@ def test_copr_build_fails_in_packit(pull_request_event):
             trim=True,
         ).and_return().once()
     flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
-    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild(id=2))
-    flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
+    flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel(id=2))
+    flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
+        CoprBuildModel(id=1)
+    )
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
     flexmock(PackitAPI).should_receive("run_copr_build").and_raise(
         FailedCreateSRPM, "some error"
@@ -252,8 +286,11 @@ def test_copr_build_no_targets(pull_request_event):
     helper = build_helper(event=pull_request_event, metadata={"owner": "nobody"})
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
     flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
-    flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
-    flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
+    flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
+    flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
+        CoprBuildModel(id=1)
+    )
+    flexmock(PullRequestEvent).should_receive("db_trigger").and_return(flexmock())
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]

@@ -31,7 +31,7 @@ from packit_service.constants import (
     COPR_API_SUCC_STATE,
     COPR_API_FAIL_STATE,
 )
-from packit_service.models import CoprBuild, TaskResultModel
+from packit_service.models import CoprBuildModel, TaskResultModel
 from packit_service.service.events import CoprBuildEvent, FedmsgTopic
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.jobs import SteveJobs
@@ -70,7 +70,7 @@ def process_message(self, event: dict, topic: str = None) -> Optional[dict]:
 def babysit_copr_build(self, build_id: int):
     """ check status of a copr build and update it in DB """
     logger.debug(f"getting copr build ID {build_id} from DB")
-    builds = CoprBuild.get_all_by_build_id(build_id)
+    builds = CoprBuildModel.get_all_by_build_id(build_id)
     if builds:
         copr_client = CoprClient.create_from_config_file()
         build_copr = copr_client.build_proxy.get(build_id)

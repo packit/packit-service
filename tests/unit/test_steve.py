@@ -77,7 +77,6 @@ def test_process_message(event):
     ).once()
     flexmock(Whitelist, check_and_report=True)
     flexmock(SteveJobs, _is_private=False)
-
     results = SteveJobs().process_message(event)
     assert "propose_downstream" in results["jobs"]
     assert results["event"]["trigger"] == "release"

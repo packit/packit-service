@@ -28,8 +28,9 @@ import logging
 import os
 from contextlib import contextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional, Union, Iterable
+from typing import TYPE_CHECKING, Optional, Union, Iterable, Dict, Type
 
+from packit.config import JobConfigTriggerType
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum, desc
 from sqlalchemy.types import PickleType
 from sqlalchemy import JSON, create_engine
@@ -80,24 +81,27 @@ else:
     Base = declarative_base()
 
 
-class GitProject(Base):
+class GitProjectModel(Base):
     __tablename__ = "git_projects"
     id = Column(Integer, primary_key=True)
     # github.com/NAMESPACE/REPO_NAME
     # git.centos.org/NAMESPACE/REPO_NAME
     namespace = Column(String, index=True)
     repo_name = Column(String, index=True)
-    pull_requests = relationship("PullRequest", back_populates="project")
+    pull_requests = relationship("PullRequestModel", back_populates="project")
+    branches = relationship("GitBranchModel", back_populates="project")
+    releases = relationship("ProjectReleaseModel", back_populates="project")
+    issues = relationship("IssueModel", back_populates="project")
 
     # Git URL of the repo
     # Example: https://github.com/packit-service/hello-world.git
     https_url = Column(String)
 
     @classmethod
-    def get_or_create(cls, namespace: str, repo_name: str) -> "GitProject":
+    def get_or_create(cls, namespace: str, repo_name: str) -> "GitProjectModel":
         with get_sa_session() as session:
             project = (
-                session.query(GitProject)
+                session.query(GitProjectModel)
                 .filter_by(namespace=namespace, repo_name=repo_name)
                 .first()
             )
@@ -109,13 +113,13 @@ class GitProject(Base):
             return project
 
     def __repr__(self):
-        return f"GitProject(name={self.namespace}/{self.repo_name})"
+        return f"GitProjectModel(name={self.namespace}/{self.repo_name})"
 
     def __str__(self):
         return self.__repr__()
 
 
-class PullRequest(Base):
+class PullRequestModel(Base):
     __tablename__ = "pull_requests"
     id = Column(Integer, primary_key=True)  # our database PK
     # GitHub PR ID
@@ -125,42 +129,220 @@ class PullRequest(Base):
     #   3) it's not unique across projects obviously, so why am I even writing this?
     pr_id = Column(Integer, index=True)
     project_id = Column(Integer, ForeignKey("git_projects.id"))
-    project = relationship("GitProject", back_populates="pull_requests")
-    copr_builds = relationship("CoprBuild", back_populates="pr")
+    project = relationship("GitProjectModel", back_populates="pull_requests")
+
+    job_config_trigger_type = JobConfigTriggerType.pull_request
 
     @classmethod
-    def get_or_create(cls, pr_id: int, namespace: str, repo_name: str) -> "PullRequest":
+    def get_or_create(
+        cls, pr_id: int, namespace: str, repo_name: str
+    ) -> "PullRequestModel":
         with get_sa_session() as session:
-            project = GitProject.get_or_create(namespace=namespace, repo_name=repo_name)
+            project = GitProjectModel.get_or_create(
+                namespace=namespace, repo_name=repo_name
+            )
             pr = (
-                session.query(PullRequest)
+                session.query(PullRequestModel)
                 .filter_by(pr_id=pr_id, project_id=project.id)
                 .first()
             )
             if not pr:
-                pr = PullRequest()
+                pr = PullRequestModel()
                 pr.pr_id = pr_id
                 pr.project_id = project.id
                 session.add(pr)
             return pr
 
     def __repr__(self):
-        return f"PullRequest(id={self.pr_id}, project={self.project})"
+        return f"PullRequestModel(id={self.pr_id}, project={self.project})"
 
     def __str__(self):
         return self.__repr__()
 
 
-class CoprBuild(Base):
+class IssueModel(Base):
+    __tablename__ = "project_issues"
+    id = Column(Integer, primary_key=True)  # our database PK
+    issue_id = Column(Integer, index=True)
+    project_id = Column(Integer, ForeignKey("git_projects.id"))
+    project = relationship("GitProjectModel", back_populates="issues")
+    job_config_trigger_type = None
+
+    @classmethod
+    def get_or_create(
+        cls, issue_id: int, namespace: str, repo_name: str
+    ) -> "IssueModel":
+        with get_sa_session() as session:
+            project = GitProjectModel.get_or_create(
+                namespace=namespace, repo_name=repo_name
+            )
+            issue = (
+                session.query(IssueModel)
+                .filter_by(issue_id=issue_id, project_id=project.id)
+                .first()
+            )
+            if not issue:
+                issue = IssueModel()
+                issue.issue_id = issue_id
+                issue.project_id = project.id
+                session.add(issue)
+            return issue
+
+    def __repr__(self):
+        return f"IssueModel(id={self.issue_id}, project={self.project})"
+
+    def __str__(self):
+        return self.__repr__()
+
+
+class GitBranchModel(Base):
+    __tablename__ = "git_branches"
+    id = Column(Integer, primary_key=True)  # our database PK
+    name = Column(String)
+    project_id = Column(Integer, ForeignKey("git_projects.id"))
+    project = relationship("GitProjectModel", back_populates="branches")
+
+    job_config_trigger_type = JobConfigTriggerType.commit
+
+    @classmethod
+    def get_or_create(
+        cls, branch_name: str, namespace: str, repo_name: str
+    ) -> "GitBranchModel":
+        with get_sa_session() as session:
+            project = GitProjectModel.get_or_create(
+                namespace=namespace, repo_name=repo_name
+            )
+            git_branch = (
+                session.query(GitBranchModel)
+                .filter_by(name=branch_name, project_id=project.id)
+                .first()
+            )
+            if not git_branch:
+                git_branch = GitBranchModel()
+                git_branch.name = branch_name
+                git_branch.project_id = project.id
+                session.add(git_branch)
+            return git_branch
+
+    def __repr__(self):
+        return f"GitBranchModel(id={self.pr_id}, name={self.name},  project={self.project})"
+
+    def __str__(self):
+        return self.__repr__()
+
+
+class ProjectReleaseModel(Base):
+    __tablename__ = "project_releases"
+    id = Column(Integer, primary_key=True)  # our database PK
+    tag_name = Column(String)
+    commit_hash = Column(String)
+    project_id = Column(Integer, ForeignKey("git_projects.id"))
+    project = relationship("GitProjectModel", back_populates="releases")
+
+    job_config_trigger_type = JobConfigTriggerType.release
+
+    @classmethod
+    def get_or_create(
+        cls, tag_name: str, namespace: str, repo_name: str, commit_hash=str
+    ) -> "ProjectReleaseModel":
+        with get_sa_session() as session:
+            project = GitProjectModel.get_or_create(
+                namespace=namespace, repo_name=repo_name
+            )
+            project_release = (
+                session.query(ProjectReleaseModel)
+                .filter_by(tag_name=tag_name, project_id=project.id)
+                .first()
+            )
+            if not project_release:
+                project_release = ProjectReleaseModel()
+                project_release.tag_name = tag_name
+                project_release.project_id = project.id
+                project_release.commit_hash = commit_hash
+                session.add(project_release)
+            return project_release
+
+    def __repr__(self):
+        return (
+            f"ProjectReleaseModel(id={self.pr_id}, "
+            f"tag_name={self.tag_name}, "
+            f"project={self.project})"
+        )
+
+    def __str__(self):
+        return self.__repr__()
+
+
+class JobTriggerModelType(str, enum.Enum):
+    pull_request = "pull_request"
+    branch_push = "branch_push"
+    release = "release"
+    issue = "issue"
+
+
+AbstractTriggerDbType = Union[
+    PullRequestModel, ProjectReleaseModel, GitBranchModel, IssueModel
+]
+
+MODEL_FOR_TRIGGER: Dict[JobTriggerModelType, Type[AbstractTriggerDbType]] = {
+    JobTriggerModelType.pull_request: PullRequestModel,
+    JobTriggerModelType.branch_push: GitBranchModel,
+    JobTriggerModelType.release: ProjectReleaseModel,
+    JobTriggerModelType.issue: IssueModel,
+}
+
+
+class JobTriggerModel(Base):
+    __tablename__ = "build_triggers"
+    id = Column(Integer, primary_key=True)  # our database PK
+    type = Column(Enum(JobTriggerModelType))
+    trigger_id = Column(Integer)
+    copr_builds = relationship("CoprBuildModel", back_populates="job_trigger")
+    koji_builds = relationship("KojiBuildModel", back_populates="job_trigger")
+    test_runs = relationship("TFTTestRunModel", back_populates="job_trigger")
+
+    @classmethod
+    def get_or_create(
+        cls, type: JobTriggerModelType, trigger_id: int
+    ) -> "JobTriggerModel":
+        with get_sa_session() as session:
+            trigger = (
+                session.query(JobTriggerModel)
+                .filter_by(type=type, trigger_id=trigger_id)
+                .first()
+            )
+            if not trigger:
+                trigger = JobTriggerModel()
+                trigger.type = type
+                trigger.trigger_id = trigger_id
+                session.add(trigger)
+            return trigger
+
+    def get_trigger_object(self) -> AbstractTriggerDbType:
+        with get_sa_session() as session:
+            return (
+                session.query(MODEL_FOR_TRIGGER[self.type])
+                .filter_by(id=self.trigger_id)
+                .first()
+            )
+
+    def __repr__(self):
+        return f"JobTriggerModel(id={self.pr_id}, type={self.type}, trigger_id={self.trigger_id})"
+
+    def __str__(self):
+        return self.__repr__()
+
+
+class CoprBuildModel(Base):
     """ we create an entry for every target """
 
     __tablename__ = "copr_builds"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # copr build id
-    pr_id = Column(Integer, ForeignKey("pull_requests.id"))
-    pr = relationship("PullRequest", back_populates="copr_builds")
+    job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
+    job_trigger = relationship("JobTriggerModel", back_populates="copr_builds")
     srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"))
-    srpm_build = relationship("SRPMBuild", back_populates="copr_builds")
+    srpm_build = relationship("SRPMBuildModel", back_populates="copr_builds")
     # commit sha of the PR (or a branch, release) we used for a build
     commit_sha = Column(String)
     # what's the build status?
@@ -196,31 +378,31 @@ class CoprBuild(Base):
             session.add(self)
 
     @classmethod
-    def get_by_id(cls, id_: int) -> Optional["CoprBuild"]:
+    def get_by_id(cls, id_: int) -> Optional["CoprBuildModel"]:
         with get_sa_session() as session:
-            return session.query(CoprBuild).filter_by(id=id_).first()
+            return session.query(CoprBuildModel).filter_by(id=id_).first()
 
     @classmethod
-    def get_all(cls) -> Optional[Iterable["CoprBuild"]]:
+    def get_all(cls) -> Optional[Iterable["CoprBuildModel"]]:
         with get_sa_session() as session:
-            return session.query(CoprBuild).order_by(desc(CoprBuild.id)).all()
+            return session.query(CoprBuildModel).order_by(desc(CoprBuildModel.id)).all()
 
     # Returns all builds with that build_id, irrespective of target
     @classmethod
     def get_all_by_build_id(
         cls, build_id: Union[str, int]
-    ) -> Optional[Iterable["CoprBuild"]]:
+    ) -> Optional[Iterable["CoprBuildModel"]]:
         if isinstance(build_id, int):
             # See the comment in get_by_build_id()
             build_id = str(build_id)
         with get_sa_session() as session:
-            return session.query(CoprBuild).filter_by(build_id=build_id)
+            return session.query(CoprBuildModel).filter_by(build_id=build_id)
 
     # returns the build matching the build_id and the target
     @classmethod
     def get_by_build_id(
         cls, build_id: Union[str, int], target: str
-    ) -> Optional["CoprBuild"]:
+    ) -> Optional["CoprBuildModel"]:
         if isinstance(build_id, int):
             # PG is pesky about this:
             #   LINE 3: WHERE copr_builds.build_id = 1245767 AND copr_builds.target ...
@@ -229,7 +411,7 @@ class CoprBuild(Base):
             build_id = str(build_id)
         with get_sa_session() as session:
             return (
-                session.query(CoprBuild)
+                session.query(CoprBuildModel)
                 .filter_by(build_id=build_id, target=target)
                 .first()
             )
@@ -237,27 +419,22 @@ class CoprBuild(Base):
     @classmethod
     def get_or_create(
         cls,
-        pr_id: int,
         build_id: str,
         commit_sha: str,
-        repo_name: str,
-        namespace: str,
         project_name: str,
         owner: str,
         web_url: str,
         target: str,
         status: str,
-        srpm_build: "SRPMBuild",
-    ) -> "CoprBuild":
+        srpm_build: "SRPMBuildModel",
+        job_trigger: AbstractTriggerDbType,
+    ) -> "CoprBuildModel":
         with get_sa_session() as session:
             build = cls.get_by_build_id(build_id, target)
             if not build:
-                pr = PullRequest.get_or_create(
-                    pr_id=pr_id, namespace=namespace, repo_name=repo_name
-                )
                 build = cls()
                 build.build_id = build_id
-                build.pr_id = pr.id
+                build.job_trigger = job_trigger
                 build.srpm_build_id = srpm_build.id
                 build.status = status
                 build.project_name = project_name
@@ -269,21 +446,133 @@ class CoprBuild(Base):
             return build
 
     def __repr__(self):
-        return f"COPRBuild(id={self.id}, pr={self.pr})"
+        return f"COPRBuildModel(id={self.id}, job_trigger={self.job_trigger})"
 
     def __str__(self):
         return self.__repr__()
 
 
-class SRPMBuild(Base):
+class KojiBuildModel(Base):
+    """ we create an entry for every target """
+
+    __tablename__ = "koji_builds"
+    id = Column(Integer, primary_key=True)
+    build_id = Column(String, index=True)  # koji build id
+    job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
+    job_trigger = relationship("JobTriggerModel", back_populates="koji_builds")
+    srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"))
+    srpm_build = relationship("SRPMBuildModel", back_populates="koji_builds")
+    # commit sha of the PR (or a branch, release) we used for a build
+    commit_sha = Column(String)
+    # what's the build status?
+    status = Column(String)
+    # chroot, but we use the word target in our docs
+    target = Column(String)
+    # URL to koji web ui for the particular build
+    web_url = Column(String)
+    # url to koji build logs
+    build_logs_url = Column(String)
+    # datetime.utcnow instead of datetime.utcnow() because its an argument to the function
+    # so it will run when the koji build is initiated, not when the table is made
+    build_submitted_time = Column(DateTime, default=datetime.utcnow)
+    build_start_time = Column(DateTime)
+    build_finished_time = Column(DateTime)
+
+    # metadata for the build which didn't make it to schema yet
+    # metadata is reserved to sqlalch
+    data = Column(JSON)
+
+    def set_status(self, status: str):
+        with get_sa_session() as session:
+            self.status = status
+            session.add(self)
+
+    def set_build_logs_url(self, build_logs: str):
+        with get_sa_session() as session:
+            self.build_logs_url = build_logs
+            session.add(self)
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["KojiBuildModel"]:
+        with get_sa_session() as session:
+            return session.query(KojiBuildModel).filter_by(id=id_).first()
+
+    @classmethod
+    def get_all(cls) -> Optional[Iterable["KojiBuildModel"]]:
+        with get_sa_session() as session:
+            return session.query(KojiBuildModel).all()
+
+    # Returns all builds with that build_id, irrespective of target
+    @classmethod
+    def get_all_by_build_id(
+        cls, build_id: Union[str, int]
+    ) -> Optional[Iterable["KojiBuildModel"]]:
+        if isinstance(build_id, int):
+            # See the comment in get_by_build_id()
+            build_id = str(build_id)
+        with get_sa_session() as session:
+            return session.query(KojiBuildModel).filter_by(build_id=build_id)
+
+    # returns the build matching the build_id and the target
+    @classmethod
+    def get_by_build_id(
+        cls, build_id: Union[str, int], target: str
+    ) -> Optional["KojiBuildModel"]:
+        if isinstance(build_id, int):
+            # PG is pesky about this:
+            #   LINE 3: WHERE koji_builds.build_id = 1245767 AND koji_builds.target ...
+            #   HINT:  No operator matches the given name and argument type(s).
+            #   You might need to add explicit type casts.
+            build_id = str(build_id)
+        with get_sa_session() as session:
+            return (
+                session.query(KojiBuildModel)
+                .filter_by(build_id=build_id, target=target)
+                .first()
+            )
+
+    @classmethod
+    def get_or_create(
+        cls,
+        build_id: str,
+        commit_sha: str,
+        web_url: str,
+        target: str,
+        status: str,
+        srpm_build: "SRPMBuildModel",
+        job_trigger: AbstractTriggerDbType,
+    ) -> "KojiBuildModel":
+        with get_sa_session() as session:
+            build = cls.get_by_build_id(build_id, target)
+            if not build:
+                build = cls()
+                build.build_id = build_id
+                build.job_trigger = job_trigger
+                build.srpm_build_id = srpm_build.id
+                build.status = status
+                build.commit_sha = commit_sha
+                build.web_url = web_url
+                build.target = target
+                session.add(build)
+            return build
+
+    def __repr__(self):
+        return f"KojiBuildModel(id={self.id}, job_trigger={self.job_trigger})"
+
+    def __str__(self):
+        return self.__repr__()
+
+
+class SRPMBuildModel(Base):
     __tablename__ = "srpm_builds"
     id = Column(Integer, primary_key=True)
     # our logs we want to show to the user
     logs = Column(Text)
-    copr_builds = relationship("CoprBuild", back_populates="srpm_build")
+    copr_builds = relationship("CoprBuildModel", back_populates="srpm_build")
+    koji_builds = relationship("KojiBuildModel", back_populates="srpm_build")
 
     @classmethod
-    def create(cls, logs: str) -> "SRPMBuild":
+    def create(cls, logs: str) -> "SRPMBuildModel":
         with get_sa_session() as session:
             srpm_build = cls()
             srpm_build.logs = logs
@@ -291,12 +580,12 @@ class SRPMBuild(Base):
             return srpm_build
 
     @classmethod
-    def get_by_id(cls, id_: int,) -> Optional["SRPMBuild"]:
+    def get_by_id(cls, id_: int,) -> Optional["SRPMBuildModel"]:
         with get_sa_session() as session:
-            return session.query(SRPMBuild).filter_by(id=id_).first()
+            return session.query(SRPMBuildModel).filter_by(id=id_).first()
 
     def __repr__(self):
-        return f"SRPMBuild(id={self.id})"
+        return f"SRPMBuildModel(id={self.id})"
 
     def __str__(self):
         return self.__repr__()
@@ -308,7 +597,7 @@ class WhitelistStatus(str, enum.Enum):
     approved_manually = WHITELIST_CONSTANTS["approved_manually"]
 
 
-class Whitelist(Base):
+class WhitelistModel(Base):
     __tablename__ = "whitelist"
     id = Column(Integer, primary_key=True)
     account_name = Column(String, index=True)
@@ -319,27 +608,35 @@ class Whitelist(Base):
     def add_account(cls, account_name: str, status: str):
         with get_sa_session() as session:
             account = cls.get_account(account_name)
-            if account is None:
+            if account is not None:
+                account.status = status
+                session.add(account)
+                return account
+            else:
                 account = cls()
                 account.account_name = account_name
-            account.status = status
-            session.add(account)
-            return account
+                account.status = status
+                session.add(account)
+                return account
 
     @classmethod
-    def get_account(cls, account_name: str) -> Optional["Whitelist"]:
+    def get_account(cls, account_name: str) -> Optional["WhitelistModel"]:
         with get_sa_session() as session:
-            return session.query(Whitelist).filter_by(account_name=account_name).first()
+            return (
+                session.query(WhitelistModel)
+                .filter_by(account_name=account_name)
+                .first()
+            )
 
     @classmethod
-    def get_accounts_by_status(cls, status: str) -> Optional["Whitelist"]:
+    def get_accounts_by_status(cls, status: str) -> Optional["WhitelistModel"]:
         with get_sa_session() as session:
-            return session.query(Whitelist).filter_by(status=status)
+            return session.query(WhitelistModel).filter_by(status=status)
 
     @classmethod
-    def remove_account(cls, account_name: str) -> Optional["Whitelist"]:
+    def remove_account(cls, account_name: str) -> Optional["WhitelistModel"]:
         with get_sa_session() as session:
-            account = session.query(Whitelist).filter_by(account_name=account_name)
+            account = session.query(WhitelistModel).filter_by(account_name=account_name)
             if account is not None:
                 account.delete()
                 return account
@@ -347,7 +644,7 @@ class Whitelist(Base):
                 return None
 
     def __repr__(self):
-        return f"Whitelist(name={self.user})"
+        return f"WhitelistModel(name={self.user})"
 
     def __str__(self):
         return self.__repr__()
@@ -395,13 +692,62 @@ class TaskResultModel(Base):
         return self.__repr__()
 
 
-# coming soon
-# class TFTTestRun(Base):
-#     __tablename__ = "tft_runs"
-#     id = Column(Integer, primary_key=True)
-#     pr_id = Column(Integer, ForeignKey("pull_requests.id"))
-#     pr = relationship("PullRequest")
-#     commit_sha = Column(String)
-#     status = Column(String)
-#     target = Column(String)
-#     data = Column(JSON)
+class TestingFarmResult(str, enum.Enum):
+    new = "new"
+    passed = "passed"
+    failed = "failed"
+    error = "error"
+    running = "running"
+
+
+class TFTTestRunModel(Base):
+    __tablename__ = "tft_test_runs"
+    id = Column(Integer, primary_key=True)
+    pipeline_id = Column(String, index=True)
+    job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
+    job_trigger = relationship("JobTriggerModel", back_populates="test_runs")
+    commit_sha = Column(String)
+    status = Column(Enum(TestingFarmResult))
+    target = Column(String)
+    web_url = Column(String)
+    data = Column(JSON)
+
+    def set_status(self, status: TestingFarmResult):
+        with get_sa_session() as session:
+            self.status = status
+            session.add(self)
+
+    def set_web_url(self, web_url: str):
+        with get_sa_session() as session:
+            self.web_url = web_url
+            session.add(self)
+
+    @classmethod
+    def create(
+        cls,
+        pipeline_id: str,
+        commit_sha: str,
+        status: TestingFarmResult,
+        target: str,
+        job_trigger: AbstractTriggerDbType,
+        web_url: Optional[str] = None,
+    ) -> "TFTTestRunModel":
+        with get_sa_session() as session:
+            test_run = cls()
+            test_run.pipeline_id = pipeline_id
+            test_run.commit_sha = commit_sha
+            test_run.status = status
+            test_run.target = target
+            test_run.web_url = web_url
+            test_run.job_trigger = job_trigger
+            session.add(test_run)
+            return test_run
+
+    @classmethod
+    def get_by_pipeline_id(cls, pipeline_id: str) -> Optional["TFTTestRunModel"]:
+        with get_sa_session() as session:
+            return (
+                session.query(TFTTestRunModel)
+                .filter_by(pipeline_id=pipeline_id)
+                .first()
+            )

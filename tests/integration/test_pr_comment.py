@@ -27,8 +27,8 @@ from flexmock import flexmock
 from ogr.services.github import GithubProject
 
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
-from packit_service.worker.result import HandlerResults
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.result import HandlerResults
 from tests.spellbook import DATA_DIR
 
 
@@ -91,6 +91,7 @@ def test_pr_comment_copr_build_handler(
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(pr_copr_build_comment_event)
+
     assert results["jobs"]["pull_request_action"]["success"]
 
 
@@ -149,7 +150,6 @@ def test_pr_comment_invalid(comment):
 def test_pr_embedded_command_handler(
     mock_pr_comment_functionality, pr_embedded_command_comment_event, comments_list
 ):
-
     pr_embedded_command_comment_event["comment"]["body"] = comments_list
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         HandlerResults(success=True, details={})

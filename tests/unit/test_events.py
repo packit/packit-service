@@ -32,7 +32,7 @@ from flexmock import flexmock
 from ogr.services.github import GithubProject, GithubService
 
 from packit_service.config import ServiceConfig
-from packit_service.models import CoprBuild
+from packit_service.models import CoprBuildModel
 from packit_service.service.events import (
     WhitelistStatus,
     InstallationEvent,
@@ -321,8 +321,12 @@ class TestEvents:
         assert event_object.copr_chroot == "fedora-29-x86_64"
         assert event_object.tests == []
 
-    def test_parse_copr_build_event_start(self, copr_build_results_start, copr_build):
-        flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
+    def test_parse_copr_build_event_start(
+        self, copr_build_results_start, copr_build_pr
+    ):
+        flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
+            copr_build_pr
+        )
 
         event_object = Parser.parse_event(copr_build_results_start)
 
@@ -338,8 +342,10 @@ class TestEvents:
         assert event_object.base_repo_namespace == "foo"
         assert event_object.pkg == "hello"
 
-    def test_parse_copr_build_event_end(self, copr_build_results_end, copr_build):
-        flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
+    def test_parse_copr_build_event_end(self, copr_build_results_end, copr_build_pr):
+        flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
+            copr_build_pr
+        )
 
         event_object = Parser.parse_event(copr_build_results_end)
 

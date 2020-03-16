@@ -27,7 +27,7 @@ from ogr.abstract import GitProject, CommitStatus
 from packit.exceptions import PackitException
 from persistentdict.dict_in_redis import PersistentDict
 
-from packit_service.models import Whitelist as DBWhitelist
+from packit_service.models import WhitelistModel as DBWhitelist
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import FAQ_URL

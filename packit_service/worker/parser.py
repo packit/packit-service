@@ -364,6 +364,9 @@ class Parser:
     @staticmethod
     def parse_release_event(event) -> Optional[ReleaseEvent]:
         """
+        https://developer.github.com/v3/activity/events/types/#releaseevent
+        https://developer.github.com/v3/repos/releases/#get-a-single-release
+
         look into the provided event and see if it's one for a published github release;
         if it is, process it and return input for the job handler
         """

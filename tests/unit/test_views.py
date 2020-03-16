@@ -5,7 +5,12 @@ Let's test flask views.
 import pytest
 from flexmock import flexmock
 
-from packit_service.models import CoprBuild, PullRequest, GitProject, SRPMBuild
+from packit_service.models import (
+    CoprBuildModel,
+    PullRequestModel,
+    GitProjectModel,
+    SRPMBuildModel,
+)
 from packit_service.service.app import application
 from packit_service.service.urls import get_log_url, get_srpm_log_url
 
@@ -38,18 +43,18 @@ def test_get_logs(client):
     state = "pending"
     build_id = 2
 
-    project = GitProject()
+    project = GitProjectModel()
     project.namespace = "john-foo"
     project.repo_name = "bar"
 
-    pr = PullRequest()
+    pr = PullRequestModel()
     pr.pr_id = 234
     pr.project = project
 
-    srpm_build = SRPMBuild()
+    srpm_build = SRPMBuildModel()
     srpm_build.logs = "asd<br>qwe"
 
-    c = CoprBuild()
+    c = CoprBuildModel()
     c.target = chroot
     c.build_id = str(build_id)
     c.srpm_build = srpm_build
@@ -60,7 +65,7 @@ def test_get_logs(client):
     c.build_logs_url = "https://localhost:5000/build/2/foo-1-x86_64/logs"
     c.pr = pr
 
-    flexmock(CoprBuild).should_receive("get_by_id").and_return(c)
+    flexmock(CoprBuildModel).should_receive("get_by_id").and_return(c)
 
     url = f"/copr-build/1/logs"
     logs_url = get_log_url(1)
@@ -83,11 +88,11 @@ def test_get_logs(client):
 
 
 def test_get_srpm_logs(client):
-    srpm_build = SRPMBuild()
+    srpm_build = SRPMBuildModel()
     srpm_build.id = 2
     srpm_build.logs = "asd\nqwe"
 
-    flexmock(SRPMBuild).should_receive("get_by_id").and_return(srpm_build)
+    flexmock(SRPMBuildModel).should_receive("get_by_id").and_return(srpm_build)
 
     url = f"/srpm-build/2/logs"
     logs_url = get_srpm_log_url(2)
