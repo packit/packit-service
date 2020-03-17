@@ -29,52 +29,71 @@
       command: oc whoami -t
       register: kubeconfig_token
       become: "{{ as_root }}"
-    - name: Creates zuul secrets directory
+
+    # path_to_secrets = this is what we get from the outside
+    # internal_secrets_path = this is what we'll use here
+    - set_fact: internal_secrets_path={{ deployment_dir }}/secrets/dev
+    - name: Create the directory secrets/
       file:
-        path: "{{ deployment_dir }}/secrets/dev"
+        path: "{{ deployment_dir }}/secrets/"
         state: directory
-    - name: Generate dummy keys
-      command: "openssl genrsa -out {{ deployment_dir }}/secrets/dev/{{ item }} 4096"
-      with_items:
-        - private-key.pem
-        - privkey.pem
-        - dashboard-privkey.pem
-    - name: Generate dummy certs
-      command: "openssl req -x509 -new -key {{ deployment_dir }}/secrets/dev/{{ item.key }} -out {{ deployment_dir }}/secrets/dev/{{ item.out }} -days 1 -subj '/CN=just.for.the.ci' -passin pass:somepassword -passout pass:anotherpassword -nodes"
-      with_items:
-        - { key: privkey.pem, out: fullchain.pem }
-        - { key: dashboard-privkey.pem, out: dashboard-fullchain.pem }
+    - name: Prepare secrets
+      when: path_to_secrets is not defined
+      block:
+        - name: Create {{ internal_secrets_path }}
+          file:
+            path: "{{ internal_secrets_path }}"
+            state: directory
+        - name: Generate dummy keys
+          command: "openssl genrsa -out {{ internal_secrets_path }}/{{ item }} 4096"
+          with_items:
+            - private-key.pem
+            - privkey.pem
+            - dashboard-privkey.pem
+        - name: Generate dummy certs
+          command: "openssl req -x509 -new -key {{ internal_secrets_path }}/{{ item.key }} -out {{ internal_secrets_path }}/{{ item.out }} -days 1 -subj '/CN=just.for.the.ci' -passin pass:somepassword -passout pass:anotherpassword -nodes"
+          with_items:
+            - { key: privkey.pem, out: fullchain.pem }
+            - { key: dashboard-privkey.pem, out: dashboard-fullchain.pem }
 
-    - name: Generate /etc/ssh/ RSA host key
-      command: "ssh-keygen -q -t rsa -f {{ deployment_dir }}/secrets/dev/id_rsa -C '' -N ''"
-      args:
-        creates: "{{ deployment_dir }}/secrets/dev/id_rsa"
-    # Ansible 2.8+, does not work in Zuul (???)
-    #  - name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
-    #    openssh_keypair:
-    #      path: "{{ deployment_dir }}/secrets/dev/id_rsa"
+        - name: Generate /etc/ssh/ RSA host key
+          command: "ssh-keygen -q -t rsa -f {{ internal_secrets_path }}/id_rsa -C '' -N ''"
+          args:
+            creates: "{{ internal_secrets_path }}/id_rsa"
+        # Ansible 2.8+, does not work in Zuul (???)
+        #  - name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
+        #    openssh_keypair:
+        #      path: "{{ deployment_dir }}/secrets/dev/id_rsa"
 
-    - name: Create fedora.keytab
+        - name: Create fedora.keytab
+          file:
+            path: "{{ internal_secrets_path }}/fedora.keytab"
+            state: touch
+
+        - name: Create sentry_key
+          file:
+            path: "{{ internal_secrets_path }}/sentry_key"
+            state: touch
+
+        - name: Copy the rest of the secrets from template
+          copy:
+            src: "{{ deployment_dir }}/secrets/template/{{ item }}"
+            dest: "{{ internal_secrets_path }}/{{ item }}"
+            remote_src: yes
+          with_items:
+            - packit-service.yaml
+            - copr
+            - ssh_config
+            - fedora.toml
+            - extra-vars.yml
+    # end of the block
+
+    - name: symlink secrets when provided
+      when: path_to_secrets is defined
       file:
-        path: "{{ deployment_dir }}/secrets/dev/fedora.keytab"
-        state: touch
-
-    - name: Create sentry_key
-      file:
-        path: "{{ deployment_dir }}/secrets/dev/sentry_key"
-        state: touch
-
-    - name: Copy the rest of the secrets from template
-      copy:
-        src: "{{ deployment_dir }}/secrets/template/{{ item }}"
-        dest: "{{ deployment_dir }}/secrets/dev/{{ item }}"
-        remote_src: yes
-      with_items:
-        - packit-service.yaml
-        - copr
-        - ssh_config
-        - fedora.toml
-        - extra-vars.yml
+        state: link
+        src: "{{ path_to_secrets }}/dev"
+        dest: "{{ internal_secrets_path }}"
 
     - name: Create dev.yml
       copy:

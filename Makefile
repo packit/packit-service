@@ -38,6 +38,33 @@ check_in_container: test_image
 		-v $(CURDIR)/files/packit-service.yaml:/root/.config/packit-service.yaml \
 		$(TEST_IMAGE) make check
 
+# This is my target so don't touch it! :) How to:
+# * No dependencies - take care of them yourself
+# * Make sure to set `command_handler: local`: there is no kube API in pristine containers
+# * Make sure to `docker-compose up redis postgres`
+# Features:
+# * Can regen requre stuff (`TEST_TARGET=./tests_requre/openshift_integration/`)
+# * Mounts your source code in the container
+# * Mounts secrets in the container: make sure all are valid
+# * Can touch redis and psql
+check-in-container-tomas:
+	@# don't use -ti here in CI, TTY is not allocated in zuul
+	$(CONTAINER_ENGINE) run --rm \
+		-v $(CURDIR):/src-packit-service \
+		-v $(CURDIR)/packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z \
+		-v $(CURDIR)/secrets/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z \
+		-v $(CURDIR)/secrets/dev/fedora.keytab:/secrets/fedora.keytab:ro,z \
+		-v $(CURDIR)/secrets/dev/private-key.pem:/secrets/private-key.pem:ro,z \
+		-v $(CURDIR)/secrets/dev/fullchain.pem:/secrets/fullchain.pem:ro,z \
+		-v $(CURDIR)/secrets/dev/privkey.pem:/secrets/privkey.pem:ro,z \
+		-w /src-packit-service \
+		--security-opt label=disable \
+		-v $(CURDIR)/files/packit-service.yaml:/root/.config/packit-service.yaml \
+		-v $(CURDIR)/tests_requre/test_data/:/tmp/test_data/ \
+		--network packit-service_default \
+		-e REDIS_SERVICE_HOST=redis \
+		$(TEST_IMAGE) make check TEST_TARGET=$(TEST_TARGET)
+
 # deploy a pod with tests and run them
 check-inside-openshift: worker test_image
 	@# http://timmurphy.org/2015/09/27/how-to-get-a-makefile-directory-path/
@@ -50,9 +77,3 @@ check-inside-openshift: worker test_image
 
 check-inside-openshift-zuul: test_image
 	ANSIBLE_STDOUT_CALLBACK=debug $(AP) files/check-inside-openshift.yaml
-
-
-# this target is expected to run within an openshift pod
-check-within-openshift:
-	/src-packit-service/files/setup_env_in_openshift.sh
-	pytest-3 -k test_update
