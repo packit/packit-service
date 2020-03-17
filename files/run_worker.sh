@@ -20,6 +20,7 @@ install -m 0400 /packit-ssh/id_rsa .
 install -m 0400 /packit-ssh/id_rsa.pub .
 install -m 0400 /packit-ssh/config .
 grep -q pkgs.fedoraproject.org known_hosts || ssh-keyscan pkgs.fedoraproject.org >>known_hosts
+grep -q pkgs.stg.fedoraproject.org known_hosts || ssh-keyscan pkgs.stg.fedoraproject.org >>known_hosts
 popd
 
 # concurrency: Number of concurrent worker processes/threads/green threads executing tasks.
