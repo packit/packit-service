@@ -353,11 +353,18 @@ class IssueCommentEvent(AbstractGithubEvent):
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
         self.base_ref = base_ref
-        self.tag_name = tag_name
+        self._tag_name = tag_name
         self.target_repo = target_repo
         self.github_login = github_login
         self.comment = comment
         self.identifier = str(issue_id)
+
+    @property
+    def tag_name(self):
+        if not self._tag_name:
+            releases = self.get_project().get_releases()
+            self._tag_name = releases[0].tag_name if releases else ""
+        return self._tag_name
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
@@ -365,10 +372,6 @@ class IssueCommentEvent(AbstractGithubEvent):
         return result
 
     def get_package_config(self) -> Optional[PackageConfig]:
-        releases = self.get_project().get_releases()
-
-        if releases:
-            self.tag_name = releases[0].tag_name
         package_config: PackageConfig = self.get_package_config_from_repo(
             project=self.get_project(), reference=self.tag_name, fail_when_missing=False
         )
