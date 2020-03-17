@@ -121,6 +121,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         payload: dict = {
             "pipeline": {"id": pipeline_id},
             "api": {"token": self.config.testing_farm_secret},
+            "response-url": self.api_url,
             "artifact": {
                 "repo-name": self.project.repo,
                 "repo-namespace": self.project.namespace,
