@@ -514,20 +514,18 @@ class CoprBuildEvent(AbstractGithubEvent):
         if build_pg:
             self.pr_id = build_pg.pr.pr_id
             self.commit_sha = build_pg.commit_sha
-            self.git_ref = (
-                self.commit_sha
-            )  # ref should be name of the branch, not a hash
             self.base_repo_name = build_pg.pr.project.repo_name
             self.base_repo_namespace = build_pg.pr.project.namespace
             # FIXME: hardcoded, move this to PG
             https_url = f"https://github.com/{self.base_repo_namespace}/{self.base_repo_name}.git"
+            git_ref = self.commit_sha  # ref should be name of the branch, not a hash
         else:
             self.pr_id = build.get("pr_id")
-            self.git_ref = build.get("ref", "")
             self.commit_sha = build.get("commit_sha", "")
             self.base_repo_name = build.get("repo_name")
             self.base_repo_namespace = build.get("repo_namespace")
             https_url = build["https_url"]
+            git_ref = build.get("ref", "")
 
         self.topic = FedmsgTopic(topic)
         if self.topic == FedmsgTopic.copr_build_started:
@@ -539,6 +537,7 @@ class CoprBuildEvent(AbstractGithubEvent):
 
         super().__init__(trigger=trigger, project_url=https_url)
 
+        self.git_ref = git_ref
         self.build_id = build_id
         self.build = build
         self.chroot = chroot

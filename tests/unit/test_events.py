@@ -353,6 +353,7 @@ class TestEvents:
         assert event_object.base_repo_name == "bar"
         assert event_object.base_repo_namespace == "foo"
         assert event_object.pkg == "hello"
+        assert event_object.git_ref == "0011223344"
 
     def test_get_project_pr(self, pull_request, mock_config):
         event_object = Parser.parse_event(pull_request)
