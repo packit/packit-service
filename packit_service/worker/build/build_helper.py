@@ -114,6 +114,14 @@ class BaseBuildJobHelper:
         return self._api
 
     @property
+    def api_url(self) -> str:
+        return (
+            "https://prod.packit.dev/api/"
+            if self.config.deployment == Deployment.prod
+            else "https://stg.packit.dev/api/"
+        )
+
+    @property
     def build_chroots(self) -> List[str]:
         """
         Return the chroots to build.

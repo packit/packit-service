@@ -305,6 +305,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build):
             }
         )
     )
+    flexmock(CoprBuildJobHelper).should_receive("job_owner").and_return("some-owner")
     flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
         flexmock()
     )
@@ -371,10 +372,11 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build):
     payload: dict = {
         "pipeline": {"id": "5e8079d8-f181-41cf-af96-28e99774eb68"},
         "api": {"token": ""},
+        "response-url": "https://stg.packit.dev/api/",
         "artifact": {
             "repo-name": "bar",
             "repo-namespace": "foo",
-            "copr-repo-name": "foo-bar-123-stg",
+            "copr-repo-name": "some-owner/foo-bar-123-stg",
             "copr-chroot": "fedora-rawhide-x86_64",
             "commit-sha": "0011223344",
             "git-url": "https://github.com/foo/bar.git",
@@ -420,6 +422,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build):
             }
         )
     )
+    flexmock(CoprBuildJobHelper).should_receive("job_owner").and_return("some-owner")
     flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
         flexmock()
     )
@@ -517,6 +520,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build):
             }
         )
     )
+    flexmock(CoprBuildJobHelper).should_receive("job_owner").and_return("some-owner")
     flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
         flexmock()
     )
