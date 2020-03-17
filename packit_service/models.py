@@ -299,6 +299,52 @@ class SRPMBuild(Base):
         return self.__repr__()
 
 
+class Whitelist(Base):
+    __tablename__ = "whitelist"
+    id = Column(Integer, primary_key=True)
+    account_name = Column(String, index=True)
+    status = Column(String, index=True)
+
+    # add new account or change status if it already exists
+    @classmethod
+    def add_account(cls, account_name: str, status: str):
+        with get_sa_session() as session:
+            account = cls.get_account(account_name)
+            if account is not None:
+                account.status = status
+                session.add(account)
+                return account
+            else:
+                account = cls()
+                account.account_name = account_name
+                account.status = status
+                session.add(account)
+                return account
+
+    @classmethod
+    def get_account(cls, account_name: str) -> Optional["Whitelist"]:
+        with get_sa_session() as session:
+            return session.query(Whitelist).filter_by(account_name=account_name).first()
+
+    @classmethod
+    def get_account_by_status(cls, status: str) -> Optional["Whitelist"]:
+        with get_sa_session() as session:
+            return session.query(Whitelist).filter_by(status=status).first()
+
+    @classmethod
+    def remove_account(cls, account_name: str) -> Optional["Whitelist"]:
+        with get_sa_session() as session:
+            account = session.query(Whitelist).filter_by(account_name=account_name)
+            print(account)
+            account.delete()
+
+    def __repr__(self):
+        return f"Whitelist(name={self.user})"
+
+    def __str__(self):
+        return self.__repr__()
+
+
 # coming soon
 # class TFTTestRun(Base):
 #     __tablename__ = "tft_runs"
