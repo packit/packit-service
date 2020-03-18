@@ -29,6 +29,7 @@ from packit_service.worker.handlers import (
     ProposeDownstreamHandler,
     CoprBuildStartHandler,
     CoprBuildEndHandler,
+    TestingFarmResultsHandler,
 )
 from packit_service.worker.handlers.github_handlers import (
     PullRequestGithubKojiBuildHandler,
@@ -198,6 +199,35 @@ from packit_service.worker.jobs import get_handlers_for_event
             ],
             {CoprBuildEndHandler},
             id="config=tests@trigger=copr_end",
+        ),
+        pytest.param(
+            TheJobTriggerType.testing_farm_results,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata={},
+                )
+            ],
+            {TestingFarmResultsHandler},
+            id="config=tests@trigger=testing_farm_results",
+        ),
+        pytest.param(
+            TheJobTriggerType.testing_farm_results,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata={},
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata={},
+                ),
+            ],
+            {TestingFarmResultsHandler},
+            id="config=tests_and_copr_build@trigger=testing_farm_results",
         ),
         pytest.param(
             TheJobTriggerType.pull_request,

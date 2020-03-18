@@ -36,6 +36,7 @@ MAP_JOB_TRIGGER_TO_JOB_CONFIG_TRIGGER_TYPE: Dict[
     TheJobTriggerType.pr_comment: JobConfigTriggerType.pull_request,
     TheJobTriggerType.copr_start: JobConfigTriggerType.pull_request,
     TheJobTriggerType.copr_end: JobConfigTriggerType.pull_request,
+    TheJobTriggerType.testing_farm_results: JobConfigTriggerType.pull_request,
 }
 
 
