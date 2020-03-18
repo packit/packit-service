@@ -308,7 +308,7 @@ class SteveJobs:
         # not repository, so package config with jobs is missing
         if event_object.trigger == TheJobTriggerType.installation:
             handler = GithubAppInstallationHandler(
-                self.config, job_config=None, installation_event=event_object
+                self.config, job_config=None, event=event_object
             )
             job_type = JobType.add_to_whitelist.value
             jobs_results[job_type] = handler.run_n_clean()

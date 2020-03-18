@@ -81,19 +81,20 @@ class AbstractGithubJobHandler(JobHandler, GithubPackageConfigGetter):
 class PullRequestGithubCheckDownstreamHandler(AbstractGithubJobHandler):
     type = JobType.check_downstream
     triggers = [TheJobTriggerType.pull_request]
+    event: PullRequestEvent
 
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
 
     def __init__(
-        self, config: ServiceConfig, job_config: JobConfig, pr_event: PullRequestEvent
+        self, config: ServiceConfig, job_config: JobConfig, event: PullRequestEvent
     ):
-        super().__init__(config=config, job_config=job_config, event=pr_event)
-        self.pr_event = pr_event
-        self.project: GitProject = pr_event.get_project()
+        super().__init__(config=config, job_config=job_config, event=event)
+        self.event = event
+        self.project: GitProject = event.get_project()
         self.package_config: PackageConfig = self.get_package_config_from_repo(
-            self.project, pr_event.base_ref, pr_event.pr_id
+            self.project, event.base_ref, event.pr_id
         )
-        self.package_config.upstream_project_url = pr_event.project_url
+        self.package_config.upstream_project_url = event.project_url
 
     def run(self) -> HandlerResults:
         self.local_project = LocalProject(
@@ -103,7 +104,7 @@ class PullRequestGithubCheckDownstreamHandler(AbstractGithubJobHandler):
         self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
         self.api.sync_pr(
-            pr_id=self.pr_event.pr_id,
+            pr_id=self.event.pr_id,
             dist_git_branch=self.job_config.metadata.get("dist-git-branch", "master"),
             # TODO: figure out top upstream commit for source-git here
         )
@@ -113,6 +114,7 @@ class PullRequestGithubCheckDownstreamHandler(AbstractGithubJobHandler):
 class GithubAppInstallationHandler(AbstractGithubJobHandler):
     type = JobType.add_to_whitelist
     triggers = [TheJobTriggerType.installation]
+    event: InstallationEvent
 
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
 
@@ -120,11 +122,11 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
         self,
         config: ServiceConfig,
         job_config: Optional[JobConfig],
-        installation_event: Union[InstallationEvent, Any],
+        event: Union[InstallationEvent, Any],
     ):
-        super().__init__(config=config, job_config=job_config, event=installation_event)
+        super().__init__(config=config, job_config=job_config, event=event)
 
-        self.installation_event = installation_event
+        self.event = event
         self.project = self.config.get_project(
             url="https://github.com/packit-service/notifications"
         )
@@ -138,21 +140,20 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
         """
 
         Installation.create(
-            installation_id=self.installation_event.installation_id,
-            event=self.installation_event,
+            installation_id=self.event.installation_id, event=self.event,
         )
         # try to add user to whitelist
         whitelist = Whitelist(
             fas_user=self.config.fas_user, fas_password=self.config.fas_password,
         )
-        account_login = self.installation_event.account_login
-        account_type = self.installation_event.account_type
-        if not whitelist.add_account(self.installation_event):
+        account_login = self.event.account_login
+        account_type = self.event.account_type
+        if not whitelist.add_account(self.event):
             # Create an issue in our repository, so we are notified when someone install the app
             self.project.create_issue(
                 title=f"{account_type} {account_login} needs to be approved.",
                 body=(
-                    f"Hi @{self.installation_event.sender_login}, we need to approve you in "
+                    f"Hi @{self.event.sender_login}, we need to approve you in "
                     "order to start using Packit-as-a-Service. Someone from our team will "
                     "get back to you shortly.\n\n"
                     "For more info, please check out the documentation: "

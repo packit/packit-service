@@ -171,7 +171,7 @@ def test_testing_farm_response(
     test_farm_handler = TestingFarmResultsHandler(
         config=flexmock(command_handler_work_dir=flexmock()),
         job_config=flexmock(),
-        test_results_event=TestingFarmResultsEvent(
+        event=TestingFarmResultsEvent(
             pipeline_id="id",
             result=tests_result,
             environment=flexmock(),
