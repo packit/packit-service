@@ -151,7 +151,7 @@ def mock_issue_comment_functionality():
         project=flexmock(GithubProject),
         raw_release=flexmock(PyGithubRelease),
     )
-    flexmock(GithubProject).should_receive("get_latest_release").and_return(gr)
+    flexmock(GithubProject).should_receive("get_releases").and_return([gr])
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
