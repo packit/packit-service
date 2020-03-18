@@ -75,7 +75,7 @@ class CoprBuildsList(Resource):
                 # same_buildid_builds are copr builds created due to the same trigger
                 # multiple identical builds are created which differ only in target
                 # so we merge them into one
-                same_buildid_builds = CoprBuild.get_all_build_id(str(build.build_id))
+                same_buildid_builds = CoprBuild.get_all_by_build_id(str(build.build_id))
                 for sbid_build in same_buildid_builds:
                     build_dict["chroots"].append(sbid_build.target)
 
@@ -97,7 +97,7 @@ class InstallationItem(Resource):
     @ns.response(HTTPStatus.NO_CONTENT, "Copr build identifier not in db/hash")
     def get(self, id):
         """A specific copr build details. From copr_build hash, filled by worker."""
-        builds_list = CoprBuild.get_all_build_id(str(id))
+        builds_list = CoprBuild.get_all_by_build_id(str(id))
         if bool(builds_list.first()):
             build = builds_list[0]
             build_dict = {

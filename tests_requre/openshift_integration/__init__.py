@@ -14,12 +14,6 @@ FILTERS = (
         who_name="lookaside_cache_helper",
         decorator=RequestResponseHandling.decorator_plain,
     )
-    .decorate(
-        where="^requests$",
-        who_name=["lookaside_cache_helper", "^copr", "packit.distgit"],
-        what="Session.send",
-        decorator=RequestResponseHandling.decorator_plain,
-    )
     .replace_module(where="^tempfile$", who_name="^packit", replacement=TempFile)
     .decorate(
         where="^packit$",
@@ -59,6 +53,9 @@ FILTERS = (
             "github.MainClass",
             "github.Requester",
             "ogr.services.github_tweak",
+            "lookaside_cache_helper",
+            "^copr",
+            "packit.distgit",
         ],
         decorator=RequestResponseHandling.decorator_plain,
     )

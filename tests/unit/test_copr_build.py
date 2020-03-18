@@ -1,5 +1,27 @@
+# MIT License
+#
+# Copyright (c) 2018-2019 Red Hat, Inc.
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 from typing import Union
 
+from celery import Celery
 from flexmock import flexmock
 from ogr.abstract import GitProject, GitService, CommitStatus
 from packit.api import PackitAPI
@@ -95,6 +117,7 @@ def test_copr_build_check_names(pull_request_event):
     flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
     flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None)
+    flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
 
 
@@ -114,6 +137,7 @@ def test_copr_build_success_set_test_check(pull_request_event):
     flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
     flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
+    flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
 
 
@@ -141,6 +165,7 @@ def test_copr_build_for_branch(branch_push_event):
     flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
     flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
+    flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
 
 
@@ -168,6 +193,7 @@ def test_copr_build_for_release(release_event):
     flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
     flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
+    flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
 
 
@@ -181,6 +207,7 @@ def test_copr_build_success(pull_request_event):
     flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
     flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
+    flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
 
 
@@ -228,4 +255,5 @@ def test_copr_build_no_targets(pull_request_event):
     flexmock(SRPMBuild).should_receive("create").and_return(SRPMBuild())
     flexmock(CoprBuild).should_receive("get_or_create").and_return(CoprBuild(id=1))
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
+    flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]

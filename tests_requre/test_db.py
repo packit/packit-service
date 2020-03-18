@@ -227,7 +227,7 @@ def test_get_all(multiple_copr_builds):
 
 # return all builds with given build_id
 def test_get_all_build_id(multiple_copr_builds):
-    builds_list = CoprBuild.get_all_build_id(str(123456))
+    builds_list = CoprBuild.get_all_by_build_id(str(123456))
     assert len(list(builds_list)) == 2
     # both should have the same project_name
     assert builds_list[1].project_name == builds_list[0].project_name
