@@ -116,9 +116,9 @@ class BaseBuildJobHelper:
     @property
     def api_url(self) -> str:
         return (
-            "https://prod.packit.dev/api/"
+            "https://prod.packit.dev/api"
             if self.config.deployment == Deployment.prod
-            else "https://stg.packit.dev/api/"
+            else "https://stg.packit.dev/api"
         )
 
     @property
