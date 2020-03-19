@@ -19,7 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from typing import List, Tuple
+from typing import List, Tuple, TYPE_CHECKING
 
 import pytest
 from copr.v3 import Client
@@ -48,6 +48,8 @@ from packit_service.service.events import WhitelistStatus
 from packit_service.service.models import Model
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.whitelist import Whitelist
+
+from packit_service.models import Whitelist as DBWhitelist
 
 EXPECTED_TESTING_FARM_CHECK_NAME = f"packit-stg/testing-farm-fedora-rawhide-x86_64"
 
@@ -91,6 +93,12 @@ def test_get_account(whitelist, account_name, is_dict):
     (("lojzo", True), ("fero", True), ("konipas", False), ("krasomila", False)),
 )
 def test_is_approved(whitelist, account_name, is_approved):
+    whitelist_mock = flexmock(DBWhitelist).should_receive("get_account")
+    if is_approved:
+        whitelist_mock.and_return(DBWhitelist(status="approved_manually"))
+    else:
+        whitelist_mock.and_return(None)
+
     assert whitelist.is_approved(account_name) == is_approved
 
 
@@ -172,6 +180,11 @@ def test_check_and_report_calls_method(whitelist, event, method, approved):
         .with_args(0, "Neither account bar nor owner foo are on our whitelist!")
     )
     mocked_gp.never() if approved else mocked_gp.once()
+    whitelist_mock = flexmock(DBWhitelist).should_receive("get_account")
+    if approved:
+        whitelist_mock.and_return(DBWhitelist(status="approved_manually"))
+    else:
+        whitelist_mock.and_return(None)
     assert (
         whitelist.check_and_report(
             event, gp, config=flexmock(deployment=Deployment.stg)
@@ -291,6 +304,20 @@ def test_check_and_report(
                 url=FAQ_URL,
                 check_names=[EXPECTED_TESTING_FARM_CHECK_NAME],
             ).once()
+
+        # get_account returns the whitelist object if it exists
+        # returns nothing if it isn't whitelisted
+        # So returning just about anything should work
+        # But we're returning a mock whitelist object so its closer to an actual object
+        
+        # this exact code is used twice above but mypy has an issue with this one only  
+        whitelist_mock = flexmock(DBWhitelist).should_receive("get_account")
+        if not TYPE_CHECKING:
+            if is_valid:
+                whitelist_mock.and_return(DBWhitelist(status="approved_manually"))
+            else:
+                whitelist_mock.and_return(None)
+
         assert (
             whitelist.check_and_report(
                 event,

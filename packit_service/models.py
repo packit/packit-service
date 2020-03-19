@@ -335,8 +335,11 @@ class Whitelist(Base):
     def remove_account(cls, account_name: str) -> Optional["Whitelist"]:
         with get_sa_session() as session:
             account = session.query(Whitelist).filter_by(account_name=account_name)
-            print(account)
-            account.delete()
+            if account is not None:
+                account.delete()
+                return account
+            else:
+                return None
 
     def __repr__(self):
         return f"Whitelist(name={self.user})"
