@@ -372,7 +372,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build):
     payload: dict = {
         "pipeline": {"id": "5e8079d8-f181-41cf-af96-28e99774eb68"},
         "api": {"token": ""},
-        "response-url": "https://stg.packit.dev/api/",
+        "response-url": "https://stg.packit.dev/api/testing-farm/results",
         "artifact": {
             "repo-name": "bar",
             "repo-namespace": "foo",
