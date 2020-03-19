@@ -298,4 +298,4 @@ def test_get_accounts_by_status(multiple_whitelist_entries):
 def test_remove_account(multiple_whitelist_entries):
     assert Whitelist.get_account("Rayquaza").account_name == "Rayquaza"
     Whitelist.remove_account("Rayquaza")
-    assert Whitelist.get_account("Rayquaza") == None
+    assert Whitelist.get_account("Rayquaza") is None
