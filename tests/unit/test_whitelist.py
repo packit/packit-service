@@ -307,7 +307,7 @@ def test_check_and_report(
 
         # get_account returns the whitelist object if it exists
         # returns nothing if it isn't whitelisted
-        # then inside the whitelist.py file, a function checks if the status is 
+        # then inside the whitelist.py file, a function checks if the status is
         # one of the approved statuses
 
         # this exact code is used twice above but mypy has an issue with this one only
