@@ -124,7 +124,7 @@ class Whitelist:
         github_app.status = WhitelistStatus.waiting
         self.db[github_app.account_login] = github_app.get_dict()
 
-        # TODO: Add to postgres
+        # TODO: Also add to postgres
         # Use DBWhitelist.add_account(account_name, status)
 
         # we want to verify if user who installed the application (sender_login) signed FPCA
@@ -164,8 +164,12 @@ class Whitelist:
 
         # Postgres
         if DBWhitelist.get_account(account_name) is not None:
-            logger.info("Whitelisted account found in Postgres.")
-            return True
+            db_status = DBWhitelist.get_account(account_name).status
+            s = WhitelistStatus(db_status)
+            return (
+                s == WhitelistStatus.approved_automatically
+                or s == WhitelistStatus.approved_manually
+            )
 
         # Redis
         if account_name in self.db:
@@ -212,7 +216,7 @@ class Whitelist:
         """
 
         # TODO: Once add_automatically/waiting works for postgres,
-        # merge redis and postgres results into a single list
+        # merge redis and postgres results
         # Fetch postgres results by DBWhitelist.get_account_by_status(WhitelistStatus.waiting)
 
         return [

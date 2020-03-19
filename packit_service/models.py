@@ -23,17 +23,19 @@
 """
 Data layer on top of PSQL using sqlalch
 """
+import enum
 import logging
 import os
 from contextlib import contextmanager
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional, Union, Iterable
 
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum
 from sqlalchemy import JSON, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 
+from packit_service.constants import WHITELIST_CONSTANTS
 
 logger = logging.getLogger(__name__)
 # SQLAlchemy session, get it with `get_sa_session`
@@ -299,11 +301,17 @@ class SRPMBuild(Base):
         return self.__repr__()
 
 
+class WhitelistStatus(str, enum.Enum):
+    approved_automatically = WHITELIST_CONSTANTS["approved_automatically"]
+    waiting = WHITELIST_CONSTANTS["waiting"]
+    approved_manually = WHITELIST_CONSTANTS["approved_manually"]
+
+
 class Whitelist(Base):
     __tablename__ = "whitelist"
     id = Column(Integer, primary_key=True)
     account_name = Column(String, index=True)
-    status = Column(String, index=True)
+    status = Column(Enum(WhitelistStatus))
 
     # add new account or change status if it already exists
     @classmethod
@@ -327,9 +335,9 @@ class Whitelist(Base):
             return session.query(Whitelist).filter_by(account_name=account_name).first()
 
     @classmethod
-    def get_account_by_status(cls, status: str) -> Optional["Whitelist"]:
+    def get_accounts_by_status(cls, status: str) -> Optional["Whitelist"]:
         with get_sa_session() as session:
-            return session.query(Whitelist).filter_by(status=status).first()
+            return session.query(Whitelist).filter_by(status=status)
 
     @classmethod
     def remove_account(cls, account_name: str) -> Optional["Whitelist"]:

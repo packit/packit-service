@@ -307,10 +307,10 @@ def test_check_and_report(
 
         # get_account returns the whitelist object if it exists
         # returns nothing if it isn't whitelisted
-        # So returning just about anything should work
-        # But we're returning a mock whitelist object so its closer to an actual object
-        
-        # this exact code is used twice above but mypy has an issue with this one only  
+        # then inside the whitelist.py file, a function checks if the status is 
+        # one of the approved statuses
+
+        # this exact code is used twice above but mypy has an issue with this one only
         whitelist_mock = flexmock(DBWhitelist).should_receive("get_account")
         if not TYPE_CHECKING:
             if is_valid:
