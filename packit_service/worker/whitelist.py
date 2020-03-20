@@ -27,6 +27,8 @@ from ogr.abstract import GitProject, CommitStatus
 from packit.exceptions import PackitException
 from persistentdict.dict_in_redis import PersistentDict
 
+from packit_service.models import Whitelist as DBWhitelist
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import FAQ_URL
 from packit_service.service.events import (
@@ -49,7 +51,9 @@ logger = logging.getLogger(__name__)
 
 class Whitelist:
     def __init__(self, fas_user: str = None, fas_password: str = None):
+        # Redis
         self.db = PersistentDict(hash_name="whitelist")
+
         self._fas: AccountSystem = AccountSystem(
             username=fas_user, password=fas_password
         )
@@ -85,6 +89,7 @@ class Whitelist:
         logger.info(f"Cannot verify whether {account_login!r} signed FPCA.")
         return False
 
+    # Redis Only, postgres method in models.py
     def get_account(self, account_name: str) -> Optional[dict]:
         """
         Get selected account from DB, return None if it's not there
@@ -119,6 +124,9 @@ class Whitelist:
         github_app.status = WhitelistStatus.waiting
         self.db[github_app.account_login] = github_app.get_dict()
 
+        # TODO: Also add to postgres
+        # Use DBWhitelist.add_account(account_name, status)
+
         # we want to verify if user who installed the application (sender_login) signed FPCA
         # https://fedoraproject.org/wiki/Legal:Fedora_Project_Contributor_Agreement
         if self._signed_fpca(github_app.sender_login):
@@ -134,9 +142,16 @@ class Whitelist:
         :param account_name: account name for approval
         :return:
         """
+        # Redis
         account = self.get_account(account_name) or {}
         account["status"] = WhitelistStatus.approved_manually.value
         self.db[account_name] = account
+
+        # Postgres
+        DBWhitelist.add_account(
+            account_name=account_name, status=WhitelistStatus.approved_manually.value
+        )
+
         logger.info(f"Account {account_name} approved successfully")
         return True
 
@@ -146,6 +161,17 @@ class Whitelist:
         :param account_name:
         :return:
         """
+
+        # Postgres
+        if DBWhitelist.get_account(account_name) is not None:
+            db_status = DBWhitelist.get_account(account_name).status
+            s = WhitelistStatus(db_status)
+            return (
+                s == WhitelistStatus.approved_automatically
+                or s == WhitelistStatus.approved_manually
+            )
+
+        # Redis
         if account_name in self.db:
             account = self.get_account(account_name)
             db_status = account["status"]
@@ -162,10 +188,22 @@ class Whitelist:
         :param account_name: github login
         :return:
         """
+
+        account_existed = False
+
+        # Delete from Postgres
+        if DBWhitelist.get_account(account_name) is not None:
+            DBWhitelist.remove_account(account_name)
+            logger.info(f"Account: {account_name} removed from postgres whitelist!")
+            account_existed = True
+        # Delete from redis
         if account_name in self.db:
             del self.db[account_name]
             # TODO: delete all artifacts from copr
-            logger.info(f"Account: {account_name} removed from whitelist!")
+            logger.info(f"Account: {account_name} removed from redis whitelist!")
+            account_existed = True
+
+        if account_existed:
             return True
         else:
             logger.info(f"Account: {account_name} does not exists!")
@@ -176,6 +214,10 @@ class Whitelist:
         Get accounts waiting for approval
         :return: list of accounts waiting for approval
         """
+
+        # TODO: Once add_automatically/waiting works for postgres,
+        # merge redis and postgres results
+        # Fetch postgres results by DBWhitelist.get_account_by_status(WhitelistStatus.waiting)
 
         return [
             key

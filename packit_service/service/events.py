@@ -39,6 +39,8 @@ from packit_service.config import ServiceConfig, GithubPackageConfigGetter
 from packit_service.models import CoprBuild
 from packit_service.worker.copr_db import CoprBuildDB
 
+from packit_service.constants import WHITELIST_CONSTANTS
+
 logger = logging.getLogger(__name__)
 
 
@@ -66,9 +68,9 @@ class FedmsgTopic(enum.Enum):
 
 
 class WhitelistStatus(enum.Enum):
-    approved_automatically = "approved_automatically"
-    waiting = "waiting"
-    approved_manually = "approved_manually"
+    approved_automatically = WHITELIST_CONSTANTS["approved_automatically"]
+    waiting = WHITELIST_CONSTANTS["waiting"]
+    approved_manually = WHITELIST_CONSTANTS["approved_manually"]
 
 
 class TestingFarmResult(str, enum.Enum):

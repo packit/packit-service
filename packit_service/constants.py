@@ -27,3 +27,9 @@ COPR_API_FAIL_STATE = 2
 
 PG_COPR_BUILD_STATUS_FAILURE = "failure"
 PG_COPR_BUILD_STATUS_SUCCESS = "success"
+
+WHITELIST_CONSTANTS = {
+    "approved_automatically": "approved_automatically",
+    "waiting": "waiting",
+    "approved_manually": "approved_manually",
+}

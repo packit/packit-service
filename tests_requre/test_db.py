@@ -41,6 +41,7 @@ from packit_service.models import (
     SRPMBuild,
     PullRequest,
     GitProject,
+    Whitelist,
 )
 
 TARGET = "fedora-42-x86_64"
@@ -51,6 +52,7 @@ def clean_db():
         session.query(CoprBuild).delete()
         session.query(PullRequest).delete()
         session.query(GitProject).delete()
+        session.query(Whitelist).delete()
 
 
 # Create a single build
@@ -126,6 +128,31 @@ def multiple_copr_builds():
             ),
         ]
 
+    clean_db()
+
+
+# Create multiple whitelist entries
+@pytest.fixture()
+def multiple_whitelist_entries():
+    with get_sa_session() as session:
+        session.query(Whitelist).delete()
+        yield [
+            Whitelist.add_account(account_name="Rayquaza", status="approved_manually"),
+            Whitelist.add_account(account_name="Deoxys", status="approved_manually"),
+            # Not a typo, account_name repeated intentionally to check behaviour
+            Whitelist.add_account(account_name="Deoxys", status="waiting"),
+            Whitelist.add_account(account_name="Solgaleo", status="waiting"),
+            Whitelist.add_account(account_name="Zacian", status="approved_manually"),
+        ]
+    clean_db()
+
+
+# Create new whitelist entry
+@pytest.fixture()
+def new_whitelist_entry():
+    with get_sa_session() as session:
+        session.query(Whitelist).delete()
+        yield Whitelist.add_account(account_name="Rayquaza", status="approved_manually")
     clean_db()
 
 
@@ -245,3 +272,30 @@ def test_get_by_build_id(multiple_copr_builds):
     assert build_b.target == "fedora-43-x86_64"
     build_c = CoprBuild.get_by_build_id(str(987654), "fedora-43-x86_64")
     assert build_c.project_name == "SomeUser-random-text-7"
+
+
+def test_add_account(new_whitelist_entry):
+    assert new_whitelist_entry.status == "approved_manually"
+    assert new_whitelist_entry.account_name == "Rayquaza"
+
+
+def test_get_account(multiple_whitelist_entries):
+    assert Whitelist.get_account("Rayquaza").status == "approved_manually"
+    assert Whitelist.get_account("Rayquaza").account_name == "Rayquaza"
+    assert Whitelist.get_account("Deoxys").status == "waiting"
+    assert Whitelist.get_account("Deoxys").account_name == "Deoxys"
+    assert Whitelist.get_account("Solgaleo").status == "waiting"
+    assert Whitelist.get_account("Solgaleo").account_name == "Solgaleo"
+
+
+def test_get_accounts_by_status(multiple_whitelist_entries):
+    a = Whitelist.get_accounts_by_status("waiting")
+    assert len(list(a)) == 2
+    b = Whitelist.get_accounts_by_status("approved_manually")
+    assert len(list(b)) == 2
+
+
+def test_remove_account(multiple_whitelist_entries):
+    assert Whitelist.get_account("Rayquaza").account_name == "Rayquaza"
+    Whitelist.remove_account("Rayquaza")
+    assert Whitelist.get_account("Rayquaza") is None
