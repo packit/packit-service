@@ -204,7 +204,7 @@ class Whitelist:
         ):
             return True
         if isinstance(event, (PullRequestEvent, PullRequestCommentEvent)):
-            account_name = event.github_login
+            account_name = event.user_login
             if not account_name:
                 raise KeyError(f"Failed to get account_name from {type(event)}")
             namespace = event.base_repo_namespace

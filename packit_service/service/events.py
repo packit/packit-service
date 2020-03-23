@@ -25,7 +25,7 @@ This file defines classes for events which are sent by GitHub or FedMsg.
 """
 import copy
 import enum
-import logging
+
 from datetime import datetime, timezone
 from typing import Optional, List, Union, Dict
 
@@ -195,8 +195,10 @@ class AbstractGithubEvent(Event, GithubPackageConfigGetter):
             None  # will be shown to users -- e.g. in logs or in the copr-project name
         )
 
-    def get_project(self) -> GitProject:
-        return ServiceConfig.get_service_config().get_project(url=self.project_url)
+    def get_project(self, get_project_kwargs: dict = None) -> GitProject:
+        return ServiceConfig.get_service_config().get_project(
+            url=self.project_url, get_project_kwargs=get_project_kwargs
+        )
 
 
 class ReleaseEvent(AddReleaseDbTrigger, AbstractGithubEvent):
@@ -269,7 +271,7 @@ class PullRequestEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         target_repo: str,
         https_url: str,
         commit_sha: str,
-        github_login: str,
+        user_login: str,
     ):
         super().__init__(trigger=TheJobTriggerType.pull_request, project_url=https_url)
         self.action = action
@@ -279,7 +281,7 @@ class PullRequestEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         self.base_ref = base_ref
         self.target_repo = target_repo
         self.commit_sha = commit_sha
-        self.github_login = github_login
+        self.user_login = user_login
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
 
@@ -311,7 +313,7 @@ class PullRequestCommentEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         base_ref: Optional[str],
         target_repo: str,
         https_url: str,
-        github_login: str,
+        user_login: str,
         comment: str,
         commit_sha: str = "",
     ):
@@ -323,7 +325,7 @@ class PullRequestCommentEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         self.base_ref = base_ref
         self.commit_sha = commit_sha
         self.target_repo = target_repo
-        self.github_login = github_login
+        self.user_login = user_login
         self.comment = comment
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout

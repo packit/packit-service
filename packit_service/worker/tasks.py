@@ -51,8 +51,20 @@ logging.getLogger("sandcastle").setLevel(logging.DEBUG)
 
 
 @celery_app.task(name="task.steve_jobs.process_message", bind=True)
-def process_message(self, event: dict, topic: str = None) -> Optional[dict]:
-    task_results: dict = SteveJobs().process_message(event=event, topic=topic)
+def process_message(
+    self, event: dict, topic: str = None, source: str = None
+) -> Optional[dict]:
+    """
+    Base celery task for processing messages.
+
+    :param event: event data
+    :param topic: event topic
+    :param source: event source
+    :return: dictionary containing task results
+    """
+    task_results: dict = SteveJobs().process_message(
+        event=event, topic=topic, source=source
+    )
     if task_results:
         TaskResultModel.add_task_result(
             task_id=self.request.id, task_result_dict=task_results

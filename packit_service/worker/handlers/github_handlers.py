@@ -314,7 +314,7 @@ class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
     def run(self) -> HandlerResults:
         if isinstance(self.event, PullRequestEvent):
             collaborators = self.project.who_can_merge_pr()
-            if self.event.github_login not in collaborators | self.config.admins:
+            if self.event.user_login not in collaborators | self.config.admins:
                 self.copr_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=CommitStatus.failure,
@@ -477,7 +477,7 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     def run(self) -> HandlerResults:
         if isinstance(self.event, PullRequestEvent):
             collaborators = self.project.who_can_merge_pr()
-            if self.event.github_login not in collaborators | self.config.admins:
+            if self.event.user_login not in collaborators | self.config.admins:
                 self.koji_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=CommitStatus.failure,
@@ -600,7 +600,7 @@ class GitHubPullRequestCommentCoprBuildHandler(
 
     def run(self) -> HandlerResults:
         collaborators = self.project.who_can_merge_pr()
-        if self.event.github_login not in collaborators | self.config.admins:
+        if self.event.user_login not in collaborators | self.config.admins:
             self.project.pr_comment(self.event.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN)
             return HandlerResults(
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
@@ -738,7 +738,7 @@ class GitHubPullRequestCommentTestingFarmHandler(
     def run(self) -> HandlerResults:
 
         collaborators = self.project.who_can_merge_pr()
-        if self.event.github_login not in collaborators | self.config.admins:
+        if self.event.user_login not in collaborators | self.config.admins:
             self.project.pr_comment(self.event.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN)
             return HandlerResults(
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
