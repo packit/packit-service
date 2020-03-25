@@ -57,7 +57,7 @@ def test_issue_comment_propose_update_handler(
         )
     )
     flexmock(
-        GithubProject, get_files=lambda filter_regex: [],
+        GithubProject, get_files=lambda ref, filter_regex: [],
     )
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(issue_comment_propose_update_event)
