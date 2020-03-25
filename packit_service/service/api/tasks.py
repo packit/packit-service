@@ -35,6 +35,7 @@ except ModuleNotFoundError:
 from packit.utils import nested_get
 from redis import Redis
 
+from packit_service.models import TaskResult
 from packit_service.service.api.parsers import pagination_arguments, indices
 from packit_service.service.events import Event
 
@@ -72,6 +73,14 @@ class TasksList(Resource):
                     data["result"]["event"] = Event.ts2str(event)
                 tasks.append(data)
 
+        for task in TaskResult.get_all():
+            data = task.to_dict()
+            event = nested_get(data, "result", "event")
+            if event:  # timestamp to datetime string
+                data["result"]["event"] = Event.ts2str(event)
+            data["date_done"] = data["date_done"].isoformat()
+            tasks.append(data)
+
         resp = make_response(dumps(tasks), HTTPStatus.PARTIAL_CONTENT)
         resp.headers["Content-Range"] = f"tasks {first+1}-{last}/{len(keys)}"
         resp.headers["Content-Type"] = "application/json"
@@ -85,5 +94,18 @@ class TaskItem(Resource):
     @ns.response(HTTPStatus.NO_CONTENT, "Celery task identifier not in db/hash")
     def get(self, id: str):
         """A specific Celery task details"""
+        task = TaskResult.get_by_id(id)
+
+        if task:
+            data = task.to_dict()
+            event = nested_get(data, "result", "event")
+            if event:  # timestamp to datetime string
+                data["result"]["event"] = Event.ts2str(event)
+            data["date_done"] = data["date_done"].isoformat()
+            return data
+
         data = db.get(f"celery-task-meta-{id}")
+        event = nested_get(data, "result", "event")
+        if event:  # timestamp to datetime string
+            data["result"]["event"] = Event.ts2str(event)
         return loads(data) if data else ("", HTTPStatus.NO_CONTENT)

@@ -42,6 +42,7 @@ from packit_service.models import (
     PullRequest,
     GitProject,
     Whitelist,
+    TaskResult,
 )
 
 TARGET = "fedora-42-x86_64"
@@ -153,6 +154,29 @@ def new_whitelist_entry():
     with get_sa_session() as session:
         session.query(Whitelist).delete()
         yield Whitelist.add_account(account_name="Rayquaza", status="approved_manually")
+    clean_db()
+
+
+@pytest.fixture()
+def multiple_task_results_entries():
+    with get_sa_session() as session:
+        session.query(TaskResult).delete()
+        yield [
+            TaskResult.add_task_result(
+                task_id="120",
+                status="success",
+                result=None,
+                traceback=None,
+                date_done=None,
+            ),
+            TaskResult.add_task_result(
+                task_id="121",
+                status="failure",
+                result=None,
+                traceback=None,
+                date_done=None,
+            ),
+        ]
     clean_db()
 
 
@@ -299,3 +323,15 @@ def test_remove_account(multiple_whitelist_entries):
     assert Whitelist.get_account("Rayquaza").account_name == "Rayquaza"
     Whitelist.remove_account("Rayquaza")
     assert Whitelist.get_account("Rayquaza") is None
+
+
+def test_get_task_results(multiple_task_results_entries):
+    results = TaskResult.get_all()
+    assert len(results) == 2
+    assert results[0].task_id == "120"
+    assert results[1].task_id == "121"
+
+
+def test_get_task_result_by_id(multiple_task_results_entries):
+    assert TaskResult.get_by_id("120").status == "success"
+    assert TaskResult.get_by_id("121").status == "failure"

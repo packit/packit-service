@@ -29,6 +29,7 @@ import os
 from contextlib import contextmanager
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional, Union, Iterable
+from celery.backends.database.models import Task
 
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum, desc
 from sqlalchemy import JSON, create_engine
@@ -351,6 +352,45 @@ class Whitelist(Base):
 
     def __repr__(self):
         return f"Whitelist(name={self.user})"
+
+    def __str__(self):
+        return self.__repr__()
+
+
+class TaskResult(Task):
+    @classmethod
+    def get_by_id(cls, task_id: str) -> Optional["TaskResult"]:
+        with get_sa_session() as session:
+            return session.query(TaskResult).filter_by(task_id=task_id).first()
+
+    @classmethod
+    def get_all(cls) -> Optional[Iterable["TaskResult"]]:
+        with get_sa_session() as session:
+            return session.query(TaskResult).all()
+
+    # needed in migration from redis to psql and used in tests
+    @classmethod
+    def add_task_result(cls, task_id, status, result, traceback, date_done):
+        with get_sa_session() as session:
+            task_result = cls.get_by_id(task_id)
+            if task_result is not None:
+                task_result.status = status
+                task_result.result = result
+                task_result.traceback = traceback
+                task_result.date_done = date_done
+                session.add(task_result)
+                return task_result
+            else:
+                task_result = cls(task_id)
+                task_result.status = status
+                task_result.result = result
+                task_result.traceback = traceback
+                task_result.date_done = date_done
+                session.add(task_result)
+                return task_result
+
+    def __repr__(self):
+        return f"TaskResult(id={self.task_id}, res={self.result})"
 
     def __str__(self):
         return self.__repr__()

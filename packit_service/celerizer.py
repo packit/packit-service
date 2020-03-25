@@ -25,6 +25,7 @@ from os import getenv
 from celery import Celery
 from lazy_object_proxy import Proxy
 
+from packit_service.models import get_pg_url
 from packit_service.sentry_integration import configure_sentry
 
 
@@ -41,9 +42,10 @@ class Celerizer:
             redis_url = "redis://{host}:{port}/{db}".format(
                 host=redis_host, port=redis_port, db=redis_db
             )
+            postgres_url = f"db+{get_pg_url()}"
 
             # http://docs.celeryproject.org/en/latest/reference/celery.html#celery.Celery
-            self._celery_app = Celery(backend=redis_url, broker=redis_url)
+            self._celery_app = Celery(backend=postgres_url, broker=redis_url)
         return self._celery_app
 
 
