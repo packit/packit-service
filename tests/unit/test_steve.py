@@ -66,7 +66,7 @@ def test_process_message(event):
         GithubProject,
         get_file_content=lambda path, ref: dumps(packit_yaml),
         full_repo_name="foo/bar",
-        get_files=lambda filter_regex: [],
+        get_files=lambda ref, filter_regex: [],
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     config = ServiceConfig()
