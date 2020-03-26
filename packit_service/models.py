@@ -319,16 +319,12 @@ class Whitelist(Base):
     def add_account(cls, account_name: str, status: str):
         with get_sa_session() as session:
             account = cls.get_account(account_name)
-            if account is not None:
-                account.status = status
-                session.add(account)
-                return account
-            else:
+            if account is None:
                 account = cls()
                 account.account_name = account_name
-                account.status = status
-                session.add(account)
-                return account
+            account.status = status
+            session.add(account)
+            return account
 
     @classmethod
     def get_account(cls, account_name: str) -> Optional["Whitelist"]:
@@ -373,21 +369,14 @@ class TaskResult(Task):
     def add_task_result(cls, task_id, status, result, traceback, date_done):
         with get_sa_session() as session:
             task_result = cls.get_by_id(task_id)
-            if task_result is not None:
-                task_result.status = status
-                task_result.result = result
-                task_result.traceback = traceback
-                task_result.date_done = date_done
-                session.add(task_result)
-                return task_result
-            else:
+            if task_result is None:
                 task_result = cls(task_id)
-                task_result.status = status
-                task_result.result = result
-                task_result.traceback = traceback
-                task_result.date_done = date_done
-                session.add(task_result)
-                return task_result
+            task_result.status = status
+            task_result.result = result
+            task_result.traceback = traceback
+            task_result.date_done = date_done
+            session.add(task_result)
+            return task_result
 
     def __repr__(self):
         return f"TaskResult(id={self.task_id}, res={self.result})"

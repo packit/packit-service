@@ -78,6 +78,7 @@ class TasksList(Resource):
             event = nested_get(data, "result", "event")
             if event:  # timestamp to datetime string
                 data["result"]["event"] = Event.ts2str(event)
+            # datetime object to string
             data["date_done"] = data["date_done"].isoformat()
             tasks.append(data)
 
@@ -101,6 +102,7 @@ class TaskItem(Resource):
             event = nested_get(data, "result", "event")
             if event:  # timestamp to datetime string
                 data["result"]["event"] = Event.ts2str(event)
+            # datetime object to string
             data["date_done"] = data["date_done"].isoformat()
             return data
 
