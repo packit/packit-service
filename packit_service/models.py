@@ -30,7 +30,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional, Union, Iterable
 
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum, desc
 from sqlalchemy import JSON, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
@@ -202,7 +202,7 @@ class CoprBuild(Base):
     @classmethod
     def get_all(cls) -> Optional[Iterable["CoprBuild"]]:
         with get_sa_session() as session:
-            return session.query(CoprBuild).all()
+            return session.query(CoprBuild).order_by(desc(CoprBuild.id)).all()
 
     # Returns all builds with that build_id, irrespective of target
     @classmethod

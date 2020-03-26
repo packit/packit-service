@@ -115,12 +115,12 @@ class InstallationItem(Resource):
                 "repo_namespace": build.pr.project.namespace,
                 "web_url": build.web_url,
                 "srpm_logs": build.srpm_build.logs,
-                "git_repo": f"https://github.com/{build.pr.project.namespace}"
-                "{build.pr.project.repo_name}",
-                # For backwards compatability with the redis API
+                "git_repo": f"https://github.com/{build.pr.project.namespace}/"
+                f"{build.pr.project.repo_name}",
+                # For backwards compatability with the old redis based API
                 "ref": build.commit_sha,
                 "https_url": f"https://github.com/{build.pr.project.namespace}/"
-                "{build.pr.project.repo_name}.git",
+                f"{build.pr.project.repo_name}.git",
             }
             # merge chroots into one
             for sbid_build in builds_list:
