@@ -31,7 +31,7 @@ from packit_service.constants import (
     COPR_API_SUCC_STATE,
     COPR_API_FAIL_STATE,
 )
-from packit_service.models import CoprBuild
+from packit_service.models import CoprBuild, TaskResultModel
 from packit_service.service.events import CoprBuildEvent, FedmsgTopic
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.jobs import SteveJobs
@@ -50,9 +50,14 @@ logging.getLogger("packit").setLevel(logging.DEBUG)
 logging.getLogger("sandcastle").setLevel(logging.DEBUG)
 
 
-@celery_app.task(name="task.steve_jobs.process_message")
-def process_message(event: dict, topic: str = None) -> Optional[dict]:
-    return SteveJobs().process_message(event=event, topic=topic)
+@celery_app.task(name="task.steve_jobs.process_message", bind=True)
+def process_message(self, event: dict, topic: str = None) -> Optional[dict]:
+    task_results: dict = SteveJobs().process_message(event=event, topic=topic)
+    if task_results:
+        TaskResultModel.add_task_result(
+            task_id=self.request.id, task_result_dict=task_results
+        )
+    return task_results
 
 
 @celery_app.task(

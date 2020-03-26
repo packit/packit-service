@@ -42,6 +42,7 @@ class Celerizer:
             redis_url = "redis://{host}:{port}/{db}".format(
                 host=redis_host, port=redis_port, db=redis_db
             )
+            # https://docs.celeryproject.org/en/stable/userguide/configuration.html#database-url-examples
             postgres_url = f"db+{get_pg_url()}"
 
             # http://docs.celeryproject.org/en/latest/reference/celery.html#celery.Celery
