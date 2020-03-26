@@ -26,7 +26,12 @@ from logging import getLogger
 from os import getenv
 
 from flask import make_response
-from flask_restplus import Namespace, Resource
+
+try:
+    from flask_restx import Namespace, Resource
+except ModuleNotFoundError:
+    from flask_restplus import Namespace, Resource
+
 from packit.utils import nested_get
 from redis import Redis
 

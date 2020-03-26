@@ -24,7 +24,11 @@ from json import dumps
 from logging import getLogger
 
 from flask import make_response
-from flask_restplus import Namespace, Resource
+
+try:
+    from flask_restx import Namespace, Resource
+except ModuleNotFoundError:
+    from flask_restplus import Namespace, Resource
 
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.models import CoprBuild
