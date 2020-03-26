@@ -22,7 +22,10 @@
 from http import HTTPStatus
 from logging import getLogger
 
-from flask_restplus import Namespace, Resource
+try:
+    from flask_restx import Namespace, Resource
+except ModuleNotFoundError:
+    from flask_restplus import Namespace, Resource
 from persistentdict.dict_in_redis import PersistentDict
 
 # hash name is defined in worker (Whitelist class), which I don't want to import from

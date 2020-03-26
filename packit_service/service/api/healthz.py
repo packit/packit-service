@@ -22,7 +22,10 @@
 from http import HTTPStatus
 from logging import getLogger
 
-from flask_restplus import Namespace, Resource
+try:
+    from flask_restx import Namespace, Resource
+except ModuleNotFoundError:
+    from flask_restplus import Namespace, Resource
 
 logger = getLogger("packit_service")
 

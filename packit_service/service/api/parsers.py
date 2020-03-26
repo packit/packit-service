@@ -21,7 +21,11 @@
 # SOFTWARE.
 
 from flask import request
-from flask_restplus import reqparse
+
+try:
+    from flask_restx import reqparse
+except ModuleNotFoundError:
+    from flask_restplus import reqparse
 
 DEFAULT_PAGE = 1
 DEFAULT_PER_PAGE = 10

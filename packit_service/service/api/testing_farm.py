@@ -24,7 +24,11 @@ import logging
 from http import HTTPStatus
 
 from flask import request
-from flask_restplus import Namespace, Resource, fields
+
+try:
+    from flask_restx import Namespace, Resource, fields
+except ModuleNotFoundError:
+    from flask_restplus import Namespace, Resource, fields
 
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig

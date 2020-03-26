@@ -20,7 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from flask import Blueprint
-from flask_restplus import Api
+
+try:
+    from flask_restx import Api
+except ModuleNotFoundError:
+    from flask_restplus import Api
 
 from packit_service.service.api.copr_builds import ns as copr_builds_ns
 from packit_service.service.api.healthz import ns as healthz_ns
