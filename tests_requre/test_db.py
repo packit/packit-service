@@ -42,6 +42,7 @@ from packit_service.models import (
     PullRequest,
     GitProject,
     Whitelist,
+    TaskResultModel,
 )
 
 TARGET = "fedora-42-x86_64"
@@ -53,6 +54,7 @@ def clean_db():
         session.query(PullRequest).delete()
         session.query(GitProject).delete()
         session.query(Whitelist).delete()
+        session.query(TaskResultModel).delete()
 
 
 # Create a single build
@@ -153,6 +155,78 @@ def new_whitelist_entry():
     with get_sa_session() as session:
         session.query(Whitelist).delete()
         yield Whitelist.add_account(account_name="Rayquaza", status="approved_manually")
+    clean_db()
+
+
+@pytest.fixture()
+def task_results():
+    return [
+        {
+            "jobs": {
+                "copr_build": {
+                    "success": True,
+                    "details": {
+                        "msg": "Only users with write or admin permissions to the "
+                        "repository can trigger Packit-as-a-Service"
+                    },
+                }
+            },
+            "event": {
+                "trigger": "pull_request",
+                "created_at": "2020-03-26T07:39:18",
+                "project_url": "https://github.com/nmstate/nmstate",
+                "git_ref": None,
+                "identifier": "934",
+                "action": "synchronize",
+                "pr_id": 934,
+                "base_repo_namespace": "nmstate",
+                "base_repo_name": "nmstate",
+                "base_ref": "f483003f13f0fee585f5cc0b970f4cd21eca7c9d",
+                "target_repo": "nmstate/nmstate",
+                "commit_sha": "f483003f13f0fee585f5cc0b970f4cd21eca7c9d",
+                "github_login": "adwait-thattey",
+            },
+        },
+        {
+            "jobs": {"tests": {"success": True, "details": {}}},
+            "event": {
+                "trigger": "testing_farm_results",
+                "created_at": "2020-03-25T16:56:39",
+                "project_url": "https://github.com/psss/tmt.git",
+                "git_ref": "4c584245ef53062eb15afc7f8daa6433da0a95a7",
+                "identifier": "4c584245ef53062eb15afc7f8daa6433da0a95a7",
+                "pipeline_id": "c9a88c3d-801f-44e4-a206-2e1b6081446a",
+                "result": "passed",
+                "environment": "Fedora-Cloud-Base-30-20200325.0.x86_64.qcow2",
+                "message": "All tests passed",
+                "log_url": "https://console-testing-farm.apps.ci.centos.org/pipeline"
+                "/c9a88c3d-801f-44e4-a206-2e1b6081446a",
+                "copr_repo_name": "packit/psss-tmt-178",
+                "copr_chroot": "fedora-30-x86_64",
+                "tests": [
+                    {"name": "/plans/smoke", "result": "passed", "log_url": None},
+                    {"name": "/plans/basic", "result": "passed", "log_url": None},
+                ],
+                "repo_name": "tmt",
+                "repo_namespace": "psss",
+                "commit_sha": "4c584245ef53062eb15afc7f8daa6433da0a95a7",
+            },
+        },
+    ]
+
+
+@pytest.fixture()
+def multiple_task_results_entries(task_results):
+    with get_sa_session() as session:
+        session.query(TaskResultModel).delete()
+        yield [
+            TaskResultModel.add_task_result(
+                task_id="ab1", task_result_dict=task_results[0]
+            ),
+            TaskResultModel.add_task_result(
+                task_id="ab2", task_result_dict=task_results[1]
+            ),
+        ]
     clean_db()
 
 
@@ -299,3 +373,17 @@ def test_remove_account(multiple_whitelist_entries):
     assert Whitelist.get_account("Rayquaza").account_name == "Rayquaza"
     Whitelist.remove_account("Rayquaza")
     assert Whitelist.get_account("Rayquaza") is None
+
+
+def test_get_task_results(multiple_task_results_entries):
+    results = TaskResultModel.get_all()
+    assert len(results) == 2
+    assert results[0].task_id == "ab1"
+    assert results[1].task_id == "ab2"
+
+
+def test_get_task_result_by_id(multiple_task_results_entries, task_results):
+    assert TaskResultModel.get_by_id("ab1").jobs == task_results[0].get("jobs")
+    assert TaskResultModel.get_by_id("ab1").event == task_results[0].get("event")
+    assert TaskResultModel.get_by_id("ab2").jobs == task_results[1].get("jobs")
+    assert TaskResultModel.get_by_id("ab2").event == task_results[1].get("event")

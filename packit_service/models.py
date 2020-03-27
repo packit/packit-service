@@ -31,6 +31,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional, Union, Iterable
 
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum, desc
+from sqlalchemy.types import PickleType
 from sqlalchemy import JSON, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
@@ -318,16 +319,12 @@ class Whitelist(Base):
     def add_account(cls, account_name: str, status: str):
         with get_sa_session() as session:
             account = cls.get_account(account_name)
-            if account is not None:
-                account.status = status
-                session.add(account)
-                return account
-            else:
+            if account is None:
                 account = cls()
                 account.account_name = account_name
-                account.status = status
-                session.add(account)
-                return account
+            account.status = status
+            session.add(account)
+            return account
 
     @classmethod
     def get_account(cls, account_name: str) -> Optional["Whitelist"]:
@@ -351,6 +348,48 @@ class Whitelist(Base):
 
     def __repr__(self):
         return f"Whitelist(name={self.user})"
+
+    def __str__(self):
+        return self.__repr__()
+
+
+class TaskResultModel(Base):
+    __tablename__ = "task_results"
+    task_id = Column(String, primary_key=True)
+    jobs = Column(PickleType)
+    event = Column(PickleType)
+
+    @classmethod
+    def get_by_id(cls, task_id: str) -> Optional["TaskResultModel"]:
+        with get_sa_session() as session:
+            return session.query(TaskResultModel).filter_by(task_id=task_id).first()
+
+    @classmethod
+    def get_all(cls) -> Optional[Iterable["TaskResultModel"]]:
+        with get_sa_session() as session:
+            return session.query(TaskResultModel).all()
+
+    @classmethod
+    def add_task_result(cls, task_id, task_result_dict):
+        with get_sa_session() as session:
+            task_result = cls.get_by_id(task_id)
+            if task_result is None:
+                task_result = cls()
+                task_result.task_id = task_id
+            task_result.jobs = task_result_dict.get("jobs")
+            task_result.event = task_result_dict.get("event")
+            session.add(task_result)
+            return task_result
+
+    def to_dict(self):
+        return {
+            "task_id": self.task_id,
+            "jobs": self.jobs,
+            "event": self.event,
+        }
+
+    def __repr__(self):
+        return f"TaskResult(id={self.task_id})"
 
     def __str__(self):
         return self.__repr__()
