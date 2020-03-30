@@ -135,7 +135,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "artifact": {
                 "repo-name": self.project.repo,
                 "repo-namespace": self.project.namespace,
-                "copr-repo-name": f"{self.job_owner}/{self.default_project_name}",
+                "copr-repo-name": f"{self.job_owner}/{self.job_project}",
                 "copr-chroot": chroot,
                 "commit-sha": self.event.commit_sha,
                 "git-url": self.event.project_url,
