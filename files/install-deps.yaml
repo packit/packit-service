@@ -26,6 +26,8 @@
           - python3-psycopg2
           - python3-lazy-object-proxy
           #- python3-flask-restx # https://bugzilla.redhat.com/show_bug.cgi?id=1817535
+          - python3-flexmock # because of the hack during the alembic upgrade
+          # (see d90948124e46_add_tables_for_triggers_koji_and_tests.py )
         state: present
     - name: Install pip deps
       pip:
