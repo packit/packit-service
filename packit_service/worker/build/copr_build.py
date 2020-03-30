@@ -30,9 +30,10 @@ from packit.utils import PackitFormatter
 from sandcastle import SandcastleTimeoutReached
 
 from packit_service.celerizer import celery_app
+from packit_service import sentry_integration
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import MSG_RETRIGGER
-from packit_service.models import CoprBuild, SRPMBuild
+from packit_service.models import CoprBuildModel, SRPMBuildModel
 from packit_service.service.events import (
     PullRequestEvent,
     PullRequestCommentEvent,
@@ -42,7 +43,6 @@ from packit_service.service.events import (
 )
 from packit_service.service.models import CoprBuild as RedisCoprBuild
 from packit_service.service.urls import get_log_url, get_srpm_log_url
-from packit_service import sentry_integration
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.result import HandlerResults
 
@@ -142,7 +142,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         build_metadata = self._run_copr_build_and_save_output()
 
-        srpm_build_model = SRPMBuild.create(build_metadata.srpm_logs)
+        srpm_build_model = SRPMBuildModel.create(build_metadata.srpm_logs)
 
         if build_metadata.srpm_failed:
             msg = "SRPM build failed, check the logs for details."
@@ -154,18 +154,16 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             return HandlerResults(success=False, details={"msg": msg})
 
         for chroot in self.build_chroots:
-            copr_build = CoprBuild.get_or_create(
-                pr_id=self.pr_id,
+            copr_build = CoprBuildModel.get_or_create(
                 build_id=str(build_metadata.copr_build_id),
                 commit_sha=self.event.commit_sha,
-                repo_name=self.project.repo,
-                namespace=self.project.namespace,
                 project_name=self.job_project,
                 owner=self.job_owner,
                 web_url=build_metadata.copr_web_url,
                 target=chroot,
                 status="pending",
                 srpm_build=srpm_build_model,
+                job_trigger=self.event.db_trigger,
             )
             url = get_log_url(id_=copr_build.id)
             self.report_status_to_all_for_chroot(

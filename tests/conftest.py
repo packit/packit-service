@@ -29,11 +29,13 @@ from github import Github
 from github.GitRelease import GitRelease as PyGithubRelease
 from ogr.abstract import GitTag
 from ogr.services.github import GithubProject, GithubRelease
+from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
-from packit_service.models import GitProject, PullRequest, CoprBuild
+from packit_service.models import JobTriggerModelType
+from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.service.events import (
     PullRequestEvent,
     PushGitHubEvent,
@@ -120,7 +122,9 @@ def mock_pr_comment_functionality(request):
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
-
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
+        flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
 
@@ -160,14 +164,97 @@ def mock_issue_comment_functionality():
 
 
 @pytest.fixture()
-def copr_build():
-    proj = GitProject(id=1, repo_name="bar", namespace="foo")
-    pr = PullRequest(id=1, pr_id=123)
-    pr.project = proj
-    c = CoprBuild(id=1)
-    c.pr = pr
-    c.commit_sha = "0011223344"
-    return c
+def copr_build_pr():
+    project_model = flexmock(repo_name="bar", namespace="foo")
+    pr_model = flexmock(
+        id=1,
+        pr_id=123,
+        project=project_model,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+    )
+    trigger_model = flexmock(
+        id=2,
+        type=JobTriggerModelType.pull_request,
+        trigger_id=1,
+        get_trigger_object=lambda: pr_model,
+    )
+    copr_build_model = flexmock(
+        id=1,
+        build_id="1",
+        commit_sha="0011223344",
+        project_name="some-project",
+        owner="some-owner",
+        web_url="https://some-url",
+        target="some-target",
+        status="some-status",
+        srpm_build=flexmock(logs="asdsdf"),
+        job_trigger=trigger_model,
+    )
+
+    return copr_build_model
+
+
+@pytest.fixture()
+def copr_build_branch_push():
+    project_model = flexmock(repo_name="bar", namespace="foo")
+    branch_model = flexmock(
+        id=1,
+        name="build-branch",
+        project=project_model,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+    )
+    trigger_model = flexmock(
+        id=2,
+        type=JobTriggerModelType.branch_push,
+        trigger_id=1,
+        get_trigger_object=lambda: branch_model,
+    )
+    copr_build_model = flexmock(
+        id=1,
+        build_id="1",
+        commit_sha="0011223344",
+        project_name="some-project",
+        owner="some-owner",
+        web_url="https://some-url",
+        target="some-target",
+        status="some-status",
+        srpm_build=flexmock(logs="asdsdf"),
+        job_trigger=trigger_model,
+    )
+
+    return copr_build_model
+
+
+@pytest.fixture()
+def copr_build_release():
+    project_model = flexmock(repo_name="bar", namespace="foo")
+    release_model = flexmock(
+        id=1,
+        tag_name="v1.0.1",
+        project=project_model,
+        commit_hash="0011223344",
+        job_config_trigger_type=JobConfigTriggerType.release,
+    )
+    trigger_model = flexmock(
+        id=2,
+        type=JobTriggerModelType.release,
+        trigger_id=1,
+        get_trigger_object=lambda: release_model,
+    )
+    copr_build_model = flexmock(
+        id=1,
+        build_id="1",
+        commit_sha="0011223344",
+        project_name="some-project",
+        owner="some-owner",
+        web_url="https://some-url",
+        target="some-target",
+        status="some-status",
+        srpm_build=flexmock(logs="asdsdf"),
+        job_trigger=trigger_model,
+    )
+
+    return copr_build_model
 
 
 @pytest.fixture()

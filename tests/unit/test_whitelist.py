@@ -49,7 +49,7 @@ from packit_service.service.models import Model
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.whitelist import Whitelist
 
-from packit_service.models import Whitelist as DBWhitelist
+from packit_service.models import WhitelistModel as DBWhitelist
 
 EXPECTED_TESTING_FARM_CHECK_NAME = f"packit-stg/testing-farm-fedora-rawhide-x86_64"
 

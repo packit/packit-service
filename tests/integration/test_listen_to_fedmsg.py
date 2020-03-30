@@ -35,7 +35,7 @@ from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
-from packit_service.models import CoprBuild
+from packit_service.models import CoprBuildModel, TestingFarmResult, TFTTestRunModel
 from packit_service.service.events import CoprBuildEvent
 from packit_service.service.urls import get_log_url
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
@@ -117,7 +117,7 @@ def pc_tests():
     "pc_comment_pr_succ,pr_comment_called", ((True, True), (False, False),)
 )
 def test_copr_build_end(
-    copr_build_end, pc_build_pr, copr_build, pc_comment_pr_succ, pr_comment_called
+    copr_build_end, pc_build_pr, copr_build_pr, pc_comment_pr_succ, pr_comment_called
 ):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
@@ -144,8 +144,9 @@ def test_copr_build_end(
     else:
         flexmock(GithubProject).should_receive("pr_comment").never()
 
-    flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
-    flexmock(CoprBuild).should_receive("set_status").with_args("success")
+    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
+    copr_build_pr.should_receive("set_status").with_args("success")
+
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
         {
             "commit_sha": "XXXXX",
@@ -174,13 +175,7 @@ def test_copr_build_end(
     steve.process_message(copr_build_end)
 
 
-@pytest.mark.skip(
-    "We need to save/load right trigger type. "
-    "Currently, there is pull_request hardcoded. "
-    "(See super call in CoprBuildEvent __init__. "
-    "Change it to commit if you want to test it.)"
-)
-def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build):
+def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_push):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -204,8 +199,10 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build):
     # we cannot comment for branch push events
     flexmock(GithubProject).should_receive("pr_comment").never()
 
-    flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
-    flexmock(CoprBuild).should_receive("set_status").with_args("success")
+    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
+        copr_build_branch_push
+    )
+    copr_build_branch_push.should_receive("set_status").with_args("success")
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
         {
             "commit_sha": "XXXXX",
@@ -234,13 +231,7 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build):
     steve.process_message(copr_build_end)
 
 
-@pytest.mark.skip(
-    "We need to save/load right trigger type. "
-    "Currently, there is pull_request hardcoded. "
-    "(See super call in CoprBuildEvent __init__. "
-    "Change it to release if you want to test it.)"
-)
-def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build):
+def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_release):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -264,8 +255,10 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build):
     # we cannot comment for branch push events
     flexmock(GithubProject).should_receive("pr_comment").never()
 
-    flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
-    flexmock(CoprBuild).should_receive("set_status").with_args("success")
+    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
+        copr_build_release
+    )
+    copr_build_release.should_receive("set_status").with_args("success")
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
         {
             "commit_sha": "XXXXX",
@@ -294,7 +287,7 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build):
     steve.process_message(copr_build_end)
 
 
-def test_copr_build_end_testing_farm(copr_build_end, copr_build):
+def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -335,8 +328,8 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build):
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
-    flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
-    flexmock(CoprBuild).should_receive("set_status").with_args("success")
+    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
+    copr_build_pr.should_receive("set_status").with_args("success")
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
         {
             "commit_sha": "XXXXX",
@@ -366,11 +359,10 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build):
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
     ).once()
 
-    flexmock(uuid).should_receive("uuid4").and_return(
-        uuid.UUID("5e8079d8-f181-41cf-af96-28e99774eb68")
-    )
+    pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
+    flexmock(uuid).should_receive("uuid4").and_return(uuid.UUID(pipeline_id))
     payload: dict = {
-        "pipeline": {"id": "5e8079d8-f181-41cf-af96-28e99774eb68"},
+        "pipeline": {"id": pipeline_id},
         "api": {"token": ""},
         "response-url": "https://stg.packit.dev/api/testing-farm/results",
         "artifact": {
@@ -383,6 +375,21 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build):
             "git-ref": "0011223344",
         },
     }
+    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request)
+    flexmock(CoprBuildEvent).should_receive("db_trigger").and_return(trigger)
+
+    tft_test_run_model = flexmock()
+    tft_test_run_model.should_receive("set_status").with_args(
+        TestingFarmResult.running
+    ).and_return().once()
+    flexmock(TFTTestRunModel).should_receive("create").with_args(
+        pipeline_id=pipeline_id,
+        commit_sha="0011223344",
+        status=TestingFarmResult.new,
+        target="fedora-rawhide-x86_64",
+        job_trigger=trigger,
+        web_url=None,
+    ).and_return(tft_test_run_model)
 
     flexmock(TestingFarmJobHelper).should_receive(
         "send_testing_farm_request"
@@ -411,7 +418,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build):
     steve.process_message(copr_build_end)
 
 
-def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build):
+def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -452,8 +459,8 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build):
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
-    flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
-    flexmock(CoprBuild).should_receive("set_status").with_args("success")
+    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
+    copr_build_pr.should_receive("set_status").with_args("success")
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
         {
             "commit_sha": "XXXXX",
@@ -506,10 +513,28 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build):
         url="",
     ).once()
 
+    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request)
+    flexmock(CoprBuildEvent).should_receive("db_trigger").and_return(trigger)
+
+    tft_test_run_model = flexmock()
+    tft_test_run_model.should_receive("set_status").with_args(
+        TestingFarmResult.error
+    ).and_return().once()
+    pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
+    flexmock(uuid).should_receive("uuid4").and_return(uuid.UUID(pipeline_id))
+    flexmock(TFTTestRunModel).should_receive("create").with_args(
+        pipeline_id=pipeline_id,
+        commit_sha="0011223344",
+        status=TestingFarmResult.new,
+        target="fedora-rawhide-x86_64",
+        job_trigger=trigger,
+        web_url=None,
+    ).and_return(tft_test_run_model)
+
     steve.process_message(copr_build_end)
 
 
-def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build):
+def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -550,8 +575,8 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build):
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
-    flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
-    flexmock(CoprBuild).should_receive("set_status").with_args("success")
+    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
+    copr_build_pr.should_receive("set_status").with_args("success")
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
         {
             "commit_sha": "XXXXX",
@@ -593,7 +618,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build):
         )
     )
 
-    flexmock(CoprBuild).should_receive("set_status").with_args("failure")
+    flexmock(CoprBuildModel).should_receive("set_status").with_args("failure")
     flexmock(StatusReporter).should_receive("report").with_args(
         state=CommitStatus.pending,
         description="Build succeeded. Submitting the tests ...",
@@ -607,10 +632,28 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build):
         url="",
     ).once()
 
+    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request)
+    flexmock(CoprBuildEvent).should_receive("db_trigger").and_return(trigger)
+
+    tft_test_run_model = flexmock()
+    tft_test_run_model.should_receive("set_status").with_args(
+        TestingFarmResult.error
+    ).and_return().once()
+    pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
+    flexmock(uuid).should_receive("uuid4").and_return(uuid.UUID(pipeline_id))
+    flexmock(TFTTestRunModel).should_receive("create").with_args(
+        pipeline_id=pipeline_id,
+        commit_sha="0011223344",
+        status=TestingFarmResult.new,
+        target="fedora-rawhide-x86_64",
+        job_trigger=trigger,
+        web_url=None,
+    ).and_return(tft_test_run_model)
+
     steve.process_message(copr_build_end)
 
 
-def test_copr_build_start(copr_build_start, pc_build_pr, copr_build):
+def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -631,7 +674,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build):
         EXPECTED_BUILD_CHECK_NAME
     )
 
-    flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
+    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
         {
             "commit_sha": "XXXXX",
@@ -647,8 +690,9 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build):
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 
-    flexmock(CoprBuild).should_receive("set_status").with_args("pending").once()
-    flexmock(CoprBuild).should_receive("set_build_logs_url")
+    copr_build_pr.should_receive("set_status").with_args("pending").once()
+    copr_build_pr.should_receive("set_build_logs_url")
+
     # check if packit-service set correct PR status
     flexmock(StatusReporter).should_receive("report").with_args(
         state=CommitStatus.pending,
@@ -660,7 +704,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build):
     steve.process_message(copr_build_start)
 
 
-def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build):
+def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -682,7 +726,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build):
         EXPECTED_TESTING_FARM_CHECK_NAME
     )
 
-    flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
+    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
         {
             "commit_sha": "XXXXX",
@@ -698,8 +742,9 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build):
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 
-    flexmock(CoprBuild).should_receive("set_status").with_args("pending")
-    flexmock(CoprBuild).should_receive("set_build_logs_url")
+    copr_build_pr.should_receive("set_status").with_args("pending")
+    copr_build_pr.should_receive("set_build_logs_url")
+
     # check if packit-service sets the correct PR status
     flexmock(StatusReporter).should_receive("report").with_args(
         state=CommitStatus.pending,
@@ -718,7 +763,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build):
     steve.process_message(copr_build_start)
 
 
-def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_build):
+def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -744,8 +789,8 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     ).and_return(True)
     flexmock(GithubProject).should_receive("pr_comment").never()
 
-    flexmock(CoprBuild).should_receive("get_by_build_id").and_return(copr_build)
-    flexmock(CoprBuild).should_receive("set_status").with_args("success")
+    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
+    copr_build_pr.should_receive("set_status").with_args("success")
     flexmock(CoprBuildDB).should_receive("get_build").and_return(
         {
             "commit_sha": "XXXXX",

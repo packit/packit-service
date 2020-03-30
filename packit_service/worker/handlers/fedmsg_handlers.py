@@ -34,6 +34,7 @@ from packit.config import (
     JobType,
     JobConfig,
     get_package_config_from_repo,
+    JobConfigTriggerType,
 )
 from packit.distgit import DistGit
 from packit.local_project import LocalProject
@@ -45,7 +46,7 @@ from packit_service.constants import (
     PG_COPR_BUILD_STATUS_SUCCESS,
     COPR_API_SUCC_STATE,
 )
-from packit_service.models import CoprBuild
+from packit_service.models import CoprBuildModel
 from packit_service.service.events import (
     Event,
     DistGitEvent,
@@ -218,7 +219,7 @@ class CoprBuildEndHandler(FedmsgHandler):
             msg = "SRPM build in copr has finished"
             logger.debug(msg)
             return HandlerResults(success=True, details={"msg": msg})
-        build_pg = CoprBuild.get_by_build_id(
+        build_pg = CoprBuildModel.get_by_build_id(
             str(self.event.build_id), self.event.chroot
         )
         if not build_pg:
@@ -254,7 +255,7 @@ class CoprBuildEndHandler(FedmsgHandler):
         if (
             self.build_job_helper.job_build
             and self.build_job_helper.job_build.trigger
-            == TheJobTriggerType.pull_request
+            == JobConfigTriggerType.pull_request
             and not self.was_last_build_successful()
             and self.package_config.notifications.pull_request.successful_build
         ):
@@ -332,7 +333,7 @@ class CoprBuildStartHandler(FedmsgHandler):
 
         # TODO: drop the code below once we move to PG completely; the build is present in event
         # pg
-        build_pg = CoprBuild.get_by_build_id(
+        build_pg = CoprBuildModel.get_by_build_id(
             str(self.event.build_id), self.event.chroot
         )
         if not build_pg:

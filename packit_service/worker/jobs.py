@@ -80,7 +80,9 @@ def get_handlers_for_event(
     classes_for_trigger = MAP_EVENT_TRIGGER_TO_HANDLERS[event.trigger]
 
     for job in package_config.jobs:
-        if is_trigger_matching_job_config(trigger=event.trigger, job_config=job):
+        if (
+            event.db_trigger and event.db_trigger.job_config_trigger_type == job.trigger
+        ) or is_trigger_matching_job_config(trigger=event.trigger, job_config=job):
             for pos_handler in classes_for_trigger:
                 if job.type in MAP_HANDLER_TO_JOB_TYPES[pos_handler]:
                     handlers.add(pos_handler)
@@ -105,9 +107,13 @@ def get_config_for_handler_kls(
     :return: JobConfig
     """
     for job in package_config.jobs:
-        if job.type in MAP_HANDLER_TO_JOB_TYPES[
-            handler_kls
-        ] and is_trigger_matching_job_config(trigger=event.trigger, job_config=job):
+        if job.type in MAP_HANDLER_TO_JOB_TYPES[handler_kls] and (
+            (
+                event.db_trigger
+                and event.db_trigger.job_config_trigger_type == job.trigger
+            )
+            or is_trigger_matching_job_config(trigger=event.trigger, job_config=job)
+        ):
             return job
 
         required_handlers = MAP_REQUIRED_JOB_TO_HANDLERS[job.type]

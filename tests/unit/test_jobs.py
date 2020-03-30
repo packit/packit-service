@@ -41,13 +41,18 @@ from packit_service.worker.jobs import get_handlers_for_event
 
 
 @pytest.mark.parametrize(
-    "trigger,jobs,result",
+    "trigger,db_trigger,jobs,result",
     [
         pytest.param(
-            TheJobTriggerType.pull_request, [], set(), id="nothing_configured"
+            TheJobTriggerType.pull_request,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [],
+            set(),
+            id="nothing_configured",
         ),
         pytest.param(
             TheJobTriggerType.pull_request,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.copr_build,
@@ -60,6 +65,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.pull_request,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.build,
@@ -72,6 +78,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.push,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
                     type=JobType.copr_build,
@@ -84,6 +91,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.commit,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
                     type=JobType.copr_build,
@@ -96,6 +104,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.release,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
             [
                 JobConfig(
                     type=JobType.propose_downstream,
@@ -108,6 +117,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.copr_start,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.copr_build,
@@ -120,6 +130,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.copr_end,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.copr_build,
@@ -132,6 +143,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.pull_request,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.copr_build,
@@ -149,6 +161,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.copr_end,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.copr_build,
@@ -166,6 +179,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.pull_request,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.tests,
@@ -178,6 +192,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.copr_start,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.tests,
@@ -190,6 +205,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.copr_end,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.tests,
@@ -202,6 +218,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.testing_farm_results,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.tests,
@@ -214,6 +231,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.testing_farm_results,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.tests,
@@ -231,6 +249,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.pull_request,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.tests,
@@ -248,6 +267,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.copr_start,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.tests,
@@ -265,6 +285,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.copr_start,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.tests,
@@ -292,6 +313,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.pull_request,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.production_build,
@@ -304,6 +326,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.push,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
                     type=JobType.production_build,
@@ -316,6 +339,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.commit,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
                     type=JobType.production_build,
@@ -328,6 +352,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.release,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
             [
                 JobConfig(
                     type=JobType.production_build,
@@ -340,6 +365,7 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
         pytest.param(
             TheJobTriggerType.push,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
                     type=JobType.production_build,
@@ -357,10 +383,11 @@ from packit_service.worker.jobs import get_handlers_for_event
         ),
     ],
 )
-def test_get_handlers_for_event(trigger, jobs, result):
+def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
     event_handlers = set(
         get_handlers_for_event(
-            event=flexmock(trigger=trigger), package_config=flexmock(jobs=jobs)
+            event=flexmock(trigger=trigger, db_trigger=db_trigger),
+            package_config=flexmock(jobs=jobs),
         )
     )
     assert event_handlers == result

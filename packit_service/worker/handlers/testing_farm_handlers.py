@@ -34,6 +34,7 @@ from packit.config import (
 )
 
 from packit_service.config import ServiceConfig
+from packit_service.models import TFTTestRunModel
 from packit_service.service.events import (
     TestingFarmResultsEvent,
     TestingFarmResult,
@@ -84,9 +85,22 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
         logger.debug(f"Received testing-farm result:\n{self.event.result}")
         logger.debug(f"Received testing-farm test results:\n{self.event.tests}")
 
+        test_run_model = TFTTestRunModel.get_by_pipeline_id(
+            pipeline_id=self.event.pipeline_id
+        )
+        if not test_run_model:
+            logger.warning(
+                f"Unknown pipeline_id received from the testing-farm: "
+                f"{self.event.pipeline_id}"
+            )
+
+        if test_run_model:
+            test_run_model.set_status(self.event.result)
+
         if self.event.result == TestingFarmResult.passed:
             status = CommitStatus.success
             passed = True
+
         else:
             status = CommitStatus.failure
             passed = False
@@ -100,6 +114,8 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
         else:
             short_msg = self.event.message
 
+        if test_run_model:
+            test_run_model.set_web_url(self.event.log_url)
         status_reporter = StatusReporter(self.project, self.event.commit_sha)
         status_reporter.report(
             state=status,

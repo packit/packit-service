@@ -36,10 +36,20 @@ from packit.config import (
 )
 
 from packit_service.config import ServiceConfig, GithubPackageConfigGetter
-from packit_service.models import CoprBuild
-from packit_service.worker.copr_db import CoprBuildDB
-
 from packit_service.constants import WHITELIST_CONSTANTS
+from packit_service.models import (
+    CoprBuildModel,
+    AbstractTriggerDbType,
+    JobTriggerModelType,
+    TestingFarmResult,
+)
+from packit_service.service.db_triggers import (
+    AddReleaseDbTrigger,
+    AddPullRequestDbTrigger,
+    AddBranchPushDbTrigger,
+    AddIssueDbTrigger,
+)
+from packit_service.worker.copr_db import CoprBuildDB
 
 logger = logging.getLogger(__name__)
 
@@ -71,13 +81,6 @@ class WhitelistStatus(enum.Enum):
     approved_automatically = WHITELIST_CONSTANTS["approved_automatically"]
     waiting = WHITELIST_CONSTANTS["waiting"]
     approved_manually = WHITELIST_CONSTANTS["approved_manually"]
-
-
-class TestingFarmResult(str, enum.Enum):
-    passed = "passed"
-    failed = "failed"
-    error = "error"
-    running = "running"
 
 
 class TheJobTriggerType(str, enum.Enum):
@@ -158,6 +161,10 @@ class Event:
         d["created_at"] = int(d["created_at"].timestamp())
         return d
 
+    @property
+    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        return None
+
     def get_package_config(self):
         raise NotImplementedError("Please implement me!")
 
@@ -193,7 +200,7 @@ class AbstractGithubEvent(Event, GithubPackageConfigGetter):
         return ServiceConfig.get_service_config().get_project(url=self.project_url)
 
 
-class ReleaseEvent(AbstractGithubEvent):
+class ReleaseEvent(AddReleaseDbTrigger, AbstractGithubEvent):
     def __init__(
         self, repo_namespace: str, repo_name: str, tag_name: str, https_url: str
     ):
@@ -215,7 +222,7 @@ class ReleaseEvent(AbstractGithubEvent):
         return package_config
 
 
-class PushGitHubEvent(AbstractGithubEvent):
+class PushGitHubEvent(AddBranchPushDbTrigger, AbstractGithubEvent):
     def __init__(
         self,
         repo_namespace: str,
@@ -243,7 +250,7 @@ class PushGitHubEvent(AbstractGithubEvent):
         return package_config
 
 
-class PullRequestEvent(AbstractGithubEvent):
+class PullRequestEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
     def __init__(
         self,
         action: PullRequestAction,
@@ -286,7 +293,7 @@ class PullRequestEvent(AbstractGithubEvent):
         return package_config
 
 
-class PullRequestCommentEvent(AbstractGithubEvent):
+class PullRequestCommentEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
     def __init__(
         self,
         action: PullRequestCommentAction,
@@ -333,7 +340,7 @@ class PullRequestCommentEvent(AbstractGithubEvent):
         return package_config
 
 
-class IssueCommentEvent(AbstractGithubEvent):
+class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
     def __init__(
         self,
         action: IssueCommentAction,
@@ -501,7 +508,7 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
 
 # Wait, what? copr build event doesn't sound like github event
 class CoprBuildEvent(AbstractGithubEvent):
-    build_pg: Optional[CoprBuild]
+    build_pg: Optional[CoprBuildModel]
 
     def __init__(
         self,
@@ -513,14 +520,14 @@ class CoprBuildEvent(AbstractGithubEvent):
         owner: str,
         project_name: str,
         pkg: str,
-        build_pg: Optional[CoprBuild] = None,
+        build_pg: Optional[CoprBuildModel] = None,
     ):
 
         if build_pg:
-            self.pr_id = build_pg.pr.pr_id
+            trigger_db = build_pg.job_trigger.get_trigger_object()
             self.commit_sha = build_pg.commit_sha
-            self.base_repo_name = build_pg.pr.project.repo_name
-            self.base_repo_namespace = build_pg.pr.project.namespace
+            self.base_repo_name = trigger_db.project.repo_name
+            self.base_repo_namespace = trigger_db.project.namespace
             # FIXME: hardcoded, move this to PG
             https_url = f"https://github.com/{self.base_repo_namespace}/{self.base_repo_name}.git"
             git_ref = self.commit_sha  # ref should be name of the branch, not a hash
@@ -531,6 +538,7 @@ class CoprBuildEvent(AbstractGithubEvent):
             self.base_repo_namespace = build.get("repo_namespace")
             https_url = build["https_url"]
             git_ref = build.get("ref", "")
+            self.identifier = self.pr_id
 
         self.topic = FedmsgTopic(topic)
         if self.topic == FedmsgTopic.copr_build_started:
@@ -551,7 +559,25 @@ class CoprBuildEvent(AbstractGithubEvent):
         self.project_name = project_name
         self.pkg = pkg
         self.build_pg = build_pg
-        self.identifier = self.pr_id
+
+        if self.build_pg:
+            trigger_type = build_pg.job_trigger.type
+            trigger_db = build_pg.job_trigger.get_trigger_object()
+            if trigger_type == JobTriggerModelType.pull_request:
+                self.pr_id = trigger_db.pr_id
+                self.identifier = str(trigger_db.pr_id)
+            elif trigger_type == JobTriggerModelType.release:
+                self.pr_id = None
+                self.identifier = trigger_db.tag_name
+            elif trigger_type == JobTriggerModelType.branch_push:
+                self.pr_id = None
+                self.identifier = trigger_db.name
+
+    @property
+    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        if not self.build_pg:
+            return None
+        return self.build_pg.job_trigger.get_trigger_object()
 
     @classmethod
     def from_build_id(
@@ -566,7 +592,7 @@ class CoprBuildEvent(AbstractGithubEvent):
     ) -> Optional["CoprBuildEvent"]:
         """ Return cls instance or None if build_id not in CoprBuildDB"""
         # pg
-        build_pg = CoprBuild.get_by_build_id(str(build_id), chroot)
+        build_pg = CoprBuildModel.get_by_build_id(str(build_id), chroot)
         build = None
         if not build_pg:
             # let's try redis now

@@ -25,6 +25,7 @@ from ogr.abstract import CommitStatus
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.local_project import LocalProject
 
+from packit_service.models import TFTTestRunModel
 from packit_service.service.events import (
     TestingFarmResultsEvent,
     TestingFarmResult,
@@ -192,6 +193,18 @@ def test_testing_farm_response(
         description=status_message,
         url="some url",
         check_names="packit-stg/testing-farm-fedora-rawhide-x86_64",
+    )
+
+    tft_test_run_model = flexmock()
+    tft_test_run_model.should_receive("set_status").with_args(
+        tests_result
+    ).and_return().once()
+    tft_test_run_model.should_receive("set_web_url").with_args(
+        "some url"
+    ).and_return().once()
+
+    flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
+        tft_test_run_model
     )
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)

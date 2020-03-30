@@ -25,14 +25,14 @@ Flask views for packit-service
 """
 from flask import Blueprint
 
-from packit_service.models import CoprBuild, SRPMBuild
+from packit_service.models import CoprBuildModel, SRPMBuildModel
 
 builds_blueprint = Blueprint("builds", __name__)
 
 
 @builds_blueprint.route("/srpm-build/<int:id_>/logs", methods=("GET",))
 def get_srpm_build_logs_by_id(id_):
-    srpm_build = SRPMBuild.get_by_id(id_)
+    srpm_build = SRPMBuildModel.get_by_id(id_)
     if srpm_build:
         response = (
             "<html><head>"
@@ -47,7 +47,7 @@ def get_srpm_build_logs_by_id(id_):
 
 @builds_blueprint.route("/copr-build/<int:id_>/logs", methods=("GET",))
 def get_build_logs_by_id(id_):
-    build = CoprBuild.get_by_id(id_)
+    build = CoprBuildModel.get_by_id(id_)
     if build:
         response = (
             "<html><head>"

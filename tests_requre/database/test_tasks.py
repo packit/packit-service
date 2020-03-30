@@ -28,13 +28,14 @@ from packit.config import PackageConfig
 
 from packit_service.constants import PG_COPR_BUILD_STATUS_SUCCESS
 from packit_service.models import (
-    get_sa_session,
-    CoprBuild,
-    SRPMBuild,
+    CoprBuildModel,
+    SRPMBuildModel,
+    PullRequestModel,
+    JobTriggerModel,
+    JobTriggerModelType,
 )
 from packit_service.service.events import CoprBuildEvent
 from packit_service.worker.tasks import babysit_copr_build
-from tests_requre.test_db import clean_db
 
 BUILD_ID = 1300329
 
@@ -66,29 +67,30 @@ BUILD_ID = 1300329
 
 @pytest.fixture()
 def packit_build_752():
-    with get_sa_session() as session:
-        session.query(CoprBuild).delete()
-        srpm_build = SRPMBuild.create("asd\nqwe\n")
-        yield CoprBuild.get_or_create(
-            pr_id=752,
-            build_id=str(BUILD_ID),
-            commit_sha="687abc76d67d",
-            repo_name="packit",
-            namespace="packit-service",
-            project_name="packit-service-packit-752",
-            owner="packit",
-            web_url=(
-                "https://download.copr.fedorainfracloud.org/"
-                "results/packit/packit-service-packit-752"
-            ),
-            target="fedora-rawhide-x86_64",
-            status="pending",
-            srpm_build=srpm_build,
-        )
-    clean_db()
+    pr_model = PullRequestModel.get_or_create(
+        pr_id=752, namespace="packit-service", repo_name="packit"
+    )
+    pr_trigger_model = JobTriggerModel.get_or_create(
+        type=JobTriggerModelType.pull_request, trigger_id=pr_model.id
+    )
+    srpm_build = SRPMBuildModel.create("asd\nqwe\n")
+    yield CoprBuildModel.get_or_create(
+        build_id=str(BUILD_ID),
+        commit_sha="687abc76d67d",
+        project_name="packit-service-packit-752",
+        owner="packit",
+        web_url=(
+            "https://download.copr.fedorainfracloud.org/"
+            "results/packit/packit-service-packit-752"
+        ),
+        target="fedora-rawhide-x86_64",
+        status="pending",
+        srpm_build=srpm_build,
+        job_trigger=pr_trigger_model,
+    )
 
 
-def test_babysit_copr_build(packit_build_752):
+def test_babysit_copr_build(clean_before_and_after, packit_build_752):
     flexmock(Client).should_receive("create_from_config_file").and_return(Client(None))
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         PackageConfig()

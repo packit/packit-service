@@ -34,6 +34,7 @@ from packit.exceptions import PackitConfigException
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
+from packit_service.models import TFTTestRunModel, TestingFarmResult
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.events import (
     PullRequestEvent,
@@ -118,6 +119,15 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         pipeline_id = str(uuid.uuid4())
         logger.debug(f"Pipeline id: {pipeline_id}")
 
+        test_run_model = TFTTestRunModel.create(
+            pipeline_id=pipeline_id,
+            commit_sha=self.event.commit_sha,
+            status=TestingFarmResult.new,
+            target=chroot,
+            web_url=None,
+            job_trigger=self.event.db_trigger,
+        )
+
         payload: dict = {
             "pipeline": {"id": pipeline_id},
             "api": {"token": self.config.testing_farm_secret},
@@ -148,6 +158,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             self.report_status_to_test_for_chroot(
                 state=CommitStatus.failure, description=msg, chroot=chroot,
             )
+            test_run_model.set_status(TestingFarmResult.error)
             return HandlerResults(success=False, details={"msg": msg})
         else:
             logger.debug(
@@ -174,8 +185,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 self.report_status_to_test_for_chroot(
                     state=CommitStatus.failure, description=msg, chroot=chroot,
                 )
+                test_run_model.set_status(TestingFarmResult.error)
                 return HandlerResults(success=False, details={"msg": msg})
 
+            test_run_model.set_status(TestingFarmResult.running)
             self.report_status_to_test_for_chroot(
                 state=CommitStatus.pending,
                 description="Tests are running ...",
