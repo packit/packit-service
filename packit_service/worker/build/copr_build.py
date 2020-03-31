@@ -163,7 +163,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 target=chroot,
                 status="pending",
                 srpm_build=srpm_build_model,
-                job_trigger=self.event.db_trigger,
+                trigger_model=self.event.db_trigger,
             )
             url = get_log_url(id_=copr_build.id)
             self.report_status_to_all_for_chroot(
