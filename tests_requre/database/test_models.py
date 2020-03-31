@@ -37,6 +37,7 @@ from packit_service.models import (
     TFTTestRunModel,
     TaskResultModel,
     GitProjectModel,
+    InstallationModel,
 )
 from tests_requre.database.conftest import TARGET
 
@@ -372,3 +373,15 @@ def test_project_property_for_koji_build(a_koji_build):
     assert isinstance(project, GitProjectModel)
     assert project.namespace == "the-namespace"
     assert project.repo_name == "the-repo-name"
+
+
+def test_get_installations(clean_before_and_after, multiple_installation_entries):
+    results = InstallationModel.get_all()
+    assert len(results) == 2
+    assert results[0].installation_id == 3767734
+    assert results[1].installation_id == 6813698
+
+
+def test_get_installation_by_id(clean_before_and_after, multiple_installation_entries):
+    assert InstallationModel.get_by_id(3767734).account_login == "teg"
+    assert InstallationModel.get_by_id(6813698).account_login == "Pac23"
