@@ -323,13 +323,13 @@ def test_tmt_test_run_set_status(clean_before_and_after, a_new_test_run):
     assert b.status == TestingFarmResult.running
 
 
-def test_tmt_test_run_set_web_url(clean_before_and_after, pr_trigger_model):
+def test_tmt_test_run_set_web_url(clean_before_and_after, pr_model):
     test_run_model = TFTTestRunModel.create(
         pipeline_id="123456",
         commit_sha="687abc76d67d",
         target=TARGET,
         status=TestingFarmResult.new,
-        job_trigger=pr_trigger_model,
+        trigger_model=pr_model,
     )
     assert not test_run_model.web_url
     new_url = (

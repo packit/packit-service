@@ -125,7 +125,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             status=TestingFarmResult.new,
             target=chroot,
             web_url=None,
-            job_trigger=self.event.db_trigger,
+            trigger_model=self.event.db_trigger,
         )
 
         payload: dict = {

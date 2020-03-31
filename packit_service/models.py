@@ -745,9 +745,13 @@ class TFTTestRunModel(Base):
         commit_sha: str,
         status: TestingFarmResult,
         target: str,
-        job_trigger: AbstractTriggerDbType,
+        trigger_model: AbstractTriggerDbType,
         web_url: Optional[str] = None,
     ) -> "TFTTestRunModel":
+        job_trigger = JobTriggerModel.get_or_create(
+            type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id
+        )
+
         with get_sa_session() as session:
             test_run = cls()
             test_run.pipeline_id = pipeline_id
