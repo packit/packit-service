@@ -35,9 +35,7 @@ from packit_service.models import CoprBuildModel
 
 from typing import Union
 
-
 logger = getLogger("packit_service")
-
 
 ns = Namespace("copr-builds", description="COPR builds")
 
@@ -65,15 +63,17 @@ class CoprBuildsList(Resource):
         checklist = []
         for build in builds_list:
             if int(build.build_id) not in checklist:
+
+                project = build.get_project()
                 build_dict = {
                     "project": build.project_name,
                     "owner": build.owner,
-                    "repo_name": build.pr.project.repo_name,
+                    "repo_name": project.repo_name,
                     "build_id": build.build_id,
                     "status": build.status,
                     "chroots": [],
                     "build_submitted_time": optional_time(build.build_submitted_time),
-                    "repo_namespace": build.pr.project.namespace,
+                    "repo_namespace": project.namespace,
                     "web_url": build.web_url,
                 }
                 # same_buildid_builds are copr builds created due to the same trigger

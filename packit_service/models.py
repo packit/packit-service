@@ -381,6 +381,9 @@ class CoprBuildModel(Base):
             self.build_logs_url = build_logs
             session.add(self)
 
+    def get_project(self) -> GitProjectModel:
+        return self.job_trigger.get_trigger_object().project
+
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["CoprBuildModel"]:
         with get_sa_session() as session:
@@ -498,6 +501,9 @@ class KojiBuildModel(Base):
         with get_sa_session() as session:
             self.build_logs_url = build_logs
             session.add(self)
+
+    def get_project(self) -> GitProjectModel:
+        return self.job_trigger.get_trigger_object().project
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["KojiBuildModel"]:
