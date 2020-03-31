@@ -269,7 +269,7 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
         target=TARGET,
         status="pending",
         srpm_build=srpm_build,
-        job_trigger=pr1_trigger,
+        trigger_model=pr1,
     )
     koji_build = KojiBuildModel.get_or_create(
         build_id="987654",
@@ -278,7 +278,7 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
         target=TARGET,
         status="pending",
         srpm_build=srpm_build,
-        job_trigger=pr1_trigger,
+        trigger_model=pr1,
     )
 
     assert copr_build in pr1_trigger.copr_builds

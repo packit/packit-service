@@ -143,7 +143,7 @@ def branch_trigger_model(branch_model):
 
 # Create a single build
 @pytest.fixture()
-def a_copr_build(pr_trigger_model):
+def a_copr_build(pr_model):
     srpm_build = SRPMBuildModel.create("asd\nqwe\n")
     yield CoprBuildModel.get_or_create(
         build_id="123456",
@@ -154,14 +154,14 @@ def a_copr_build(pr_trigger_model):
         target=TARGET,
         status="pending",
         srpm_build=srpm_build,
-        job_trigger=pr_trigger_model,
+        trigger_model=pr_model,
     )
 
 
 # Create multiple builds
 # Used for testing queries
 @pytest.fixture()
-def multiple_copr_builds(pr_trigger_model, different_pr_trigger_model):
+def multiple_copr_builds(pr_model, different_pr_model):
     srpm_build = SRPMBuildModel.create("asd\nqwe\n")
     yield [
         CoprBuildModel.get_or_create(
@@ -173,7 +173,7 @@ def multiple_copr_builds(pr_trigger_model, different_pr_trigger_model):
             target="fedora-42-x86_64",
             status="pending",
             srpm_build=srpm_build,
-            job_trigger=pr_trigger_model,
+            trigger_model=pr_model,
         ),
         # Same build_id but different chroot
         CoprBuildModel.get_or_create(
@@ -185,7 +185,7 @@ def multiple_copr_builds(pr_trigger_model, different_pr_trigger_model):
             target="fedora-43-x86_64",
             status="pending",
             srpm_build=srpm_build,
-            job_trigger=pr_trigger_model,
+            trigger_model=pr_model,
         ),
         # Completely different build
         CoprBuildModel.get_or_create(
@@ -197,14 +197,14 @@ def multiple_copr_builds(pr_trigger_model, different_pr_trigger_model):
             target="fedora-43-x86_64",
             status="pending",
             srpm_build=srpm_build,
-            job_trigger=different_pr_trigger_model,
+            trigger_model=different_pr_model,
         ),
     ]
 
 
 # Create a single build
 @pytest.fixture()
-def a_koji_build(pr_trigger_model):
+def a_koji_build(pr_model):
     srpm_build = SRPMBuildModel.create("asd\nqwe\n")
     yield KojiBuildModel.get_or_create(
         build_id="123456",
@@ -213,7 +213,7 @@ def a_koji_build(pr_trigger_model):
         target=TARGET,
         status="pending",
         srpm_build=srpm_build,
-        job_trigger=pr_trigger_model,
+        trigger_model=pr_model,
     )
 
 
@@ -230,7 +230,7 @@ def multiple_koji_builds(pr_trigger_model, different_pr_trigger_model):
             target="fedora-42-x86_64",
             status="pending",
             srpm_build=srpm_build,
-            job_trigger=pr_trigger_model,
+            trigger_model=pr_trigger_model,
         ),
         # Same build_id but different chroot
         KojiBuildModel.get_or_create(
@@ -240,7 +240,7 @@ def multiple_koji_builds(pr_trigger_model, different_pr_trigger_model):
             target="fedora-43-x86_64",
             status="pending",
             srpm_build=srpm_build,
-            job_trigger=pr_trigger_model,
+            trigger_model=pr_trigger_model,
         ),
         # Completely different build
         KojiBuildModel.get_or_create(

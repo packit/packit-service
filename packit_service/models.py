@@ -32,10 +32,10 @@ from typing import TYPE_CHECKING, Optional, Union, Iterable, Dict, Type
 
 from packit.config import JobConfigTriggerType
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum, desc
-from sqlalchemy.types import PickleType
 from sqlalchemy import JSON, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
+from sqlalchemy.types import PickleType
 
 from packit_service.constants import WHITELIST_CONSTANTS
 
@@ -79,6 +79,13 @@ if TYPE_CHECKING:
     Base = object
 else:
     Base = declarative_base()
+
+
+class JobTriggerModelType(str, enum.Enum):
+    pull_request = "pull_request"
+    branch_push = "branch_push"
+    release = "release"
+    issue = "issue"
 
 
 class GitProjectModel(Base):
@@ -132,6 +139,7 @@ class PullRequestModel(Base):
     project = relationship("GitProjectModel", back_populates="pull_requests")
 
     job_config_trigger_type = JobConfigTriggerType.pull_request
+    job_trigger_model_type = JobTriggerModelType.pull_request
 
     @classmethod
     def get_or_create(
@@ -167,6 +175,7 @@ class IssueModel(Base):
     project_id = Column(Integer, ForeignKey("git_projects.id"))
     project = relationship("GitProjectModel", back_populates="issues")
     job_config_trigger_type = None
+    job_trigger_model_type = JobTriggerModelType.issue
 
     @classmethod
     def get_or_create(
@@ -203,6 +212,7 @@ class GitBranchModel(Base):
     project = relationship("GitProjectModel", back_populates="branches")
 
     job_config_trigger_type = JobConfigTriggerType.commit
+    job_trigger_model_type = JobTriggerModelType.branch_push
 
     @classmethod
     def get_or_create(
@@ -240,6 +250,7 @@ class ProjectReleaseModel(Base):
     project = relationship("GitProjectModel", back_populates="releases")
 
     job_config_trigger_type = JobConfigTriggerType.release
+    job_trigger_model_type = JobTriggerModelType.release
 
     @classmethod
     def get_or_create(
@@ -271,13 +282,6 @@ class ProjectReleaseModel(Base):
 
     def __str__(self):
         return self.__repr__()
-
-
-class JobTriggerModelType(str, enum.Enum):
-    pull_request = "pull_request"
-    branch_push = "branch_push"
-    release = "release"
-    issue = "issue"
 
 
 AbstractTriggerDbType = Union[
@@ -427,8 +431,11 @@ class CoprBuildModel(Base):
         target: str,
         status: str,
         srpm_build: "SRPMBuildModel",
-        job_trigger: AbstractTriggerDbType,
+        trigger_model: AbstractTriggerDbType,
     ) -> "CoprBuildModel":
+        job_trigger = JobTriggerModel.get_or_create(
+            type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id
+        )
         with get_sa_session() as session:
             build = cls.get_by_build_id(build_id, target)
             if not build:
@@ -540,8 +547,11 @@ class KojiBuildModel(Base):
         target: str,
         status: str,
         srpm_build: "SRPMBuildModel",
-        job_trigger: AbstractTriggerDbType,
+        trigger_model: AbstractTriggerDbType,
     ) -> "KojiBuildModel":
+        job_trigger = JobTriggerModel.get_or_create(
+            type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id
+        )
         with get_sa_session() as session:
             build = cls.get_by_build_id(build_id, target)
             if not build:

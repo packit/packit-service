@@ -31,8 +31,6 @@ from packit_service.models import (
     CoprBuildModel,
     SRPMBuildModel,
     PullRequestModel,
-    JobTriggerModel,
-    JobTriggerModelType,
 )
 from packit_service.service.events import CoprBuildEvent
 from packit_service.worker.tasks import babysit_copr_build
@@ -70,9 +68,7 @@ def packit_build_752():
     pr_model = PullRequestModel.get_or_create(
         pr_id=752, namespace="packit-service", repo_name="packit"
     )
-    pr_trigger_model = JobTriggerModel.get_or_create(
-        type=JobTriggerModelType.pull_request, trigger_id=pr_model.id
-    )
+
     srpm_build = SRPMBuildModel.create("asd\nqwe\n")
     yield CoprBuildModel.get_or_create(
         build_id=str(BUILD_ID),
@@ -86,7 +82,7 @@ def packit_build_752():
         target="fedora-rawhide-x86_64",
         status="pending",
         srpm_build=srpm_build,
-        job_trigger=pr_trigger_model,
+        trigger_model=pr_model,
     )
 
 
