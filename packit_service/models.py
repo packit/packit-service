@@ -31,7 +31,18 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional, Union, Iterable, Dict, Type
 
 from packit.config import JobConfigTriggerType
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum, desc, JSON, create_engine
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    DateTime,
+    ForeignKey,
+    Text,
+    Enum,
+    desc,
+    JSON,
+    create_engine,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 from sqlalchemy.types import PickleType, ARRAY
