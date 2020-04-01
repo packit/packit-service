@@ -63,9 +63,12 @@ def test_get_logs(client):
         "https://copr.fedorainfracloud.org/coprs/john-foo-bar/john-foo-bar/build/2/"
     )
     c.build_logs_url = "https://localhost:5000/build/2/foo-1-x86_64/logs"
-    c.pr = pr
 
     flexmock(CoprBuildModel).should_receive("get_by_id").and_return(c)
+    flexmock(CoprBuildModel).should_receive("get_project").and_return(project)
+    flexmock(CoprBuildModel).should_receive("job_trigger").and_return(
+        flexmock(get_trigger_object=lambda: pr)
+    )
 
     url = f"/copr-build/1/logs"
     logs_url = get_log_url(1)
@@ -74,8 +77,8 @@ def test_get_logs(client):
     resp = client.get(url)
     expected = (
         "<html><head>"
-        f"<title>Build {c.pr.project.namespace}/{c.pr.project.repo_name}"
-        f" #{c.pr.pr_id}</title></head><body>"
+        f"<title>Build {project.namespace}/{project.repo_name}:"
+        f" PR #{pr.pr_id}</title></head><body>"
         f"COPR Build ID: {c.build_id}<br>"
         f"State: {c.status}<br><br>"
         f'Build web interface URL: <a href="{c.web_url}">{c.web_url}</a><br>'

@@ -25,7 +25,13 @@ Flask views for packit-service
 """
 from flask import Blueprint
 
-from packit_service.models import CoprBuildModel, SRPMBuildModel
+from packit_service.models import (
+    CoprBuildModel,
+    SRPMBuildModel,
+    PullRequestModel,
+    GitBranchModel,
+    ProjectReleaseModel,
+)
 
 builds_blueprint = Blueprint("builds", __name__)
 
@@ -45,27 +51,43 @@ def get_srpm_build_logs_by_id(id_):
     return f"We can't find any info about SRPM build {id_}.\n"
 
 
+def _get_build_logs_for_build(build):
+    project = build.get_project()
+
+    trigger = build.job_trigger.get_trigger_object()
+    if isinstance(trigger, PullRequestModel):
+        title_identifier = f"PR #{trigger.pr_id}"
+    elif isinstance(trigger, GitBranchModel):
+        title_identifier = f"branch {trigger.name}"
+    elif isinstance(trigger, ProjectReleaseModel):
+        title_identifier = f"release {trigger.tag_name}"
+    else:
+        title_identifier = ""
+
+    response = (
+        "<html><head>"
+        f"<title>Build {project.namespace}/{project.repo_name}:"
+        f" {title_identifier}</title></head><body>"
+        f"COPR Build ID: {build.build_id}<br>"
+        f"State: {build.status}<br><br>"
+        f'Build web interface URL: <a href="{build.web_url}">{build.web_url}</a><br>'
+    )
+    if build.build_logs_url:
+        response += (
+            f'Build logs: <a href="{build.build_logs_url}">'
+            f"{build.build_logs_url}</a><br>"
+        )
+    response += (
+        "SRPM creation logs:<br><br>"
+        f"<pre>{build.srpm_build.logs}</pre>"
+        "<br></body></html>"
+    )
+    return response
+
+
 @builds_blueprint.route("/copr-build/<int:id_>/logs", methods=("GET",))
 def get_build_logs_by_id(id_):
     build = CoprBuildModel.get_by_id(id_)
     if build:
-        response = (
-            "<html><head>"
-            f"<title>Build {build.pr.project.namespace}/{build.pr.project.repo_name}"
-            f" #{build.pr.pr_id}</title></head><body>"
-            f"COPR Build ID: {build.build_id}<br>"
-            f"State: {build.status}<br><br>"
-            f'Build web interface URL: <a href="{build.web_url}">{build.web_url}</a><br>'
-        )
-        if build.build_logs_url:
-            response += (
-                f'Build logs: <a href="{build.build_logs_url}">'
-                f"{build.build_logs_url}</a><br>"
-            )
-        response += (
-            "SRPM creation logs:<br><br>"
-            f"<pre>{build.srpm_build.logs}</pre>"
-            "<br></body></html>"
-        )
-        return response
+        return _get_build_logs_for_build(build)
     return f"We can't find any info about COPR build {id_}.\n"
