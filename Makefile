@@ -3,7 +3,7 @@ WORKER_IMAGE ?= docker.io/usercont/packit-service-worker:dev
 WORKER_IMAGE_PROD ?= docker.io/usercont/packit-service-worker:prod
 TEST_IMAGE ?= packit-service-tests
 TEST_TARGET ?= ./tests/unit ./tests/integration/
-CONTAINER_ENGINE ?= docker
+CONTAINER_ENGINE ?= $(shell command -v podman 2> /dev/null || echo docker)
 ANSIBLE_PYTHON ?= /usr/bin/python3
 AP ?= ansible-playbook -vv -c local -i localhost, -e ansible_python_interpreter=$(ANSIBLE_PYTHON)
 PATH_TO_SECRETS ?= $(CURDIR)/secrets/
