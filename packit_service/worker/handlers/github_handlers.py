@@ -40,6 +40,7 @@ from packit.local_project import LocalProject
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig, GithubPackageConfigGetter
 from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
+from packit_service.models import InstallationModel
 from packit_service.service.events import (
     PullRequestEvent,
     InstallationEvent,
@@ -138,10 +139,12 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
         user is a packager.
         :return: HandlerResults
         """
-
+        # Redis
         Installation.create(
             installation_id=self.event.installation_id, event=self.event,
         )
+        # Postgres
+        InstallationModel.create(event=self.event)
         # try to add user to whitelist
         whitelist = Whitelist(
             fas_user=self.config.fas_user, fas_password=self.config.fas_password,

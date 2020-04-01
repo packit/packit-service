@@ -49,7 +49,9 @@ from packit_service.models import (
     TFTTestRunModel,
     TestingFarmResult,
     TaskResultModel,
+    InstallationModel,
 )
+from packit_service.service.events import InstallationEvent
 
 TARGET = "fedora-42-x86_64"
 
@@ -60,8 +62,10 @@ def clean_db():
         session.query(KojiBuildModel).delete()
         session.query(SRPMBuildModel).delete()
         session.query(TFTTestRunModel).delete()
+        session.query(TaskResultModel).delete()
 
         session.query(WhitelistModel).delete()
+        session.query(InstallationModel).delete()
 
         session.query(JobTriggerModel).delete()
 
@@ -426,5 +430,44 @@ def multiple_task_results_entries(task_results):
             TaskResultModel.add_task_result(
                 task_id="ab2", task_result_dict=task_results[1]
             ),
+        ]
+    clean_db()
+
+
+@pytest.fixture()
+def installation_events():
+    return [
+        InstallationEvent(
+            installation_id=3767734,
+            account_login="teg",
+            account_id=5409,
+            account_url="https://api.github.com/users/teg",
+            account_type="User",
+            created_at="2020-03-31T10:06:38Z",
+            repositories=[],
+            sender_id=5409,
+            sender_login="teg",
+        ),
+        InstallationEvent(
+            installation_id=6813698,
+            account_login="Pac23",
+            account_id=11048203,
+            account_url="https://api.github.com/users/Pac23",
+            account_type="User",
+            created_at="2020-03-31T10:06:38Z",
+            repositories=["Pac23/awesome-piracy"],
+            sender_id=11048203,
+            sender_login="Pac23",
+        ),
+    ]
+
+
+@pytest.fixture()
+def multiple_installation_entries(installation_events):
+    with get_sa_session() as session:
+        session.query(InstallationModel).delete()
+        yield [
+            InstallationModel.create(event=installation_events[0],),
+            InstallationModel.create(event=installation_events[1],),
         ]
     clean_db()

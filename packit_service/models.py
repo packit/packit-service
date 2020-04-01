@@ -31,11 +31,21 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional, Union, Iterable, Dict, Type
 
 from packit.config import JobConfigTriggerType
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum, desc
-from sqlalchemy import JSON, create_engine
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    DateTime,
+    ForeignKey,
+    Text,
+    Enum,
+    desc,
+    JSON,
+    create_engine,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
-from sqlalchemy.types import PickleType
+from sqlalchemy.types import PickleType, ARRAY
 
 from packit_service.constants import WHITELIST_CONSTANTS
 
@@ -771,3 +781,62 @@ class TFTTestRunModel(Base):
                 .filter_by(pipeline_id=pipeline_id)
                 .first()
             )
+
+
+class InstallationModel(Base):
+    __tablename__ = "github_installations"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    # information about account (user/organization) into which the app has been installed
+    account_login = Column(String)
+    account_id = Column(Integer)
+    account_url = Column(String)
+    account_type = Column(String)
+    # information about user who installed the app into 'account'
+    sender_id = Column(Integer)
+    sender_login = Column(String)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    repositories = Column(ARRAY(Integer, ForeignKey("git_projects.id")))
+
+    @classmethod
+    def get_project(cls, repo: str):
+        namespace, repo_name = repo.split("/")
+        return GitProjectModel.get_or_create(namespace, repo_name)
+
+    @classmethod
+    def get_by_id(cls, id: int) -> Optional["InstallationModel"]:
+        with get_sa_session() as session:
+            return session.query(InstallationModel).filter_by(id=id).first()
+
+    @classmethod
+    def get_by_account_login(cls, account_login: str) -> Optional["InstallationModel"]:
+        with get_sa_session() as session:
+            return (
+                session.query(InstallationModel)
+                .filter_by(account_login=account_login)
+                .first()
+            )
+
+    @classmethod
+    def get_all(cls) -> Optional[Iterable["InstallationModel"]]:
+        with get_sa_session() as session:
+            return session.query(InstallationModel).all()
+
+    @classmethod
+    def create(cls, event):
+        with get_sa_session() as session:
+            installation = cls.get_by_account_login(event.account_login)
+            if not installation:
+                installation = cls()
+                installation.account_login = event.account_login
+                installation.account_id = event.account_id
+                installation.account_url = event.account_url
+                installation.account_type = event.account_type
+                installation.sender_login = event.sender_login
+                installation.sender_id = event.sender_id
+                installation.created_at = event.created_at
+                installation.repositories = [
+                    cls.get_project(repo).id for repo in event.repositories
+                ]
+                session.add(installation)
+            return installation
