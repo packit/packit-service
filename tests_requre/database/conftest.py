@@ -467,13 +467,7 @@ def multiple_installation_entries(installation_events):
     with get_sa_session() as session:
         session.query(InstallationModel).delete()
         yield [
-            InstallationModel.create(
-                installation_id=installation_events[0].installation_id,
-                event=installation_events[0],
-            ),
-            InstallationModel.create(
-                installation_id=installation_events[1].installation_id,
-                event=installation_events[1],
-            ),
+            InstallationModel.create(event=installation_events[0],),
+            InstallationModel.create(event=installation_events[1],),
         ]
     clean_db()

@@ -144,9 +144,7 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
             installation_id=self.event.installation_id, event=self.event,
         )
         # Postgres
-        InstallationModel.create(
-            installation_id=self.event.installation_id, event=self.event,
-        )
+        InstallationModel.create(event=self.event)
         # try to add user to whitelist
         whitelist = Whitelist(
             fas_user=self.config.fas_user, fas_password=self.config.fas_password,
