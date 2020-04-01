@@ -36,6 +36,7 @@ from packit_service.models import (
     TestingFarmResult,
     TFTTestRunModel,
     TaskResultModel,
+    GitProjectModel,
 )
 from tests_requre.database.conftest import TARGET
 
@@ -322,13 +323,13 @@ def test_tmt_test_run_set_status(clean_before_and_after, a_new_test_run):
     assert b.status == TestingFarmResult.running
 
 
-def test_tmt_test_run_set_web_url(clean_before_and_after, pr_trigger_model):
+def test_tmt_test_run_set_web_url(clean_before_and_after, pr_model):
     test_run_model = TFTTestRunModel.create(
         pipeline_id="123456",
         commit_sha="687abc76d67d",
         target=TARGET,
         status=TestingFarmResult.new,
-        job_trigger=pr_trigger_model,
+        trigger_model=pr_model,
     )
     assert not test_run_model.web_url
     new_url = (
@@ -357,3 +358,17 @@ def test_get_task_result_by_id(
     assert TaskResultModel.get_by_id("ab1").event == task_results[0].get("event")
     assert TaskResultModel.get_by_id("ab2").jobs == task_results[1].get("jobs")
     assert TaskResultModel.get_by_id("ab2").event == task_results[1].get("event")
+
+
+def test_project_property_for_copr_build(a_copr_build):
+    project = a_copr_build.get_project()
+    assert isinstance(project, GitProjectModel)
+    assert project.namespace == "the-namespace"
+    assert project.repo_name == "the-repo-name"
+
+
+def test_project_property_for_koji_build(a_koji_build):
+    project = a_koji_build.get_project()
+    assert isinstance(project, GitProjectModel)
+    assert project.namespace == "the-namespace"
+    assert project.repo_name == "the-repo-name"

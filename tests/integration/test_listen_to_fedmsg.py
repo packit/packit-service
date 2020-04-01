@@ -35,7 +35,12 @@ from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
-from packit_service.models import CoprBuildModel, TestingFarmResult, TFTTestRunModel
+from packit_service.models import (
+    CoprBuildModel,
+    TestingFarmResult,
+    TFTTestRunModel,
+    JobTriggerModelType,
+)
 from packit_service.service.events import CoprBuildEvent
 from packit_service.service.urls import get_log_url
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
@@ -375,7 +380,10 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
             "git-ref": "0011223344",
         },
     }
-    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+    )
     flexmock(CoprBuildEvent).should_receive("db_trigger").and_return(trigger)
 
     tft_test_run_model = flexmock()
@@ -387,7 +395,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         commit_sha="0011223344",
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
-        job_trigger=trigger,
+        trigger_model=trigger,
         web_url=None,
     ).and_return(tft_test_run_model)
 
@@ -513,7 +521,10 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         url="",
     ).once()
 
-    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+    )
     flexmock(CoprBuildEvent).should_receive("db_trigger").and_return(trigger)
 
     tft_test_run_model = flexmock()
@@ -527,7 +538,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         commit_sha="0011223344",
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
-        job_trigger=trigger,
+        trigger_model=trigger,
         web_url=None,
     ).and_return(tft_test_run_model)
 
@@ -632,7 +643,10 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         url="",
     ).once()
 
-    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+    )
     flexmock(CoprBuildEvent).should_receive("db_trigger").and_return(trigger)
 
     tft_test_run_model = flexmock()
@@ -646,7 +660,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         commit_sha="0011223344",
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
-        job_trigger=trigger,
+        trigger_model=trigger,
         web_url=None,
     ).and_return(tft_test_run_model)
 

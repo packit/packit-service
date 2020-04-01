@@ -250,14 +250,14 @@ def multiple_koji_builds(pr_trigger_model, different_pr_trigger_model):
             target="fedora-43-x86_64",
             status="pending",
             srpm_build=srpm_build,
-            job_trigger=different_pr_trigger_model,
+            trigger_model=different_pr_trigger_model,
         ),
     ]
 
 
 # Create a single test run
 @pytest.fixture()
-def a_new_test_run(pr_trigger_model):
+def a_new_test_run(pr_model):
     yield TFTTestRunModel.create(
         pipeline_id="123456",
         commit_sha="687abc76d67d",
@@ -265,14 +265,14 @@ def a_new_test_run(pr_trigger_model):
         "pipeline/02271aa8-2917-4741-a39e-78d8706c56c1",
         target=TARGET,
         status=TestingFarmResult.new,
-        job_trigger=pr_trigger_model,
+        trigger_model=pr_model,
     )
 
 
 # Create multiple builds
 # Used for testing queries
 @pytest.fixture()
-def multiple_new_test_runs(pr_trigger_model, different_pr_trigger_model):
+def multiple_new_test_runs(pr_model, different_pr_model):
     yield [
         TFTTestRunModel.create(
             pipeline_id="123456",
@@ -281,7 +281,7 @@ def multiple_new_test_runs(pr_trigger_model, different_pr_trigger_model):
             "pipeline/02271aa8-2917-4741-a39e-78d8706c56c1",
             target="fedora-42-x86_64",
             status=TestingFarmResult.new,
-            job_trigger=pr_trigger_model,
+            trigger_model=pr_model,
         ),
         # Same commit_sha but different chroot and pipeline_id
         TFTTestRunModel.create(
@@ -291,7 +291,7 @@ def multiple_new_test_runs(pr_trigger_model, different_pr_trigger_model):
             "pipeline/02271aa8-2917-4741-a39e-78d8706c56c2",
             target="fedora-43-x86_64",
             status=TestingFarmResult.new,
-            job_trigger=pr_trigger_model,
+            trigger_model=pr_model,
         ),
         # Completely different build
         TFTTestRunModel.create(
@@ -301,7 +301,7 @@ def multiple_new_test_runs(pr_trigger_model, different_pr_trigger_model):
             "pipeline/12272ba8-2918-4751-a40e-78d8706c56d4",
             target="fedora-43-x86_64",
             status=TestingFarmResult.running,
-            job_trigger=different_pr_trigger_model,
+            trigger_model=different_pr_model,
         ),
     ]
 
