@@ -81,45 +81,45 @@ def test_create_branch_trigger_model(clean_before_and_after, branch_trigger_mode
     assert branch.name == "build-branch"
 
 
-def test_create_copr_build(clean_before_and_after, a_copr_build):
-    assert a_copr_build.build_id == "123456"
-    assert a_copr_build.commit_sha == "687abc76d67d"
-    assert a_copr_build.project_name == "SomeUser-hello-world-9"
-    assert a_copr_build.owner == "packit"
-    assert a_copr_build.web_url == "https://copr.something.somewhere/123456"
-    assert a_copr_build.srpm_build.logs == "asd\nqwe\n"
-    assert a_copr_build.target == TARGET
-    assert a_copr_build.status == "pending"
+def test_create_copr_build(clean_before_and_after, a_copr_build_for_pr):
+    assert a_copr_build_for_pr.build_id == "123456"
+    assert a_copr_build_for_pr.commit_sha == "687abc76d67d"
+    assert a_copr_build_for_pr.project_name == "SomeUser-hello-world-9"
+    assert a_copr_build_for_pr.owner == "packit"
+    assert a_copr_build_for_pr.web_url == "https://copr.something.somewhere/123456"
+    assert a_copr_build_for_pr.srpm_build.logs == "asd\nqwe\n"
+    assert a_copr_build_for_pr.target == TARGET
+    assert a_copr_build_for_pr.status == "pending"
     # Since datetime.utcnow() will return different results in every time its called,
     # we will check if a_copr_build has build_submitted_time value that's within the past hour
     time_last_hour = datetime.utcnow() - timedelta(hours=1)
-    assert a_copr_build.build_submitted_time > time_last_hour
+    assert a_copr_build_for_pr.build_submitted_time > time_last_hour
 
 
-def test_get_copr_build(clean_before_and_after, a_copr_build):
-    assert a_copr_build.id
-    b = CoprBuildModel.get_by_build_id(a_copr_build.build_id, TARGET)
-    assert b.id == a_copr_build.id
+def test_get_copr_build(clean_before_and_after, a_copr_build_for_pr):
+    assert a_copr_build_for_pr.id
+    b = CoprBuildModel.get_by_build_id(a_copr_build_for_pr.build_id, TARGET)
+    assert b.id == a_copr_build_for_pr.id
     # let's make sure passing int works as well
-    b = CoprBuildModel.get_by_build_id(int(a_copr_build.build_id), TARGET)
-    assert b.id == a_copr_build.id
+    b = CoprBuildModel.get_by_build_id(int(a_copr_build_for_pr.build_id), TARGET)
+    assert b.id == a_copr_build_for_pr.id
     b2 = CoprBuildModel.get_by_id(b.id)
-    assert b2.id == a_copr_build.id
+    assert b2.id == a_copr_build_for_pr.id
 
 
-def test_copr_build_set_status(clean_before_and_after, a_copr_build):
-    assert a_copr_build.status == "pending"
-    a_copr_build.set_status("awesome")
-    assert a_copr_build.status == "awesome"
-    b = CoprBuildModel.get_by_build_id(a_copr_build.build_id, TARGET)
+def test_copr_build_set_status(clean_before_and_after, a_copr_build_for_pr):
+    assert a_copr_build_for_pr.status == "pending"
+    a_copr_build_for_pr.set_status("awesome")
+    assert a_copr_build_for_pr.status == "awesome"
+    b = CoprBuildModel.get_by_build_id(a_copr_build_for_pr.build_id, TARGET)
     assert b.status == "awesome"
 
 
-def test_copr_build_set_build_logs_url(clean_before_and_after, a_copr_build):
+def test_copr_build_set_build_logs_url(clean_before_and_after, a_copr_build_for_pr):
     url = "https://copr.fp.o/logs/12456/build.log"
-    a_copr_build.set_build_logs_url(url)
-    assert a_copr_build.build_logs_url == url
-    b = CoprBuildModel.get_by_build_id(a_copr_build.build_id, TARGET)
+    a_copr_build_for_pr.set_build_logs_url(url)
+    assert a_copr_build_for_pr.build_logs_url == url
+    b = CoprBuildModel.get_by_build_id(a_copr_build_for_pr.build_id, TARGET)
     assert b.build_logs_url == url
 
 
@@ -360,8 +360,8 @@ def test_get_task_result_by_id(
     assert TaskResultModel.get_by_id("ab2").event == task_results[1].get("event")
 
 
-def test_project_property_for_copr_build(a_copr_build):
-    project = a_copr_build.get_project()
+def test_project_property_for_copr_build(a_copr_build_for_pr):
+    project = a_copr_build_for_pr.get_project()
     assert isinstance(project, GitProjectModel)
     assert project.namespace == "the-namespace"
     assert project.repo_name == "the-repo-name"

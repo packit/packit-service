@@ -141,9 +141,8 @@ def branch_trigger_model(branch_model):
     )
 
 
-# Create a single build
 @pytest.fixture()
-def a_copr_build(pr_model):
+def a_copr_build_for_pr(pr_model):
     srpm_build = SRPMBuildModel.create("asd\nqwe\n")
     yield CoprBuildModel.get_or_create(
         build_id="123456",
@@ -155,6 +154,38 @@ def a_copr_build(pr_model):
         status="pending",
         srpm_build=srpm_build,
         trigger_model=pr_model,
+    )
+
+
+@pytest.fixture()
+def a_copr_build_for_branch_push(branch_model):
+    srpm_build = SRPMBuildModel.create("asd\nqwe\n")
+    yield CoprBuildModel.get_or_create(
+        build_id="123456",
+        commit_sha="687abc76d67d",
+        project_name="SomeUser-hello-world-9",
+        owner="packit",
+        web_url="https://copr.something.somewhere/123456",
+        target=TARGET,
+        status="pending",
+        srpm_build=srpm_build,
+        trigger_model=branch_model,
+    )
+
+
+@pytest.fixture()
+def a_copr_build_for_release(release_model):
+    srpm_build = SRPMBuildModel.create("asd\nqwe\n")
+    yield CoprBuildModel.get_or_create(
+        build_id="123456",
+        commit_sha="687abc76d67d",
+        project_name="SomeUser-hello-world-9",
+        owner="packit",
+        web_url="https://copr.something.somewhere/123456",
+        target=TARGET,
+        status="pending",
+        srpm_build=srpm_build,
+        trigger_model=release_model,
     )
 
 
