@@ -7,6 +7,7 @@ CONTAINER_ENGINE ?= $(shell command -v podman 2> /dev/null || echo docker)
 ANSIBLE_PYTHON ?= /usr/bin/python3
 AP ?= ansible-playbook -vv -c local -i localhost, -e ansible_python_interpreter=$(ANSIBLE_PYTHON)
 PATH_TO_SECRETS ?= $(CURDIR)/secrets/
+COV_REPORT ?= term-missing
 
 service: files/install-deps.yaml files/recipe.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(SERVICE_IMAGE) .
@@ -23,7 +24,7 @@ worker-prod-push: worker-prod
 
 check:
 	find . -name "*.pyc" -exec rm {} \;
-	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=yes --verbose --showlocals --cov=packit_service --cov-report=term-missing $(TEST_TARGET)
+	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=yes --verbose --showlocals --cov=packit_service --cov-report=$(COV_REPORT) $(TEST_TARGET)
 
 # first run 'make worker'
 test_image: files/install-deps.yaml files/recipe-tests.yaml
