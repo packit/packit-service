@@ -258,6 +258,13 @@ You can run unit and integration tests locally in a container:
 make test_image && make check_in_container
 ```
 
+To select a subset of the whole test suite, set `TEST_TARGET`. For example to
+run only the unit tests use:
+
+```
+TEST_TARGET=tests/unit make check_in_container
+```
+
 ## Openshift tests using requre
 
 This testsuite uses [requre project](https://github.com/packit-service/requre) project to

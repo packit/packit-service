@@ -32,6 +32,7 @@ test_image: files/install-deps.yaml files/recipe-tests.yaml
 check_in_container: test_image
 	@# don't use -ti here in CI, TTY is not allocated in zuul
 	$(CONTAINER_ENGINE) run --rm \
+		--env COV_REPORT --env TEST_TARGET \
 		-v $(CURDIR):/src-packit-service \
 		-w /src-packit-service \
 		--security-opt label=disable \
