@@ -345,6 +345,48 @@ def test_tmt_test_run_set_web_url(clean_before_and_after, pr_model):
     assert b.web_url == new_url
 
 
+def test_tmt_test_get_by_pipeline_id_pr(clean_before_and_after, pr_model):
+    test_run_model = TFTTestRunModel.create(
+        pipeline_id="123456",
+        commit_sha="687abc76d67d",
+        target=TARGET,
+        status=TestingFarmResult.new,
+        trigger_model=pr_model,
+    )
+
+    b = TFTTestRunModel.get_by_pipeline_id(test_run_model.pipeline_id)
+    assert b
+    assert b.job_trigger.get_trigger_object() == pr_model
+
+
+def test_tmt_test_get_by_pipeline_id_branch_push(clean_before_and_after, branch_model):
+    test_run_model = TFTTestRunModel.create(
+        pipeline_id="123456",
+        commit_sha="687abc76d67d",
+        target=TARGET,
+        status=TestingFarmResult.new,
+        trigger_model=branch_model,
+    )
+
+    b = TFTTestRunModel.get_by_pipeline_id(test_run_model.pipeline_id)
+    assert b
+    assert b.job_trigger.get_trigger_object() == branch_model
+
+
+def test_tmt_test_get_by_pipeline_id_release(clean_before_and_after, release_model):
+    test_run_model = TFTTestRunModel.create(
+        pipeline_id="123456",
+        commit_sha="687abc76d67d",
+        target=TARGET,
+        status=TestingFarmResult.new,
+        trigger_model=release_model,
+    )
+
+    b = TFTTestRunModel.get_by_pipeline_id(test_run_model.pipeline_id)
+    assert b
+    assert b.job_trigger.get_trigger_object() == release_model
+
+
 def test_get_task_results(clean_before_and_after, multiple_task_results_entries):
     results = TaskResultModel.get_all()
     assert len(results) == 2
