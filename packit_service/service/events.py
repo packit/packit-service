@@ -42,6 +42,7 @@ from packit_service.models import (
     AbstractTriggerDbType,
     JobTriggerModelType,
     TestingFarmResult,
+    TFTTestRunModel,
 )
 from packit_service.service.db_triggers import (
     AddReleaseDbTrigger,
@@ -504,6 +505,13 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
             return None
         package_config.upstream_project_url = self.project_url
         return package_config
+
+    @property
+    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        run_model = TFTTestRunModel.get_by_pipeline_id(pipeline_id=self.pipeline_id)
+        if not run_model:
+            return None
+        return run_model.job_trigger.get_trigger_object()
 
 
 # Wait, what? copr build event doesn't sound like github event

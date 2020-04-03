@@ -32,7 +32,7 @@ from flexmock import flexmock
 from ogr.services.github import GithubProject, GithubService
 
 from packit_service.config import ServiceConfig
-from packit_service.models import CoprBuildModel
+from packit_service.models import CoprBuildModel, TFTTestRunModel
 from packit_service.service.events import (
     WhitelistStatus,
     InstallationEvent,
@@ -270,6 +270,16 @@ class TestEvents:
         assert event_object.git_ref == "build-branch"
 
     def test_parse_testing_farm_results(self, testing_farm_results):
+        flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
+            flexmock(
+                job_trigger=flexmock()
+                .should_receive("get_trigger_object")
+                .and_return(flexmock)
+                .once()
+                .mock()
+            )
+        )
+
         event_object = Parser.parse_event(testing_farm_results)
 
         assert isinstance(event_object, TestingFarmResultsEvent)
@@ -300,6 +310,8 @@ class TestEvents:
                 log_url="https://somewhere.com/43e310b6/artifacts/test2.log",
             ),
         } == set(event_object.tests)
+
+        assert event_object.db_trigger
 
     def test_parse_testing_farm_results_error(self, testing_farm_results_error):
         event_object = Parser.parse_event(testing_farm_results_error)
