@@ -61,6 +61,8 @@ from packit_service.worker.parser import Parser
 from packit_service.worker.result import HandlerResults
 from packit_service.worker.whitelist import Whitelist
 
+from packit_service.log_versions import log_job_versions
+
 REQUESTED_PULL_REQUEST_COMMENT = "/packit"
 
 logger = logging.getLogger(__name__)
@@ -131,6 +133,7 @@ class SteveJobs:
 
     def __init__(self):
         self._config = None
+        log_job_versions()
 
     @property
     def config(self):

@@ -30,6 +30,7 @@ from packit.utils import set_logging
 from packit_service.config import ServiceConfig
 from packit_service.sentry_integration import configure_sentry
 from packit_service.service.api import blueprint
+from packit_service.log_versions import log_service_versions
 from packit_service.service.views import builds_blueprint
 
 set_logging(logger_name="packit_service", level=logging.DEBUG)
@@ -57,6 +58,7 @@ def get_flask_application():
     logger.info(
         f"server name = {s.server_name}, all HTTP requests need to use this URL!"
     )
+    log_service_versions()
     # no need to thank me, just buy me a beer
     logger.debug(f"URL map = {app.url_map}")
     return app
