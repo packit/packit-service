@@ -52,6 +52,7 @@ class ServiceConfigSchema(UserConfigSchema):
     fas_password = fields.String(default="")
     validate_webhooks = fields.Bool(default=False)
     admins = fields.List(fields.String())
+    server_name = fields.String()
 
     @post_load
     def make_instance(self, data, **kwargs):
