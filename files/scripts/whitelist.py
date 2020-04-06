@@ -20,11 +20,7 @@ def approve(account_name):
     :param account_name: github namespace
     :return:
     """
-    whitelist = Whitelist()
-    if whitelist.approve_account(account_name):
-        print(f"Account: {account_name} approved successfully")
-    else:
-        print(f"Account: {account_name} does not exists or it is already approved")
+    Whitelist().approve_account(account_name)
 
 
 @click.command("remove")
@@ -36,12 +32,7 @@ def remove(account_name):
     :param account_name: github namespace
     :return:
     """
-    whitelist = Whitelist()
-
-    if whitelist.remove_account(account_name):
-        print(f"Account: {account_name} removed from whitelist!")
-    else:
-        print(f"Account: {account_name} does not exists!")
+    Whitelist().remove_account(account_name)
 
 
 @click.command("waiting")
@@ -49,11 +40,7 @@ def waiting():
     """
     Show accounts waiting for approval.
     """
-    whitelist = Whitelist()
-
-    print(f"Accounts waiting for approval:")
-    for account in whitelist.accounts_waiting():
-        print(f"{account}")
+    print(f"Accounts waiting for approval: {', '.join(Whitelist().accounts_waiting())}")
 
 
 cli.add_command(waiting)
