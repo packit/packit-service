@@ -5,11 +5,10 @@ from packit_service import __version__ as ps_version
 from sqlalchemy import __version__ as sqlal_version
 from flask_restx import __version__ as restx_version
 
-from flask import __version__ as flask_version  # type: ignore
-
 # Mypy errors out with Module 'flask' has no attribute '__version__'.
 # Python can find flask's version but mypy cannot.
 # So we use "type: ignore" to cause mypy to ignore that line.
+from flask import __version__ as flask_version  # type: ignore
 
 
 logger = logging.getLogger(__name__)
