@@ -30,7 +30,6 @@ from contextlib import contextmanager
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional, Union, Iterable, Dict, Type
 
-from packit.config import JobConfigTriggerType
 from sqlalchemy import (
     Column,
     Integer,
@@ -47,6 +46,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 from sqlalchemy.types import PickleType, ARRAY
 
+from packit.config import JobConfigTriggerType
 from packit_service.constants import WHITELIST_CONSTANTS
 
 logger = logging.getLogger(__name__)
@@ -245,7 +245,7 @@ class GitBranchModel(Base):
             return git_branch
 
     def __repr__(self):
-        return f"GitBranchModel(id={self.pr_id}, name={self.name},  project={self.project})"
+        return f"GitBranchModel(name={self.name},  project={self.project})"
 
     def __str__(self):
         return self.__repr__()
@@ -264,7 +264,11 @@ class ProjectReleaseModel(Base):
 
     @classmethod
     def get_or_create(
-        cls, tag_name: str, namespace: str, repo_name: str, commit_hash=str
+        cls,
+        tag_name: str,
+        namespace: str,
+        repo_name: str,
+        commit_hash: Optional[str] = None,
     ) -> "ProjectReleaseModel":
         with get_sa_session() as session:
             project = GitProjectModel.get_or_create(
@@ -278,14 +282,14 @@ class ProjectReleaseModel(Base):
             if not project_release:
                 project_release = ProjectReleaseModel()
                 project_release.tag_name = tag_name
-                project_release.project_id = project.id
+                project_release.project = project
                 project_release.commit_hash = commit_hash
                 session.add(project_release)
             return project_release
 
     def __repr__(self):
         return (
-            f"ProjectReleaseModel(id={self.pr_id}, "
+            f"ProjectReleaseModel("
             f"tag_name={self.tag_name}, "
             f"project={self.project})"
         )

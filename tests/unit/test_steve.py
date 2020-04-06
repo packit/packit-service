@@ -28,12 +28,14 @@ from json import dumps
 import pytest
 from flexmock import flexmock
 from github import Github
+
 from ogr.services.github import GithubProject
 from packit.api import PackitAPI
+from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
+from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
 
@@ -67,6 +69,7 @@ def test_process_message(event):
         get_file_content=lambda path, ref: dumps(packit_yaml),
         full_repo_name="foo/bar",
         get_files=lambda ref, filter_regex: [],
+        get_sha_from_tag=lambda tag_name: "12345",
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     config = ServiceConfig()
@@ -75,6 +78,9 @@ def test_process_message(event):
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="master", version="1.2.3"
     ).once()
+    flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
+        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
+    )
     flexmock(Whitelist, check_and_report=True)
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(event)

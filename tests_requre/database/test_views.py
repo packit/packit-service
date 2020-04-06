@@ -30,7 +30,7 @@ def test_get_build_logs_for_build_copr_build_pr(
     assert "We can't find any info" not in response
     assert (
         response
-        == "<html><head><title>Build the-namespace/the-repo-name: PR #1</title>"
+        == "<html><head><title>Build the-namespace/the-repo-name: PR #342</title>"
         "</head><body>COPR Build ID: 123456<br>State: pending<br><br>"
         "Build web interface URL: "
         '<a href="https://copr.something.somewhere/123456">'
