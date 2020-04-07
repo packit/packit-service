@@ -345,7 +345,7 @@ class JobTriggerModel(Base):
             )
 
     def __repr__(self):
-        return f"JobTriggerModel(id={self.pr_id}, type={self.type}, trigger_id={self.trigger_id})"
+        return f"JobTriggerModel(type={self.type}, trigger_id={self.trigger_id})"
 
     def __str__(self):
         return self.__repr__()
@@ -638,16 +638,12 @@ class WhitelistModel(Base):
     def add_account(cls, account_name: str, status: str):
         with get_sa_session() as session:
             account = cls.get_account(account_name)
-            if account is not None:
-                account.status = status
-                session.add(account)
-                return account
-            else:
+            if not account:
                 account = cls()
                 account.account_name = account_name
-                account.status = status
-                session.add(account)
-                return account
+            account.status = status
+            session.add(account)
+            return account
 
     @classmethod
     def get_account(cls, account_name: str) -> Optional["WhitelistModel"]:
@@ -667,14 +663,12 @@ class WhitelistModel(Base):
     def remove_account(cls, account_name: str) -> Optional["WhitelistModel"]:
         with get_sa_session() as session:
             account = session.query(WhitelistModel).filter_by(account_name=account_name)
-            if account is not None:
+            if account:
                 account.delete()
-                return account
-            else:
-                return None
+            return account
 
     def __repr__(self):
-        return f"WhitelistModel(name={self.user})"
+        return f"WhitelistModel(name={self.account_name})"
 
     def __str__(self):
         return self.__repr__()
@@ -700,12 +694,12 @@ class TaskResultModel(Base):
     def add_task_result(cls, task_id, task_result_dict):
         with get_sa_session() as session:
             task_result = cls.get_by_id(task_id)
-            if task_result is None:
+            if not task_result:
                 task_result = cls()
                 task_result.task_id = task_id
-            task_result.jobs = task_result_dict.get("jobs")
-            task_result.event = task_result_dict.get("event")
-            session.add(task_result)
+                task_result.jobs = task_result_dict.get("jobs")
+                task_result.event = task_result_dict.get("event")
+                session.add(task_result)
             return task_result
 
     def to_dict(self):
@@ -844,3 +838,9 @@ class InstallationModel(Base):
                 ]
                 session.add(installation)
             return installation
+
+    def __repr__(self):
+        return f"InstallationModel(id={self.id}, account={self.account_login})"
+
+    def __str__(self):
+        return self.__repr__()
