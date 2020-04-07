@@ -25,7 +25,7 @@ worker-prod-push: worker-prod
 
 # in case of need change ip this is default so whould work, also be sure docker is logged to local oc registry 'docker login 172.30.1.1:5000'
 worker-local-push: worker
-	$(CONTAINER_ENGINE) tag $(WORKER_IMAGE) 172.30.1.1:5000/packit-stg/packit-worker:dev && \
+	$(CONTAINER_ENGINE) tag $(WORKER_IMAGE) 172.30.1.1:5000/packit-stg/packit-worker:dev
 	$(CONTAINER_ENGINE) push 172.30.1.1:5000/packit-stg/packit-worker:dev
 
 check:

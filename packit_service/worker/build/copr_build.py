@@ -121,7 +121,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             return HandlerResults(success=False, details={"msg": msg})
 
         self.report_status_to_all(
-            description="Building SRPM ...", state=CommitStatus.pending
+            description="Building SRPM ...",
+            state=CommitStatus.pending,
+            url="http://no.url",
         )
 
         build_metadata = self._run_copr_build_and_save_output()

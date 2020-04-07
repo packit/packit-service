@@ -23,7 +23,6 @@
 """
 We love you, Steve Jobs.
 """
-
 import logging
 from typing import Optional, Dict, Union, Type, Set
 
@@ -39,6 +38,7 @@ from packit_service.service.events import (
     TheJobTriggerType,
 )
 from packit_service.trigger_mapping import is_trigger_matching_job_config
+from packit_service.worker.centos.jobs import CentosTaskProcessor
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -53,12 +53,11 @@ from packit_service.worker.handlers.abstract import (
     MAP_REQUIRED_JOB_TO_HANDLERS,
     JobHandler,
 )
-from packit_service.worker.handlers.centosmsg_handlers import CommentHandler
 from packit_service.worker.handlers.comment_action_handler import (
     MAP_COMMENT_ACTION_TO_HANDLER,
     CommentAction,
 )
-from packit_service.worker.parser import Parser, CentosEventParser
+from packit_service.worker.parser import Parser
 from packit_service.worker.result import HandlerResults
 from packit_service.worker.whitelist import Whitelist
 
@@ -283,9 +282,6 @@ class SteveJobs:
         :param source: source of message
 
         """
-        if source == "centosmsg":
-            task_result = self._process_centosmsg(event)
-            return task_result
 
         if topic:
             # let's pre-filter messages: we don't need to get debug logs from processing
@@ -297,6 +293,11 @@ class SteveJobs:
             if topic not in topics:
                 logger.debug(f"{topic} not in {topics}")
                 return None
+
+        if source == "centosmsg":
+            centos_task_processor = CentosTaskProcessor(self.config)
+            task_result = centos_task_processor.process_msg(event)
+            return task_result
 
         event_object = Parser.parse_event(event)
         if not event_object or not event_object.pre_check():
@@ -345,50 +346,6 @@ class SteveJobs:
         task_results = {"jobs": jobs_results, "event": event_object.get_dict()}
 
         for v in jobs_results.values():
-            if not (v and v["success"]):
-                logger.warning(task_results)
-                logger.error(v["details"]["msg"])
-        return task_results
-
-    def _process_centosmsg(self, event: dict) -> Optional[Dict]:
-        """
-        Method responsible for processing messages received from CentOS infrastructure
-
-        :param event: message data
-        :return task_result: tasks results
-        """
-
-        handler_mapping = {
-            PullRequestCommentEvent: CommentHandler,
-        }
-        job_results = dict()
-
-        if not event:
-            logger.warning("Empty event - nothing to process")
-            return None
-
-        source, git_topic = event.get("topic").split("/")
-        event[
-            "https_url"
-        ] = f"https://{source}/{event['pullrequest']['project']['url_path']}"
-        event["git_topic"] = git_topic
-
-        logger.debug(f"processing CentOS message")
-        event_parser = CentosEventParser()
-        event_object = event_parser.parse_event(event)
-        logger.debug("Parsing  done")
-
-        if not event_object or not event_object.pre_check():
-            return None
-
-        handler = handler_mapping[type(event_object)](
-            config=self.config, event=event_object
-        )
-        job_results[git_topic] = handler.run_n_clean()
-
-        task_results = {"jobs": job_results, "event": event_object.get_dict()}
-
-        for v in job_results.values():
             if not (v and v["success"]):
                 logger.warning(task_results)
                 logger.error(v["details"]["msg"])

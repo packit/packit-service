@@ -35,6 +35,7 @@ from packit.config import (
     PackageConfig,
 )
 from packit_service.config import ServiceConfig, GithubPackageConfigGetter
+
 from packit_service.constants import WHITELIST_CONSTANTS
 from packit_service.models import (
     CoprBuildModel,

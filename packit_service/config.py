@@ -24,12 +24,14 @@ import logging
 from pathlib import Path
 from typing import Set, Optional
 
+import yaml
 from ogr.abstract import GitProject
 from packit.config import (
     RunCommandType,
     Config,
     get_package_config_from_repo,
     PackageConfig,
+    parse_loaded_config,
 )
 from packit.exceptions import PackitException, PackitConfigException
 from yaml import safe_load
@@ -187,4 +189,23 @@ class GithubPackageConfigGetter:
                     )
                     logger.debug(f"Created issue for invalid packit config: {i.url}")
             raise ex
+        return package_config
+
+
+class PagurePackageConfigGetter:
+    def get_package_config_from_repo(
+        self,
+        project: GitProject,
+        reference: str,
+        pr_id: int = None,
+        fail_when_missing: bool = True,
+        file_name=None,
+    ):
+        """
+        Get the package config and catch the invalid config scenario and possibly no-config scenario
+        Static because of the easier mocking.
+        """
+        loaded_config_raw = GitProject.get_file_content(file_name)
+        loaded_config = yaml.safe_load(loaded_config_raw)
+        package_config = parse_loaded_config(loaded_config, spec_file_path="/")
         return package_config
