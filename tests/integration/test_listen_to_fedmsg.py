@@ -303,7 +303,10 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
             }
         )
     )
-    flexmock(CoprBuildJobHelper).should_receive("job_owner").and_return("some-owner")
+    flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("some-owner")
+    flexmock(TestingFarmJobHelper).should_receive("job_project").and_return(
+        "foo-bar-123-stg"
+    )
     flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
         flexmock()
     )
@@ -437,7 +440,10 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
             }
         )
     )
-    flexmock(CoprBuildJobHelper).should_receive("job_owner").and_return("some-owner")
+    flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("some-owner")
+    flexmock(TestingFarmJobHelper).should_receive("job_project").and_return(
+        "foo-bar-123-stg"
+    )
     flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
         flexmock()
     )
@@ -556,7 +562,10 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
             }
         )
     )
-    flexmock(CoprBuildJobHelper).should_receive("job_owner").and_return("some-owner")
+    flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("some-owner")
+    flexmock(TestingFarmJobHelper).should_receive("job_project").and_return(
+        "foo-bar-123-stg"
+    )
     flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
         flexmock()
     )

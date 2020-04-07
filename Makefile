@@ -3,10 +3,11 @@ WORKER_IMAGE ?= docker.io/usercont/packit-service-worker:dev
 WORKER_IMAGE_PROD ?= docker.io/usercont/packit-service-worker:prod
 TEST_IMAGE ?= packit-service-tests
 TEST_TARGET ?= ./tests/unit ./tests/integration/
-CONTAINER_ENGINE ?= docker
+CONTAINER_ENGINE ?= $(shell command -v podman 2> /dev/null || echo docker)
 ANSIBLE_PYTHON ?= /usr/bin/python3
 AP ?= ansible-playbook -vv -c local -i localhost, -e ansible_python_interpreter=$(ANSIBLE_PYTHON)
 PATH_TO_SECRETS ?= $(CURDIR)/secrets/
+COV_REPORT ?= term-missing
 
 service: files/install-deps.yaml files/recipe.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(SERVICE_IMAGE) .
@@ -23,7 +24,7 @@ worker-prod-push: worker-prod
 
 check:
 	find . -name "*.pyc" -exec rm {} \;
-	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=yes --verbose --showlocals --cov=packit_service --cov-report=term-missing $(TEST_TARGET)
+	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=yes --verbose --showlocals --cov=packit_service --cov-report=$(COV_REPORT) $(TEST_TARGET)
 
 # first run 'make worker'
 test_image: files/install-deps.yaml files/recipe-tests.yaml
@@ -32,6 +33,7 @@ test_image: files/install-deps.yaml files/recipe-tests.yaml
 check_in_container: test_image
 	@# don't use -ti here in CI, TTY is not allocated in zuul
 	$(CONTAINER_ENGINE) run --rm \
+		--env COV_REPORT --env TEST_TARGET \
 		-v $(CURDIR):/src-packit-service \
 		-w /src-packit-service \
 		--security-opt label=disable \

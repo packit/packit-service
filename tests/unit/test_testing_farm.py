@@ -20,31 +20,36 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import pytest
-from flexmock import flexmock
+import flexmock
 from ogr.abstract import CommitStatus
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.local_project import LocalProject
 
 from packit_service.models import TFTTestRunModel
+
+# These names are definately not nice, still they help with making classes
+# whose names start with Testing* or Test* to become invisible for pytest,
+# and so stop the test discovery warnings.
 from packit_service.service.events import (
-    TestingFarmResultsEvent,
-    TestingFarmResult,
-    TestResult,
+    TestingFarmResultsEvent as TFResultsEvent,
+    TestingFarmResult as TFResult,
+    TestResult as TResult,
 )
-from packit_service.worker.handlers import TestingFarmResultsHandler
+from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.reporting import StatusReporter
+from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelper
 
 
 @pytest.mark.parametrize(
     "tests_result,tests_message,tests_tests,status_status,status_message",
     [
         pytest.param(
-            TestingFarmResult.passed,
+            TFResult.passed,
             "some message",
             [
-                TestResult(
+                TResult(
                     name="/install/copr-build",
-                    result=TestingFarmResult.passed,
+                    result=TFResult.passed,
                     log_url="some specific url",
                 )
             ],
@@ -53,12 +58,12 @@ from packit_service.worker.reporting import StatusReporter
             id="only_instalation_passed",
         ),
         pytest.param(
-            TestingFarmResult.failed,
+            TFResult.failed,
             "some message",
             [
-                TestResult(
+                TResult(
                     name="/install/copr-build",
-                    result=TestingFarmResult.failed,
+                    result=TFResult.failed,
                     log_url="some specific url",
                 )
             ],
@@ -67,12 +72,12 @@ from packit_service.worker.reporting import StatusReporter
             id="only_instalation_failed",
         ),
         pytest.param(
-            TestingFarmResult.passed,
+            TFResult.passed,
             "some message",
             [
-                TestResult(
+                TResult(
                     name="/something/different",
-                    result=TestingFarmResult.passed,
+                    result=TFResult.passed,
                     log_url="some specific url",
                 )
             ],
@@ -81,12 +86,12 @@ from packit_service.worker.reporting import StatusReporter
             id="only_instalation_not_provided_passed",
         ),
         pytest.param(
-            TestingFarmResult.failed,
+            TFResult.failed,
             "some message",
             [
-                TestResult(
+                TResult(
                     name="/something/different",
-                    result=TestingFarmResult.failed,
+                    result=TFResult.failed,
                     log_url="some specific url",
                 )
             ],
@@ -95,17 +100,17 @@ from packit_service.worker.reporting import StatusReporter
             id="only_instalation_not_provided_failed",
         ),
         pytest.param(
-            TestingFarmResult.passed,
+            TFResult.passed,
             "some message",
             [
-                TestResult(
+                TResult(
                     name="/install/copr-build",
-                    result=TestingFarmResult.passed,
+                    result=TFResult.passed,
                     log_url="some specific url",
                 ),
-                TestResult(
+                TResult(
                     name="/different/test",
-                    result=TestingFarmResult.passed,
+                    result=TFResult.passed,
                     log_url="some specific url",
                 ),
             ],
@@ -114,17 +119,17 @@ from packit_service.worker.reporting import StatusReporter
             id="only_instalation_mutliple_results_passed",
         ),
         pytest.param(
-            TestingFarmResult.failed,
+            TFResult.failed,
             "some message",
             [
-                TestResult(
+                TResult(
                     name="/install/copr-build",
-                    result=TestingFarmResult.failed,
+                    result=TFResult.failed,
                     log_url="some specific url",
                 ),
-                TestResult(
+                TResult(
                     name="/different/test",
-                    result=TestingFarmResult.passed,
+                    result=TFResult.passed,
                     log_url="some specific url",
                 ),
             ],
@@ -133,17 +138,17 @@ from packit_service.worker.reporting import StatusReporter
             id="only_instalation_mutliple_results_failed",
         ),
         pytest.param(
-            TestingFarmResult.failed,
+            TFResult.failed,
             "some message",
             [
-                TestResult(
+                TResult(
                     name="/install/copr-build",
-                    result=TestingFarmResult.passed,
+                    result=TFResult.passed,
                     log_url="some specific url",
                 ),
-                TestResult(
+                TResult(
                     name="/different/test",
-                    result=TestingFarmResult.failed,
+                    result=TFResult.failed,
                     log_url="some specific url",
                 ),
             ],
@@ -156,7 +161,7 @@ from packit_service.worker.reporting import StatusReporter
 def test_testing_farm_response(
     tests_result, tests_message, tests_tests, status_status, status_message
 ):
-    flexmock(TestingFarmResultsHandler).should_receive(
+    flexmock(TFResultsHandler).should_receive(
         "get_package_config_from_repo"
     ).and_return(
         flexmock(
@@ -169,10 +174,10 @@ def test_testing_farm_response(
             ],
         )
     )
-    test_farm_handler = TestingFarmResultsHandler(
+    test_farm_handler = TFResultsHandler(
         config=flexmock(command_handler_work_dir=flexmock()),
         job_config=flexmock(),
-        event=TestingFarmResultsEvent(
+        event=TFResultsEvent(
             pipeline_id="id",
             result=tests_result,
             environment=flexmock(),
@@ -209,3 +214,82 @@ def test_testing_farm_response(
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
     test_farm_handler.run()
+
+
+@pytest.mark.parametrize(
+    (
+        "tf_token,"
+        "ps_deployment,"
+        "repo,"
+        "namespace,"
+        "commit_sha,"
+        "project_url,"
+        "git_ref,"
+        "copr_owner,"
+        "copr_project,"
+        "pipeline_id,"
+        "chroot"
+    ),
+    [
+        (
+            "very-secret",
+            "test",
+            "packit",
+            "packit-service",
+            "feb41e5",
+            "https://github.com/packit-service/packit",
+            "master",
+            "me",
+            "cool-project",
+            "9daccabb-4bfa-4f2d-b7cb-96471dbff607",
+            "centos-stream-x86_64",
+        ),
+    ],
+)
+def test_trigger_payload(
+    tf_token,
+    ps_deployment,
+    repo,
+    namespace,
+    commit_sha,
+    project_url,
+    git_ref,
+    copr_owner,
+    copr_project,
+    pipeline_id,
+    chroot,
+):
+    # Soo many things are happening in a single constructor!!!!
+    config = flexmock(
+        testing_farm_secret=tf_token,
+        deployment=ps_deployment,
+        command_handler_work_dir="/tmp",
+    )
+    package_config = flexmock(jobs=[])
+    project = flexmock(
+        repo=repo,
+        namespace=namespace,
+        service="GitHub",
+        get_git_urls=lambda: {"git": f"{project_url}.git"},
+    )
+    event = flexmock(commit_sha=commit_sha, project_url=project_url, git_ref=git_ref)
+
+    job_helper = TFJobHelper(config, package_config, project, event)
+    job_helper = flexmock(job_helper)
+
+    job_helper.should_receive("job_owner").and_return(copr_owner)
+    job_helper.should_receive("job_project").and_return(copr_project)
+    payload = job_helper._trigger_payload(pipeline_id, chroot)
+
+    assert payload["pipeline"]["id"] == pipeline_id
+    assert payload["api"]["token"] == tf_token
+    assert "packit.dev/api" in payload["response-url"]
+    assert payload["artifact"] == {
+        "repo-name": repo,
+        "repo-namespace": namespace,
+        "copr-repo-name": f"{copr_owner}/{copr_project}",
+        "copr-chroot": chroot,
+        "commit-sha": commit_sha,
+        "git-url": project_url,
+        "git-ref": git_ref,
+    }

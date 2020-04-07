@@ -67,6 +67,27 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self.session.mount("https://", adapter)
         self.header: dict = {"Content-Type": "application/json"}
 
+    def _trigger_payload(self, pipeline_id: str, chroot: str) -> dict:
+        """Produce payload that can be used to trigger tests in Testing
+           Farm using the Copr chroot given.
+        """
+        return {
+            "pipeline": {"id": pipeline_id},
+            "api": {"token": self.config.testing_farm_secret},
+            "response-url": f"{self.api_url}/testing-farm/results",
+            "artifact": {
+                "repo-name": self.project.repo,
+                "repo-namespace": self.project.namespace,
+                "copr-repo-name": f"{self.job_owner}/{self.job_project}",
+                "copr-chroot": chroot,
+                "commit-sha": self.event.commit_sha,
+                "git-url": self.event.project_url,
+                "git-ref": self.event.git_ref
+                if self.event.git_ref
+                else self.event.commit_sha,
+            },
+        }
+
     def report_missing_build_chroot(self, chroot: str):
         self.report_status_to_test_for_chroot(
             state=CommitStatus.error,
@@ -128,24 +149,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             trigger_model=self.event.db_trigger,
         )
 
-        payload: dict = {
-            "pipeline": {"id": pipeline_id},
-            "api": {"token": self.config.testing_farm_secret},
-            "response-url": f"{self.api_url}/testing-farm/results",
-            "artifact": {
-                "repo-name": self.project.repo,
-                "repo-namespace": self.project.namespace,
-                "copr-repo-name": f"{self.job_owner}/{self.job_project}",
-                "copr-chroot": chroot,
-                "commit-sha": self.event.commit_sha,
-                "git-url": self.event.project_url,
-                "git-ref": self.event.git_ref
-                if self.event.git_ref
-                else self.event.commit_sha,
-            },
-        }
-
         logger.debug("Sending testing farm request...")
+        payload = self._trigger_payload(pipeline_id, chroot)
         logger.debug(payload)
 
         req = self.send_testing_farm_request(
