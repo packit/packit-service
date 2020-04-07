@@ -12,7 +12,7 @@ from os import getenv
 from copr.v3 import CoprNoResultException, Client
 from celery.backends.database import Task
 from redis import Redis
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union, List
 from persistentdict.dict_in_redis import PersistentDict
 
 from alembic import op
@@ -29,7 +29,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship
 from sqlalchemy.types import PickleType
 
-from packit_service.service.models import Installation, CoprBuild
+from packit_service.service.events import InstallationEvent
 from packit_service.constants import WHITELIST_CONSTANTS
 
 # revision identifiers, used by Alembic.
@@ -44,17 +44,39 @@ else:
     Base = declarative_base()
 
 
-def add_task_to_celery_table(session, task_id, status, result, traceback, date_done):
-    task_result = session.query(Task).filter_by(task_id=task_id).first()
-    if task_result is None:
-        task_result = Task(task_id)
-    task_result.status = status
-    task_result.result = result
-    task_result.traceback = traceback
-    task_result.date_done = date_done
-    session.add(task_result)
+# Redis models
+class Model:
+    table_name: str
+    identifier: Union[int, str] = None
+
+    @classmethod
+    def db(cls) -> PersistentDict:
+        if not cls.table_name:
+            raise RuntimeError("table_name is not set")
+        return PersistentDict(hash_name=cls.table_name)
 
 
+class Installation(Model):
+    table_name = "github_installation"
+    event_data: InstallationEvent
+
+
+class Build(Model):
+    status: str
+    build_id: int
+    build_submitted_time: str = None
+    build_start_time: str = None
+    build_finished_time: str = None
+
+
+class CoprBuild(Build):
+    table_name = "copr-builds"
+    project: str
+    owner: str
+    chroots: List[str]
+
+
+# Postgres models
 class TaskResultUpgradeModel(Base):
     __tablename__ = "task_results"
     task_id = Column(String, primary_key=True)
@@ -161,7 +183,7 @@ class CoprBuildUpgradeModel(Base):
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)
     job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
-    job_trigger = relationship("JobTriggerModel", back_populates="copr_builds")
+    job_trigger = relationship("JobTriggerUpgradeModel", back_populates="copr_builds")
     status = Column(String)
     target = Column(String)
     web_url = Column(String)
@@ -245,6 +267,17 @@ class JobTriggerUpgradeModel(Base):
         return trigger
 
 
+def add_task_to_celery_table(session, task_id, status, result, traceback, date_done):
+    task_result = session.query(Task).filter_by(task_id=task_id).first()
+    if task_result is None:
+        task_result = Task(task_id)
+    task_result.status = status
+    task_result.result = result
+    task_result.traceback = traceback
+    task_result.date_done = date_done
+    session.add(task_result)
+
+
 def upgrade():
     bind = op.get_bind()
     session = orm.Session(bind=bind)
@@ -265,6 +298,8 @@ def upgrade():
         result = data.get("result")
         traceback = data.get("traceback")
         date_done = data.get("data_done")
+        if isinstance(date_done, str):
+            date_done = datetime.fromisoformat(date_done)
 
         # our table
         TaskResultUpgradeModel.add_task_result(
@@ -282,7 +317,7 @@ def upgrade():
 
     # whitelist
     db = PersistentDict(hash_name="whitelist")
-    for account, data in db.get_all():
+    for account, data in db.get_all().items():
         status = data.get("status")
         WhitelistUpgradeModel.add_account(
             session=session, account_name=account, status=status
@@ -328,7 +363,12 @@ def upgrade():
             f"https://copr.fedorainfracloud.org/coprs/{owner}/{project_name}/"
             f"build/{build_id}/"
         )
-        pr_id = int(project_name.split("-")[-1])
+        project_name_list = project_name.split("-")
+        if project_name_list[-1] == "stg":
+            pr_id = int(project_name_list[-2])
+        else:
+            pr_id = int(project_name_list[-1])
+
         job_trigger = JobTriggerUpgradeModel.get_or_create(
             type=JobTriggerModelType.pull_request, trigger_id=pr_id, session=session,
         )
