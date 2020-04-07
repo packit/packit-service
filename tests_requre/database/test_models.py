@@ -44,7 +44,7 @@ from tests_requre.database.conftest import TARGET
 
 def test_create_pr_model(clean_before_and_after, pr_model):
     assert isinstance(pr_model, PullRequestModel)
-    assert pr_model.pr_id == 1
+    assert pr_model.pr_id == 342
     assert pr_model.project
 
 
@@ -65,7 +65,7 @@ def test_create_pr_trigger_model(clean_before_and_after, pr_trigger_model):
     assert pr_trigger_model.type == JobTriggerModelType.pull_request
     pr = pr_trigger_model.get_trigger_object()
     assert isinstance(pr, PullRequestModel)
-    assert pr.pr_id == 1
+    assert pr.pr_id == 342
 
 
 def test_create_release_trigger_model(clean_before_and_after, release_trigger_model):
@@ -290,19 +290,19 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
     assert koji_build.job_trigger.get_trigger_object() == pr1
 
 
-def test_tmt_test_run(clean_before_and_after, a_new_test_run):
-    assert a_new_test_run.pipeline_id == "123456"
-    assert a_new_test_run.commit_sha == "687abc76d67d"
+def test_tmt_test_run(clean_before_and_after, a_new_test_run_pr):
+    assert a_new_test_run_pr.pipeline_id == "123456"
+    assert a_new_test_run_pr.commit_sha == "687abc76d67d"
     assert (
-        a_new_test_run.web_url == "https://console-testing-farm.apps.ci.centos.org/"
+        a_new_test_run_pr.web_url == "https://console-testing-farm.apps.ci.centos.org/"
         "pipeline/02271aa8-2917-4741-a39e-78d8706c56c1"
     )
-    assert a_new_test_run.target == "fedora-42-x86_64"
-    assert a_new_test_run.status == TestingFarmResult.new
+    assert a_new_test_run_pr.target == "fedora-42-x86_64"
+    assert a_new_test_run_pr.status == TestingFarmResult.new
 
-    b = TFTTestRunModel.get_by_pipeline_id(a_new_test_run.pipeline_id)
+    b = TFTTestRunModel.get_by_pipeline_id(a_new_test_run_pr.pipeline_id)
     assert b
-    assert b.id == a_new_test_run.id
+    assert b.id == a_new_test_run_pr.id
 
 
 def test_tmt_test_multiple_runs(clean_before_and_after, multiple_new_test_runs):
@@ -314,12 +314,12 @@ def test_tmt_test_multiple_runs(clean_before_and_after, multiple_new_test_runs):
         assert len(test_runs) == 3
 
 
-def test_tmt_test_run_set_status(clean_before_and_after, a_new_test_run):
-    assert a_new_test_run.status == TestingFarmResult.new
-    a_new_test_run.set_status(TestingFarmResult.running)
-    assert a_new_test_run.status == TestingFarmResult.running
+def test_tmt_test_run_set_status(clean_before_and_after, a_new_test_run_pr):
+    assert a_new_test_run_pr.status == TestingFarmResult.new
+    a_new_test_run_pr.set_status(TestingFarmResult.running)
+    assert a_new_test_run_pr.status == TestingFarmResult.running
 
-    b = TFTTestRunModel.get_by_pipeline_id(a_new_test_run.pipeline_id)
+    b = TFTTestRunModel.get_by_pipeline_id(a_new_test_run_pr.pipeline_id)
     assert b
     assert b.status == TestingFarmResult.running
 

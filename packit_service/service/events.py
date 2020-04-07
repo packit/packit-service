@@ -34,7 +34,6 @@ from packit.config import (
     get_package_config_from_repo,
     PackageConfig,
 )
-
 from packit_service.config import ServiceConfig, GithubPackageConfigGetter
 from packit_service.constants import WHITELIST_CONSTANTS
 from packit_service.models import (
@@ -211,7 +210,16 @@ class ReleaseEvent(AddReleaseDbTrigger, AbstractGithubEvent):
         self.tag_name = tag_name
         self.git_ref = tag_name
         self.identifier = tag_name
-        self.commit_sha = None
+
+        self._commit_sha = None
+
+    @property
+    def commit_sha(self) -> str:
+        if not self._commit_sha:
+            self._commit_sha = self.get_project().get_sha_from_tag(
+                tag_name=self.tag_name
+            )
+        return self._commit_sha
 
     def get_package_config(self) -> Optional[PackageConfig]:
         package_config: PackageConfig = self.get_package_config_from_repo(

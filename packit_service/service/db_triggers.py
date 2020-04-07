@@ -40,15 +40,19 @@ class AddReleaseDbTrigger:
     repo_name: str
 
     @property
+    def commit_sha(self):
+        """
+        To please the mypy.
+        """
+        raise NotImplementedError()
+
+    @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        release_commit = self.get_project().get_sha_from_tag(  # type:ignore
-            tag_name=self.tag_name
-        )
         return ProjectReleaseModel.get_or_create(
             tag_name=self.tag_name,
             namespace=self.repo_namespace,
             repo_name=self.repo_name,
-            commit_hash=release_commit,
+            commit_hash=self.commit_sha,
         )
 
 

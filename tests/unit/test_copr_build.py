@@ -23,11 +23,11 @@ from typing import Union
 
 from celery import Celery
 from flexmock import flexmock
-from ogr.abstract import GitProject, GitService, CommitStatus
+
+from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.exceptions import FailedCreateSRPM
-
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuildModel, SRPMBuildModel
@@ -92,7 +92,7 @@ def build_helper(
     handler = CoprBuildJobHelper(
         config=ServiceConfig(),
         package_config=pkg_conf,
-        project=GitProject("", GitService(), ""),
+        project=GitProject(repo=flexmock(), service=flexmock(), namespace=flexmock()),
         event=event,
     )
     handler._api = PackitAPI(ServiceConfig(), pkg_conf)
@@ -214,13 +214,14 @@ def test_copr_build_for_release(release_event):
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
     helper = build_helper(jobs=[branch_build_job], event=release_event)
+    flexmock(ReleaseEvent).should_receive("get_project").and_return(helper.project)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
+    flexmock(GitProject).should_receive("get_sha_from_tag").and_return("123456").once()
     flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
     )
-    flexmock(ReleaseEvent).should_receive("db_trigger").and_return(flexmock())
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
