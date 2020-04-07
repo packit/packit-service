@@ -132,9 +132,6 @@ class GitProjectModel(Base):
     def __repr__(self):
         return f"GitProjectModel(name={self.namespace}/{self.repo_name})"
 
-    def __str__(self):
-        return self.__repr__()
-
 
 class PullRequestModel(Base):
     __tablename__ = "pull_requests"
@@ -174,9 +171,6 @@ class PullRequestModel(Base):
     def __repr__(self):
         return f"PullRequestModel(id={self.pr_id}, project={self.project})"
 
-    def __str__(self):
-        return self.__repr__()
-
 
 class IssueModel(Base):
     __tablename__ = "project_issues"
@@ -209,9 +203,6 @@ class IssueModel(Base):
 
     def __repr__(self):
         return f"IssueModel(id={self.issue_id}, project={self.project})"
-
-    def __str__(self):
-        return self.__repr__()
 
 
 class GitBranchModel(Base):
@@ -246,9 +237,6 @@ class GitBranchModel(Base):
 
     def __repr__(self):
         return f"GitBranchModel(name={self.name},  project={self.project})"
-
-    def __str__(self):
-        return self.__repr__()
 
 
 class ProjectReleaseModel(Base):
@@ -293,9 +281,6 @@ class ProjectReleaseModel(Base):
             f"tag_name={self.tag_name}, "
             f"project={self.project})"
         )
-
-    def __str__(self):
-        return self.__repr__()
 
 
 AbstractTriggerDbType = Union[
@@ -346,9 +331,6 @@ class JobTriggerModel(Base):
 
     def __repr__(self):
         return f"JobTriggerModel(type={self.type}, trigger_id={self.trigger_id})"
-
-    def __str__(self):
-        return self.__repr__()
 
 
 class CoprBuildModel(Base):
@@ -472,9 +454,6 @@ class CoprBuildModel(Base):
     def __repr__(self):
         return f"COPRBuildModel(id={self.id}, job_trigger={self.job_trigger})"
 
-    def __str__(self):
-        return self.__repr__()
-
 
 class KojiBuildModel(Base):
     """ we create an entry for every target """
@@ -589,9 +568,6 @@ class KojiBuildModel(Base):
     def __repr__(self):
         return f"KojiBuildModel(id={self.id}, job_trigger={self.job_trigger})"
 
-    def __str__(self):
-        return self.__repr__()
-
 
 class SRPMBuildModel(Base):
     __tablename__ = "srpm_builds"
@@ -616,9 +592,6 @@ class SRPMBuildModel(Base):
 
     def __repr__(self):
         return f"SRPMBuildModel(id={self.id})"
-
-    def __str__(self):
-        return self.__repr__()
 
 
 class WhitelistStatus(str, enum.Enum):
@@ -670,9 +643,6 @@ class WhitelistModel(Base):
     def __repr__(self):
         return f"WhitelistModel(name={self.account_name})"
 
-    def __str__(self):
-        return self.__repr__()
-
 
 class TaskResultModel(Base):
     __tablename__ = "task_results"
@@ -711,9 +681,6 @@ class TaskResultModel(Base):
 
     def __repr__(self):
         return f"TaskResult(id={self.task_id})"
-
-    def __str__(self):
-        return self.__repr__()
 
 
 class TestingFarmResult(str, enum.Enum):
@@ -841,6 +808,3 @@ class InstallationModel(Base):
 
     def __repr__(self):
         return f"InstallationModel(id={self.id}, account={self.account_login})"
-
-    def __str__(self):
-        return self.__repr__()
