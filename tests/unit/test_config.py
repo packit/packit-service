@@ -25,68 +25,76 @@ from marshmallow import ValidationError
 from packit_service.config import ServiceConfig, Deployment
 
 
-def get_service_config_missing():
-    # missing required fields
-    return {}
-
-
-def get_service_config_invalid():
-    # wrong option
+@pytest.fixture()
+def service_config_valid():
     return {
-        "deployment": False,
-        "authentication": {
-            "github.com": {
-                "github_app_id": "11111",
-                "github_app_cert_path": "/path/lib",
-            }
-        },
-        "webhook_secret": "secret",
-        "command_handler_work_dir": "/sandcastle",
-        "command_handler_image_reference": "docker.io/usercont/sandcastle",
-        "command_handler_k8s_namespace": "packit-test-sandbox",
-    }
-
-
-def get_service_config_valid():
-    return {
+        "debug": True,
         "deployment": "prod",
         "authentication": {
             "github.com": {
                 "github_app_id": "11111",
                 "github_app_cert_path": "/path/lib",
+            },
+            "src.fedoraproject.org": {
+                "instance_url": "https://src.fedoraproject.org",
+                "token": "BINGO",
+            },
+        },
+        "fas_user": "santa",
+        "fas_password": "does-not-exist",
+        "keytab_path": "/secrets/fedora.keytab",
+        "webhook_secret": "secret",
+        "validate_webhooks": True,
+        "testing_farm_secret": "granko",
+        "command_handler": "sandcastle",
+        "command_handler_work_dir": "/sandcastle",
+        "command_handler_image_reference": "docker.io/usercont/sandcastle",
+        "command_handler_k8s_namespace": "packit-test-sandbox",
+        "admins": ["Dasher", "Dancer", "Vixen", "Comet", "Blitzen"],
+        "server_name": "hub.packit.org",
+    }
+
+
+def test_parse_valid(service_config_valid):
+    config = ServiceConfig.get_from_dict(service_config_valid)
+    assert config.debug
+    assert config.deployment == Deployment.prod
+    assert config.fas_user == "santa"
+    assert config.fas_password == "does-not-exist"
+    assert config.keytab_path == "/secrets/fedora.keytab"
+    assert config.webhook_secret == "secret"
+    assert config.validate_webhooks
+    assert config.testing_farm_secret == "granko"
+    assert config.command_handler_work_dir == "/sandcastle"
+    assert config.admins == {"Dasher", "Dancer", "Vixen", "Comet", "Blitzen"}
+    assert config.server_name == "hub.packit.org"
+
+
+@pytest.fixture()
+def service_config_invalid():
+    return {
+        "deployment": False,  # wrong option
+        "authentication": {
+            "github.com": {
+                "github_app_id": "11111",
+                "github_app_cert_path": "/path/lib",
             }
         },
         "webhook_secret": "secret",
-        "command_handler": "sandcastle",
         "command_handler_work_dir": "/sandcastle",
         "command_handler_image_reference": "docker.io/usercont/sandcastle",
         "command_handler_k8s_namespace": "packit-test-sandbox",
     }
 
 
-@pytest.fixture()
-def service_config_missing():
-    return get_service_config_missing()
-
-
-@pytest.fixture()
-def service_config_valid():
-    return get_service_config_valid()
-
-
-@pytest.fixture()
-def service_config_invalid():
-    return get_service_config_invalid()
-
-
-def test_parse_valid(service_config_valid):
-    config = ServiceConfig.get_from_dict(service_config_valid)
-    assert config.deployment == Deployment("prod")
-
-
 def test_parse_invalid(service_config_invalid):
     with pytest.raises(ValidationError):
         ServiceConfig.get_from_dict(service_config_invalid)
+
+
+@pytest.fixture()
+def service_config_missing():
+    return {}
 
 
 def test_parse_missing(service_config_missing):

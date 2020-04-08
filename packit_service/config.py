@@ -67,8 +67,6 @@ class ServiceConfig(Config):
         super().__init__(**kwargs)
 
         self.deployment = deployment
-
-        # duplicate - also in Config -> can be removed?
         self.webhook_secret = webhook_secret
         self.testing_farm_secret = testing_farm_secret
         self.validate_webhooks = validate_webhooks
@@ -83,12 +81,28 @@ class ServiceConfig(Config):
         # for flask SERVER_NAME so we can create links to logs
         self.server_name: str = ""
 
+    def __repr__(self):
+        def hide(token: str) -> str:
+            return f"{token[:1]}***{token[-1:]}" if token else ""
+
+        return (
+            f"{self.__class__.__name__}("
+            f"{super().__repr__()}, "
+            f"deployment='{self.deployment}', "
+            f"webhook_secret='{hide(self.webhook_secret)}', "
+            f"testing_farm_secret='{hide(self.testing_farm_secret)}', "
+            f"validate_webhooks='{self.validate_webhooks}', "
+            f"admins='{self.admins}', "
+            f"fas_password='{hide(self.fas_password)}', "
+            f"server_name='{self.server_name}')"
+        )
+
     @classmethod
     def get_from_dict(cls, raw_dict: dict) -> "ServiceConfig":
         # required to avoid circular imports
         from packit_service.schema import ServiceConfigSchema
 
-        config = ServiceConfigSchema(strict=True).load(raw_dict).data
+        config = ServiceConfigSchema().load(raw_dict)
 
         config.server_name = raw_dict.get("server_name", "localhost:5000")
 
@@ -110,6 +124,7 @@ class ServiceConfig(Config):
             "command_handler_k8s_namespace", SANDCASTLE_DEFAULT_PROJECT
         )
 
+        logger.debug(config)
         return config
 
     @classmethod
