@@ -106,7 +106,7 @@ class PullRequestGithubCheckDownstreamHandler(AbstractGithubJobHandler):
 
         self.api.sync_pr(
             pr_id=self.event.pr_id,
-            dist_git_branch=self.job_config.metadata.get("dist-git-branch", "master"),
+            dist_git_branch=self.job_config.metadata.dist_git_branch or "master"
             # TODO: figure out top upstream commit for source-git here
         )
         return HandlerResults(success=True, details={})
@@ -201,7 +201,7 @@ class ProposeDownstreamHandler(AbstractGithubJobHandler):
 
         errors = {}
         for branch in get_branches(
-            self.job_config.metadata.get("dist-git-branch", "master")
+            self.job_config.metadata.dist_git_branch or "master"
         ):
             try:
                 self.api.sync_release(
@@ -398,8 +398,8 @@ class PushGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
         if not valid:
             return False
 
-        configured_branch = self.copr_build_helper.job_build.metadata.get(
-            "branch", "master"
+        configured_branch = (
+            self.copr_build_helper.job_build.metadata.dist_git_branch or "master"
         )
         if configured_branch != self.event.git_ref:
             logger.info(
@@ -561,8 +561,8 @@ class PushGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
         if not valid:
             return False
 
-        configured_branch = self.koji_build_helper.job_build.metadata.get(
-            "branch", "master"
+        configured_branch = (
+            self.koji_build_helper.job_build.metadata.dist_git_branch or "master"
         )
         if configured_branch != self.event.git_ref:
             logger.info(
@@ -690,7 +690,7 @@ class GitHubIssueCommentProposeUpdateHandler(
         :return: list of dist-git branches
         """
         configured_branches = [
-            job.metadata.get("dist-git-branch")
+            job.metadata.dist_git_branch
             for job in self.package_config.jobs
             if job.type == JobType.propose_downstream
         ]

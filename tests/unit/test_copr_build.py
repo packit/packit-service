@@ -27,6 +27,7 @@ from flexmock import flexmock
 from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
+from packit.config.job_config import JobMetadataConfig
 from packit.exceptions import FailedCreateSRPM
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
@@ -71,15 +72,15 @@ def build_helper(
     jobs=None,
 ):
     if not metadata:
-        metadata = {
-            "owner": "nobody",
-            "targets": [
+        metadata = JobMetadataConfig(
+            targets=[
                 "fedora-29-x86_64",
                 "fedora-30-x86_64",
                 "fedora-31-x86_64",
                 "fedora-rawhide-x86_64",
             ],
-        }
+            owner="nobody",
+        )
     jobs = jobs or []
     jobs.append(
         JobConfig(
@@ -88,6 +89,7 @@ def build_helper(
             metadata=metadata,
         )
     )
+
     pkg_conf = PackageConfig(jobs=jobs, downstream_package_name="dummy")
     handler = CoprBuildJobHelper(
         config=ServiceConfig(),
@@ -105,7 +107,7 @@ def test_copr_build_check_names(pull_request_event):
     )
     helper = build_helper(
         event=pull_request_event,
-        metadata={"owner": "nobody", "targets": ["bright-future-x86_64"]},
+        metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="nobody"),
     )
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
@@ -140,9 +142,7 @@ def test_copr_build_success_set_test_check(pull_request_event):
     # status is set for each test-target (4x):
     #  - Building SRPM ...
     #  - Building RPM ...
-    test_job = JobConfig(
-        type=JobType.tests, trigger=JobConfigTriggerType.pull_request, metadata={}
-    )
+    test_job = JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request,)
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
@@ -165,16 +165,16 @@ def test_copr_build_for_branch(branch_push_event):
     branch_build_job = JobConfig(
         type=JobType.build,
         trigger=JobConfigTriggerType.commit,
-        metadata={
-            "branch": "build-branch",
-            "owner": "nobody",
-            "targets": [
+        metadata=JobMetadataConfig(
+            targets=[
                 "fedora-29-x86_64",
                 "fedora-30-x86_64",
                 "fedora-31-x86_64",
                 "fedora-rawhide-x86_64",
             ],
-        },
+            owner="nobody",
+            dist_git_branch="build-branch",
+        ),
     )
     flexmock(AddBranchPushDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
@@ -199,16 +199,16 @@ def test_copr_build_for_release(release_event):
     branch_build_job = JobConfig(
         type=JobType.build,
         trigger=JobConfigTriggerType.release,
-        metadata={
-            "branch": "build-branch",
-            "owner": "nobody",
-            "targets": [
+        metadata=JobMetadataConfig(
+            targets=[
                 "fedora-29-x86_64",
                 "fedora-30-x86_64",
                 "fedora-31-x86_64",
                 "fedora-rawhide-x86_64",
             ],
-        },
+            owner="nobody",
+            dist_git_branch="build-branch",
+        ),
     )
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
@@ -284,7 +284,9 @@ def test_copr_build_no_targets(pull_request_event):
     # status is set for each build-target (fedora-stable => 2x):
     #  - Building SRPM ...
     #  - Building RPM ...
-    helper = build_helper(event=pull_request_event, metadata={"owner": "nobody"})
+    helper = build_helper(
+        event=pull_request_event, metadata=JobMetadataConfig(owner="nobody")
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
     flexmock(RedisCoprBuild).should_receive("create").and_return(FakeCoprBuildModel())
     flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())

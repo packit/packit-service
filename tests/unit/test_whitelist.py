@@ -26,14 +26,16 @@ from copr.v3 import Client
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
 from flexmock import flexmock
+
 from ogr.abstract import GitProject, GitService, CommitStatus
 from ogr.services.github import GithubProject, GithubService
 from packit.config import JobType, JobConfig, JobConfigTriggerType
+from packit.config.job_config import JobMetadataConfig
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
-
 from packit_service.config import Deployment
 from packit_service.constants import FAQ_URL
+from packit_service.models import WhitelistModel as DBWhitelist
 from packit_service.service.events import (
     ReleaseEvent,
     PullRequestEvent,
@@ -48,8 +50,6 @@ from packit_service.service.events import WhitelistStatus
 from packit_service.service.models import Model
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.whitelist import Whitelist
-
-from packit_service.models import WhitelistModel as DBWhitelist
 
 EXPECTED_TESTING_FARM_CHECK_NAME = f"packit-stg/testing-farm-fedora-rawhide-x86_64"
 
@@ -275,7 +275,7 @@ def test_check_and_report(
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={"targets": ["fedora-rawhide"]},
+                    metadata=JobMetadataConfig(targets=["fedora-rawhide"]),
                 )
             ],
         )

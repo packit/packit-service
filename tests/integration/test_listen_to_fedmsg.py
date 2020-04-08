@@ -26,14 +26,16 @@ import pytest
 import requests
 from copr.v3 import Client
 from flexmock import flexmock
+from tests.spellbook import DATA_DIR
+
 from ogr.abstract import CommitStatus
 from ogr.services.github import GithubProject
 from ogr.utils import RequestResponse
 from packit.config import JobConfig, JobType, JobConfigTriggerType
+from packit.config.job_config import JobMetadataConfig
 from packit.config.package_config import PackageConfig
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
-
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.models import (
     CoprBuildModel,
@@ -49,7 +51,6 @@ from packit_service.worker.handlers import CoprBuildEndHandler, GithubTestingFar
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.testing_farm import TestingFarmJobHelper
-from tests.spellbook import DATA_DIR
 
 CHROOT = "fedora-rawhide-x86_64"
 EXPECTED_BUILD_CHECK_NAME = f"packit-stg/rpm-build-{CHROOT}"
@@ -73,7 +74,7 @@ def pc_build_pr():
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                metadata={"targets": ["fedora-all"]},
+                metadata=JobMetadataConfig(targets=["fedora-all"]),
             )
         ]
     )
@@ -86,7 +87,7 @@ def pc_build_push():
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.commit,
-                metadata={"targets": ["fedora-all"]},
+                metadata=JobMetadataConfig(targets=["fedora-all"]),
             )
         ]
     )
@@ -99,7 +100,7 @@ def pc_build_release():
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.release,
-                metadata={"targets": ["fedora-all"]},
+                metadata=JobMetadataConfig(targets=["fedora-all"]),
             )
         ]
     )
@@ -112,7 +113,7 @@ def pc_tests():
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
-                metadata={"targets": ["fedora-all"]},
+                metadata=JobMetadataConfig(targets=["fedora-all"]),
             )
         ]
     )
@@ -315,12 +316,12 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                metadata={"targets": ["fedora-rawhide"]},
+                metadata=JobMetadataConfig(targets=["fedora-rawhide"]),
             ),
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
-                metadata={"targets": ["fedora-rawhide"]},
+                metadata=JobMetadataConfig(targets=["fedora-rawhide"]),
             ),
         ]
     )
@@ -452,12 +453,12 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                metadata={"targets": ["fedora-rawhide"]},
+                metadata=JobMetadataConfig(targets=["fedora-rawhide"]),
             ),
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
-                metadata={"targets": ["fedora-rawhide"]},
+                metadata=JobMetadataConfig(targets=["fedora-rawhide"]),
             ),
         ]
     )
@@ -574,12 +575,12 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                metadata={"targets": ["fedora-rawhide"]},
+                metadata=JobMetadataConfig(targets=["fedora-rawhide"]),
             ),
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
-                metadata={"targets": ["fedora-rawhide"]},
+                metadata=JobMetadataConfig(targets=["fedora-rawhide"]),
             ),
         ]
     )

@@ -102,9 +102,20 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         The job definition from the config file.
         """
-        if self.job_build:
-            return self.job_build.metadata.get("project", self.default_project_name)
+        if self.job_build and self.job_build.metadata.project:
+            return self.job_build.metadata.project
+
         return self.default_project_name
+
+    @property
+    def job_owner(self) -> Optional[str]:
+        """
+        Owner used for the copr build -- search the config or use the copr's config.
+        """
+        if self.job_build and self.job_build.metadata.owner:
+            return self.job_build.metadata.owner
+
+        return self.api.copr_helper.copr_client.config.get("username")
 
     # TODO: remove this once we're fully on psql
     @property
@@ -116,18 +127,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 chroots=self.build_chroots,
             )
         return self._copr_build_model
-
-    @property
-    def job_owner(self) -> Optional[str]:
-        """
-        Owner used for the copr build -- search the config or use the copr's config.
-        """
-        if self.job_build:
-            owner = self.job_build.metadata.get("owner")
-            if owner:
-                return owner
-
-        return self.api.copr_helper.copr_client.config.get("username")
 
     def run_copr_build(self) -> HandlerResults:
 
