@@ -17,6 +17,9 @@
           - python3-psycopg2
           - python3-lazy-object-proxy
           #- python3-flask-restx # https://bugzilla.redhat.com/show_bug.cgi?id=1817535
+          # To raise upon unknown config key (packit#782)
+          # Remove once we base packit image on fedora:32 (which ships marshmallow v3)
+          - https://jpopelka.fedorapeople.org/python3-marshmallow-3.5.1-1.fc31.noarch.rpm
         state: present
     - name: Install pip deps
       pip:
