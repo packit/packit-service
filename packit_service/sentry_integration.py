@@ -23,6 +23,7 @@ import logging
 from contextlib import contextmanager
 from os import getenv
 
+from packit_service.config import ServiceConfig, Deployment
 from packit_service.utils import only_once
 
 logger = logging.getLogger(__name__)
@@ -77,10 +78,11 @@ def configure_sentry(
 
 
 def send_to_sentry(ex):
-    # so that we don't have to have sentry sdk installed locally
-    import sentry_sdk
+    if ServiceConfig.get_service_config().deployment != Deployment.dev:
+        # so that we don't have to have sentry sdk installed locally
+        import sentry_sdk
 
-    sentry_sdk.capture_exception(ex)
+        sentry_sdk.capture_exception(ex)
 
 
 @contextmanager

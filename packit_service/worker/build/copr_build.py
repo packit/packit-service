@@ -29,8 +29,8 @@ from packit.config import PackageConfig, JobType, JobConfig
 from packit.utils import PackitFormatter
 from sandcastle import SandcastleTimeoutReached
 
-from packit_service.celerizer import celery_app
 from packit_service import sentry_integration
+from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import MSG_RETRIGGER
 from packit_service.models import CoprBuildModel, SRPMBuildModel
@@ -231,7 +231,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
             c.srpm_failed = True
 
-            # when do we NOT want to send stuff to sentry?
             sentry_integration.send_to_sentry(ex)
 
             # this needs to be done AFTER we gather logs
