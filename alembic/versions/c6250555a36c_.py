@@ -356,7 +356,16 @@ def upgrade():
         project_name = copr_build.get("project")
         owner = copr_build.get("owner")
         chroots = copr_build.get("chroots")
+        build_submitted_time = (
+            datetime.fromisoformat(copr_build.get("build_submitted_time"))
+            if copr_build.get("build_submitted_time")
+            else None
+        )
         build_id = copr_build.get("build_id")
+
+        if not build_id:
+            continue
+
         status = copr_build.get("status")
         web_url = (
             f"https://copr.fedorainfracloud.org/coprs/{owner}/{project_name}/"
@@ -380,7 +389,7 @@ def upgrade():
             build_finished_time = datetime.fromtimestamp(build.ended_on)
 
         except CoprNoResultException:
-            build_submitted_time = datetime(2020, 1, 1, 0, 0, 0)
+            build_submitted_time = build_submitted_time or datetime(2020, 1, 1, 0, 0, 0)
             build_start_time = datetime(2020, 1, 1, 0, 10, 0)
             build_finished_time = datetime(2020, 1, 1, 0, 20, 0)
 
