@@ -196,8 +196,7 @@ class CoprBuildUpgradeModel(Base):
     owner = Column(String)
 
     @classmethod
-    def get_by_build_id(cls, session: Session, build_id: Union[str, int], target: str):
-        build_id = str(build_id)
+    def get_by_build_id(cls, session: Session, build_id: str, target: str):
         return (
             session.query(CoprBuildUpgradeModel)
             .filter_by(build_id=build_id, target=target)
@@ -318,6 +317,9 @@ def upgrade():
     # whitelist
     db = PersistentDict(hash_name="whitelist")
     for account, data in db.get_all().items():
+        if not isinstance(data, dict):
+            continue
+
         status = data.get("status")
         WhitelistUpgradeModel.add_account(
             session=session, account_name=account, status=status
@@ -325,6 +327,9 @@ def upgrade():
 
     # installations
     for event in RedisInstallation.db().get_all().values():
+        if not isinstance(event, dict):
+            continue
+
         event = event["event_data"]
         account_login = event.get("account_login")
         account_id = event.get("account_id")
@@ -353,6 +358,9 @@ def upgrade():
 
     #  copr-builds
     for copr_build in RedisCoprBuild.db().get_all().values():
+        if not isinstance(copr_build, dict):
+            continue
+
         project_name = copr_build.get("project")
         owner = copr_build.get("owner")
         chroots = copr_build.get("chroots")
@@ -371,15 +379,21 @@ def upgrade():
             f"https://copr.fedorainfracloud.org/coprs/{owner}/{project_name}/"
             f"build/{build_id}/"
         )
-        project_name_list = project_name.split("-")
-        if project_name_list[-1] == "stg":
-            pr_id = int(project_name_list[-2])
-        else:
-            pr_id = int(project_name_list[-1])
 
-        job_trigger = JobTriggerUpgradeModel.get_or_create(
-            type=JobTriggerModelType.pull_request, trigger_id=pr_id, session=session,
-        )
+        try:
+            project_name_list = project_name.split("-")
+            if project_name_list[-1] == "stg":
+                pr_id = int(project_name_list[-2])
+            else:
+                pr_id = int(project_name_list[-1])
+
+            job_trigger = JobTriggerUpgradeModel.get_or_create(
+                type=JobTriggerModelType.pull_request,
+                trigger_id=pr_id,
+                session=session,
+            )
+        except Exception:
+            continue
 
         try:
             copr = Client.create_from_config_file()
@@ -396,7 +410,7 @@ def upgrade():
         for chroot in chroots:
             CoprBuildUpgradeModel.get_or_create(
                 session=session,
-                build_id=build_id,
+                build_id=str(build_id),
                 project_name=project_name,
                 owner=owner,
                 target=chroot,
