@@ -317,6 +317,9 @@ def upgrade():
     # whitelist
     db = PersistentDict(hash_name="whitelist")
     for account, data in db.get_all().items():
+        if not isinstance(data, dict):
+            continue
+
         status = data.get("status")
         WhitelistUpgradeModel.add_account(
             session=session, account_name=account, status=status
@@ -324,6 +327,9 @@ def upgrade():
 
     # installations
     for event in RedisInstallation.db().get_all().values():
+        if not isinstance(event, dict):
+            continue
+
         event = event["event_data"]
         account_login = event.get("account_login")
         account_id = event.get("account_id")
@@ -352,6 +358,9 @@ def upgrade():
 
     #  copr-builds
     for copr_build in RedisCoprBuild.db().get_all().values():
+        if not isinstance(copr_build, dict):
+            continue
+
         project_name = copr_build.get("project")
         owner = copr_build.get("owner")
         chroots = copr_build.get("chroots")
