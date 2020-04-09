@@ -258,7 +258,7 @@ def copr_build_release():
 
 
 @pytest.fixture()
-def pull_request_webhhok() -> dict:
+def pull_request_webhook() -> dict:
     with open(DATA_DIR / "webhooks" / "github_pr_event.json", "r") as outfile:
         return json.load(outfile)
 
@@ -286,5 +286,5 @@ def release_event(release_webhook) -> ReleaseEvent:
 
 
 @pytest.fixture()
-def pull_request_event(pull_request_webhhok) -> PullRequestEvent:
-    return Parser.parse_pr_event(pull_request_webhhok)
+def pull_request_event(pull_request_webhook) -> PullRequestEvent:
+    return Parser.parse_pr_event(pull_request_webhook)

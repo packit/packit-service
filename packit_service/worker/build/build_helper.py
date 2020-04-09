@@ -130,16 +130,16 @@ class BaseBuildJobHelper:
         2. If the job is defined, but not the targets, use "fedora-stable" alias otherwise.
         """
         if (
-            (not self.job_build or "targets" not in self.job_build.metadata)
+            (not self.job_build or not self.job_build.metadata.targets)
             and self.job_tests
-            and "targets" in self.job_tests.metadata
+            and self.job_tests.metadata.targets
         ):
             return self.tests_chroots
 
         if not self.job_build:
             raw_targets = ["fedora-stable"]
         else:
-            raw_targets = self.job_build.metadata.get("targets", ["fedora-stable"])
+            raw_targets = self.job_build.metadata.targets or ["fedora-stable"]
             if isinstance(raw_targets, str):
                 raw_targets = [raw_targets]
 
@@ -160,10 +160,10 @@ class BaseBuildJobHelper:
         if not self.job_tests:
             return []
 
-        if "targets" not in self.job_tests.metadata and self.job_build:
+        if not self.job_tests.metadata.targets and self.job_build:
             return self.build_chroots
 
-        configured_targets = self.job_tests.metadata.get("targets", ["fedora-stable"])
+        configured_targets = self.job_tests.metadata.targets or ["fedora-stable"]
         if isinstance(configured_targets, str):
             configured_targets = [configured_targets]
 

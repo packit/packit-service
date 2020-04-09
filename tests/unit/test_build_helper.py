@@ -1,7 +1,8 @@
 import pytest
 from flexmock import flexmock
-from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 
+from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
+from packit.config.job_config import JobMetadataConfig
 from packit_service.service.events import TheJobTriggerType
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 
@@ -14,7 +15,7 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={"targets": ["fedora-29", "fedora-31"]},
+                    metadata=JobMetadataConfig(targets=["fedora-29", "fedora-31"]),
                 )
             ],
             TheJobTriggerType.pull_request,
@@ -28,7 +29,7 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={"targets": ["fedora-29", "fedora-31"]},
+                    metadata=JobMetadataConfig(targets=["fedora-29", "fedora-31"]),
                 )
             ],
             TheJobTriggerType.pr_comment,
@@ -42,7 +43,7 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.release,
-                    metadata={"targets": ["fedora-29", "fedora-31"]},
+                    metadata=JobMetadataConfig(targets=["fedora-29", "fedora-31"]),
                 )
             ],
             TheJobTriggerType.release,
@@ -56,7 +57,7 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata={"targets": ["fedora-29", "fedora-31"]},
+                    metadata=JobMetadataConfig(targets=["fedora-29", "fedora-31"]),
                 )
             ],
             TheJobTriggerType.push,
@@ -70,12 +71,12 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={"targets": ["fedora-29", "fedora-31"]},
+                    metadata=JobMetadataConfig(targets=["fedora-29", "fedora-31"]),
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata={"targets": ["different", "os", "target"]},
+                    metadata=JobMetadataConfig(targets=["different", "os", "target"]),
                 ),
             ],
             TheJobTriggerType.pull_request,
@@ -89,12 +90,12 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={"targets": ["fedora-29", "fedora-31"]},
+                    metadata=JobMetadataConfig(targets=["fedora-29", "fedora-31"]),
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata={"targets": ["different", "os", "target"]},
+                    metadata=JobMetadataConfig(targets=["different", "os", "target"]),
                 ),
             ],
             TheJobTriggerType.pr_comment,
@@ -108,12 +109,12 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={"targets": ["different", "os", "target"]},
+                    metadata=JobMetadataConfig(targets=["different", "os", "target"]),
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata={"targets": ["fedora-29", "fedora-31"]},
+                    metadata=JobMetadataConfig(targets=["fedora-29", "fedora-31"]),
                 ),
             ],
             TheJobTriggerType.push,
@@ -125,9 +126,7 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
                 )
             ],
             TheJobTriggerType.pull_request,
@@ -137,13 +136,7 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
             id="build_without_targets",
         ),
         pytest.param(
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
-                )
-            ],
+            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request,)],
             TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             {"fedora-30-x86_64", "fedora-31-x86_64"},
@@ -155,7 +148,7 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={"targets": ["fedora-29", "fedora-31"]},
+                    metadata=JobMetadataConfig(targets=["fedora-29", "fedora-31"]),
                 )
             ],
             TheJobTriggerType.pull_request,
@@ -167,14 +160,10 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
             TheJobTriggerType.pull_request,
@@ -188,12 +177,10 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={"targets": ["fedora-29", "fedora-31"]},
+                    metadata=JobMetadataConfig(targets=["fedora-29", "fedora-31"]),
                 ),
                 JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
             TheJobTriggerType.pull_request,
@@ -205,14 +192,12 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={"targets": ["fedora-29", "fedora-31"]},
+                    metadata=JobMetadataConfig(targets=["fedora-29", "fedora-31"]),
                 ),
             ],
             TheJobTriggerType.pull_request,
@@ -224,14 +209,12 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={"targets": "fedora-29"},
+                    metadata=JobMetadataConfig(targets=["fedora-29"]),
                 ),
             ],
             TheJobTriggerType.pull_request,
@@ -243,14 +226,12 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    type=JobType.build, trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={"targets": "fedora-29"},
+                    metadata=JobMetadataConfig(targets=["fedora-29"]),
                 ),
             ],
             TheJobTriggerType.pull_request,
