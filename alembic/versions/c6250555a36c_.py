@@ -45,7 +45,7 @@ else:
 
 
 # Redis models
-class Model:
+class RedisModel:
     table_name: str
     identifier: Union[int, str] = None
 
@@ -56,12 +56,12 @@ class Model:
         return PersistentDict(hash_name=cls.table_name)
 
 
-class Installation(Model):
+class RedisInstallation(RedisModel):
     table_name = "github_installation"
     event_data: InstallationEvent
 
 
-class Build(Model):
+class RedisBuild(RedisModel):
     status: str
     build_id: int
     build_submitted_time: str = None
@@ -69,7 +69,7 @@ class Build(Model):
     build_finished_time: str = None
 
 
-class CoprBuild(Build):
+class RedisCoprBuild(RedisBuild):
     table_name = "copr-builds"
     project: str
     owner: str
@@ -324,7 +324,7 @@ def upgrade():
         )
 
     # installations
-    for event in Installation.db().get_all().values():
+    for event in RedisInstallation.db().get_all().values():
         event = event["event_data"]
         account_login = event.get("account_login")
         account_id = event.get("account_id")
@@ -352,11 +352,10 @@ def upgrade():
         )
 
     #  copr-builds
-    for copr_build in CoprBuild.db().get_all().values():
+    for copr_build in RedisCoprBuild.db().get_all().values():
         project_name = copr_build.get("project")
         owner = copr_build.get("owner")
         chroots = copr_build.get("chroots")
-        build_submitted_time = copr_build.get("build_submitted_time")
         build_id = copr_build.get("build_id")
         status = copr_build.get("status")
         web_url = (
@@ -381,7 +380,7 @@ def upgrade():
             build_finished_time = datetime.fromtimestamp(build.ended_on)
 
         except CoprNoResultException:
-            build_submitted_time = build_submitted_time or datetime(2020, 1, 1, 0, 0, 0)
+            build_submitted_time = datetime(2020, 1, 1, 0, 0, 0)
             build_start_time = datetime(2020, 1, 1, 0, 10, 0)
             build_finished_time = datetime(2020, 1, 1, 0, 20, 0)
 
