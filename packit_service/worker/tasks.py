@@ -92,7 +92,7 @@ def babysit_copr_build(self, build_id: int):
             event = CoprBuildEvent(
                 topic=FedmsgTopic.copr_build_finished.value,
                 build_id=build_id,
-                build={},
+                build=build,
                 chroot=build.target,
                 status=(
                     COPR_API_SUCC_STATE
@@ -104,7 +104,6 @@ def babysit_copr_build(self, build_id: int):
                 pkg=build_copr.source_package.get(
                     "name", ""
                 ),  # this seems to be the SRPM name
-                build_pg=build,
             )
             CoprBuildEndHandler(
                 ServiceConfig.get_service_config(), job_config=None, event=event

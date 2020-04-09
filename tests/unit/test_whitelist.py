@@ -47,7 +47,6 @@ from packit_service.service.events import (
     AbstractGithubEvent,
 )
 from packit_service.service.events import WhitelistStatus
-from packit_service.service.models import Model
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.whitelist import Whitelist
 
@@ -297,7 +296,6 @@ def test_check_and_report(
                 None
             )
             flexmock(LocalProject).should_receive("checkout_pr").and_return(None)
-            flexmock(Model).should_receive("save").and_return(None)
             flexmock(StatusReporter).should_receive("report").with_args(
                 description="Account is not whitelisted!",
                 state=CommitStatus.error,

@@ -84,6 +84,13 @@ def get_sa_session() -> Session:
         raise
 
 
+def optional_time(datetime_object) -> Union[str, None]:
+    """Returns a string if argument is a datetime object."""
+    if datetime_object is None:
+        return None
+    return datetime_object.strftime("%d/%m/%Y %H:%M:%S")
+
+
 # https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
 if TYPE_CHECKING:
     Base = object
@@ -628,7 +635,9 @@ class WhitelistModel(Base):
             )
 
     @classmethod
-    def get_accounts_by_status(cls, status: str) -> Optional["WhitelistModel"]:
+    def get_accounts_by_status(
+        cls, status: str
+    ) -> Optional[Iterable["WhitelistModel"]]:
         with get_sa_session() as session:
             return session.query(WhitelistModel).filter_by(status=status)
 
@@ -639,6 +648,14 @@ class WhitelistModel(Base):
             if account:
                 account.delete()
             return account
+
+    @classmethod
+    def get_all(cls) -> Optional[Iterable["WhitelistModel"]]:
+        with get_sa_session() as session:
+            return session.query(WhitelistModel).all()
+
+    def to_dict(self) -> dict:
+        return {"account": self.account_name, "status": self.status}
 
     def __repr__(self):
         return f"WhitelistModel(name={self.account_name})"
@@ -805,6 +822,17 @@ class InstallationModel(Base):
                 ]
                 session.add(installation)
             return installation
+
+    def to_dict(self):
+        return {
+            "account_login": self.account_login,
+            "account_id": self.account_id,
+            "account_type": self.account_type,
+            "account_url": self.account_url,
+            "sender_login": self.sender_login,
+            "sender_id": self.sender_id,
+            "created_at": optional_time(self.created_at),
+        }
 
     def __repr__(self):
         return f"InstallationModel(id={self.id}, account={self.account_login})"

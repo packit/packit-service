@@ -31,21 +31,12 @@ except ModuleNotFoundError:
     from flask_restplus import Namespace, Resource
 
 from packit_service.service.api.parsers import indices, pagination_arguments
-from packit_service.models import CoprBuildModel
+from packit_service.models import CoprBuildModel, optional_time
 
-from typing import Union
 
 logger = getLogger("packit_service")
 
 ns = Namespace("copr-builds", description="COPR builds")
-
-
-def optional_time(datetime_object) -> Union[str, None]:
-    """Returns a string if argument is a datetime object."""
-    if datetime_object is None:
-        return None
-    else:
-        return datetime_object.strftime("%d/%m/%Y %H:%M:%S")
 
 
 @ns.route("")

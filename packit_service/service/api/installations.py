@@ -27,8 +27,7 @@ try:
 except ModuleNotFoundError:
     from flask_restplus import Namespace, Resource
 
-from packit_service.service.events import Event
-from packit_service.service.models import Installation
+from packit_service.models import InstallationModel
 
 logger = getLogger("packit_service")
 
@@ -40,9 +39,7 @@ class InstallationsList(Resource):
     @ns.response(HTTPStatus.OK, "OK, installations list follows")
     def get(self):
         """List all Github App installations"""
-        return [
-            Event.ts2str(i["event_data"]) for i in Installation.db().get_all().values()
-        ]
+        return [installation.to_dict() for installation in InstallationModel.get_all()]
 
 
 @ns.route("/<int:id>")
@@ -52,6 +49,5 @@ class InstallationItem(Resource):
     @ns.response(HTTPStatus.NO_CONTENT, "identifier not in whitelist")
     def get(self, id):
         """A specific installation details"""
-        installation = Installation.db().get(id)
-        no_content = ("", HTTPStatus.NO_CONTENT)
-        return installation["event_data"] if installation else no_content
+        installation = InstallationModel.get_by_id(id)
+        return installation.to_dict() if installation else ("", HTTPStatus.NO_CONTENT)
