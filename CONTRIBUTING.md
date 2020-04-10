@@ -108,7 +108,7 @@ When you are running httpd and making requests to it, make sure that `server_nam
 server_name: "dev.packit.dev:8443"
 ```
 
-and `/etc/hosts`:
+and `/etc/hosts` (replace `172.18.0.5` with actual IP address from `packit-service` logs):
 
 ```
 172.18.0.5  dev.packit.dev
