@@ -105,22 +105,22 @@ You can also run only certain pieces of packit-service for local development
 When you are running httpd and making requests to it, make sure that `server_name` configuration file in `packit-service.yaml` is set. Then you **need** to make requests to httpd using that hostname (which can be done by creating a new entry in `/etc/hosts` on your laptop). Flask literally checks if the request is meant for it by comparing `Host` from the HTTP request with the value of [`SERVER_NAME`](https://flask.palletsprojects.com/en/1.1.x/config/#SERVER_NAME). The `SERVER_NAME` value also has to include port number if it differs from the default, hence your `packit-service.yaml` should contain something like this:
 
 ```yaml
-server_name: "stg.packit.dev:8443"
+server_name: "dev.packit.dev:8443"
 ```
 
 and `/etc/hosts`:
 
 ```
-172.18.0.5  stg.packit.dev
+172.18.0.5  dev.packit.dev
 ```
 
 With these you should be able to make requests:
 
 ```
-$ curl -k --head https://stg.packit.dev:8443/api/
+$ curl -k --head https://dev.packit.dev:8443/api/
 HTTP/1.1 200 OK
-Date: Mon, 09 Mar 2020 15:06:35 GMT
-Server: Apache/2.4.41 (Fedora) OpenSSL/1.1.1d mod_wsgi/4.6.6 Python/3.7
+Date: Fri, 10 Apr 2020 10:12:42 GMT
+Server: Apache/2.4.43 (Fedora) OpenSSL/1.1.1d mod_wsgi/4.6.6 Python/3.7
 Content-Length: 3851
 Content-Type: text/html; charset=utf-8
 ```
@@ -128,7 +128,7 @@ Content-Type: text/html; charset=utf-8
 Proof:
 
 ```
-packit-service           | 172.18.0.1 - - [09/Mar/2020:15:06:35 +0000] "HEAD /api/ HTTP/1.1" 200 -
+packit-service           | 172.18.0.1 - - [10/Apr/2020:10:22:35 +0000] "HEAD /api/ HTTP/1.1" 200 -
 ```
 
 ### Generating GitHub webhooks
