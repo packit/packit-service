@@ -384,8 +384,11 @@ class CoprBuildModel(Base):
             self.build_logs_url = build_logs
             session.add(self)
 
-    def get_project(self) -> GitProjectModel:
-        return self.job_trigger.get_trigger_object().project
+    def get_project(self) -> Optional[GitProjectModel]:
+        trigger_object = self.job_trigger.get_trigger_object()
+        if not trigger_object:
+            return None
+        return trigger_object.project
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["CoprBuildModel"]:

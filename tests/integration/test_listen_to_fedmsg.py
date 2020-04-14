@@ -46,7 +46,6 @@ from packit_service.models import (
 from packit_service.service.events import CoprBuildEvent
 from packit_service.service.urls import get_log_url
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
-from packit_service.worker.copr_db import CoprBuildDB
 from packit_service.worker.handlers import CoprBuildEndHandler, GithubTestingFarmHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.reporting import StatusReporter
@@ -135,9 +134,6 @@ def test_copr_build_end(
             }
         )
     )
-    flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
-        flexmock()
-    )
     pc_build_pr.notifications.pull_request.successful_build = pc_comment_pr_succ
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
@@ -152,18 +148,6 @@ def test_copr_build_end(
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
     copr_build_pr.should_receive("set_status").with_args("success")
-
-    flexmock(CoprBuildDB).should_receive("get_build").and_return(
-        {
-            "commit_sha": "XXXXX",
-            "pr_id": 24,
-            "repo_name": "hello-world",
-            "repo_namespace": "packit-service",
-            "ref": "XXXX",
-            "https_url": "https://github.com/packit-service/hello-world",
-        }
-    )
-
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -192,9 +176,6 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
             }
         )
     )
-    flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
-        flexmock()
-    )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_push
     )
@@ -209,17 +190,6 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
         copr_build_branch_push
     )
     copr_build_branch_push.should_receive("set_status").with_args("success")
-    flexmock(CoprBuildDB).should_receive("get_build").and_return(
-        {
-            "commit_sha": "XXXXX",
-            "pr_id": 24,
-            "repo_name": "hello-world",
-            "repo_namespace": "packit-service",
-            "ref": "XXXX",
-            "https_url": "https://github.com/packit-service/hello-world",
-        }
-    )
-
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -248,9 +218,6 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
             }
         )
     )
-    flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
-        flexmock()
-    )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_release
     )
@@ -265,17 +232,6 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
         copr_build_release
     )
     copr_build_release.should_receive("set_status").with_args("success")
-    flexmock(CoprBuildDB).should_receive("get_build").and_return(
-        {
-            "commit_sha": "XXXXX",
-            "pr_id": 24,
-            "repo_name": "hello-world",
-            "repo_namespace": "packit-service",
-            "ref": "XXXX",
-            "https_url": "https://github.com/packit-service/hello-world",
-        }
-    )
-
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -308,9 +264,6 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(TestingFarmJobHelper).should_receive("job_project").and_return(
         "foo-bar-123-stg"
     )
-    flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
-        flexmock()
-    )
     config = PackageConfig(
         jobs=[
             JobConfig(
@@ -339,17 +292,6 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
     copr_build_pr.should_receive("set_status").with_args("success")
-    flexmock(CoprBuildDB).should_receive("get_build").and_return(
-        {
-            "commit_sha": "XXXXX",
-            "pr_id": 24,
-            "repo_name": "hello-world",
-            "repo_namespace": "packit-service",
-            "ref": "XXXX",
-            "https_url": "https://github.com/packit-service/hello-world",
-        }
-    )
-
     url = "https://localhost:5000/copr-build/1/logs"
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -445,9 +387,6 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     flexmock(TestingFarmJobHelper).should_receive("job_project").and_return(
         "foo-bar-123-stg"
     )
-    flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
-        flexmock()
-    )
     config = PackageConfig(
         jobs=[
             JobConfig(
@@ -476,17 +415,6 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
     copr_build_pr.should_receive("set_status").with_args("success")
-    flexmock(CoprBuildDB).should_receive("get_build").and_return(
-        {
-            "commit_sha": "XXXXX",
-            "pr_id": 24,
-            "repo_name": "hello-world",
-            "repo_namespace": "packit-service",
-            "ref": "XXXX",
-            "https_url": "https://github.com/packit-service/hello-world",
-        }
-    )
-
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
@@ -567,9 +495,6 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     flexmock(TestingFarmJobHelper).should_receive("job_project").and_return(
         "foo-bar-123-stg"
     )
-    flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
-        flexmock()
-    )
     config = PackageConfig(
         jobs=[
             JobConfig(
@@ -598,17 +523,6 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
     copr_build_pr.should_receive("set_status").with_args("success")
-    flexmock(CoprBuildDB).should_receive("get_build").and_return(
-        {
-            "commit_sha": "XXXXX",
-            "pr_id": 24,
-            "repo_name": "hello-world",
-            "repo_namespace": "packit-service",
-            "ref": "XXXX",
-            "https_url": "https://github.com/packit-service/hello-world",
-        }
-    )
-
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -688,9 +602,6 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
             }
         )
     )
-    flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
-        flexmock()
-    )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
@@ -699,17 +610,6 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     )
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    flexmock(CoprBuildDB).should_receive("get_build").and_return(
-        {
-            "commit_sha": "XXXXX",
-            "pr_id": 24,
-            "repo_name": "hello-world",
-            "repo_namespace": "packit-service",
-            "ref": "XXXX",
-            "https_url": "https://github.com/packit-service/hello-world",
-        }
-    )
-
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -739,9 +639,6 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
             }
         )
     )
-    flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
-        flexmock()
-    )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(pc_tests)
     flexmock(TestingFarmJobHelper).should_receive("get_build_check").and_return(
         EXPECTED_BUILD_CHECK_NAME
@@ -751,17 +648,6 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
     )
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    flexmock(CoprBuildDB).should_receive("get_build").and_return(
-        {
-            "commit_sha": "XXXXX",
-            "pr_id": 24,
-            "repo_name": "hello-world",
-            "repo_namespace": "packit-service",
-            "ref": "XXXX",
-            "https_url": "https://github.com/packit-service/hello-world",
-        }
-    )
-
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -798,9 +684,6 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
             }
         )
     )
-    flexmock(CoprBuildJobHelper).should_receive("copr_build_model").and_return(
-        flexmock()
-    )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
@@ -815,17 +698,6 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
     copr_build_pr.should_receive("set_status").with_args("success")
-    flexmock(CoprBuildDB).should_receive("get_build").and_return(
-        {
-            "commit_sha": "XXXXX",
-            "pr_id": 24,
-            "repo_name": "hello-world",
-            "repo_namespace": "packit-service",
-            "ref": "XXXX",
-            "https_url": "https://github.com/packit-service/hello-world",
-        }
-    )
-
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
