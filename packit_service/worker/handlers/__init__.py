@@ -45,7 +45,6 @@ from packit_service.worker.handlers.github_handlers import (
     GitHubIssueCommentProposeUpdateHandler,
     GitHubPullRequestCommentCoprBuildHandler,
     GitHubPullRequestCommentTestingFarmHandler,
-    PullRequestGithubCheckDownstreamHandler,
     ProposeDownstreamHandler,
     GithubTestingFarmHandler,
 )
@@ -67,7 +66,6 @@ __all__ = [
     GitHubIssueCommentProposeUpdateHandler.__name__,
     GitHubPullRequestCommentCoprBuildHandler.__name__,
     GitHubPullRequestCommentTestingFarmHandler.__name__,
-    PullRequestGithubCheckDownstreamHandler.__name__,
     ProposeDownstreamHandler.__name__,
     GithubTestingFarmHandler.__name__,
     Handler.__name__,
