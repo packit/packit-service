@@ -41,7 +41,6 @@ from packit_service.service.events import (
     PushGitHubEvent,
     ReleaseEvent,
 )
-from packit_service.service.models import CoprBuild as RedisCoprBuild
 from packit_service.service.urls import get_log_url, get_srpm_log_url
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.result import HandlerResults
@@ -84,9 +83,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             build="copr-build" if self.job_build else "build"
         )
 
-        # lazy properties
-        self._copr_build_model = None
-
     @property
     def default_project_name(self) -> str:
         """
@@ -116,17 +112,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             return self.job_build.metadata.owner
 
         return self.api.copr_helper.copr_client.config.get("username")
-
-    # TODO: remove this once we're fully on psql
-    @property
-    def copr_build_model(self) -> RedisCoprBuild:
-        if self._copr_build_model is None:
-            self._copr_build_model = RedisCoprBuild.create(
-                project=self.job_project,
-                owner=self.job_owner,
-                chroots=self.build_chroots,
-            )
-        return self._copr_build_model
 
     def run_copr_build(self) -> HandlerResults:
 
@@ -171,9 +156,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 url=url,
                 chroot=chroot,
             )
-
-        self.copr_build_model.build_id = build_metadata.copr_build_id
-        self.copr_build_model.save()
 
         # release the hounds!
         celery_app.send_task(

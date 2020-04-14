@@ -40,7 +40,6 @@ from packit.local_project import LocalProject
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig, GithubPackageConfigGetter
 from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
-from packit_service.models import InstallationModel
 from packit_service.service.events import (
     PullRequestEvent,
     InstallationEvent,
@@ -51,7 +50,7 @@ from packit_service.service.events import (
     PushGitHubEvent,
     TheJobTriggerType,
 )
-from packit_service.service.models import Installation
+from packit_service.models import InstallationModel
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.handlers import (
@@ -139,11 +138,6 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
         user is a packager.
         :return: HandlerResults
         """
-        # Redis
-        Installation.create(
-            installation_id=self.event.installation_id, event=self.event,
-        )
-        # Postgres
         InstallationModel.create(event=self.event)
         # try to add user to whitelist
         whitelist = Whitelist(

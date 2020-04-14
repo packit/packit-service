@@ -49,7 +49,6 @@ from packit_service.service.db_triggers import (
     AddBranchPushDbTrigger,
     AddIssueDbTrigger,
 )
-from packit_service.worker.copr_db import CoprBuildDB
 
 logger = logging.getLogger(__name__)
 
@@ -524,37 +523,28 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
 
 # Wait, what? copr build event doesn't sound like github event
 class CoprBuildEvent(AbstractGithubEvent):
-    build_pg: Optional[CoprBuildModel]
+    build: Optional[CoprBuildModel]
 
     def __init__(
         self,
         topic: str,
         build_id: int,
-        build: dict,
+        build: CoprBuildModel,
         chroot: str,
         status: int,
         owner: str,
         project_name: str,
         pkg: str,
-        build_pg: Optional[CoprBuildModel] = None,
     ):
-
-        if build_pg:
-            trigger_db = build_pg.job_trigger.get_trigger_object()
-            self.commit_sha = build_pg.commit_sha
-            self.base_repo_name = trigger_db.project.repo_name
-            self.base_repo_namespace = trigger_db.project.namespace
-            # FIXME: hardcoded, move this to PG
-            https_url = f"https://github.com/{self.base_repo_namespace}/{self.base_repo_name}.git"
-            git_ref = self.commit_sha  # ref should be name of the branch, not a hash
-        else:
-            self.pr_id = build.get("pr_id")
-            self.commit_sha = build.get("commit_sha", "")
-            self.base_repo_name = build.get("repo_name")
-            self.base_repo_namespace = build.get("repo_namespace")
-            https_url = build["https_url"]
-            git_ref = build.get("ref", "")
-            self.identifier = self.pr_id
+        trigger_db = build.job_trigger.get_trigger_object()
+        self.commit_sha = build.commit_sha
+        self.base_repo_name = trigger_db.project.repo_name
+        self.base_repo_namespace = trigger_db.project.namespace
+        # FIXME: hardcoded, move this to PG
+        https_url = (
+            f"https://github.com/{self.base_repo_namespace}/{self.base_repo_name}.git"
+        )
+        git_ref = self.commit_sha  # ref should be name of the branch, not a hash
 
         self.topic = FedmsgTopic(topic)
         if self.topic == FedmsgTopic.copr_build_started:
@@ -574,26 +564,22 @@ class CoprBuildEvent(AbstractGithubEvent):
         self.owner = owner
         self.project_name = project_name
         self.pkg = pkg
-        self.build_pg = build_pg
 
-        if self.build_pg:
-            trigger_type = build_pg.job_trigger.type
-            trigger_db = build_pg.job_trigger.get_trigger_object()
-            if trigger_type == JobTriggerModelType.pull_request:
-                self.pr_id = trigger_db.pr_id
-                self.identifier = str(trigger_db.pr_id)
-            elif trigger_type == JobTriggerModelType.release:
-                self.pr_id = None
-                self.identifier = trigger_db.tag_name
-            elif trigger_type == JobTriggerModelType.branch_push:
-                self.pr_id = None
-                self.identifier = trigger_db.name
+        trigger_type = build.job_trigger.type
+        trigger_db = build.job_trigger.get_trigger_object()
+        if trigger_type == JobTriggerModelType.pull_request:
+            self.pr_id = trigger_db.pr_id
+            self.identifier = str(trigger_db.pr_id)
+        elif trigger_type == JobTriggerModelType.release:
+            self.pr_id = None
+            self.identifier = trigger_db.tag_name
+        elif trigger_type == JobTriggerModelType.branch_push:
+            self.pr_id = None
+            self.identifier = trigger_db.name
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        if not self.build_pg:
-            return None
-        return self.build_pg.job_trigger.get_trigger_object()
+        return self.build.job_trigger.get_trigger_object()
 
     @classmethod
     def from_build_id(
@@ -607,29 +593,14 @@ class CoprBuildEvent(AbstractGithubEvent):
         pkg: str,
     ) -> Optional["CoprBuildEvent"]:
         """ Return cls instance or None if build_id not in CoprBuildDB"""
-        # pg
-        build_pg = CoprBuildModel.get_by_build_id(str(build_id), chroot)
-        build = None
-        if not build_pg:
-            # let's try redis now
-            build = CoprBuildDB().get_build(build_id)
-            if not build:
-                logger.warning(f"Build id: {build_id} not in CoprBuildDB")
-                return None
-        return cls(
-            topic,
-            build_id,
-            build,
-            chroot,
-            status,
-            owner,
-            project_name,
-            pkg,
-            build_pg=build_pg,
-        )
+        build = CoprBuildModel.get_by_build_id(str(build_id), chroot)
+        if not build:
+            logger.warning(f"Build id: {build_id} not in CoprBuildDB")
+            return None
+        return cls(topic, build_id, build, chroot, status, owner, project_name, pkg,)
 
     def pre_check(self):
-        if not self.build and not self.build_pg:
+        if not self.build:
             logger.warning("Copr build is not handled by this deployment.")
             return False
 
@@ -637,10 +608,10 @@ class CoprBuildEvent(AbstractGithubEvent):
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         d = self.__dict__
-        build_pg = d.pop("build_pg")
+        build = d.pop("build")
         result = super().get_dict(d)
         result["topic"] = result["topic"].value
-        self.build_pg = build_pg
+        self.build = build
         return result
 
     def get_package_config(self) -> Optional[PackageConfig]:

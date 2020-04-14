@@ -21,9 +21,8 @@
 # SOFTWARE.
 from http import HTTPStatus
 from itertools import islice
-from json import loads, dumps
+from json import dumps
 from logging import getLogger
-from os import getenv
 
 from flask import make_response
 
@@ -31,9 +30,6 @@ try:
     from flask_restx import Namespace, Resource
 except ModuleNotFoundError:
     from flask_restplus import Namespace, Resource
-
-from packit.utils import nested_get
-from redis import Redis
 
 from packit_service.models import TaskResultModel
 from packit_service.service.api.parsers import pagination_arguments, indices
@@ -43,14 +39,6 @@ logger = getLogger("packit_service")
 
 ns = Namespace("tasks", description="Celery tasks / jobs")
 
-# Can't use PersistendDict
-db = Redis(
-    host=getenv("REDIS_SERVICE_HOST", "localhost"),
-    port=int(getenv("REDIS_SERVICE_PORT", 6379)),
-    db=0,
-    decode_responses=True,
-)
-
 
 @ns.route("")
 class TasksList(Resource):
@@ -59,27 +47,14 @@ class TasksList(Resource):
     def get(self):
         """ List all Celery tasks / jobs """
         first, last = indices()
-
         tasks = []
-        # The db.keys() always returns all matched keys, but there's no better way with redis.
-        # Use islice (instead of [first:last]) to at least create an iterator instead of new list.
-        keys = db.keys("celery-task-meta-*")
-        for key in islice(keys, first, last):
-            data = db.get(key)
-            if data:
-                data = loads(data)
-                event = nested_get(data, "result", "event")
-                if event:  # timestamp to datetime string
-                    data["result"]["event"] = Event.ts2str(event)
-                tasks.append(data)
-
-        for task in TaskResultModel.get_all():
+        for task in islice(TaskResultModel.get_all(), first, last):
             data = task.to_dict()
             data["event"] = Event.ts2str(data["event"])
             tasks.append(data)
 
         resp = make_response(dumps(tasks), HTTPStatus.PARTIAL_CONTENT)
-        resp.headers["Content-Range"] = f"tasks {first+1}-{last}/{len(keys)}"
+        resp.headers["Content-Range"] = f"tasks {first+1}-{last}/{len(tasks)}"
         resp.headers["Content-Type"] = "application/json"
         return resp
 
@@ -88,18 +63,14 @@ class TasksList(Resource):
 @ns.param("id", "Celery task identifier")
 class TaskItem(Resource):
     @ns.response(HTTPStatus.OK, "OK, Celery task details follow")
-    @ns.response(HTTPStatus.NO_CONTENT, "Celery task identifier not in db/hash")
+    @ns.response(HTTPStatus.NO_CONTENT, "Celery task identifier not in db")
     def get(self, id: str):
         """A specific Celery task details"""
         task = TaskResultModel.get_by_id(id)
 
-        if task:
-            data = task.to_dict()
-            data["event"] = Event.ts2str(data["event"])
-            return data
+        if not task:
+            return "", HTTPStatus.NO_CONTENT
 
-        data = db.get(f"celery-task-meta-{id}")
-        event = nested_get(data, "result", "event")
-        if event:  # timestamp to datetime string
-            data["result"]["event"] = Event.ts2str(event)
-        return loads(data) if data else ("", HTTPStatus.NO_CONTENT)
+        data = task.to_dict()
+        data["event"] = Event.ts2str(data["event"])
+        return data

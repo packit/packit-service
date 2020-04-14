@@ -26,12 +26,9 @@ try:
     from flask_restx import Namespace, Resource
 except ModuleNotFoundError:
     from flask_restplus import Namespace, Resource
-from persistentdict.dict_in_redis import PersistentDict
 
-# hash name is defined in worker (Whitelist class), which I don't want to import from
-from packit_service.service.events import Event
+from packit_service.models import WhitelistModel
 
-db = PersistentDict(hash_name="whitelist")
 
 logger = getLogger("packit_service")
 
@@ -43,7 +40,7 @@ class WhiteList(Resource):
     @ns.response(HTTPStatus.OK, "OK, whitelist follows")
     def get(self):
         """List all Whitelisted FAS accounts"""
-        return [Event.ts2str(event) for event in db.get_all().values()]
+        return [account.to_dict() for account in WhitelistModel.get_all()]
 
 
 @ns.route("/<string:login>")
@@ -53,5 +50,5 @@ class WhiteListItem(Resource):
     @ns.response(HTTPStatus.NO_CONTENT, "login not in whitelist")
     def get(self, login):
         """A specific whitelist item details"""
-        account = db.get(login)
-        return account if account else ("", HTTPStatus.NO_CONTENT)
+        account = WhitelistModel.get_account(login)
+        return account.to_dict() if account else ("", HTTPStatus.NO_CONTENT)
