@@ -106,27 +106,29 @@ class InstallationItem(Resource):
         builds_list = CoprBuildModel.get_all_by_build_id(str(id))
         if bool(builds_list.first()):
             build = builds_list[0]
+            project = build.get_project()
+            pr = project.pull_requests[0]
             build_dict = {
                 "project": build.project_name,
                 "owner": build.owner,
-                "repo_name": build.pr.project.repo_name,
+                "repo_name": pr.project.repo_name,
                 "build_id": build.build_id,
                 "status": build.status,
                 "chroots": [],
                 "build_submitted_time": optional_time(build.build_submitted_time),
                 "build_start_time": build.build_start_time,
                 "build_finished_time": build.build_finished_time,
-                "pr_id": build.pr.pr_id,
+                "pr_id": pr.pr_id,
                 "commit_sha": build.commit_sha,
-                "repo_namespace": build.pr.project.namespace,
+                "repo_namespace": pr.project.namespace,
                 "web_url": build.web_url,
                 "srpm_logs": build.srpm_build.logs,
-                "git_repo": f"https://github.com/{build.pr.project.namespace}/"
-                f"{build.pr.project.repo_name}",
+                "git_repo": f"https://github.com/{pr.project.namespace}/"
+                f"{pr.project.repo_name}",
                 # For backwards compatability with the old redis based API
                 "ref": build.commit_sha,
-                "https_url": f"https://github.com/{build.pr.project.namespace}/"
-                f"{build.pr.project.repo_name}.git",
+                "https_url": f"https://github.com/{pr.project.namespace}/"
+                f"{pr.project.repo_name}.git",
             }
             # merge chroots into one
             for sbid_build in builds_list:
