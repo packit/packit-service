@@ -121,7 +121,7 @@ class InstallationItem(Resource):
             if project:
                 build_dict["repo_namespace"] = project.namespace
                 build_dict["repo_name"] = project.repo_name
-                build_dict["pr_id"] = build.trigger.get_trigger_object().pr_id
+                build_dict["pr_id"] = build.job_trigger.trigger_id
                 build_dict[
                     "git_repo"
                 ] = f"https://github.com/{project.namespace}/{project.repo_name}"
