@@ -77,40 +77,6 @@ class AbstractGithubJobHandler(JobHandler, GithubPackageConfigGetter):
     pass
 
 
-@use_for(job_type=JobType.check_downstream)
-class PullRequestGithubCheckDownstreamHandler(AbstractGithubJobHandler):
-    type = JobType.check_downstream
-    triggers = [TheJobTriggerType.pull_request]
-    event: PullRequestEvent
-
-    # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
-
-    def __init__(
-        self, config: ServiceConfig, job_config: JobConfig, event: PullRequestEvent
-    ):
-        super().__init__(config=config, job_config=job_config, event=event)
-        self.event = event
-        self.project: GitProject = event.get_project()
-        self.package_config: PackageConfig = self.get_package_config_from_repo(
-            self.project, event.base_ref, event.pr_id
-        )
-        self.package_config.upstream_project_url = event.project_url
-
-    def run(self) -> HandlerResults:
-        self.local_project = LocalProject(
-            git_project=self.project, working_dir=self.config.command_handler_work_dir
-        )
-
-        self.api = PackitAPI(self.config, self.package_config, self.local_project)
-
-        self.api.sync_pr(
-            pr_id=self.event.pr_id,
-            dist_git_branch=self.job_config.metadata.dist_git_branch or "master"
-            # TODO: figure out top upstream commit for source-git here
-        )
-        return HandlerResults(success=True, details={})
-
-
 class GithubAppInstallationHandler(AbstractGithubJobHandler):
     type = JobType.add_to_whitelist
     triggers = [TheJobTriggerType.installation]
