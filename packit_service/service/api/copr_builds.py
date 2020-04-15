@@ -121,13 +121,13 @@ class InstallationItem(Resource):
             if project:
                 build_dict["repo_namespace"] = project.namespace
                 build_dict["repo_name"] = project.repo_name
-                build_dict["pr_id"] = build.job_trigger.trigger_id
                 build_dict[
                     "git_repo"
                 ] = f"https://github.com/{project.namespace}/{project.repo_name}"
                 build_dict[
                     "https_url"
                 ] = f"https://github.com/{project.namespace}/{project.repo_name}.git"
+                build_dict["pr_id"] = build.get_pr_id()
 
             # merge chroots into one
             for sbid_build in builds_list:

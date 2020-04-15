@@ -390,6 +390,12 @@ class CoprBuildModel(Base):
             return None
         return trigger_object.project
 
+    def get_pr_id(self) -> Optional[int]:
+        trigger_object = self.job_trigger.get_trigger_object()
+        if isinstance(trigger_object, PullRequestModel):
+            return trigger_object.pr_id
+        return None
+
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["CoprBuildModel"]:
         with get_sa_session() as session:
