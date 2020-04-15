@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 import pytest
-from copr.v3 import Client, BuildProxy
+from copr.v3 import Client, BuildProxy, BuildChrootProxy
 from flexmock import flexmock
 from munch import Munch
 from packit.config import PackageConfig
@@ -124,6 +124,21 @@ def test_babysit_copr_build(clean_before_and_after, packit_build_752):
         }
     )
     flexmock(BuildProxy).should_receive("get").and_return(coprs_response)
+
+    chroot_response = Munch(
+        {
+            "ended_on": 1583916564,
+            "name": "fedora-rawhide-x86_64",
+            "result_url": "https://download.copr.fedorainfracloud.org/"
+            "results/packit/packit-service-packit-752/fedora-rawhide-x86_64/"
+            "01300329-packit/",
+            "started_on": 1583916315,
+            "state": "succeeded",
+        }
+    )
+    flexmock(BuildChrootProxy).should_receive("get").with_args(
+        BUILD_ID, "fedora-rawhide-x86_64"
+    ).and_return(chroot_response)
 
     babysit_copr_build(BUILD_ID)
     assert packit_build_752.status == PG_COPR_BUILD_STATUS_SUCCESS
