@@ -80,8 +80,6 @@ def babysit_copr_build(self, build_id: int):
             self.retry()
         logger.info(f"The status is {build_copr.state}")
 
-        # copr doesn't tell status of how a build in the chroot went:
-        #   https://bugzilla.redhat.com/show_bug.cgi?id=1813227
         for build in builds:
             if build.status != "pending":
                 logger.info(
@@ -89,6 +87,7 @@ def babysit_copr_build(self, build_id: int):
                     "things were taken care of already, skipping."
                 )
                 continue
+            chroot_build = copr_client.build_chroot_proxy.get(build_id, build.target)
             event = CoprBuildEvent(
                 topic=FedmsgTopic.copr_build_finished.value,
                 build_id=build_id,
@@ -96,7 +95,7 @@ def babysit_copr_build(self, build_id: int):
                 chroot=build.target,
                 status=(
                     COPR_API_SUCC_STATE
-                    if build_copr.state == COPR_SUCC_STATE
+                    if chroot_build.state == COPR_SUCC_STATE
                     else COPR_API_FAIL_STATE
                 ),
                 owner=build.owner,
