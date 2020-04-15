@@ -237,6 +237,49 @@ def multiple_copr_builds(pr_model, different_pr_model):
     ]
 
 
+@pytest.fixture()
+def copr_builds_with_different_triggers(pr_model, branch_model, release_model):
+    srpm_build = SRPMBuildModel.create("asd\nqwe\n")
+    yield [
+        # pull request trigger
+        CoprBuildModel.get_or_create(
+            build_id="123456",
+            commit_sha="687abc76d67d",
+            project_name="SomeUser-hello-world-9",
+            owner="packit",
+            web_url="https://copr.something.somewhere/123456",
+            target="fedora-42-x86_64",
+            status="pending",
+            srpm_build=srpm_build,
+            trigger_model=pr_model,
+        ),
+        # branch push trigger
+        CoprBuildModel.get_or_create(
+            build_id="123456",
+            commit_sha="687abc76d67d",
+            project_name="SomeUser-hello-world-9",
+            owner="packit",
+            web_url="https://copr.something.somewhere/123456",
+            target="fedora-43-x86_64",
+            status="pending",
+            srpm_build=srpm_build,
+            trigger_model=branch_model,
+        ),
+        # release trigger
+        CoprBuildModel.get_or_create(
+            build_id="987654",
+            commit_sha="987def76d67e",
+            project_name="SomeUser-random-text-7",
+            owner="cockpit-project",
+            web_url="https://copr.something.somewhere/987654",
+            target="fedora-43-x86_64",
+            status="pending",
+            srpm_build=srpm_build,
+            trigger_model=release_model,
+        ),
+    ]
+
+
 # Create a single build
 @pytest.fixture()
 def a_koji_build(pr_model):
