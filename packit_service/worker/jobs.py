@@ -38,7 +38,6 @@ from packit_service.service.events import (
     TheJobTriggerType,
 )
 from packit_service.trigger_mapping import is_trigger_matching_job_config
-from packit_service.worker.centos.parser import CentosEventParser
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -57,7 +56,7 @@ from packit_service.worker.handlers.comment_action_handler import (
     MAP_COMMENT_ACTION_TO_HANDLER,
     CommentAction,
 )
-from packit_service.worker.parser import Parser
+from packit_service.worker.parser import Parser, CentosEventParser
 from packit_service.worker.result import HandlerResults
 from packit_service.worker.whitelist import Whitelist
 
@@ -303,9 +302,6 @@ class SteveJobs:
                 return None
 
         if source == "centosmsg":
-            # centos_task_processor = CentosTaskProcessor(self.config)
-            # task_result = centos_task_processor.process_msg(event)
-            # return task_result
             event_object = CentosEventParser().parse_event(event)
         else:
             event_object = Parser.parse_event(event)

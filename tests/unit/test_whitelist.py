@@ -44,7 +44,7 @@ from packit_service.service.events import (
     PullRequestCommentAction,
     IssueCommentEvent,
     IssueCommentAction,
-    AbstractGitEvent,
+    AbstractGithubEvent,
 )
 from packit_service.service.events import WhitelistStatus
 from packit_service.worker.reporting import StatusReporter
@@ -187,7 +187,7 @@ def test_check_and_report_calls_method(whitelist, event, method, approved):
 
 
 @pytest.fixture()
-def events(request) -> List[Tuple[AbstractGitEvent, bool]]:
+def events(request) -> List[Tuple[AbstractGithubEvent, bool]]:
     """
     :param request: event type to create Event instances of that type
     :return: list of Events that check_and_report accepts together with whether they should pass
@@ -250,7 +250,7 @@ def events(request) -> List[Tuple[AbstractGitEvent, bool]]:
     "events", ["release", "pr", "pr_comment", "issue_comment"], indirect=True,
 )
 def test_check_and_report(
-    whitelist: Whitelist, events: List[Tuple[AbstractGitEvent, bool]]
+    whitelist: Whitelist, events: List[Tuple[AbstractGithubEvent, bool]]
 ):
     """
     :param whitelist: fixture

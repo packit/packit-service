@@ -23,6 +23,7 @@ import logging
 from typing import Union
 
 from ogr.abstract import GitProject, CommitStatus
+from ogr.services.pagure import PagureProject
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,10 @@ class StatusReporter:
     def set_status(
         self, state: CommitStatus, description: str, check_name: str, url: str = "",
     ):
+        # required because pagure api doesnt accept, empty url
+        if isinstance(self.project, PagureProject):
+            url = "https://wiki.centos.org/Manuals/ReleaseNotes/CentOSStream"
+
         logger.debug(f"Setting status for check '{check_name}': {description}")
         self.project.set_commit_status(
             self.commit_sha, state, url, description, check_name, trim=True

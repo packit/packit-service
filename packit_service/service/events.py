@@ -35,7 +35,11 @@ from packit.config import (
     get_package_config_from_repo,
     PackageConfig,
 )
-from packit_service.config import ServiceConfig, GithubPackageConfigGetter
+from packit_service.config import (
+    ServiceConfig,
+    GithubPackageConfigGetter,
+    PagurePackageConfigGetter,
+)
 
 from packit_service.constants import WHITELIST_CONSTANTS
 from packit_service.models import (
@@ -197,7 +201,7 @@ class AbstractGithubEvent(Event, GithubPackageConfigGetter):
             None  # will be shown to users -- e.g. in logs or in the copr-project name
         )
 
-    def get_project(self, get_project_kwargs: dict = None) -> GitProject:
+    def get_project(self) -> GitProject:
         return ServiceConfig.get_service_config().get_project(url=self.project_url)
 
 
@@ -637,3 +641,119 @@ def get_copr_build_logs_url(event: CoprBuildEvent) -> str:
         f"{event.project_name}/{event.chroot}/"
         f"{event.build_id:08d}-{event.pkg}/builder-live.log.gz"
     )
+
+
+class AbstractPagureEvent(Event, PagurePackageConfigGetter):
+    def __init__(self, trigger: TheJobTriggerType, project_url: str):
+        super().__init__(trigger)
+        self.project_url: str = project_url
+        self.git_ref: Optional[str] = None  # git ref that can be 'git checkout'-ed
+        self.identifier: Optional[str] = (
+            None  # will be shown to users -- e.g. in logs or in the copr-project name
+        )
+
+    def get_project(self) -> GitProject:
+        return ServiceConfig.get_service_config().get_project(url=self.project_url)
+
+
+class PushPagureEvent(AbstractPagureEvent):
+    def __init__(
+        self,
+        repo_namespace: str,
+        repo_name: str,
+        git_ref: str,
+        https_url: str,
+        commit_sha: str,
+    ):
+        super().__init__(trigger=TheJobTriggerType.push, project_url=https_url)
+        self.repo_namespace = repo_namespace
+        self.repo_name = repo_name
+        self.git_ref = git_ref
+        self.commit_sha = commit_sha
+        self.identifier = git_ref
+
+    def get_package_config(self) -> Optional[PackageConfig]:
+        package_config: PackageConfig = self.get_package_config_from_repo(
+            project=self.get_project(),
+            reference=self.commit_sha,
+            fail_when_missing=False,
+        )
+        if not package_config:
+            return None
+        package_config.upstream_project_url = self.project_url
+        return package_config
+
+
+class PullRequestCommentPagureEvent(AbstractPagureEvent):
+    def __init__(
+        self,
+        action: PullRequestCommentAction,
+        pr_id: int,
+        base_repo_namespace: str,
+        base_repo_name: str,
+        base_ref: Optional[str],
+        target_repo: str,
+        https_url: str,
+        user_login: str,
+        comment: str,
+        commit_sha: str = "",
+    ):
+        super().__init__(trigger=TheJobTriggerType.pr_comment, project_url=https_url)
+        self.action = action
+        self.pr_id = pr_id
+        self.base_repo_namespace = base_repo_namespace
+        self.base_repo_name = base_repo_name
+        self.base_ref = base_ref
+        self.commit_sha = commit_sha
+        self.target_repo = target_repo
+        self.user_login = user_login
+        self.comment = comment
+        self.identifier = str(pr_id)
+        self.git_ref = None  # pr_id will be used for checkout
+
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        result["action"] = result["action"].value
+        return result
+
+
+class PullRequestPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
+    def __init__(
+        self,
+        action: PullRequestAction,
+        pr_id: int,
+        base_repo_namespace: str,
+        base_repo_name: str,
+        base_ref: str,
+        target_repo: str,
+        https_url: str,
+        commit_sha: str,
+        user_login: str,
+    ):
+        super().__init__(trigger=TheJobTriggerType.pull_request, project_url=https_url)
+        self.action = action
+        self.pr_id = pr_id
+        self.base_repo_namespace = base_repo_namespace
+        self.base_repo_name = base_repo_name
+        self.base_ref = base_ref
+        self.target_repo = target_repo
+        self.commit_sha = commit_sha
+        self.user_login = user_login
+        self.identifier = str(pr_id)
+        self.git_ref = None  # pr_id will be used for checkout
+
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        result["action"] = result["action"].value
+        return result
+
+    def get_package_config(self) -> Optional[PackageConfig]:
+        package_config: PackageConfig = self.get_package_config_from_repo(
+            project=self.get_project(),
+            reference=self.commit_sha,
+            fail_when_missing=False,
+        )
+        if not package_config:
+            return None
+        package_config.upstream_project_url = self.project_url
+        return package_config

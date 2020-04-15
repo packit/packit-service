@@ -1,20 +1,20 @@
 import logging
 from typing import Optional, Callable, Union
 
-from ogr.abstract import GitProject, CommitStatus
+from ogr.abstract import GitProject
 
 from packit.config import JobConfig, PackageConfig, JobType
 from packit_service.config import (
     ServiceConfig,
     PagurePackageConfigGetter,
 )
-from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
 from packit_service.service.events import (
     PushGitHubEvent,
     TheJobTriggerType,
+    PullRequestPagureEvent,
+    PushPagureEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
-from packit_service.worker.centos.events import PullRequestPagureEvent, PushPagureEvent
 from packit_service.worker.handlers.abstract import use_for, JobHandler
 from packit_service.worker.result import HandlerResults
 
@@ -99,18 +99,6 @@ class PagurePullRequestCoprBuildHandler(AbstractPagureCoprBuildHandler):
         event: PullRequestPagureEvent,
     ):
         super().__init__(config=config, job_config=job_config, event=event)
-
-    def run(self) -> HandlerResults:
-        collaborators = self.project.who_can_merge_pr()
-        if self.event.user_login not in collaborators | self.config.admins:
-            self.copr_build_helper.report_status_to_all(
-                description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
-                state=CommitStatus.failure,
-            )
-            return HandlerResults(
-                success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
-            )
-        return super().run()
 
     def pre_check(self) -> bool:
         return (

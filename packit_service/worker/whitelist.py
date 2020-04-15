@@ -43,9 +43,10 @@ from packit_service.service.events import (
     DistGitEvent,
     PushGitHubEvent,
     TheJobTriggerType,
+    PushPagureEvent,
+    PullRequestPagureEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
-from packit_service.worker.centos.events import PushPagureEvent, PullRequestPagureEvent
 
 logger = logging.getLogger(__name__)
 

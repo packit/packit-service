@@ -35,12 +35,12 @@ from packit_service.service.events import (
     CoprBuildEvent,
     PushGitHubEvent,
     ReleaseEvent,
+    PullRequestPagureEvent,
 )
 from packit_service.trigger_mapping import (
     is_trigger_matching_job_config,
     are_job_types_same,
 )
-from packit_service.worker.centos.events import PullRequestPagureEvent
 from packit_service.worker.reporting import StatusReporter
 
 logger = logging.getLogger(__name__)
