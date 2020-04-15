@@ -212,12 +212,14 @@ class AbstractGithubCoprBuildHandler(AbstractGithubJobHandler):
     ):
         super().__init__(config=config, job_config=job_config, event=event)
 
-        if not isinstance(event, (PullRequestEvent, PushGitHubEvent, ReleaseEvent)):
-            raise PackitException(
-                "Unknown event, only "
-                "PullRequestEvent, ReleaseEvent, and PushGitHubEvent "
-                "are accepted."
-            )
+        # Should be not required as this test is done in precheck implementation
+        #
+        # if not isinstance(event, (PullRequestEvent, PushGitHubEvent, ReleaseEvent)):
+        #     raise PackitException(
+        #         "Unknown event, only "
+        #         "PullRequestEvent, ReleaseEvent, and PushGitHubEvent "
+        #         "are accepted."
+        #     )
 
         # lazy property
         self._copr_build_helper: Optional[CoprBuildJobHelper] = None

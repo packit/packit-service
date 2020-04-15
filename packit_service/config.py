@@ -199,13 +199,15 @@ class PagurePackageConfigGetter:
         reference: str,
         pr_id: int = None,
         fail_when_missing: bool = True,
-        file_name=None,
+        file_name="packit.yaml",
     ):
         """
         Get the package config and catch the invalid config scenario and possibly no-config scenario
         Static because of the easier mocking.
         """
-        loaded_config_raw = GitProject.get_file_content(file_name)
+        loaded_config_raw = project.get_file_content(file_name)
         loaded_config = yaml.safe_load(loaded_config_raw)
-        package_config = parse_loaded_config(loaded_config, spec_file_path="/")
+        package_config = parse_loaded_config(
+            loaded_config, spec_file_path="./hello.spec"
+        )
         return package_config

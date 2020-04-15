@@ -25,6 +25,7 @@ This file defines classes for events which are sent by GitHub or FedMsg.
 """
 import copy
 import enum
+import logging
 
 from datetime import datetime, timezone
 from typing import Optional, List, Union, Dict
@@ -197,9 +198,7 @@ class AbstractGithubEvent(Event, GithubPackageConfigGetter):
         )
 
     def get_project(self, get_project_kwargs: dict = None) -> GitProject:
-        return ServiceConfig.get_service_config().get_project(
-            url=self.project_url, get_project_kwargs=get_project_kwargs
-        )
+        return ServiceConfig.get_service_config().get_project(url=self.project_url)
 
 
 class ReleaseEvent(AddReleaseDbTrigger, AbstractGithubEvent):

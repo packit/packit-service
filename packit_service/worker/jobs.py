@@ -38,7 +38,7 @@ from packit_service.service.events import (
     TheJobTriggerType,
 )
 from packit_service.trigger_mapping import is_trigger_matching_job_config
-from packit_service.worker.centos.jobs import CentosTaskProcessor
+from packit_service.worker.centos.parser import CentosEventParser
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -143,10 +143,13 @@ class SteveJobs:
 
     @staticmethod
     def _is_private(project: GitProject) -> bool:
-        github_project = GithubProject(
-            repo=project.repo, service=project.service, namespace=project.namespace
-        )
-        return github_project.github_repo.private
+        if isinstance(project, GithubProject):
+            github_project = GithubProject(
+                repo=project.repo, service=project.service, namespace=project.namespace
+            )
+            return github_project.github_repo.private
+        else:
+            return False
 
     def process_jobs(self, event: Event) -> Dict[str, HandlerResults]:
         """
@@ -179,8 +182,13 @@ class SteveJobs:
             # failed because of missing whitelist approval
             whitelist = Whitelist()
             github_login = getattr(event, "github_login", None)
+            user_login = getattr(event, "user_login", None)
             if github_login and github_login in self.config.admins:
                 logger.info(f"{github_login} is admin, you shall pass")
+            # same for pagure event with user_login
+            # TODO: unify github pagure user name
+            elif user_login and user_login in self.config.admins:
+                logger.info(f"{user_login} is admin, you shall pass")
             elif not whitelist.check_and_report(
                 event, event.get_project(), config=self.config
             ):
@@ -295,11 +303,13 @@ class SteveJobs:
                 return None
 
         if source == "centosmsg":
-            centos_task_processor = CentosTaskProcessor(self.config)
-            task_result = centos_task_processor.process_msg(event)
-            return task_result
+            # centos_task_processor = CentosTaskProcessor(self.config)
+            # task_result = centos_task_processor.process_msg(event)
+            # return task_result
+            event_object = CentosEventParser().parse_event(event)
+        else:
+            event_object = Parser.parse_event(event)
 
-        event_object = Parser.parse_event(event)
         if not event_object or not event_object.pre_check():
             return None
 
@@ -309,6 +319,9 @@ class SteveJobs:
             # CoprBuildEvent.get_project returns None when the build id is not in redis
             if project:
                 is_private_repository = self._is_private(project)
+        # this was probably meant to handle services which dont have private
+        # functionality implemented, but self._is_private is for github therefore
+        # missing github_login is error is raised instead, fixed by isinstace check
         except NotImplementedError:
             logger.warning("Cannot obtain project from this event!")
             logger.warning("Skipping private repository check!")

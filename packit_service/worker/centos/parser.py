@@ -2,11 +2,11 @@ import logging
 from functools import partial
 
 from packit_service.worker.centos.events import (
-    PagurePullRequestCommentEvent,
+    PullRequestCommentPagureEvent,
     PullRequestAction,
-    PagurePullRequestEvent,
+    PullRequestPagureEvent,
     PullRequestCommentAction,
-    PagurePushEvent,
+    PushPagureEvent,
 )
 
 logger = logging.getLogger(__name__)
@@ -73,7 +73,7 @@ class CentosEventParser:
         commit_sha = pullrequest["commit_stop"]
         pagure_login = event["agent"]
 
-        return PagurePullRequestEvent(
+        return PullRequestPagureEvent(
             PullRequestAction[action],
             pr_id,
             base_repo_namespace,
@@ -87,7 +87,7 @@ class CentosEventParser:
 
     def _pull_request_comment(
         self, event: dict, action
-    ) -> PagurePullRequestCommentEvent:
+    ) -> PullRequestCommentPagureEvent:
         event[
             "https_url"
         ] = f"https://{event['source']}/{event['pullrequest']['project']['url_path']}"
@@ -113,7 +113,7 @@ class CentosEventParser:
                 f"Unknown comment location in response for {event['git_topic']}"
             )
 
-        return PagurePullRequestCommentEvent(
+        return PullRequestCommentPagureEvent(
             PullRequestCommentAction[action],
             pr_id,
             base_repo_namespace,
@@ -126,10 +126,10 @@ class CentosEventParser:
             comment,
         )
 
-    def _push_event(self, event: dict) -> PagurePushEvent:
+    def _push_event(self, event: dict) -> PushPagureEvent:
         logger.debug("Parsing git.receive (git push) event.")
 
-        return PagurePushEvent(
+        return PushPagureEvent(
             repo_namespace=event["repo"]["namespace"],
             repo_name=event["repo"]["name"],
             # pagure dont return git_ref, how to handle this?
