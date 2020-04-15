@@ -95,7 +95,14 @@ def test_create_copr_build(clean_before_and_after, a_copr_build_for_pr):
     # we will check if a_copr_build has build_submitted_time value that's within the past hour
     time_last_hour = datetime.utcnow() - timedelta(hours=1)
     assert a_copr_build_for_pr.build_submitted_time > time_last_hour
-    assert a_copr_build_for_pr.get_pr_id() == 342
+
+
+def test_copr_build_get_pr_id(
+    clean_before_and_after, copr_builds_with_different_triggers
+):
+    assert copr_builds_with_different_triggers[0].get_pr_id() == 342
+    assert not copr_builds_with_different_triggers[1].get_pr_id()
+    assert not copr_builds_with_different_triggers[2].get_pr_id()
 
 
 def test_get_copr_build(clean_before_and_after, a_copr_build_for_pr):
