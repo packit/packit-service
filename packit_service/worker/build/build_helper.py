@@ -136,12 +136,10 @@ class BaseBuildJobHelper:
         ):
             return self.tests_chroots
 
-        if not self.job_build:
-            raw_targets = ["fedora-stable"]
+        if self.job_build and self.job_build.metadata.targets:
+            raw_targets = self.job_build.metadata.targets
         else:
-            raw_targets = self.job_build.metadata.targets or ["fedora-stable"]
-            if isinstance(raw_targets, str):
-                raw_targets = [raw_targets]
+            raw_targets = {"fedora-stable"}
 
         return list(get_build_targets(*raw_targets))
 
@@ -163,10 +161,7 @@ class BaseBuildJobHelper:
         if not self.job_tests.metadata.targets and self.job_build:
             return self.build_chroots
 
-        configured_targets = self.job_tests.metadata.targets or ["fedora-stable"]
-        if isinstance(configured_targets, str):
-            configured_targets = [configured_targets]
-
+        configured_targets = self.job_tests.metadata.targets or {"fedora-stable"}
         return list(get_build_targets(*configured_targets))
 
     @property
