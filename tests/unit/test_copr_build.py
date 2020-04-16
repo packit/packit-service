@@ -160,7 +160,7 @@ def test_copr_build_for_branch(branch_push_event):
                 "fedora-rawhide-x86_64",
             ],
             owner="nobody",
-            dist_git_branch="build-branch",
+            dist_git_branches=["build-branch"],
         ),
     )
     flexmock(AddBranchPushDbTrigger).should_receive("db_trigger").and_return(
@@ -193,7 +193,7 @@ def test_copr_build_for_release(release_event):
                 "fedora-rawhide-x86_64",
             ],
             owner="nobody",
-            dist_git_branch="build-branch",
+            dist_git_branches=["build-branch"],
         ),
     )
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(

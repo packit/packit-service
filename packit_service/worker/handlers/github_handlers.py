@@ -24,7 +24,7 @@
 This file defines classes for job handlers specific for Github hooks
 """
 import logging
-from typing import Union, Any, Optional, List, Callable
+from typing import Union, Any, Optional, Callable, Set
 
 from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
@@ -36,10 +36,10 @@ from packit.config import (
 from packit.config.aliases import get_branches
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject
-
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig, GithubPackageConfigGetter
 from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
+from packit_service.models import InstallationModel
 from packit_service.service.events import (
     PullRequestEvent,
     InstallationEvent,
@@ -50,7 +50,6 @@ from packit_service.service.events import (
     PushGitHubEvent,
     TheJobTriggerType,
 )
-from packit_service.models import InstallationModel
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.handlers import (
@@ -161,7 +160,7 @@ class ProposeDownstreamHandler(AbstractGithubJobHandler):
 
         errors = {}
         for branch in get_branches(
-            self.job_config.metadata.dist_git_branch or "master"
+            *self.job_config.metadata.dist_git_branches, default="master"
         ):
             try:
                 self.api.sync_release(
@@ -358,13 +357,13 @@ class PushGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
         if not valid:
             return False
 
-        configured_branch = (
-            self.copr_build_helper.job_build.metadata.dist_git_branch or "master"
+        configured_branches = (
+            self.copr_build_helper.job_build.metadata.branch or "master"
         )
-        if configured_branch != self.event.git_ref:
+        if self.event.git_ref != configured_branches:
             logger.info(
-                f"Skipping build on {self.event.git_ref}'. "
-                f"Push configured only for ('{configured_branch}')."
+                f"Skipping build on '{self.event.git_ref}'. "
+                f"Push configured only for '{configured_branches}'."
             )
             return False
         return True
@@ -521,13 +520,13 @@ class PushGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
         if not valid:
             return False
 
-        configured_branch = (
-            self.koji_build_helper.job_build.metadata.dist_git_branch or "master"
+        configured_branches = (
+            self.koji_build_helper.job_build.metadata.branch or "master"
         )
-        if configured_branch != self.event.git_ref:
+        if self.event.git_ref != configured_branches:
             logger.info(
-                f"Skipping build on {self.event.git_ref}'. "
-                f"Push configured only for ('{configured_branch}')."
+                f"Skipping build on '{self.event.git_ref}'. "
+                f"Push configured only for '{configured_branches}'."
             )
             return False
         return True
@@ -643,20 +642,20 @@ class GitHubIssueCommentProposeUpdateHandler(
         self.package_config.upstream_project_url = event.project_url
 
     @property
-    def dist_git_branches_to_sync(self) -> List[str]:
+    def dist_git_branches_to_sync(self) -> Set[str]:
         """
         Get the dist-git branches to sync to with the aliases expansion.
 
         :return: list of dist-git branches
         """
-        configured_branches = [
-            job.metadata.dist_git_branch
-            for job in self.package_config.jobs
-            if job.type == JobType.propose_downstream
-        ]
+        configured_branches = set()
+        for job in self.package_config.jobs:
+            if job.type == JobType.propose_downstream:
+                configured_branches.update(job.metadata.dist_git_branches)
+
         if configured_branches:
-            return list(get_branches(*configured_branches))
-        return []
+            return get_branches(*configured_branches)
+        return set()
 
     def run(self) -> HandlerResults:
         self.local_project = LocalProject(
