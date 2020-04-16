@@ -60,6 +60,7 @@ class ServiceConfig(Config):
         webhook_secret: str = "",
         testing_farm_secret: str = "",
         validate_webhooks: bool = True,
+        disable_sentry: bool = False,
         admins: list = None,
         fas_password: Optional[str] = "",
         **kwargs,
@@ -70,7 +71,7 @@ class ServiceConfig(Config):
         self.webhook_secret = webhook_secret
         self.testing_farm_secret = testing_farm_secret
         self.validate_webhooks = validate_webhooks
-
+        self.disable_sentry = disable_sentry
         # fas.fedoraproject.org needs password to authenticate
         # 'fas_user' is inherited from packit.config.Config
         self.fas_password = fas_password
@@ -92,6 +93,7 @@ class ServiceConfig(Config):
             f"webhook_secret='{hide(self.webhook_secret)}', "
             f"testing_farm_secret='{hide(self.testing_farm_secret)}', "
             f"validate_webhooks='{self.validate_webhooks}', "
+            f"disable_sentry='{self.disable_sentry}', "
             f"admins='{self.admins}', "
             f"fas_password='{hide(self.fas_password)}', "
             f"server_name='{self.server_name}')"

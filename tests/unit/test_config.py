@@ -45,6 +45,7 @@ def service_config_valid():
         "keytab_path": "/secrets/fedora.keytab",
         "webhook_secret": "secret",
         "validate_webhooks": True,
+        "disable_sentry": False,
         "testing_farm_secret": "granko",
         "command_handler": "sandcastle",
         "command_handler_work_dir": "/sandcastle",
@@ -64,6 +65,7 @@ def test_parse_valid(service_config_valid):
     assert config.keytab_path == "/secrets/fedora.keytab"
     assert config.webhook_secret == "secret"
     assert config.validate_webhooks
+    assert config.disable_sentry is False
     assert config.testing_farm_secret == "granko"
     assert config.command_handler_work_dir == "/sandcastle"
     assert config.admins == {"Dasher", "Dancer", "Vixen", "Comet", "Blitzen"}
@@ -120,3 +122,4 @@ def test_config_opts(sc):
     assert sc.github_requests_log_path is not None
     assert sc.webhook_secret is not None
     assert sc.validate_webhooks is not None
+    assert sc.disable_sentry is not None

@@ -120,6 +120,8 @@ def test_copr_build_check_names(pull_request_event):
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None)
     flexmock(Celery).should_receive("send_task").once()
 
+    config = ServiceConfig.get_service_config()
+    config.disable_sentry = True
     assert helper.run_copr_build()["success"]
 
 
