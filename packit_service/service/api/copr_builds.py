@@ -60,7 +60,8 @@ class CoprBuildsList(Resource):
                     "project": build.project_name,
                     "owner": build.owner,
                     "build_id": build.build_id,
-                    "status": build.status,
+                    "status": build.status,  # Legacy, remove later.
+                    "status_per_chroot": {},
                     "chroots": [],
                     "build_submitted_time": optional_time(build.build_submitted_time),
                     "web_url": build.web_url,
@@ -79,6 +80,10 @@ class CoprBuildsList(Resource):
                 )
                 for sbid_build in same_buildid_builds:
                     build_dict["chroots"].append(sbid_build.target)
+                    # Get status per chroot as well
+                    build_dict["status_per_chroot"][
+                        sbid_build.target
+                    ] = sbid_build.status
 
                 checklist.append(int(build.build_id))
                 result.append(build_dict)
@@ -105,7 +110,8 @@ class InstallationItem(Resource):
                 "project": build.project_name,
                 "owner": build.owner,
                 "build_id": build.build_id,
-                "status": build.status,
+                "status": build.status,  # Legacy, remove later.
+                "status_per_chroot": {},
                 "chroots": [],
                 "build_submitted_time": optional_time(build.build_submitted_time),
                 "build_start_time": build.build_start_time,
@@ -132,6 +138,8 @@ class InstallationItem(Resource):
             # merge chroots into one
             for sbid_build in builds_list:
                 build_dict["chroots"].append(sbid_build.target)
+                # Get status per chroot as well
+                build_dict["status_per_chroot"][sbid_build.target] = sbid_build.status
 
             build = make_response(dumps(build_dict))
             build.headers["Content-Type"] = "application/json"
