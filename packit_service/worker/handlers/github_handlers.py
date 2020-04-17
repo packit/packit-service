@@ -357,13 +357,11 @@ class PushGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
         if not valid:
             return False
 
-        configured_branches = (
-            self.copr_build_helper.job_build.metadata.branch or "master"
-        )
-        if self.event.git_ref != configured_branches:
+        configured_branch = self.copr_build_helper.job_build.metadata.branch or "master"
+        if self.event.git_ref != configured_branch:
             logger.info(
                 f"Skipping build on '{self.event.git_ref}'. "
-                f"Push configured only for '{configured_branches}'."
+                f"Push configured only for '{configured_branch}'."
             )
             return False
         return True
@@ -520,13 +518,11 @@ class PushGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
         if not valid:
             return False
 
-        configured_branches = (
-            self.koji_build_helper.job_build.metadata.branch or "master"
-        )
-        if self.event.git_ref != configured_branches:
+        configured_branch = self.koji_build_helper.job_build.metadata.branch or "master"
+        if self.event.git_ref != configured_branch:
             logger.info(
                 f"Skipping build on '{self.event.git_ref}'. "
-                f"Push configured only for '{configured_branches}'."
+                f"Push configured only for '{configured_branch}'."
             )
             return False
         return True
