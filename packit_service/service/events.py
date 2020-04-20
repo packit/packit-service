@@ -363,7 +363,7 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
         base_repo_name: str,
         target_repo: str,
         https_url: str,
-        github_login: str,
+        user_login: str,
         comment: str,
         tag_name: str = "",
         base_ref: Optional[
@@ -378,7 +378,7 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
         self.base_ref = base_ref
         self._tag_name = tag_name
         self.target_repo = target_repo
-        self.github_login = github_login
+        self.user_login = user_login
         self.comment = comment
         self.identifier = str(issue_id)
 

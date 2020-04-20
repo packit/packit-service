@@ -445,7 +445,7 @@ def task_results():
                 "base_ref": "f483003f13f0fee585f5cc0b970f4cd21eca7c9d",
                 "target_repo": "nmstate/nmstate",
                 "commit_sha": "f483003f13f0fee585f5cc0b970f4cd21eca7c9d",
-                "github_login": "adwait-thattey",
+                "user_login": "adwait-thattey",
             },
         },
         {

@@ -654,7 +654,7 @@ class GitHubIssueCommentProposeUpdateHandler(
         self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
         collaborators = self.project.who_can_merge_pr()
-        if self.event.github_login not in collaborators | self.config.admins:
+        if self.event.user_login not in collaborators | self.config.admins:
             self.project.issue_comment(
                 self.event.issue_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )

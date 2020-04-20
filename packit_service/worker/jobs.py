@@ -180,13 +180,8 @@ class SteveJobs:
             # check whitelist approval for every job to be able to track down which jobs
             # failed because of missing whitelist approval
             whitelist = Whitelist()
-            github_login = getattr(event, "github_login", None)
             user_login = getattr(event, "user_login", None)
-            if github_login and github_login in self.config.admins:
-                logger.info(f"{github_login} is admin, you shall pass")
-            # same for pagure event with user_login
-            # TODO: unify github pagure user name
-            elif user_login and user_login in self.config.admins:
+            if user_login and user_login in self.config.admins:
                 logger.info(f"{user_login} is admin, you shall pass")
             elif not whitelist.check_and_report(
                 event, event.get_project(), config=self.config
@@ -266,9 +261,9 @@ class SteveJobs:
         # check whitelist approval for every job to be able to track down which jobs
         # failed because of missing whitelist approval
         whitelist = Whitelist()
-        github_login = getattr(event, "github_login", None)
-        if github_login and github_login in self.config.admins:
-            logger.info(f"{github_login} is admin, you shall pass")
+        user_login = getattr(event, "user_login", None)
+        if user_login and user_login in self.config.admins:
+            logger.info(f"{user_login} is admin, you shall pass")
         elif not whitelist.check_and_report(
             event, event.get_project(), config=self.config
         ):
@@ -317,7 +312,7 @@ class SteveJobs:
                 is_private_repository = self._is_private(project)
         # this was probably meant to handle services which dont have private
         # functionality implemented, but self._is_private is for github therefore
-        # missing github_login is error is raised instead, fixed by isinstace check
+        # missing user_login is error is raised instead, fixed by isinstace check
         except NotImplementedError:
             logger.warning("Cannot obtain project from this event!")
             logger.warning("Skipping private repository check!")

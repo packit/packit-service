@@ -168,8 +168,8 @@ class Parser:
             logger.warning("Ref where the PR is coming from is not set.")
             return None
 
-        github_login = nested_get(event, "pull_request", "user", "login")
-        if not github_login:
+        user_login = nested_get(event, "pull_request", "user", "login")
+        if not user_login:
             logger.warning("No GitHub login name from event.")
             return None
 
@@ -187,7 +187,7 @@ class Parser:
             target_repo,
             https_url,
             commit_sha,
-            github_login,
+            user_login,
         )
 
     @staticmethod
@@ -257,8 +257,8 @@ class Parser:
         if not (base_repo_namespace and base_repo_name):
             logger.warning("No full name of the repository.")
 
-        github_login = nested_get(event, "comment", "user", "login")
-        if not github_login:
+        user_login = nested_get(event, "comment", "user", "login")
+        if not user_login:
             logger.warning("No Github login name from event.")
             return None
 
@@ -272,7 +272,7 @@ class Parser:
             base_repo_name,
             target_repo,
             https_url,
-            github_login,
+            user_login,
             comment,
         )
 
@@ -296,11 +296,11 @@ class Parser:
             logger.warning("No full name of the repository.")
             return None
 
-        github_login = nested_get(event, "comment", "user", "login")
-        if not github_login:
+        user_login = nested_get(event, "comment", "user", "login")
+        if not user_login:
             logger.warning("No GitHub login name from event.")
             return None
-        if github_login in {"packit-as-a-service[bot]", "packit-as-a-service-stg[bot]"}:
+        if user_login in {"packit-as-a-service[bot]", "packit-as-a-service-stg[bot]"}:
             logger.debug("Our own comment.")
             return None
 
@@ -315,7 +315,7 @@ class Parser:
             None,  # the payload does not include this info
             target_repo,
             https_url,
-            github_login,
+            user_login,
             comment,
         )
 
