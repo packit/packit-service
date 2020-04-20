@@ -10,4 +10,4 @@ cat $HOME/.config/packit-service.yaml
 
 alembic upgrade head
 
-pytest-3 -vv tests_requre/
+python3 -m pytest -vv tests_requre/
