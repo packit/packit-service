@@ -28,6 +28,7 @@ import logging
 from typing import Type, Optional
 
 import requests
+from datetime import datetime
 from ogr.abstract import CommitStatus
 from packit.api import PackitAPI
 from packit.config import (
@@ -283,6 +284,10 @@ class CoprBuildEndHandler(FedmsgHandler):
         )
         build.set_status(PG_COPR_BUILD_STATUS_SUCCESS)
 
+        build_start_time = datetime.utcfromtimestamp(self.event.started_on)
+        build_end_time = datetime.utcfromtimestamp(self.event.ended_on)
+        build.set_start_end_time(build_start_time, build_end_time)
+        build.set_build_logs_url(self.event.logs_url)
         if (
             self.build_job_helper.job_tests
             and self.event.chroot in self.build_job_helper.tests_chroots
