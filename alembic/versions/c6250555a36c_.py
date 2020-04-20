@@ -10,7 +10,6 @@ import logging
 from datetime import datetime, timezone
 from json import loads
 from os import getenv
-from copr.v3 import Client
 from celery.backends.database import Task
 from redis import Redis
 from typing import TYPE_CHECKING, Union, List
@@ -374,8 +373,10 @@ def upgrade():
         build_submitted_time = (
             datetime.fromisoformat(copr_build.get("build_submitted_time"))
             if copr_build.get("build_submitted_time")
-            else None
+            else datetime(2020, 1, 1, 0, 0, 0)
         )
+        build_start_time = datetime(2020, 1, 1, 0, 10, 0)
+        build_finished_time = datetime(2020, 1, 1, 0, 20, 0)
         build_id = copr_build.get("build_id")
 
         if not build_id:
@@ -401,19 +402,6 @@ def upgrade():
             )
         except Exception:
             continue
-
-        try:
-            logger.info(f"Getting copr build with build ID {build_id}")
-            copr = Client.create_from_config_file()
-            build = copr.build_proxy.get(build_id)
-            build_submitted_time = datetime.fromtimestamp(build.submitted_on)
-            build_start_time = datetime.fromtimestamp(build.started_on)
-            build_finished_time = datetime.fromtimestamp(build.ended_on)
-
-        except Exception:
-            build_submitted_time = build_submitted_time or datetime(2020, 1, 1, 0, 0, 0)
-            build_start_time = datetime(2020, 1, 1, 0, 10, 0)
-            build_finished_time = datetime(2020, 1, 1, 0, 20, 0)
 
         logger.info(f"Adding copr build with build ID {build_id} into CoprBuildModel")
         for chroot in chroots:
