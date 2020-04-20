@@ -44,8 +44,6 @@ services:
       - redis
       - postgres
     environment:
-      # Sentry secret is passed via an env var, not the secrets folder.
-      # SENTRY_SECRET: https://<key>@<organization>.ingest.sentry.io/<project>
       DEPLOYMENT: dev
       REDIS_SERVICE_HOST: redis
       APP: packit_service.worker.tasks

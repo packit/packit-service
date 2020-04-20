@@ -24,10 +24,8 @@ from contextlib import contextmanager
 from os import getenv
 
 from packit_service.utils import only_once
-from packit_service.config import ServiceConfig
 
 logger = logging.getLogger(__name__)
-config = ServiceConfig.get_service_config()
 
 
 @only_once
@@ -37,8 +35,6 @@ def configure_sentry(
     flask_integration: bool = False,
     sqlalchemy_integration: bool = False,
 ) -> None:
-    """Sentry Configuration. Called once for each container."""
-
     logger.debug(
         f"Setup sentry for {runner_type}: "
         f"celery_integration={celery_integration}, "
@@ -46,17 +42,9 @@ def configure_sentry(
         f"sqlalchemy_integration={sqlalchemy_integration}"
     )
 
-    if config.disable_sentry:
-        return
-
     secret_key = getenv("SENTRY_SECRET")
-
     if not secret_key:
-        err_msg = (
-            "\n* Sentry is enabled but no key has been provided."
-            "\n* Please add 'disable_sentry: True' to packit-service.yaml to disable it."
-        )
-        raise NoSentryKeyError(err_msg)
+        return
 
     # so that we don't have to have sentry sdk installed locally
     import sentry_sdk
@@ -112,9 +100,3 @@ def push_scope_to_sentry():
 
         with sentry_sdk.push_scope() as scope:
             yield scope
-
-
-class NoSentryKeyError(Exception):
-    """Raise when sentry is enabled but key has not been provided."""
-
-    pass
