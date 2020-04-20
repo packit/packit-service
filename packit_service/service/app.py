@@ -28,8 +28,7 @@ from lazy_object_proxy import Proxy
 from packit.utils import set_logging
 
 from packit_service.config import ServiceConfig
-
-# from packit_service.sentry_integration import configure_sentry
+from packit_service.sentry_integration import configure_sentry
 from packit_service.service.api import blueprint
 from packit_service.log_versions import log_service_versions
 from packit_service.service.views import builds_blueprint
@@ -38,18 +37,12 @@ set_logging(logger_name="packit_service", level=logging.DEBUG)
 
 
 def get_flask_application():
-
-    # Sentry does not work in the service for now
-    # SENTRY_SECRET is not passed to the service pod or container
-    # https://github.com/packit-service/deployment/blob/master/openshift/packit-service.yml.j2
-
-    # configure_sentry(
-    #     runner_type="packit-service",
-    #     celery_integration=True,
-    #     sqlalchemy_integration=True,
-    #     flask_integration=True,
-    # )
-
+    configure_sentry(
+        runner_type="packit-service",
+        celery_integration=True,
+        sqlalchemy_integration=True,
+        flask_integration=True,
+    )
     app = Flask(__name__)
     app.register_blueprint(blueprint)
     app.register_blueprint(builds_blueprint)

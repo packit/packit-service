@@ -51,7 +51,6 @@ class ServiceConfigSchema(UserConfigSchema):
     testing_farm_secret = fields.String()
     fas_password = fields.String(default="")
     validate_webhooks = fields.Bool(default=False)
-    disable_sentry = fields.Bool(default=False)
     admins = fields.List(fields.String())
     server_name = fields.String()
 
