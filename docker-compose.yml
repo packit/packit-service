@@ -92,7 +92,7 @@ services:
       - ./secrets/dev/private-key.pem:/secrets/private-key.pem:ro,z
       - ./secrets/dev/fullchain.pem:/secrets/fullchain.pem:ro,z
       - ./secrets/dev/privkey.pem:/secrets/privkey.pem:ro,z
-      - ./tests_requre/service:/src/tests:ro,z
+      - ./tests_requre/:/src/tests_requre:ro,z
     user: "123123"
 
   fedora-messaging:

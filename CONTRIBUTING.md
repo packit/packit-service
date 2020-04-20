@@ -286,7 +286,7 @@ to store and replay data for tests.
 
 - Install and run local openshift cluster:
   ```bash
-  sudo dnf install origins-client python3-openshift
+  sudo dnf install origin-clients python3-openshift
   oc cluster up --base-dir=/tmp/openshift_cluster
   ```
 
