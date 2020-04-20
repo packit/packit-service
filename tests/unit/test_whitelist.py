@@ -53,45 +53,51 @@ from packit_service.worker.whitelist import Whitelist
 EXPECTED_TESTING_FARM_CHECK_NAME = f"packit-stg/testing-farm-fedora-rawhide-x86_64"
 
 
+class GracefulDict(dict):
+    def __getitem__(self, item):
+        try:
+            return super().__getitem__(item)
+        except KeyError:
+            return None
+
+
 @pytest.fixture()
-def whitelist():
+def db():
+    return GracefulDict(
+        {
+            "fero": {"status": WhitelistStatus.approved_manually.value},
+            "lojzo": {"status": str(WhitelistStatus.approved_automatically)},
+            "konipas": {"status": WhitelistStatus.waiting.value},
+        }
+    )
+
+
+@pytest.fixture()
+def whitelist(db):
     w = Whitelist()
+    w.db = db
     return w
 
 
 @pytest.mark.parametrize(
-    "account_name, model, is_approved",
-    (
-        (
-            "fero",
-            flexmock(
-                id=1,
-                account_name="fero",
-                status=WhitelistStatus.approved_manually.value,
-            ),
-            True,
-        ),
-        (
-            "lojzo",
-            flexmock(
-                id=2,
-                account_name="lojzo",
-                status=WhitelistStatus.approved_automatically.value,
-            ),
-            True,
-        ),
-        (
-            "konipas",
-            flexmock(
-                id=3, account_name="konipas", status=WhitelistStatus.waiting.value
-            ),
-            False,
-        ),
-        ("krasomila", None, False),
-    ),
+    "account_name,is_dict", (("lojzo", True), ("fero", True), ("krasomila", False))
 )
-def test_is_approved(whitelist, account_name, model, is_approved):
-    flexmock(DBWhitelist).should_receive("get_account").and_return(model)
+def test_get_account(whitelist, account_name, is_dict):
+    a = whitelist.get_account(account_name)
+    assert isinstance(a, dict) == is_dict
+
+
+@pytest.mark.parametrize(
+    "account_name,is_approved",
+    (("lojzo", True), ("fero", True), ("konipas", False), ("krasomila", False)),
+)
+def test_is_approved(whitelist, account_name, is_approved):
+    whitelist_mock = flexmock(DBWhitelist).should_receive("get_account")
+    if is_approved:
+        whitelist_mock.and_return(DBWhitelist(status="approved_manually"))
+    else:
+        whitelist_mock.and_return(None)
+
     assert whitelist.is_approved(account_name) == is_approved
 
 

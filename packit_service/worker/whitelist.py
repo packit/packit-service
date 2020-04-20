@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
-from typing import Optional, Any, List
+from typing import Optional, Any
 
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
@@ -27,7 +27,7 @@ from ogr.abstract import GitProject, CommitStatus
 from packit.exceptions import PackitException
 from persistentdict.dict_in_redis import PersistentDict
 
-from packit_service.models import WhitelistModel
+from packit_service.models import WhitelistModel as DBWhitelist
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import FAQ_URL
@@ -51,6 +51,9 @@ logger = logging.getLogger(__name__)
 
 class Whitelist:
     def __init__(self, fas_user: str = None, fas_password: str = None):
+        # Redis
+        self.db = PersistentDict(hash_name="whitelist")
+
         self._fas: AccountSystem = AccountSystem(
             username=fas_user, password=fas_password
         )
@@ -60,7 +63,6 @@ class Whitelist:
         Check if the user is a packager, by checking if their GitHub
         username is in the 'packager' group in FAS. Works only the user's
         username is the same in GitHub and FAS.
-
         :param account_login: str, Github username
         :return: bool
         """
@@ -86,68 +88,98 @@ class Whitelist:
         logger.info(f"Cannot verify whether {account_login!r} signed FPCA.")
         return False
 
-    @staticmethod
-    def get_account(account_name) -> Optional[WhitelistModel]:
+    # Redis Only, postgres method in models.py
+    def get_account(self, account_name: str) -> Optional[dict]:
         """
         Get selected account from DB, return None if it's not there
         :param account_name: account name for approval
         """
-        return WhitelistModel.get_account(account_name=account_name)
+        account = self.db.get(account_name)
+        if not account:
+            return None
+        # patch status
+        db_status = account["status"]
+        if db_status.startswith("WhitelistStatus"):
+            account["status"] = db_status.split(".", 1)[1]
+            self.db[account_name] = account
+        return account
 
-    def add_account(self, event: InstallationEvent) -> bool:
+    def add_account(self, github_app: InstallationEvent) -> bool:
         """
         Add account to whitelist.
         Status is set to 'waiting' or to 'approved_automatically'
         if the account is a packager in Fedora.
-        :param event: Github app installation info
+        :param github_app: github app installation info
         :return: was the account (auto/already)-whitelisted?
         """
-        if self.is_approved(event.account_login):
+        if github_app.account_login in self.db:
+            # TODO: if the sender added (not created) our App to more repos,
+            #  then we should update the DB here
             return True
 
-        WhitelistModel.add_account(event.account_login, WhitelistStatus.waiting.value)
+        # Do the DB insertion as a first thing to avoid issue#42
+        github_app.status = WhitelistStatus.waiting
+        self.db[github_app.account_login] = github_app.get_dict()
 
-        if self._signed_fpca(event.sender_login):
-            event.status = WhitelistStatus.approved_automatically
-            WhitelistModel.add_account(event.account_login, event.status.value)
+        # TODO: Also add to postgres
+        # Use DBWhitelist.add_account(account_name, status)
+
+        # we want to verify if user who installed the application (sender_login) signed FPCA
+        # https://fedoraproject.org/wiki/Legal:Fedora_Project_Contributor_Agreement
+        if self._signed_fpca(github_app.sender_login):
+            github_app.status = WhitelistStatus.approved_automatically
+            self.db[github_app.account_login] = github_app.get_dict()
             return True
+        else:
+            return False
 
-        return False
-
-    @staticmethod
-    def approve_account(account_name: str) -> bool:
+    def approve_account(self, account_name: str) -> bool:
         """
         Approve user manually
         :param account_name: account name for approval
         :return:
         """
-        WhitelistModel.add_account(
+        # Redis
+        account = self.get_account(account_name) or {}
+        account["status"] = WhitelistStatus.approved_manually.value
+        self.db[account_name] = account
+
+        # Postgres
+        DBWhitelist.add_account(
             account_name=account_name, status=WhitelistStatus.approved_manually.value
         )
 
         logger.info(f"Account {account_name} approved successfully")
         return True
 
-    @staticmethod
-    def is_approved(account_name: str) -> bool:
+    def is_approved(self, account_name: str) -> bool:
         """
         Check if user is approved in the whitelist
         :param account_name:
         :return:
         """
-        account = WhitelistModel.get_account(account_name)
-        if account:
-            db_status = account.status
+
+        # Postgres
+        if DBWhitelist.get_account(account_name) is not None:
+            db_status = DBWhitelist.get_account(account_name).status
             s = WhitelistStatus(db_status)
             return (
                 s == WhitelistStatus.approved_automatically
                 or s == WhitelistStatus.approved_manually
             )
 
+        # Redis
+        if account_name in self.db:
+            account = self.get_account(account_name)
+            db_status = account["status"]
+            s = WhitelistStatus(db_status)
+            return (
+                s == WhitelistStatus.approved_automatically
+                or s == WhitelistStatus.approved_manually
+            )
         return False
 
-    @staticmethod
-    def remove_account(account_name: str) -> bool:
+    def remove_account(self, account_name: str) -> bool:
         """
         Remove account from whitelist.
         :param account_name: github login
@@ -156,27 +188,38 @@ class Whitelist:
 
         account_existed = False
 
-        if WhitelistModel.get_account(account_name):
-            WhitelistModel.remove_account(account_name)
+        # Delete from Postgres
+        if DBWhitelist.get_account(account_name) is not None:
+            DBWhitelist.remove_account(account_name)
             logger.info(f"Account: {account_name} removed from postgres whitelist!")
             account_existed = True
+        # Delete from redis
+        if account_name in self.db:
+            del self.db[account_name]
+            # TODO: delete all artifacts from copr
+            logger.info(f"Account: {account_name} removed from redis whitelist!")
+            account_existed = True
 
-        if not account_existed:
+        if account_existed:
+            return True
+        else:
             logger.info(f"Account: {account_name} does not exists!")
+            return False
 
-        return account_existed
-
-    @staticmethod
-    def accounts_waiting() -> List[str]:
+    def accounts_waiting(self) -> list:
         """
         Get accounts waiting for approval
         :return: list of accounts waiting for approval
         """
+
+        # TODO: Once add_automatically/waiting works for postgres,
+        # merge redis and postgres results
+        # Fetch postgres results by DBWhitelist.get_account_by_status(WhitelistStatus.waiting)
+
         return [
-            account.account_name
-            for account in WhitelistModel.get_accounts_by_status(
-                WhitelistStatus.waiting.value
-            )
+            key
+            for (key, item) in self.db.items()
+            if WhitelistStatus(item["status"]) == WhitelistStatus.waiting
         ]
 
     def check_and_report(
