@@ -6,10 +6,11 @@ Create Date: 2020-04-06 09:34:50.929724
 
 """
 import enum
+import logging
 from datetime import datetime, timezone
 from json import loads
 from os import getenv
-from copr.v3 import CoprNoResultException, Client
+from copr.v3 import Client
 from celery.backends.database import Task
 from redis import Redis
 from typing import TYPE_CHECKING, Union, List
@@ -42,6 +43,8 @@ if TYPE_CHECKING:
     Base = object
 else:
     Base = declarative_base()
+
+logger = logging.getLogger(__name__)
 
 
 # Redis models
@@ -300,6 +303,8 @@ def upgrade():
         if isinstance(date_done, str):
             date_done = datetime.fromisoformat(date_done)
 
+        logger.info(f"Adding task {task_id} into TaskResultModel")
+
         # our table
         TaskResultUpgradeModel.add_task_result(
             session=session, task_id=task_id, task_result_dict=result
@@ -321,6 +326,7 @@ def upgrade():
             continue
 
         status = data.get("status")
+        logger.info(f"Adding account {account} into WhitelistModel")
         WhitelistUpgradeModel.add_account(
             session=session, account_name=account, status=status
         )
@@ -345,6 +351,7 @@ def upgrade():
             created_at = created_at.replace("Z", "+00:00")
             created_at = datetime.fromisoformat(created_at)
 
+        logger.info(f"Adding installation by {account_login} into InstallationModel")
         InstallationUpgradeModel.create(
             session=session,
             account_login=account_login,
@@ -396,17 +403,19 @@ def upgrade():
             continue
 
         try:
+            logger.info(f"Getting copr build with build ID {build_id}")
             copr = Client.create_from_config_file()
             build = copr.build_proxy.get(build_id)
             build_submitted_time = datetime.fromtimestamp(build.submitted_on)
             build_start_time = datetime.fromtimestamp(build.started_on)
             build_finished_time = datetime.fromtimestamp(build.ended_on)
 
-        except CoprNoResultException:
+        except Exception:
             build_submitted_time = build_submitted_time or datetime(2020, 1, 1, 0, 0, 0)
             build_start_time = datetime(2020, 1, 1, 0, 10, 0)
             build_finished_time = datetime(2020, 1, 1, 0, 20, 0)
 
+        logger.info(f"Adding copr build with build ID {build_id} into CoprBuildModel")
         for chroot in chroots:
             CoprBuildUpgradeModel.get_or_create(
                 session=session,
