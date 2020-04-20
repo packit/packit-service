@@ -22,7 +22,6 @@ def test_api_health(client):
 def test_copr_builds_list(client, clean_before_and_after, multiple_copr_builds):
     response = client.get(url_for("api.copr-builds_copr_builds_list"))
     response_dict = response.json
-    print(response.json)
     assert response_dict[0]["project"] == "SomeUser-hello-world-9"
     assert response_dict[0]["build_id"] == "123456"
     assert response_dict[1]["project"] == build_info_dict["project"]
@@ -45,7 +44,6 @@ def test_detailed_copr_build_info(client, clean_before_and_after, multiple_copr_
         url_for("api.copr-builds_installation_item", id=build_info_dict["build_id"])
     )
     response_dict = response.json
-    print(response.json)
     assert response_dict["project"] == build_info_dict["project"]
     assert response_dict["owner"] == build_info_dict["owner"]
     assert response_dict["build_id"] == build_info_dict["build_id"]
