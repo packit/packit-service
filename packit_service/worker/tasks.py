@@ -103,6 +103,9 @@ def babysit_copr_build(self, build_id: int):
                 pkg=build_copr.source_package.get(
                     "name", ""
                 ),  # this seems to be the SRPM name
+                logs_url=chroot_build.result_url,
+                started_on=chroot_build.started_on,
+                ended_on=chroot_build.ended_on,
             )
             CoprBuildEndHandler(
                 ServiceConfig.get_service_config(), job_config=None, event=event
