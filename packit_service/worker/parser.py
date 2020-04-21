@@ -531,13 +531,21 @@ class CentosEventParser:
     def __init__(self):
         """
         self.event_mapping: dictionary mapping of topics to corresponding parsing methods
+
+        ..note: action in partial is github counterpart value, as this value is used in code
+
+            e.g.
+            pagure pull-request.update == github pull-request.synchronize -> in code is used
+            synchronize
         """
         self.event_mapping = {
-            "pull-request.new": partial(self._pull_request_event, action="new"),
+            "pull-request.new": partial(self._pull_request_event, action="opened"),
             "pull-request.reopened": partial(
                 self._pull_request_event, action="reopened"
             ),
-            "pull-request.updated": partial(self._pull_request_event, action="updated"),
+            "pull-request.updated": partial(
+                self._pull_request_event, action="synchronize"
+            ),
             "pull-request.comment.added": partial(
                 self._pull_request_comment, action="added"
             ),
@@ -570,14 +578,6 @@ class CentosEventParser:
     def _pull_request_event(event: dict, action: str):
         logger.debug(f"Parsing f{event['topic']}")
         pullrequest = event["pullrequest"]
-
-        # "retype" to github equivalents, which are hardcoded in copr build handler
-        # TODO: needs refactoring
-        if action == "new":
-            action = "opened"
-        elif action == "updated":
-            action = "synchronize"
-
         pr_id = pullrequest["id"]
         base_repo_namespace = pullrequest["project"]["namespace"]
         base_repo_name = pullrequest["project"]["name"]
@@ -610,7 +610,7 @@ class CentosEventParser:
         pr_id = event["pullrequest"]["id"]
         base_repo_namespace = event["pullrequest"]["project"]["namespace"]
         base_repo_name = event["pullrequest"]["project"]["name"]
-        target_repo = event["pullrequest"]["repo_from"]["fullname"]
+        target_repo = event["pullrequest"]["repo_from"]["name"]
         https_url = (
             f"https://{event['source']}/{event['pullrequest']['project']['url_path']}"
         )
