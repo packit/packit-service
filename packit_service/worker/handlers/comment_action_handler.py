@@ -29,7 +29,11 @@ import logging
 from typing import Dict, Type, Union
 
 from packit_service.config import ServiceConfig
-from packit_service.service.events import PullRequestCommentEvent, IssueCommentEvent
+from packit_service.service.events import (
+    PullRequestCommentEvent,
+    IssueCommentEvent,
+    PullRequestCommentPagureEvent,
+)
 from packit_service.worker.handlers import Handler
 from packit_service.worker.result import HandlerResults
 
@@ -76,10 +80,14 @@ class CommentActionHandler(Handler):
     def __init__(
         self,
         config: ServiceConfig,
-        event: Union[PullRequestCommentEvent, IssueCommentEvent],
+        event: Union[
+            PullRequestCommentEvent, IssueCommentEvent, PullRequestCommentPagureEvent
+        ],
     ):
         super().__init__(config)
-        self.event: Union[PullRequestCommentEvent, IssueCommentEvent] = event
+        self.event: Union[
+            PullRequestCommentEvent, IssueCommentEvent, PullRequestCommentPagureEvent
+        ] = event
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")

@@ -705,7 +705,7 @@ class PushPagureEvent(AbstractPagureEvent):
         return package_config
 
 
-class PullRequestCommentPagureEvent(AbstractPagureEvent):
+class PullRequestCommentPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
     def __init__(
         self,
         action: PullRequestCommentAction,

@@ -537,6 +537,7 @@ class CentosEventParser:
             "pull-request.reopened": partial(
                 self._pull_request_event, action="reopened"
             ),
+            "pull-request.updated": partial(self._pull_request_event, action="updated"),
             "pull-request.comment.added": partial(
                 self._pull_request_comment, action="added"
             ),
@@ -567,22 +568,24 @@ class CentosEventParser:
 
     @staticmethod
     def _pull_request_event(event: dict, action: str):
-        logger.debug(f"Parsing pull_request.new")
+        logger.debug(f"Parsing f{event['topic']}")
         pullrequest = event["pullrequest"]
 
         # "retype" to github equivalents, which are hardcoded in copr build handler
         # TODO: needs refactoring
         if action == "new":
             action = "opened"
+        elif action == "updated":
+            action = "synchronize"
 
         pr_id = pullrequest["id"]
         base_repo_namespace = pullrequest["project"]["namespace"]
         base_repo_name = pullrequest["project"]["name"]
-        base_ref = f"refs/head/{pullrequest['branch']}"
+        base_ref = pullrequest["branch"]
         target_repo = pullrequest["repo_from"]["name"]
         https_url = f"https://{event['source']}/{pullrequest['project']['url_path']}"
         commit_sha = pullrequest["commit_stop"]
-        pagure_login = event["agent"]
+        pagure_login = pullrequest["user"]["name"]
 
         return PullRequestPagureEvent(
             PullRequestAction[action],
@@ -612,6 +615,7 @@ class CentosEventParser:
             f"https://{event['source']}/{event['pullrequest']['project']['url_path']}"
         )
         pagure_login = event["agent"]
+        commit_sha = event["pullrequest"]["commit_stop"]
 
         # gets comment from event.
         # location differs based on topic (pull-request.comment.edited/pull-request.comment.added)
@@ -635,6 +639,7 @@ class CentosEventParser:
             # todo: change arg name in event class to more general
             pagure_login,
             comment,
+            commit_sha,
         )
 
     def _push_event(self, event: dict) -> PushPagureEvent:

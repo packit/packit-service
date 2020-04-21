@@ -13,9 +13,14 @@ from packit_service.service.events import (
     TheJobTriggerType,
     PullRequestPagureEvent,
     PushPagureEvent,
+    PullRequestCommentPagureEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.handlers.abstract import use_for, JobHandler
+from packit_service.worker.handlers.comment_action_handler import (
+    CommentAction,
+    CommentActionHandler,
+)
 from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
@@ -142,3 +147,32 @@ class PushPagureCoprBuildHandler(AbstractPagureCoprBuildHandler):
             )
             return False
         return True
+
+
+class PagurePullRequestCommentCoprBuildHandler(
+    CommentActionHandler, PagurePackageConfigGetter
+):
+    """ Handler for PR comment `/packit copr-build` """
+
+    type = CommentAction.copr_build
+    triggers = [TheJobTriggerType.pr_comment]
+    event: PullRequestCommentPagureEvent
+
+    def __init__(self, config: ServiceConfig, event: PullRequestCommentPagureEvent):
+        super().__init__(config=config, event=event)
+        self.config = config
+        self.event = event
+        self.project: GitProject = event.get_project()
+        self.package_config: PackageConfig = self.get_package_config_from_repo(
+            self.project, self.event.commit_sha, self.event.pr_id
+        )
+        self.package_config.upstream_project_url = event.project_url
+
+    def run(self) -> HandlerResults:
+
+        cbh = CoprBuildJobHelper(
+            self.config, self.package_config, self.project, self.event
+        )
+        handler_results = cbh.run_copr_build()
+
+        return handler_results
