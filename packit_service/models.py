@@ -457,6 +457,7 @@ class CoprBuildModel(Base):
         job_trigger = JobTriggerModel.get_or_create(
             type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id
         )
+
         with get_sa_session() as session:
             build = cls.get_by_build_id(build_id, target)
             if not build:

@@ -29,6 +29,9 @@
 
 
 from packit_service.worker.handlers.abstract import Handler, JobHandler
+from packit_service.worker.handlers.centosmsg_handlers import (
+    PagurePullRequestCoprBuildHandler,
+)
 from packit_service.worker.handlers.comment_action_handler import CommentActionHandler
 from packit_service.worker.handlers.fedmsg_handlers import (
     CoprBuildEndHandler,
@@ -72,4 +75,5 @@ __all__ = [
     JobHandler.__name__,
     NewDistGitCommitHandler.__name__,
     TestingFarmResultsHandler.__name__,
+    PagurePullRequestCoprBuildHandler.__name__,
 ]

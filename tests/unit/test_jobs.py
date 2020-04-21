@@ -30,7 +30,9 @@ from packit_service.worker.handlers import (
     CoprBuildStartHandler,
     CoprBuildEndHandler,
     TestingFarmResultsHandler,
+    PagurePullRequestCoprBuildHandler,
 )
+from packit_service.worker.handlers.centosmsg_handlers import PushPagureCoprBuildHandler
 from packit_service.worker.handlers.github_handlers import (
     PullRequestGithubKojiBuildHandler,
     PushGithubKojiBuildHandler,
@@ -60,7 +62,7 @@ from packit_service.worker.jobs import get_handlers_for_event
                     metadata={},
                 )
             ],
-            {PullRequestGithubCoprBuildHandler},
+            {PullRequestGithubCoprBuildHandler, PagurePullRequestCoprBuildHandler},
             id="config=copr_build@trigger=pull_request",
         ),
         pytest.param(
@@ -73,7 +75,7 @@ from packit_service.worker.jobs import get_handlers_for_event
                     metadata={},
                 )
             ],
-            {PullRequestGithubCoprBuildHandler},
+            {PullRequestGithubCoprBuildHandler, PagurePullRequestCoprBuildHandler},
             id="config=build@trigger=pull_request",
         ),
         pytest.param(
@@ -86,7 +88,7 @@ from packit_service.worker.jobs import get_handlers_for_event
                     metadata={},
                 )
             ],
-            {PushGithubCoprBuildHandler},
+            {PushGithubCoprBuildHandler, PushPagureCoprBuildHandler},
             id="config=copr_build_on_push@trigger=push",
         ),
         pytest.param(
@@ -156,7 +158,7 @@ from packit_service.worker.jobs import get_handlers_for_event
                     metadata={},
                 ),
             ],
-            {PullRequestGithubCoprBuildHandler},
+            {PullRequestGithubCoprBuildHandler, PagurePullRequestCoprBuildHandler},
             id="config=copr_build_on_pull_request_and_release@trigger=pull_request",
         ),
         pytest.param(
@@ -262,7 +264,7 @@ from packit_service.worker.jobs import get_handlers_for_event
                     metadata={},
                 ),
             ],
-            {PullRequestGithubCoprBuildHandler},
+            {PullRequestGithubCoprBuildHandler, PagurePullRequestCoprBuildHandler},
             id="config=tests_and_copr_build@trigger=pull_request",
         ),
         pytest.param(

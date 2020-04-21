@@ -35,6 +35,7 @@ from packit_service.service.events import (
     CoprBuildEvent,
     PushGitHubEvent,
     ReleaseEvent,
+    PullRequestPagureEvent,
 )
 from packit_service.trigger_mapping import (
     is_trigger_matching_job_config,
@@ -58,6 +59,7 @@ class BaseBuildJobHelper:
         project: GitProject,
         event: Union[
             PullRequestEvent,
+            PullRequestPagureEvent,
             PullRequestCommentEvent,
             CoprBuildEvent,
             PushGitHubEvent,
@@ -70,6 +72,7 @@ class BaseBuildJobHelper:
         self.project: GitProject = project
         self.event: Union[
             PullRequestEvent,
+            PullRequestPagureEvent,
             PullRequestCommentEvent,
             CoprBuildEvent,
             PushGitHubEvent,

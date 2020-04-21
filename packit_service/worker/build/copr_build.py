@@ -40,6 +40,7 @@ from packit_service.service.events import (
     CoprBuildEvent,
     PushGitHubEvent,
     ReleaseEvent,
+    PullRequestPagureEvent,
 )
 from packit_service.service.urls import get_log_url, get_srpm_log_url
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
@@ -70,6 +71,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         project: GitProject,
         event: Union[
             PullRequestEvent,
+            PullRequestPagureEvent,
             PullRequestCommentEvent,
             CoprBuildEvent,
             PushGitHubEvent,
@@ -121,7 +123,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             return HandlerResults(success=False, details={"msg": msg})
 
         self.report_status_to_all(
-            description="Building SRPM ...", state=CommitStatus.pending
+            description="Building SRPM ...",
+            state=CommitStatus.pending,
+            # pagure requires "valid url"
+            url="",
         )
 
         build_metadata = self._run_copr_build_and_save_output()

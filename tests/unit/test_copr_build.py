@@ -44,6 +44,7 @@ from packit_service.service.events import (
     PushGitHubEvent,
     ReleaseEvent,
 )
+from packit_service.worker.build import copr_build
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.reporting import StatusReporter
 
@@ -98,6 +99,8 @@ def test_copr_build_check_names(pull_request_event):
         event=pull_request_event,
         metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="nobody"),
     )
+
+    flexmock(copr_build).should_receive("get_log_url").and_return("https://test.url")
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building SRPM ...",
@@ -108,7 +111,7 @@ def test_copr_build_check_names(pull_request_event):
         state=CommitStatus.pending,
         description="Building RPM ...",
         check_name="packit-stg/rpm-build-bright-future-x86_64",
-        url="https://localhost:5000/copr-build/1/logs",
+        url="https://test.url",
     ).and_return()
 
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
@@ -234,6 +237,9 @@ def test_copr_build_fails_in_packit(pull_request_event):
     #  - Build failed, check latest comment for details.
     helper = build_helper(event=pull_request_event)
     templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
+    flexmock(copr_build).should_receive("get_srpm_log_url").and_return(
+        "https://test.url"
+    )
     for v in ["29", "30", "31", "rawhide"]:
         flexmock(GitProject).should_receive("set_commit_status").with_args(
             "528b803be6f93e19ca4130bf4976f2800a3004c4",
@@ -247,7 +253,7 @@ def test_copr_build_fails_in_packit(pull_request_event):
         flexmock(GitProject).should_receive("set_commit_status").with_args(
             "528b803be6f93e19ca4130bf4976f2800a3004c4",
             CommitStatus.failure,
-            "https://localhost:5000/srpm-build/2/logs",
+            "https://test.url",
             "SRPM build failed, check the logs for details.",
             templ.format(ver=v),
             trim=True,

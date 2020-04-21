@@ -205,7 +205,7 @@ class TestEvents:
         assert (
             event_object.project_url == "https://github.com/packit-service/hello-world"
         )
-        assert event_object.github_login == "phracek"
+        assert event_object.user_login == "phracek"
         assert event_object.comment == "/packit copr-build"
 
     def test_parse_pr_comment_empty(self, pr_comment_empty_request):
@@ -224,7 +224,7 @@ class TestEvents:
         assert (
             event_object.project_url == "https://github.com/packit-service/hello-world"
         )
-        assert event_object.github_login == "phracek"
+        assert event_object.user_login == "phracek"
         assert event_object.comment == ""
 
     def test_parse_issue_comment(self, issue_comment_request):
@@ -242,7 +242,7 @@ class TestEvents:
         )
         assert event_object.base_ref == "master"
         assert event_object.project_url == "https://github.com/packit-service/packit"
-        assert event_object.github_login == "phracek"
+        assert event_object.user_login == "phracek"
         assert event_object.comment == "/packit propose-update"
 
     def test_parse_github_push(self, github_push):

@@ -23,7 +23,6 @@
 """
 We love you, Steve Jobs.
 """
-
 import logging
 from typing import Optional, Dict, Union, Type, Set
 
@@ -57,7 +56,7 @@ from packit_service.worker.handlers.comment_action_handler import (
     MAP_COMMENT_ACTION_TO_HANDLER,
     CommentAction,
 )
-from packit_service.worker.parser import Parser
+from packit_service.worker.parser import Parser, CentosEventParser
 from packit_service.worker.result import HandlerResults
 from packit_service.worker.whitelist import Whitelist
 
@@ -143,10 +142,13 @@ class SteveJobs:
 
     @staticmethod
     def _is_private(project: GitProject) -> bool:
-        github_project = GithubProject(
-            repo=project.repo, service=project.service, namespace=project.namespace
-        )
-        return github_project.github_repo.private
+        if isinstance(project, GithubProject):
+            github_project = GithubProject(
+                repo=project.repo, service=project.service, namespace=project.namespace
+            )
+            return github_project.github_repo.private
+        else:
+            return False
 
     def process_jobs(self, event: Event) -> Dict[str, HandlerResults]:
         """
@@ -178,9 +180,9 @@ class SteveJobs:
             # check whitelist approval for every job to be able to track down which jobs
             # failed because of missing whitelist approval
             whitelist = Whitelist()
-            github_login = getattr(event, "github_login", None)
-            if github_login and github_login in self.config.admins:
-                logger.info(f"{github_login} is admin, you shall pass")
+            user_login = getattr(event, "user_login", None)
+            if user_login and user_login in self.config.admins:
+                logger.info(f"{user_login} is admin, you shall pass")
             elif not whitelist.check_and_report(
                 event, event.get_project(), config=self.config
             ):
@@ -259,9 +261,9 @@ class SteveJobs:
         # check whitelist approval for every job to be able to track down which jobs
         # failed because of missing whitelist approval
         whitelist = Whitelist()
-        github_login = getattr(event, "github_login", None)
-        if github_login and github_login in self.config.admins:
-            logger.info(f"{github_login} is admin, you shall pass")
+        user_login = getattr(event, "user_login", None)
+        if user_login and user_login in self.config.admins:
+            logger.info(f"{user_login} is admin, you shall pass")
         elif not whitelist.check_and_report(
             event, event.get_project(), config=self.config
         ):
@@ -272,12 +274,17 @@ class SteveJobs:
         handler_instance: Handler = handler_kls(config=self.config, event=event)
         return handler_instance.run_n_clean()
 
-    def process_message(self, event: dict, topic: str = None) -> Optional[dict]:
+    def process_message(
+        self, event: dict, topic: str = None, source: str = None
+    ) -> Optional[dict]:
         """
-        Entrypoint to processing messages.
+        Entrypoint for message processing.
 
-        topic is meant to be a fedmsg topic for the message
+        :param topic:  meant to be a topic provided by messaging subsystem (fedmsg, mqqt)
+        :param source: source of message
+
         """
+
         if topic:
             # let's pre-filter messages: we don't need to get debug logs from processing
             # messages when we know beforehand that we are not interested in messages for such topic
@@ -289,7 +296,11 @@ class SteveJobs:
                 logger.debug(f"{topic} not in {topics}")
                 return None
 
-        event_object = Parser.parse_event(event)
+        if source == "centosmsg":
+            event_object = CentosEventParser().parse_event(event)
+        else:
+            event_object = Parser.parse_event(event)
+
         if not event_object or not event_object.pre_check():
             return None
 
@@ -299,6 +310,9 @@ class SteveJobs:
             # CoprBuildEvent.get_project returns None when the build id is not in redis
             if project:
                 is_private_repository = self._is_private(project)
+        # this was probably meant to handle services which dont have private
+        # functionality implemented, but self._is_private is for github therefore
+        # missing user_login is error is raised instead, fixed by isinstace check
         except NotImplementedError:
             logger.warning("Cannot obtain project from this event!")
             logger.warning("Skipping private repository check!")

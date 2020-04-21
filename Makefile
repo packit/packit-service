@@ -19,8 +19,14 @@ worker: files/install-deps-worker.yaml files/recipe-worker.yaml
 # Make sure you have latest docker.io/usercont/packit:prod prior to running this
 worker-prod: files/install-deps-worker.yaml files/recipe-worker.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE_PROD) -f Dockerfile.worker.prod .
+
 worker-prod-push: worker-prod
 	$(CONTAINER_ENGINE) push $(WORKER_IMAGE_PROD)
+
+# in case of need change ip, this is default so whould work, also be sure docker(podman) is logged to local oc registry 'docker(podman) login 172.30.1.1:5000'
+worker-local-push: worker
+	$(CONTAINER_ENGINE) tag $(WORKER_IMAGE) 172.30.1.1:5000/packit-stg/packit-worker:dev
+	$(CONTAINER_ENGINE) push 172.30.1.1:5000/packit-stg/packit-worker:dev --tls-verify=false
 
 check:
 	find . -name "*.pyc" -exec rm {} \;

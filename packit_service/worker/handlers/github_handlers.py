@@ -212,13 +212,6 @@ class AbstractGithubCoprBuildHandler(AbstractGithubJobHandler):
     ):
         super().__init__(config=config, job_config=job_config, event=event)
 
-        if not isinstance(event, (PullRequestEvent, PushGitHubEvent, ReleaseEvent)):
-            raise PackitException(
-                "Unknown event, only "
-                "PullRequestEvent, ReleaseEvent, and PushGitHubEvent "
-                "are accepted."
-            )
-
         # lazy property
         self._copr_build_helper: Optional[CoprBuildJobHelper] = None
         self._package_config: Optional[PackageConfig] = None
@@ -314,7 +307,7 @@ class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
     def run(self) -> HandlerResults:
         if isinstance(self.event, PullRequestEvent):
             collaborators = self.project.who_can_merge_pr()
-            if self.event.github_login not in collaborators | self.config.admins:
+            if self.event.user_login not in collaborators | self.config.admins:
                 self.copr_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=CommitStatus.failure,
@@ -477,7 +470,7 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     def run(self) -> HandlerResults:
         if isinstance(self.event, PullRequestEvent):
             collaborators = self.project.who_can_merge_pr()
-            if self.event.github_login not in collaborators | self.config.admins:
+            if self.event.user_login not in collaborators | self.config.admins:
                 self.koji_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=CommitStatus.failure,
@@ -600,7 +593,7 @@ class GitHubPullRequestCommentCoprBuildHandler(
 
     def run(self) -> HandlerResults:
         collaborators = self.project.who_can_merge_pr()
-        if self.event.github_login not in collaborators | self.config.admins:
+        if self.event.user_login not in collaborators | self.config.admins:
             self.project.pr_comment(self.event.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN)
             return HandlerResults(
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
@@ -661,7 +654,7 @@ class GitHubIssueCommentProposeUpdateHandler(
         self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
         collaborators = self.project.who_can_merge_pr()
-        if self.event.github_login not in collaborators | self.config.admins:
+        if self.event.user_login not in collaborators | self.config.admins:
             self.project.issue_comment(
                 self.event.issue_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )
@@ -738,7 +731,7 @@ class GitHubPullRequestCommentTestingFarmHandler(
     def run(self) -> HandlerResults:
 
         collaborators = self.project.who_can_merge_pr()
-        if self.event.github_login not in collaborators | self.config.admins:
+        if self.event.user_login not in collaborators | self.config.admins:
             self.project.pr_comment(self.event.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN)
             return HandlerResults(
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
