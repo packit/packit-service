@@ -24,6 +24,7 @@
 This file defines classes for job handlers specific for Fedmsg events
 """
 
+from copr.v3 import Client as CoprClient
 import logging
 from typing import Type, Optional
 
@@ -284,10 +285,17 @@ class CoprBuildEndHandler(FedmsgHandler):
         )
         build.set_status(PG_COPR_BUILD_STATUS_SUCCESS)
 
-        build_start_time = datetime.utcfromtimestamp(self.event.started_on)
-        build_end_time = datetime.utcfromtimestamp(self.event.ended_on)
+        copr_client = CoprClient.create_from_config_file()
+        chroot_build = copr_client.build_chroot_proxy.get(
+            self.event.build_id, self.event.chroot
+        )
+        started_on = chroot_build.started_on
+        ended_on = chroot_build.ended_on
+
+        build_start_time = datetime.utcfromtimestamp(started_on) if started_on else None
+        build_end_time = datetime.utcfromtimestamp(ended_on) if ended_on else None
         build.set_start_end_time(build_start_time, build_end_time)
-        build.set_build_logs_url(self.event.logs_url)
+
         if (
             self.build_job_helper.job_tests
             and self.event.chroot in self.build_job_helper.tests_chroots

@@ -11,8 +11,5 @@
   "version": "0.7.0.3.ga593893-1.fc30",
   "build": 1044215,
   "owner": "packit",
-  "pkg": "hello",
-  "result_url": "https://download.copr.fedorainfracloud.org/results/rishavanand/rishavanand-hello-world-1/fedora-30-x86_64/01339556-hello/",
-  "started_on": 1587037156,
-  "ended_on": 1587037183
+  "pkg": "hello"
 }
