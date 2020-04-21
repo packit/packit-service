@@ -208,6 +208,6 @@ class PagurePackageConfigGetter:
         loaded_config_raw = project.get_file_content(file_name)
         loaded_config = yaml.safe_load(loaded_config_raw)
         package_config = parse_loaded_config(
-            loaded_config, spec_file_path="./hello.spec"
+            loaded_config, spec_file_path=f"SPECS/{project.repo}.spec"
         )
         return package_config
