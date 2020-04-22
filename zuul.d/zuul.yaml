@@ -1,6 +1,5 @@
 ---
 # Entrypoint for Zuul
-# The "secrets" files in this directory don't work at the moment. Rado said.
 - project:
     name: packit-service/packit-service
     check:
