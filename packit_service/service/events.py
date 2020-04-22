@@ -541,6 +541,7 @@ class CoprBuildEvent(AbstractGithubEvent):
         owner: str,
         project_name: str,
         pkg: str,
+        timestamp,
     ):
         trigger_db = build.job_trigger.get_trigger_object()
         self.commit_sha = build.commit_sha
@@ -570,6 +571,7 @@ class CoprBuildEvent(AbstractGithubEvent):
         self.owner = owner
         self.project_name = project_name
         self.pkg = pkg
+        self.timestamp = timestamp
 
         trigger_type = build.job_trigger.type
         trigger_db = build.job_trigger.get_trigger_object()
@@ -597,13 +599,16 @@ class CoprBuildEvent(AbstractGithubEvent):
         owner: str,
         project_name: str,
         pkg: str,
+        timestamp,
     ) -> Optional["CoprBuildEvent"]:
         """ Return cls instance or None if build_id not in CoprBuildDB"""
         build = CoprBuildModel.get_by_build_id(str(build_id), chroot)
         if not build:
             logger.warning(f"Build id: {build_id} not in CoprBuildDB")
             return None
-        return cls(topic, build_id, build, chroot, status, owner, project_name, pkg,)
+        return cls(
+            topic, build_id, build, chroot, status, owner, project_name, pkg, timestamp
+        )
 
     def pre_check(self):
         if not self.build:

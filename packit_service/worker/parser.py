@@ -505,9 +505,10 @@ class Parser:
         owner = event.get("owner")
         project_name = event.get("copr")
         pkg = event.get("pkg")
+        timestamp = event.get("timestamp")
 
         return CoprBuildEvent.from_build_id(
-            topic, build_id, chroot, status, owner, project_name, pkg,
+            topic, build_id, chroot, status, owner, project_name, pkg, timestamp
         )
 
 

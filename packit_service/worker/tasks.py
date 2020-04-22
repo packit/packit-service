@@ -115,6 +115,7 @@ def babysit_copr_build(self, build_id: int):
                 pkg=build_copr.source_package.get(
                     "name", ""
                 ),  # this seems to be the SRPM name
+                timestamp=chroot_build.ended_on,
             )
             CoprBuildEndHandler(
                 ServiceConfig.get_service_config(), job_config=None, event=event
