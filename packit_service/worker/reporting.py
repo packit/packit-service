@@ -19,8 +19,9 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import hashlib
 import logging
-from typing import Union
+from typing import Optional, Union
 
 from ogr.abstract import GitProject, CommitStatus
 from ogr.services.pagure import PagureProject
@@ -30,10 +31,11 @@ logger = logging.getLogger(__name__)
 
 class StatusReporter:
     def __init__(
-        self, project: GitProject, commit_sha: str,
+        self, project: GitProject, commit_sha: str, pr_id: Optional[int] = None
     ):
         self.project = project
         self.commit_sha = commit_sha
+        self.pr_id = pr_id
 
     def report(
         self,
@@ -63,6 +65,24 @@ class StatusReporter:
                 state=state, description=description, check_name=check, url=url
             )
 
+    def __set_pull_request_status(
+        self, check_name: str, description: str, url: str, state: CommitStatus
+    ):
+        if self.pr_id is None:
+            return
+        pr = self.project.get_pr(self.pr_id)
+        if hasattr(pr, "set_flag") and pr.head_commit == self.commit_sha:
+            pr.set_flag(
+                username=check_name,
+                comment=description,
+                url=url,
+                status=state,
+                # For Pagure: generate a custom uid from the check_name,
+                # so that we can update flags we set previously,
+                # instead of creating new ones.
+                uid=hashlib.md5(check_name.encode()).hexdigest(),
+            )
+
     def set_status(
         self, state: CommitStatus, description: str, check_name: str, url: str = "",
     ):
@@ -74,6 +94,9 @@ class StatusReporter:
         self.project.set_commit_status(
             self.commit_sha, state, url, description, check_name, trim=True
         )
+        # Also set the status of the pull-request for forges which don't do
+        # this automatically based on the flags on the last commit in the PR.
+        self.__set_pull_request_status(check_name, description, url, state)
 
     def get_statuses(self):
         self.project.get_commit_statuses(commit=self.commit_sha)

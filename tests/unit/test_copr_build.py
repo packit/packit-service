@@ -139,6 +139,7 @@ def test_copr_build_success_set_test_check(pull_request_event):
     )
     helper = build_helper(jobs=[test_job], event=pull_request_event)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(16)
+    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -221,6 +222,7 @@ def test_copr_build_success(pull_request_event):
     #  - Building RPM ...
     helper = build_helper(event=pull_request_event)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
+    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -258,6 +260,7 @@ def test_copr_build_fails_in_packit(pull_request_event):
             templ.format(ver=v),
             trim=True,
         ).and_return().once()
+    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel(id=2))
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -277,6 +280,7 @@ def test_copr_build_no_targets(pull_request_event):
         event=pull_request_event, metadata=JobMetadataConfig(owner="nobody")
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
+    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)

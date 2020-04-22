@@ -80,7 +80,9 @@ class BaseBuildJobHelper:
         ] = event
         self.pr_id = (
             self.event.pr_id
-            if isinstance(self.event, (PullRequestEvent, PullRequestCommentEvent))
+            if isinstance(
+                self.event, (CoprBuildEvent, PullRequestEvent, PullRequestCommentEvent)
+            )
             else None
         )
 
@@ -218,7 +220,9 @@ class BaseBuildJobHelper:
     @property
     def status_reporter(self):
         if not self._status_reporter:
-            self._status_reporter = StatusReporter(self.project, self.event.commit_sha)
+            self._status_reporter = StatusReporter(
+                self.project, self.event.commit_sha, self.pr_id
+            )
         return self._status_reporter
 
     @property
