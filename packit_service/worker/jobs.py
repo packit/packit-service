@@ -36,6 +36,7 @@ from packit_service.service.events import (
     IssueCommentEvent,
     Event,
     TheJobTriggerType,
+    PullRequestCommentPagureEvent,
 )
 from packit_service.trigger_mapping import is_trigger_matching_job_config
 from packit_service.worker.handlers import (
@@ -44,6 +45,7 @@ from packit_service.worker.handlers import (
     GithubAppInstallationHandler,
     CommentActionHandler,
     TestingFarmResultsHandler,
+    GitHubPullRequestCommentCoprBuildHandler,
 )
 from packit_service.worker.handlers.abstract import (
     Handler,
@@ -51,6 +53,9 @@ from packit_service.worker.handlers.abstract import (
     MAP_HANDLER_TO_JOB_TYPES,
     MAP_REQUIRED_JOB_TO_HANDLERS,
     JobHandler,
+)
+from packit_service.worker.handlers.centosmsg_handlers import (
+    PagurePullRequestCommentCoprBuildHandler,
 )
 from packit_service.worker.handlers.comment_action_handler import (
     MAP_COMMENT_ACTION_TO_HANDLER,
@@ -229,7 +234,10 @@ class SteveJobs:
         return packit_command, pr_comment_error_msg
 
     def process_comment_jobs(
-        self, event: Union[PullRequestCommentEvent, IssueCommentEvent]
+        self,
+        event: Union[
+            PullRequestCommentEvent, PullRequestCommentPagureEvent, IssueCommentEvent
+        ],
     ) -> HandlerResults:
 
         msg = f"comment '{event.comment}'"
@@ -270,6 +278,13 @@ class SteveJobs:
             return HandlerResults(
                 success=True, details={"msg": "Account is not whitelisted!"}
             )
+
+        # VERY UGLY
+        # TODO: REFACTOR !!!
+        if handler_kls == GitHubPullRequestCommentCoprBuildHandler and isinstance(
+            event, PullRequestCommentPagureEvent
+        ):
+            handler_kls = PagurePullRequestCommentCoprBuildHandler
 
         handler_instance: Handler = handler_kls(config=self.config, event=event)
         return handler_instance.run_n_clean()
@@ -338,7 +353,16 @@ class SteveJobs:
         elif event_object.trigger in {
             TheJobTriggerType.issue_comment,
             TheJobTriggerType.pr_comment,
-        } and (isinstance(event_object, (PullRequestCommentEvent, IssueCommentEvent))):
+        } and (
+            isinstance(
+                event_object,
+                (
+                    PullRequestCommentEvent,
+                    PullRequestCommentPagureEvent,
+                    IssueCommentEvent,
+                ),
+            )
+        ):
             job_type = JobType.pull_request_action.value
             jobs_results[job_type] = self.process_comment_jobs(event_object)
         else:

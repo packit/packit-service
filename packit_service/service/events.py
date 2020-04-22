@@ -705,7 +705,7 @@ class PushPagureEvent(AbstractPagureEvent):
         return package_config
 
 
-class PullRequestCommentPagureEvent(AbstractPagureEvent):
+class PullRequestCommentPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
     def __init__(
         self,
         action: PullRequestCommentAction,
@@ -762,6 +762,7 @@ class PullRequestPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
         self.user_login = user_login
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
+        self.https_url = https_url
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()

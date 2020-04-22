@@ -531,11 +531,20 @@ class CentosEventParser:
     def __init__(self):
         """
         self.event_mapping: dictionary mapping of topics to corresponding parsing methods
+
+        ..note: action in partial is github counterpart value, as this value is used in code
+
+            e.g.
+            pagure pull-request.update == github pull-request.synchronize -> in code is used
+            synchronize
         """
         self.event_mapping = {
-            "pull-request.new": partial(self._pull_request_event, action="new"),
+            "pull-request.new": partial(self._pull_request_event, action="opened"),
             "pull-request.reopened": partial(
                 self._pull_request_event, action="reopened"
+            ),
+            "pull-request.updated": partial(
+                self._pull_request_event, action="synchronize"
             ),
             "pull-request.comment.added": partial(
                 self._pull_request_comment, action="added"
@@ -567,22 +576,16 @@ class CentosEventParser:
 
     @staticmethod
     def _pull_request_event(event: dict, action: str):
-        logger.debug(f"Parsing pull_request.new")
+        logger.debug(f"Parsing f{event['topic']}")
         pullrequest = event["pullrequest"]
-
-        # "retype" to github equivalents, which are hardcoded in copr build handler
-        # TODO: needs refactoring
-        if action == "new":
-            action = "opened"
-
         pr_id = pullrequest["id"]
         base_repo_namespace = pullrequest["project"]["namespace"]
         base_repo_name = pullrequest["project"]["name"]
-        base_ref = f"refs/head/{pullrequest['branch']}"
+        base_ref = pullrequest["branch"]
         target_repo = pullrequest["repo_from"]["name"]
         https_url = f"https://{event['source']}/{pullrequest['project']['url_path']}"
         commit_sha = pullrequest["commit_stop"]
-        pagure_login = event["agent"]
+        pagure_login = pullrequest["user"]["name"]
 
         return PullRequestPagureEvent(
             PullRequestAction[action],
@@ -607,11 +610,12 @@ class CentosEventParser:
         pr_id = event["pullrequest"]["id"]
         base_repo_namespace = event["pullrequest"]["project"]["namespace"]
         base_repo_name = event["pullrequest"]["project"]["name"]
-        target_repo = event["pullrequest"]["repo_from"]["fullname"]
+        target_repo = event["pullrequest"]["repo_from"]["name"]
         https_url = (
             f"https://{event['source']}/{event['pullrequest']['project']['url_path']}"
         )
         pagure_login = event["agent"]
+        commit_sha = event["pullrequest"]["commit_stop"]
 
         # gets comment from event.
         # location differs based on topic (pull-request.comment.edited/pull-request.comment.added)
@@ -635,6 +639,7 @@ class CentosEventParser:
             # todo: change arg name in event class to more general
             pagure_login,
             comment,
+            commit_sha,
         )
 
     def _push_event(self, event: dict) -> PushPagureEvent:

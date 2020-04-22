@@ -45,6 +45,7 @@ from packit_service.service.events import (
     TheJobTriggerType,
     PushPagureEvent,
     PullRequestPagureEvent,
+    PullRequestCommentPagureEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
 
@@ -190,8 +191,17 @@ class Whitelist:
         :param project: GitProject
         :return:
         """
+
+        # whitelist checks dont apply to CentOS (Pagure)
+        if isinstance(
+            event,
+            (PushPagureEvent, PullRequestPagureEvent, PullRequestCommentPagureEvent),
+        ):
+            logger.info("Centos (Pagure) events dont require whitelist checks")
+            return True
+
         # TODO: modify event hierarchy so we can use some abstract classes instead
-        if isinstance(event, (ReleaseEvent, PushGitHubEvent, PushPagureEvent)):
+        if isinstance(event, (ReleaseEvent, PushGitHubEvent)):
             account_name = event.repo_namespace
             if not account_name:
                 raise KeyError(f"Failed to get account_name from {type(event)}")
@@ -204,9 +214,7 @@ class Whitelist:
             (CoprBuildEvent, TestingFarmResultsEvent, DistGitEvent, InstallationEvent),
         ):
             return True
-        if isinstance(
-            event, (PullRequestEvent, PullRequestPagureEvent, PullRequestCommentEvent)
-        ):
+        if isinstance(event, (PullRequestEvent, PullRequestCommentEvent)):
             account_name = event.user_login
             if not account_name:
                 raise KeyError(f"Failed to get account_name from {type(event)}")

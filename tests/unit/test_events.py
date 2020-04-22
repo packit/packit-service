@@ -52,7 +52,12 @@ from packit_service.service.events import (
     PushGitHubEvent,
     TheJobTriggerType,
 )
-from packit_service.worker.parser import Parser
+from packit_service.worker.parser import Parser, CentosEventParser
+from tests.data.centosmsg_listener_events import (
+    pr_update,
+    pr_new,
+    pr_comment_added,
+)
 from tests.spellbook import DATA_DIR
 
 
@@ -429,3 +434,54 @@ class TestEvents:
         event_object = Parser.parse_event(testing_farm_results_error)
         assert json.dumps(event_object.tests)
         assert json.dumps(event_object.result)
+
+
+class TestCentOsEventParser:
+    def test_new_pull_request_event(self):
+        centos_event_parser = CentosEventParser()
+        event_object = centos_event_parser.parse_event(pr_new)
+
+        assert event_object.action == PullRequestAction.opened
+        assert event_object.pr_id == 12
+        assert event_object.base_repo_namespace == "source-git"
+        assert event_object.base_repo_name == "packit-hello-world"
+        assert event_object.base_ref == "master"
+        assert event_object.target_repo == "packit-hello-world"
+        assert event_object.commit_sha == "bf9701dea5a167caa7a1afa0759342aa0bf0d8fd"
+        assert event_object.user_login == "sakalosj"
+        assert event_object.identifier == "12"
+        assert (
+            event_object.https_url
+            == "https://git.stg.centos.org/source-git/packit-hello-world"
+        )
+
+    def test_update_pull_request_event(self):
+        centos_event_parser = CentosEventParser()
+        event_object = centos_event_parser.parse_event(pr_update)
+
+        assert event_object.action == PullRequestAction.synchronize
+        assert event_object.pr_id == 13
+        assert event_object.base_repo_namespace == "source-git"
+        assert event_object.base_repo_name == "packit-hello-world"
+        assert event_object.base_ref == "master"
+        assert event_object.target_repo == "packit-hello-world"
+        assert event_object.commit_sha == "b658af51df98c1cbf74a75095ced920bba2ef25e"
+        assert event_object.user_login == "sakalosj"
+        assert event_object.identifier == "13"
+        assert (
+            event_object.https_url
+            == "https://git.stg.centos.org/source-git/packit-hello-world"
+        )
+
+    def test_pull_request_comment_event(self):
+        centos_event_parser = CentosEventParser()
+        event_object = centos_event_parser.parse_event(pr_comment_added)
+
+        assert event_object.pr_id == 16
+        assert event_object.base_repo_namespace == "source-git"
+        assert event_object.base_repo_name == "packit-hello-world"
+        assert event_object.base_ref is None
+        assert event_object.target_repo == "packit-hello-world"
+        assert event_object.commit_sha == "dfe787d04101728c6ddc213d3f4bf39c969f194c"
+        assert event_object.user_login == "sakalosj"
+        assert event_object.comment == "/packit copr-build"

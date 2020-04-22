@@ -41,6 +41,7 @@ from packit_service.service.events import (
     PushGitHubEvent,
     ReleaseEvent,
     PullRequestPagureEvent,
+    PullRequestCommentPagureEvent,
 )
 from packit_service.service.urls import get_log_url, get_srpm_log_url
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
@@ -73,6 +74,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             PullRequestEvent,
             PullRequestPagureEvent,
             PullRequestCommentEvent,
+            PullRequestCommentPagureEvent,
             CoprBuildEvent,
             PushGitHubEvent,
             ReleaseEvent,
