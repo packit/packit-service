@@ -396,52 +396,5 @@ $ DEPLOYMENT=dev make deploy
 
 As the last step playbook [zuul-tests.yaml](/files/zuul-tests.yaml) is executed.
 
-### Additional configuration for development purposes
-
-#### Copr build
-
-For cases you'd like to trigger a copr build in your copr project, you can configure it in packit configuration of your chosen package:
-
-```yaml
-jobs:
-  - job: copr_build
-    trigger: pull_request
-    metadata:
-      targets:
-        - some_targets
-      # (Optional) Defaults to 'packit'
-      owner: some_copr_project_owner
-      # (Optional) Defaults to <github_namespace>-<github_repo>
-      project: some_project_name
-```
-
-### How to add a new job?
-
-Creating a new job is not hard at all but requires a few steps to be done. This section will walk you through this process.
-
-#### Define job type in Packit
-
-The first step is to define new `JobType` and/or `JobTriggerType` in [packit/config.py](https://github.com/packit-service/packit/blob/master/packit/config.py). If you are defining new job which appears also in `.packit.yaml` you have to update `JOB_CONFIG_SCHEMA` in [schema.py](https://github.com/packit-service/packit/blob/master/packit/schema.py) and add the name of job to enum.
-Then I recommend to push this change into your packit fork and change installation of `packit` in both [recipe.yaml](/files/recipe.yaml) and [recipe-tests.yaml](/files/recipe-tests.yaml) to this commit (e.g `git+https://github.com/rpitonak/packit.git@9cae9a0381753148e5bb23121bfebbb948f37b01`).
-
-#### Packit service
-
-Once we have jobs defined in `packit` config we are ready to move on to next steps:
-
-1. Define a new event in [events.py](/packit_service/service/events.py). This is required just when you want to react to new events (e.g github webhooks, fedmsg events, payloads from other APIs). In this file there are representations of those JSON objects.
-2. Define parse method in [worker/parser.py](/packit_service/worker/parser.py). Create new static method in `Parser` class which can deserialize new defined event in previous step. Don't forget to call it in `parse_event` method. Write a new test in `test_events.py` to verify that it works well.
-3. Depends on type of job - create new handler in one of the `*_handlers.py` files. You need to implement the `run` method where is the whole logic of the handler. In this step take inspiration from other handlers.
-
-### Service configuration
-
-The service configuration is an extension of the user configuration from packit. (`Config` class in [packit/config.py](https://github.com/packit-service/packit/blob/master/packit/config.py).)
-
-To add a new service-related property you need to:
-
-1. Add a property to `ServiceConfig.__init__` in [config.py](/packit_service/config.py) and set it as attribute.
-2. Load the property in `ServiceConfig.get_from_dict`.
-3. Add it to the validation schema (`_SERVICE_CONFIG_SCHEMA_PROPERTIES`) in [schema.py](/packit_service/schema.py).
-   - Add the property to the `_SERVICE_CONFIG_SCHEMA_REQUIRED` if the property is required.
-
 Thank you for your interest!
 packit team.
