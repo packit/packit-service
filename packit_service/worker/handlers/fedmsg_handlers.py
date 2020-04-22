@@ -24,7 +24,6 @@
 This file defines classes for job handlers specific for Fedmsg events
 """
 
-from copr.v3 import Client as CoprClient
 import logging
 from typing import Type, Optional
 
@@ -239,6 +238,7 @@ class CoprBuildEndHandler(FedmsgHandler):
             logger.info(msg)
             return HandlerResults(success=True, details={"msg": msg})
 
+        build.set_end_time(datetime.utcnow())
         url = get_log_url(build.id)
 
         # https://pagure.io/copr/copr/blob/master/f/common/copr_common/enums.py#_42
@@ -284,17 +284,6 @@ class CoprBuildEndHandler(FedmsgHandler):
             chroot=self.event.chroot,
         )
         build.set_status(PG_COPR_BUILD_STATUS_SUCCESS)
-
-        copr_client = CoprClient.create_from_config_file()
-        chroot_build = copr_client.build_chroot_proxy.get(
-            self.event.build_id, self.event.chroot
-        )
-        started_on = chroot_build.started_on
-        ended_on = chroot_build.ended_on
-
-        build_start_time = datetime.utcfromtimestamp(started_on) if started_on else None
-        build_end_time = datetime.utcfromtimestamp(ended_on) if ended_on else None
-        build.set_start_end_time(build_start_time, build_end_time)
 
         if (
             self.build_job_helper.job_tests
@@ -353,6 +342,7 @@ class CoprBuildStartHandler(FedmsgHandler):
             logger.warning(msg)
             return HandlerResults(success=False, details={"msg": msg})
 
+        build.set_start_time(datetime.utcnow())
         url = get_log_url(build.id)
         build.set_status("pending")
         copr_build_logs = get_copr_build_logs_url(self.event)

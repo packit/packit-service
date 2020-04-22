@@ -24,9 +24,7 @@ import uuid
 
 import pytest
 import requests
-from copr.v3 import Client, BuildChrootProxy
 from flexmock import flexmock
-from munch import Munch
 from tests.spellbook import DATA_DIR
 
 from ogr.abstract import CommitStatus
@@ -64,21 +62,6 @@ def copr_build_start():
 @pytest.fixture()
 def copr_build_end():
     return json.loads((DATA_DIR / "fedmsg" / "copr_build_end.json").read_text())
-
-
-@pytest.fixture()
-def copr_chroot_response():
-    return Munch(
-        {
-            "ended_on": 1583916564,
-            "name": "fedora-rawhide-x86_64",
-            "result_url": "https://download.copr.fedorainfracloud.org/"
-            "results/packit/packit-service-packit-752/fedora-rawhide-x86_64/"
-            "01300329-packit/",
-            "started_on": 1583916315,
-            "state": "succeeded",
-        }
-    )
 
 
 @pytest.fixture()
@@ -137,12 +120,7 @@ def pc_tests():
     "pc_comment_pr_succ,pr_comment_called", ((True, True), (False, False),)
 )
 def test_copr_build_end(
-    copr_build_end,
-    pc_build_pr,
-    copr_build_pr,
-    pc_comment_pr_succ,
-    pr_comment_called,
-    copr_chroot_response,
+    copr_build_end, pc_build_pr, copr_build_pr, pc_comment_pr_succ, pr_comment_called,
 ):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
@@ -158,11 +136,8 @@ def test_copr_build_end(
     else:
         flexmock(GithubProject).should_receive("pr_comment").never()
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    flexmock(Client).should_receive("create_from_config_file").and_return(Client(None))
-    flexmock(BuildChrootProxy).should_receive("get").and_return(copr_chroot_response)
-    flexmock(CoprBuildModel).should_receive("set_start_end_time")
     copr_build_pr.should_receive("set_status").with_args("success")
-    copr_build_pr.should_receive("set_start_end_time").once()
+    copr_build_pr.should_receive("set_end_time").once()
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -180,9 +155,7 @@ def test_copr_build_end(
     steve.process_message(copr_build_end)
 
 
-def test_copr_build_end_push(
-    copr_build_end, pc_build_push, copr_build_branch_push, copr_chroot_response
-):
+def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_push):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
@@ -198,11 +171,9 @@ def test_copr_build_end_push(
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
         copr_build_branch_push
     )
-    flexmock(Client).should_receive("create_from_config_file").and_return(Client(None))
-    flexmock(BuildChrootProxy).should_receive("get").and_return(copr_chroot_response)
-    flexmock(CoprBuildModel).should_receive("set_start_end_time")
+
     copr_build_branch_push.should_receive("set_status").with_args("success")
-    copr_build_branch_push.should_receive("set_start_end_time").once()
+    copr_build_branch_push.should_receive("set_end_time").once()
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -220,9 +191,7 @@ def test_copr_build_end_push(
     steve.process_message(copr_build_end)
 
 
-def test_copr_build_end_release(
-    copr_build_end, pc_build_release, copr_build_release, copr_chroot_response
-):
+def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_release):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
@@ -238,11 +207,8 @@ def test_copr_build_end_release(
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
         copr_build_release
     )
-    flexmock(Client).should_receive("create_from_config_file").and_return(Client(None))
-    flexmock(BuildChrootProxy).should_receive("get").and_return(copr_chroot_response)
-    flexmock(CoprBuildModel).should_receive("set_start_end_time")
     copr_build_release.should_receive("set_status").with_args("success")
-    copr_build_release.should_receive("set_start_end_time").once()
+    copr_build_release.should_receive("set_end_time").once()
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -260,9 +226,7 @@ def test_copr_build_end_release(
     steve.process_message(copr_build_end)
 
 
-def test_copr_build_end_testing_farm(
-    copr_build_end, copr_build_pr, copr_chroot_response
-):
+def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("some-owner")
@@ -296,11 +260,8 @@ def test_copr_build_end_testing_farm(
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    flexmock(Client).should_receive("create_from_config_file").and_return(Client(None))
-    flexmock(BuildChrootProxy).should_receive("get").and_return(copr_chroot_response)
-    flexmock(CoprBuildModel).should_receive("set_start_end_time")
     copr_build_pr.should_receive("set_status").with_args("success")
-    copr_build_pr.should_receive("set_start_end_time").once()
+    copr_build_pr.should_receive("set_end_time").once()
     url = "https://localhost:5000/copr-build/1/logs"
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -381,9 +342,7 @@ def test_copr_build_end_testing_farm(
     steve.process_message(copr_build_end)
 
 
-def test_copr_build_end_failed_testing_farm(
-    copr_build_end, copr_build_pr, copr_chroot_response
-):
+def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("some-owner")
@@ -417,11 +376,8 @@ def test_copr_build_end_failed_testing_farm(
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    flexmock(Client).should_receive("create_from_config_file").and_return(Client(None))
-    flexmock(BuildChrootProxy).should_receive("get").and_return(copr_chroot_response)
-    flexmock(CoprBuildModel).should_receive("set_start_end_time")
     copr_build_pr.should_receive("set_status").with_args("success")
-    copr_build_pr.should_receive("set_start_end_time").once()
+    copr_build_pr.should_receive("set_end_time").once()
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
@@ -487,9 +443,7 @@ def test_copr_build_end_failed_testing_farm(
     steve.process_message(copr_build_end)
 
 
-def test_copr_build_end_failed_testing_farm_no_json(
-    copr_build_end, copr_build_pr, copr_chroot_response
-):
+def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("some-owner")
@@ -523,11 +477,8 @@ def test_copr_build_end_failed_testing_farm_no_json(
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    flexmock(Client).should_receive("create_from_config_file").and_return(Client(None))
-    flexmock(BuildChrootProxy).should_receive("get").and_return(copr_chroot_response)
-    flexmock(CoprBuildModel).should_receive("set_start_end_time")
     copr_build_pr.should_receive("set_status").with_args("success")
-    copr_build_pr.should_receive("set_start_end_time").once()
+    copr_build_pr.should_receive("set_end_time").once()
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -611,6 +562,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 
+    copr_build_pr.should_receive("set_start_time").once()
     copr_build_pr.should_receive("set_status").with_args("pending").once()
     copr_build_pr.should_receive("set_build_logs_url")
 
@@ -640,7 +592,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
-
+    copr_build_pr.should_receive("set_start_time").once()
     copr_build_pr.should_receive("set_status").with_args("pending")
     copr_build_pr.should_receive("set_build_logs_url")
 
@@ -662,9 +614,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
     steve.process_message(copr_build_start)
 
 
-def test_copr_build_not_comment_on_success(
-    copr_build_end, pc_build_pr, copr_build_pr, copr_chroot_response
-):
+def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
@@ -680,11 +630,8 @@ def test_copr_build_not_comment_on_success(
     flexmock(GithubProject).should_receive("pr_comment").never()
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    flexmock(Client).should_receive("create_from_config_file").and_return(Client(None))
-    flexmock(BuildChrootProxy).should_receive("get").and_return(copr_chroot_response)
-    flexmock(CoprBuildModel).should_receive("set_start_end_time")
     copr_build_pr.should_receive("set_status").with_args("success")
-    copr_build_pr.should_receive("set_start_end_time").once()
+    copr_build_pr.should_receive("set_end_time").once()
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
