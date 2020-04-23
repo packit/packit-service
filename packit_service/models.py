@@ -374,9 +374,13 @@ class CoprBuildModel(Base):
     # metadata is reserved to sqlalch
     data = Column(JSON)
 
-    def set_start_end_time(self, start_time: DateTime, end_time: DateTime):
+    def set_start_time(self, start_time: DateTime):
         with get_sa_session() as session:
             self.build_start_time = start_time
+            session.add(self)
+
+    def set_end_time(self, end_time: DateTime):
+        with get_sa_session() as session:
             self.build_finished_time = end_time
             session.add(self)
 

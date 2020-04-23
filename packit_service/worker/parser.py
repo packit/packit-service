@@ -505,21 +505,10 @@ class Parser:
         owner = event.get("owner")
         project_name = event.get("copr")
         pkg = event.get("pkg")
-        logs_url = event.get("logs_url")
-        started_on = event.get("started_on")
-        ended_on = event.get("ended_on")
+        timestamp = event.get("timestamp")
 
         return CoprBuildEvent.from_build_id(
-            topic,
-            build_id,
-            chroot,
-            status,
-            owner,
-            project_name,
-            pkg,
-            logs_url,
-            started_on,
-            ended_on,
+            topic, build_id, chroot, status, owner, project_name, pkg, timestamp
         )
 
 

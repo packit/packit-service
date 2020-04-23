@@ -24,7 +24,6 @@ import uuid
 
 import pytest
 import requests
-from copr.v3 import Client
 from flexmock import flexmock
 from tests.spellbook import DATA_DIR
 
@@ -34,7 +33,6 @@ from ogr.utils import RequestResponse
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
 from packit.config.package_config import PackageConfig
-from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.models import (
@@ -122,18 +120,10 @@ def pc_tests():
     "pc_comment_pr_succ,pr_comment_called", ((True, True), (False, False),)
 )
 def test_copr_build_end(
-    copr_build_end, pc_build_pr, copr_build_pr, pc_comment_pr_succ, pr_comment_called
+    copr_build_end, pc_build_pr, copr_build_pr, pc_comment_pr_succ, pr_comment_called,
 ):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(
-            config={
-                "copr_url": "https://copr.fedorainfracloud.org",
-                "username": "some-owner",
-            }
-        )
-    )
     pc_build_pr.notifications.pull_request.successful_build = pc_comment_pr_succ
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
@@ -145,13 +135,9 @@ def test_copr_build_end(
         flexmock(GithubProject).should_receive("pr_comment")
     else:
         flexmock(GithubProject).should_receive("pr_comment").never()
-
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    flexmock(CoprBuildModel).should_receive("set_start_end_time")
-    flexmock(CoprBuildModel).should_receive("set_build_logs_url")
     copr_build_pr.should_receive("set_status").with_args("success")
-    copr_build_pr.should_receive("set_start_end_time").once()
-    copr_build_pr.should_receive("set_build_logs_url").once()
+    copr_build_pr.should_receive("set_end_time").once()
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -172,14 +158,6 @@ def test_copr_build_end(
 def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_push):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(
-            config={
-                "copr_url": "https://copr.fedorainfracloud.org",
-                "username": "some-owner",
-            }
-        )
-    )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_push
     )
@@ -193,11 +171,9 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
         copr_build_branch_push
     )
-    flexmock(CoprBuildModel).should_receive("set_start_end_time")
-    flexmock(CoprBuildModel).should_receive("set_build_logs_url")
+
     copr_build_branch_push.should_receive("set_status").with_args("success")
-    copr_build_branch_push.should_receive("set_start_end_time").once()
-    copr_build_branch_push.should_receive("set_build_logs_url").once()
+    copr_build_branch_push.should_receive("set_end_time").once()
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -218,14 +194,6 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
 def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_release):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(
-            config={
-                "copr_url": "https://copr.fedorainfracloud.org",
-                "username": "some-owner",
-            }
-        )
-    )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_release
     )
@@ -239,11 +207,8 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
         copr_build_release
     )
-    flexmock(CoprBuildModel).should_receive("set_start_end_time")
-    flexmock(CoprBuildModel).should_receive("set_build_logs_url")
     copr_build_release.should_receive("set_status").with_args("success")
-    copr_build_release.should_receive("set_start_end_time").once()
-    copr_build_release.should_receive("set_build_logs_url").once()
+    copr_build_release.should_receive("set_end_time").once()
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -264,14 +229,6 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
 def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(
-            config={
-                "copr_url": "https://copr.fedorainfracloud.org",
-                "username": "some-owner",
-            }
-        )
-    )
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("some-owner")
     flexmock(TestingFarmJobHelper).should_receive("job_project").and_return(
         "foo-bar-123-stg"
@@ -303,11 +260,8 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    flexmock(CoprBuildModel).should_receive("set_start_end_time")
-    flexmock(CoprBuildModel).should_receive("set_build_logs_url")
     copr_build_pr.should_receive("set_status").with_args("success")
-    copr_build_pr.should_receive("set_start_end_time").once()
-    copr_build_pr.should_receive("set_build_logs_url").once()
+    copr_build_pr.should_receive("set_end_time").once()
     url = "https://localhost:5000/copr-build/1/logs"
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -391,14 +345,6 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
 def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(
-            config={
-                "copr_url": "https://copr.fedorainfracloud.org",
-                "username": "some-owner",
-            }
-        )
-    )
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("some-owner")
     flexmock(TestingFarmJobHelper).should_receive("job_project").and_return(
         "foo-bar-123-stg"
@@ -430,11 +376,8 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    flexmock(CoprBuildModel).should_receive("set_start_end_time")
-    flexmock(CoprBuildModel).should_receive("set_build_logs_url")
     copr_build_pr.should_receive("set_status").with_args("success")
-    copr_build_pr.should_receive("set_start_end_time").once()
-    copr_build_pr.should_receive("set_build_logs_url").once()
+    copr_build_pr.should_receive("set_end_time").once()
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
@@ -503,14 +446,6 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
 def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(
-            config={
-                "copr_url": "https://copr.fedorainfracloud.org",
-                "username": "some-owner",
-            }
-        )
-    )
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("some-owner")
     flexmock(TestingFarmJobHelper).should_receive("job_project").and_return(
         "foo-bar-123-stg"
@@ -542,11 +477,8 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    flexmock(CoprBuildModel).should_receive("set_start_end_time")
-    flexmock(CoprBuildModel).should_receive("set_build_logs_url")
     copr_build_pr.should_receive("set_status").with_args("success")
-    copr_build_pr.should_receive("set_start_end_time").once()
-    copr_build_pr.should_receive("set_build_logs_url").once()
+    copr_build_pr.should_receive("set_end_time").once()
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -618,14 +550,6 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
 def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(
-            config={
-                "copr_url": "https://copr.fedorainfracloud.org",
-                "username": "some-owner",
-            }
-        )
-    )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
@@ -638,6 +562,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 
+    copr_build_pr.should_receive("set_start_time").once()
     copr_build_pr.should_receive("set_status").with_args("pending").once()
     copr_build_pr.should_receive("set_build_logs_url")
 
@@ -655,14 +580,6 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
 def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(
-            config={
-                "copr_url": "https://copr.fedorainfracloud.org",
-                "username": "some-owner",
-            }
-        )
-    )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(pc_tests)
     flexmock(TestingFarmJobHelper).should_receive("get_build_check").and_return(
         EXPECTED_BUILD_CHECK_NAME
@@ -675,7 +592,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
-
+    copr_build_pr.should_receive("set_start_time").once()
     copr_build_pr.should_receive("set_status").with_args("pending")
     copr_build_pr.should_receive("set_build_logs_url")
 
@@ -700,14 +617,6 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
 def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_build_pr):
     steve = SteveJobs()
     flexmock(SteveJobs, _is_private=False)
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(
-            config={
-                "copr_url": "https://copr.fedorainfracloud.org",
-                "username": "some-owner",
-            }
-        )
-    )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
@@ -721,11 +630,8 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     flexmock(GithubProject).should_receive("pr_comment").never()
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    flexmock(CoprBuildModel).should_receive("set_start_end_time")
-    flexmock(CoprBuildModel).should_receive("set_build_logs_url")
     copr_build_pr.should_receive("set_status").with_args("success")
-    copr_build_pr.should_receive("set_start_end_time").once()
-    copr_build_pr.should_receive("set_build_logs_url").once()
+    copr_build_pr.should_receive("set_end_time").once()
     url = get_log_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
