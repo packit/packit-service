@@ -555,17 +555,17 @@ class CentosEventParser:
         event["source"] = source
         event["git_topic"] = git_topic
 
-        try:
-            event_object = self.event_mapping[git_topic](event)
-        except KeyError:
+        if git_topic not in self.event_mapping:
             logger.info(f"Event type {git_topic} is not processed")
             return None
 
+        event_object = self.event_mapping[git_topic](event)
         return event_object
 
     @staticmethod
     def _pull_request_event(event: dict, action: str):
         logger.debug(f"Parsing f{event['topic']}")
+
         pullrequest = event["pullrequest"]
         pr_id = pullrequest["id"]
         base_repo_namespace = pullrequest["project"]["namespace"]
