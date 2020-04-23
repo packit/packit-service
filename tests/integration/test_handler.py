@@ -29,9 +29,7 @@ from packit.config import JobConfig, JobType, JobConfigTriggerType, PackageConfi
 from packit_service.config import ServiceConfig
 from packit_service.service.events import Event, TheJobTriggerType
 from packit_service.worker.handlers import JobHandler
-from packit_service.worker.handlers.github_handlers import (
-    AbstractGithubCoprBuildHandler,
-)
+from packit_service.worker.handlers.github_handlers import AbstractCoprBuildHandler
 
 
 @pytest.fixture()
@@ -67,7 +65,7 @@ def test_handler_cleanup(tmpdir, trick_p_s_with_k8s):
 
 
 def test_precheck(pull_request_event):
-    flexmock(AbstractGithubCoprBuildHandler).should_receive(
+    flexmock(AbstractCoprBuildHandler).should_receive(
         "get_package_config_from_repo"
     ).and_return(
         PackageConfig(
@@ -85,7 +83,7 @@ def test_precheck(pull_request_event):
             ]
         )
     )
-    copr_build_handler = AbstractGithubCoprBuildHandler(
+    copr_build_handler = AbstractCoprBuildHandler(
         config=flexmock(),
         job_config=JobConfig(
             type=JobType.copr_build,
@@ -98,7 +96,7 @@ def test_precheck(pull_request_event):
 
 
 def test_precheck_skip_tests_when_build_defined(pull_request_event):
-    flexmock(AbstractGithubCoprBuildHandler).should_receive(
+    flexmock(AbstractCoprBuildHandler).should_receive(
         "get_package_config_from_repo"
     ).and_return(
         PackageConfig(
@@ -116,7 +114,7 @@ def test_precheck_skip_tests_when_build_defined(pull_request_event):
             ]
         )
     )
-    copr_build_handler = AbstractGithubCoprBuildHandler(
+    copr_build_handler = AbstractCoprBuildHandler(
         config=flexmock(),
         job_config=JobConfig(
             type=JobType.tests, trigger=JobConfigTriggerType.pull_request, metadata={},

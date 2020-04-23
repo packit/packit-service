@@ -21,22 +21,21 @@
 # SOFTWARE.
 import pytest
 from flexmock import flexmock
-from packit.config import JobConfig, JobType, JobConfigTriggerType
 
+from packit.config import JobConfig, JobType, JobConfigTriggerType
+from packit.config.job_config import JobMetadataConfig
 from packit_service.service.events import TheJobTriggerType
 from packit_service.worker.handlers import (
-    PullRequestGithubCoprBuildHandler,
+    PullRequestCoprBuildHandler,
     ProposeDownstreamHandler,
     CoprBuildStartHandler,
     CoprBuildEndHandler,
     TestingFarmResultsHandler,
-    PagurePullRequestCoprBuildHandler,
 )
-from packit_service.worker.handlers.centosmsg_handlers import PushPagureCoprBuildHandler
 from packit_service.worker.handlers.github_handlers import (
     PullRequestGithubKojiBuildHandler,
     PushGithubKojiBuildHandler,
-    PushGithubCoprBuildHandler,
+    PushCoprBuildHandler,
     ReleaseGithubKojiBuildHandler,
 )
 from packit_service.worker.jobs import get_handlers_for_event
@@ -59,10 +58,10 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 )
             ],
-            {PullRequestGithubCoprBuildHandler, PagurePullRequestCoprBuildHandler},
+            {PullRequestCoprBuildHandler},
             id="config=copr_build@trigger=pull_request",
         ),
         pytest.param(
@@ -72,10 +71,10 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 )
             ],
-            {PullRequestGithubCoprBuildHandler, PagurePullRequestCoprBuildHandler},
+            {PullRequestCoprBuildHandler},
             id="config=build@trigger=pull_request",
         ),
         pytest.param(
@@ -85,10 +84,10 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 )
             ],
-            {PushGithubCoprBuildHandler, PushPagureCoprBuildHandler},
+            {PushCoprBuildHandler},
             id="config=copr_build_on_push@trigger=push",
         ),
         pytest.param(
@@ -98,10 +97,10 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 )
             ],
-            {PushGithubCoprBuildHandler},
+            {PushCoprBuildHandler},
             id="config=copr_build_on_push@trigger=commit",
         ),
         pytest.param(
@@ -111,7 +110,7 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.propose_downstream,
                     trigger=JobConfigTriggerType.release,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 )
             ],
             {ProposeDownstreamHandler},
@@ -124,7 +123,7 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 )
             ],
             {CoprBuildStartHandler},
@@ -137,7 +136,7 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 )
             ],
             {CoprBuildEndHandler},
@@ -150,15 +149,15 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.release,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
             ],
-            {PullRequestGithubCoprBuildHandler, PagurePullRequestCoprBuildHandler},
+            {PullRequestCoprBuildHandler},
             id="config=copr_build_on_pull_request_and_release@trigger=pull_request",
         ),
         pytest.param(
@@ -168,12 +167,12 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.release,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
             ],
             {CoprBuildEndHandler},
@@ -186,10 +185,10 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 )
             ],
-            {PullRequestGithubCoprBuildHandler},
+            {PullRequestCoprBuildHandler},
             id="config=tests@trigger=pull_request",
         ),
         pytest.param(
@@ -199,7 +198,7 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 )
             ],
             {CoprBuildStartHandler},
@@ -212,7 +211,7 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 )
             ],
             {CoprBuildEndHandler},
@@ -225,7 +224,7 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 )
             ],
             {TestingFarmResultsHandler},
@@ -238,12 +237,12 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
             ],
             {TestingFarmResultsHandler},
@@ -256,15 +255,15 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
             ],
-            {PullRequestGithubCoprBuildHandler, PagurePullRequestCoprBuildHandler},
+            {PullRequestCoprBuildHandler},
             id="config=tests_and_copr_build@trigger=pull_request",
         ),
         pytest.param(
@@ -274,12 +273,12 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
             ],
             {CoprBuildStartHandler},
@@ -292,22 +291,22 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
                 JobConfig(
                     type=JobType.propose_downstream,
                     trigger=JobConfigTriggerType.release,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
                 JobConfig(
                     type=JobType.sync_from_downstream,
                     trigger=JobConfigTriggerType.commit,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
             ],
             {CoprBuildStartHandler},
@@ -320,7 +319,7 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
             ],
             {PullRequestGithubKojiBuildHandler},
@@ -333,7 +332,7 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
             ],
             {PushGithubKojiBuildHandler},
@@ -346,7 +345,7 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
             ],
             {PushGithubKojiBuildHandler},
@@ -359,7 +358,7 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.release,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
             ],
             {ReleaseGithubKojiBuildHandler},
@@ -372,12 +371,12 @@ from packit_service.worker.jobs import get_handlers_for_event
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    metadata=JobMetadataConfig(),
                 ),
             ],
             {PushGithubKojiBuildHandler},

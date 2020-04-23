@@ -2,21 +2,19 @@ import logging
 from typing import Optional, Callable, Union
 
 from ogr.abstract import GitProject
-
 from packit.config import JobConfig, PackageConfig, JobType
 from packit_service.config import (
     ServiceConfig,
     PagurePackageConfigGetter,
 )
 from packit_service.service.events import (
-    PushGitHubEvent,
     TheJobTriggerType,
     PullRequestPagureEvent,
     PushPagureEvent,
     PullRequestCommentPagureEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
-from packit_service.worker.handlers.abstract import use_for, JobHandler
+from packit_service.worker.handlers.abstract import JobHandler
 from packit_service.worker.handlers.comment_action_handler import (
     CommentAction,
     CommentActionHandler,
@@ -89,66 +87,6 @@ class AbstractPagureCoprBuildHandler(AbstractPagureJobHandler):
         return True
 
 
-@use_for(job_type=JobType.copr_build)
-@use_for(job_type=JobType.build)
-class PagurePullRequestCoprBuildHandler(AbstractPagureCoprBuildHandler):
-    triggers = [
-        TheJobTriggerType.pull_request,
-    ]
-    event: PullRequestPagureEvent
-
-    def __init__(
-        self,
-        config: ServiceConfig,
-        job_config: JobConfig,
-        event: PullRequestPagureEvent,
-    ):
-        super().__init__(config=config, job_config=job_config, event=event)
-
-    def pre_check(self) -> bool:
-        return (
-            super().pre_check()
-            and isinstance(self.event, PullRequestPagureEvent)
-            and self.event.trigger == TheJobTriggerType.pull_request
-        )
-
-
-@use_for(job_type=JobType.copr_build)
-@use_for(job_type=JobType.build)
-class PushPagureCoprBuildHandler(AbstractPagureCoprBuildHandler):
-    triggers = [
-        TheJobTriggerType.push,
-    ]
-
-    def __init__(
-        self, config: ServiceConfig, job_config: JobConfig, event: PushPagureEvent,
-    ):
-        super().__init__(
-            config=config, job_config=job_config, event=event,
-        )
-        self.base_ref = event.commit_sha
-
-    def pre_check(self) -> bool:
-        valid = (
-            super().pre_check()
-            and isinstance(self.event, PushGitHubEvent)
-            and self.event.trigger == TheJobTriggerType.push
-        )
-        if not valid:
-            return False
-
-        configured_branch = self.copr_build_helper.job_build.metadata.get(
-            "branch", "master"
-        )
-        if configured_branch != self.event.git_ref:
-            logger.info(
-                f"Skipping build on {self.event.git_ref}'. "
-                f"Push configured only for ('{configured_branch}')."
-            )
-            return False
-        return True
-
-
 class PagurePullRequestCommentCoprBuildHandler(
     CommentActionHandler, PagurePackageConfigGetter
 ):
@@ -169,7 +107,6 @@ class PagurePullRequestCommentCoprBuildHandler(
         self.package_config.upstream_project_url = event.project_url
 
     def run(self) -> HandlerResults:
-
         cbh = CoprBuildJobHelper(
             self.config, self.package_config, self.project, self.event
         )

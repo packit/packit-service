@@ -30,7 +30,7 @@
 
 from packit_service.worker.handlers.abstract import Handler, JobHandler
 from packit_service.worker.handlers.centosmsg_handlers import (
-    PagurePullRequestCoprBuildHandler,
+    PagurePullRequestCommentCoprBuildHandler,
 )
 from packit_service.worker.handlers.comment_action_handler import CommentActionHandler
 from packit_service.worker.handlers.fedmsg_handlers import (
@@ -42,9 +42,9 @@ from packit_service.worker.handlers.fedmsg_handlers import (
 from packit_service.worker.handlers.github_handlers import (
     AbstractGithubJobHandler,
     GithubAppInstallationHandler,
-    ReleaseGithubCoprBuildHandler,
-    PullRequestGithubCoprBuildHandler,
-    PushGithubCoprBuildHandler,
+    ReleaseCoprBuildHandler,
+    PullRequestCoprBuildHandler,
+    PushCoprBuildHandler,
     GitHubIssueCommentProposeUpdateHandler,
     GitHubPullRequestCommentCoprBuildHandler,
     GitHubPullRequestCommentTestingFarmHandler,
@@ -63,9 +63,9 @@ __all__ = [
     CoprBuildStartHandler.__name__,
     FedmsgHandler.__name__,
     GithubAppInstallationHandler.__name__,
-    ReleaseGithubCoprBuildHandler.__name__,
-    PullRequestGithubCoprBuildHandler.__name__,
-    PushGithubCoprBuildHandler.__name__,
+    ReleaseCoprBuildHandler.__name__,
+    PullRequestCoprBuildHandler.__name__,
+    PushCoprBuildHandler.__name__,
     GitHubIssueCommentProposeUpdateHandler.__name__,
     GitHubPullRequestCommentCoprBuildHandler.__name__,
     GitHubPullRequestCommentTestingFarmHandler.__name__,
@@ -75,5 +75,5 @@ __all__ = [
     JobHandler.__name__,
     NewDistGitCommitHandler.__name__,
     TestingFarmResultsHandler.__name__,
-    PagurePullRequestCoprBuildHandler.__name__,
+    PagurePullRequestCommentCoprBuildHandler.__name__,
 ]

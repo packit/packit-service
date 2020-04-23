@@ -49,6 +49,9 @@ from packit_service.service.events import (
     CoprBuildEvent,
     PushGitHubEvent,
     TheJobTriggerType,
+    PullRequestPagureEvent,
+    PushPagureEvent,
+    AbstractPagureEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
@@ -73,6 +76,8 @@ logger = logging.getLogger(__name__)
 
 
 class AbstractGithubJobHandler(JobHandler, GithubPackageConfigGetter):
+    # TODO: This is used not only for GitHub
+    #  -- figure out better name and way to use GithubPackageConfigGetter method
     pass
 
 
@@ -200,15 +205,23 @@ class ProposeDownstreamHandler(AbstractGithubJobHandler):
         return HandlerResults(success=True, details={})
 
 
-class AbstractGithubCoprBuildHandler(AbstractGithubJobHandler):
+class AbstractCoprBuildHandler(AbstractGithubJobHandler):
     type = JobType.copr_build
-    event: Union[PullRequestEvent, ReleaseEvent, PushGitHubEvent]
+    event: Union[
+        PullRequestEvent, ReleaseEvent, PushGitHubEvent, PullRequestPagureEvent
+    ]
 
     def __init__(
         self,
         config: ServiceConfig,
         job_config: JobConfig,
-        event: Union[PullRequestEvent, ReleaseEvent, PushGitHubEvent],
+        event: Union[
+            PullRequestEvent,
+            ReleaseEvent,
+            PushGitHubEvent,
+            PullRequestPagureEvent,
+            PushPagureEvent,
+        ],
     ):
         super().__init__(config=config, job_config=job_config, event=event)
 
@@ -232,13 +245,19 @@ class AbstractGithubCoprBuildHandler(AbstractGithubJobHandler):
     @property
     def package_config(self) -> PackageConfig:
         if not self._package_config:
-            self._package_config = self.get_package_config_from_repo(
-                project=self.project,
-                reference=self.event.commit_sha or str(self.event.git_ref),
-                pr_id=self.event.pr_id
-                if isinstance(self.event, (PullRequestEvent, PullRequestCommentEvent))
-                else None,
-            )
+            if isinstance(self.event, AbstractPagureEvent):
+                self._package_config = self.event.get_package_config()
+                self._package_config.upstream_project_url = self.event.project_url
+            else:
+                self._package_config = self.get_package_config_from_repo(
+                    project=self.project,
+                    reference=self.event.commit_sha or str(self.event.git_ref),
+                    pr_id=self.event.pr_id
+                    if isinstance(
+                        self.event, (PullRequestEvent, PullRequestCommentEvent)
+                    )
+                    else None,
+                )
             self._package_config.upstream_project_url = self.event.project_url
         return self._package_config
 
@@ -269,7 +288,7 @@ class AbstractGithubCoprBuildHandler(AbstractGithubJobHandler):
 @use_for(job_type=JobType.copr_build)
 @use_for(job_type=JobType.build)
 @required_by(job_type=JobType.tests)
-class ReleaseGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
+class ReleaseCoprBuildHandler(AbstractCoprBuildHandler):
     triggers = [
         TheJobTriggerType.release,
     ]
@@ -284,16 +303,16 @@ class ReleaseGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
 
     def pre_check(self) -> bool:
         return (
-            super().pre_check()
-            and isinstance(self.event, ReleaseEvent)
+            isinstance(self.event, ReleaseEvent)
             and self.event.trigger == TheJobTriggerType.release
+            and super().pre_check()
         )
 
 
 @use_for(job_type=JobType.copr_build)
 @use_for(job_type=JobType.build)
 @required_by(job_type=JobType.tests)
-class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
+class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
     triggers = [
         TheJobTriggerType.pull_request,
     ]
@@ -319,16 +338,16 @@ class PullRequestGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
 
     def pre_check(self) -> bool:
         return (
-            super().pre_check()
-            and isinstance(self.event, PullRequestEvent)
+            isinstance(self.event, (PullRequestEvent, PullRequestPagureEvent))
             and self.event.trigger == TheJobTriggerType.pull_request
+            and super().pre_check()
         )
 
 
 @use_for(job_type=JobType.copr_build)
 @use_for(job_type=JobType.build)
 @required_by(job_type=JobType.tests)
-class PushGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
+class PushCoprBuildHandler(AbstractCoprBuildHandler):
     triggers = [
         TheJobTriggerType.push,
         TheJobTriggerType.commit,
@@ -343,9 +362,9 @@ class PushGithubCoprBuildHandler(AbstractGithubCoprBuildHandler):
 
     def pre_check(self) -> bool:
         valid = (
-            super().pre_check()
-            and isinstance(self.event, PushGitHubEvent)
+            isinstance(self.event, (PushGitHubEvent, PushPagureEvent))
             and self.event.trigger == TheJobTriggerType.push
+            and super().pre_check()
         )
         if not valid:
             return False
