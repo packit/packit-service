@@ -199,7 +199,7 @@ class PagurePackageConfigGetter:
         reference: str,
         pr_id: int = None,
         fail_when_missing: bool = True,
-        file_name="packit.yaml",
+        file_name=".packit.yaml",
     ):
         """
         Get the package config and catch the invalid config scenario and possibly no-config scenario
