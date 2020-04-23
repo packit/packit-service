@@ -168,6 +168,7 @@ def test_pr_comment_event_existing_pr(
     assert event_object.commit_sha == ""  # ? Do we want it?
     assert event_object.git_ref is None
     assert event_object.pr_id == 342
+    assert event_object.project_url == "https://github.com/the-namespace/the-repo-name"
 
     assert isinstance(event_object.db_trigger, PullRequestModel)
     assert event_object.db_trigger == pr_model

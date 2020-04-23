@@ -29,8 +29,8 @@ from typing import Optional, Dict, Union, Type, Set
 from ogr.abstract import GitProject
 from ogr.services.github import GithubProject
 from packit.config import JobType, PackageConfig, JobConfig
-
 from packit_service.config import ServiceConfig
+from packit_service.log_versions import log_job_versions
 from packit_service.service.events import (
     PullRequestCommentEvent,
     IssueCommentEvent,
@@ -54,18 +54,14 @@ from packit_service.worker.handlers.abstract import (
     MAP_REQUIRED_JOB_TO_HANDLERS,
     JobHandler,
 )
-from packit_service.worker.handlers.centosmsg_handlers import (
-    PagurePullRequestCommentCoprBuildHandler,
-)
 from packit_service.worker.handlers.comment_action_handler import (
     MAP_COMMENT_ACTION_TO_HANDLER,
     CommentAction,
+    PagurePullRequestCommentCoprBuildHandler,
 )
 from packit_service.worker.parser import Parser, CentosEventParser
 from packit_service.worker.result import HandlerResults
 from packit_service.worker.whitelist import Whitelist
-
-from packit_service.log_versions import log_job_versions
 
 REQUESTED_PULL_REQUEST_COMMENT = "/packit"
 
@@ -161,9 +157,8 @@ class SteveJobs:
         """
 
         handlers_results = {}
-        package_config = event.get_package_config()
 
-        if not package_config:
+        if not event.package_config:
             # this happens when service receives events for repos which
             # don't have packit config, this is not an error
             # success=True - it's not an error that people don't have packit.yaml in their repo
@@ -172,7 +167,7 @@ class SteveJobs:
             )
             return handlers_results
 
-        handler_classes = get_handlers_for_event(event, package_config)
+        handler_classes = get_handlers_for_event(event, event.package_config)
 
         if not handler_classes:
             logger.warning(f"There is no handler for {event.trigger} event.")
@@ -180,7 +175,9 @@ class SteveJobs:
 
         for handler_kls in handler_classes:
             job = get_config_for_handler_kls(
-                handler_kls=handler_kls, event=event, package_config=package_config
+                handler_kls=handler_kls,
+                event=event,
+                package_config=event.package_config,
             )
             # check whitelist approval for every job to be able to track down which jobs
             # failed because of missing whitelist approval
@@ -189,7 +186,7 @@ class SteveJobs:
             if user_login and user_login in self.config.admins:
                 logger.info(f"{user_login} is admin, you shall pass")
             elif not whitelist.check_and_report(
-                event, event.get_project(), config=self.config
+                event, event.project, config=self.config
             ):
                 handlers_results[job.type.value] = HandlerResults(
                     success=False, details={"msg": "Account is not whitelisted!"}
@@ -272,9 +269,7 @@ class SteveJobs:
         user_login = getattr(event, "user_login", None)
         if user_login and user_login in self.config.admins:
             logger.info(f"{user_login} is admin, you shall pass")
-        elif not whitelist.check_and_report(
-            event, event.get_project(), config=self.config
-        ):
+        elif not whitelist.check_and_report(event, event.project, config=self.config):
             return HandlerResults(
                 success=True, details={"msg": "Account is not whitelisted!"}
             )

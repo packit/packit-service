@@ -29,10 +29,10 @@
 
 
 from packit_service.worker.handlers.abstract import Handler, JobHandler
-from packit_service.worker.handlers.centosmsg_handlers import (
+from packit_service.worker.handlers.comment_action_handler import (
+    CommentActionHandler,
     PagurePullRequestCommentCoprBuildHandler,
 )
-from packit_service.worker.handlers.comment_action_handler import CommentActionHandler
 from packit_service.worker.handlers.fedmsg_handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -40,7 +40,7 @@ from packit_service.worker.handlers.fedmsg_handlers import (
     NewDistGitCommitHandler,
 )
 from packit_service.worker.handlers.github_handlers import (
-    AbstractGithubJobHandler,
+    AbstractGitForgeJobHandler,
     GithubAppInstallationHandler,
     ReleaseCoprBuildHandler,
     PullRequestCoprBuildHandler,
@@ -57,7 +57,7 @@ from packit_service.worker.handlers.testing_farm_handlers import (
 )
 
 __all__ = [
-    AbstractGithubJobHandler.__name__,
+    AbstractGitForgeJobHandler.__name__,
     CommentActionHandler.__name__,
     CoprBuildEndHandler.__name__,
     CoprBuildStartHandler.__name__,

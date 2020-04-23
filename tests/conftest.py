@@ -27,11 +27,11 @@ import pytest
 from flexmock import flexmock
 from github import Github
 from github.GitRelease import GitRelease as PyGithubRelease
+
 from ogr.abstract import GitTag
 from ogr.services.github import GithubProject, GithubRelease
 from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import JobTriggerModelType
@@ -114,8 +114,9 @@ def mock_pr_comment_functionality(request):
     )
     flexmock(
         GithubProject,
-        get_file_content=lambda path, ref: packit_yaml,
         full_repo_name="packit-service/hello-world",
+        get_file_content=lambda path, ref: packit_yaml,
+        get_web_url=lambda: "https://github.com/the-namespace/the-repo",
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 

@@ -37,7 +37,7 @@ from packit.config.aliases import get_branches
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 from packit_service import sentry_integration
-from packit_service.config import ServiceConfig, GithubPackageConfigGetter
+from packit_service.config import ServiceConfig
 from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
 from packit_service.models import InstallationModel
 from packit_service.service.events import (
@@ -51,7 +51,7 @@ from packit_service.service.events import (
     TheJobTriggerType,
     PullRequestPagureEvent,
     PushPagureEvent,
-    AbstractPagureEvent,
+    Event,
 )
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
@@ -75,13 +75,16 @@ from packit_service.worker.whitelist import Whitelist
 logger = logging.getLogger(__name__)
 
 
-class AbstractGithubJobHandler(JobHandler, GithubPackageConfigGetter):
-    # TODO: This is used not only for GitHub
-    #  -- figure out better name and way to use GithubPackageConfigGetter method
-    pass
+class AbstractGitForgeJobHandler(JobHandler):
+    def __init__(
+        self, config: ServiceConfig, job_config: Optional[JobConfig], event: Event
+    ):
+        super().__init__(config, job_config, event)
+        # lazy property
+        self._package_config: Optional[PackageConfig] = None
 
 
-class GithubAppInstallationHandler(AbstractGithubJobHandler):
+class GithubAppInstallationHandler(AbstractGitForgeJobHandler):
     type = JobType.add_to_whitelist
     triggers = [TheJobTriggerType.installation]
     event: InstallationEvent
@@ -136,7 +139,7 @@ class GithubAppInstallationHandler(AbstractGithubJobHandler):
 
 
 @use_for(job_type=JobType.propose_downstream)
-class ProposeDownstreamHandler(AbstractGithubJobHandler):
+class ProposeDownstreamHandler(AbstractGitForgeJobHandler):
     type = JobType.propose_downstream
     triggers = [TheJobTriggerType.release]
     event: ReleaseEvent
@@ -146,22 +149,17 @@ class ProposeDownstreamHandler(AbstractGithubJobHandler):
     ):
         super().__init__(config=config, job_config=job_config, event=event)
 
-        self.project: GitProject = event.get_project()
-        self.package_config: PackageConfig = self.get_package_config_from_repo(
-            self.project, event.tag_name
-        )
-        self.package_config.upstream_project_url = event.project_url
-
     def run(self) -> HandlerResults:
         """
         Sync the upstream release to dist-git as a pull request.
         """
 
         self.local_project = LocalProject(
-            git_project=self.project, working_dir=self.config.command_handler_work_dir
+            git_project=self.event.project,
+            working_dir=self.config.command_handler_work_dir,
         )
 
-        self.api = PackitAPI(self.config, self.package_config, self.local_project)
+        self.api = PackitAPI(self.config, self.event.package_config, self.local_project)
 
         errors = {}
         for branch in get_branches(
@@ -192,7 +190,7 @@ class ProposeDownstreamHandler(AbstractGithubJobHandler):
                 " to the issue comment.\n"
             )
 
-            self.project.create_issue(
+            self.event.project.create_issue(
                 title=f"[packit] Propose update failed for release {self.event.tag_name}",
                 body=body_msg,
             )
@@ -205,7 +203,7 @@ class ProposeDownstreamHandler(AbstractGithubJobHandler):
         return HandlerResults(success=True, details={})
 
 
-class AbstractCoprBuildHandler(AbstractGithubJobHandler):
+class AbstractCoprBuildHandler(AbstractGitForgeJobHandler):
     type = JobType.copr_build
     event: Union[
         PullRequestEvent, ReleaseEvent, PushGitHubEvent, PullRequestPagureEvent
@@ -227,7 +225,6 @@ class AbstractCoprBuildHandler(AbstractGithubJobHandler):
 
         # lazy property
         self._copr_build_helper: Optional[CoprBuildJobHelper] = None
-        self._package_config: Optional[PackageConfig] = None
         self._project: Optional[GitProject] = None
 
     @property
@@ -235,37 +232,12 @@ class AbstractCoprBuildHandler(AbstractGithubJobHandler):
         if not self._copr_build_helper:
             self._copr_build_helper = CoprBuildJobHelper(
                 config=self.config,
-                package_config=self.package_config,
-                project=self.project,
+                package_config=self.event.package_config,
+                project=self.event.project,
                 event=self.event,
                 job=self.job_config,
             )
         return self._copr_build_helper
-
-    @property
-    def package_config(self) -> PackageConfig:
-        if not self._package_config:
-            if isinstance(self.event, AbstractPagureEvent):
-                self._package_config = self.event.get_package_config()
-                self._package_config.upstream_project_url = self.event.project_url
-            else:
-                self._package_config = self.get_package_config_from_repo(
-                    project=self.project,
-                    reference=self.event.commit_sha or str(self.event.git_ref),
-                    pr_id=self.event.pr_id
-                    if isinstance(
-                        self.event, (PullRequestEvent, PullRequestCommentEvent)
-                    )
-                    else None,
-                )
-            self._package_config.upstream_project_url = self.event.project_url
-        return self._package_config
-
-    @property
-    def project(self) -> GitProject:
-        if not self._project:
-            self._project = self.event.get_project()
-        return self._project
 
     def run(self) -> HandlerResults:
         return self.copr_build_helper.run_copr_build()
@@ -276,7 +248,7 @@ class AbstractCoprBuildHandler(AbstractGithubJobHandler):
         ] = lambda job: job.type == JobType.copr_build
 
         if self.job_config.type == JobType.tests and any(
-            filter(is_copr_build, self.package_config.jobs)
+            filter(is_copr_build, self.event.package_config.jobs)
         ):
             logger.info(
                 "Skipping build for testing. The COPR build is defined in the config."
@@ -295,12 +267,6 @@ class ReleaseCoprBuildHandler(AbstractCoprBuildHandler):
 
     event: ReleaseEvent
 
-    def __init__(
-        self, config: ServiceConfig, job_config: JobConfig, event: ReleaseEvent,
-    ):
-        super().__init__(config=config, job_config=job_config, event=event)
-        self.base_ref = event.tag_name
-
     def pre_check(self) -> bool:
         return (
             isinstance(self.event, ReleaseEvent)
@@ -318,14 +284,9 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
     ]
     event: PullRequestEvent
 
-    def __init__(
-        self, config: ServiceConfig, job_config: JobConfig, event: PullRequestEvent,
-    ):
-        super().__init__(config=config, job_config=job_config, event=event)
-
     def run(self) -> HandlerResults:
         if isinstance(self.event, PullRequestEvent):
-            collaborators = self.project.who_can_merge_pr()
+            collaborators = self.event.project.who_can_merge_pr()
             if self.event.user_login not in collaborators | self.config.admins:
                 self.copr_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
@@ -354,12 +315,6 @@ class PushCoprBuildHandler(AbstractCoprBuildHandler):
     ]
     event: PushGitHubEvent
 
-    def __init__(
-        self, config: ServiceConfig, job_config: JobConfig, event: PushGitHubEvent,
-    ):
-        super().__init__(config=config, job_config=job_config, event=event)
-        self.base_ref = event.commit_sha
-
     def pre_check(self) -> bool:
         valid = (
             isinstance(self.event, (PushGitHubEvent, PushPagureEvent))
@@ -379,7 +334,7 @@ class PushCoprBuildHandler(AbstractCoprBuildHandler):
         return True
 
 
-class AbstractGithubKojiBuildHandler(AbstractGithubJobHandler):
+class AbstractGithubKojiBuildHandler(AbstractGitForgeJobHandler):
     type = JobType.production_build
     event: Union[PullRequestEvent, ReleaseEvent, PushGitHubEvent]
 
@@ -400,7 +355,6 @@ class AbstractGithubKojiBuildHandler(AbstractGithubJobHandler):
 
         # lazy property
         self._koji_build_helper: Optional[KojiBuildJobHelper] = None
-        self._package_config: Optional[PackageConfig] = None
         self._project: Optional[GitProject] = None
 
     @property
@@ -408,31 +362,12 @@ class AbstractGithubKojiBuildHandler(AbstractGithubJobHandler):
         if not self._koji_build_helper:
             self._koji_build_helper = KojiBuildJobHelper(
                 config=self.config,
-                package_config=self.package_config,
-                project=self.project,
+                package_config=self.event.package_config,
+                project=self.event.project,
                 event=self.event,
                 job=self.job_config,
             )
         return self._koji_build_helper
-
-    @property
-    def package_config(self) -> PackageConfig:
-        if not self._package_config:
-            self._package_config = self.get_package_config_from_repo(
-                project=self.project,
-                reference=self.event.commit_sha or str(self.event.git_ref),
-                pr_id=self.event.pr_id
-                if isinstance(self.event, (PullRequestEvent, PullRequestCommentEvent))
-                else None,
-            )
-            self._package_config.upstream_project_url = self.event.project_url
-        return self._package_config
-
-    @property
-    def project(self) -> GitProject:
-        if not self._project:
-            self._project = self.event.get_project()
-        return self._project
 
     def run(self) -> HandlerResults:
         return self.koji_build_helper.run_koji_build()
@@ -443,7 +378,7 @@ class AbstractGithubKojiBuildHandler(AbstractGithubJobHandler):
         ] = lambda job: job.type == JobType.copr_build
 
         if self.job_config.type == JobType.tests and any(
-            filter(is_copr_build, self.package_config.jobs)
+            filter(is_copr_build, self.event.package_config.jobs)
         ):
             logger.info(
                 "Skipping build for testing. The COPR build is defined in the config."
@@ -460,12 +395,6 @@ class ReleaseGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
 
     event: ReleaseEvent
 
-    def __init__(
-        self, config: ServiceConfig, job_config: JobConfig, event: ReleaseEvent,
-    ):
-        super().__init__(config=config, job_config=job_config, event=event)
-        self.base_ref = event.tag_name
-
     def pre_check(self) -> bool:
         return (
             super().pre_check()
@@ -481,14 +410,9 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     ]
     event: PullRequestEvent
 
-    def __init__(
-        self, config: ServiceConfig, job_config: JobConfig, event: PullRequestEvent,
-    ):
-        super().__init__(config=config, job_config=job_config, event=event)
-
     def run(self) -> HandlerResults:
         if isinstance(self.event, PullRequestEvent):
-            collaborators = self.project.who_can_merge_pr()
+            collaborators = self.event.project.who_can_merge_pr()
             if self.event.user_login not in collaborators | self.config.admins:
                 self.koji_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
@@ -515,12 +439,6 @@ class PushGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     ]
     event: PushGitHubEvent
 
-    def __init__(
-        self, config: ServiceConfig, job_config: JobConfig, event: PushGitHubEvent,
-    ):
-        super().__init__(config=config, job_config=job_config, event=event)
-        self.base_ref = event.commit_sha
-
     def pre_check(self) -> bool:
         valid = (
             super().pre_check()
@@ -540,7 +458,7 @@ class PushGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
         return True
 
 
-class GithubTestingFarmHandler(AbstractGithubJobHandler):
+class GithubTestingFarmHandler(AbstractGitForgeJobHandler):
     """
     This class intentionally does not have a @add_to_mapping decorator as its
     trigger is finished copr build.
@@ -558,68 +476,42 @@ class GithubTestingFarmHandler(AbstractGithubJobHandler):
     ):
         super().__init__(config=config, job_config=job_config, event=event)
         self.chroot = chroot
-        self.project: GitProject = event.get_project()
-        if isinstance(event, CoprBuildEvent):
-            self.base_ref = event.git_ref
-            pr_id = None
-        elif isinstance(event, PullRequestCommentEvent):
-            self.base_ref = event.commit_sha
-            pr_id = event.pr_id
-        else:
-            raise PackitException(
-                "Unknown event, only PREvent and CoprBuildEvent are accepted."
-            )
-        self.package_config: PackageConfig = self.get_package_config_from_repo(
-            self.project, self.base_ref, pr_id
-        )
-        self.package_config.upstream_project_url = event.project_url
-        self.testing_farm_helper = TestingFarmJobHelper(
-            self.config, self.package_config, self.project, self.event
-        )
 
     def run(self) -> HandlerResults:
-        self.local_project = LocalProject(
-            git_project=self.project, working_dir=self.config.command_handler_work_dir
+        testing_farm_helper = TestingFarmJobHelper(
+            config=self.config,
+            package_config=self.event.package_config,
+            project=self.event.project,
+            event=self.event,
         )
-
         logger.info("Running testing farm")
-        return self.testing_farm_helper.run_testing_farm(chroot=self.chroot)
+        return testing_farm_helper.run_testing_farm(chroot=self.chroot)
 
 
 @add_to_comment_action_mapping
 @add_to_comment_action_mapping_with_name(name=CommentAction.build)
-class GitHubPullRequestCommentCoprBuildHandler(
-    CommentActionHandler, GithubPackageConfigGetter
-):
+class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
     """ Handler for PR comment `/packit copr-build` """
 
     type = CommentAction.copr_build
     triggers = [TheJobTriggerType.pr_comment]
     event: PullRequestCommentEvent
 
-    def __init__(self, config: ServiceConfig, event: PullRequestCommentEvent):
-        super().__init__(config=config, event=event)
-        self.config = config
-        self.event = event
-        self.project: GitProject = event.get_project()
-        # Get the latest pull request commit
-        self.event.commit_sha = self.project.get_all_pr_commits(self.event.pr_id)[-1]
-        self.event.base_ref = self.event.commit_sha
-        self.package_config: PackageConfig = self.get_package_config_from_repo(
-            self.project, self.event.commit_sha, self.event.pr_id
-        )
-        self.package_config.upstream_project_url = event.project_url
-
     def run(self) -> HandlerResults:
-        collaborators = self.project.who_can_merge_pr()
+        collaborators = self.event.project.who_can_merge_pr()
         if self.event.user_login not in collaborators | self.config.admins:
-            self.project.pr_comment(self.event.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN)
+            self.event.project.pr_comment(
+                self.event.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
+            )
             return HandlerResults(
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
             )
 
         cbh = CoprBuildJobHelper(
-            self.config, self.package_config, self.project, self.event
+            config=self.config,
+            package_config=self.event.package_config,
+            project=self.event.project,
+            event=self.event,
         )
         handler_results = cbh.run_copr_build()
 
@@ -627,27 +519,12 @@ class GitHubPullRequestCommentCoprBuildHandler(
 
 
 @add_to_comment_action_mapping
-class GitHubIssueCommentProposeUpdateHandler(
-    CommentActionHandler, GithubPackageConfigGetter
-):
+class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
     """ Handler for issue comment `/packit propose-update` """
 
     type = CommentAction.propose_update
     triggers = [TheJobTriggerType.issue_comment]
     event: IssueCommentEvent
-
-    def __init__(self, config: ServiceConfig, event: IssueCommentEvent):
-        super().__init__(config=config, event=event)
-
-        self.config = config
-        self.event = event
-        self.project = self.event.get_project()
-        self.package_config: PackageConfig = self.get_package_config_from_repo(
-            self.project, self.event.tag_name
-        )
-        if not self.package_config:
-            raise ValueError(f"No config file found in {self.project.full_repo_name}")
-        self.package_config.upstream_project_url = event.project_url
 
     @property
     def dist_git_branches_to_sync(self) -> Set[str]:
@@ -657,7 +534,7 @@ class GitHubIssueCommentProposeUpdateHandler(
         :return: list of dist-git branches
         """
         configured_branches = set()
-        for job in self.package_config.jobs:
+        for job in self.event.package_config.jobs:
             if job.type == JobType.propose_downstream:
                 configured_branches.update(job.metadata.dist_git_branches)
 
@@ -666,15 +543,20 @@ class GitHubIssueCommentProposeUpdateHandler(
         return set()
 
     def run(self) -> HandlerResults:
-        self.local_project = LocalProject(
-            git_project=self.project, working_dir=self.config.command_handler_work_dir
+        local_project = LocalProject(
+            git_project=self.event.project,
+            working_dir=self.config.command_handler_work_dir,
         )
 
-        self.api = PackitAPI(self.config, self.package_config, self.local_project)
+        api = PackitAPI(
+            config=self.config,
+            package_config=self.event.package_config,
+            upstream_local_project=local_project,
+        )
 
-        collaborators = self.project.who_can_merge_pr()
+        collaborators = self.event.project.who_can_merge_pr()
         if self.event.user_login not in collaborators | self.config.admins:
-            self.project.issue_comment(
+            self.event.project.issue_comment(
                 self.event.issue_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )
             return HandlerResults(
@@ -686,7 +568,7 @@ class GitHubIssueCommentProposeUpdateHandler(
                 "There was an error while proposing a new update for the Fedora package: "
                 "no upstream release found."
             )
-            self.project.issue_comment(self.event.issue_id, msg)
+            self.event.project.issue_comment(self.event.issue_id, msg)
             return HandlerResults(
                 success=False, details={"msg": "Propose update failed"}
             )
@@ -694,18 +576,18 @@ class GitHubIssueCommentProposeUpdateHandler(
         sync_failed = False
         for branch in self.dist_git_branches_to_sync:
             msg = (
-                f"for the Fedora package `{self.package_config.downstream_package_name}`"
+                f"for the Fedora package `{self.event.package_config.downstream_package_name}`"
                 f"with the tag `{self.event.tag_name}` in the `{branch}` branch.\n"
             )
             try:
-                new_pr = self.api.sync_release(
+                new_pr = api.sync_release(
                     dist_git_branch=branch, version=self.event.tag_name, create_pr=True
                 )
                 msg = f"Packit-as-a-Service proposed [a new update]({new_pr.url}) {msg}"
-                self.project.issue_comment(self.event.issue_id, msg)
+                self.event.project.issue_comment(self.event.issue_id, msg)
             except PackitException as ex:
                 msg = f"There was an error while proposing a new update {msg} Traceback is: `{ex}`"
-                self.project.issue_comment(self.event.issue_id, msg)
+                self.event.project.issue_comment(self.event.issue_id, msg)
                 logger.error(f"error while running a build: {ex}")
                 sync_failed = True
         if sync_failed:
@@ -714,53 +596,40 @@ class GitHubIssueCommentProposeUpdateHandler(
             )
 
         # Close issue if propose-update was successful in all branches
-        self.project.issue_close(self.event.issue_id)
+        self.event.project.issue_close(self.event.issue_id)
 
         return HandlerResults(success=True, details={})
 
 
 @add_to_comment_action_mapping
-class GitHubPullRequestCommentTestingFarmHandler(
-    CommentActionHandler, GithubPackageConfigGetter
-):
+class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
     """ Issue handler for comment `/packit test` """
 
     type = CommentAction.test
     event: PullRequestCommentEvent
     triggers = [TheJobTriggerType.pr_comment]
 
-    def __init__(self, config: ServiceConfig, event: PullRequestCommentEvent):
-        super().__init__(config=config, event=event)
-        self.config = config
-        self.event = event
-        self.project: GitProject = event.get_project()
-        # Get the latest pull request commit
-        self.event.commit_sha = self.project.get_all_pr_commits(self.event.pr_id)[-1]
-        self.event.base_ref = self.event.commit_sha
-        self.package_config: PackageConfig = self.get_package_config_from_repo(
-            self.project, self.event.commit_sha, self.event.pr_id
-        )
-        if not self.package_config:
-            raise ValueError(f"No config file found in {self.project.full_repo_name}")
-        self.package_config.upstream_project_url = event.project_url
-        self.testing_farm_helper = TestingFarmJobHelper(
-            self.config, self.package_config, self.project, self.event
-        )
-
     def run(self) -> HandlerResults:
-
-        collaborators = self.project.who_can_merge_pr()
+        testing_farm_helper = TestingFarmJobHelper(
+            config=self.config,
+            package_config=self.event.package_config,
+            project=self.event.project,
+            event=self.event,
+        )
+        collaborators = self.event.project.who_can_merge_pr()
         if self.event.user_login not in collaborators | self.config.admins:
-            self.project.pr_comment(self.event.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN)
+            self.event.project.pr_comment(
+                self.event.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
+            )
             return HandlerResults(
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
             )
 
         handler_results = HandlerResults(success=True, details={})
 
-        logger.debug(f"Test job config: {self.testing_farm_helper.job_tests}")
-        if self.testing_farm_helper.job_tests:
-            self.testing_farm_helper.run_testing_farm_on_all()
+        logger.debug(f"Test job config: {testing_farm_helper.job_tests}")
+        if testing_farm_helper.job_tests:
+            testing_farm_helper.run_testing_farm_on_all()
         else:
             logger.debug("Testing farm not in the job config.")
 

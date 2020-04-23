@@ -25,6 +25,7 @@ This file contains helper classes for events.
 """
 from typing import Optional
 
+from ogr.abstract import GitProject
 from packit_service.models import (
     AbstractTriggerDbType,
     ProjectReleaseModel,
@@ -58,29 +59,28 @@ class AddReleaseDbTrigger:
 
 class AddPullRequestDbTrigger:
     pr_id: int
-    base_repo_namespace: str
-    base_repo_name: str
+    project: GitProject
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         return PullRequestModel.get_or_create(
             pr_id=self.pr_id,
-            namespace=self.base_repo_namespace,
-            repo_name=self.base_repo_name,
+            namespace=self.project.namespace,
+            repo_name=self.project.repo,
         )
 
 
 class AddIssueDbTrigger:
     issue_id: int
-    base_repo_namespace: str
-    base_repo_name: str
+    repo_namespace: str
+    repo_name: str
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         return IssueModel.get_or_create(
             issue_id=self.issue_id,
-            namespace=self.base_repo_namespace,
-            repo_name=self.base_repo_name,
+            namespace=self.repo_namespace,
+            repo_name=self.repo_name,
         )
 
 

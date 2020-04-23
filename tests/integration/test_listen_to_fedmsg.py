@@ -25,7 +25,6 @@ import uuid
 import pytest
 import requests
 from flexmock import flexmock
-from tests.spellbook import DATA_DIR
 
 from ogr.abstract import CommitStatus
 from ogr.services.github import GithubProject
@@ -34,6 +33,7 @@ from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
 from packit.config.package_config import PackageConfig
 from packit.local_project import LocalProject
+from packit_service.config import PackageConfigGetterForGithub
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.models import (
     CoprBuildModel,
@@ -44,10 +44,11 @@ from packit_service.models import (
 from packit_service.service.events import CoprBuildEvent
 from packit_service.service.urls import get_log_url
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
-from packit_service.worker.handlers import CoprBuildEndHandler, GithubTestingFarmHandler
+from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.testing_farm import TestingFarmJobHelper
+from tests.spellbook import DATA_DIR
 
 CHROOT = "fedora-rawhide-x86_64"
 EXPECTED_BUILD_CHECK_NAME = f"packit-stg/rpm-build-{CHROOT}"
@@ -249,7 +250,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     )
 
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(config)
-    flexmock(GithubTestingFarmHandler).should_receive(
+    flexmock(PackageConfigGetterForGithub).should_receive(
         "get_package_config_from_repo"
     ).and_return(config)
     flexmock(CoprBuildEndHandler).should_receive(
@@ -365,7 +366,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     )
 
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(config)
-    flexmock(GithubTestingFarmHandler).should_receive(
+    flexmock(PackageConfigGetterForGithub).should_receive(
         "get_package_config_from_repo"
     ).and_return(config)
     flexmock(CoprBuildEndHandler).should_receive(
@@ -466,7 +467,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     )
 
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(config)
-    flexmock(GithubTestingFarmHandler).should_receive(
+    flexmock(PackageConfigGetterForGithub).should_receive(
         "get_package_config_from_repo"
     ).and_return(config)
     flexmock(CoprBuildEndHandler).should_receive(

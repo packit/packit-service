@@ -33,6 +33,9 @@ class StatusReporter:
     def __init__(
         self, project: GitProject, commit_sha: str, pr_id: Optional[int] = None
     ):
+        logger.debug(
+            f"Status reporter will report for {project}, commit={commit_sha}, pr={pr_id}"
+        )
         self.project = project
         self.commit_sha = commit_sha
         self.pr_id = pr_id
@@ -72,6 +75,7 @@ class StatusReporter:
             return
         pr = self.project.get_pr(self.pr_id)
         if hasattr(pr, "set_flag") and pr.head_commit == self.commit_sha:
+            logger.debug("Setting the PR status (pagure only).")
             pr.set_flag(
                 username=check_name,
                 comment=description,

@@ -29,9 +29,15 @@ from datetime import datetime, timezone
 
 import pytest
 from flexmock import flexmock
-from ogr.services.github import GithubProject, GithubService
 
-from packit_service.config import ServiceConfig
+from ogr import PagureService
+from ogr.services.github import GithubProject, GithubService
+from ogr.services.pagure import PagureProject
+from packit_service.config import (
+    ServiceConfig,
+    PackageConfigGetterForGithub,
+    PackageConfigGetterForPagure,
+)
 from packit_service.models import CoprBuildModel, TFTTestRunModel
 from packit_service.service.events import (
     WhitelistStatus,
@@ -51,6 +57,8 @@ from packit_service.service.events import (
     TestResult,
     PushGitHubEvent,
     TheJobTriggerType,
+    PullRequestPagureEvent,
+    PullRequestCommentPagureEvent,
 )
 from packit_service.worker.parser import Parser, CentosEventParser
 from tests.data.centosmsg_listener_events import (
@@ -181,18 +189,29 @@ class TestEvents:
         assert event_object.trigger == TheJobTriggerType.pull_request
         assert event_object.action == PullRequestAction.opened
         assert event_object.pr_id == 342
-        assert event_object.base_repo_namespace == "packit-service"
+        assert event_object.base_repo_namespace == "lbarcziova"
         assert event_object.base_repo_name == "packit"
         assert event_object.base_ref == "528b803be6f93e19ca4130bf4976f2800a3004c4"
         assert event_object.target_repo == "packit-service/packit"
         assert event_object.project_url == "https://github.com/packit-service/packit"
         assert event_object.commit_sha == "528b803be6f93e19ca4130bf4976f2800a3004c4"
 
-        def _get_f_c(*args, **kwargs):
-            raise FileNotFoundError()
-
-        flexmock(GithubProject, get_file_content=_get_f_c)
-        assert event_object.get_package_config() is None
+        assert isinstance(event_object.project, GithubProject)
+        flexmock(PackageConfigGetterForGithub).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=event_object.base_project,
+            project=event_object.project,
+            pr_id=342,
+            reference="528b803be6f93e19ca4130bf4976f2800a3004c4",
+            fail_when_missing=False,
+        ).and_return(
+            flexmock()
+        ).once()
+        flexmock(GithubProject).should_receive("get_web_url").and_return(
+            "https://github.com/packit-service/packit"
+        )
+        assert event_object.package_config
 
     def test_parse_pr_comment_created(self, pr_comment_created_request):
         event_object = Parser.parse_event(pr_comment_created_request)
@@ -239,11 +258,11 @@ class TestEvents:
         assert event_object.trigger == TheJobTriggerType.issue_comment
         assert event_object.action == IssueCommentAction.created
         assert event_object.issue_id == 512
-        assert event_object.base_repo_namespace == "packit-service"
-        assert event_object.base_repo_name == "packit"
+        assert event_object.repo_namespace == "packit-service"
+        assert event_object.repo_name == "packit"
         assert (
             event_object.target_repo
-            == f"{event_object.base_repo_namespace}/{event_object.base_repo_name}"
+            == f"{event_object.repo_namespace}/{event_object.repo_name}"
         )
         assert event_object.base_ref == "master"
         assert event_object.project_url == "https://github.com/packit-service/packit"
@@ -383,36 +402,30 @@ class TestEvents:
 
         assert isinstance(event_object, PullRequestEvent)
 
-        project = event_object.get_project()
-
-        assert isinstance(project, GithubProject)
-        assert isinstance(project.service, GithubService)
-        assert project.namespace == "packit-service"
-        assert project.repo == "packit"
+        assert isinstance(event_object.project, GithubProject)
+        assert isinstance(event_object.project.service, GithubService)
+        assert event_object.project.namespace == "packit-service"
+        assert event_object.project.repo == "packit"
 
     def test_get_project_release(self, release, mock_config):
         event_object = Parser.parse_event(release)
 
         assert isinstance(event_object, ReleaseEvent)
 
-        project = event_object.get_project()
-
-        assert isinstance(project, GithubProject)
-        assert isinstance(project.service, GithubService)
-        assert project.namespace == "Codertocat"
-        assert project.repo == "Hello-World"
+        assert isinstance(event_object.project, GithubProject)
+        assert isinstance(event_object.project.service, GithubService)
+        assert event_object.project.namespace == "Codertocat"
+        assert event_object.project.repo == "Hello-World"
 
     def test_get_project_testing_farm_results(self, testing_farm_results, mock_config):
         event_object = Parser.parse_event(testing_farm_results)
 
         assert isinstance(event_object, TestingFarmResultsEvent)
 
-        project = event_object.get_project()
-
-        assert isinstance(project, GithubProject)
-        assert isinstance(project.service, GithubService)
-        assert project.namespace == "packit-service"
-        assert project.repo == "hello-world"
+        assert isinstance(event_object.project, GithubProject)
+        assert isinstance(event_object.project.service, GithubService)
+        assert event_object.project.namespace == "packit-service"
+        assert event_object.project.repo == "hello-world"
 
     def test_distgit_commit(self, distgit_commit):
         event_object = Parser.parse_event(distgit_commit)
@@ -437,51 +450,141 @@ class TestEvents:
 
 
 class TestCentOsEventParser:
-    def test_new_pull_request_event(self):
+    @pytest.fixture()
+    def mock_config(self):
+        service_config = ServiceConfig()
+        service_config.services = {
+            GithubService(token="12345"),
+            PagureService(instance_url="https://git.stg.centos.org", token="6789"),
+        }
+        service_config.dry_run = False
+        service_config.github_requests_log_path = "/path"
+        ServiceConfig.service_config = service_config
+
+    def test_new_pull_request_event(self, mock_config):
         centos_event_parser = CentosEventParser()
         event_object = centos_event_parser.parse_event(pr_new)
 
+        assert isinstance(event_object, PullRequestPagureEvent)
         assert event_object.action == PullRequestAction.opened
         assert event_object.pr_id == 12
         assert event_object.base_repo_namespace == "source-git"
         assert event_object.base_repo_name == "packit-hello-world"
+        assert event_object.base_repo_owner == "sakalosj"
         assert event_object.base_ref == "master"
         assert event_object.target_repo == "packit-hello-world"
         assert event_object.commit_sha == "bf9701dea5a167caa7a1afa0759342aa0bf0d8fd"
         assert event_object.user_login == "sakalosj"
         assert event_object.identifier == "12"
         assert (
-            event_object.https_url
+            event_object.project_url
             == "https://git.stg.centos.org/source-git/packit-hello-world"
         )
 
-    def test_update_pull_request_event(self):
+        assert isinstance(event_object.project, PagureProject)
+        assert event_object.project.full_repo_name == "source-git/packit-hello-world"
+        assert isinstance(event_object.base_project, PagureProject)
+        assert (
+            event_object.base_project.full_repo_name
+            == "fork/sakalosj/source-git/packit-hello-world"
+        )
+
+        flexmock(PackageConfigGetterForPagure).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=event_object.base_project,
+            project=event_object.project,
+            pr_id=12,
+            reference="bf9701dea5a167caa7a1afa0759342aa0bf0d8fd",
+        ).and_return(
+            flexmock()
+        ).once()
+        flexmock(PagureProject).should_receive("get_web_url").and_return(
+            "https://git.stg.centos.org/source-git/packit-hello-world"
+        )
+        assert event_object.package_config
+
+    def test_update_pull_request_event(self, mock_config):
         centos_event_parser = CentosEventParser()
         event_object = centos_event_parser.parse_event(pr_update)
 
+        assert isinstance(event_object, PullRequestPagureEvent)
         assert event_object.action == PullRequestAction.synchronize
         assert event_object.pr_id == 13
         assert event_object.base_repo_namespace == "source-git"
         assert event_object.base_repo_name == "packit-hello-world"
+        assert event_object.base_repo_owner == "sakalosj"
         assert event_object.base_ref == "master"
         assert event_object.target_repo == "packit-hello-world"
         assert event_object.commit_sha == "b658af51df98c1cbf74a75095ced920bba2ef25e"
         assert event_object.user_login == "sakalosj"
         assert event_object.identifier == "13"
         assert (
-            event_object.https_url
+            event_object.project_url
             == "https://git.stg.centos.org/source-git/packit-hello-world"
         )
 
-    def test_pull_request_comment_event(self):
+        assert isinstance(event_object.project, PagureProject)
+        assert event_object.project.full_repo_name == "source-git/packit-hello-world"
+        assert isinstance(event_object.base_project, PagureProject)
+        assert (
+            event_object.base_project.full_repo_name
+            == "fork/sakalosj/source-git/packit-hello-world"
+        )
+
+        flexmock(PackageConfigGetterForPagure).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=event_object.base_project,
+            project=event_object.project,
+            pr_id=13,
+            reference="b658af51df98c1cbf74a75095ced920bba2ef25e",
+        ).and_return(
+            flexmock()
+        ).once()
+        flexmock(PagureProject).should_receive("get_web_url").and_return(
+            "https://git.stg.centos.org/source-git/packit-hello-world"
+        )
+        assert event_object.package_config
+
+    def test_pull_request_comment_event(self, mock_config):
         centos_event_parser = CentosEventParser()
         event_object = centos_event_parser.parse_event(pr_comment_added)
 
+        assert isinstance(event_object, PullRequestCommentPagureEvent)
         assert event_object.pr_id == 16
         assert event_object.base_repo_namespace == "source-git"
         assert event_object.base_repo_name == "packit-hello-world"
+        assert event_object.base_repo_owner == "sakalosj"
         assert event_object.base_ref is None
         assert event_object.target_repo == "packit-hello-world"
         assert event_object.commit_sha == "dfe787d04101728c6ddc213d3f4bf39c969f194c"
         assert event_object.user_login == "sakalosj"
         assert event_object.comment == "/packit copr-build"
+        assert (
+            event_object.project_url
+            == "https://git.stg.centos.org/source-git/packit-hello-world"
+        )
+
+        assert isinstance(event_object.project, PagureProject)
+        assert event_object.project.full_repo_name == "source-git/packit-hello-world"
+        assert isinstance(event_object.base_project, PagureProject)
+        assert (
+            event_object.base_project.full_repo_name
+            == "fork/sakalosj/source-git/packit-hello-world"
+        )
+
+        flexmock(PackageConfigGetterForPagure).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=event_object.base_project,
+            project=event_object.project,
+            pr_id=16,
+            reference="dfe787d04101728c6ddc213d3f4bf39c969f194c",
+        ).and_return(
+            flexmock()
+        ).once()
+        flexmock(PagureProject).should_receive("get_web_url").and_return(
+            "https://git.stg.centos.org/source-git/packit-hello-world"
+        )
+        assert event_object.package_config

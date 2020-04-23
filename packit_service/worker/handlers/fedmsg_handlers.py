@@ -25,10 +25,11 @@ This file defines classes for job handlers specific for Fedmsg events
 """
 
 import logging
-from typing import Type, Optional
+from datetime import datetime
+from typing import Type
 
 import requests
-from datetime import datetime
+
 from ogr.abstract import CommitStatus
 from packit.api import PackitAPI
 from packit.config import (
@@ -40,7 +41,6 @@ from packit.config import (
 from packit.distgit import DistGit
 from packit.local_project import LocalProject
 from packit.utils import get_namespace_and_repo_name
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     PG_COPR_BUILD_STATUS_FAILURE,
@@ -182,22 +182,7 @@ class NewDistGitCommitHandler(FedmsgHandler):
 class CoprBuildEndHandler(FedmsgHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
     triggers = [TheJobTriggerType.copr_end]
-
-    def __init__(
-        self,
-        config: ServiceConfig,
-        job_config: Optional[JobConfig],
-        event: CoprBuildEvent,
-    ):
-        super().__init__(config=config, job_config=job_config, event=event)
-        self.project = self.event.get_project()
-        self.package_config = self.event.get_package_config()
-        self.build_job_helper = CoprBuildJobHelper(
-            config=self.config,
-            package_config=self.package_config,
-            project=self.project,
-            event=event,
-        )
+    event: CoprBuildEvent
 
     def was_last_build_successful(self):
         """
@@ -214,6 +199,13 @@ class CoprBuildEndHandler(FedmsgHandler):
         return False
 
     def run(self):
+        build_job_helper = CoprBuildJobHelper(
+            config=self.config,
+            package_config=self.event.package_config,
+            project=self.event.project,
+            event=self.event,
+        )
+
         if self.event.chroot == "srpm-builds":
             # we don't want to set check for this
             msg = "SRPM build in copr has finished"
@@ -259,11 +251,10 @@ class CoprBuildEndHandler(FedmsgHandler):
             return HandlerResults(success=False, details={"msg": failed_msg})
 
         if (
-            self.build_job_helper.job_build
-            and self.build_job_helper.job_build.trigger
-            == JobConfigTriggerType.pull_request
+            build_job_helper.job_build
+            and build_job_helper.job_build.trigger == JobConfigTriggerType.pull_request
             and not self.was_last_build_successful()
-            and self.package_config.notifications.pull_request.successful_build
+            and self.event.package_config.notifications.pull_request.successful_build
         ):
             msg = (
                 f"Congratulations! One of the builds has completed. :champagne:\n\n"
@@ -274,15 +265,15 @@ class CoprBuildEndHandler(FedmsgHandler):
                 "* And now you can install the packages.\n"
                 "\nPlease note that the RPMs should be used only in a testing environment."
             )
-            self.project.pr_comment(pr_id=self.event.pr_id, body=msg)
+            self.event.project.pr_comment(pr_id=self.event.pr_id, body=msg)
 
-        self.build_job_helper.report_status_to_build_for_chroot(
+        build_job_helper.report_status_to_build_for_chroot(
             state=CommitStatus.success,
             description="RPMs were built successfully.",
             url=url,
             chroot=self.event.chroot,
         )
-        self.build_job_helper.report_status_to_test_for_chroot(
+        build_job_helper.report_status_to_test_for_chroot(
             state=CommitStatus.pending,
             description="RPMs were built successfully.",
             url=url,
@@ -291,12 +282,12 @@ class CoprBuildEndHandler(FedmsgHandler):
         build.set_status(PG_COPR_BUILD_STATUS_SUCCESS)
 
         if (
-            self.build_job_helper.job_tests
-            and self.event.chroot in self.build_job_helper.tests_chroots
+            build_job_helper.job_tests
+            and self.event.chroot in build_job_helper.tests_chroots
         ):
             testing_farm_handler = GithubTestingFarmHandler(
                 config=self.config,
-                job_config=self.build_job_helper.job_tests,
+                job_config=build_job_helper.job_tests,
                 event=self.event,
                 chroot=self.event.chroot,
             )
@@ -313,24 +304,16 @@ class CoprBuildEndHandler(FedmsgHandler):
 class CoprBuildStartHandler(FedmsgHandler):
     topic = "org.fedoraproject.prod.copr.build.start"
     triggers = [TheJobTriggerType.copr_start]
-
-    def __init__(
-        self,
-        config: ServiceConfig,
-        job_config: Optional[JobConfig],
-        event: CoprBuildEvent,
-    ):
-        super().__init__(config=config, job_config=job_config, event=event)
-        self.project = self.event.get_project()
-        self.package_config = self.event.get_package_config()
-        self.build_job_helper = CoprBuildJobHelper(
-            config=self.config,
-            package_config=self.package_config,
-            project=self.project,
-            event=event,
-        )
+    event: CoprBuildEvent
 
     def run(self):
+        build_job_helper = CoprBuildJobHelper(
+            config=self.config,
+            package_config=self.event.package_config,
+            project=self.event.project,
+            event=self.event,
+        )
+
         if self.event.chroot == "srpm-builds":
             # we don't want to set the check status for this
             msg = "SRPM build in copr has started"
@@ -358,7 +341,7 @@ class CoprBuildStartHandler(FedmsgHandler):
         copr_build_logs = get_copr_build_logs_url(self.event)
         build.set_build_logs_url(copr_build_logs)
 
-        self.build_job_helper.report_status_to_all_for_chroot(
+        build_job_helper.report_status_to_all_for_chroot(
             description="RPM build has started...",
             state=CommitStatus.pending,
             url=url,

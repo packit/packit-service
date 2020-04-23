@@ -25,6 +25,8 @@ from pathlib import Path
 from typing import Set, Optional
 
 import yaml
+from yaml import safe_load
+
 from ogr.abstract import GitProject
 from packit.config import (
     RunCommandType,
@@ -34,8 +36,6 @@ from packit.config import (
     parse_loaded_config,
 )
 from packit.exceptions import PackitException, PackitConfigException
-from yaml import safe_load
-
 from packit_service.constants import (
     SANDCASTLE_WORK_DIR,
     SANDCASTLE_PVC,
@@ -146,9 +146,10 @@ class ServiceConfig(Config):
         return cls.service_config
 
 
-class GithubPackageConfigGetter:
+class PackageConfigGetterForGithub:
+    @staticmethod
     def get_package_config_from_repo(
-        self,
+        base_project: GitProject,
         project: GitProject,
         reference: str,
         pr_id: int = None,
@@ -156,15 +157,14 @@ class GithubPackageConfigGetter:
     ):
         """
         Get the package config and catch the invalid config scenario and possibly no-config scenario
-        Static because of the easier mocking.
         """
         try:
             package_config: PackageConfig = get_package_config_from_repo(
-                project, reference
+                base_project, reference
             )
             if not package_config and fail_when_missing:
                 raise PackitConfigException(
-                    f"No config file found in {project.full_repo_name}"
+                    f"No config file found in {base_project.full_repo_name} on ref '{reference}'"
                 )
         except PackitConfigException as ex:
             if pr_id:
@@ -192,9 +192,10 @@ class GithubPackageConfigGetter:
         return package_config
 
 
-class PagurePackageConfigGetter:
+class PackageConfigGetterForPagure:
+    @staticmethod
     def get_package_config_from_repo(
-        self,
+        base_project: GitProject,
         project: GitProject,
         reference: str,
         pr_id: int = None,
@@ -205,7 +206,7 @@ class PagurePackageConfigGetter:
         Get the package config and catch the invalid config scenario and possibly no-config scenario
         Static because of the easier mocking.
         """
-        loaded_config_raw = project.get_file_content(file_name)
+        loaded_config_raw = base_project.get_file_content(file_name, ref=reference)
         loaded_config = yaml.safe_load(loaded_config_raw)
         package_config = parse_loaded_config(
             loaded_config, spec_file_path=f"SPECS/{project.repo}.spec"

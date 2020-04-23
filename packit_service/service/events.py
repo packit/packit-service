@@ -26,21 +26,17 @@ This file defines classes for events which are sent by GitHub or FedMsg.
 import copy
 import enum
 import logging
-
 from datetime import datetime, timezone
 from typing import Optional, List, Union, Dict
 
 from ogr.abstract import GitProject
-from packit.config import (
-    get_package_config_from_repo,
-    PackageConfig,
-)
+from ogr.services.pagure import PagureProject
+from packit.config import PackageConfig
 from packit_service.config import (
     ServiceConfig,
-    GithubPackageConfigGetter,
-    PagurePackageConfigGetter,
+    PackageConfigGetterForPagure,
+    PackageConfigGetterForGithub,
 )
-
 from packit_service.constants import WHITELIST_CONSTANTS
 from packit_service.models import (
     CoprBuildModel,
@@ -170,6 +166,18 @@ class Event:
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         return None
 
+    @property
+    def project(self):
+        raise NotImplementedError("Please implement me!")
+
+    @property
+    def base_project(self):
+        raise NotImplementedError("Please implement me!")
+
+    @property
+    def package_config(self):
+        raise NotImplementedError("Please implement me!")
+
     def get_package_config(self):
         raise NotImplementedError("Please implement me!")
 
@@ -192,7 +200,89 @@ class Event:
         return f"{self.__class__.__name__}({self.get_dict()})"
 
 
-class AbstractGithubEvent(Event, GithubPackageConfigGetter):
+class AbstractForgeIndependentEvent(Event):
+    commit_sha: Optional[str]
+    project_url: str
+
+    def __init__(
+        self,
+        trigger: TheJobTriggerType,
+        created_at: Union[int, float, str] = None,
+        project_url=None,
+    ):
+        super().__init__(trigger, created_at)
+        self.project_url = project_url
+        self.pr_id: Optional[int] = None
+
+        # Lazy properties
+        self._project: Optional[GitProject] = None
+        self._base_project: Optional[GitProject] = None
+        self._package_config: Optional[PackageConfig] = None
+
+    @property
+    def project(self):
+        if not self._project:
+            self._project = self.get_project()
+        return self._project
+
+    @property
+    def base_project(self):
+        if not self._base_project:
+            self._base_project = self.get_base_project()
+        return self._base_project
+
+    @property
+    def package_config(self):
+        if not self._package_config:
+            self._package_config = self.get_package_config()
+        return self._package_config
+
+    @property
+    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        raise NotImplementedError()
+
+    def get_project(self) -> GitProject:
+        return ServiceConfig.get_service_config().get_project(
+            url=self.project_url or self.db_trigger.project.http_url
+        )
+
+    def get_base_project(self) -> GitProject:
+        """Reimplement in the PR events. Defaults to self.project"""
+        return self.project
+
+    def get_package_config(self) -> Optional[PackageConfig]:
+        base_project = self.get_base_project()
+        logger.debug(
+            f"Getting package_config:\n"
+            f"\tbase_project: {base_project} ({base_project.get_web_url()})\n"
+            f"\tproject: {self.project} ({base_project.get_web_url()})\n"
+            f"\treference: {self.commit_sha}\n"
+            f"\tpr_id: {self.pr_id}"
+        )
+
+        if isinstance(base_project, PagureProject):
+            logger.debug(f"Getting package_config from Pagure.")
+            package_config = PackageConfigGetterForPagure.get_package_config_from_repo(
+                base_project=base_project,
+                project=self.project,
+                reference=self.commit_sha,
+                pr_id=self.pr_id,
+            )
+        else:
+            package_config = PackageConfigGetterForGithub.get_package_config_from_repo(
+                base_project=base_project,
+                project=self.project,
+                reference=self.commit_sha,
+                pr_id=self.pr_id,
+                fail_when_missing=False,
+            )
+
+        if package_config:
+            package_config.upstream_project_url = self.project_url
+        return package_config
+
+
+class AbstractGithubEvent(AbstractForgeIndependentEvent):
     def __init__(self, trigger: TheJobTriggerType, project_url: str):
         super().__init__(trigger)
         self.project_url: str = project_url
@@ -200,9 +290,7 @@ class AbstractGithubEvent(Event, GithubPackageConfigGetter):
         self.identifier: Optional[str] = (
             None  # will be shown to users -- e.g. in logs or in the copr-project name
         )
-
-    def get_project(self) -> GitProject:
-        return ServiceConfig.get_service_config().get_project(url=self.project_url)
+        self.pr_id: Optional[int] = None
 
 
 class ReleaseEvent(AddReleaseDbTrigger, AbstractGithubEvent):
@@ -215,25 +303,14 @@ class ReleaseEvent(AddReleaseDbTrigger, AbstractGithubEvent):
         self.tag_name = tag_name
         self.git_ref = tag_name
         self.identifier = tag_name
-
-        self._commit_sha = None
+        self._commit_sha: Optional[str] = None
 
     @property
-    def commit_sha(self) -> str:
+    def commit_sha(self,) -> Optional[str]:  # type:ignore
+        # mypy does not like properties
         if not self._commit_sha:
-            self._commit_sha = self.get_project().get_sha_from_tag(
-                tag_name=self.tag_name
-            )
+            self._commit_sha = self.project.get_sha_from_tag(tag_name=self.tag_name)
         return self._commit_sha
-
-    def get_package_config(self) -> Optional[PackageConfig]:
-        package_config: PackageConfig = self.get_package_config_from_repo(
-            project=self.get_project(), reference=self.tag_name, fail_when_missing=False
-        )
-        if not package_config:
-            return None
-        package_config.upstream_project_url = self.project_url
-        return package_config
 
 
 class PushGitHubEvent(AddBranchPushDbTrigger, AbstractGithubEvent):
@@ -251,17 +328,6 @@ class PushGitHubEvent(AddBranchPushDbTrigger, AbstractGithubEvent):
         self.git_ref = git_ref
         self.commit_sha = commit_sha
         self.identifier = git_ref
-
-    def get_package_config(self) -> Optional[PackageConfig]:
-        package_config: PackageConfig = self.get_package_config_from_repo(
-            project=self.get_project(),
-            reference=self.commit_sha,
-            fail_when_missing=False,
-        )
-        if not package_config:
-            return None
-        package_config.upstream_project_url = self.project_url
-        return package_config
 
 
 class PullRequestEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
@@ -294,17 +360,10 @@ class PullRequestEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         result["action"] = result["action"].value
         return result
 
-    def get_package_config(self) -> Optional[PackageConfig]:
-        package_config: PackageConfig = self.get_package_config_from_repo(
-            project=self.get_project(),
-            reference=self.base_ref,
-            pr_id=self.pr_id,
-            fail_when_missing=False,
+    def get_base_project(self) -> GitProject:
+        return self.project.service.get_project(
+            namespace=self.base_repo_namespace, repo=self.base_repo_name
         )
-        if not package_config:
-            return None
-        package_config.upstream_project_url = self.project_url
-        return package_config
 
 
 class PullRequestCommentEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
@@ -339,19 +398,10 @@ class PullRequestCommentEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         result["action"] = result["action"].value
         return result
 
-    def get_package_config(self) -> Optional[PackageConfig]:
-        if not self.base_ref:
-            self.base_ref = self.get_project().get_pr_info(self.pr_id).source_branch
-        package_config: PackageConfig = self.get_package_config_from_repo(
-            project=self.get_project(),
-            reference=self.base_ref,
-            pr_id=self.pr_id,
-            fail_when_missing=False,
+    def get_base_project(self) -> GitProject:
+        return self.project.service.get_project(
+            namespace=self.base_repo_namespace, repo=self.base_repo_name
         )
-        if not package_config:
-            return None
-        package_config.upstream_project_url = self.project_url
-        return package_config
 
 
 class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
@@ -359,8 +409,8 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
         self,
         action: IssueCommentAction,
         issue_id: int,
-        base_repo_namespace: str,
-        base_repo_name: str,
+        repo_namespace: str,
+        repo_name: str,
         target_repo: str,
         https_url: str,
         user_login: str,
@@ -373,19 +423,20 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
         super().__init__(trigger=TheJobTriggerType.issue_comment, project_url=https_url)
         self.action = action
         self.issue_id = issue_id
-        self.base_repo_namespace = base_repo_namespace
-        self.base_repo_name = base_repo_name
+        self.repo_namespace = repo_namespace
+        self.repo_name = repo_name
         self.base_ref = base_ref
         self._tag_name = tag_name
         self.target_repo = target_repo
         self.user_login = user_login
         self.comment = comment
         self.identifier = str(issue_id)
+        self.commit_sha = None
 
     @property
     def tag_name(self):
         if not self._tag_name:
-            releases = self.get_project().get_releases()
+            releases = self.project.get_releases()
             self._tag_name = releases[0].tag_name if releases else ""
         return self._tag_name
 
@@ -393,15 +444,6 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
-
-    def get_package_config(self) -> Optional[PackageConfig]:
-        package_config: PackageConfig = self.get_package_config_from_repo(
-            project=self.get_project(), reference=self.tag_name, fail_when_missing=False
-        )
-        if not package_config:
-            return None
-        package_config.upstream_project_url = self.project_url
-        return package_config
 
 
 class InstallationEvent(Event):
@@ -438,7 +480,7 @@ class InstallationEvent(Event):
         return result
 
 
-class DistGitEvent(Event):
+class DistGitEvent(AbstractForgeIndependentEvent):
     def __init__(
         self,
         topic: str,
@@ -464,14 +506,11 @@ class DistGitEvent(Event):
         result["topic"] = result["topic"].value
         return result
 
-    def get_package_config(self):
-        return get_package_config_from_repo(self.get_project(), self.git_ref)
-
     def get_project(self) -> GitProject:
         return ServiceConfig.get_service_config().get_project(self.project_url)
 
 
-class TestingFarmResultsEvent(AbstractGithubEvent):
+class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
     def __init__(
         self,
         pipeline_id: str,
@@ -485,11 +524,11 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         repo_namespace: str,
         repo_name: str,
         git_ref: str,
-        https_url: str,
+        project_url: str,
         commit_sha: str,
     ):
         super().__init__(
-            trigger=TheJobTriggerType.testing_farm_results, project_url=https_url
+            trigger=TheJobTriggerType.testing_farm_results, project_url=project_url
         )
         self.pipeline_id = pipeline_id
         self.result = result
@@ -510,15 +549,6 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
         result["result"] = result["result"].value
         return result
 
-    def get_package_config(self):
-        package_config: PackageConfig = self.get_package_config_from_repo(
-            project=self.get_project(), reference=self.git_ref, fail_when_missing=False
-        )
-        if not package_config:
-            return None
-        package_config.upstream_project_url = self.project_url
-        return package_config
-
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         run_model = TFTTestRunModel.get_by_pipeline_id(pipeline_id=self.pipeline_id)
@@ -526,9 +556,17 @@ class TestingFarmResultsEvent(AbstractGithubEvent):
             return None
         return run_model.job_trigger.get_trigger_object()
 
+    def get_base_project(self) -> GitProject:
+        if self.pr_id is not None:
+            pull_request = self.project.get_pr(pr_id=self.pr_id)
+            # TODO: We need to handle forks with different name as well
+            return self.project.service.get_project(
+                namespace=pull_request.author, repo=self.project.repo
+            )
+        return self.project
 
-# Wait, what? copr build event doesn't sound like github event
-class CoprBuildEvent(AbstractGithubEvent):
+
+class CoprBuildEvent(AbstractForgeIndependentEvent):
     build: Optional[CoprBuildModel]
 
     def __init__(
@@ -563,6 +601,7 @@ class CoprBuildEvent(AbstractGithubEvent):
 
         super().__init__(trigger=trigger, project_url=https_url)
 
+        self.project_url = https_url
         self.git_ref = git_ref
         self.build_id = build_id
         self.build = build
@@ -588,6 +627,15 @@ class CoprBuildEvent(AbstractGithubEvent):
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         return self.build.job_trigger.get_trigger_object()
+
+    def get_base_project(self) -> GitProject:
+        if self.pr_id is not None:
+            pull_request = self.project.get_pr(pr_id=self.pr_id)
+            # TODO: We need to handle forks with different name as well
+            return self.project.service.get_project(
+                namespace=pull_request.author, repo=self.project.repo
+            )
+        return self.project
 
     @classmethod
     def from_build_id(
@@ -625,20 +673,6 @@ class CoprBuildEvent(AbstractGithubEvent):
         self.build = build
         return result
 
-    def get_package_config(self) -> Optional[PackageConfig]:
-        project = self.get_project()
-        if not project:
-            return None
-
-        package_config: PackageConfig = self.get_package_config_from_repo(
-            project=project, reference=self.commit_sha, fail_when_missing=False
-        )
-        if not package_config:
-            return None
-
-        package_config.upstream_project_url = self.project_url
-        return package_config
-
 
 def get_copr_build_logs_url(event: CoprBuildEvent) -> str:
     return (
@@ -648,7 +682,7 @@ def get_copr_build_logs_url(event: CoprBuildEvent) -> str:
     )
 
 
-class AbstractPagureEvent(Event, PagurePackageConfigGetter):
+class AbstractPagureEvent(AbstractForgeIndependentEvent):
     def __init__(self, trigger: TheJobTriggerType, project_url: str):
         super().__init__(trigger)
         self.project_url: str = project_url
@@ -657,9 +691,6 @@ class AbstractPagureEvent(Event, PagurePackageConfigGetter):
             None  # will be shown to users -- e.g. in logs or in the copr-project name
         )
 
-    def get_project(self) -> GitProject:
-        return ServiceConfig.get_service_config().get_project(url=self.project_url)
-
 
 class PushPagureEvent(AbstractPagureEvent):
     def __init__(
@@ -667,26 +698,16 @@ class PushPagureEvent(AbstractPagureEvent):
         repo_namespace: str,
         repo_name: str,
         git_ref: str,
-        https_url: str,
+        project_url: str,
         commit_sha: str,
     ):
-        super().__init__(trigger=TheJobTriggerType.push, project_url=https_url)
+        super().__init__(trigger=TheJobTriggerType.push, project_url=project_url)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.git_ref = git_ref
         self.commit_sha = commit_sha
         self.identifier = git_ref
-
-    def get_package_config(self) -> Optional[PackageConfig]:
-        package_config: PackageConfig = self.get_package_config_from_repo(
-            project=self.get_project(),
-            reference=self.commit_sha,
-            fail_when_missing=False,
-        )
-        if not package_config:
-            return None
-        package_config.upstream_project_url = self.project_url
-        return package_config
+        self.pr_id = None
 
 
 class PullRequestCommentPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
@@ -696,18 +717,20 @@ class PullRequestCommentPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent
         pr_id: int,
         base_repo_namespace: str,
         base_repo_name: str,
+        base_repo_owner: str,
         base_ref: Optional[str],
         target_repo: str,
-        https_url: str,
+        project_url: str,
         user_login: str,
         comment: str,
         commit_sha: str = "",
     ):
-        super().__init__(trigger=TheJobTriggerType.pr_comment, project_url=https_url)
+        super().__init__(trigger=TheJobTriggerType.pr_comment, project_url=project_url)
         self.action = action
         self.pr_id = pr_id
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
+        self.base_repo_owner = base_repo_owner
         self.base_ref = base_ref
         self.commit_sha = commit_sha
         self.target_repo = target_repo
@@ -721,6 +744,16 @@ class PullRequestCommentPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent
         result["action"] = result["action"].value
         return result
 
+    def get_base_project(self) -> GitProject:
+        fork = self.project.service.get_project(
+            namespace=self.base_repo_namespace,
+            repo=self.base_repo_name,
+            username=self.base_repo_owner,
+            is_fork=True,
+        )
+        logger.debug(f"Base project: {fork} owned by {self.base_repo_owner}")
+        return fork
+
 
 class PullRequestPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
     def __init__(
@@ -729,37 +762,40 @@ class PullRequestPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
         pr_id: int,
         base_repo_namespace: str,
         base_repo_name: str,
+        base_repo_owner: str,
         base_ref: str,
         target_repo: str,
-        https_url: str,
+        project_url: str,
         commit_sha: str,
         user_login: str,
     ):
-        super().__init__(trigger=TheJobTriggerType.pull_request, project_url=https_url)
+        super().__init__(
+            trigger=TheJobTriggerType.pull_request, project_url=project_url
+        )
         self.action = action
         self.pr_id = pr_id
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
+        self.base_repo_owner = base_repo_owner
         self.base_ref = base_ref
         self.target_repo = target_repo
         self.commit_sha = commit_sha
         self.user_login = user_login
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
-        self.https_url = https_url
+        self.project_url = project_url
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
 
-    def get_package_config(self) -> Optional[PackageConfig]:
-        package_config: PackageConfig = self.get_package_config_from_repo(
-            project=self.get_project(),
-            reference=self.commit_sha,
-            fail_when_missing=False,
+    def get_base_project(self) -> GitProject:
+        fork = self.project.service.get_project(
+            namespace=self.base_repo_namespace,
+            repo=self.base_repo_name,
+            username=self.base_repo_owner,
+            is_fork=True,
         )
-        if not package_config:
-            return None
-        package_config.upstream_project_url = self.project_url
-        return package_config
+        logger.debug(f"Base project: {fork} owned by {self.base_repo_owner}")
+        return fork

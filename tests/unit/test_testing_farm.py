@@ -20,11 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import pytest
-import flexmock
+from flexmock import flexmock
+
 from ogr.abstract import CommitStatus
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.local_project import LocalProject
-
+from packit_service.config import PackageConfigGetterForGithub
 from packit_service.models import TFTTestRunModel
 
 # These names are definately not nice, still they help with making classes
@@ -161,15 +162,13 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
 def test_testing_farm_response(
     tests_result, tests_message, tests_tests, status_status, status_message
 ):
-    flexmock(TFResultsHandler).should_receive(
+    flexmock(PackageConfigGetterForGithub).should_receive(
         "get_package_config_from_repo"
     ).and_return(
         flexmock(
             jobs=[
                 JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    metadata={},
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
                 )
             ],
         )
@@ -189,7 +188,7 @@ def test_testing_farm_response(
             repo_namespace=flexmock(),
             repo_name=flexmock(),
             git_ref=flexmock(),
-            https_url=flexmock(),
+            project_url="https://github.com/packit-service/ogr",
             commit_sha=flexmock(),
         ),
     )
@@ -272,7 +271,9 @@ def test_trigger_payload(
         service="GitHub",
         get_git_urls=lambda: {"git": f"{project_url}.git"},
     )
-    event = flexmock(commit_sha=commit_sha, project_url=project_url, git_ref=git_ref)
+    event = flexmock(
+        commit_sha=commit_sha, project_url=project_url, git_ref=git_ref, pr_id=None
+    )
 
     job_helper = TFJobHelper(config, package_config, project, event)
     job_helper = flexmock(job_helper)
