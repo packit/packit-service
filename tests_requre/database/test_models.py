@@ -95,6 +95,8 @@ def test_create_copr_build(clean_before_and_after, a_copr_build_for_pr):
     # we will check if a_copr_build has build_submitted_time value that's within the past hour
     time_last_hour = datetime.utcnow() - timedelta(hours=1)
     assert a_copr_build_for_pr.build_submitted_time > time_last_hour
+    a_copr_build_for_pr.set_end_time(None)
+    assert a_copr_build_for_pr.build_finished_time is None
 
 
 def test_copr_build_get_pr_id(
