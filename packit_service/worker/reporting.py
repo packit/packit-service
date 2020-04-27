@@ -91,7 +91,7 @@ class StatusReporter:
         self, state: CommitStatus, description: str, check_name: str, url: str = "",
     ):
         # required because pagure api doesnt accept, empty url
-        if isinstance(self.project, PagureProject):
+        if not url and isinstance(self.project, PagureProject):
             url = "https://wiki.centos.org/Manuals/ReleaseNotes/CentOSStream"
 
         logger.debug(f"Setting status for check '{check_name}': {description}")
