@@ -28,7 +28,6 @@ from functools import partial
 from typing import Optional, Union, List
 
 from packit.utils import nested_get
-
 from packit_service.service.events import (
     PullRequestEvent,
     PullRequestCommentEvent,
@@ -155,9 +154,9 @@ class Parser:
         # and not the fork, on the other hand, we don't process packit.yaml from
         # the PR but what's in the upstream
         base_repo_namespace = nested_get(
-            event, "pull_request", "base", "repo", "owner", "login"
+            event, "pull_request", "head", "repo", "owner", "login"
         )
-        base_repo_name = nested_get(event, "pull_request", "base", "repo", "name")
+        base_repo_name = nested_get(event, "pull_request", "head", "repo", "name")
 
         if not (base_repo_name and base_repo_namespace):
             logger.warning("No full name of the repository.")
@@ -234,7 +233,7 @@ class Parser:
             repo_namespace=repo_namespace,
             repo_name=repo_name,
             git_ref=ref,
-            https_url=repo_url,
+            project_url=repo_url,
             commit_sha=head_commit,
         )
 
@@ -290,7 +289,7 @@ class Parser:
         comment = nested_get(event, "comment", "body")
         logger.info(f"Github PR#{pr_id} comment: {comment!r} {action!r} event.")
 
-        base_repo_namespace = nested_get(event, "repository", "owner", "login")
+        base_repo_namespace = nested_get(event, "issue", "user", "login")
         base_repo_name = nested_get(event, "repository", "name")
         if not (base_repo_name and base_repo_namespace):
             logger.warning("No full name of the repository.")
@@ -304,19 +303,22 @@ class Parser:
             logger.debug("Our own comment.")
             return None
 
-        target_repo = nested_get(event, "repository", "full_name")
-        logger.info(f"Target repo: {target_repo}.")
+        target_repo_namespace = nested_get(event, "repository", "owner", "login")
+        target_repo_name = nested_get(event, "repository", "name")
+
+        logger.info(f"Target repo: {target_repo_namespace}/{target_repo_name}.")
         https_url = event["repository"]["html_url"]
         return PullRequestCommentEvent(
-            PullRequestCommentAction[action],
-            pr_id,
-            base_repo_namespace,
-            base_repo_name,
-            None,  # the payload does not include this info
-            target_repo,
-            https_url,
-            user_login,
-            comment,
+            action=PullRequestCommentAction[action],
+            pr_id=pr_id,
+            base_repo_namespace=base_repo_namespace,
+            base_repo_name=None,
+            base_ref=None,  # the payload does not include this info
+            target_repo_namespace=target_repo_namespace,
+            target_repo_name=target_repo_name,
+            project_url=https_url,
+            user_login=user_login,
+            comment=comment,
         )
 
     @staticmethod
@@ -472,19 +474,19 @@ class Parser:
         )
 
         return TestingFarmResultsEvent(
-            pipeline_id,
-            result,
-            environment,
-            message,
-            log_url,
-            copr_repo_name,
-            copr_chroot,
-            tests,
-            repo_namespace,
-            repo_name,
-            ref,
-            https_url,
-            commit_sha,
+            pipeline_id=pipeline_id,
+            result=result,
+            environment=environment,
+            message=message,
+            log_url=log_url,
+            copr_repo_name=copr_repo_name,
+            copr_chroot=copr_chroot,
+            tests=tests,
+            repo_namespace=repo_namespace,
+            repo_name=repo_name,
+            git_ref=ref,
+            project_url=https_url,
+            commit_sha=commit_sha,
         )
 
     @staticmethod
@@ -568,24 +570,26 @@ class CentosEventParser:
 
         pullrequest = event["pullrequest"]
         pr_id = pullrequest["id"]
-        base_repo_namespace = pullrequest["project"]["namespace"]
-        base_repo_name = pullrequest["project"]["name"]
+        base_repo_namespace = pullrequest["repo_from"]["namespace"]
+        base_repo_name = pullrequest["repo_from"]["name"]
+        base_repo_owner = pullrequest["repo_from"]["user"]["name"]
         base_ref = pullrequest["branch"]
-        target_repo = pullrequest["repo_from"]["name"]
+        target_repo = pullrequest["project"]["name"]
         https_url = f"https://{event['source']}/{pullrequest['project']['url_path']}"
         commit_sha = pullrequest["commit_stop"]
         pagure_login = pullrequest["user"]["name"]
 
         return PullRequestPagureEvent(
-            PullRequestAction[action],
-            pr_id,
-            base_repo_namespace,
-            base_repo_name,
-            base_ref,
-            target_repo,
-            https_url,
-            commit_sha,
-            pagure_login,
+            action=PullRequestAction[action],
+            pr_id=pr_id,
+            base_repo_namespace=base_repo_namespace,
+            base_repo_name=base_repo_name,
+            base_repo_owner=base_repo_owner,
+            base_ref=base_ref,
+            target_repo=target_repo,
+            project_url=https_url,
+            commit_sha=commit_sha,
+            user_login=pagure_login,
         )
 
     def _pull_request_comment(
@@ -599,6 +603,7 @@ class CentosEventParser:
         pr_id = event["pullrequest"]["id"]
         base_repo_namespace = event["pullrequest"]["project"]["namespace"]
         base_repo_name = event["pullrequest"]["project"]["name"]
+        base_repo_owner = event["pullrequest"]["repo_from"]["user"]["name"]
         target_repo = event["pullrequest"]["repo_from"]["name"]
         https_url = (
             f"https://{event['source']}/{event['pullrequest']['project']['url_path']}"
@@ -618,17 +623,17 @@ class CentosEventParser:
             )
 
         return PullRequestCommentPagureEvent(
-            PullRequestCommentAction[action],
-            pr_id,
-            base_repo_namespace,
-            base_repo_name,
-            None,  # the payload does not include this info
-            target_repo,
-            https_url,
-            # todo: change arg name in event class to more general
-            pagure_login,
-            comment,
-            commit_sha,
+            action=PullRequestCommentAction[action],
+            pr_id=pr_id,
+            base_repo_namespace=base_repo_namespace,
+            base_repo_name=base_repo_name,
+            base_repo_owner=base_repo_owner,
+            base_ref=None,
+            target_repo=target_repo,
+            project_url=https_url,
+            commit_sha=commit_sha,
+            user_login=pagure_login,
+            comment=comment,
         )
 
     def _push_event(self, event: dict) -> PushPagureEvent:
@@ -638,6 +643,6 @@ class CentosEventParser:
             repo_namespace=event["repo"]["namespace"],
             repo_name=event["repo"]["name"],
             git_ref=f"refs/head/{event['branch']}",
-            https_url=f"https://{event['source']}/{event['repo']['url_path']}",
+            project_url=f"https://{event['source']}/{event['repo']['url_path']}",
             commit_sha=event["end_commit"],
         )

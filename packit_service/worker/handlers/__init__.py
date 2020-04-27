@@ -29,10 +29,10 @@
 
 
 from packit_service.worker.handlers.abstract import Handler, JobHandler
-from packit_service.worker.handlers.centosmsg_handlers import (
-    PagurePullRequestCoprBuildHandler,
+from packit_service.worker.handlers.comment_action_handler import (
+    CommentActionHandler,
+    PagurePullRequestCommentCoprBuildHandler,
 )
-from packit_service.worker.handlers.comment_action_handler import CommentActionHandler
 from packit_service.worker.handlers.fedmsg_handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -40,11 +40,11 @@ from packit_service.worker.handlers.fedmsg_handlers import (
     NewDistGitCommitHandler,
 )
 from packit_service.worker.handlers.github_handlers import (
-    AbstractGithubJobHandler,
+    AbstractGitForgeJobHandler,
     GithubAppInstallationHandler,
-    ReleaseGithubCoprBuildHandler,
-    PullRequestGithubCoprBuildHandler,
-    PushGithubCoprBuildHandler,
+    ReleaseCoprBuildHandler,
+    PullRequestCoprBuildHandler,
+    PushCoprBuildHandler,
     GitHubIssueCommentProposeUpdateHandler,
     GitHubPullRequestCommentCoprBuildHandler,
     GitHubPullRequestCommentTestingFarmHandler,
@@ -57,15 +57,15 @@ from packit_service.worker.handlers.testing_farm_handlers import (
 )
 
 __all__ = [
-    AbstractGithubJobHandler.__name__,
+    AbstractGitForgeJobHandler.__name__,
     CommentActionHandler.__name__,
     CoprBuildEndHandler.__name__,
     CoprBuildStartHandler.__name__,
     FedmsgHandler.__name__,
     GithubAppInstallationHandler.__name__,
-    ReleaseGithubCoprBuildHandler.__name__,
-    PullRequestGithubCoprBuildHandler.__name__,
-    PushGithubCoprBuildHandler.__name__,
+    ReleaseCoprBuildHandler.__name__,
+    PullRequestCoprBuildHandler.__name__,
+    PushCoprBuildHandler.__name__,
     GitHubIssueCommentProposeUpdateHandler.__name__,
     GitHubPullRequestCommentCoprBuildHandler.__name__,
     GitHubPullRequestCommentTestingFarmHandler.__name__,
@@ -75,5 +75,5 @@ __all__ = [
     JobHandler.__name__,
     NewDistGitCommitHandler.__name__,
     TestingFarmResultsHandler.__name__,
-    PagurePullRequestCoprBuildHandler.__name__,
+    PagurePullRequestCommentCoprBuildHandler.__name__,
 ]

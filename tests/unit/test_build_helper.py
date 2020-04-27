@@ -250,6 +250,7 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_targets, test_tar
         event=flexmock(
             trigger=trigger,
             db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
+            pr_id=None,
         ),
     )
 

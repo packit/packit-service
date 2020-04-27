@@ -137,7 +137,16 @@ def test_signed_fpca(whitelist, account_name, person_object, raises, signed_fpca
     [
         (
             PullRequestCommentEvent(
-                PullRequestCommentAction.created, 0, "foo", "", "", "", "", "bar", "",
+                action=PullRequestCommentAction.created,
+                pr_id=0,
+                base_repo_namespace="foo",
+                base_repo_name="",
+                base_ref="",
+                target_repo_namespace="",
+                target_repo_name="",
+                project_url="",
+                user_login="bar",
+                comment="",
             ),
             "pr_comment",
             False,
@@ -151,7 +160,16 @@ def test_signed_fpca(whitelist, account_name, person_object, raises, signed_fpca
         ),
         (
             PullRequestCommentEvent(
-                PullRequestCommentAction.created, 0, "", "", "", "", "", "lojzo", "",
+                action=PullRequestCommentAction.created,
+                pr_id=0,
+                base_repo_namespace="foo",
+                base_repo_name="",
+                base_ref="",
+                target_repo_namespace="",
+                target_repo_name="",
+                project_url="",
+                user_login="lojzo",
+                comment="",
             ),
             "pr_comment",
             True,
@@ -218,15 +236,16 @@ def events(request) -> List[Tuple[AbstractGithubEvent, bool]]:
         return [
             (
                 PullRequestCommentEvent(
-                    PullRequestCommentAction.created,
-                    1,
-                    namespace,
-                    "",
-                    "",
-                    "",
-                    "",
-                    login,
-                    "",
+                    action=PullRequestCommentAction.created,
+                    pr_id=1,
+                    base_repo_namespace=namespace,
+                    base_repo_name="",
+                    base_ref="",
+                    target_repo_namespace="",
+                    target_repo_name="",
+                    project_url="",
+                    user_login=login,
+                    comment="",
                 ),
                 approved,
             )
@@ -236,7 +255,14 @@ def events(request) -> List[Tuple[AbstractGithubEvent, bool]]:
         return [
             (
                 IssueCommentEvent(
-                    IssueCommentAction.created, 1, namespace, "", "", "", login, "",
+                    action=IssueCommentAction.created,
+                    issue_id=1,
+                    repo_namespace=namespace,
+                    repo_name="",
+                    target_repo="",
+                    project_url="",
+                    user_login=login,
+                    comment="",
                 ),
                 approved,
             )

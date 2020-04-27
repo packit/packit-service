@@ -70,6 +70,7 @@ def test_process_message(event):
         full_repo_name="foo/bar",
         get_files=lambda ref, filter_regex: [],
         get_sha_from_tag=lambda tag_name: "12345",
+        get_web_url=lambda: "https://github.com/the-namespace/the-repo",
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     config = ServiceConfig()

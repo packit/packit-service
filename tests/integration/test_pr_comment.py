@@ -24,8 +24,8 @@ import json
 
 import pytest
 from flexmock import flexmock
-from ogr.services.github import GithubProject
 
+from ogr.services.github import GithubProject
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import HandlerResults
@@ -85,10 +85,10 @@ def test_pr_comment_copr_build_handler(
     flexmock(GithubProject).should_receive("who_can_merge_pr").and_return(
         {"phracek"}
     ).once()
-    flexmock(GithubProject).should_receive("get_all_pr_commits").with_args(
-        9
-    ).and_return(["528b803be6f93e19ca4130bf4976f2800a3004c4"]).once()
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
+    flexmock(GithubProject).should_receive("get_web_url").and_return(
+        "https://github.com/the-namespace/the-repo"
+    )
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(pr_copr_build_comment_event)
 
@@ -104,9 +104,6 @@ def test_pr_comment_build_handler(
     flexmock(GithubProject).should_receive("who_can_merge_pr").and_return(
         {"phracek"}
     ).once()
-    flexmock(GithubProject).should_receive("get_all_pr_commits").with_args(
-        9
-    ).and_return(["528b803be6f93e19ca4130bf4976f2800a3004c4"]).once()
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(pr_build_comment_event)
@@ -157,9 +154,6 @@ def test_pr_embedded_command_handler(
     flexmock(GithubProject).should_receive("who_can_merge_pr").and_return(
         {"phracek"}
     ).once()
-    flexmock(GithubProject).should_receive("get_all_pr_commits").with_args(
-        9
-    ).and_return(["528b803be6f93e19ca4130bf4976f2800a3004c4"]).once()
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(pr_embedded_command_comment_event)

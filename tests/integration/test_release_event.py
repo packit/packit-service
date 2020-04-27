@@ -3,11 +3,11 @@ import json
 import pytest
 from flexmock import flexmock
 from github import Github
+
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.fedpkg import FedPKG
 from packit.local_project import LocalProject
-
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
@@ -34,6 +34,7 @@ def test_dist_git_push_release_handle(release_event):
         repo="hello-world",
         get_files=lambda ref, filter_regex: [],
         get_sha_from_tag=lambda tag_name: "123456",
+        get_web_url=lambda: "https://github.com/packit-service/hello-world",
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
@@ -69,6 +70,7 @@ def test_dist_git_push_release_handle_multiple_branches(release_event):
         repo="hello-world",
         get_files=lambda ref, filter_regex: [],
         get_sha_from_tag=lambda tag_name: "123456",
+        get_web_url=lambda: "https://github.com/packit-service/hello-world",
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
@@ -117,6 +119,7 @@ def test_dist_git_push_release_handle_one_failed(release_event):
             repo="hello-world",
             get_files=lambda ref, filter_regex: [],
             get_sha_from_tag=lambda tag_name: "123456",
+            get_web_url=lambda: "https://github.com/packit-service/hello-world",
         )
         .should_receive("create_issue")
         .once()
@@ -170,6 +173,7 @@ def test_dist_git_push_release_handle_all_failed(release_event):
             repo="hello-world",
             get_files=lambda ref, filter_regex: [],
             get_sha_from_tag=lambda tag_name: "123456",
+            get_web_url=lambda: "https://github.com/packit-service/hello-world",
         )
         .should_receive("create_issue")
         .with_args(

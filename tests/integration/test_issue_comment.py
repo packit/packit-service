@@ -25,12 +25,12 @@ from datetime import datetime
 
 import pytest
 from flexmock import flexmock
-from tests.spellbook import DATA_DIR
 
 from ogr.abstract import PullRequest, PRStatus
 from ogr.services.github.project import GithubProject
 from packit.api import PackitAPI
 from packit_service.worker.jobs import SteveJobs
+from tests.spellbook import DATA_DIR
 
 
 @pytest.fixture()
@@ -57,7 +57,9 @@ def test_issue_comment_propose_update_handler(
         )
     )
     flexmock(
-        GithubProject, get_files=lambda ref, filter_regex: [],
+        GithubProject,
+        get_files=lambda ref, filter_regex: [],
+        get_web_url=lambda: "https://github.com/the-namespace/the-repo",
     )
     flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(issue_comment_propose_update_event)

@@ -81,13 +81,7 @@ class BaseBuildJobHelper:
             PushGitHubEvent,
             ReleaseEvent,
         ] = event
-        self.pr_id = (
-            self.event.pr_id
-            if isinstance(
-                self.event, (CoprBuildEvent, PullRequestEvent, PullRequestCommentEvent)
-            )
-            else None
-        )
+        self.pr_id = self.event.pr_id
 
         # lazy properties
         self._api = None

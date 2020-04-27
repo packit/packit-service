@@ -26,13 +26,11 @@ This file defines classes for job handlers specific for Testing farm
 import logging
 from typing import Optional
 
-from ogr.abstract import GitProject, CommitStatus
+from ogr.abstract import CommitStatus
 from packit.config import (
     JobType,
     JobConfig,
-    get_package_config_from_repo,
 )
-
 from packit_service.config import ServiceConfig
 from packit_service.models import TFTTestRunModel
 from packit_service.service.events import (
@@ -40,7 +38,7 @@ from packit_service.service.events import (
     TestingFarmResult,
     TheJobTriggerType,
 )
-from packit_service.worker.handlers import AbstractGithubJobHandler
+from packit_service.worker.handlers import AbstractGitForgeJobHandler
 from packit_service.worker.handlers.abstract import use_for
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import HandlerResults
@@ -50,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 
 @use_for(job_type=JobType.tests)
-class TestingFarmResultsHandler(AbstractGithubJobHandler):
+class TestingFarmResultsHandler(AbstractGitForgeJobHandler):
     type = JobType.report_test_results
     triggers = [TheJobTriggerType.testing_farm_results]
     event: TestingFarmResultsEvent
@@ -62,23 +60,6 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
         event: TestingFarmResultsEvent,
     ):
         super().__init__(config=config, job_config=job_config, event=event)
-        self.project: GitProject = event.get_project()
-        self.package_config = self.get_package_config_from_repo(
-            project=self.project, reference=self.event.git_ref
-        )
-        if not self.package_config:
-            raise ValueError(f"No config file found in {self.project.full_repo_name}")
-
-        self.package_config.upstream_project_url = event.project_url
-
-    def get_package_config_from_repo(
-        self,
-        project: GitProject,
-        reference: str,
-        pr_id: int = None,
-        fail_when_missing: bool = False,
-    ):
-        return get_package_config_from_repo(self.project, self.event.git_ref)
 
     def run(self) -> HandlerResults:
 
@@ -116,7 +97,7 @@ class TestingFarmResultsHandler(AbstractGithubJobHandler):
 
         if test_run_model:
             test_run_model.set_web_url(self.event.log_url)
-        status_reporter = StatusReporter(self.project, self.event.commit_sha)
+        status_reporter = StatusReporter(self.event.project, self.event.commit_sha)
         status_reporter.report(
             state=status,
             description=short_msg,
