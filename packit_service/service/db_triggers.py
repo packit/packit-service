@@ -39,6 +39,7 @@ class AddReleaseDbTrigger:
     tag_name: str
     repo_namespace: str
     repo_name: str
+    project_url: str
 
     @property
     def commit_sha(self):
@@ -53,6 +54,7 @@ class AddReleaseDbTrigger:
             tag_name=self.tag_name,
             namespace=self.repo_namespace,
             repo_name=self.repo_name,
+            project_url=self.project_url,
             commit_hash=self.commit_sha,
         )
 
@@ -60,6 +62,7 @@ class AddReleaseDbTrigger:
 class AddPullRequestDbTrigger:
     pr_id: int
     project: GitProject
+    project_url: str
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
@@ -67,6 +70,7 @@ class AddPullRequestDbTrigger:
             pr_id=self.pr_id,
             namespace=self.project.namespace,
             repo_name=self.project.repo,
+            project_url=self.project_url,
         )
 
 
@@ -74,6 +78,7 @@ class AddIssueDbTrigger:
     issue_id: int
     repo_namespace: str
     repo_name: str
+    project_url: str
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
@@ -81,6 +86,7 @@ class AddIssueDbTrigger:
             issue_id=self.issue_id,
             namespace=self.repo_namespace,
             repo_name=self.repo_name,
+            project_url=self.project_url,
         )
 
 
@@ -88,6 +94,7 @@ class AddBranchPushDbTrigger:
     git_ref: str
     repo_namespace: str
     repo_name: str
+    project_url: str
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
@@ -95,4 +102,5 @@ class AddBranchPushDbTrigger:
             branch_name=self.git_ref,
             namespace=self.repo_namespace,
             repo_name=self.repo_name,
+            project_url=self.project_url,
         )

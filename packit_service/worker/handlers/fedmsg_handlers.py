@@ -31,6 +31,7 @@ from typing import Type
 import requests
 
 from ogr.abstract import CommitStatus
+from ogr.services.github import GithubProject
 from packit.api import PackitAPI
 from packit.config import (
     JobType,
@@ -189,7 +190,9 @@ class CoprBuildEndHandler(FedmsgHandler):
         Check if the last copr build of the PR was successful
         :return: bool
         """
-        comments = self.project.get_pr_comments(pr_id=self.event.pr_id, reverse=True)
+        comments = self.event.project.get_pr_comments(
+            pr_id=self.event.pr_id, reverse=True
+        )
         for comment in comments:
             if comment.author.startswith("packit-as-a-service"):
                 if "Congratulations!" in comment.comment:
@@ -241,7 +244,7 @@ class CoprBuildEndHandler(FedmsgHandler):
         # https://pagure.io/copr/copr/blob/master/f/common/copr_common/enums.py#_42
         if self.event.status != COPR_API_SUCC_STATE:
             failed_msg = "RPMs failed to be built."
-            self.build_job_helper.report_status_to_all_for_chroot(
+            build_job_helper.report_status_to_all_for_chroot(
                 state=CommitStatus.failure,
                 description=failed_msg,
                 url=url,
@@ -253,6 +256,7 @@ class CoprBuildEndHandler(FedmsgHandler):
         if (
             build_job_helper.job_build
             and build_job_helper.job_build.trigger == JobConfigTriggerType.pull_request
+            and isinstance(self.event.project, GithubProject)
             and not self.was_last_build_successful()
             and self.event.package_config.notifications.pull_request.successful_build
         ):

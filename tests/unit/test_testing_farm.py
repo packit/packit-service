@@ -291,6 +291,6 @@ def test_trigger_payload(
         "copr-repo-name": f"{copr_owner}/{copr_project}",
         "copr-chroot": chroot,
         "commit-sha": commit_sha,
-        "git-url": project_url,
+        "git-url": f"{project_url}.git",
         "git-ref": git_ref,
     }

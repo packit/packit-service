@@ -27,11 +27,11 @@ import uuid
 from typing import Union
 
 import requests
+
 from ogr.abstract import GitProject, CommitStatus
 from ogr.utils import RequestResponse
 from packit.config import PackageConfig
 from packit.exceptions import PackitConfigException
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.models import TFTTestRunModel, TestingFarmResult
@@ -71,6 +71,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """Produce payload that can be used to trigger tests in Testing
            Farm using the Copr chroot given.
         """
+        git_url = self.event.project_url
+        if not git_url.endswith(".git"):
+            git_url = f"{git_url}.git"
+
         return {
             "pipeline": {"id": pipeline_id},
             "api": {"token": self.config.testing_farm_secret},
@@ -81,7 +85,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 "copr-repo-name": f"{self.job_owner}/{self.job_project}",
                 "copr-chroot": chroot,
                 "commit-sha": self.event.commit_sha,
-                "git-url": self.event.project_url,
+                "git-url": git_url,
                 "git-ref": self.event.git_ref
                 if self.event.git_ref
                 else self.event.commit_sha,

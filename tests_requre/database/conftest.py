@@ -87,14 +87,20 @@ def clean_before_and_after():
 @pytest.fixture()
 def pr_model():
     yield PullRequestModel.get_or_create(
-        pr_id=342, namespace="the-namespace", repo_name="the-repo-name"
+        pr_id=342,
+        namespace="the-namespace",
+        repo_name="the-repo-name",
+        project_url="https://github.com/the-namespace/the-repo-name",
     )
 
 
 @pytest.fixture()
 def different_pr_model():
     yield PullRequestModel.get_or_create(
-        pr_id=4, namespace="the-namespace", repo_name="the-repo-name"
+        pr_id=4,
+        namespace="the-namespace",
+        repo_name="the-repo-name",
+        project_url="https://github.com/the-namespace/the-repo-name",
     )
 
 
@@ -105,6 +111,7 @@ def release_model():
         commit_hash="aksjdaksjdla",
         namespace="the-namespace",
         repo_name="the-repo-name",
+        project_url="https://github.com/the-namespace/the-repo-name",
     )
 
 
@@ -114,6 +121,7 @@ def branch_model():
         branch_name="build-branch",
         namespace="the-namespace",
         repo_name="the-repo-name",
+        project_url="https://github.com/the-namespace/the-repo-name",
     )
 
 

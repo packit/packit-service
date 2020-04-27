@@ -117,6 +117,7 @@ def mock_pr_comment_functionality(request):
         full_repo_name="packit-service/hello-world",
         get_file_content=lambda path, ref: packit_yaml,
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
+        get_pr=lambda pr_id: flexmock(head_commit="12345"),
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
@@ -166,7 +167,44 @@ def mock_issue_comment_functionality():
 
 @pytest.fixture()
 def copr_build_pr():
-    project_model = flexmock(repo_name="bar", namespace="foo")
+    project_model = flexmock(
+        repo_name="bar", namespace="foo", project_url="https://github.com/foo/bar"
+    )
+    pr_model = flexmock(
+        id=1,
+        pr_id=123,
+        project=project_model,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+    )
+    trigger_model = flexmock(
+        id=2,
+        type=JobTriggerModelType.pull_request,
+        trigger_id=1,
+        get_trigger_object=lambda: pr_model,
+    )
+    copr_build_model = flexmock(
+        id=1,
+        build_id="1",
+        commit_sha="0011223344",
+        project_name="some-project",
+        owner="some-owner",
+        web_url="https://some-url",
+        target="some-target",
+        status="some-status",
+        srpm_build=flexmock(logs="asdsdf"),
+        job_trigger=trigger_model,
+    )
+
+    return copr_build_model
+
+
+@pytest.fixture()
+def copr_build_centos_pr():
+    project_model = flexmock(
+        repo_name="packit-hello-world",
+        namespace="source-git",
+        project_url="https://git.stg.centos.org/source-git/packit-hello-world",
+    )
     pr_model = flexmock(
         id=1,
         pr_id=123,
@@ -197,7 +235,9 @@ def copr_build_pr():
 
 @pytest.fixture()
 def copr_build_branch_push():
-    project_model = flexmock(repo_name="bar", namespace="foo")
+    project_model = flexmock(
+        repo_name="bar", namespace="foo", project_url="https://github.com/foo/bar"
+    )
     branch_model = flexmock(
         id=1,
         name="build-branch",
@@ -228,7 +268,9 @@ def copr_build_branch_push():
 
 @pytest.fixture()
 def copr_build_release():
-    project_model = flexmock(repo_name="bar", namespace="foo")
+    project_model = flexmock(
+        repo_name="bar", namespace="foo", project_url="https://github.com/foo/bar"
+    )
     release_model = flexmock(
         id=1,
         tag_name="v1.0.1",

@@ -180,20 +180,32 @@ def test_koji_build_set_build_logs_url(clean_before_and_after, a_koji_build):
 def test_get_or_create_pr(clean_before_and_after):
     with get_sa_session() as session:
         expected_pr = PullRequestModel.get_or_create(
-            pr_id=42, namespace="clapton", repo_name="layla"
+            pr_id=42,
+            namespace="clapton",
+            repo_name="layla",
+            project_url="https://github.com/clapton/layla",
         )
         actual_pr = PullRequestModel.get_or_create(
-            pr_id=42, namespace="clapton", repo_name="layla"
+            pr_id=42,
+            namespace="clapton",
+            repo_name="layla",
+            project_url="https://github.com/clapton/layla",
         )
 
         assert session.query(PullRequestModel).count() == 1
         assert expected_pr.project_id == actual_pr.project_id
 
         expected_pr = PullRequestModel.get_or_create(
-            pr_id=42, namespace="clapton", repo_name="cocaine"
+            pr_id=42,
+            namespace="clapton",
+            repo_name="cocaine",
+            project_url="https://github.com/clapton/layla",
         )
         actual_pr = PullRequestModel.get_or_create(
-            pr_id=42, namespace="clapton", repo_name="cocaine"
+            pr_id=42,
+            namespace="clapton",
+            repo_name="cocaine",
+            project_url="https://github.com/clapton/layla",
         )
 
         assert session.query(PullRequestModel).count() == 2
@@ -203,11 +215,21 @@ def test_get_or_create_pr(clean_before_and_after):
 def test_errors_while_doing_db(clean_before_and_after):
     with get_sa_session() as session:
         try:
-            PullRequestModel.get_or_create(pr_id="nope", namespace="", repo_name=False)
+            PullRequestModel.get_or_create(
+                pr_id="nope",
+                namespace="",
+                repo_name=False,
+                project_url="https://github.com/the-namespace/the-repo",
+            )
         except ProgrammingError:
             pass
         assert len(session.query(PullRequestModel).all()) == 0
-        PullRequestModel.get_or_create(pr_id=111, namespace="asd", repo_name="qwe")
+        PullRequestModel.get_or_create(
+            pr_id=111,
+            namespace="asd",
+            repo_name="qwe",
+            project_url="https://github.com/asd/qwe",
+        )
         assert len(session.query(PullRequestModel).all()) == 1
 
 
@@ -244,10 +266,16 @@ def test_get_by_build_id(clean_before_and_after, multiple_copr_builds):
 
 def test_multiple_pr_models(clean_before_and_after):
     pr1 = PullRequestModel.get_or_create(
-        pr_id=1, namespace="the-namespace", repo_name="the-repo-name"
+        pr_id=1,
+        namespace="the-namespace",
+        repo_name="the-repo-name",
+        project_url="https://github.com/the-namespace/the-repo-name",
     )
     pr1_second = PullRequestModel.get_or_create(
-        pr_id=1, namespace="the-namespace", repo_name="the-repo-name"
+        pr_id=1,
+        namespace="the-namespace",
+        repo_name="the-repo-name",
+        project_url="https://github.com/the-namespace/the-repo-name",
     )
     assert pr1.id == pr1_second.id
     assert pr1.project.id == pr1_second.project.id
@@ -255,10 +283,16 @@ def test_multiple_pr_models(clean_before_and_after):
 
 def test_multiple_different_pr_models(clean_before_and_after):
     pr1 = PullRequestModel.get_or_create(
-        pr_id=1, namespace="the-namespace", repo_name="the-repo-name"
+        pr_id=1,
+        namespace="the-namespace",
+        repo_name="the-repo-name",
+        project_url="https://github.com/the-namespace/the-repo-name",
     )
     pr2 = PullRequestModel.get_or_create(
-        pr_id=2, namespace="the-namespace", repo_name="the-repo-name"
+        pr_id=2,
+        namespace="the-namespace",
+        repo_name="the-repo-name",
+        project_url="https://github.com/the-namespace/the-repo-name",
     )
     assert pr1.id != pr2.id
     assert pr1.project.id == pr2.project.id
@@ -266,7 +300,10 @@ def test_multiple_different_pr_models(clean_before_and_after):
 
 def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
     pr1 = PullRequestModel.get_or_create(
-        pr_id=1, namespace="the-namespace", repo_name="the-repo-name"
+        pr_id=1,
+        namespace="the-namespace",
+        repo_name="the-repo-name",
+        project_url="https://github.com/the-namespace/the-repo-name",
     )
     pr1_trigger = JobTriggerModel.get_or_create(
         type=JobTriggerModelType.pull_request, trigger_id=pr1.id

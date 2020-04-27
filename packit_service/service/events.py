@@ -44,6 +44,7 @@ from packit_service.models import (
     JobTriggerModelType,
     TestingFarmResult,
     TFTTestRunModel,
+    PullRequestModel,
 )
 from packit_service.service.db_triggers import (
     AddReleaseDbTrigger,
@@ -209,10 +210,11 @@ class AbstractForgeIndependentEvent(Event):
         trigger: TheJobTriggerType,
         created_at: Union[int, float, str] = None,
         project_url=None,
+        pr_id: Optional[int] = None,
     ):
         super().__init__(trigger, created_at)
         self.project_url = project_url
-        self.pr_id: Optional[int] = None
+        self._pr_id = pr_id
 
         # Lazy properties
         self._project: Optional[GitProject] = None
@@ -241,9 +243,13 @@ class AbstractForgeIndependentEvent(Event):
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         raise NotImplementedError()
 
+    @property
+    def pr_id(self) -> Optional[int]:
+        return self._pr_id
+
     def get_project(self) -> GitProject:
         return ServiceConfig.get_service_config().get_project(
-            url=self.project_url or self.db_trigger.project.http_url
+            url=self.project_url or self.db_trigger.project.project_url
         )
 
     def get_base_project(self) -> GitProject:
@@ -283,21 +289,22 @@ class AbstractForgeIndependentEvent(Event):
 
 
 class AbstractGithubEvent(AbstractForgeIndependentEvent):
-    def __init__(self, trigger: TheJobTriggerType, project_url: str):
-        super().__init__(trigger)
+    def __init__(
+        self, trigger: TheJobTriggerType, project_url: str, pr_id: Optional[int] = None
+    ):
+        super().__init__(trigger, pr_id=pr_id)
         self.project_url: str = project_url
         self.git_ref: Optional[str] = None  # git ref that can be 'git checkout'-ed
         self.identifier: Optional[str] = (
             None  # will be shown to users -- e.g. in logs or in the copr-project name
         )
-        self.pr_id: Optional[int] = None
 
 
 class ReleaseEvent(AddReleaseDbTrigger, AbstractGithubEvent):
     def __init__(
-        self, repo_namespace: str, repo_name: str, tag_name: str, https_url: str
+        self, repo_namespace: str, repo_name: str, tag_name: str, project_url: str
     ):
-        super().__init__(trigger=TheJobTriggerType.release, project_url=https_url)
+        super().__init__(trigger=TheJobTriggerType.release, project_url=project_url)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.tag_name = tag_name
@@ -319,10 +326,10 @@ class PushGitHubEvent(AddBranchPushDbTrigger, AbstractGithubEvent):
         repo_namespace: str,
         repo_name: str,
         git_ref: str,
-        https_url: str,
+        project_url: str,
         commit_sha: str,
     ):
-        super().__init__(trigger=TheJobTriggerType.push, project_url=https_url)
+        super().__init__(trigger=TheJobTriggerType.push, project_url=project_url)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.git_ref = git_ref
@@ -343,9 +350,10 @@ class PullRequestEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         commit_sha: str,
         user_login: str,
     ):
-        super().__init__(trigger=TheJobTriggerType.pull_request, project_url=https_url)
+        super().__init__(
+            trigger=TheJobTriggerType.pull_request, project_url=https_url, pr_id=pr_id
+        )
         self.action = action
-        self.pr_id = pr_id
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
         self.base_ref = base_ref
@@ -372,26 +380,38 @@ class PullRequestCommentEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         action: PullRequestCommentAction,
         pr_id: int,
         base_repo_namespace: str,
-        base_repo_name: str,
+        base_repo_name: Optional[str],
         base_ref: Optional[str],
-        target_repo: str,
-        https_url: str,
+        target_repo_namespace: str,
+        target_repo_name: str,
+        project_url: str,
         user_login: str,
         comment: str,
-        commit_sha: str = "",
+        commit_sha: Optional[str] = None,
     ):
-        super().__init__(trigger=TheJobTriggerType.pr_comment, project_url=https_url)
+        super().__init__(
+            trigger=TheJobTriggerType.pr_comment, project_url=project_url, pr_id=pr_id
+        )
         self.action = action
-        self.pr_id = pr_id
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
         self.base_ref = base_ref
-        self.commit_sha = commit_sha
-        self.target_repo = target_repo
+        self.target_repo_namespace = target_repo_namespace
+        self.target_repo_name = target_repo_name
         self.user_login = user_login
         self.comment = comment
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
+
+        # Lazy properties
+        self._commit_sha = commit_sha
+
+    @property
+    def commit_sha(self,) -> Optional[str]:  # type:ignore
+        # mypy does not like properties
+        if not self._commit_sha:
+            self._commit_sha = self.project.get_pr(pr_id=self.pr_id).head_commit
+        return self._commit_sha
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
@@ -400,7 +420,9 @@ class PullRequestCommentEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
 
     def get_base_project(self) -> GitProject:
         return self.project.service.get_project(
-            namespace=self.base_repo_namespace, repo=self.base_repo_name
+            namespace=self.base_repo_namespace,
+            # TODO: fork can be named differently
+            repo=self.base_repo_name or self.target_repo_name,
         )
 
 
@@ -412,7 +434,7 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
         repo_namespace: str,
         repo_name: str,
         target_repo: str,
-        https_url: str,
+        project_url: str,
         user_login: str,
         comment: str,
         tag_name: str = "",
@@ -420,7 +442,9 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
             str
         ] = "master",  # default is master when working with issues
     ):
-        super().__init__(trigger=TheJobTriggerType.issue_comment, project_url=https_url)
+        super().__init__(
+            trigger=TheJobTriggerType.issue_comment, project_url=project_url
+        )
         self.action = action
         self.issue_id = issue_id
         self.repo_namespace = repo_namespace
@@ -544,6 +568,16 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
         self.commit_sha: str = commit_sha
         self.identifier = git_ref
 
+        # Lazy properties
+        self._pr_id: Optional[int] = None
+        self._db_trigger: Optional[AbstractTriggerDbType] = None
+
+    @property
+    def pr_id(self) -> Optional[int]:
+        if not self._pr_id and isinstance(self.db_trigger, PullRequestModel):
+            self._pr_id = self.db_trigger.pr_id
+        return self._pr_id
+
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["result"] = result["result"].value
@@ -551,18 +585,28 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        run_model = TFTTestRunModel.get_by_pipeline_id(pipeline_id=self.pipeline_id)
-        if not run_model:
-            return None
-        return run_model.job_trigger.get_trigger_object()
+        if not self._db_trigger:
+            run_model = TFTTestRunModel.get_by_pipeline_id(pipeline_id=self.pipeline_id)
+            if run_model:
+                self._db_trigger = run_model.job_trigger.get_trigger_object()
+        return self._db_trigger
 
     def get_base_project(self) -> GitProject:
         if self.pr_id is not None:
-            pull_request = self.project.get_pr(pr_id=self.pr_id)
-            # TODO: We need to handle forks with different name as well
-            return self.project.service.get_project(
-                namespace=pull_request.author, repo=self.project.repo
-            )
+            if isinstance(self.project, PagureProject):
+                pull_request = self.project.get_pr(pr_id=self.pr_id)
+                return self.project.service.get_project(
+                    namespace=self.project.namespace,
+                    username=pull_request.author,
+                    repo=self.project.repo,
+                    is_fork=True,
+                )
+            else:
+                pull_request = self.project.get_pr(pr_id=self.pr_id)
+                # TODO: We need to handle forks with different name as well
+                return self.project.service.get_project(
+                    namespace=pull_request.author, repo=self.project.repo
+                )
         return self.project
 
 
@@ -585,10 +629,6 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
         self.commit_sha = build.commit_sha
         self.base_repo_name = trigger_db.project.repo_name
         self.base_repo_namespace = trigger_db.project.namespace
-        # FIXME: hardcoded, move this to PG
-        https_url = (
-            f"https://github.com/{self.base_repo_namespace}/{self.base_repo_name}.git"
-        )
         git_ref = self.commit_sha  # ref should be name of the branch, not a hash
 
         self.topic = FedmsgTopic(topic)
@@ -599,9 +639,23 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
         else:
             raise ValueError(f"Unknown topic for CoprEvent: '{self.topic}'")
 
-        super().__init__(trigger=trigger, project_url=https_url)
+        trigger_type = build.job_trigger.type
+        trigger_db = build.job_trigger.get_trigger_object()
+        pr_id = None
+        if trigger_type == JobTriggerModelType.pull_request:
+            pr_id = trigger_db.pr_id
+            self.identifier = str(trigger_db.pr_id)
+        elif trigger_type == JobTriggerModelType.release:
+            pr_id = None
+            self.identifier = trigger_db.tag_name
+        elif trigger_type == JobTriggerModelType.branch_push:
+            pr_id = None
+            self.identifier = trigger_db.name
 
-        self.project_url = https_url
+        super().__init__(
+            trigger=trigger, project_url=trigger_db.project.project_url, pr_id=pr_id
+        )
+
         self.git_ref = git_ref
         self.build_id = build_id
         self.build = build
@@ -612,29 +666,26 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
         self.pkg = pkg
         self.timestamp = timestamp
 
-        trigger_type = build.job_trigger.type
-        trigger_db = build.job_trigger.get_trigger_object()
-        if trigger_type == JobTriggerModelType.pull_request:
-            self.pr_id = trigger_db.pr_id
-            self.identifier = str(trigger_db.pr_id)
-        elif trigger_type == JobTriggerModelType.release:
-            self.pr_id = None
-            self.identifier = trigger_db.tag_name
-        elif trigger_type == JobTriggerModelType.branch_push:
-            self.pr_id = None
-            self.identifier = trigger_db.name
-
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         return self.build.job_trigger.get_trigger_object()
 
     def get_base_project(self) -> GitProject:
         if self.pr_id is not None:
-            pull_request = self.project.get_pr(pr_id=self.pr_id)
-            # TODO: We need to handle forks with different name as well
-            return self.project.service.get_project(
-                namespace=pull_request.author, repo=self.project.repo
-            )
+            if isinstance(self.project, PagureProject):
+                pull_request = self.project.get_pr(pr_id=self.pr_id)
+                return self.project.service.get_project(
+                    namespace=self.project.namespace,
+                    username=pull_request.author,
+                    repo=self.project.repo,
+                    is_fork=True,
+                )
+            else:
+                pull_request = self.project.get_pr(pr_id=self.pr_id)
+                # TODO: We need to handle forks with different name as well
+                return self.project.service.get_project(
+                    namespace=pull_request.author, repo=self.project.repo
+                )
         return self.project
 
     @classmethod
@@ -683,8 +734,10 @@ def get_copr_build_logs_url(event: CoprBuildEvent) -> str:
 
 
 class AbstractPagureEvent(AbstractForgeIndependentEvent):
-    def __init__(self, trigger: TheJobTriggerType, project_url: str):
-        super().__init__(trigger)
+    def __init__(
+        self, trigger: TheJobTriggerType, project_url: str, pr_id: Optional[int] = None
+    ):
+        super().__init__(trigger, pr_id=pr_id)
         self.project_url: str = project_url
         self.git_ref: Optional[str] = None  # git ref that can be 'git checkout'-ed
         self.identifier: Optional[str] = (
@@ -707,7 +760,6 @@ class PushPagureEvent(AbstractPagureEvent):
         self.git_ref = git_ref
         self.commit_sha = commit_sha
         self.identifier = git_ref
-        self.pr_id = None
 
 
 class PullRequestCommentPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
@@ -725,9 +777,10 @@ class PullRequestCommentPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent
         comment: str,
         commit_sha: str = "",
     ):
-        super().__init__(trigger=TheJobTriggerType.pr_comment, project_url=project_url)
+        super().__init__(
+            trigger=TheJobTriggerType.pr_comment, project_url=project_url, pr_id=pr_id
+        )
         self.action = action
-        self.pr_id = pr_id
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
         self.base_repo_owner = base_repo_owner
@@ -770,10 +823,9 @@ class PullRequestPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
         user_login: str,
     ):
         super().__init__(
-            trigger=TheJobTriggerType.pull_request, project_url=project_url
+            trigger=TheJobTriggerType.pull_request, project_url=project_url, pr_id=pr_id
         )
         self.action = action
-        self.pr_id = pr_id
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
         self.base_repo_owner = base_repo_owner

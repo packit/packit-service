@@ -120,24 +120,34 @@ class GitProjectModel(Base):
     # Git URL of the repo
     # Example: https://github.com/packit-service/hello-world.git
     https_url = Column(String)
+    project_url = Column(String)
 
     @classmethod
-    def get_or_create(cls, namespace: str, repo_name: str) -> "GitProjectModel":
+    def get_or_create(
+        cls, namespace: str, repo_name: str, project_url: str
+    ) -> "GitProjectModel":
         with get_sa_session() as session:
             project = (
                 session.query(GitProjectModel)
-                .filter_by(namespace=namespace, repo_name=repo_name)
+                .filter_by(
+                    namespace=namespace, repo_name=repo_name, project_url=project_url
+                )
                 .first()
             )
+
             if not project:
                 project = cls()
                 project.repo_name = repo_name
                 project.namespace = namespace
+                project.project_url = project_url
                 session.add(project)
             return project
 
     def __repr__(self):
-        return f"GitProjectModel(name={self.namespace}/{self.repo_name})"
+        return (
+            f"GitProjectModel(name={self.namespace}/{self.repo_name}, "
+            f"project_url='{self.project_url}')"
+        )
 
 
 class PullRequestModel(Base):
@@ -157,11 +167,11 @@ class PullRequestModel(Base):
 
     @classmethod
     def get_or_create(
-        cls, pr_id: int, namespace: str, repo_name: str
+        cls, pr_id: int, namespace: str, repo_name: str, project_url: str
     ) -> "PullRequestModel":
         with get_sa_session() as session:
             project = GitProjectModel.get_or_create(
-                namespace=namespace, repo_name=repo_name
+                namespace=namespace, repo_name=repo_name, project_url=project_url
             )
             pr = (
                 session.query(PullRequestModel)
@@ -190,11 +200,11 @@ class IssueModel(Base):
 
     @classmethod
     def get_or_create(
-        cls, issue_id: int, namespace: str, repo_name: str
+        cls, issue_id: int, namespace: str, repo_name: str, project_url: str
     ) -> "IssueModel":
         with get_sa_session() as session:
             project = GitProjectModel.get_or_create(
-                namespace=namespace, repo_name=repo_name
+                namespace=namespace, repo_name=repo_name, project_url=project_url
             )
             issue = (
                 session.query(IssueModel)
@@ -224,11 +234,11 @@ class GitBranchModel(Base):
 
     @classmethod
     def get_or_create(
-        cls, branch_name: str, namespace: str, repo_name: str
+        cls, branch_name: str, namespace: str, repo_name: str, project_url: str
     ) -> "GitBranchModel":
         with get_sa_session() as session:
             project = GitProjectModel.get_or_create(
-                namespace=namespace, repo_name=repo_name
+                namespace=namespace, repo_name=repo_name, project_url=project_url
             )
             git_branch = (
                 session.query(GitBranchModel)
@@ -263,11 +273,12 @@ class ProjectReleaseModel(Base):
         tag_name: str,
         namespace: str,
         repo_name: str,
+        project_url: str,
         commit_hash: Optional[str] = None,
     ) -> "ProjectReleaseModel":
         with get_sa_session() as session:
             project = GitProjectModel.get_or_create(
-                namespace=namespace, repo_name=repo_name
+                namespace=namespace, repo_name=repo_name, project_url=project_url
             )
             project_release = (
                 session.query(ProjectReleaseModel)
@@ -803,7 +814,11 @@ class InstallationModel(Base):
     @classmethod
     def get_project(cls, repo: str):
         namespace, repo_name = repo.split("/")
-        return GitProjectModel.get_or_create(namespace, repo_name)
+        return GitProjectModel.get_or_create(
+            namespace=namespace,
+            repo_name=repo_name,
+            project_url=f"https://github.com/{namespace}/{repo}",
+        )
 
     @classmethod
     def get_by_id(cls, id: int) -> Optional["InstallationModel"]:

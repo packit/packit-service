@@ -58,13 +58,17 @@ def pr_model():
         pr_id=build_info_dict["pr_id"],
         namespace=build_info_dict["repo_namespace"],
         repo_name=build_info_dict["repo_name"],
+        project_url=build_info_dict["git_repo"],
     )
 
 
 @pytest.fixture()
 def different_pr_model():
     yield PullRequestModel.get_or_create(
-        pr_id=4, namespace="the-namespace", repo_name="the-repo-name"
+        pr_id=4,
+        namespace="the-namespace",
+        repo_name="the-repo-name",
+        project_url="https://github.com/the-namespace/the-repo-name",
     )
 
 

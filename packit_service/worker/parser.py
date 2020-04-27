@@ -233,7 +233,7 @@ class Parser:
             repo_namespace=repo_namespace,
             repo_name=repo_name,
             git_ref=ref,
-            https_url=repo_url,
+            project_url=repo_url,
             commit_sha=head_commit,
         )
 
@@ -289,7 +289,7 @@ class Parser:
         comment = nested_get(event, "comment", "body")
         logger.info(f"Github PR#{pr_id} comment: {comment!r} {action!r} event.")
 
-        base_repo_namespace = nested_get(event, "repository", "owner", "login")
+        base_repo_namespace = nested_get(event, "issue", "user", "login")
         base_repo_name = nested_get(event, "repository", "name")
         if not (base_repo_name and base_repo_namespace):
             logger.warning("No full name of the repository.")
@@ -303,19 +303,22 @@ class Parser:
             logger.debug("Our own comment.")
             return None
 
-        target_repo = nested_get(event, "repository", "full_name")
-        logger.info(f"Target repo: {target_repo}.")
+        target_repo_namespace = nested_get(event, "repository", "owner", "login")
+        target_repo_name = nested_get(event, "repository", "name")
+
+        logger.info(f"Target repo: {target_repo_namespace}/{target_repo_name}.")
         https_url = event["repository"]["html_url"]
         return PullRequestCommentEvent(
-            PullRequestCommentAction[action],
-            pr_id,
-            base_repo_namespace,
-            base_repo_name,
-            None,  # the payload does not include this info
-            target_repo,
-            https_url,
-            user_login,
-            comment,
+            action=PullRequestCommentAction[action],
+            pr_id=pr_id,
+            base_repo_namespace=base_repo_namespace,
+            base_repo_name=None,
+            base_ref=None,  # the payload does not include this info
+            target_repo_namespace=target_repo_namespace,
+            target_repo_name=target_repo_name,
+            project_url=https_url,
+            user_login=user_login,
+            comment=comment,
         )
 
     @staticmethod
@@ -471,19 +474,19 @@ class Parser:
         )
 
         return TestingFarmResultsEvent(
-            pipeline_id,
-            result,
-            environment,
-            message,
-            log_url,
-            copr_repo_name,
-            copr_chroot,
-            tests,
-            repo_namespace,
-            repo_name,
-            ref,
-            https_url,
-            commit_sha,
+            pipeline_id=pipeline_id,
+            result=result,
+            environment=environment,
+            message=message,
+            log_url=log_url,
+            copr_repo_name=copr_repo_name,
+            copr_chroot=copr_chroot,
+            tests=tests,
+            repo_namespace=repo_namespace,
+            repo_name=repo_name,
+            git_ref=ref,
+            project_url=https_url,
+            commit_sha=commit_sha,
         )
 
     @staticmethod

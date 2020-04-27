@@ -24,8 +24,8 @@ import pytest
 from copr.v3 import Client, BuildProxy, BuildChrootProxy
 from flexmock import flexmock
 from munch import Munch
-from packit.config import PackageConfig
 
+from packit.config import PackageConfig
 from packit_service.constants import PG_COPR_BUILD_STATUS_SUCCESS
 from packit_service.models import (
     CoprBuildModel,
@@ -66,7 +66,10 @@ BUILD_ID = 1300329
 @pytest.fixture()
 def packit_build_752():
     pr_model = PullRequestModel.get_or_create(
-        pr_id=752, namespace="packit-service", repo_name="packit"
+        pr_id=752,
+        namespace="packit-service",
+        repo_name="packit",
+        project_url="https://github.com/packit-service/packit",
     )
 
     srpm_build = SRPMBuildModel.create("asd\nqwe\n")
