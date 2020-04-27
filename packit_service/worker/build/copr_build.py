@@ -159,7 +159,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             url = get_log_url(id_=copr_build.id)
             self.report_status_to_all_for_chroot(
                 state=CommitStatus.pending,
-                description="Building RPM ...",
+                description="Starting RPM build...",
                 url=url,
                 chroot=chroot,
             )
