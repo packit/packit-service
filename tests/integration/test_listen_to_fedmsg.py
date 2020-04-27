@@ -570,7 +570,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     # check if packit-service set correct PR status
     flexmock(StatusReporter).should_receive("report").with_args(
         state=CommitStatus.pending,
-        description="RPM build has started...",
+        description="RPM build is in progress...",
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
     ).once()
@@ -600,14 +600,14 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
     # check if packit-service sets the correct PR status
     flexmock(StatusReporter).should_receive("report").with_args(
         state=CommitStatus.pending,
-        description="RPM build has started...",
+        description="RPM build is in progress...",
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
     ).never()
 
     flexmock(StatusReporter).should_receive("report").with_args(
         state=CommitStatus.pending,
-        description="RPM build has started...",
+        description="RPM build is in progress...",
         url=url,
         check_names=TestingFarmJobHelper.get_test_check(copr_build_start["chroot"]),
     ).once()

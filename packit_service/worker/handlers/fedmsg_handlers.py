@@ -346,7 +346,7 @@ class CoprBuildStartHandler(FedmsgHandler):
         build.set_build_logs_url(copr_build_logs)
 
         build_job_helper.report_status_to_all_for_chroot(
-            description="RPM build has started...",
+            description="RPM build is in progress...",
             state=CommitStatus.pending,
             url=url,
             chroot=self.event.chroot,
