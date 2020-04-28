@@ -38,8 +38,8 @@ from packit_service.constants import FAQ_URL
 from packit_service.models import WhitelistModel as DBWhitelist
 from packit_service.service.events import (
     ReleaseEvent,
-    PullRequestEvent,
-    PullRequestCommentEvent,
+    PullRequestGithubEvent,
+    PullRequestCommentGithubEvent,
     PullRequestAction,
     PullRequestCommentAction,
     IssueCommentEvent,
@@ -136,7 +136,7 @@ def test_signed_fpca(whitelist, account_name, person_object, raises, signed_fpca
     "event, method, approved",
     [
         (
-            PullRequestCommentEvent(
+            PullRequestCommentGithubEvent(
                 action=PullRequestCommentAction.created,
                 pr_id=0,
                 base_repo_namespace="foo",
@@ -159,7 +159,7 @@ def test_signed_fpca(whitelist, account_name, person_object, raises, signed_fpca
             False,
         ),
         (
-            PullRequestCommentEvent(
+            PullRequestCommentGithubEvent(
                 action=PullRequestCommentAction.created,
                 pr_id=0,
                 base_repo_namespace="foo",
@@ -225,7 +225,7 @@ def events(request) -> List[Tuple[AbstractGithubEvent, bool]]:
     elif request.param == "pr":
         return [
             (
-                PullRequestEvent(
+                PullRequestGithubEvent(
                     PullRequestAction.opened, 1, namespace, "", "", "", "", "", login
                 ),
                 approved,
@@ -235,7 +235,7 @@ def events(request) -> List[Tuple[AbstractGithubEvent, bool]]:
     elif request.param == "pr_comment":
         return [
             (
-                PullRequestCommentEvent(
+                PullRequestCommentGithubEvent(
                     action=PullRequestCommentAction.created,
                     pr_id=1,
                     base_repo_namespace=namespace,
@@ -288,7 +288,7 @@ def test_check_and_report(
         set_commit_status=lambda *args, **kwargs: None,
         issue_comment=lambda *args, **kwargs: None,
     )
-    flexmock(PullRequestEvent).should_receive("get_package_config").and_return(
+    flexmock(PullRequestGithubEvent).should_receive("get_package_config").and_return(
         flexmock(
             jobs=[
                 JobConfig(
@@ -302,7 +302,7 @@ def test_check_and_report(
 
     git_project = GithubProject("", GithubService(), "")
     for event, is_valid in events:
-        if isinstance(event, PullRequestEvent) and not is_valid:
+        if isinstance(event, PullRequestGithubEvent) and not is_valid:
             # Report the status
             flexmock(CoprHelper).should_receive("get_copr_client").and_return(
                 Client(

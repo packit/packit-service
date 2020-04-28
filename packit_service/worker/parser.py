@@ -29,8 +29,8 @@ from typing import Optional, Union, List
 
 from packit.utils import nested_get
 from packit_service.service.events import (
-    PullRequestEvent,
-    PullRequestCommentEvent,
+    PullRequestGithubEvent,
+    PullRequestCommentGithubEvent,
     InstallationEvent,
     ReleaseEvent,
     DistGitEvent,
@@ -63,12 +63,12 @@ class Parser:
         event: dict,
     ) -> Optional[
         Union[
-            PullRequestEvent,
+            PullRequestGithubEvent,
             InstallationEvent,
             ReleaseEvent,
             DistGitEvent,
             TestingFarmResultsEvent,
-            PullRequestCommentEvent,
+            PullRequestCommentGithubEvent,
             IssueCommentEvent,
             CoprBuildEvent,
             PushGitHubEvent,
@@ -86,12 +86,12 @@ class Parser:
 
         response: Optional[
             Union[
-                PullRequestEvent,
+                PullRequestGithubEvent,
                 InstallationEvent,
                 ReleaseEvent,
                 DistGitEvent,
                 TestingFarmResultsEvent,
-                PullRequestCommentEvent,
+                PullRequestCommentGithubEvent,
                 IssueCommentEvent,
                 CoprBuildEvent,
                 PushGitHubEvent,
@@ -138,7 +138,7 @@ class Parser:
         return response
 
     @staticmethod
-    def parse_pr_event(event) -> Optional[PullRequestEvent]:
+    def parse_pr_event(event) -> Optional[PullRequestGithubEvent]:
         """ Look into the provided event and see if it's one for a new github PR. """
         if not event.get("pull_request"):
             return None
@@ -177,7 +177,7 @@ class Parser:
 
         commit_sha = nested_get(event, "pull_request", "head", "sha")
         https_url = event["repository"]["html_url"]
-        return PullRequestEvent(
+        return PullRequestGithubEvent(
             PullRequestAction[action],
             pr_id,
             base_repo_namespace,
@@ -276,7 +276,9 @@ class Parser:
         )
 
     @staticmethod
-    def parse_pull_request_comment_event(event) -> Optional[PullRequestCommentEvent]:
+    def parse_pull_request_comment_event(
+        event,
+    ) -> Optional[PullRequestCommentGithubEvent]:
         """ Look into the provided event and see if it is Github PR comment event. """
         if not nested_get(event, "issue", "pull_request"):
             return None
@@ -308,7 +310,7 @@ class Parser:
 
         logger.info(f"Target repo: {target_repo_namespace}/{target_repo_name}.")
         https_url = event["repository"]["html_url"]
-        return PullRequestCommentEvent(
+        return PullRequestCommentGithubEvent(
             action=PullRequestCommentAction[action],
             pr_id=pr_id,
             base_repo_namespace=base_repo_namespace,

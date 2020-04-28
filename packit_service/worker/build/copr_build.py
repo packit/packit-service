@@ -35,8 +35,8 @@ from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import MSG_RETRIGGER
 from packit_service.models import CoprBuildModel, SRPMBuildModel
 from packit_service.service.events import (
-    PullRequestEvent,
-    PullRequestCommentEvent,
+    PullRequestGithubEvent,
+    PullRequestCommentGithubEvent,
     CoprBuildEvent,
     PushGitHubEvent,
     ReleaseEvent,
@@ -71,9 +71,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         package_config: PackageConfig,
         project: GitProject,
         event: Union[
-            PullRequestEvent,
+            PullRequestGithubEvent,
             PullRequestPagureEvent,
-            PullRequestCommentEvent,
+            PullRequestCommentGithubEvent,
             PullRequestCommentPagureEvent,
             CoprBuildEvent,
             PushGitHubEvent,

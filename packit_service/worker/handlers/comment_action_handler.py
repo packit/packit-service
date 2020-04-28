@@ -30,7 +30,7 @@ from typing import Dict, Type, Union, Optional
 
 from packit_service.config import ServiceConfig
 from packit_service.service.events import (
-    PullRequestCommentEvent,
+    PullRequestCommentGithubEvent,
     IssueCommentEvent,
 )
 from packit_service.service.events import (
@@ -85,12 +85,16 @@ class CommentActionHandler(Handler):
         self,
         config: ServiceConfig,
         event: Union[
-            PullRequestCommentEvent, IssueCommentEvent, PullRequestCommentPagureEvent
+            PullRequestCommentGithubEvent,
+            IssueCommentEvent,
+            PullRequestCommentPagureEvent,
         ],
     ):
         super().__init__(config)
         self.event: Union[
-            PullRequestCommentEvent, IssueCommentEvent, PullRequestCommentPagureEvent
+            PullRequestCommentGithubEvent,
+            IssueCommentEvent,
+            PullRequestCommentPagureEvent,
         ] = event
 
     def run(self) -> HandlerResults:

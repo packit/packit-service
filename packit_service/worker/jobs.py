@@ -32,7 +32,7 @@ from packit.config import JobType, PackageConfig, JobConfig
 from packit_service.config import ServiceConfig
 from packit_service.log_versions import log_job_versions
 from packit_service.service.events import (
-    PullRequestCommentEvent,
+    PullRequestCommentGithubEvent,
     IssueCommentEvent,
     Event,
     TheJobTriggerType,
@@ -233,7 +233,9 @@ class SteveJobs:
     def process_comment_jobs(
         self,
         event: Union[
-            PullRequestCommentEvent, PullRequestCommentPagureEvent, IssueCommentEvent
+            PullRequestCommentGithubEvent,
+            PullRequestCommentPagureEvent,
+            IssueCommentEvent,
         ],
     ) -> HandlerResults:
 
@@ -352,7 +354,7 @@ class SteveJobs:
             isinstance(
                 event_object,
                 (
-                    PullRequestCommentEvent,
+                    PullRequestCommentGithubEvent,
                     PullRequestCommentPagureEvent,
                     IssueCommentEvent,
                 ),

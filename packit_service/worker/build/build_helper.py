@@ -30,8 +30,8 @@ from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.service.events import (
-    PullRequestEvent,
-    PullRequestCommentEvent,
+    PullRequestGithubEvent,
+    PullRequestCommentGithubEvent,
     CoprBuildEvent,
     PushGitHubEvent,
     ReleaseEvent,
@@ -59,9 +59,9 @@ class BaseBuildJobHelper:
         package_config: PackageConfig,
         project: GitProject,
         event: Union[
-            PullRequestEvent,
+            PullRequestGithubEvent,
             PullRequestPagureEvent,
-            PullRequestCommentEvent,
+            PullRequestCommentGithubEvent,
             PullRequestCommentPagureEvent,
             CoprBuildEvent,
             PushGitHubEvent,
@@ -73,9 +73,9 @@ class BaseBuildJobHelper:
         self.package_config: PackageConfig = package_config
         self.project: GitProject = project
         self.event: Union[
-            PullRequestEvent,
+            PullRequestGithubEvent,
             PullRequestPagureEvent,
-            PullRequestCommentEvent,
+            PullRequestCommentGithubEvent,
             PullRequestCommentPagureEvent,
             CoprBuildEvent,
             PushGitHubEvent,

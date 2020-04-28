@@ -27,7 +27,7 @@ from flexmock import flexmock
 
 from ogr.services.github import GithubProject
 from packit.config import JobConfig, JobType, JobConfigTriggerType, PackageConfig
-from packit_service.config import ServiceConfig, PackageConfigGetterForGithub
+from packit_service.config import ServiceConfig, PackageConfigGetter
 from packit_service.service.events import Event, TheJobTriggerType
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.github_handlers import AbstractCoprBuildHandler
@@ -66,7 +66,7 @@ def test_handler_cleanup(tmpdir, trick_p_s_with_k8s):
 
 
 def test_precheck(pull_request_event):
-    flexmock(PackageConfigGetterForGithub).should_receive(
+    flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(
         PackageConfig(
@@ -91,7 +91,7 @@ def test_precheck(pull_request_event):
 
 
 def test_precheck_skip_tests_when_build_defined(pull_request_event):
-    flexmock(PackageConfigGetterForGithub).should_receive(
+    flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(
         PackageConfig(

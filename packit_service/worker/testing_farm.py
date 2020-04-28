@@ -37,8 +37,8 @@ from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.models import TFTTestRunModel, TestingFarmResult
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.events import (
-    PullRequestEvent,
-    PullRequestCommentEvent,
+    PullRequestGithubEvent,
+    PullRequestCommentGithubEvent,
     CoprBuildEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
@@ -54,10 +54,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         package_config: PackageConfig,
         project: GitProject,
         event: Union[
-            PullRequestEvent,
-            PullRequestCommentEvent,
+            PullRequestGithubEvent,
+            PullRequestCommentGithubEvent,
             CoprBuildEvent,
-            PullRequestCommentEvent,
+            PullRequestCommentGithubEvent,
         ],
     ):
         super().__init__(config, package_config, project, event)

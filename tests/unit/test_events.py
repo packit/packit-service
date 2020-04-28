@@ -35,19 +35,18 @@ from ogr.services.github import GithubProject, GithubService
 from ogr.services.pagure import PagureProject
 from packit_service.config import (
     ServiceConfig,
-    PackageConfigGetterForGithub,
-    PackageConfigGetterForPagure,
+    PackageConfigGetter,
 )
 from packit_service.models import CoprBuildModel, TFTTestRunModel, PullRequestModel
 from packit_service.service.events import (
     WhitelistStatus,
     InstallationEvent,
     ReleaseEvent,
-    PullRequestEvent,
+    PullRequestGithubEvent,
     PullRequestAction,
     TestingFarmResultsEvent,
     TestingFarmResult,
-    PullRequestCommentEvent,
+    PullRequestCommentGithubEvent,
     PullRequestCommentAction,
     IssueCommentEvent,
     IssueCommentAction,
@@ -185,7 +184,7 @@ class TestEvents:
     def test_parse_pr(self, pull_request):
         event_object = Parser.parse_event(pull_request)
 
-        assert isinstance(event_object, PullRequestEvent)
+        assert isinstance(event_object, PullRequestGithubEvent)
         assert event_object.trigger == TheJobTriggerType.pull_request
         assert event_object.action == PullRequestAction.opened
         assert event_object.pr_id == 342
@@ -198,29 +197,28 @@ class TestEvents:
 
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit-service/packit"
-        assert isinstance(event_object.base_project, GithubProject)
-        assert event_object.base_project.full_repo_name == "lbarcziova/packit"
+        assert (
+            not event_object.base_project  # With Github app, we cannot work with fork repo
+        )
 
-        flexmock(PackageConfigGetterForGithub).should_receive(
+        flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
-            base_project=event_object.base_project,
+            base_project=None,
             project=event_object.project,
             pr_id=342,
             reference="528b803be6f93e19ca4130bf4976f2800a3004c4",
             fail_when_missing=False,
+            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
-        flexmock(GithubProject).should_receive("get_web_url").and_return(
-            "https://github.com/packit-service/packit"
-        )
         assert event_object.package_config
 
     def test_parse_pr_comment_created(self, pr_comment_created_request):
         event_object = Parser.parse_event(pr_comment_created_request)
 
-        assert isinstance(event_object, PullRequestCommentEvent)
+        assert isinstance(event_object, PullRequestCommentGithubEvent)
         assert event_object.trigger == TheJobTriggerType.pr_comment
         assert event_object.action == PullRequestCommentAction.created
         assert event_object.pr_id == 9
@@ -236,33 +234,32 @@ class TestEvents:
 
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit-service/hello-world"
-        assert isinstance(event_object.base_project, GithubProject)
-        assert event_object.base_project.full_repo_name == "phracek/hello-world"
+        assert (
+            not event_object.base_project  # With Github app, we cannot work with fork repo
+        )
 
         flexmock(GithubProject).should_receive("get_pr").with_args(pr_id=9).and_return(
             flexmock(head_commit="12345")
         )
 
-        flexmock(PackageConfigGetterForGithub).should_receive(
+        flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
-            base_project=event_object.base_project,
+            base_project=None,
             project=event_object.project,
             pr_id=9,
             reference="12345",
             fail_when_missing=False,
+            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
-        flexmock(GithubProject).should_receive("get_web_url").and_return(
-            "https://github.com/packit-service/hello-world"
-        )
         assert event_object.package_config
 
     def test_parse_pr_comment_empty(self, pr_comment_empty_request):
         event_object = Parser.parse_event(pr_comment_empty_request)
 
-        assert isinstance(event_object, PullRequestCommentEvent)
+        assert isinstance(event_object, PullRequestCommentGithubEvent)
         assert event_object.trigger == TheJobTriggerType.pr_comment
         assert event_object.action == PullRequestCommentAction.created
         assert event_object.pr_id == 9
@@ -278,27 +275,27 @@ class TestEvents:
 
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit-service/hello-world"
-        assert isinstance(event_object.base_project, GithubProject)
-        assert event_object.base_project.full_repo_name == "phracek/hello-world"
+        assert (
+            not event_object.base_project  # With Github app, we cannot work with fork repo
+        )
 
         flexmock(GithubProject).should_receive("get_pr").with_args(pr_id=9).and_return(
             flexmock(head_commit="12345")
         )
 
-        flexmock(PackageConfigGetterForGithub).should_receive(
+        flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
-            base_project=event_object.base_project,
+            base_project=None,
             project=event_object.project,
             pr_id=9,
             reference="12345",
             fail_when_missing=False,
+            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
-        flexmock(GithubProject).should_receive("get_web_url").and_return(
-            "https://github.com/packit-service/hello-world"
-        )
+
         assert event_object.package_config
 
     def test_parse_issue_comment(self, issue_comment_request):
@@ -321,9 +318,9 @@ class TestEvents:
 
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit-service/packit"
-        assert event_object.project == event_object.base_project
+        assert not event_object.base_project
 
-        flexmock(PackageConfigGetterForGithub).should_receive(
+        flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
             base_project=event_object.base_project,
@@ -331,12 +328,10 @@ class TestEvents:
             pr_id=None,
             reference=None,
             fail_when_missing=False,
+            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
-        flexmock(GithubProject).should_receive("get_web_url").and_return(
-            "https://github.com/packit-service/hello-world"
-        )
         assert event_object.package_config
 
     def test_parse_github_push(self, github_push):
@@ -352,9 +347,9 @@ class TestEvents:
 
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "some-user/some-repo"
-        assert event_object.project == event_object.base_project
+        assert not event_object.base_project
 
-        flexmock(PackageConfigGetterForGithub).should_receive(
+        flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
             base_project=event_object.base_project,
@@ -362,12 +357,10 @@ class TestEvents:
             pr_id=None,
             reference="0000000000000000000000000000000000000000",
             fail_when_missing=False,
+            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
-        flexmock(GithubProject).should_receive("get_web_url").and_return(
-            "https://github.com/packit-service/packit"
-        )
         assert event_object.package_config
 
     def test_parse_github_push_branch(self, github_push_branch):
@@ -385,9 +378,9 @@ class TestEvents:
 
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit-service/hello-world"
-        assert event_object.project == event_object.base_project
+        assert not event_object.base_project
 
-        flexmock(PackageConfigGetterForGithub).should_receive(
+        flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
             base_project=event_object.base_project,
@@ -395,12 +388,11 @@ class TestEvents:
             pr_id=None,
             reference="04885ff850b0fa0e206cd09db73565703d48f99b",
             fail_when_missing=False,
+            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
-        flexmock(GithubProject).should_receive("get_web_url").and_return(
-            "https://github.com/packit-service/packit"
-        )
+
         assert event_object.package_config
 
     def test_parse_testing_farm_results(self, testing_farm_results):
@@ -447,29 +439,25 @@ class TestEvents:
 
         assert event_object.db_trigger
 
-        flexmock(GithubProject).should_receive("get_pr").with_args(pr_id=10).and_return(
-            flexmock(author="the-fork")
-        )
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit-service/hello-world"
+        assert (
+            not event_object.base_project  # With Github app, we cannot work with fork repo
+        )
 
-        assert isinstance(event_object.base_project, GithubProject)
-        assert event_object.base_project.full_repo_name == "the-fork/hello-world"
-
-        flexmock(PackageConfigGetterForGithub).should_receive(
+        flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
-            base_project=event_object.base_project,
+            base_project=None,
             project=event_object.project,
             pr_id=10,
             reference="46597d9b66a1927b50376f73bdb1ec1a5757c330",
             fail_when_missing=False,
+            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
-        flexmock(GithubProject).should_receive("get_web_url").and_return(
-            "https://github.com/foo/bar"
-        )
+
         assert event_object.package_config
 
     def test_parse_testing_farm_results_error(self, testing_farm_results_error):
@@ -502,29 +490,25 @@ class TestEvents:
         assert event_object.copr_chroot == "fedora-29-x86_64"
         assert event_object.tests == []
 
-        flexmock(GithubProject).should_receive("get_pr").with_args(pr_id=10).and_return(
-            flexmock(author="the-fork")
-        )
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit-service/hello-world"
+        assert (
+            not event_object.base_project  # With Github app, we cannot work with fork repo
+        )
 
-        assert isinstance(event_object.base_project, GithubProject)
-        assert event_object.base_project.full_repo_name == "the-fork/hello-world"
-
-        flexmock(PackageConfigGetterForGithub).should_receive(
+        flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
-            base_project=event_object.base_project,
+            base_project=None,
             project=event_object.project,
             pr_id=10,
             reference="46597d9b66a1927b50376f73bdb1ec1a5757c330",
             fail_when_missing=False,
+            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
-        flexmock(GithubProject).should_receive("get_web_url").and_return(
-            "https://github.com/foo/bar"
-        )
+
         assert event_object.package_config
 
     def test_parse_copr_build_event_start(
@@ -548,29 +532,26 @@ class TestEvents:
         assert event_object.base_repo_namespace == "foo"
         assert event_object.pkg == "hello"
 
-        flexmock(GithubProject).should_receive("get_pr").with_args(
-            pr_id=123
-        ).and_return(flexmock(author="the-fork"))
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "foo/bar"
 
-        assert isinstance(event_object.base_project, GithubProject)
-        assert event_object.base_project.full_repo_name == "the-fork/bar"
+        assert (
+            not event_object.base_project  # With Github app, we cannot work with fork repo
+        )
 
-        flexmock(PackageConfigGetterForGithub).should_receive(
+        flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
-            base_project=event_object.base_project,
+            base_project=None,
             project=event_object.project,
             pr_id=123,
             reference="0011223344",
             fail_when_missing=False,
+            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
-        flexmock(GithubProject).should_receive("get_web_url").and_return(
-            "https://github.com/foo/bar"
-        )
+
         assert event_object.package_config
 
     def test_parse_copr_build_event_end(self, copr_build_results_end, copr_build_pr):
@@ -598,29 +579,29 @@ class TestEvents:
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "foo/bar"
 
-        assert isinstance(event_object.base_project, GithubProject)
-        assert event_object.base_project.full_repo_name == "the-fork/bar"
+        assert (
+            not event_object.base_project  # With Github app, we cannot work with fork repo
+        )
 
-        flexmock(PackageConfigGetterForGithub).should_receive(
+        flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
-            base_project=event_object.base_project,
+            base_project=None,
             project=event_object.project,
             pr_id=123,
             reference="0011223344",
             fail_when_missing=False,
+            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
-        flexmock(GithubProject).should_receive("get_web_url").and_return(
-            "https://github.com/foo/bar"
-        )
+
         assert event_object.package_config
 
     def test_get_project_pr(self, pull_request, mock_config):
         event_object = Parser.parse_event(pull_request)
 
-        assert isinstance(event_object, PullRequestEvent)
+        assert isinstance(event_object, PullRequestGithubEvent)
 
         assert isinstance(event_object.project, GithubProject)
         assert isinstance(event_object.project.service, GithubService)
@@ -721,13 +702,15 @@ class TestCentOsEventParser:
             == "fork/sakalosj/source-git/packit-hello-world"
         )
 
-        flexmock(PackageConfigGetterForPagure).should_receive(
+        flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
             base_project=event_object.base_project,
             project=event_object.project,
             pr_id=12,
             reference="bf9701dea5a167caa7a1afa0759342aa0bf0d8fd",
+            fail_when_missing=False,
+            spec_file_path="SPECS/packit-hello-world.spec",
         ).and_return(
             flexmock()
         ).once()
@@ -764,13 +747,15 @@ class TestCentOsEventParser:
             == "fork/sakalosj/source-git/packit-hello-world"
         )
 
-        flexmock(PackageConfigGetterForPagure).should_receive(
+        flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
             base_project=event_object.base_project,
             project=event_object.project,
             pr_id=13,
             reference="b658af51df98c1cbf74a75095ced920bba2ef25e",
+            fail_when_missing=False,
+            spec_file_path="SPECS/packit-hello-world.spec",
         ).and_return(
             flexmock()
         ).once()
@@ -806,13 +791,15 @@ class TestCentOsEventParser:
             == "fork/sakalosj/source-git/packit-hello-world"
         )
 
-        flexmock(PackageConfigGetterForPagure).should_receive(
+        flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
             base_project=event_object.base_project,
             project=event_object.project,
             pr_id=16,
             reference="dfe787d04101728c6ddc213d3f4bf39c969f194c",
+            fail_when_missing=False,
+            spec_file_path="SPECS/packit-hello-world.spec",
         ).and_return(
             flexmock()
         ).once()
@@ -856,13 +843,15 @@ class TestCentOsEventParser:
             == "fork/the-fork/source-git/packit-hello-world"
         )
 
-        flexmock(PackageConfigGetterForPagure).should_receive(
+        flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
             base_project=event_object.base_project,
             project=event_object.project,
             pr_id=123,
             reference="0011223344",
+            fail_when_missing=False,
+            spec_file_path="SPECS/packit-hello-world.spec",
         ).and_return(
             flexmock()
         ).once()
@@ -903,13 +892,15 @@ class TestCentOsEventParser:
             == "fork/the-fork/source-git/packit-hello-world"
         )
 
-        flexmock(PackageConfigGetterForPagure).should_receive(
+        flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
             base_project=event_object.base_project,
             project=event_object.project,
             pr_id=123,
             reference="0011223344",
+            fail_when_missing=False,
+            spec_file_path="SPECS/packit-hello-world.spec",
         ).and_return(
             flexmock()
         ).once()

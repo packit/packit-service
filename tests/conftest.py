@@ -37,7 +37,7 @@ from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import JobTriggerModelType
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.service.events import (
-    PullRequestEvent,
+    PullRequestGithubEvent,
     PushGitHubEvent,
     ReleaseEvent,
 )
@@ -329,5 +329,5 @@ def release_event(release_webhook) -> ReleaseEvent:
 
 
 @pytest.fixture()
-def pull_request_event(pull_request_webhook) -> PullRequestEvent:
+def pull_request_event(pull_request_webhook) -> PullRequestGithubEvent:
     return Parser.parse_pr_event(pull_request_webhook)
