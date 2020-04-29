@@ -14,8 +14,7 @@
           - mod_md
           - mod_ssl
           - nss_wrapper
-          # temporary workaround for sake of marhsmallow
-          # - python3-packit
+          - python3-packit
           - python3-pip # not included in base fedora:31 image, needed for next task
           # temporary depdendencies
           - krb5-devel
@@ -25,7 +24,7 @@
           - python3-sqlalchemy
           - python3-psycopg2
           - python3-lazy-object-proxy
-          #- python3-flask-restx # https://bugzilla.redhat.com/show_bug.cgi?id=1817535
+          #- python3-flask-restx # Needs Fedora 32
           - python3-flexmock # because of the hack during the alembic upgrade
           # (see d90948124e46_add_tables_for_triggers_koji_and_tests.py )
         state: present
@@ -33,8 +32,6 @@
       pip:
         name:
           - persistentdict
-          # temporary workaround for sake of marhsmallow
-          - git+https://github.com/packit-service/packit.git
           - sentry-sdk==0.14.2
           - sentry-sdk[flask]==0.14.2
           - flask-restx
