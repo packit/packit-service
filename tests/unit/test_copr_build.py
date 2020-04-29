@@ -38,8 +38,8 @@ from packit_service.service.db_triggers import (
     AddReleaseDbTrigger,
 )
 from packit_service.service.events import (
-    PullRequestEvent,
-    PullRequestCommentEvent,
+    PullRequestGithubEvent,
+    PullRequestCommentGithubEvent,
     CoprBuildEvent,
     PushGitHubEvent,
     ReleaseEvent,
@@ -51,8 +51,8 @@ from packit_service.worker.reporting import StatusReporter
 
 def build_helper(
     event: Union[
-        PullRequestEvent,
-        PullRequestCommentEvent,
+        PullRequestGithubEvent,
+        PullRequestCommentGithubEvent,
         CoprBuildEvent,
         PushGitHubEvent,
         ReleaseEvent,
@@ -119,7 +119,7 @@ def test_copr_build_check_names(pull_request_event):
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
     )
-    flexmock(PullRequestEvent).should_receive("db_trigger").and_return(flexmock())
+    flexmock(PullRequestGithubEvent).should_receive("db_trigger").and_return(flexmock())
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None)
     flexmock(Celery).should_receive("send_task").once()
 
@@ -227,7 +227,7 @@ def test_copr_build_success(pull_request_event):
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
     )
-    flexmock(PullRequestEvent).should_receive("db_trigger").and_return(flexmock())
+    flexmock(PullRequestGithubEvent).should_receive("db_trigger").and_return(flexmock())
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -285,7 +285,7 @@ def test_copr_build_no_targets(pull_request_event):
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
     )
-    flexmock(PullRequestEvent).should_receive("db_trigger").and_return(flexmock())
+    flexmock(PullRequestGithubEvent).should_receive("db_trigger").and_return(flexmock())
     flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]

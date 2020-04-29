@@ -34,8 +34,7 @@ from ogr.services.pagure import PagureProject
 from packit.config import PackageConfig
 from packit_service.config import (
     ServiceConfig,
-    PackageConfigGetterForPagure,
-    PackageConfigGetterForGithub,
+    PackageConfigGetter,
 )
 from packit_service.constants import WHITELIST_CONSTANTS
 from packit_service.models import (
@@ -252,36 +251,35 @@ class AbstractForgeIndependentEvent(Event):
             url=self.project_url or self.db_trigger.project.project_url
         )
 
-    def get_base_project(self) -> GitProject:
-        """Reimplement in the PR events. Defaults to self.project"""
-        return self.project
+    def get_base_project(self) -> Optional[GitProject]:
+        """Reimplement in the PR events."""
+        return None
 
     def get_package_config(self) -> Optional[PackageConfig]:
-        base_project = self.get_base_project()
         logger.debug(
             f"Getting package_config:\n"
-            f"\tbase_project: {base_project} ({base_project.get_web_url()})\n"
-            f"\tproject: {self.project} ({base_project.get_web_url()})\n"
+            f"\tproject: {self.project}\n"
+            f"\tbase_project: {self.base_project}\n"
             f"\treference: {self.commit_sha}\n"
             f"\tpr_id: {self.pr_id}"
         )
 
-        if isinstance(base_project, PagureProject):
-            logger.debug(f"Getting package_config from Pagure.")
-            package_config = PackageConfigGetterForPagure.get_package_config_from_repo(
-                base_project=base_project,
-                project=self.project,
-                reference=self.commit_sha,
-                pr_id=self.pr_id,
+        spec_path = None
+        if isinstance(self.base_project, PagureProject):
+            spec_path = f"SPECS/{self.project.repo}.spec"
+            logger.debug(
+                f"Getting package_config from Pagure. "
+                f"(Spec-file is expected to be in {spec_path})"
             )
-        else:
-            package_config = PackageConfigGetterForGithub.get_package_config_from_repo(
-                base_project=base_project,
-                project=self.project,
-                reference=self.commit_sha,
-                pr_id=self.pr_id,
-                fail_when_missing=False,
-            )
+
+        package_config = PackageConfigGetter.get_package_config_from_repo(
+            base_project=self.base_project,
+            project=self.project,
+            reference=self.commit_sha,
+            pr_id=self.pr_id,
+            fail_when_missing=False,
+            spec_file_path=spec_path,
+        )
 
         if package_config:
             package_config.upstream_project_url = self.project_url
@@ -337,7 +335,7 @@ class PushGitHubEvent(AddBranchPushDbTrigger, AbstractGithubEvent):
         self.identifier = git_ref
 
 
-class PullRequestEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
+class PullRequestGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
     def __init__(
         self,
         action: PullRequestAction,
@@ -368,13 +366,11 @@ class PullRequestEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         result["action"] = result["action"].value
         return result
 
-    def get_base_project(self) -> GitProject:
-        return self.project.service.get_project(
-            namespace=self.base_repo_namespace, repo=self.base_repo_name
-        )
+    def get_base_project(self) -> Optional[GitProject]:
+        return None  # With Github app, we cannot work with fork repo
 
 
-class PullRequestCommentEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
+class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
     def __init__(
         self,
         action: PullRequestCommentAction,
@@ -418,12 +414,8 @@ class PullRequestCommentEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         result["action"] = result["action"].value
         return result
 
-    def get_base_project(self) -> GitProject:
-        return self.project.service.get_project(
-            namespace=self.base_repo_namespace,
-            # TODO: fork can be named differently
-            repo=self.base_repo_name or self.target_repo_name,
-        )
+    def get_base_project(self) -> Optional[GitProject]:
+        return None  # With Github app, we cannot work with fork repo
 
 
 class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
@@ -591,7 +583,7 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
                 self._db_trigger = run_model.job_trigger.get_trigger_object()
         return self._db_trigger
 
-    def get_base_project(self) -> GitProject:
+    def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:
             if isinstance(self.project, PagureProject):
                 pull_request = self.project.get_pr(pr_id=self.pr_id)
@@ -602,11 +594,7 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
                     is_fork=True,
                 )
             else:
-                pull_request = self.project.get_pr(pr_id=self.pr_id)
-                # TODO: We need to handle forks with different name as well
-                return self.project.service.get_project(
-                    namespace=pull_request.author, repo=self.project.repo
-                )
+                return None  # With Github app, we cannot work with fork repo
         return self.project
 
 
@@ -670,7 +658,7 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         return self.build.job_trigger.get_trigger_object()
 
-    def get_base_project(self) -> GitProject:
+    def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:
             if isinstance(self.project, PagureProject):
                 pull_request = self.project.get_pr(pr_id=self.pr_id)
@@ -681,11 +669,7 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
                     is_fork=True,
                 )
             else:
-                pull_request = self.project.get_pr(pr_id=self.pr_id)
-                # TODO: We need to handle forks with different name as well
-                return self.project.service.get_project(
-                    namespace=pull_request.author, repo=self.project.repo
-                )
+                return None  # With Github app, we cannot work with fork repo
         return self.project
 
     @classmethod

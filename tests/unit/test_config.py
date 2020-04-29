@@ -19,10 +19,17 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from typing import Optional
+
 import pytest
+from flexmock import flexmock
 from marshmallow import ValidationError
 
-from packit_service.config import ServiceConfig, Deployment
+from ogr.abstract import GitProject, GitService
+from packit.config import PackageConfig, SyncFilesConfig
+from packit.exceptions import PackitConfigException
+from packit.sync import SyncFilesItem
+from packit_service.config import ServiceConfig, Deployment, PackageConfigGetter
 
 
 @pytest.fixture()
@@ -120,3 +127,156 @@ def test_config_opts(sc):
     assert sc.github_requests_log_path is not None
     assert sc.webhook_secret is not None
     assert sc.validate_webhooks is not None
+
+
+@pytest.mark.parametrize(
+    "content,project,mock_spec_search,spec_path_option,spec_path,reference",
+    [
+        (
+            "---\nspecfile_path: packit.spec\n"
+            "synced_files:\n"
+            "  - packit.spec\n"
+            "  - src: .packit.yaml\n"
+            "    dest: .packit2.yaml",
+            GitProject(repo="", service=GitService(), namespace=""),
+            True,
+            None,
+            "packit.spec",
+            None,
+        ),
+        (
+            "---\nspecfile_path: packit.spec\n"
+            "synced_files:\n"
+            "  - packit.spec\n"
+            "  - src: .packit.yaml\n"
+            "    dest: .packit2.yaml",
+            GitProject(repo="", service=GitService(), namespace=""),
+            True,
+            None,
+            "packit.spec",
+            "some-branch",
+        ),
+        (
+            "synced_files:\n"
+            "  - packit.spec\n"
+            "  - src: .packit.yaml\n"
+            "    dest: .packit2.yaml",
+            GitProject(repo="", service=GitService(), namespace=""),
+            True,
+            None,
+            "packit.spec",
+            None,
+        ),
+        (
+            "synced_files:\n"
+            "  - packit.spec\n"
+            "  - src: .packit.yaml\n"
+            "    dest: .packit2.yaml",
+            GitProject(repo="", service=GitService(), namespace=""),
+            False,
+            "packit.spec",
+            "packit.spec",
+            None,
+        ),
+    ],
+)
+def test_get_package_config_from_repo(
+    content,
+    project: GitProject,
+    mock_spec_search: bool,
+    spec_path: Optional[str],
+    spec_path_option: Optional[str],
+    reference: str,
+):
+    gp = flexmock(GitProject)
+    gp.should_receive("full_repo_name").and_return("a/b")
+    gp.should_receive("get_file_content").with_args(
+        path=".packit.yaml", ref=reference
+    ).and_return(content)
+    if mock_spec_search:
+        gp.should_receive("get_files").and_return(["packit.spec"]).once()
+    config = PackageConfigGetter.get_package_config_from_repo(
+        project=project, reference=reference, spec_file_path=spec_path_option
+    )
+    assert isinstance(config, PackageConfig)
+    assert config.specfile_path == spec_path
+    assert config.synced_files == SyncFilesConfig(
+        files_to_sync=[
+            SyncFilesItem(src="packit.spec", dest="packit.spec"),
+            SyncFilesItem(src=".packit.yaml", dest=".packit2.yaml"),
+        ]
+    )
+    assert config.create_pr
+
+
+def test_get_package_config_from_repo_alternative_config_name():
+    gp = flexmock(GitProject)
+    gp.should_receive("full_repo_name").and_return("a/b")
+    gp.should_receive("get_file_content").with_args(
+        path=".packit.yaml", ref=None
+    ).and_raise(FileNotFoundError, "not found")
+    gp.should_receive("get_file_content").with_args(
+        path=".packit.yml", ref=None
+    ).and_return(
+        "---\nspecfile_path: packit.spec\n"
+        "synced_files:\n"
+        "  - packit.spec\n"
+        "  - src: .packit.yaml\n"
+        "    dest: .packit2.yaml"
+    )
+    config = PackageConfigGetter.get_package_config_from_repo(
+        project=GitProject(repo="", service=GitService(), namespace=""),
+        reference=None,
+        spec_file_path="packit.spec",
+    )
+    assert isinstance(config, PackageConfig)
+    assert config.specfile_path == "packit.spec"
+    assert config.synced_files == SyncFilesConfig(
+        files_to_sync=[
+            SyncFilesItem(src="packit.spec", dest="packit.spec"),
+            SyncFilesItem(src=".packit.yaml", dest=".packit2.yaml"),
+        ]
+    )
+    assert config.create_pr
+
+
+def test_get_package_config_from_repo_not_found_exception_pr():
+    gp = flexmock(GitProject)
+    gp.should_receive("full_repo_name").and_return("a/b")
+    gp.should_receive("get_file_content").and_raise(FileNotFoundError, "not found")
+    gp.should_receive("pr_comment").and_return(None).once()
+    with pytest.raises(PackitConfigException):
+        PackageConfigGetter.get_package_config_from_repo(
+            project=GitProject(repo="", service=GitService(), namespace=""),
+            reference=None,
+            pr_id=2,
+        )
+
+
+def test_get_package_config_from_repo_not_found_exception_existing_issue():
+    gp = flexmock(GitProject)
+    gp.should_receive("full_repo_name").and_return("a/b")
+    gp.should_receive("get_file_content").and_raise(FileNotFoundError, "not found")
+    gp.should_receive("get_issue_list").and_return(
+        [flexmock(title="Invalid packit config")]
+    ).once()
+    with pytest.raises(PackitConfigException):
+        PackageConfigGetter.get_package_config_from_repo(
+            project=GitProject(repo="", service=GitService(), namespace=""),
+            reference=None,
+        )
+
+
+def test_get_package_config_from_repo_not_found_exception_nonexisting_issue():
+    gp = flexmock(GitProject)
+    gp.should_receive("full_repo_name").and_return("a/b")
+    gp.should_receive("get_file_content").and_raise(FileNotFoundError, "not found")
+    gp.should_receive("get_issue_list").and_return(
+        [flexmock(title="issue 1"), flexmock(title="issue 2")]
+    ).once()
+    gp.should_receive("create_issue").and_return(flexmock(url="the url")).once()
+    with pytest.raises(PackitConfigException):
+        PackageConfigGetter.get_package_config_from_repo(
+            project=GitProject(repo="", service=GitService(), namespace=""),
+            reference=None,
+        )

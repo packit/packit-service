@@ -32,8 +32,8 @@ from packit_service.models import (
 from packit_service.service.events import (
     ReleaseEvent,
     PushGitHubEvent,
-    PullRequestEvent,
-    PullRequestCommentEvent,
+    PullRequestGithubEvent,
+    PullRequestCommentGithubEvent,
     TestingFarmResultsEvent,
 )
 from packit_service.worker.parser import Parser
@@ -125,7 +125,7 @@ def test_push_branch_event_non_existing_branch(
 
 def test_pr_event_existing_pr(clean_before_and_after, pr_model, pr_event_dict):
     event_object = Parser.parse_event(pr_event_dict)
-    assert isinstance(event_object, PullRequestEvent)
+    assert isinstance(event_object, PullRequestGithubEvent)
 
     assert event_object.identifier == "342"
     assert event_object.git_ref is None
@@ -143,7 +143,7 @@ def test_pr_event_existing_pr(clean_before_and_after, pr_model, pr_event_dict):
 
 def test_pr_event_non_existing_pr(clean_before_and_after, pr_event_dict):
     event_object = Parser.parse_event(pr_event_dict)
-    assert isinstance(event_object, PullRequestEvent)
+    assert isinstance(event_object, PullRequestGithubEvent)
 
     assert event_object.identifier == "342"
     assert event_object.git_ref is None
@@ -162,7 +162,7 @@ def test_pr_comment_event_existing_pr(
     clean_before_and_after, pr_model, pr_comment_event_dict_packit_build
 ):
     event_object = Parser.parse_event(pr_comment_event_dict_packit_build)
-    assert isinstance(event_object, PullRequestCommentEvent)
+    assert isinstance(event_object, PullRequestCommentGithubEvent)
 
     assert event_object.identifier == "342"
     assert event_object.git_ref is None
@@ -187,7 +187,7 @@ def test_pr_comment_event_non_existing_pr(
     clean_before_and_after, pr_comment_event_dict_packit_build
 ):
     event_object = Parser.parse_event(pr_comment_event_dict_packit_build)
-    assert isinstance(event_object, PullRequestCommentEvent)
+    assert isinstance(event_object, PullRequestCommentGithubEvent)
 
     assert event_object.identifier == "342"
     assert event_object.git_ref is None

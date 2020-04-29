@@ -33,7 +33,7 @@ from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
 from packit.config.package_config import PackageConfig
 from packit.local_project import LocalProject
-from packit_service.config import PackageConfigGetterForGithub
+from packit_service.config import PackageConfigGetter
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.models import (
     CoprBuildModel,
@@ -250,7 +250,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     )
 
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(config)
-    flexmock(PackageConfigGetterForGithub).should_receive(
+    flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(config)
     flexmock(CoprBuildEndHandler).should_receive(
@@ -366,7 +366,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     )
 
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(config)
-    flexmock(PackageConfigGetterForGithub).should_receive(
+    flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(config)
     flexmock(CoprBuildEndHandler).should_receive(
@@ -467,7 +467,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     )
 
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(config)
-    flexmock(PackageConfigGetterForGithub).should_receive(
+    flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(config)
     flexmock(CoprBuildEndHandler).should_receive(

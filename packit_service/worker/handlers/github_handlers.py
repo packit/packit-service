@@ -41,10 +41,10 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
 from packit_service.models import InstallationModel
 from packit_service.service.events import (
-    PullRequestEvent,
+    PullRequestGithubEvent,
     InstallationEvent,
     ReleaseEvent,
-    PullRequestCommentEvent,
+    PullRequestCommentGithubEvent,
     IssueCommentEvent,
     CoprBuildEvent,
     PushGitHubEvent,
@@ -206,7 +206,7 @@ class ProposeDownstreamHandler(AbstractGitForgeJobHandler):
 class AbstractCoprBuildHandler(AbstractGitForgeJobHandler):
     type = JobType.copr_build
     event: Union[
-        PullRequestEvent, ReleaseEvent, PushGitHubEvent, PullRequestPagureEvent
+        PullRequestGithubEvent, ReleaseEvent, PushGitHubEvent, PullRequestPagureEvent
     ]
 
     def __init__(
@@ -214,7 +214,7 @@ class AbstractCoprBuildHandler(AbstractGitForgeJobHandler):
         config: ServiceConfig,
         job_config: JobConfig,
         event: Union[
-            PullRequestEvent,
+            PullRequestGithubEvent,
             ReleaseEvent,
             PushGitHubEvent,
             PullRequestPagureEvent,
@@ -282,10 +282,10 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
     triggers = [
         TheJobTriggerType.pull_request,
     ]
-    event: PullRequestEvent
+    event: PullRequestGithubEvent
 
     def run(self) -> HandlerResults:
-        if isinstance(self.event, PullRequestEvent):
+        if isinstance(self.event, PullRequestGithubEvent):
             collaborators = self.event.project.who_can_merge_pr()
             if self.event.user_login not in collaborators | self.config.admins:
                 self.copr_build_helper.report_status_to_all(
@@ -299,7 +299,7 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
 
     def pre_check(self) -> bool:
         return (
-            isinstance(self.event, (PullRequestEvent, PullRequestPagureEvent))
+            isinstance(self.event, (PullRequestGithubEvent, PullRequestPagureEvent))
             and self.event.trigger == TheJobTriggerType.pull_request
             and super().pre_check()
         )
@@ -336,17 +336,19 @@ class PushCoprBuildHandler(AbstractCoprBuildHandler):
 
 class AbstractGithubKojiBuildHandler(AbstractGitForgeJobHandler):
     type = JobType.production_build
-    event: Union[PullRequestEvent, ReleaseEvent, PushGitHubEvent]
+    event: Union[PullRequestGithubEvent, ReleaseEvent, PushGitHubEvent]
 
     def __init__(
         self,
         config: ServiceConfig,
         job_config: JobConfig,
-        event: Union[PullRequestEvent, ReleaseEvent, PushGitHubEvent],
+        event: Union[PullRequestGithubEvent, ReleaseEvent, PushGitHubEvent],
     ):
         super().__init__(config=config, job_config=job_config, event=event)
 
-        if not isinstance(event, (PullRequestEvent, PushGitHubEvent, ReleaseEvent)):
+        if not isinstance(
+            event, (PullRequestGithubEvent, PushGitHubEvent, ReleaseEvent)
+        ):
             raise PackitException(
                 "Unknown event, only "
                 "PullRequestEvent, ReleaseEvent, and PushGitHubEvent "
@@ -408,10 +410,10 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     triggers = [
         TheJobTriggerType.pull_request,
     ]
-    event: PullRequestEvent
+    event: PullRequestGithubEvent
 
     def run(self) -> HandlerResults:
-        if isinstance(self.event, PullRequestEvent):
+        if isinstance(self.event, PullRequestGithubEvent):
             collaborators = self.event.project.who_can_merge_pr()
             if self.event.user_login not in collaborators | self.config.admins:
                 self.koji_build_helper.report_status_to_all(
@@ -426,7 +428,7 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     def pre_check(self) -> bool:
         return (
             super().pre_check()
-            and isinstance(self.event, PullRequestEvent)
+            and isinstance(self.event, PullRequestGithubEvent)
             and self.event.trigger == TheJobTriggerType.pull_request
         )
 
@@ -465,13 +467,13 @@ class GithubTestingFarmHandler(AbstractGitForgeJobHandler):
     """
 
     triggers = [TheJobTriggerType.pull_request]
-    event: Union[CoprBuildEvent, PullRequestCommentEvent]
+    event: Union[CoprBuildEvent, PullRequestCommentGithubEvent]
 
     def __init__(
         self,
         config: ServiceConfig,
         job_config: JobConfig,
-        event: Union[CoprBuildEvent, PullRequestCommentEvent],
+        event: Union[CoprBuildEvent, PullRequestCommentGithubEvent],
         chroot: str,
     ):
         super().__init__(config=config, job_config=job_config, event=event)
@@ -495,7 +497,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
 
     type = CommentAction.copr_build
     triggers = [TheJobTriggerType.pr_comment]
-    event: PullRequestCommentEvent
+    event: PullRequestCommentGithubEvent
 
     def run(self) -> HandlerResults:
         collaborators = self.event.project.who_can_merge_pr()
@@ -606,7 +608,7 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
     """ Issue handler for comment `/packit test` """
 
     type = CommentAction.test
-    event: PullRequestCommentEvent
+    event: PullRequestCommentGithubEvent
     triggers = [TheJobTriggerType.pr_comment]
 
     def run(self) -> HandlerResults:

@@ -24,7 +24,6 @@ import logging
 from pathlib import Path
 from typing import Set, Optional
 
-import yaml
 from yaml import safe_load
 
 from ogr.abstract import GitProject
@@ -33,7 +32,6 @@ from packit.config import (
     Config,
     get_package_config_from_repo,
     PackageConfig,
-    parse_loaded_config,
 )
 from packit.exceptions import PackitException, PackitConfigException
 from packit_service.constants import (
@@ -146,25 +144,31 @@ class ServiceConfig(Config):
         return cls.service_config
 
 
-class PackageConfigGetterForGithub:
+class PackageConfigGetter:
     @staticmethod
     def get_package_config_from_repo(
-        base_project: GitProject,
         project: GitProject,
-        reference: str,
+        reference: Optional[str] = None,
+        base_project: Optional[GitProject] = None,
         pr_id: int = None,
         fail_when_missing: bool = True,
+        spec_file_path: Optional[str] = None,
     ):
         """
         Get the package config and catch the invalid config scenario and possibly no-config scenario
         """
+
+        project_to_search_in = base_project or project
         try:
             package_config: PackageConfig = get_package_config_from_repo(
-                base_project, reference
+                project=project_to_search_in,
+                ref=reference,
+                spec_file_path=spec_file_path,
             )
             if not package_config and fail_when_missing:
                 raise PackitConfigException(
-                    f"No config file found in {base_project.full_repo_name} on ref '{reference}'"
+                    f"No config file found in {project_to_search_in.full_repo_name} "
+                    "on ref '{reference}'"
                 )
         except PackitConfigException as ex:
             if pr_id:
@@ -189,26 +193,4 @@ class PackageConfigGetterForGithub:
                     )
                     logger.debug(f"Created issue for invalid packit config: {i.url}")
             raise ex
-        return package_config
-
-
-class PackageConfigGetterForPagure:
-    @staticmethod
-    def get_package_config_from_repo(
-        base_project: GitProject,
-        project: GitProject,
-        reference: str,
-        pr_id: int = None,
-        fail_when_missing: bool = True,
-        file_name=".packit.yaml",
-    ):
-        """
-        Get the package config and catch the invalid config scenario and possibly no-config scenario
-        Static because of the easier mocking.
-        """
-        loaded_config_raw = base_project.get_file_content(file_name, ref=reference)
-        loaded_config = yaml.safe_load(loaded_config_raw)
-        package_config = parse_loaded_config(
-            loaded_config, spec_file_path=f"SPECS/{project.repo}.spec"
-        )
         return package_config

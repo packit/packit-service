@@ -32,8 +32,8 @@ from packit_service.models import WhitelistModel
 from packit_service.config import ServiceConfig
 from packit_service.constants import FAQ_URL
 from packit_service.service.events import (
-    PullRequestEvent,
-    PullRequestCommentEvent,
+    PullRequestGithubEvent,
+    PullRequestCommentGithubEvent,
     IssueCommentEvent,
     ReleaseEvent,
     WhitelistStatus,
@@ -214,7 +214,7 @@ class Whitelist:
             (CoprBuildEvent, TestingFarmResultsEvent, DistGitEvent, InstallationEvent),
         ):
             return True
-        if isinstance(event, (PullRequestEvent, PullRequestCommentEvent)):
+        if isinstance(event, (PullRequestGithubEvent, PullRequestCommentGithubEvent)):
             account_name = event.user_login
             if not account_name:
                 raise KeyError(f"Failed to get account_name from {type(event)}")

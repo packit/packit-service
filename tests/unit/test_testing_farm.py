@@ -25,7 +25,7 @@ from flexmock import flexmock
 from ogr.abstract import CommitStatus
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.local_project import LocalProject
-from packit_service.config import PackageConfigGetterForGithub
+from packit_service.config import PackageConfigGetter
 from packit_service.models import TFTTestRunModel
 
 # These names are definately not nice, still they help with making classes
@@ -162,7 +162,7 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
 def test_testing_farm_response(
     tests_result, tests_message, tests_tests, status_status, status_message
 ):
-    flexmock(PackageConfigGetterForGithub).should_receive(
+    flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(
         flexmock(
