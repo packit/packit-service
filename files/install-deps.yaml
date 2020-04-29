@@ -31,7 +31,7 @@
     - name: Install pip deps
       pip:
         name:
-          - persistentdict
+          - persistentdict # still needed by one Alembic migration script
           - sentry-sdk==0.14.3
           - sentry-sdk[flask]==0.14.3
           - flask-restx
