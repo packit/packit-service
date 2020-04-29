@@ -21,7 +21,7 @@
     nodeset:
       nodes:
         - name: test-node
-          label: cloud-fedora-30
+          label: cloud-fedora-31
 
 - job:
     name: packit-service-base
@@ -52,11 +52,11 @@
 - job:
     name: packit-service-tests-requre
     parent: packit-service-base
-    description: Run tests of packit-service with requre support
+    description: Run tests with requre support
     run: files/zuul-tests-requre.yaml
 
-# if we going to test packit interacting with real services, we should run
-# just one test suite at a time
+# If we're going to test packit interacting with real services,
+# we should run just one test suite at a time.
 - semaphore:
     name: packit-service-tests-secrets
     max: 1
@@ -64,7 +64,7 @@
 - job:
     name: packit-service-tests-secrets
     parent: packit-service-base
-    description: Run tests with real services for packit-service.
+    description: Run tests with real services
     pre-run:
       - files/install-openshift.yaml
       - files/packit-service-image.yaml
