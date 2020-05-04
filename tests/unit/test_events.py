@@ -191,7 +191,8 @@ class TestEvents:
         assert event_object.base_repo_namespace == "lbarcziova"
         assert event_object.base_repo_name == "packit"
         assert event_object.base_ref == "528b803be6f93e19ca4130bf4976f2800a3004c4"
-        assert event_object.target_repo == "packit-service/packit"
+        assert event_object.target_repo_namespace == "packit-service"
+        assert event_object.target_repo_name == "packit"
         assert event_object.project_url == "https://github.com/packit-service/packit"
         assert event_object.commit_sha == "528b803be6f93e19ca4130bf4976f2800a3004c4"
 
