@@ -89,7 +89,7 @@ def test_pr_comment_copr_build_handler(
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/the-namespace/the-repo"
     )
-    flexmock(SteveJobs, _is_private=False)
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
     results = SteveJobs().process_message(pr_copr_build_comment_event)
 
     assert results["jobs"]["pull_request_action"]["success"]
@@ -105,7 +105,7 @@ def test_pr_comment_build_handler(
         {"phracek"}
     ).once()
     flexmock(GithubProject, get_files="foo.spec")
-    flexmock(SteveJobs, _is_private=False)
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
     results = SteveJobs().process_message(pr_build_comment_event)
     assert results["jobs"]["pull_request_action"]["success"]
 
@@ -155,7 +155,7 @@ def test_pr_embedded_command_handler(
         {"phracek"}
     ).once()
     flexmock(GithubProject, get_files="foo.spec")
-    flexmock(SteveJobs, _is_private=False)
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
     results = SteveJobs().process_message(pr_embedded_command_comment_event)
     assert results["jobs"]["pull_request_action"]["success"]
 
@@ -163,7 +163,7 @@ def test_pr_embedded_command_handler(
 def test_pr_comment_empty_handler(
     mock_pr_comment_functionality, pr_empty_comment_event
 ):
-    flexmock(SteveJobs, _is_private=False)
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
 
     results = SteveJobs().process_message(pr_empty_comment_event)
     assert results["jobs"]["pull_request_action"]["success"]
@@ -174,7 +174,7 @@ def test_pr_comment_empty_handler(
 def test_pr_comment_packit_only_handler(
     mock_pr_comment_functionality, pr_packit_only_comment_event
 ):
-    flexmock(SteveJobs, _is_private=False)
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
 
     results = SteveJobs().process_message(pr_packit_only_comment_event)
     assert results["jobs"]["pull_request_action"]["success"]
@@ -185,7 +185,7 @@ def test_pr_comment_packit_only_handler(
 def test_pr_comment_wrong_packit_command_handler(
     mock_pr_comment_functionality, pr_wrong_packit_comment_event
 ):
-    flexmock(SteveJobs, _is_private=False)
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
 
     results = SteveJobs().process_message(pr_wrong_packit_comment_event)
     assert results["jobs"]["pull_request_action"]["success"]
