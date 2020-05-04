@@ -28,8 +28,6 @@ import logging
 from datetime import datetime
 from typing import Type
 
-import requests
-
 from ogr.abstract import CommitStatus
 from ogr.services.github import GithubProject
 from packit.api import PackitAPI
@@ -73,45 +71,11 @@ def add_topic(kls: Type["FedmsgHandler"]):
     return kls
 
 
-def do_we_process_fedmsg_topic(topic: str) -> bool:
-    """ do we process selected fedmsg topic? """
-    return topic in PROCESSED_FEDMSG_TOPICS
-
-
 def get_copr_build_url(event: CoprBuildEvent) -> str:
     return (
         "https://copr.fedorainfracloud.org/coprs/"
         f"{event.owner}/{event.project_name}/build/{event.build_id}/"
     )
-
-
-def copr_url_from_event(event: CoprBuildEvent):
-    """
-    Get url to builder-live.log bound to single event
-    After build is finished copr redirects it automatically to builder-live.log.gz
-    :param event: fedora messaging event from topic copr.build.start or copr.build.end
-    :return: reachable url
-    """
-    url = (
-        f"https://copr-be.cloud.fedoraproject.org/results/{event.owner}/"
-        f"{event.project_name}/{event.chroot}/"
-        f"{event.build_id:08d}-{event.pkg}/builder-live.log"
-    )
-    # make sure we provide valid url in status, let sentry handle if not
-    try:
-        logger.debug(f"Reaching url {url}")
-        r = requests.head(url)
-        r.raise_for_status()
-    except requests.RequestException:
-        # we might want sentry to know but don't want to start handling things?
-        logger.error(f"Failed to reach url with copr chroot build result.")
-        url = (
-            "https://copr.fedorainfracloud.org/coprs/"
-            f"{event.owner}/{event.project_name}/build/{event.build_id}/"
-        )
-    # return the frontend URL no matter what
-    # we don't want to fail on this step; the error log is just enough
-    return url
 
 
 class FedmsgHandler(JobHandler):
