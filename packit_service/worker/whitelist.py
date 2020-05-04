@@ -104,7 +104,7 @@ class Whitelist:
         :param event: Github app installation info
         :return: was the account (auto/already)-whitelisted?
         """
-        if self.is_approved(event.account_login):
+        if WhitelistModel.get_account(event.account_login):
             return True
 
         WhitelistModel.add_account(event.account_login, WhitelistStatus.waiting.value)
