@@ -172,21 +172,25 @@ class Parser:
             logger.warning("No GitHub login name from event.")
             return None
 
-        target_repo = nested_get(event, "repository", "full_name")
-        logger.info(f"Target repo: {target_repo}.")
+        target_repo_namespace = nested_get(
+            event, "pull_request", "base", "repo", "owner", "login"
+        )
+        target_repo_name = nested_get(event, "pull_request", "base", "repo", "name")
+        logger.info(f"Target repo: {target_repo_namespace}/{target_repo_name}.")
 
         commit_sha = nested_get(event, "pull_request", "head", "sha")
         https_url = event["repository"]["html_url"]
         return PullRequestGithubEvent(
-            PullRequestAction[action],
-            pr_id,
-            base_repo_namespace,
-            base_repo_name,
-            base_ref,
-            target_repo,
-            https_url,
-            commit_sha,
-            user_login,
+            action=PullRequestAction[action],
+            pr_id=pr_id,
+            base_repo_namespace=base_repo_namespace,
+            base_repo_name=base_repo_name,
+            base_ref=base_ref,
+            target_repo_namespace=target_repo_namespace,
+            target_repo_name=target_repo_name,
+            https_url=https_url,
+            commit_sha=commit_sha,
+            user_login=user_login,
         )
 
     @staticmethod

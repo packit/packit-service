@@ -139,10 +139,10 @@ def test_signed_fpca(whitelist, account_name, person_object, raises, signed_fpca
             PullRequestCommentGithubEvent(
                 action=PullRequestCommentAction.created,
                 pr_id=0,
-                base_repo_namespace="foo",
+                base_repo_namespace="base",
                 base_repo_name="",
                 base_ref="",
-                target_repo_namespace="",
+                target_repo_namespace="foo",
                 target_repo_name="",
                 project_url="",
                 user_login="bar",
@@ -226,7 +226,16 @@ def events(request) -> List[Tuple[AbstractGithubEvent, bool]]:
         return [
             (
                 PullRequestGithubEvent(
-                    PullRequestAction.opened, 1, namespace, "", "", "", "", "", login
+                    action=PullRequestAction.opened,
+                    pr_id=1,
+                    base_repo_namespace="",
+                    base_repo_name="",
+                    target_repo_namespace=namespace,
+                    target_repo_name="",
+                    https_url="",
+                    commit_sha="",
+                    user_login=login,
+                    base_ref="",
                 ),
                 approved,
             )

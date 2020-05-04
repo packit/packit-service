@@ -343,7 +343,8 @@ class PullRequestGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         base_repo_namespace: str,
         base_repo_name: str,
         base_ref: str,
-        target_repo: str,
+        target_repo_namespace: str,
+        target_repo_name: str,
         https_url: str,
         commit_sha: str,
         user_login: str,
@@ -355,7 +356,8 @@ class PullRequestGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
         self.base_ref = base_ref
-        self.target_repo = target_repo
+        self.target_repo_namespace = target_repo_namespace
+        self.target_repo_name = target_repo_name
         self.commit_sha = commit_sha
         self.user_login = user_login
         self.identifier = str(pr_id)
