@@ -25,7 +25,6 @@ from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
 from ogr.abstract import GitProject, CommitStatus
 from packit.exceptions import PackitException
-from persistentdict.dict_in_redis import PersistentDict
 
 from packit_service.models import WhitelistModel
 
@@ -224,8 +223,6 @@ class Whitelist:
             if not (self.is_approved(account_name) or self.is_approved(namespace)):
                 msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
                 logger.error(msg)
-                # TODO also check blacklist,
-                # but for that we need to know who triggered the action
                 if event.trigger == TheJobTriggerType.pr_comment:
                     project.pr_comment(event.pr_id, msg)
                 else:
@@ -253,42 +250,9 @@ class Whitelist:
                 msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
                 logger.error(msg)
                 project.issue_comment(event.issue_id, msg)
-                # TODO also check blacklist,
-                # but for that we need to know who triggered the action
                 return False
             return True
 
         msg = f"Failed to validate account: Unrecognized event type {type(event)}."
         logger.error(msg)
         raise PackitException(msg)
-
-
-class Blacklist:
-    def __init__(self):
-        self.db = PersistentDict(hash_name="blacklist")
-
-    def add_account(self, account_name: str, reason: str) -> bool:
-        """
-        Add user to blacklist, forbid to trigger copr builds
-        :param account_name: str, account
-        :param reason: str, reason of ban
-        :return:
-        """
-        self.db[account_name] = {"reason": reason}
-        logger.info(f"User: {account_name} added to blacklist!")
-
-        return True
-
-    def remove_account(self, account_name: str) -> bool:
-        """
-        Remove user from blacklist, allowing him/her to trigger copr builds again
-        :param account_name: str, github login
-        :return: None
-        """
-        if account_name in self.db:
-            del self.db[account_name]
-            logger.info(f"User: {account_name} removed from blacklist!")
-            return True
-        else:
-            logger.info(f"User: {account_name} does not exists!")
-            return False
