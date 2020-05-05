@@ -35,10 +35,10 @@ def test_dist_git_push_release_handle(release_event):
         get_files=lambda ref, filter_regex: [],
         get_sha_from_tag=lambda tag_name: "123456",
         get_web_url=lambda: "https://github.com/packit-service/hello-world",
+        is_private=lambda: False,
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
-    flexmock(SteveJobs, _is_private=False)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     config.get_project = lambda url: project
@@ -71,10 +71,10 @@ def test_dist_git_push_release_handle_multiple_branches(release_event):
         get_files=lambda ref, filter_regex: [],
         get_sha_from_tag=lambda tag_name: "123456",
         get_web_url=lambda: "https://github.com/packit-service/hello-world",
+        is_private=lambda: False,
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
-    flexmock(SteveJobs, _is_private=False)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     config.get_project = lambda url: project
@@ -120,6 +120,7 @@ def test_dist_git_push_release_handle_one_failed(release_event):
             get_files=lambda ref, filter_regex: [],
             get_sha_from_tag=lambda tag_name: "123456",
             get_web_url=lambda: "https://github.com/packit-service/hello-world",
+            is_private=lambda: False,
         )
         .should_receive("create_issue")
         .once()
@@ -127,7 +128,6 @@ def test_dist_git_push_release_handle_one_failed(release_event):
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
-    flexmock(SteveJobs, _is_private=False)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     config.get_project = lambda url: project
@@ -174,6 +174,7 @@ def test_dist_git_push_release_handle_all_failed(release_event):
             get_files=lambda ref, filter_regex: [],
             get_sha_from_tag=lambda tag_name: "123456",
             get_web_url=lambda: "https://github.com/packit-service/hello-world",
+            is_private=lambda: False,
         )
         .should_receive("create_issue")
         .with_args(
@@ -193,7 +194,6 @@ def test_dist_git_push_release_handle_all_failed(release_event):
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
-    flexmock(SteveJobs, _is_private=False)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     config.get_project = lambda url: project

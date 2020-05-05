@@ -26,8 +26,6 @@ We love you, Steve Jobs.
 import logging
 from typing import Optional, Dict, Union, Type, Set
 
-from ogr.abstract import GitProject
-from ogr.services.github import GithubProject
 from packit.config import JobType, PackageConfig, JobConfig
 from packit_service.config import ServiceConfig
 from packit_service.log_versions import log_job_versions
@@ -140,16 +138,6 @@ class SteveJobs:
         if self._config is None:
             self._config = ServiceConfig.get_service_config()
         return self._config
-
-    @staticmethod
-    def _is_private(project: GitProject) -> bool:
-        if isinstance(project, GithubProject):
-            github_project = GithubProject(
-                repo=project.repo, service=project.service, namespace=project.namespace
-            )
-            return github_project.github_repo.private
-        else:
-            return False
 
     def process_jobs(self, event: Event) -> Dict[str, HandlerResults]:
         """
@@ -316,19 +304,13 @@ class SteveJobs:
         if not event_object or not event_object.pre_check():
             return None
 
-        is_private_repository = False
-        try:
-            project = event_object.get_project()
-            # CoprBuildEvent.get_project returns None when the build id is not in redis
-            if project:
-                is_private_repository = self._is_private(project)
-        # this was probably meant to handle services which dont have private
-        # functionality implemented, but self._is_private is for github therefore
-        # missing user_login is error is raised instead, fixed by isinstace check
-        except NotImplementedError:
-            logger.warning("Cannot obtain project from this event!")
-            logger.warning("Skipping private repository check!")
-        if is_private_repository:
+        # CoprBuildEvent.get_project returns None when the build id is not known
+        if not event_object.project:
+            logger.warning(
+                "Cannot obtain project from this event! "
+                "Skipping private repository check!"
+            )
+        elif event_object.project.is_private():
             logger.info("We do not interact with private repositories!")
             return None
 

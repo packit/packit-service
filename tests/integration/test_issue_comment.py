@@ -60,7 +60,7 @@ def test_issue_comment_propose_update_handler(
         GithubProject,
         get_files=lambda ref, filter_regex: [],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
+        is_private=lambda: False,
     )
-    flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(issue_comment_propose_update_event)
     assert results["jobs"]["pull_request_action"]["success"]

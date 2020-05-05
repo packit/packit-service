@@ -71,6 +71,7 @@ def test_process_message(event):
         get_files=lambda ref, filter_regex: [],
         get_sha_from_tag=lambda tag_name: "12345",
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
+        is_private=lambda: False,
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     config = ServiceConfig()
@@ -83,7 +84,6 @@ def test_process_message(event):
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
     flexmock(Whitelist, check_and_report=True)
-    flexmock(SteveJobs, _is_private=False)
     results = SteveJobs().process_message(event)
     assert "propose_downstream" in results["jobs"]
     assert results["event"]["trigger"] == "release"
