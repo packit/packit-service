@@ -75,7 +75,7 @@ class PRWebhookPayload:
 @click.command()
 @click.option(
     "--hostname",
-    default="localhost:8443",
+    default="dev.packit.dev:8443",
     help="Hostname of packit-service where we should connect",
 )
 @click.option(
