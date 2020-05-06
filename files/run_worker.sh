@@ -7,9 +7,9 @@ if [[ -z ${APP} ]]; then
 fi
 
 if [[ ${DEPLOYMENT} == "prod" ]]; then
-  LOGLEVEL="info"
+  LOGLEVEL="INFO"
 else
-  LOGLEVEL="debug"
+  LOGLEVEL="DEBUG"
 fi
 
 source /src-packit-service/files/setup_env_in_openshift.sh
