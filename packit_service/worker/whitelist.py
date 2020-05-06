@@ -87,14 +87,6 @@ class Whitelist:
         logger.info(f"Cannot verify whether {account_login!r} signed FPCA.")
         return False
 
-    @staticmethod
-    def get_account(account_name) -> Optional[WhitelistModel]:
-        """
-        Get selected account from DB, return None if it's not there
-        :param account_name: account name for approval
-        """
-        return WhitelistModel.get_account(account_name=account_name)
-
     def add_account(self, event: InstallationEvent) -> bool:
         """
         Add account to whitelist.
@@ -116,24 +108,22 @@ class Whitelist:
         return False
 
     @staticmethod
-    def approve_account(account_name: str) -> bool:
+    def approve_account(account_name: str):
         """
         Approve user manually
         :param account_name: account name for approval
-        :return:
         """
         WhitelistModel.add_account(
             account_name=account_name, status=WhitelistStatus.approved_manually.value
         )
 
         logger.info(f"Account {account_name} approved successfully")
-        return True
 
     @staticmethod
     def is_approved(account_name: str) -> bool:
         """
         Check if user is approved in the whitelist
-        :param account_name:
+        :param account_name: account name to check
         :return:
         """
         account = WhitelistModel.get_account(account_name)
@@ -151,10 +141,9 @@ class Whitelist:
     def remove_account(account_name: str) -> bool:
         """
         Remove account from whitelist.
-        :param account_name: github login
-        :return:
+        :param account_name: account name for removing
+        :return: has the account existed before?
         """
-
         account_existed = False
 
         if WhitelistModel.get_account(account_name):
