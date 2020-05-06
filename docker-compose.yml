@@ -96,7 +96,7 @@ services:
 
   fedora-messaging:
     container_name: fedora-messaging
-    image: usercont/packit-service-fedmsg:latest
+    image: docker.io/usercont/packit-service-fedmsg:stg
     # command: listen-to-fedora-messaging
     environment:
       FEDORA_MESSAGING_CONF: /home/packit/.config/fedora.toml
