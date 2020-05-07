@@ -486,7 +486,7 @@ class GithubTestingFarmHandler(AbstractGitForgeJobHandler):
             project=self.event.project,
             event=self.event,
         )
-        logger.info("Running testing farm")
+        logger.info("Running testing farm.")
         return testing_farm_helper.run_testing_farm(chroot=self.chroot)
 
 
@@ -590,7 +590,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
             except PackitException as ex:
                 msg = f"There was an error while proposing a new update {msg} Traceback is: `{ex}`"
                 self.event.project.issue_comment(self.event.issue_id, msg)
-                logger.error(f"error while running a build: {ex}")
+                logger.error(f"Error while running a build: {ex}")
                 sync_failed = True
         if sync_failed:
             return HandlerResults(

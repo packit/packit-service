@@ -117,7 +117,7 @@ class Whitelist:
             account_name=account_name, status=WhitelistStatus.approved_manually.value
         )
 
-        logger.info(f"Account {account_name} approved successfully")
+        logger.info(f"Account {account_name!r} approved successfully.")
 
     @staticmethod
     def is_approved(account_name: str) -> bool:
@@ -148,11 +148,11 @@ class Whitelist:
 
         if WhitelistModel.get_account(account_name):
             WhitelistModel.remove_account(account_name)
-            logger.info(f"Account: {account_name} removed from postgres whitelist!")
+            logger.info(f"Account {account_name!r} removed from postgres whitelist!")
             account_existed = True
 
         if not account_existed:
-            logger.info(f"Account: {account_name} does not exists!")
+            logger.info(f"Account {account_name!r} does not exists!")
 
         return account_existed
 
@@ -185,16 +185,18 @@ class Whitelist:
             event,
             (PushPagureEvent, PullRequestPagureEvent, PullRequestCommentPagureEvent),
         ):
-            logger.info("Centos (Pagure) events dont require whitelist checks")
+            logger.info("Centos (Pagure) events don't require whitelist checks.")
             return True
 
         # TODO: modify event hierarchy so we can use some abstract classes instead
         if isinstance(event, (ReleaseEvent, PushGitHubEvent)):
             account_name = event.repo_namespace
             if not account_name:
-                raise KeyError(f"Failed to get account_name from {type(event)}")
+                raise KeyError(f"Failed to get account_name from {type(event)!r}")
             if not self.is_approved(account_name):
-                logger.info(f"Refusing release event on not whitelisted repo namespace")
+                logger.info(
+                    f"Refusing release event on not whitelisted repo namespace."
+                )
                 return False
             return True
         if isinstance(
@@ -242,6 +244,6 @@ class Whitelist:
                 return False
             return True
 
-        msg = f"Failed to validate account: Unrecognized event type {type(event)}."
+        msg = f"Failed to validate account: Unrecognized event type {type(event)!r}."
         logger.error(msg)
         raise PackitException(msg)

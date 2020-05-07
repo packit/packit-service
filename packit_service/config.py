@@ -124,7 +124,7 @@ class ServiceConfig(Config):
             "command_handler_k8s_namespace", SANDCASTLE_DEFAULT_PROJECT
         )
 
-        logger.debug(config)
+        logger.debug(f"Loaded config: {config}")
         return config
 
     @classmethod

@@ -133,7 +133,7 @@ class Parser:
             return response
 
         if not response:
-            logger.debug("We don't process this event")
+            logger.debug("We don't process this event.")
 
         return response
 
@@ -401,7 +401,7 @@ class Parser:
             return None
 
         logger.info(
-            f"New release event {release_ref} for repo {repo_namespace}/{repo_name}."
+            f"New release event {release_ref!r} for repo {repo_namespace}/{repo_name}."
         )
         https_url = event["repository"]["html_url"]
         return ReleaseEvent(repo_namespace, repo_name, release_ref, https_url)
@@ -564,7 +564,7 @@ class CentosEventParser:
         event["git_topic"] = git_topic
 
         if git_topic not in self.event_mapping:
-            logger.info(f"Event type {git_topic} is not processed")
+            logger.info(f"Event type {git_topic!r} is not processed.")
             return None
 
         event_object = self.event_mapping[git_topic](event)

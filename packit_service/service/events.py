@@ -689,7 +689,7 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
         """ Return cls instance or None if build_id not in CoprBuildDB"""
         build = CoprBuildModel.get_by_build_id(str(build_id), chroot)
         if not build:
-            logger.warning(f"Build id: {build_id} not in CoprBuildDB")
+            logger.warning(f"Build id {build_id} not in CoprBuildDB.")
             return None
         return cls(
             topic, build_id, build, chroot, status, owner, project_name, pkg, timestamp
