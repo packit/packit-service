@@ -16,7 +16,7 @@ RUN cd /src/ \
     && ansible-playbook -vv -c local -i localhost, files/install-deps.yaml \
     && dnf clean all
 
-COPY setup.py setup.cfg files/recipe.yaml files/tasks/httpd.yaml files/tasks/common.yaml files/packit.wsgi files/run_httpd.sh files/packit-httpd.conf /src/
+COPY setup.py setup.cfg files/recipe.yaml files/tasks/httpd.yaml files/tasks/common.yaml files/packit.wsgi files/run_httpd.sh files/setup_env_in_openshift.sh files/packit-httpd.conf /src/
 # setuptools-scm
 COPY .git /src/.git
 COPY packit_service/ /src/packit_service/
