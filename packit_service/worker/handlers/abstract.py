@@ -113,22 +113,22 @@ class Handler:
     def _clean_workplace(self):
         # clean only when we are in k8s for sure
         if not getenv("KUBERNETES_SERVICE_HOST"):
-            logger.debug("this is not a kubernetes pod, won't clean")
+            logger.debug("This is not a kubernetes pod, won't clean.")
             return
-        logger.debug("removing contents of the PV")
+        logger.debug("Removing contents of the PV.")
         p = Path(self.config.command_handler_work_dir)
         # Do not clean dir if does not exist
         if not p.is_dir():
             logger.debug(
-                f"Directory {self.config.command_handler_work_dir} does not exist."
+                f"Directory {self.config.command_handler_work_dir!r} does not exist."
             )
             return
 
         # remove everything in the volume, but not the volume dir
         dir_items = list(p.iterdir())
         if dir_items:
-            logger.info("volume is not empty")
-            logger.debug("content: %s" % [g.name for g in dir_items])
+            logger.info("Volume is not empty.")
+            logger.debug(f"Content: {[g.name for g in dir_items]}")
         for item in dir_items:
             # symlink pointing to a dir is also a dir and a symlink
             if item.is_symlink() or item.is_file():
@@ -147,7 +147,7 @@ class Handler:
 
     def clean(self):
         """ clean up the mess once we're done """
-        logger.info("cleaning up the mess")
+        logger.info("Cleaning up the mess.")
         if self.api:
             self.api.clean()
         self._clean_workplace()

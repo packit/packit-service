@@ -155,7 +155,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         logger.debug("Sending testing farm request...")
         payload = self._trigger_payload(pipeline_id, chroot)
-        logger.debug(payload)
+        logger.debug(f"Payload: {payload}")
 
         req = self.send_testing_farm_request(
             TESTING_FARM_TRIGGER_URL, "POST", {}, json.dumps(payload)

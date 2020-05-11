@@ -102,18 +102,18 @@ class GithubWebhook(Resource):
                 raise ValidationFailed(msg)
             else:
                 # don't validate signatures when testing locally
-                logger.debug("Ain't validating signatures")
+                logger.debug("Ain't validating signatures.")
                 return
 
         sig = request.headers["X-Hub-Signature"]
         if not sig.startswith("sha1="):
-            msg = f"Digest mode in X-Hub-Signature {sig!r} is not sha1"
+            msg = f"Digest mode in X-Hub-Signature {sig!r} is not sha1."
             logger.warning(msg)
             raise ValidationFailed(msg)
 
         webhook_secret = config.webhook_secret.encode()
         if not webhook_secret:
-            msg = "webhook_secret not specified in config"
+            msg = "'webhook_secret' not specified in the config."
             logger.error(msg)
             raise ValidationFailed(msg)
 
@@ -121,9 +121,9 @@ class GithubWebhook(Resource):
         mac = hmac.new(webhook_secret, msg=request.get_data(), digestmod=sha1)
         digest_is_valid = hmac.compare_digest(signature, mac.hexdigest())
         if digest_is_valid:
-            logger.debug("payload signature OK.")
+            logger.debug("Payload signature OK.")
         else:
-            msg = "payload signature validation failed."
+            msg = "Payload signature validation failed."
             logger.warning(msg)
             logger.debug(f"X-Hub-Signature: {sig!r} != computed: {mac.hexdigest()}")
             raise ValidationFailed(msg)

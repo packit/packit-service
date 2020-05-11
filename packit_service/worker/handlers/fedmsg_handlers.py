@@ -175,7 +175,7 @@ class CoprBuildEndHandler(FedmsgHandler):
 
         if self.event.chroot == "srpm-builds":
             # we don't want to set check for this
-            msg = "SRPM build in copr has finished"
+            msg = "SRPM build in copr has finished."
             logger.debug(msg)
             return HandlerResults(success=True, details={"msg": msg})
         build = CoprBuildModel.get_by_build_id(
@@ -183,7 +183,7 @@ class CoprBuildEndHandler(FedmsgHandler):
         )
         if not build:
             # TODO: how could this happen?
-            msg = f"Copr build {self.event.build_id} not in CoprBuildDB"
+            msg = f"Copr build {self.event.build_id} not in CoprBuildDB."
             logger.warning(msg)
             return HandlerResults(success=False, details={"msg": msg})
         if build.status in [
@@ -284,7 +284,7 @@ class CoprBuildStartHandler(FedmsgHandler):
 
         if self.event.chroot == "srpm-builds":
             # we don't want to set the check status for this
-            msg = "SRPM build in copr has started"
+            msg = "SRPM build in copr has started."
             logger.debug(msg)
             return HandlerResults(success=True, details={"msg": msg})
 
@@ -294,7 +294,7 @@ class CoprBuildStartHandler(FedmsgHandler):
             str(self.event.build_id), self.event.chroot
         )
         if not build:
-            msg = f"Copr build {self.event.build_id} not in CoprBuildDB"
+            msg = f"Copr build {self.event.build_id} not in CoprBuildDB."
             logger.warning(msg)
             return HandlerResults(success=False, details={"msg": msg})
 

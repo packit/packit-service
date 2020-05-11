@@ -214,7 +214,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         c.srpm_logs = stream.read()
 
         if ex:
-            logger.info(f"exception while running a copr build: {ex}")
+            logger.info(f"Exception while running a copr build: {ex}")
             logger.debug(f"{ex!r}")
 
             c.srpm_failed = True

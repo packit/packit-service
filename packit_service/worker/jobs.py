@@ -172,7 +172,7 @@ class SteveJobs:
             whitelist = Whitelist()
             user_login = getattr(event, "user_login", None)
             if user_login and user_login in self.config.admins:
-                logger.info(f"{user_login} is admin, you shall pass")
+                logger.info(f"{user_login} is admin, you shall pass.")
             elif not whitelist.check_and_report(
                 event, event.project, config=self.config
             ):
@@ -258,7 +258,7 @@ class SteveJobs:
         whitelist = Whitelist()
         user_login = getattr(event, "user_login", None)
         if user_login and user_login in self.config.admins:
-            logger.info(f"{user_login} is admin, you shall pass")
+            logger.info(f"{user_login} is admin, you shall pass.")
         elif not whitelist.check_and_report(event, event.project, config=self.config):
             return HandlerResults(
                 success=True, details={"msg": "Account is not whitelisted!"}

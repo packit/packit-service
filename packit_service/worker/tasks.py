@@ -81,21 +81,21 @@ def process_message(
 )
 def babysit_copr_build(self, build_id: int):
     """ check status of a copr build and update it in DB """
-    logger.debug(f"getting copr build ID {build_id} from DB")
+    logger.debug(f"Getting copr build ID {build_id} from DB.")
     builds = CoprBuildModel.get_all_by_build_id(build_id)
     if builds:
         copr_client = CoprClient.create_from_config_file()
         build_copr = copr_client.build_proxy.get(build_id)
 
         if not build_copr.ended_on:
-            logger.info("The copr build is still in progress")
+            logger.info("The copr build is still in progress.")
             self.retry()
-        logger.info(f"The status is {build_copr.state}")
+        logger.info(f"The status is {build_copr.state!r}.")
 
         for build in builds:
             if build.status != "pending":
                 logger.info(
-                    f"DB state says {build.status}, "
+                    f"DB state says {build.status!r}, "
                     "things were taken care of already, skipping."
                 )
                 continue
