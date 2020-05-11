@@ -324,7 +324,7 @@ class PushCoprBuildHandler(AbstractCoprBuildHandler):
         if not valid:
             return False
 
-        configured_branch = self.copr_build_helper.job_build.metadata.branch or "master"
+        configured_branch = self.copr_build_helper.job_build_branch
         if self.event.git_ref != configured_branch:
             logger.info(
                 f"Skipping build on '{self.event.git_ref}'. "
@@ -450,7 +450,7 @@ class PushGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
         if not valid:
             return False
 
-        configured_branch = self.koji_build_helper.job_build.metadata.branch or "master"
+        configured_branch = self.koji_build_helper.job_build_branch
         if self.event.git_ref != configured_branch:
             logger.info(
                 f"Skipping build on '{self.event.git_ref}'. "
