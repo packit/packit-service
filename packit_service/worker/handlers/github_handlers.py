@@ -286,8 +286,8 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
 
     def run(self) -> HandlerResults:
         if isinstance(self.event, PullRequestGithubEvent):
-            collaborators = self.event.project.who_can_merge_pr()
-            if self.event.user_login not in collaborators | self.config.admins:
+            user_can_merge_pr = self.event.project.can_merge_pr(self.event.user_login)
+            if not (user_can_merge_pr or self.event.user_login in self.config.admins):
                 self.copr_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=CommitStatus.failure,
@@ -414,8 +414,8 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
 
     def run(self) -> HandlerResults:
         if isinstance(self.event, PullRequestGithubEvent):
-            collaborators = self.event.project.who_can_merge_pr()
-            if self.event.user_login not in collaborators | self.config.admins:
+            user_can_merge_pr = self.event.project.can_merge_pr(self.event.user_login)
+            if not (user_can_merge_pr or self.event.user_login in self.config.admins):
                 self.koji_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=CommitStatus.failure,
@@ -500,8 +500,8 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
     event: PullRequestCommentGithubEvent
 
     def run(self) -> HandlerResults:
-        collaborators = self.event.project.who_can_merge_pr()
-        if self.event.user_login not in collaborators | self.config.admins:
+        user_can_merge_pr = self.event.project.can_merge_pr(self.event.user_login)
+        if not (user_can_merge_pr or self.event.user_login in self.config.admins):
             self.event.project.pr_comment(
                 self.event.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )
@@ -556,8 +556,8 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
             upstream_local_project=local_project,
         )
 
-        collaborators = self.event.project.who_can_merge_pr()
-        if self.event.user_login not in collaborators | self.config.admins:
+        user_can_merge_pr = self.event.project.can_merge_pr(self.event.user_login)
+        if not (user_can_merge_pr or self.event.user_login in self.config.admins):
             self.event.project.issue_comment(
                 self.event.issue_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )
@@ -618,8 +618,8 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
             project=self.event.project,
             event=self.event,
         )
-        collaborators = self.event.project.who_can_merge_pr()
-        if self.event.user_login not in collaborators | self.config.admins:
+        user_can_merge_pr = self.event.project.can_merge_pr(self.event.user_login)
+        if not (user_can_merge_pr or self.event.user_login in self.config.admins):
             self.event.project.pr_comment(
                 self.event.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )

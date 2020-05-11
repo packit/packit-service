@@ -145,7 +145,12 @@ def mock_issue_comment_functionality():
         full_repo_name="packit-service/packit",
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
-    flexmock(GithubProject).should_receive("who_can_merge_pr").and_return({"phracek"})
+    (
+        flexmock(GithubProject)
+        .should_receive("can_merge_pr")
+        .with_args("phracek")
+        .and_return(True)
+    )
     flexmock(GithubProject).should_receive("issue_comment").and_return(None)
     flexmock(GithubProject).should_receive("issue_close").and_return(None)
     gr = GithubRelease(
