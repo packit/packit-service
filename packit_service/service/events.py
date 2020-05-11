@@ -497,6 +497,13 @@ class InstallationEvent(Event):
         result["status"] = result["status"].value
         return result
 
+    @property
+    def project(self):
+        return self.get_project()
+
+    def get_project(self):
+        return None
+
 
 class DistGitEvent(AbstractForgeIndependentEvent):
     def __init__(
