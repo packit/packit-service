@@ -191,6 +191,16 @@ class BaseBuildJobHelper:
         return self._job_build
 
     @property
+    def job_build_branch(self) -> Optional[str]:
+        """
+        Branch used for the build job or "master".
+        """
+        if self.job_build and self.job_build.metadata.branch:
+            return self.job_build.metadata.branch
+
+        return "master"
+
+    @property
     def job_tests(self) -> Optional[JobConfig]:
         """
         Check if there is JobConfig for tests defined
