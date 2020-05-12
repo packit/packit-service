@@ -74,7 +74,7 @@
 - name: Copy packit-httpd.conf
   copy:
     src: packit-httpd.conf
-    dest: /etc/httpd/conf.d/httpd-packit.conf
+    dest: /etc/httpd/conf.d/packit-httpd.conf
     mode: 0644
 - name: Copy packit.wsgi file
   copy:
