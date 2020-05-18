@@ -1,44 +1,104 @@
-import pytest
-
-from tests_requre.service.conftest import build_info_dict
-
-from packit_service.models import CoprBuildModel
-from packit_service.service.app import get_flask_application
-
 from flask import url_for
 
-
-@pytest.fixture
-def app():
-    app = get_flask_application()
-    return app
+from packit_service.models import CoprBuildModel, KojiBuildModel
+from packit_service.service.views import _get_build_logs_for_build
+from tests_requre.conftest import SampleValues
 
 
-#  Test SRPM Logs view
+def test_get_build_logs_for_build_pr(clean_before_and_after, a_copr_build_for_pr):
+    response = _get_build_logs_for_build(
+        a_copr_build_for_pr, build_description="COPR build"
+    )
+    assert "We can't find any info" not in response
+    assert (
+        response
+        == "<html><head><title>COPR build the-namespace/the-repo-name: PR #342</title>"
+        "</head><body>COPR build ID: 123456<br>State: pending<br><br>"
+        "Build web interface URL: "
+        '<a href="https://copr.something.somewhere/123456">'
+        "https://copr.something.somewhere/123456</a><br>"
+        "SRPM creation logs:<br><br><pre>some\nboring\nlogs</pre><br></body></html>"
+    )
+
+
+def test_get_build_logs_for_build_branch_push(
+    clean_before_and_after, a_copr_build_for_branch_push
+):
+    response = _get_build_logs_for_build(
+        a_copr_build_for_branch_push, build_description="COPR build"
+    )
+    assert "We can't find any info" not in response
+    assert (
+        response
+        == "<html><head><title>COPR build the-namespace/the-repo-name: branch build-branch</title>"
+        "</head><body>COPR build ID: 123456<br>State: pending<br><br>"
+        "Build web interface URL: "
+        '<a href="https://copr.something.somewhere/123456">'
+        "https://copr.something.somewhere/123456</a><br>"
+        "SRPM creation logs:<br><br><pre>some\nboring\nlogs</pre><br></body></html>"
+    )
+
+
+def test_get_build_logs_for_build_release(
+    clean_before_and_after, a_copr_build_for_release
+):
+    response = _get_build_logs_for_build(
+        a_copr_build_for_release, build_description="COPR build"
+    )
+    assert "We can't find any info" not in response
+    assert (
+        response
+        == "<html><head><title>COPR build the-namespace/the-repo-name: release v1.0.2</title>"
+        "</head><body>COPR build ID: 123456<br>State: pending<br><br>"
+        "Build web interface URL: "
+        '<a href="https://copr.something.somewhere/123456">'
+        "https://copr.something.somewhere/123456</a><br>"
+        "SRPM creation logs:<br><br><pre>some\nboring\nlogs</pre><br></body></html>"
+    )
+
+
 def test_srpm_logs_view(client, clean_before_and_after, multiple_copr_builds):
-    build = CoprBuildModel.get_by_build_id(str(270520), build_info_dict["chroots"][0])
+    build = CoprBuildModel.get_by_build_id(123456, SampleValues.chroots[0])
     # Logs view uses the id of the SRPMBuildModel not CoprBuildModel
     response = client.get(
         url_for("builds.get_srpm_build_logs_by_id", id_=str(build.srpm_build.id))
     )
     assert (
-        str(response.data) == f"b'<html><head><title>SRPM Build id="
+        response.data.decode() == "<html><head><title>SRPM Build id="
         f"{build.srpm_build.id}</title></head>"
-        f"<body>SRPM creation logs:<br><br><pre>Some boring logs.</pre><br></body></html>'"
+        f"<body>SRPM creation logs:<br><br><pre>some\nboring\nlogs</pre><br></body></html>"
     )
 
 
-#  Test Build Logs view
 def test_copr_build_logs_view(client, clean_before_and_after, multiple_copr_builds):
-    build = CoprBuildModel.get_by_build_id(str(270520), build_info_dict["chroots"][0])
+    build = CoprBuildModel.get_by_build_id(123456, SampleValues.chroots[0])
     # Logs view uses the id of the SRPMBuildModel not CoprBuildModel
-    response = client.get(url_for("builds.get_build_logs_by_id", id_=str(build.id)))
+    response = client.get(
+        url_for("builds.get_copr_build_logs_by_id", id_=str(build.id))
+    )
+    assert response.data.decode() == (
+        "<html><head><title>COPR build the-namespace/the-repo-name: "
+        "PR #342</title></head><body>COPR build ID: 123456<br>"
+        "State: pending<br><br>Build web interface URL: "
+        '<a href="https://copr.something.somewhere/123456">'
+        "https://copr.something.somewhere/123456</a>"
+        "<br>SRPM creation logs:<br><br><pre>"
+        "some\nboring\nlogs</pre><br></body></html>"
+    )
+
+
+def test_koji_build_logs_view(client, clean_before_and_after, multiple_koji_builds):
+    build = KojiBuildModel.get_by_build_id(123456, SampleValues.chroots[0])
+    # Logs view uses the id of the SRPMBuildModel not CoprBuildModel
+    response = client.get(
+        url_for("builds.get_koji_build_logs_by_id", id_=str(build.id))
+    )
     assert (
-        str(response.data) == f"b'<html><head><title>Build marvel/aos: "
-        f"PR #2705</title></head><body>COPR Build ID: 270520<br>"
-        f"State: success<br><br>Build web interface URL: "
-        f'<a href="https://copr.something.somewhere/270520">'
-        f"https://copr.something.somewhere/270520</a>"
-        f"<br>SRPM creation logs:<br><br><pre>"
-        f"Some boring logs.</pre><br></body></html>'"
+        response.data.decode()
+        == "<html><head><title>Koji build the-namespace/the-repo-name: PR "
+        "#342</title></head><body>Koji build ID: 123456<br>State: "
+        "pending<br><br>Build web interface URL: "
+        '<a href="https://koji.something.somewhere/123456">'
+        "https://koji.something.somewhere/123456</a><br>SRPM "
+        "creation logs:<br><br><pre>some\nboring\nlogs</pre><br></body></html>"
     )

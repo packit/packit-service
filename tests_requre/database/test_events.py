@@ -37,13 +37,14 @@ from packit_service.service.events import (
     TestingFarmResultsEvent,
 )
 from packit_service.worker.parser import Parser
+from tests_requre.conftest import SampleValues
 
 
 def test_release_event_existing_release(
     clean_before_and_after, release_model, release_event_dict
 ):
     flexmock(GithubProject).should_receive("get_sha_from_tag").and_return(
-        "aksjdaksjdla"
+        SampleValues.commit_sha
     )
 
     event_object = Parser.parse_event(release_event_dict)
@@ -51,13 +52,13 @@ def test_release_event_existing_release(
 
     assert event_object.identifier == "v1.0.2"
     assert event_object.git_ref == "v1.0.2"
-    assert event_object.commit_sha == "aksjdaksjdla"
+    assert event_object.commit_sha == "80201a74d96c"
     assert event_object.tag_name == "v1.0.2"
 
     assert isinstance(event_object.db_trigger, ProjectReleaseModel)
     assert event_object.db_trigger == release_model
     assert event_object.db_trigger.tag_name == "v1.0.2"
-    assert event_object.db_trigger.commit_hash == "aksjdaksjdla"
+    assert event_object.db_trigger.commit_hash == "80201a74d96c"
 
     assert isinstance(event_object.db_trigger.project, GitProjectModel)
     assert event_object.db_trigger.project.namespace == "the-namespace"
@@ -66,7 +67,7 @@ def test_release_event_existing_release(
 
 def test_release_event_non_existing_release(clean_before_and_after, release_event_dict):
     flexmock(GithubProject).should_receive("get_sha_from_tag").and_return(
-        "aksjdaksjdla"
+        SampleValues.commit_sha
     )
 
     event_object = Parser.parse_event(release_event_dict)
@@ -74,12 +75,12 @@ def test_release_event_non_existing_release(clean_before_and_after, release_even
 
     assert event_object.identifier == "v1.0.2"
     assert event_object.git_ref == "v1.0.2"
-    assert event_object.commit_sha == "aksjdaksjdla"
+    assert event_object.commit_sha == "80201a74d96c"
     assert event_object.tag_name == "v1.0.2"
 
     assert isinstance(event_object.db_trigger, ProjectReleaseModel)
     assert event_object.db_trigger.tag_name == "v1.0.2"
-    assert event_object.db_trigger.commit_hash == "aksjdaksjdla"
+    assert event_object.db_trigger.commit_hash == "80201a74d96c"
 
     assert isinstance(event_object.db_trigger.project, GitProjectModel)
     assert event_object.db_trigger.project.namespace == "the-namespace"

@@ -39,7 +39,7 @@ from packit_service.models import (
     GitProjectModel,
     InstallationModel,
 )
-from tests_requre.database.conftest import TARGET
+from tests_requre.conftest import SampleValues
 
 
 def test_create_pr_model(clean_before_and_after, pr_model):
@@ -51,7 +51,7 @@ def test_create_pr_model(clean_before_and_after, pr_model):
 def test_create_release_model(clean_before_and_after, release_model):
     assert isinstance(release_model, ProjectReleaseModel)
     assert release_model.tag_name == "v1.0.2"
-    assert release_model.commit_hash == "aksjdaksjdla"
+    assert release_model.commit_hash == "80201a74d96c"
     assert release_model.project
 
 
@@ -84,12 +84,12 @@ def test_create_branch_trigger_model(clean_before_and_after, branch_trigger_mode
 
 def test_create_copr_build(clean_before_and_after, a_copr_build_for_pr):
     assert a_copr_build_for_pr.build_id == "123456"
-    assert a_copr_build_for_pr.commit_sha == "687abc76d67d"
-    assert a_copr_build_for_pr.project_name == "SomeUser-hello-world-9"
-    assert a_copr_build_for_pr.owner == "packit"
+    assert a_copr_build_for_pr.commit_sha == "80201a74d96c"
+    assert a_copr_build_for_pr.project_name == "the-project-name"
+    assert a_copr_build_for_pr.owner == "the-owner"
     assert a_copr_build_for_pr.web_url == "https://copr.something.somewhere/123456"
-    assert a_copr_build_for_pr.srpm_build.logs == "asd\nqwe\n"
-    assert a_copr_build_for_pr.target == TARGET
+    assert a_copr_build_for_pr.srpm_build.logs == "some\nboring\nlogs"
+    assert a_copr_build_for_pr.target == "fedora-42-x86_64"
     assert a_copr_build_for_pr.status == "pending"
     # Since datetime.utcnow() will return different results in every time its called,
     # we will check if a_copr_build has build_submitted_time value that's within the past hour
@@ -109,10 +109,14 @@ def test_copr_build_get_pr_id(
 
 def test_get_copr_build(clean_before_and_after, a_copr_build_for_pr):
     assert a_copr_build_for_pr.id
-    b = CoprBuildModel.get_by_build_id(a_copr_build_for_pr.build_id, TARGET)
+    b = CoprBuildModel.get_by_build_id(
+        a_copr_build_for_pr.build_id, SampleValues.target
+    )
     assert b.id == a_copr_build_for_pr.id
     # let's make sure passing int works as well
-    b = CoprBuildModel.get_by_build_id(int(a_copr_build_for_pr.build_id), TARGET)
+    b = CoprBuildModel.get_by_build_id(
+        int(a_copr_build_for_pr.build_id), SampleValues.target
+    )
     assert b.id == a_copr_build_for_pr.id
     b2 = CoprBuildModel.get_by_id(b.id)
     assert b2.id == a_copr_build_for_pr.id
@@ -122,7 +126,9 @@ def test_copr_build_set_status(clean_before_and_after, a_copr_build_for_pr):
     assert a_copr_build_for_pr.status == "pending"
     a_copr_build_for_pr.set_status("awesome")
     assert a_copr_build_for_pr.status == "awesome"
-    b = CoprBuildModel.get_by_build_id(a_copr_build_for_pr.build_id, TARGET)
+    b = CoprBuildModel.get_by_build_id(
+        a_copr_build_for_pr.build_id, SampleValues.target
+    )
     assert b.status == "awesome"
 
 
@@ -130,16 +136,18 @@ def test_copr_build_set_build_logs_url(clean_before_and_after, a_copr_build_for_
     url = "https://copr.fp.o/logs/12456/build.log"
     a_copr_build_for_pr.set_build_logs_url(url)
     assert a_copr_build_for_pr.build_logs_url == url
-    b = CoprBuildModel.get_by_build_id(a_copr_build_for_pr.build_id, TARGET)
+    b = CoprBuildModel.get_by_build_id(
+        a_copr_build_for_pr.build_id, SampleValues.target
+    )
     assert b.build_logs_url == url
 
 
 def test_create_koji_build(clean_before_and_after, a_koji_build):
     assert a_koji_build.build_id == "123456"
-    assert a_koji_build.commit_sha == "687abc76d67d"
-    assert a_koji_build.web_url == "https://copr.something.somewhere/123456"
-    assert a_koji_build.srpm_build.logs == "asd\nqwe\n"
-    assert a_koji_build.target == TARGET
+    assert a_koji_build.commit_sha == "80201a74d96c"
+    assert a_koji_build.web_url == "https://koji.something.somewhere/123456"
+    assert a_koji_build.srpm_build.logs == "some\nboring\nlogs"
+    assert a_koji_build.target == "fedora-42-x86_64"
     assert a_koji_build.status == "pending"
     # Since datetime.utcnow() will return different results in every time its called,
     # we will check if a_koji_build has build_submitted_time value that's within the past hour
@@ -149,10 +157,10 @@ def test_create_koji_build(clean_before_and_after, a_koji_build):
 
 def test_get_koji_build(clean_before_and_after, a_koji_build):
     assert a_koji_build.id
-    b = KojiBuildModel.get_by_build_id(a_koji_build.build_id, TARGET)
+    b = KojiBuildModel.get_by_build_id(a_koji_build.build_id, SampleValues.target)
     assert b.id == a_koji_build.id
     # let's make sure passing int works as well
-    b = KojiBuildModel.get_by_build_id(int(a_koji_build.build_id), TARGET)
+    b = KojiBuildModel.get_by_build_id(int(a_koji_build.build_id), SampleValues.target)
     assert b.id == a_koji_build.id
     b2 = KojiBuildModel.get_by_id(b.id)
     assert b2.id == a_koji_build.id
@@ -162,7 +170,7 @@ def test_koji_build_set_status(clean_before_and_after, a_koji_build):
     assert a_koji_build.status == "pending"
     a_koji_build.set_status("awesome")
     assert a_koji_build.status == "awesome"
-    b = KojiBuildModel.get_by_build_id(a_koji_build.build_id, TARGET)
+    b = KojiBuildModel.get_by_build_id(a_koji_build.build_id, SampleValues.target)
     assert b.status == "awesome"
 
 
@@ -173,7 +181,7 @@ def test_koji_build_set_build_logs_url(clean_before_and_after, a_koji_build):
     )
     a_koji_build.set_build_logs_url(url)
     assert a_koji_build.build_logs_url == url
-    b = KojiBuildModel.get_by_build_id(a_koji_build.build_id, TARGET)
+    b = KojiBuildModel.get_by_build_id(a_koji_build.build_id, SampleValues.target)
     assert b.build_logs_url == url
 
 
@@ -248,20 +256,24 @@ def test_get_all_build_id(clean_before_and_after, multiple_copr_builds):
     assert len(list(builds_list)) == 2
     # both should have the same project_name
     assert builds_list[1].project_name == builds_list[0].project_name
-    assert builds_list[1].project_name == "SomeUser-hello-world-9"
+    assert builds_list[1].project_name == "the-project-name"
 
 
 # returns the first build with given build id and target
 def test_get_by_build_id(clean_before_and_after, multiple_copr_builds):
     # these are not iterable and thus should be accessible directly
-    build_a = CoprBuildModel.get_by_build_id(str(123456), "fedora-42-x86_64")
-    assert build_a.project_name == "SomeUser-hello-world-9"
+    build_a = CoprBuildModel.get_by_build_id(SampleValues.build_id, SampleValues.target)
+    assert build_a.project_name == "the-project-name"
     assert build_a.target == "fedora-42-x86_64"
-    build_b = CoprBuildModel.get_by_build_id(str(123456), "fedora-43-x86_64")
-    assert build_b.project_name == "SomeUser-hello-world-9"
+    build_b = CoprBuildModel.get_by_build_id(
+        SampleValues.build_id, SampleValues.different_target
+    )
+    assert build_b.project_name == "the-project-name"
     assert build_b.target == "fedora-43-x86_64"
-    build_c = CoprBuildModel.get_by_build_id(str(987654), "fedora-43-x86_64")
-    assert build_c.project_name == "SomeUser-random-text-7"
+    build_c = CoprBuildModel.get_by_build_id(
+        SampleValues.different_build_id, SampleValues.target
+    )
+    assert build_c.project_name == "different-project-name"
 
 
 def test_multiple_pr_models(clean_before_and_after):
@@ -308,14 +320,14 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
     pr1_trigger = JobTriggerModel.get_or_create(
         type=JobTriggerModelType.pull_request, trigger_id=pr1.id
     )
-    srpm_build = SRPMBuildModel.create("asd\nqwe\n")
+    srpm_build = SRPMBuildModel.create("asd\nqwe\n", success=True)
     copr_build = CoprBuildModel.get_or_create(
         build_id="123456",
         commit_sha="687abc76d67d",
         project_name="SomeUser-hello-world-9",
         owner="packit",
         web_url="https://copr.something.somewhere/123456",
-        target=TARGET,
+        target=SampleValues.target,
         status="pending",
         srpm_build=srpm_build,
         trigger_model=pr1,
@@ -324,7 +336,7 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
         build_id="987654",
         commit_sha="687abc76d67d",
         web_url="https://copr.something.somewhere/123456",
-        target=TARGET,
+        target=SampleValues.target,
         status="pending",
         srpm_build=srpm_build,
         trigger_model=pr1,
@@ -339,7 +351,7 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
 
 def test_tmt_test_run(clean_before_and_after, a_new_test_run_pr):
     assert a_new_test_run_pr.pipeline_id == "123456"
-    assert a_new_test_run_pr.commit_sha == "687abc76d67d"
+    assert a_new_test_run_pr.commit_sha == "80201a74d96c"
     assert (
         a_new_test_run_pr.web_url == "https://console-testing-farm.apps.ci.centos.org/"
         "pipeline/02271aa8-2917-4741-a39e-78d8706c56c1"
@@ -355,7 +367,7 @@ def test_tmt_test_run(clean_before_and_after, a_new_test_run_pr):
 def test_tmt_test_multiple_runs(clean_before_and_after, multiple_new_test_runs):
     assert multiple_new_test_runs
     assert multiple_new_test_runs[1].pipeline_id == "123457"
-    assert multiple_new_test_runs[2].pipeline_id == "987654"
+    assert multiple_new_test_runs[2].pipeline_id == "98765"
     with get_sa_session() as session:
         test_runs = session.query(TFTTestRunModel).all()
         assert len(test_runs) == 3
@@ -375,7 +387,7 @@ def test_tmt_test_run_set_web_url(clean_before_and_after, pr_model):
     test_run_model = TFTTestRunModel.create(
         pipeline_id="123456",
         commit_sha="687abc76d67d",
-        target=TARGET,
+        target=SampleValues.target,
         status=TestingFarmResult.new,
         trigger_model=pr_model,
     )
@@ -396,7 +408,7 @@ def test_tmt_test_get_by_pipeline_id_pr(clean_before_and_after, pr_model):
     test_run_model = TFTTestRunModel.create(
         pipeline_id="123456",
         commit_sha="687abc76d67d",
-        target=TARGET,
+        target=SampleValues.target,
         status=TestingFarmResult.new,
         trigger_model=pr_model,
     )
@@ -410,7 +422,7 @@ def test_tmt_test_get_by_pipeline_id_branch_push(clean_before_and_after, branch_
     test_run_model = TFTTestRunModel.create(
         pipeline_id="123456",
         commit_sha="687abc76d67d",
-        target=TARGET,
+        target=SampleValues.target,
         status=TestingFarmResult.new,
         trigger_model=branch_model,
     )
@@ -424,7 +436,7 @@ def test_tmt_test_get_by_pipeline_id_release(clean_before_and_after, release_mod
     test_run_model = TFTTestRunModel.create(
         pipeline_id="123456",
         commit_sha="687abc76d67d",
-        target=TARGET,
+        target=SampleValues.target,
         status=TestingFarmResult.new,
         trigger_model=release_model,
     )
