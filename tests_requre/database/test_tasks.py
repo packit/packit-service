@@ -72,7 +72,7 @@ def packit_build_752():
         project_url="https://github.com/packit-service/packit",
     )
 
-    srpm_build = SRPMBuildModel.create("asd\nqwe\n")
+    srpm_build = SRPMBuildModel.create("asd\nqwe\n", success=True)
     yield CoprBuildModel.get_or_create(
         build_id=str(BUILD_ID),
         commit_sha="687abc76d67d",

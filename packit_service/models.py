@@ -41,6 +41,7 @@ from sqlalchemy import (
     desc,
     JSON,
     create_engine,
+    Boolean,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
@@ -612,14 +613,16 @@ class SRPMBuildModel(Base):
     id = Column(Integer, primary_key=True)
     # our logs we want to show to the user
     logs = Column(Text)
+    success = Column(Boolean)
     copr_builds = relationship("CoprBuildModel", back_populates="srpm_build")
     koji_builds = relationship("KojiBuildModel", back_populates="srpm_build")
 
     @classmethod
-    def create(cls, logs: str) -> "SRPMBuildModel":
+    def create(cls, logs: str, success: bool) -> "SRPMBuildModel":
         with get_sa_session() as session:
             srpm_build = cls()
             srpm_build.logs = logs
+            srpm_build.success = success
             session.add(srpm_build)
             return srpm_build
 
