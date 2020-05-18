@@ -28,6 +28,7 @@ from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
+from packit.copr_helper import CoprHelper
 from packit.exceptions import FailedCreateSRPM
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
@@ -100,7 +101,9 @@ def test_copr_build_check_names(pull_request_event):
         metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="nobody"),
     )
 
-    flexmock(copr_build).should_receive("get_log_url").and_return("https://test.url")
+    flexmock(copr_build).should_receive("get_copr_build_log_url_from_flask").and_return(
+        "https://test.url"
+    )
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building SRPM ...",
@@ -115,12 +118,32 @@ def test_copr_build_check_names(pull_request_event):
     ).and_return()
 
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
-    flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        SRPMBuildModel(success=True)
+    )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
     )
     flexmock(PullRequestGithubEvent).should_receive("db_trigger").and_return(flexmock())
-    flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None)
+
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+
+    # copr build
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
+        None
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        flexmock(
+            config={"copr_url": "https://copr.fedorainfracloud.org/"},
+            build_proxy=flexmock()
+            .should_receive("create_from_file")
+            .and_return(
+                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+            )
+            .mock(),
+        )
+    )
+
     flexmock(Celery).should_receive("send_task").once()
 
     assert helper.run_copr_build()["success"]
@@ -133,18 +156,42 @@ def test_copr_build_success_set_test_check(pull_request_event):
     # status is set for each test-target (4x):
     #  - Building SRPM ...
     #  - Starting RPM build...
-    test_job = JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request,)
+    test_job = JobConfig(
+        type=JobType.tests,
+        trigger=JobConfigTriggerType.pull_request,
+        metadata=JobMetadataConfig(),
+    )
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
     helper = build_helper(jobs=[test_job], event=pull_request_event)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(16)
     flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
-    flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        SRPMBuildModel(success=True)
+    )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
     )
-    flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
+
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+
+    # copr build
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
+        None
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        flexmock(
+            config={"copr_url": "https://copr.fedorainfracloud.org/"},
+            build_proxy=flexmock()
+            .should_receive("create_from_file")
+            .and_return(
+                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+            )
+            .mock(),
+        )
+    )
+
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
 
@@ -172,12 +219,32 @@ def test_copr_build_for_branch(branch_push_event):
     )
     helper = build_helper(jobs=[branch_build_job], event=branch_push_event)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
-    flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        SRPMBuildModel(success=True)
+    )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
     )
     flexmock(PushGitHubEvent).should_receive("db_trigger").and_return(flexmock())
-    flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
+
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+
+    # copr build
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
+        None
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        flexmock(
+            config={"copr_url": "https://copr.fedorainfracloud.org/"},
+            build_proxy=flexmock()
+            .should_receive("create_from_file")
+            .and_return(
+                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+            )
+            .mock(),
+        )
+    )
+
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
 
@@ -207,11 +274,31 @@ def test_copr_build_for_release(release_event):
     flexmock(ReleaseEvent).should_receive("get_project").and_return(helper.project)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(GitProject).should_receive("get_sha_from_tag").and_return("123456").once()
-    flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        SRPMBuildModel(success=True)
+    )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
     )
-    flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
+
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+
+    # copr build
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
+        None
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        flexmock(
+            config={"copr_url": "https://copr.fedorainfracloud.org/"},
+            build_proxy=flexmock()
+            .should_receive("create_from_file")
+            .and_return(
+                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+            )
+            .mock(),
+        )
+    )
+
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
 
@@ -223,12 +310,32 @@ def test_copr_build_success(pull_request_event):
     helper = build_helper(event=pull_request_event)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
-    flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        SRPMBuildModel(success=True)
+    )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
     )
     flexmock(PullRequestGithubEvent).should_receive("db_trigger").and_return(flexmock())
-    flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
+
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+
+    # copr build
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
+        None
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        flexmock(
+            config={"copr_url": "https://copr.fedorainfracloud.org/"},
+            build_proxy=flexmock()
+            .should_receive("create_from_file")
+            .and_return(
+                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+            )
+            .mock(),
+        )
+    )
+
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
 
@@ -239,7 +346,7 @@ def test_copr_build_fails_in_packit(pull_request_event):
     #  - Build failed, check latest comment for details.
     helper = build_helper(event=pull_request_event)
     templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
-    flexmock(copr_build).should_receive("get_srpm_log_url").and_return(
+    flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
         "https://test.url"
     )
     for v in ["29", "30", "31", "rawhide"]:
@@ -261,14 +368,20 @@ def test_copr_build_fails_in_packit(pull_request_event):
             trim=True,
         ).and_return().once()
     flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
-    flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel(id=2))
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        SRPMBuildModel(success=False, id=2)
+    )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
     )
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
-    flexmock(PackitAPI).should_receive("run_copr_build").and_raise(
+
+    flexmock(PackitAPI).should_receive("create_srpm").and_raise(
         FailedCreateSRPM, "some error"
     )
+
+    flexmock(CoprBuildJobHelper).should_receive("run_build").never()
+
     assert not helper.run_copr_build()["success"]
 
 
@@ -281,11 +394,31 @@ def test_copr_build_no_targets(pull_request_event):
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
     flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
-    flexmock(SRPMBuildModel).should_receive("create").and_return(SRPMBuildModel())
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        SRPMBuildModel(success=True)
+    )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
     )
     flexmock(PullRequestGithubEvent).should_receive("db_trigger").and_return(flexmock())
-    flexmock(PackitAPI).should_receive("run_copr_build").and_return(1, None).once()
+
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+
+    # copr build
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
+        None
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        flexmock(
+            config={"copr_url": "https://copr.fedorainfracloud.org/"},
+            build_proxy=flexmock()
+            .should_receive("create_from_file")
+            .and_return(
+                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+            )
+            .mock(),
+        )
+    )
+
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
