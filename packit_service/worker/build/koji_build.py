@@ -21,10 +21,11 @@
 # SOFTWARE.
 import logging
 from re import search
-from typing import Optional, Union, Tuple
+from typing import Optional, Union, Tuple, Dict
 
 from ogr.abstract import CommitStatus, GitProject
 from packit.config import JobType, PackageConfig, JobConfig
+from packit.exceptions import PackitCommandFailedError
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import MSG_RETRIGGER
@@ -86,10 +87,11 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             )
             return HandlerResults(success=False, details={"msg": msg})
 
+        errors: Dict[str, str] = {}
         for chroot in self.build_chroots:
 
             try:
-                build_id, web_url = self.run_build()
+                build_id, web_url = self.run_build(target=chroot)
             except Exception as ex:
                 sentry_integration.send_to_sentry(ex)
                 # TODO: Where can we show more info about failure?
@@ -97,9 +99,10 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 self.report_status_to_all(
                     state=CommitStatus.error,
                     description=f"Submit of the build failed: {ex}",
-                    url=get_koji_build_log_url_from_flask(self.srpm_model.id),
+                    url=get_srpm_log_url_from_flask(self.srpm_model.id),
                 )
-                return HandlerResults(success=False, details={"error": str(ex)})
+                errors[chroot] = str(ex)
+                continue
 
             koji_build = KojiBuildModel.get_or_create(
                 build_id=str(build_id),
@@ -116,6 +119,15 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 description="Building RPM ...",
                 url=url,
                 chroot=chroot,
+            )
+
+        if errors:
+            return HandlerResults(
+                success=False,
+                details={
+                    "msg": f"Koji build submit was not successful for all chroots.",
+                    "errors": errors,
+                },
             )
 
         # TODO: release the hounds!
@@ -136,12 +148,21 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             logger.debug("No targets set for koji build, using rawhide.")
             target = "rawhide"
 
-        out = self.api.up.koji_build(
-            scratch=self.is_scratch,
-            nowait=True,
-            koji_target=target,
-            srpm_path=self.srpm_path,
-        )
+        try:
+            out = self.api.up.koji_build(
+                scratch=self.is_scratch,
+                nowait=True,
+                koji_target=target,
+                srpm_path=self.srpm_path,
+            )
+        except PackitCommandFailedError as ex:
+            logger.warning(
+                f"Koji build failed for {target}:\n"
+                f"\t stdout: {ex.stdout_output}\n"
+                f"\t stderr: {ex.stderr_output}\n"
+            )
+            raise
+
         if not out:
             return None, None
 
