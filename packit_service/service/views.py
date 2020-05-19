@@ -27,6 +27,7 @@ from typing import Union
 
 from flask import Blueprint
 
+from packit_service import models
 from packit_service.log_versions import log_service_versions
 from packit_service.models import (
     CoprBuildModel,
@@ -76,6 +77,7 @@ def _get_build_logs_for_build(
         f"<title>{build_description} {project.namespace}/{project.repo_name}:"
         f" {title_identifier}</title></head><body>"
         f"{build_description} ID: {build.build_id}<br>"
+        f"Submitted: {models.optional_time(build.build_submitted_time)}<br>"
         f"State: {build.status}<br><br>"
         f'Build web interface URL: <a href="{build.web_url}">{build.web_url}</a><br>'
     )
