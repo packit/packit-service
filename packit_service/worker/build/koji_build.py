@@ -91,7 +91,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         for chroot in self.build_chroots:
 
             try:
-                build_id, web_url = self.run_build()
+                build_id, web_url = self.run_build(target=chroot)
             except Exception as ex:
                 sentry_integration.send_to_sentry(ex)
                 # TODO: Where can we show more info about failure?

@@ -133,6 +133,69 @@ def test_koji_build_check_names(pull_request_event):
     assert helper.run_koji_build()["success"]
 
 
+def test_koji_build_with_multiple_targets(pull_request_event):
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
+        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
+    )
+    helper = build_helper(
+        event=pull_request_event,
+        metadata=JobMetadataConfig(
+            targets=["bright-future-x86_64", "dark-past-i386"], owner="nobody"
+        ),
+    )
+
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=CommitStatus.pending,
+        description="Building SRPM ...",
+        check_name="packit-stg/production-build-bright-future-x86_64",
+        url="",
+    ).and_return()
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=CommitStatus.pending,
+        description="Building SRPM ...",
+        check_name="packit-stg/production-build-dark-past-i386",
+        url="",
+    ).and_return()
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=CommitStatus.pending,
+        description="Building RPM ...",
+        check_name="packit-stg/production-build-bright-future-x86_64",
+        url=get_koji_build_log_url_from_flask(2),
+    ).and_return()
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=CommitStatus.pending,
+        description="Building RPM ...",
+        check_name="packit-stg/production-build-dark-past-i386",
+        url=get_koji_build_log_url_from_flask(1),
+    ).and_return()
+
+    flexmock(GitProject).should_receive("set_commit_status").and_return().never()
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        SRPMBuildModel(id=1, success=True)
+    )
+    flexmock(KojiBuildModel).should_receive("get_or_create").and_return(
+        KojiBuildModel(id=1)
+    ).and_return(KojiBuildModel(id=2))
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+
+    # koji build
+    flexmock(Upstream).should_receive("koji_build").and_return(
+        "Uploading srpm: /python-ogr-0.11.1"
+        ".dev21+gf2dec9b-1.20200407142424746041.21.gf2dec9b.fc31.src.rpm\n"
+        "[====================================] 100% 00:00:11   1.67 MiB 148.10 KiB/sec\n"
+        "Created task: 43429338\n"
+        "Task info: https://koji.fedoraproject.org/koji/taskinfo?taskID=43429338\n"
+    ).and_return(
+        "Uploading srpm: /python-ogr-0.11.1"
+        ".dev21+gf2dec9b-1.20200407142424746041.21.gf2dec9b.fc31.src.rpm\n"
+        "[====================================] 100% 00:00:11   1.67 MiB 148.10 KiB/sec\n"
+        "Created task: 43429339\n"
+        "Task info: https://koji.fedoraproject.org/koji/taskinfo?taskID=43429339\n"
+    )
+
+    assert helper.run_koji_build()["success"]
+
+
 def test_koji_build_failed(pull_request_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
