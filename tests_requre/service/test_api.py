@@ -14,11 +14,7 @@ def test_api_health(client):
 def test_copr_builds_list(client, clean_before_and_after, multiple_copr_builds):
     response = client.get(url_for("api.copr-builds_copr_builds_list"))
     response_dict = response.json
-    assert response_dict[0]["project"] == "different-project-name"
-    assert {response_dict[0]["build_id"], response_dict[1]["build_id"]} == {
-        "123456",
-        "987654",
-    }
+    assert response_dict[0]["project"] == SampleValues.different_project_name
     assert response_dict[1]["project"] == SampleValues.project
     assert response_dict[1]["owner"] == SampleValues.owner
     assert response_dict[1]["build_id"] == SampleValues.build_id
@@ -56,6 +52,74 @@ def test_detailed_copr_build_info(client, clean_before_and_after, multiple_copr_
     assert response_dict["status_per_chroot"]["fedora-42-x86_64"] == "success"
     assert response_dict["status_per_chroot"]["fedora-43-x86_64"] == "pending"
     assert response_dict["build_submitted_time"] is not None
+
+
+def test_koji_builds_list(client, clean_before_and_after, multiple_koji_builds):
+    response = client.get(url_for("api.koji-builds_koji_builds_list"))
+    response_dict = response.json
+    assert len(response_dict) == 3
+    assert response_dict[0]["build_id"] == SampleValues.build_id
+    assert response_dict[1]["build_id"] == SampleValues.different_build_id
+    assert response_dict[2]["build_id"] == SampleValues.another_different_build_id
+
+    assert response_dict[1]["status"] == SampleValues.status_pending
+    assert response_dict[1]["web_url"] == SampleValues.koji_web_url
+    assert response_dict[1]["repo_namespace"] == SampleValues.repo_namespace
+    assert response_dict[1]["repo_name"] == SampleValues.repo_name
+    assert response_dict[1]["project_url"] == SampleValues.project_url
+    assert response_dict[1]["pr_id"] == SampleValues.pr_id
+
+    assert response_dict[1]["build_submitted_time"] is not None
+    assert "build_start_time" in response_dict[1]
+    assert "build_finished_time" in response_dict[1]
+
+
+def test_detailed_koji_build_info(client, clean_before_and_after, a_koji_build_for_pr):
+    response = client.get(
+        url_for("api.koji-builds_koji_build_item", id=SampleValues.build_id)
+    )
+    response_dict = response.json
+    assert response_dict["build_id"] == SampleValues.build_id
+    assert response_dict["status"] == SampleValues.status_pending
+    assert response_dict["web_url"] == SampleValues.koji_web_url
+    assert response_dict["repo_namespace"] == SampleValues.repo_namespace
+    assert response_dict["repo_name"] == SampleValues.repo_name
+    assert response_dict["project_url"] == SampleValues.project_url
+    assert response_dict["pr_id"] == SampleValues.pr_id
+
+    assert response_dict["build_submitted_time"] is not None
+    assert "build_start_time" in response_dict
+    assert "build_finished_time" in response_dict
+
+
+def test_detailed_koji_build_info_for_pr(
+    client, clean_before_and_after, a_koji_build_for_pr
+):
+    response = client.get(
+        url_for("api.koji-builds_koji_build_item", id=SampleValues.build_id)
+    )
+    response_dict = response.json
+    assert response_dict["pr_id"] == SampleValues.pr_id
+
+
+def test_detailed_koji_build_info_for_branch_push(
+    client, clean_before_and_after, a_koji_build_for_branch_push
+):
+    response = client.get(
+        url_for("api.koji-builds_koji_build_item", id=SampleValues.build_id)
+    )
+    response_dict = response.json
+    assert response_dict["build_branch"] == SampleValues.branch
+
+
+def test_detailed_koji_build_info_for_release(
+    client, clean_before_and_after, a_koji_build_for_release
+):
+    response = client.get(
+        url_for("api.koji-builds_koji_build_item", id=SampleValues.build_id)
+    )
+    response_dict = response.json
+    assert response_dict["release"] == SampleValues.tag_name
 
 
 # Test Whitelist API (all)

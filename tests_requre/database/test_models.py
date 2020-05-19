@@ -142,46 +142,54 @@ def test_copr_build_set_build_logs_url(clean_before_and_after, a_copr_build_for_
     assert b.build_logs_url == url
 
 
-def test_create_koji_build(clean_before_and_after, a_koji_build):
-    assert a_koji_build.build_id == "123456"
-    assert a_koji_build.commit_sha == "80201a74d96c"
-    assert a_koji_build.web_url == "https://koji.something.somewhere/123456"
-    assert a_koji_build.srpm_build.logs == "some\nboring\nlogs"
-    assert a_koji_build.target == "fedora-42-x86_64"
-    assert a_koji_build.status == "pending"
+def test_create_koji_build(clean_before_and_after, a_koji_build_for_pr):
+    assert a_koji_build_for_pr.build_id == "123456"
+    assert a_koji_build_for_pr.commit_sha == "80201a74d96c"
+    assert a_koji_build_for_pr.web_url == "https://koji.something.somewhere/123456"
+    assert a_koji_build_for_pr.srpm_build.logs == "some\nboring\nlogs"
+    assert a_koji_build_for_pr.target == "fedora-42-x86_64"
+    assert a_koji_build_for_pr.status == "pending"
     # Since datetime.utcnow() will return different results in every time its called,
     # we will check if a_koji_build has build_submitted_time value that's within the past hour
     time_last_hour = datetime.utcnow() - timedelta(hours=1)
-    assert a_koji_build.build_submitted_time > time_last_hour
+    assert a_koji_build_for_pr.build_submitted_time > time_last_hour
 
 
-def test_get_koji_build(clean_before_and_after, a_koji_build):
-    assert a_koji_build.id
-    b = KojiBuildModel.get_by_build_id(a_koji_build.build_id, SampleValues.target)
-    assert b.id == a_koji_build.id
+def test_get_koji_build(clean_before_and_after, a_koji_build_for_pr):
+    assert a_koji_build_for_pr.id
+    b = KojiBuildModel.get_by_build_id(
+        a_koji_build_for_pr.build_id, SampleValues.target
+    )
+    assert b.id == a_koji_build_for_pr.id
     # let's make sure passing int works as well
-    b = KojiBuildModel.get_by_build_id(int(a_koji_build.build_id), SampleValues.target)
-    assert b.id == a_koji_build.id
+    b = KojiBuildModel.get_by_build_id(
+        int(a_koji_build_for_pr.build_id), SampleValues.target
+    )
+    assert b.id == a_koji_build_for_pr.id
     b2 = KojiBuildModel.get_by_id(b.id)
-    assert b2.id == a_koji_build.id
+    assert b2.id == a_koji_build_for_pr.id
 
 
-def test_koji_build_set_status(clean_before_and_after, a_koji_build):
-    assert a_koji_build.status == "pending"
-    a_koji_build.set_status("awesome")
-    assert a_koji_build.status == "awesome"
-    b = KojiBuildModel.get_by_build_id(a_koji_build.build_id, SampleValues.target)
+def test_koji_build_set_status(clean_before_and_after, a_koji_build_for_pr):
+    assert a_koji_build_for_pr.status == "pending"
+    a_koji_build_for_pr.set_status("awesome")
+    assert a_koji_build_for_pr.status == "awesome"
+    b = KojiBuildModel.get_by_build_id(
+        a_koji_build_for_pr.build_id, SampleValues.target
+    )
     assert b.status == "awesome"
 
 
-def test_koji_build_set_build_logs_url(clean_before_and_after, a_koji_build):
+def test_koji_build_set_build_logs_url(clean_before_and_after, a_koji_build_for_pr):
     url = (
         "https://kojipkgs.fedoraproject.org//"
         "packages/python-ogr/0.11.0/1.fc30/data/logs/noarch/build.log"
     )
-    a_koji_build.set_build_logs_url(url)
-    assert a_koji_build.build_logs_url == url
-    b = KojiBuildModel.get_by_build_id(a_koji_build.build_id, SampleValues.target)
+    a_koji_build_for_pr.set_build_logs_url(url)
+    assert a_koji_build_for_pr.build_logs_url == url
+    b = KojiBuildModel.get_by_build_id(
+        a_koji_build_for_pr.build_id, SampleValues.target
+    )
     assert b.build_logs_url == url
 
 
@@ -469,8 +477,8 @@ def test_project_property_for_copr_build(a_copr_build_for_pr):
     assert project.repo_name == "the-repo-name"
 
 
-def test_project_property_for_koji_build(a_koji_build):
-    project = a_koji_build.get_project()
+def test_project_property_for_koji_build(a_koji_build_for_pr):
+    project = a_koji_build_for_pr.get_project()
     assert isinstance(project, GitProjectModel)
     assert project.namespace == "the-namespace"
     assert project.repo_name == "the-repo-name"
