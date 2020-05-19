@@ -138,7 +138,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             # TODO: Where can we show more info about failure?
             # TODO: Retry
             self.report_status_to_all(
-                state=CommitStatus.pending,
+                state=CommitStatus.error,
                 description=f"Submit of the build failed: {ex}",
             )
             return HandlerResults(success=False, details={"error": str(ex)})

@@ -263,10 +263,10 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
     copr_build_pr.should_receive("set_status").with_args("success")
     copr_build_pr.should_receive("set_end_time").once()
-    url = "https://localhost:5000/copr-build/1/logs"
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
+    url = get_copr_build_log_url_from_flask(1)
     flexmock(StatusReporter).should_receive("report").with_args(
         state=CommitStatus.success,
         description="RPMs were built successfully.",
@@ -382,17 +382,18 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
+    url = get_copr_build_log_url_from_flask(1)
     flexmock(StatusReporter).should_receive("report").with_args(
         state=CommitStatus.success,
         description="RPMs were built successfully.",
-        url="https://localhost:5000/copr-build/1/logs",
+        url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
         state=CommitStatus.pending,
         description="RPMs were built successfully.",
-        url="https://localhost:5000/copr-build/1/logs",
+        url=url,
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
     ).once()
 
