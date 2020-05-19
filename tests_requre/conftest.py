@@ -51,9 +51,53 @@ from packit_service.models import (
     TaskResultModel,
     InstallationModel,
 )
+
 from packit_service.service.events import InstallationEvent
 
-TARGET = "fedora-42-x86_64"
+
+class SampleValues:
+    testing_farm_url = (
+        "https://console-testing-farm.apps.ci.centos.org/"
+        "pipeline/02271aa8-2917-4741-a39e-78d8706c56c1"
+    )
+    repo_namespace = "the-namespace"
+    repo_name = "the-repo-name"
+    different_project_name = "different-project-name"
+    project_url = "https://github.com/the-namespace/the-repo-name"
+    https_url = "https://github.com/the-namespace/the-repo-name.git"
+    project = "the-project-name"
+    owner = "the-owner"
+    ref = "80201a74d96c"
+    branch = "build-branch"
+    commit_sha = "80201a74d96c"
+    different_commit_sha = "687abc76d67d"
+    pr_id = 342
+    tag_name = "v1.0.2"
+
+    # build
+    build_id = "123456"
+    different_build_id = "987654"
+    another_different_build_id = "78912"
+    status_success = "success"
+    status_pending = "pending"
+    target = "fedora-42-x86_64"
+    different_target = "fedora-43-x86_64"
+    chroots = ["fedora-43-x86_64", "fedora-42-x86_64"]
+    status_per_chroot = {"fedora-43-x86_64": "success", "fedora-42-x86_64": "pending"}
+    copr_web_url = "https://copr.something.somewhere/123456"
+    koji_web_url = "https://koji.something.somewhere/123456"
+    srpm_logs = "some\nboring\nlogs"
+
+    # TFT
+    pipeline_id = "123456"
+    different_pipeline_id = "123457"
+    another_different_pipeline_id = "98765"
+
+    # Whitelist
+    account_name = "Rayquaza"
+    different_account_name = "Deoxys"
+    another_different_acount_name = "Solgaleo"
+    yet_another_different_acount_name = "Zacian"
 
 
 def clean_db():
@@ -87,10 +131,10 @@ def clean_before_and_after():
 @pytest.fixture()
 def pr_model():
     yield PullRequestModel.get_or_create(
-        pr_id=342,
-        namespace="the-namespace",
-        repo_name="the-repo-name",
-        project_url="https://github.com/the-namespace/the-repo-name",
+        pr_id=SampleValues.pr_id,
+        namespace=SampleValues.repo_namespace,
+        repo_name=SampleValues.repo_name,
+        project_url=SampleValues.project_url,
     )
 
 
@@ -98,30 +142,30 @@ def pr_model():
 def different_pr_model():
     yield PullRequestModel.get_or_create(
         pr_id=4,
-        namespace="the-namespace",
-        repo_name="the-repo-name",
-        project_url="https://github.com/the-namespace/the-repo-name",
+        namespace=SampleValues.repo_namespace,
+        repo_name=SampleValues.repo_name,
+        project_url=SampleValues.project_url,
     )
 
 
 @pytest.fixture()
 def release_model():
     yield ProjectReleaseModel.get_or_create(
-        tag_name="v1.0.2",
-        commit_hash="aksjdaksjdla",
-        namespace="the-namespace",
-        repo_name="the-repo-name",
-        project_url="https://github.com/the-namespace/the-repo-name",
+        tag_name=SampleValues.tag_name,
+        commit_hash=SampleValues.commit_sha,
+        namespace=SampleValues.repo_namespace,
+        repo_name=SampleValues.repo_name,
+        project_url=SampleValues.project_url,
     )
 
 
 @pytest.fixture()
 def branch_model():
     yield GitBranchModel.get_or_create(
-        branch_name="build-branch",
-        namespace="the-namespace",
-        repo_name="the-repo-name",
-        project_url="https://github.com/the-namespace/the-repo-name",
+        branch_name=SampleValues.branch,
+        namespace=SampleValues.repo_namespace,
+        repo_name=SampleValues.repo_name,
+        project_url=SampleValues.project_url,
     )
 
 
@@ -154,135 +198,133 @@ def branch_trigger_model(branch_model):
 
 
 @pytest.fixture()
-def a_copr_build_for_pr(pr_model):
-    srpm_build = SRPMBuildModel.create("asd\nqwe\n")
+def srpm_build_model():
+    yield SRPMBuildModel.create(SampleValues.srpm_logs, success=True)
+
+
+@pytest.fixture()
+def a_copr_build_for_pr(pr_model, srpm_build_model):
     yield CoprBuildModel.get_or_create(
-        build_id="123456",
-        commit_sha="687abc76d67d",
-        project_name="SomeUser-hello-world-9",
-        owner="packit",
-        web_url="https://copr.something.somewhere/123456",
-        target=TARGET,
-        status="pending",
-        srpm_build=srpm_build,
+        build_id=SampleValues.build_id,
+        commit_sha=SampleValues.commit_sha,
+        project_name=SampleValues.project,
+        owner=SampleValues.owner,
+        web_url=SampleValues.copr_web_url,
+        target=SampleValues.target,
+        status=SampleValues.status_pending,
+        srpm_build=srpm_build_model,
         trigger_model=pr_model,
     )
 
 
 @pytest.fixture()
-def a_copr_build_for_branch_push(branch_model):
-    srpm_build = SRPMBuildModel.create("asd\nqwe\n")
+def a_copr_build_for_branch_push(branch_model, srpm_build_model):
     yield CoprBuildModel.get_or_create(
-        build_id="123456",
-        commit_sha="687abc76d67d",
-        project_name="SomeUser-hello-world-9",
-        owner="packit",
-        web_url="https://copr.something.somewhere/123456",
-        target=TARGET,
-        status="pending",
-        srpm_build=srpm_build,
+        build_id=SampleValues.build_id,
+        commit_sha=SampleValues.commit_sha,
+        project_name=SampleValues.project,
+        owner=SampleValues.owner,
+        web_url=SampleValues.copr_web_url,
+        target=SampleValues.target,
+        status=SampleValues.status_pending,
+        srpm_build=srpm_build_model,
         trigger_model=branch_model,
     )
 
 
 @pytest.fixture()
-def a_copr_build_for_release(release_model):
-    srpm_build = SRPMBuildModel.create("asd\nqwe\n")
+def a_copr_build_for_release(release_model, srpm_build_model):
     yield CoprBuildModel.get_or_create(
-        build_id="123456",
-        commit_sha="687abc76d67d",
-        project_name="SomeUser-hello-world-9",
-        owner="packit",
-        web_url="https://copr.something.somewhere/123456",
-        target=TARGET,
-        status="pending",
-        srpm_build=srpm_build,
+        build_id=SampleValues.build_id,
+        commit_sha=SampleValues.commit_sha,
+        project_name=SampleValues.project,
+        owner=SampleValues.owner,
+        web_url=SampleValues.copr_web_url,
+        target=SampleValues.target,
+        status=SampleValues.status_pending,
+        srpm_build=srpm_build_model,
         trigger_model=release_model,
     )
 
 
-# Create multiple builds
-# Used for testing queries
 @pytest.fixture()
-def multiple_copr_builds(pr_model, different_pr_model):
-    srpm_build = SRPMBuildModel.create("asd\nqwe\n")
+def multiple_copr_builds(pr_model, different_pr_model, srpm_build_model):
     yield [
         CoprBuildModel.get_or_create(
-            build_id="123456",
-            commit_sha="687abc76d67d",
-            project_name="SomeUser-hello-world-9",
-            owner="packit",
-            web_url="https://copr.something.somewhere/123456",
-            target="fedora-42-x86_64",
-            status="pending",
-            srpm_build=srpm_build,
+            build_id=SampleValues.build_id,
+            commit_sha=SampleValues.ref,
+            project_name=SampleValues.project,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url,
+            target=SampleValues.target,
+            status=SampleValues.status_success,
+            srpm_build=srpm_build_model,
             trigger_model=pr_model,
         ),
-        # Same build_id but different chroot
         CoprBuildModel.get_or_create(
-            build_id="123456",
-            commit_sha="687abc76d67d",
-            project_name="SomeUser-hello-world-9",
-            owner="packit",
-            web_url="https://copr.something.somewhere/123456",
-            target="fedora-43-x86_64",
-            status="pending",
-            srpm_build=srpm_build,
+            build_id=SampleValues.build_id,
+            commit_sha=SampleValues.ref,
+            project_name=SampleValues.project,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url,
+            target=SampleValues.different_target,
+            status=SampleValues.status_pending,
+            srpm_build=srpm_build_model,
             trigger_model=pr_model,
         ),
-        # Completely different build
         CoprBuildModel.get_or_create(
-            build_id="987654",
-            commit_sha="987def76d67e",
-            project_name="SomeUser-random-text-7",
-            owner="cockpit-project",
-            web_url="https://copr.something.somewhere/987654",
-            target="fedora-43-x86_64",
-            status="pending",
-            srpm_build=srpm_build,
+            build_id=SampleValues.different_build_id,
+            commit_sha=SampleValues.different_commit_sha,
+            project_name=SampleValues.different_project_name,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url,
+            target=SampleValues.target,
+            status=SampleValues.status_success,
+            srpm_build=srpm_build_model,
             trigger_model=different_pr_model,
         ),
     ]
 
 
 @pytest.fixture()
-def copr_builds_with_different_triggers(pr_model, branch_model, release_model):
-    srpm_build = SRPMBuildModel.create("asd\nqwe\n")
+def copr_builds_with_different_triggers(
+    pr_model, branch_model, release_model, srpm_build_model
+):
     yield [
         # pull request trigger
         CoprBuildModel.get_or_create(
-            build_id="123456",
-            commit_sha="687abc76d67d",
-            project_name="SomeUser-hello-world-9",
-            owner="packit",
-            web_url="https://copr.something.somewhere/123456",
-            target="fedora-42-x86_64",
-            status="pending",
-            srpm_build=srpm_build,
+            build_id=SampleValues.build_id,
+            commit_sha=SampleValues.ref,
+            project_name=SampleValues.project,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url,
+            target=SampleValues.target,
+            status=SampleValues.status_success,
+            srpm_build=srpm_build_model,
             trigger_model=pr_model,
         ),
         # branch push trigger
         CoprBuildModel.get_or_create(
-            build_id="123456",
-            commit_sha="687abc76d67d",
-            project_name="SomeUser-hello-world-9",
-            owner="packit",
-            web_url="https://copr.something.somewhere/123456",
-            target="fedora-43-x86_64",
-            status="pending",
-            srpm_build=srpm_build,
+            build_id=SampleValues.different_build_id,
+            commit_sha=SampleValues.ref,
+            project_name=SampleValues.project,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url,
+            target=SampleValues.target,
+            status=SampleValues.status_success,
+            srpm_build=srpm_build_model,
             trigger_model=branch_model,
         ),
         # release trigger
         CoprBuildModel.get_or_create(
-            build_id="987654",
-            commit_sha="987def76d67e",
-            project_name="SomeUser-random-text-7",
-            owner="cockpit-project",
-            web_url="https://copr.something.somewhere/987654",
-            target="fedora-43-x86_64",
-            status="pending",
-            srpm_build=srpm_build,
+            build_id=SampleValues.another_different_build_id,
+            commit_sha=SampleValues.ref,
+            project_name=SampleValues.project,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url,
+            target=SampleValues.target,
+            status=SampleValues.status_success,
+            srpm_build=srpm_build_model,
             trigger_model=release_model,
         ),
     ]
@@ -290,140 +332,136 @@ def copr_builds_with_different_triggers(pr_model, branch_model, release_model):
 
 # Create a single build
 @pytest.fixture()
-def a_koji_build(pr_model):
-    srpm_build = SRPMBuildModel.create("asd\nqwe\n")
+def a_koji_build(pr_model, srpm_build_model):
     yield KojiBuildModel.get_or_create(
-        build_id="123456",
-        commit_sha="687abc76d67d",
-        web_url="https://copr.something.somewhere/123456",
-        target=TARGET,
-        status="pending",
-        srpm_build=srpm_build,
+        build_id=SampleValues.build_id,
+        commit_sha=SampleValues.commit_sha,
+        web_url=SampleValues.koji_web_url,
+        target=SampleValues.target,
+        status=SampleValues.status_pending,
+        srpm_build=srpm_build_model,
         trigger_model=pr_model,
     )
 
 
-# Create multiple builds
-# Used for testing queries
 @pytest.fixture()
-def multiple_koji_builds(pr_trigger_model, different_pr_trigger_model):
-    srpm_build = SRPMBuildModel.create("asd\nqwe\n")
+def multiple_koji_builds(pr_model, different_pr_model, srpm_build_model):
     yield [
         KojiBuildModel.get_or_create(
-            build_id="123456",
-            commit_sha="687abc76d67d",
-            web_url="https://copr.something.somewhere/123456",
-            target="fedora-42-x86_64",
-            status="pending",
-            srpm_build=srpm_build,
-            trigger_model=pr_trigger_model,
+            build_id=SampleValues.build_id,
+            commit_sha=SampleValues.commit_sha,
+            web_url=SampleValues.koji_web_url,
+            target=SampleValues.target,
+            status=SampleValues.status_pending,
+            srpm_build=srpm_build_model,
+            trigger_model=pr_model,
         ),
         # Same build_id but different chroot
         KojiBuildModel.get_or_create(
-            build_id="123456",
-            commit_sha="687abc76d67d",
-            web_url="https://copr.something.somewhere/123456",
-            target="fedora-43-x86_64",
-            status="pending",
-            srpm_build=srpm_build,
-            trigger_model=pr_trigger_model,
+            build_id=SampleValues.build_id,
+            commit_sha=SampleValues.commit_sha,
+            web_url=SampleValues.koji_web_url,
+            target=SampleValues.different_target,
+            status=SampleValues.status_pending,
+            srpm_build=srpm_build_model,
+            trigger_model=pr_model,
         ),
         # Completely different build
         KojiBuildModel.get_or_create(
-            build_id="987654",
-            commit_sha="987def76d67e",
-            web_url="https://copr.something.somewhere/987654",
-            target="fedora-43-x86_64",
-            status="pending",
-            srpm_build=srpm_build,
-            trigger_model=different_pr_trigger_model,
+            build_id=SampleValues.different_build_id,
+            commit_sha=SampleValues.different_commit_sha,
+            web_url=SampleValues.koji_web_url,
+            target=SampleValues.target,
+            status=SampleValues.status_pending,
+            srpm_build=srpm_build_model,
+            trigger_model=different_pr_model,
         ),
     ]
 
 
-# Create a single test run
 @pytest.fixture()
 def a_new_test_run_pr(pr_model):
     yield TFTTestRunModel.create(
-        pipeline_id="123456",
-        commit_sha="687abc76d67d",
-        web_url="https://console-testing-farm.apps.ci.centos.org/"
-        "pipeline/02271aa8-2917-4741-a39e-78d8706c56c1",
-        target=TARGET,
+        pipeline_id=SampleValues.pipeline_id,
+        commit_sha=SampleValues.commit_sha,
+        web_url=SampleValues.testing_farm_url,
+        target=SampleValues.target,
         status=TestingFarmResult.new,
         trigger_model=pr_model,
     )
 
 
-# Create a single test run
 @pytest.fixture()
 def a_new_test_run_branch_push(branch_model):
     yield TFTTestRunModel.create(
-        pipeline_id="123456",
-        commit_sha="687abc76d67d",
-        web_url="https://console-testing-farm.apps.ci.centos.org/"
-        "pipeline/02271aa8-2917-4741-a39e-78d8706c56c1",
-        target=TARGET,
+        pipeline_id=SampleValues.pipeline_id,
+        commit_sha=SampleValues.commit_sha,
+        web_url=SampleValues.testing_farm_url,
+        target=SampleValues.target,
         status=TestingFarmResult.new,
         trigger_model=branch_model,
     )
 
 
-# Create multiple builds
-# Used for testing queries
 @pytest.fixture()
 def multiple_new_test_runs(pr_model, different_pr_model):
     yield [
         TFTTestRunModel.create(
-            pipeline_id="123456",
-            commit_sha="687abc76d67d",
-            web_url="https://console-testing-farm.apps.ci.centos.org/"
-            "pipeline/02271aa8-2917-4741-a39e-78d8706c56c1",
-            target="fedora-42-x86_64",
+            pipeline_id=SampleValues.pipeline_id,
+            commit_sha=SampleValues.commit_sha,
+            web_url=SampleValues.testing_farm_url,
+            target=SampleValues.target,
             status=TestingFarmResult.new,
             trigger_model=pr_model,
         ),
         # Same commit_sha but different chroot and pipeline_id
         TFTTestRunModel.create(
-            pipeline_id="123457",
-            commit_sha="687abc76d67d",
-            web_url="https://console-testing-farm.apps.ci.centos.org/"
-            "pipeline/02271aa8-2917-4741-a39e-78d8706c56c2",
-            target="fedora-43-x86_64",
+            pipeline_id=SampleValues.different_pipeline_id,
+            commit_sha=SampleValues.commit_sha,
+            web_url=SampleValues.testing_farm_url,
+            target=SampleValues.different_target,
             status=TestingFarmResult.new,
             trigger_model=pr_model,
         ),
         # Completely different build
         TFTTestRunModel.create(
-            pipeline_id="987654",
-            commit_sha="987def76d67e",
-            web_url="https://console-testing-farm.apps.ci.centos.org/"
-            "pipeline/12272ba8-2918-4751-a40e-78d8706c56d4",
-            target="fedora-43-x86_64",
+            pipeline_id=SampleValues.another_different_pipeline_id,
+            commit_sha=SampleValues.different_commit_sha,
+            web_url=SampleValues.testing_farm_url,
+            target=SampleValues.different_target,
             status=TestingFarmResult.running,
             trigger_model=different_pr_model,
         ),
     ]
 
 
-# Create multiple whitelist entries
 @pytest.fixture()
 def multiple_whitelist_entries():
     yield [
-        WhitelistModel.add_account(account_name="Rayquaza", status="approved_manually"),
-        WhitelistModel.add_account(account_name="Deoxys", status="approved_manually"),
+        WhitelistModel.add_account(
+            account_name=SampleValues.account_name, status="approved_manually"
+        ),
+        WhitelistModel.add_account(
+            account_name=SampleValues.different_account_name, status="approved_manually"
+        ),
         # Not a typo, account_name repeated intentionally to check behaviour
-        WhitelistModel.add_account(account_name="Deoxys", status="waiting"),
-        WhitelistModel.add_account(account_name="Solgaleo", status="waiting"),
-        WhitelistModel.add_account(account_name="Zacian", status="approved_manually"),
+        WhitelistModel.add_account(
+            account_name=SampleValues.different_account_name, status="waiting"
+        ),
+        WhitelistModel.add_account(
+            account_name=SampleValues.another_different_acount_name, status="waiting"
+        ),
+        WhitelistModel.add_account(
+            account_name=SampleValues.yet_another_different_acount_name,
+            status="approved_manually",
+        ),
     ]
 
 
-# Create new whitelist entry
 @pytest.fixture()
 def new_whitelist_entry(clean_before_and_after):
     yield WhitelistModel.add_account(
-        account_name="Rayquaza", status="approved_manually"
+        account_name=SampleValues.account_name, status="approved_manually"
     )
 
 

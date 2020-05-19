@@ -5,6 +5,7 @@ from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerTyp
 from packit.config.job_config import JobMetadataConfig
 from packit_service.service.events import TheJobTriggerType
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
+from packit_service.worker.build.koji_build import KojiBuildJobHelper
 
 
 @pytest.mark.parametrize(
@@ -240,6 +241,20 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
             {"fedora-29-x86_64"},
             id="build_with_mixed_build_alias",
         ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(targets=["fedora-29", "fedora-31"]),
+                )
+            ],
+            TheJobTriggerType.pull_request,
+            JobConfigTriggerType.pull_request,
+            {"fedora-30-x86_64", "fedora-31-x86_64"},
+            set(),
+            id="koji_build_with_targets_for_pr",
+        ),
     ],
 )
 def test_targets(jobs, trigger, job_config_trigger_type, build_targets, test_targets):
@@ -259,3 +274,75 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_targets, test_tar
 
     assert set(copr_build_handler.build_chroots) == build_targets
     assert set(copr_build_handler.tests_chroots) == test_targets
+
+
+@pytest.mark.parametrize(
+    "jobs,trigger,job_config_trigger_type,build_targets,test_targets",
+    [
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(targets=["fedora-29", "fedora-31"]),
+                )
+            ],
+            TheJobTriggerType.pull_request,
+            JobConfigTriggerType.pull_request,
+            {"fedora-29-x86_64", "fedora-31-x86_64"},
+            set(),
+            id="koji_build_with_targets_for_pr",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(
+                        targets=["fedora-29", "fedora-31"], branch="build-branch"
+                    ),
+                )
+            ],
+            TheJobTriggerType.push,
+            JobConfigTriggerType.commit,
+            {"fedora-29-x86_64", "fedora-31-x86_64"},
+            set(),
+            id="koji_build_with_targets_for_commit",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(
+                        targets=["fedora-29", "fedora-31"], branch="build-branch"
+                    ),
+                )
+            ],
+            TheJobTriggerType.release,
+            JobConfigTriggerType.release,
+            {"fedora-29-x86_64", "fedora-31-x86_64"},
+            set(),
+            id="koji_build_with_targets_for_release",
+        ),
+    ],
+)
+def test_targets_for_koji_build(
+    jobs, trigger, job_config_trigger_type, build_targets, test_targets
+):
+    koji_build_handler = KojiBuildJobHelper(
+        config=flexmock(),
+        package_config=PackageConfig(jobs=jobs),
+        project=flexmock(),
+        event=flexmock(
+            trigger=trigger,
+            db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
+            pr_id=41 if trigger == TheJobTriggerType.pull_request else None,
+        ),
+    )
+
+    assert koji_build_handler.package_config.jobs
+    assert [j.type for j in koji_build_handler.package_config.jobs]
+
+    assert set(koji_build_handler.build_chroots) == build_targets
+    assert set(koji_build_handler.tests_chroots) == test_targets

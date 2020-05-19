@@ -23,16 +23,18 @@
 """
 Flask views for packit-service
 """
+from typing import Union
+
 from flask import Blueprint
 
 from packit_service.log_versions import log_service_versions
-
 from packit_service.models import (
     CoprBuildModel,
     SRPMBuildModel,
     PullRequestModel,
     GitBranchModel,
     ProjectReleaseModel,
+    KojiBuildModel,
 )
 
 builds_blueprint = Blueprint("builds", __name__)
@@ -54,7 +56,9 @@ def get_srpm_build_logs_by_id(id_):
     return f"We can't find any info about SRPM build {id_}.\n"
 
 
-def _get_build_logs_for_build(build):
+def _get_build_logs_for_build(
+    build: Union[KojiBuildModel, CoprBuildModel], build_description: str
+):
     project = build.get_project()
 
     trigger = build.job_trigger.get_trigger_object()
@@ -69,9 +73,9 @@ def _get_build_logs_for_build(build):
 
     response = (
         "<html><head>"
-        f"<title>Build {project.namespace}/{project.repo_name}:"
+        f"<title>{build_description} {project.namespace}/{project.repo_name}:"
         f" {title_identifier}</title></head><body>"
-        f"COPR Build ID: {build.build_id}<br>"
+        f"{build_description} ID: {build.build_id}<br>"
         f"State: {build.status}<br><br>"
         f'Build web interface URL: <a href="{build.web_url}">{build.web_url}</a><br>'
     )
@@ -89,9 +93,18 @@ def _get_build_logs_for_build(build):
 
 
 @builds_blueprint.route("/copr-build/<int:id_>/logs", methods=("GET",))
-def get_build_logs_by_id(id_):
+def get_copr_build_logs_by_id(id_):
     log_service_versions()
     build = CoprBuildModel.get_by_id(id_)
     if build:
-        return _get_build_logs_for_build(build)
+        return _get_build_logs_for_build(build, build_description="COPR build")
     return f"We can't find any info about COPR build {id_}.\n"
+
+
+@builds_blueprint.route("/koji-build/<int:id_>/logs", methods=("GET",))
+def get_koji_build_logs_by_id(id_):
+    log_service_versions()
+    build = KojiBuildModel.get_by_id(id_)
+    if build:
+        return _get_build_logs_for_build(build, build_description="Koji build")
+    return f"We can't find any info about Koji build {id_}.\n"

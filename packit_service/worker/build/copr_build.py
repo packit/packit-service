@@ -20,20 +20,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
-from io import StringIO
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
 
-from kubernetes.client.rest import ApiException
 from ogr.abstract import GitProject, CommitStatus
 from packit.config import PackageConfig, JobType, JobConfig
-from packit.utils import PackitFormatter
-from sandcastle import SandcastleTimeoutReached
-
-from packit_service.celerizer import celery_app
+from packit.exceptions import PackitCoprException
 from packit_service import sentry_integration
+from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import MSG_RETRIGGER
-from packit_service.models import CoprBuildModel, SRPMBuildModel
+from packit_service.models import CoprBuildModel
 from packit_service.service.events import (
     PullRequestGithubEvent,
     PullRequestCommentGithubEvent,
@@ -43,20 +39,14 @@ from packit_service.service.events import (
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
 )
-from packit_service.service.urls import get_log_url, get_srpm_log_url
+from packit_service.service.urls import (
+    get_srpm_log_url_from_flask,
+    get_copr_build_log_url_from_flask,
+)
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
-
-
-class BuildMetadata:
-    """ metadata of this class represent srpm + copr build """
-
-    srpm_logs: str
-    srpm_failed: bool  # did the srpm phase failed?
-    copr_build_id: Optional[int]
-    copr_web_url: Optional[str]
 
 
 class CoprBuildJobHelper(BaseBuildJobHelper):
@@ -130,33 +120,42 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             # pagure requires "valid url"
             url="",
         )
+        self.create_srpm_if_needed()
 
-        build_metadata = self._run_copr_build_and_save_output()
-
-        srpm_build_model = SRPMBuildModel.create(build_metadata.srpm_logs)
-
-        if build_metadata.srpm_failed:
+        if not self.srpm_model.success:
             msg = "SRPM build failed, check the logs for details."
             self.report_status_to_all(
                 state=CommitStatus.failure,
                 description=msg,
-                url=get_srpm_log_url(srpm_build_model.id),
+                url=get_srpm_log_url_from_flask(self.srpm_model.id),
             )
             return HandlerResults(success=False, details={"msg": msg})
 
+        try:
+            build_id, web_url = self.run_build()
+        except Exception as ex:
+            sentry_integration.send_to_sentry(ex)
+            # TODO: Where can we show more info about failure?
+            # TODO: Retry
+            self.report_status_to_all(
+                state=CommitStatus.pending,
+                description=f"Submit of the build failed: {ex}",
+            )
+            return HandlerResults(success=False, details={"error": str(ex)})
+
         for chroot in self.build_chroots:
             copr_build = CoprBuildModel.get_or_create(
-                build_id=str(build_metadata.copr_build_id),
+                build_id=str(build_id),
                 commit_sha=self.event.commit_sha,
                 project_name=self.job_project,
                 owner=self.job_owner,
-                web_url=build_metadata.copr_web_url,
+                web_url=web_url,
                 target=chroot,
                 status="pending",
-                srpm_build=srpm_build_model,
+                srpm_build=self.srpm_model,
                 trigger_model=self.event.db_trigger,
             )
-            url = get_log_url(id_=copr_build.id)
+            url = get_copr_build_log_url_from_flask(id_=copr_build.id)
             self.report_status_to_all_for_chroot(
                 state=CommitStatus.pending,
                 description="Starting RPM build...",
@@ -167,71 +166,39 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         # release the hounds!
         celery_app.send_task(
             "task.babysit_copr_build",
-            args=(build_metadata.copr_build_id,),
+            args=(build_id,),
             countdown=120,  # do the first check in 120s
         )
 
         return HandlerResults(success=True, details={})
 
-    def _run_copr_build_and_save_output(self) -> BuildMetadata:
-        # we want to get packit logs from the SRPM creation process
-        # so we stuff them into a StringIO buffer
-        stream = StringIO()
-        handler = logging.StreamHandler(stream)
-        packit_logger = logging.getLogger("packit")
-        packit_logger.setLevel(logging.DEBUG)
-        packit_logger.addHandler(handler)
-        formatter = PackitFormatter(None, "%H:%M:%S")
-        handler.setFormatter(formatter)
+    def run_build(
+        self, target: Optional[str] = None
+    ) -> Tuple[Optional[int], Optional[str]]:
+        """
+        Trigger the build and return id and web_url
+        :param target: str, run for all if not set
+        :return: task_id, task_url
+        """
 
-        c = BuildMetadata()
-        c.srpm_failed = False
-        ex: Optional[Exception] = None  # shut up pycharm
-        extra_logs: str = ""
-
-        try:
-            c.copr_build_id, c.copr_web_url = self.api.run_copr_build(
-                project=self.job_project,
-                chroots=self.build_chroots,
-                owner=self.job_owner,
-            )
-        except SandcastleTimeoutReached as e:
-            ex = e
-            extra_logs = f"\nYou have reached 10-minute timeout while creating SRPM.\n"
-        except ApiException as e:
-            ex = e
-            # this is an internal error: let's not expose anything to public
-            extra_logs = (
-                "\nThere was a problem in the environment the packit-service is running in.\n"
-                "Please hang tight, the help is coming."
-            )
-        except Exception as e:
-            ex = e  # shut up mypy
-
-        # collect the logs now
-        packit_logger.removeHandler(handler)
-        stream.seek(0)
-        c.srpm_logs = stream.read()
-
-        if ex:
-            logger.info(f"Exception while running a copr build: {ex}")
-            logger.debug(f"{ex!r}")
-
-            c.srpm_failed = True
-
-            # when do we NOT want to send stuff to sentry?
-            sentry_integration.send_to_sentry(ex)
-
-            # this needs to be done AFTER we gather logs
-            # so that extra logs are after actual logs
-            c.srpm_logs += extra_logs
-            if hasattr(ex, "output"):
-                output = getattr(ex, "output", "")  # mypy
-                c.srpm_logs += f"\nOutput of the command in the sandbox:\n{output}\n"
-
-            c.srpm_logs += (
-                f"\nMessage: {ex}\nException: {ex!r}\n{self.msg_retrigger}"
-                "\nPlease join the freenode IRC channel #packit for the latest info.\n"
+        owner = self.job_owner or self.api.copr_helper.configured_owner
+        if not owner:
+            raise PackitCoprException(
+                f"Copr owner not set. Use Copr config file or `--owner` when calling packit CLI."
             )
 
-        return c
+        self.api.copr_helper.create_copr_project_if_not_exists(
+            project=self.job_project,
+            chroots=self.build_chroots,
+            owner=owner,
+            description=None,
+            instructions=None,
+        )
+        logger.debug(
+            f"owner={owner}, project={self.job_project}, path={self.srpm_path}"
+        )
+
+        build = self.api.copr_helper.copr_client.build_proxy.create_from_file(
+            ownername=owner, projectname=self.job_project, path=self.srpm_path
+        )
+        return build.id, self.api.copr_helper.copr_web_build_url(build)

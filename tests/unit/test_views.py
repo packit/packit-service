@@ -12,7 +12,10 @@ from packit_service.models import (
     SRPMBuildModel,
 )
 from packit_service.service.app import application
-from packit_service.service.urls import get_log_url, get_srpm_log_url
+from packit_service.service.urls import (
+    get_copr_build_log_url_from_flask,
+    get_srpm_log_url_from_flask,
+)
 
 
 @pytest.fixture
@@ -71,15 +74,15 @@ def test_get_logs(client):
     )
 
     url = f"/copr-build/1/logs"
-    logs_url = get_log_url(1)
+    logs_url = get_copr_build_log_url_from_flask(1)
     assert logs_url.endswith(url)
 
     resp = client.get(url)
     expected = (
         "<html><head>"
-        f"<title>Build {project.namespace}/{project.repo_name}:"
+        f"<title>COPR build {project.namespace}/{project.repo_name}:"
         f" PR #{pr.pr_id}</title></head><body>"
-        f"COPR Build ID: {c.build_id}<br>"
+        f"COPR build ID: {c.build_id}<br>"
         f"State: {c.status}<br><br>"
         f'Build web interface URL: <a href="{c.web_url}">{c.web_url}</a><br>'
         f'Build logs: <a href="{c.build_logs_url}">{c.build_logs_url}</a><br>'
@@ -98,7 +101,7 @@ def test_get_srpm_logs(client):
     flexmock(SRPMBuildModel).should_receive("get_by_id").and_return(srpm_build)
 
     url = f"/srpm-build/2/logs"
-    logs_url = get_srpm_log_url(2)
+    logs_url = get_srpm_log_url_from_flask(2)
     assert logs_url.endswith(url)
 
     resp = client.get(url)

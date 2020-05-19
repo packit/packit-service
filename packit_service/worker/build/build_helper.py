@@ -20,15 +20,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
-from typing import Union, List, Optional
+from io import StringIO
+from pathlib import Path
+from typing import Union, List, Optional, Tuple
+
+from kubernetes.client.rest import ApiException
 
 from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobType, JobConfig
 from packit.config.aliases import get_build_targets
 from packit.local_project import LocalProject
-
+from packit.utils import PackitFormatter
+from packit_service import sentry_integration
 from packit_service.config import ServiceConfig, Deployment
+from packit_service.models import SRPMBuildModel
 from packit_service.service.events import (
     PullRequestGithubEvent,
     PullRequestCommentGithubEvent,
@@ -43,6 +49,7 @@ from packit_service.trigger_mapping import (
     are_job_types_same,
 )
 from packit_service.worker.reporting import StatusReporter
+from sandcastle import SandcastleTimeoutReached
 
 logger = logging.getLogger(__name__)
 
@@ -81,14 +88,16 @@ class BaseBuildJobHelper:
             PushGitHubEvent,
             ReleaseEvent,
         ] = event
-        self.pr_id = self.event.pr_id
+        self.msg_retrigger: Optional[str] = ""
 
         # lazy properties
         self._api = None
         self._local_project = None
-        self._status_reporter = None
+        self._status_reporter: Optional[StatusReporter] = None
         self._test_check_names: Optional[List[str]] = None
         self._build_check_names: Optional[List[str]] = None
+        self._srpm_model: Optional[SRPMBuildModel] = None
+        self._srpm_path: Optional[Path] = None
 
         # lazy properties, current job by default
         self._job_build = (
@@ -105,7 +114,7 @@ class BaseBuildJobHelper:
                 git_project=self.project,
                 working_dir=self.config.command_handler_work_dir,
                 ref=self.event.git_ref,
-                pr_id=self.pr_id,
+                pr_id=self.event.pr_id,
             )
         return self._local_project
 
@@ -225,10 +234,10 @@ class BaseBuildJobHelper:
         return self._job_tests
 
     @property
-    def status_reporter(self):
+    def status_reporter(self) -> StatusReporter:
         if not self._status_reporter:
             self._status_reporter = StatusReporter(
-                self.project, self.event.commit_sha, self.pr_id
+                self.project, self.event.commit_sha, self.event.pr_id
             )
         return self._status_reporter
 
@@ -248,6 +257,17 @@ class BaseBuildJobHelper:
             ]
         return self._build_check_names
 
+    @property
+    def srpm_model(self) -> SRPMBuildModel:
+        if not self._srpm_model:
+            self._create_srpm()
+        return self._srpm_model
+
+    @property
+    def srpm_path(self) -> Optional[Path]:
+        self.create_srpm_if_needed()
+        return self._srpm_path
+
     @classmethod
     def get_build_check(cls, chroot: str = None) -> str:
         config = ServiceConfig.get_service_config()
@@ -265,6 +285,71 @@ class BaseBuildJobHelper:
         )
         chroot_str = f"-{chroot}" if chroot else ""
         return f"{deployment_str}/{cls.status_name_test}{chroot_str}"
+
+    def create_srpm_if_needed(self) -> None:
+        """If you want to be sure we already created the SRPM."""
+        if not (self._srpm_path or self._srpm_model):
+            self._create_srpm()
+
+    def _create_srpm(self):
+        # we want to get packit logs from the SRPM creation process
+        # so we stuff them into a StringIO buffer
+        stream = StringIO()
+        handler = logging.StreamHandler(stream)
+        packit_logger = logging.getLogger("packit")
+        packit_logger.setLevel(logging.DEBUG)
+        packit_logger.addHandler(handler)
+        formatter = PackitFormatter(None, "%H:%M:%S")
+        handler.setFormatter(formatter)
+
+        srpm_success = True
+        exception: Optional[Exception] = None
+        extra_logs: str = ""
+
+        try:
+            self._srpm_path = Path(
+                self.api.create_srpm(srpm_dir=self.api.up.local_project.working_dir)
+            )
+        except SandcastleTimeoutReached as ex:
+            exception = ex
+            extra_logs = f"\nYou have reached 10-minute timeout while creating SRPM.\n"
+        except ApiException as ex:
+            exception = ex
+            # this is an internal error: let's not expose anything to public
+            extra_logs = (
+                "\nThere was a problem in the environment the packit-service is running in.\n"
+                "Please hang tight, the help is coming."
+            )
+        except Exception as ex:
+            exception = ex
+
+        # collect the logs now
+        packit_logger.removeHandler(handler)
+        stream.seek(0)
+        srpm_logs = stream.read()
+
+        if exception:
+            logger.info(f"exception while running SRPM build: {exception}")
+            logger.debug(f"{exception!r}")
+
+            srpm_success = False
+
+            # when do we NOT want to send stuff to sentry?
+            sentry_integration.send_to_sentry(exception)
+
+            # this needs to be done AFTER we gather logs
+            # so that extra logs are after actual logs
+            srpm_logs += extra_logs
+            if hasattr(exception, "output"):
+                output = getattr(exception, "output", "")  # mypy
+                srpm_logs += f"\nOutput of the command in the sandbox:\n{output}\n"
+
+            srpm_logs += (
+                f"\nMessage: {exception}\nException: {exception!r}\n{self.msg_retrigger}"
+                "\nPlease join the freenode IRC channel #packit for the latest info.\n"
+            )
+
+        self._srpm_model = SRPMBuildModel.create(logs=srpm_logs, success=srpm_success)
 
     def _report(
         self,
@@ -330,3 +415,13 @@ class BaseBuildJobHelper:
     ):
         self.report_status_to_build_for_chroot(description, state, url, chroot)
         self.report_status_to_test_for_chroot(description, state, url, chroot)
+
+    def run_build(
+        self, target: Optional[str] = None
+    ) -> Tuple[Optional[int], Optional[str]]:
+        """
+        Trigger the build and return id and web_url
+        :param target: str, run for all if not set
+        :return: task_id, task_url
+        """
+        raise NotImplementedError()
