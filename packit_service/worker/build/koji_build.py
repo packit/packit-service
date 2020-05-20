@@ -87,6 +87,20 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             )
             return HandlerResults(success=False, details={"msg": msg})
 
+        try:
+            # We need to do it manually
+            # because we don't use PackitAPI.build, but PackitAPI.up.koji_build
+            self.api.init_kerberos_ticket()
+        except PackitCommandFailedError as ex:
+            msg = f"Kerberos authentication error: {ex.stderr_output}"
+            logger.error(msg)
+            self.report_status_to_all(
+                state=CommitStatus.error,
+                description=msg,
+                url=get_srpm_log_url_from_flask(self.srpm_model.id),
+            )
+            return HandlerResults(success=False, details={"msg": msg})
+
         errors: Dict[str, str] = {}
         for chroot in self.build_chroots:
 
