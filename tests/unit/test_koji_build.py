@@ -29,6 +29,7 @@ from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
+from packit.exceptions import PackitCommandFailedError
 from packit.upstream import Upstream
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
@@ -85,7 +86,7 @@ def build_helper(
         project=GitProject(repo=flexmock(), service=flexmock(), namespace=flexmock()),
         event=event,
     )
-    handler._api = PackitAPI(ServiceConfig(), pkg_conf)
+    handler._api = PackitAPI(config=ServiceConfig(), package_config=pkg_conf)
     return handler
 
 
@@ -130,7 +131,55 @@ def test_koji_build_check_names(pull_request_event):
         "Task info: https://koji.fedoraproject.org/koji/taskinfo?taskID=43429338\n"
     )
 
+    flexmock(PackitAPI).should_receive("init_kerberos_ticket").once()
+
     assert helper.run_koji_build()["success"]
+
+
+def test_koji_build_failed_kerberos(pull_request_event):
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
+        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
+    )
+    helper = build_helper(
+        event=pull_request_event,
+        metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="nobody"),
+    )
+
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=CommitStatus.pending,
+        description="Building SRPM ...",
+        check_name="packit-stg/production-build-bright-future-x86_64",
+        url="",
+    ).and_return()
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=CommitStatus.error,
+        description="Kerberos authentication error: the bad authentication error",
+        check_name="packit-stg/production-build-bright-future-x86_64",
+        url=get_srpm_log_url_from_flask(1),
+    ).and_return()
+
+    flexmock(GitProject).should_receive("set_commit_status").and_return().never()
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        SRPMBuildModel(id=1, success=True)
+    )
+    flexmock(KojiBuildModel).should_receive("get_or_create").and_return(
+        KojiBuildModel(id=1)
+    )
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+
+    flexmock(PackitAPI).should_receive("init_kerberos_ticket").and_raise(
+        PackitCommandFailedError,
+        "Command failed",
+        stdout_output="",
+        stderr_output="the bad authentication error",
+    )
+
+    response = helper.run_koji_build()
+    assert not response["success"]
+    assert (
+        "Kerberos authentication error: the bad authentication error"
+        == response["details"]["msg"]
+    )
 
 
 def test_koji_build_with_multiple_targets(pull_request_event):
