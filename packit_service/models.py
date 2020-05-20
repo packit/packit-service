@@ -28,7 +28,7 @@ import logging
 import os
 from contextlib import contextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional, Union, Iterable, Dict, Type
+from typing import TYPE_CHECKING, Optional, Union, Iterable, Dict, Type, Any
 
 from sqlalchemy import (
     Column,
@@ -536,6 +536,35 @@ class KojiBuildModel(Base):
 
     def get_project(self) -> GitProjectModel:
         return self.job_trigger.get_trigger_object().project
+
+    @property
+    def api_structure(self) -> Dict[str, Any]:
+        base = {
+            "build_id": self.build_id,
+            "status": self.status,
+            "commit_sha": self.commit_sha,
+            "target": self.target,
+            "build_submitted_time": optional_time(self.build_submitted_time),
+            "build_start_time": optional_time(self.build_start_time),
+            "build_finished_time": optional_time(self.build_finished_time),
+            "web_url": self.web_url,
+            "build_logs_url": self.build_logs_url,
+        }
+        project = self.get_project()
+        if project:
+            base["project_url"] = project.project_url
+            base["repo_namespace"] = project.namespace
+            base["repo_name"] = project.repo_name
+
+        trigger = self.job_trigger.get_trigger_object()
+        if isinstance(trigger, PullRequestModel):
+            base["pr_id"] = trigger.pr_id
+        elif isinstance(trigger, GitBranchModel):
+            base["build_branch"] = trigger.name
+        elif isinstance(trigger, ProjectReleaseModel):
+            base["release"] = trigger.tag_name
+
+        return base
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["KojiBuildModel"]:

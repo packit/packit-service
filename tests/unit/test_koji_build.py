@@ -144,30 +144,8 @@ def test_koji_build_with_multiple_targets(pull_request_event):
         ),
     )
 
-    flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.pending,
-        description="Building SRPM ...",
-        check_name="packit-stg/production-build-bright-future-x86_64",
-        url="",
-    ).and_return()
-    flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.pending,
-        description="Building SRPM ...",
-        check_name="packit-stg/production-build-dark-past-i386",
-        url="",
-    ).and_return()
-    flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.pending,
-        description="Building RPM ...",
-        check_name="packit-stg/production-build-bright-future-x86_64",
-        url=get_koji_build_log_url_from_flask(2),
-    ).and_return()
-    flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.pending,
-        description="Building RPM ...",
-        check_name="packit-stg/production-build-dark-past-i386",
-        url=get_koji_build_log_url_from_flask(1),
-    ).and_return()
+    # 2x SRPM + 2x RPM
+    flexmock(StatusReporter).should_receive("set_status").and_return().times(4)
 
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create").and_return(

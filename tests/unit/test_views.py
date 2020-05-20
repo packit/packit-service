@@ -10,6 +10,7 @@ from packit_service.models import (
     PullRequestModel,
     GitProjectModel,
     SRPMBuildModel,
+    optional_time,
 )
 from packit_service.service.app import application
 from packit_service.service.urls import (
@@ -83,6 +84,7 @@ def test_get_logs(client):
         f"<title>COPR build {project.namespace}/{project.repo_name}:"
         f" PR #{pr.pr_id}</title></head><body>"
         f"COPR build ID: {c.build_id}<br>"
+        f"Submitted: {optional_time(c.build_submitted_time)}<br>"
         f"State: {c.status}<br><br>"
         f'Build web interface URL: <a href="{c.web_url}">{c.web_url}</a><br>'
         f'Build logs: <a href="{c.build_logs_url}">{c.build_logs_url}</a><br>'

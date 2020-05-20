@@ -21,6 +21,8 @@
 # SOFTWARE.
 from flask import Blueprint
 
+from packit_service.service.api.koji_builds import koji_builds_ns
+
 try:
     from flask_restx import Api
 except ModuleNotFoundError:
@@ -50,3 +52,4 @@ api.add_namespace(tasks_ns)
 api.add_namespace(testing_farm_ns)
 api.add_namespace(webhooks_ns)
 api.add_namespace(whitelist_ns)
+api.add_namespace(koji_builds_ns)

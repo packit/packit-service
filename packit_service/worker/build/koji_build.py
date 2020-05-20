@@ -125,7 +125,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             return HandlerResults(
                 success=False,
                 details={
-                    "msg": f"Koji build submit was not successful for all chroots.",
+                    "msg": "Koji build submit was not successful for all chroots.",
                     "errors": errors,
                 },
             )

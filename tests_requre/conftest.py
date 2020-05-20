@@ -51,7 +51,6 @@ from packit_service.models import (
     TaskResultModel,
     InstallationModel,
 )
-
 from packit_service.service.events import InstallationEvent
 
 
@@ -330,9 +329,8 @@ def copr_builds_with_different_triggers(
     ]
 
 
-# Create a single build
 @pytest.fixture()
-def a_koji_build(pr_model, srpm_build_model):
+def a_koji_build_for_pr(pr_model, srpm_build_model):
     yield KojiBuildModel.get_or_create(
         build_id=SampleValues.build_id,
         commit_sha=SampleValues.commit_sha,
@@ -341,6 +339,32 @@ def a_koji_build(pr_model, srpm_build_model):
         status=SampleValues.status_pending,
         srpm_build=srpm_build_model,
         trigger_model=pr_model,
+    )
+
+
+@pytest.fixture()
+def a_koji_build_for_branch_push(branch_model, srpm_build_model):
+    yield KojiBuildModel.get_or_create(
+        build_id=SampleValues.build_id,
+        commit_sha=SampleValues.commit_sha,
+        web_url=SampleValues.koji_web_url,
+        target=SampleValues.target,
+        status=SampleValues.status_pending,
+        srpm_build=srpm_build_model,
+        trigger_model=branch_model,
+    )
+
+
+@pytest.fixture()
+def a_koji_build_for_release(release_model, srpm_build_model):
+    yield KojiBuildModel.get_or_create(
+        build_id=SampleValues.build_id,
+        commit_sha=SampleValues.commit_sha,
+        web_url=SampleValues.koji_web_url,
+        target=SampleValues.target,
+        status=SampleValues.status_pending,
+        srpm_build=srpm_build_model,
+        trigger_model=release_model,
     )
 
 
@@ -356,9 +380,8 @@ def multiple_koji_builds(pr_model, different_pr_model, srpm_build_model):
             srpm_build=srpm_build_model,
             trigger_model=pr_model,
         ),
-        # Same build_id but different chroot
         KojiBuildModel.get_or_create(
-            build_id=SampleValues.build_id,
+            build_id=SampleValues.different_build_id,
             commit_sha=SampleValues.commit_sha,
             web_url=SampleValues.koji_web_url,
             target=SampleValues.different_target,
@@ -368,7 +391,7 @@ def multiple_koji_builds(pr_model, different_pr_model, srpm_build_model):
         ),
         # Completely different build
         KojiBuildModel.get_or_create(
-            build_id=SampleValues.different_build_id,
+            build_id=SampleValues.another_different_build_id,
             commit_sha=SampleValues.different_commit_sha,
             web_url=SampleValues.koji_web_url,
             target=SampleValues.target,
