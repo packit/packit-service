@@ -6,6 +6,7 @@ from github import Github
 
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
+from packit.config.aliases import get_branches
 from packit.fedpkg import FedPKG
 from packit.local_project import LocalProject
 from packit_service import sentry_integration
@@ -15,6 +16,11 @@ from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
 from tests.spellbook import DATA_DIR
+
+
+@pytest.fixture(scope="module")
+def fedora_branches():
+    return sorted(get_branches("fedora-all"))
 
 
 @pytest.fixture()
@@ -57,7 +63,7 @@ def test_dist_git_push_release_handle(release_event):
     assert results["event"]["trigger"] == "release"
 
 
-def test_dist_git_push_release_handle_multiple_branches(release_event):
+def test_dist_git_push_release_handle_multiple_branches(release_event, fedora_branches):
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, "
@@ -80,19 +86,10 @@ def test_dist_git_push_release_handle_multiple_branches(release_event):
     config.get_project = lambda url: project
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     # it would make sense to make LocalProject offline
-    flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="master", version="0.3.0"
-    ).once()
-
-    flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="f32", version="0.3.0"
-    ).once()
-    flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="f31", version="0.3.0"
-    ).once()
-    flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="f30", version="0.3.0"
-    ).once()
+    for branch in fedora_branches:
+        flexmock(PackitAPI).should_receive("sync_release").with_args(
+            dist_git_branch=branch, version="0.3.0"
+        ).once()
 
     flexmock(FedPKG).should_receive("clone").and_return(None)
 
@@ -105,7 +102,7 @@ def test_dist_git_push_release_handle_multiple_branches(release_event):
     assert results["event"]["trigger"] == "release"
 
 
-def test_dist_git_push_release_handle_one_failed(release_event):
+def test_dist_git_push_release_handle_one_failed(release_event, fedora_branches):
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, "
@@ -133,19 +130,15 @@ def test_dist_git_push_release_handle_one_failed(release_event):
     config.get_project = lambda url: project
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     # it would make sense to make LocalProject offline
-    flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="master", version="0.3.0"
-    ).once()
-
-    flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="f32", version="0.3.0"
-    ).and_raise(Exception, "Failed f30").once()
-    flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="f31", version="0.3.0"
-    ).once()
-    flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="f30", version="0.3.0"
-    ).once()
+    for i, branch in enumerate(fedora_branches):
+        sync_release = (
+            flexmock(PackitAPI)
+            .should_receive("sync_release")
+            .with_args(dist_git_branch=branch, version="0.3.0")
+            .once()
+        )
+        if i == 1:
+            sync_release.and_raise(Exception, f"Failed {branch}").once()
 
     flexmock(FedPKG).should_receive("clone").and_return(None)
 
@@ -159,13 +152,16 @@ def test_dist_git_push_release_handle_one_failed(release_event):
     assert results["event"]["trigger"] == "release"
 
 
-def test_dist_git_push_release_handle_all_failed(release_event):
+def test_dist_git_push_release_handle_all_failed(release_event, fedora_branches):
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, "
         "metadata: {targets:[], dist-git-branch: fedora-all}}]}"
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
+    table_content = ""
+    for branch in fedora_branches:
+        table_content += f"| `{branch}` | `Failed` |\n"
     project = (
         flexmock(
             get_file_content=lambda path, ref: packit_yaml,
@@ -182,10 +178,7 @@ def test_dist_git_push_release_handle_all_failed(release_event):
             body="Packit failed on creating pull-requests in dist-git:\n\n"
             "| dist-git branch | error |\n"
             "| --------------- | ----- |\n"
-            "| `f30` | `Failed` |\n"
-            "| `f31` | `Failed` |\n"
-            "| `f32` | `Failed` |\n"
-            "| `master` | `Failed` |\n\n\n"
+            f"{table_content}\n\n"
             "You can re-trigger the update by adding `/packit propose-update`"
             " to the issue comment.\n",
         )
@@ -201,13 +194,14 @@ def test_dist_git_push_release_handle_all_failed(release_event):
     # it would make sense to make LocalProject offline
     flexmock(PackitAPI).should_receive("sync_release").and_raise(
         Exception, "Failed"
-    ).times(4)
+    ).times(len(fedora_branches))
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
 
-    # 4 = master, f32, 31, 30
-    flexmock(sentry_integration).should_receive("send_to_sentry").and_return().times(4)
+    flexmock(sentry_integration).should_receive("send_to_sentry").and_return().times(
+        len(fedora_branches)
+    )
 
     results = SteveJobs().process_message(release_event)
     assert not results["jobs"]["propose_downstream"]["success"]
