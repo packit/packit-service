@@ -51,6 +51,8 @@ class ServiceConfigSchema(UserConfigSchema):
     testing_farm_secret = fields.String()
     fas_password = fields.String(default="")
     validate_webhooks = fields.Bool(default=False)
+    bugzilla_url = fields.String(default="")
+    bugzilla_api_key = fields.String(default="")
     admins = fields.List(fields.String())
     server_name = fields.String()
 

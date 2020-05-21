@@ -53,6 +53,8 @@ def service_config_valid():
         "webhook_secret": "secret",
         "validate_webhooks": True,
         "testing_farm_secret": "granko",
+        "bugzilla_url": "https://ladybug-zilla",
+        "bugzilla_api_key": "ratamahatta",
         "command_handler": "sandcastle",
         "command_handler_work_dir": "/sandcastle",
         "command_handler_image_reference": "docker.io/usercont/sandcastle",
@@ -72,6 +74,8 @@ def test_parse_valid(service_config_valid):
     assert config.webhook_secret == "secret"
     assert config.validate_webhooks
     assert config.testing_farm_secret == "granko"
+    assert config.bugzilla_url == "https://ladybug-zilla"
+    assert config.bugzilla_api_key == "ratamahatta"
     assert config.command_handler_work_dir == "/sandcastle"
     assert config.admins == {"Dasher", "Dancer", "Vixen", "Comet", "Blitzen"}
     assert config.server_name == "hub.packit.org"
