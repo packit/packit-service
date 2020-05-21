@@ -1,0 +1,4 @@
+48c48
+<     for attr in cls.__dict__:
+---
+>     for attr in list(cls.__dict__):
