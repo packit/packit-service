@@ -494,3 +494,34 @@ def test_get_installation_by_account(
 ):
     assert InstallationModel.get_by_account_login("teg").sender_login == "teg"
     assert InstallationModel.get_by_account_login("Pac23").sender_login == "Pac23"
+
+
+def test_pr_get_copr_builds(clean_before_and_after):
+    pr1 = PullRequestModel.get_or_create(
+        pr_id=1,
+        namespace="the-namespace",
+        repo_name="the-repo-name",
+        project_url="https://github.com/the-namespace/the-repo-name",
+    )
+    srpm_build = SRPMBuildModel.create("asd\nqwe\n", success=True)
+    copr_build = CoprBuildModel.get_or_create(
+        build_id="123456",
+        commit_sha="687abc76d67d",
+        project_name="SomeUser-hello-world-9",
+        owner="packit",
+        web_url="https://copr.something.somewhere/123456",
+        target=SampleValues.target,
+        status="pending",
+        srpm_build=srpm_build,
+        trigger_model=pr1,
+    )
+
+    pr2 = PullRequestModel.get_or_create(
+        pr_id=2,
+        namespace="the-namespace",
+        repo_name="the-repo-name",
+        project_url="https://github.com/the-namespace/the-repo-name",
+    )
+
+    assert copr_build in pr1.get_copr_builds()
+    assert not pr2.get_copr_builds()
