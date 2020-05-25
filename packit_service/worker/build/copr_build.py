@@ -20,10 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
-from typing import Union, Optional, Tuple
+from typing import Union, Optional, Tuple, Set
 
 from ogr.abstract import GitProject, CommitStatus
 from packit.config import PackageConfig, JobType, JobConfig
+from packit.config.aliases import get_build_targets
 from packit.exceptions import PackitCoprException
 from packit_service import sentry_integration
 from packit_service.celerizer import celery_app
@@ -107,6 +108,34 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         return self.api.copr_helper.copr_client.config.get("username")
 
+    @property
+    def build_targets(self) -> Set[str]:
+        """
+        Return the chroots to build.
+
+        (Used when submitting the copr build and as a part of the commit status name.)
+
+        1. If the job is not defined, use the test chroots.
+        2. If the job is defined, but not the targets, use "fedora-stable" alias otherwise.
+        """
+        return get_build_targets(*self.configured_build_targets, default=None)
+
+    @property
+    def tests_targets(self) -> Set[str]:
+        """
+        Return the list of chroots used in the testing farm.
+        Has to be a sub-set of the `build_targets`.
+
+        (Used when submitting the copr build and as a part of the commit status name.)
+
+        Return an empty list if there is no job configured.
+
+        If not defined:
+        1. use the build_targets if the job si configured
+        2. use "fedora-stable" alias otherwise
+        """
+        return get_build_targets(*self.configured_tests_targets, default=None)
+
     def run_copr_build(self) -> HandlerResults:
 
         if not (self.job_build or self.job_tests):
@@ -143,7 +172,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
             return HandlerResults(success=False, details={"error": str(ex)})
 
-        for chroot in self.build_chroots:
+        for chroot in self.build_targets:
             copr_build = CoprBuildModel.get_or_create(
                 build_id=str(build_id),
                 commit_sha=self.event.commit_sha,
@@ -189,7 +218,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         self.api.copr_helper.create_copr_project_if_not_exists(
             project=self.job_project,
-            chroots=self.build_chroots,
+            chroots=self.build_targets,
             owner=owner,
             description=None,
             instructions=None,

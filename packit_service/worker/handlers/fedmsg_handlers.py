@@ -251,7 +251,7 @@ class CoprBuildEndHandler(FedmsgHandler):
 
         if (
             build_job_helper.job_tests
-            and self.event.chroot in build_job_helper.tests_chroots
+            and self.event.chroot in build_job_helper.tests_targets
         ):
             testing_farm_handler = GithubTestingFarmHandler(
                 config=self.config,
