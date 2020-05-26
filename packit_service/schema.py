@@ -53,6 +53,7 @@ class ServiceConfigSchema(UserConfigSchema):
     validate_webhooks = fields.Bool(default=False)
     bugzilla_url = fields.String(default="")
     bugzilla_api_key = fields.String(default="")
+    pr_accepted_labels = fields.List(fields.String())
     admins = fields.List(fields.String())
     server_name = fields.String()
 

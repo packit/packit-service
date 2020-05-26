@@ -32,6 +32,16 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/0
     user: "123123"
 
+  postgres:
+    container_name: postgres
+    image: registry.access.redhat.com/rhscl/postgresql-10-rhel7
+    environment:
+      POSTGRESQL_USER: packit
+      POSTGRESQL_PASSWORD: secret-password
+      POSTGRESQL_DATABASE: packit
+    ports:
+      - 5432:5432
+
   packit-service-worker:
     container_name: packit-worker
     build:
@@ -98,21 +108,22 @@ services:
   fedora-messaging:
     container_name: fedora-messaging
     image: docker.io/usercont/packit-service-fedmsg:stg
-    # command: listen-to-fedora-messaging
     environment:
       FEDORA_MESSAGING_CONF: /home/packit/.config/fedora.toml
       REDIS_SERVICE_HOST: redis
     volumes:
       # get it from secrets
-      - ./secrets/dev/fedora.toml:/home/packit/.config/fedora.toml:ro,z
+      - ./secrets/dev/fedora.toml:/home/packit/.config/fedora.toml:ro,Z
     user: "123123"
 
-  postgres:
-    container_name: postgres
-    image: registry.access.redhat.com/rhscl/postgresql-10-rhel7
+  centosmsg:
+    container_name: centosmsg
+    image: docker.io/usercont/packit-service-centosmsg:dev
+    depends_on:
+      - redis
     environment:
-      POSTGRESQL_USER: packit
-      POSTGRESQL_PASSWORD: secret-password
-      POSTGRESQL_DATABASE: packit
-    ports:
-      - 5432:5432
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./secrets/dev/centos-server-ca.cert:/secrets/centos-server-ca.cert:ro,Z
+      - ./secrets/dev/centos.cert:/secrets/centos.cert:ro,Z
+    user: "123123"

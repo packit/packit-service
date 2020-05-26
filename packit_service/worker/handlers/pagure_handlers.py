@@ -21,15 +21,20 @@
 # SOFTWARE.
 
 import logging
-from typing import Optional
+from typing import Optional, Union, Any
 
+from packit.config import JobType, JobConfig
 from packit_service.config import ServiceConfig
 from packit_service.service.events import (
     TheJobTriggerType,
     PullRequestCommentPagureEvent,
+    PullRequestLabelPagureEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
-from packit_service.worker.handlers import CommentActionHandler
+from packit_service.worker.handlers import (
+    CommentActionHandler,
+    AbstractGitForgeJobHandler,
+)
 from packit_service.worker.handlers.comment_action_handler import CommentAction
 from packit_service.worker.result import HandlerResults
 
@@ -64,3 +69,32 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
 
     def run(self) -> HandlerResults:
         return self.copr_build_helper.run_copr_build()
+
+
+class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
+    type = JobType.create_bugzilla
+    triggers = [TheJobTriggerType.pr_label]
+    event: PullRequestLabelPagureEvent
+
+    def __init__(
+        self,
+        config: ServiceConfig,
+        job_config: Optional[JobConfig],
+        event: Union[PullRequestLabelPagureEvent, Any],
+    ):
+        super().__init__(config=config, job_config=job_config, event=event)
+
+        self.event = event
+        self.project = self.config.get_project(event.project_url)
+
+    def run(self) -> HandlerResults:
+        e = self.event
+        logger.debug(
+            f"Handling labels/tags {e.labels} {e.action.value} to Pagure PR "
+            f"{e.base_repo_owner}/{e.base_repo_namespace}/{e.base_repo_name}/{e.identifier}"
+        )
+        if e.labels.intersection(self.config.pr_accepted_labels):
+            logger.debug(f"About to create a bug @ {self.config.bugzilla_url}")
+        else:
+            logger.debug(f"We accept only {self.config.pr_accepted_labels} labels/tags")
+        return HandlerResults(success=True)

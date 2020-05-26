@@ -24,7 +24,7 @@
 We love you, Steve Jobs.
 """
 import logging
-from typing import Optional, Dict, Union, Type, Set, List
+from typing import Optional, Dict, Union, Type, Set, List, Any
 
 from packit.config import JobType, PackageConfig, JobConfig
 from packit_service.config import ServiceConfig
@@ -56,8 +56,11 @@ from packit_service.worker.handlers.abstract import (
 from packit_service.worker.handlers.comment_action_handler import (
     MAP_COMMENT_ACTION_TO_HANDLER,
     CommentAction,
+)
+from packit_service.worker.handlers.pagure_handlers import (
     PagurePullRequestCommentCoprBuildHandler,
 )
+from packit_service.worker.handlers.pagure_handlers import PagurePullRequestLabelHandler
 from packit_service.worker.parser import Parser, CentosEventParser
 from packit_service.worker.result import HandlerResults
 from packit_service.worker.whitelist import Whitelist
@@ -322,6 +325,7 @@ class SteveJobs:
                 logger.debug(f"{topic} not in {topics}")
                 return None
 
+        event_object: Any
         if source == "centosmsg":
             event_object = CentosEventParser().parse_event(event)
         else:
@@ -345,6 +349,7 @@ class SteveJobs:
             TestingFarmResultsHandler,
             CoprBuildStartHandler,
             CoprBuildEndHandler,
+            PagurePullRequestLabelHandler,
         ]
         jobs_results: Dict[str, HandlerResults] = {}
         # installation is handled differently b/c app is installed to GitHub account
@@ -354,6 +359,13 @@ class SteveJobs:
                 self.config, job_config=None, event=event_object
             )
             job_type = JobType.add_to_whitelist.value
+            jobs_results[job_type] = handler.run_n_clean()
+        # Label/Tag added event handler is run even when the job is not configured in package
+        elif event_object.trigger == TheJobTriggerType.pr_label:
+            handler = PagurePullRequestLabelHandler(
+                self.config, job_config=None, event=event_object
+            )
+            job_type = JobType.create_bugzilla.value
             jobs_results[job_type] = handler.run_n_clean()
         elif event_object.trigger in {
             TheJobTriggerType.issue_comment,

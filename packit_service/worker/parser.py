@@ -25,7 +25,7 @@ Parser is transforming github JSONs into `events` objects
 """
 import logging
 from functools import partial
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Dict
 
 from packit.utils import nested_get
 from packit_service.service.events import (
@@ -46,6 +46,9 @@ from packit_service.service.events import (
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
     PushPagureEvent,
+    AbstractPagureEvent,
+    PullRequestLabelPagureEvent,
+    PullRequestLabelAction,
 )
 from packit_service.worker.handlers import NewDistGitCommitHandler
 
@@ -549,16 +552,19 @@ class CentosEventParser:
             "pull-request.comment.edited": partial(
                 self._pull_request_comment, action="edited"
             ),
+            "pull-request.tag.added": partial(self._pull_request_label, action="added"),
             "git.receive": self._push_event,
         }
 
-    def parse_event(self, event: dict):
+    def parse_event(self, event: dict) -> Optional[AbstractPagureEvent]:
         """
         Entry point for parsing event
         :param event: contains event data
         :return: event object or None
         """
+        logger.debug(f"Parsing {event.get('topic')}")
 
+        # e.g. "topic": "git.stg.centos.org/pull-request.tag.added"
         source, git_topic = event.get("topic").split("/")
         event["source"] = source
         event["git_topic"] = git_topic
@@ -571,9 +577,7 @@ class CentosEventParser:
         return event_object
 
     @staticmethod
-    def _pull_request_event(event: dict, action: str):
-        logger.debug(f"Parsing f{event['topic']}")
-
+    def _pull_request_event(event: dict, action: str) -> PullRequestPagureEvent:
         pullrequest = event["pullrequest"]
         pr_id = pullrequest["id"]
         base_repo_namespace = pullrequest["repo_from"]["namespace"]
@@ -598,13 +602,13 @@ class CentosEventParser:
             user_login=pagure_login,
         )
 
+    @staticmethod
     def _pull_request_comment(
-        self, event: dict, action: str
+        event: dict, action: str
     ) -> PullRequestCommentPagureEvent:
         event[
             "https_url"
         ] = f"https://{event['source']}/{event['pullrequest']['project']['url_path']}"
-        logger.debug("Parsing pull_request.comment.added")
         action = PullRequestCommentAction.created.value
         pr_id = event["pullrequest"]["id"]
         base_repo_namespace = event["pullrequest"]["project"]["namespace"]
@@ -642,9 +646,26 @@ class CentosEventParser:
             comment=comment,
         )
 
-    def _push_event(self, event: dict) -> PushPagureEvent:
-        logger.debug("Parsing git.receive (git push) event.")
+    @staticmethod
+    def _pull_request_label(event: dict, action: str) -> PullRequestLabelPagureEvent:
+        # Yes, API really uses "pull_request" in this case and "pullrequest" in others.
+        # Fallback to "pullrequest" in case it gets 'synchronized' in future.
+        pr: Dict = event.get("pull_request") or event["pullrequest"]
 
+        return PullRequestLabelPagureEvent(
+            action=PullRequestLabelAction[action],
+            pr_id=pr["id"],
+            base_repo_namespace=pr["project"]["namespace"],
+            base_repo_name=pr["project"]["name"],
+            base_repo_owner=pr["project"]["user"]["name"],
+            base_ref=pr["branch"],
+            commit_sha=pr["commit_stop"],
+            project_url=f"https://{event['source']}/{pr['project']['url_path']}",
+            labels=set(event["tags"]),
+        )
+
+    @staticmethod
+    def _push_event(event: dict) -> PushPagureEvent:
         return PushPagureEvent(
             repo_namespace=event["repo"]["namespace"],
             repo_name=event["repo"]["name"],
