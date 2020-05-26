@@ -101,7 +101,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def run_testing_farm_on_all(self):
         failed = {}
-        for chroot in self.tests_chroots:
+        for chroot in self.tests_targets:
             result = self.run_testing_farm(chroot)
             if not result["success"]:
                 failed[chroot] = result.get("details")
@@ -117,7 +117,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
     def run_testing_farm(self, chroot: str) -> HandlerResults:
-        if chroot not in self.tests_chroots:
+        if chroot not in self.tests_targets:
             # Leaving here just to be sure that we will discover this situation if it occurs.
             # Currently not possible to trigger this situation.
             msg = f"Target '{chroot}' not defined for tests but triggered."
@@ -125,7 +125,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             send_to_sentry(PackitConfigException(msg))
             return HandlerResults(success=False, details={"msg": msg},)
 
-        if chroot not in self.build_chroots:
+        if chroot not in self.build_targets:
             self.report_missing_build_chroot(chroot)
             return HandlerResults(
                 success=False,

@@ -22,14 +22,13 @@
 import logging
 from io import StringIO
 from pathlib import Path
-from typing import Union, List, Optional, Tuple
+from typing import Union, List, Optional, Tuple, Set
 
 from kubernetes.client.rest import ApiException
 
 from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobType, JobConfig
-from packit.config.aliases import get_build_targets
 from packit.local_project import LocalProject
 from packit.utils import PackitFormatter
 from packit_service import sentry_integration
@@ -133,11 +132,11 @@ class BaseBuildJobHelper:
         )
 
     @property
-    def build_chroots(self) -> List[str]:
+    def configured_build_targets(self) -> Set[str]:
         """
-        Return the chroots to build.
+        Return the targets to build.
 
-        1. If the job is not defined, use the test_chroots.
+        1. If the job is not defined, use the test_targets.
         2. If the job is defined, but not the targets, use "fedora-stable" alias otherwise.
         """
         if (
@@ -145,17 +144,15 @@ class BaseBuildJobHelper:
             and self.job_tests
             and self.job_tests.metadata.targets
         ):
-            return self.tests_chroots
+            return self.configured_tests_targets
 
         if self.job_build and self.job_build.metadata.targets:
-            raw_targets = self.job_build.metadata.targets
-        else:
-            raw_targets = {"fedora-stable"}
+            return self.job_build.metadata.targets
 
-        return list(get_build_targets(*raw_targets))
+        return {"fedora-stable"}
 
     @property
-    def tests_chroots(self) -> List[str]:
+    def configured_tests_targets(self) -> Set[str]:
         """
         Return the list of chroots used in the testing farm.
         Has to be a sub-set of the `build_chroots`.
@@ -167,13 +164,12 @@ class BaseBuildJobHelper:
         2. use "fedora-stable" alias otherwise
         """
         if not self.job_tests:
-            return []
+            return set()
 
         if not self.job_tests.metadata.targets and self.job_build:
-            return self.build_chroots
+            return self.configured_build_targets
 
-        configured_targets = self.job_tests.metadata.targets or {"fedora-stable"}
-        return list(get_build_targets(*configured_targets))
+        return self.job_tests.metadata.targets or {"fedora-stable"}
 
     @property
     def job_build(self) -> Optional[JobConfig]:
@@ -242,18 +238,58 @@ class BaseBuildJobHelper:
         return self._status_reporter
 
     @property
+    def build_targets(self) -> Set[str]:
+        """
+        Return the targets/chroots to build.
+
+        (Used when submitting the koji/copr build and as a part of the commit status name.)
+
+        1. If the job is not defined, use the test chroots.
+        2. If the job is defined without targets, use "fedora-stable".
+        """
+        raise NotImplementedError("Use subclass instead.")
+
+    @property
+    def tests_targets(self) -> Set[str]:
+        """
+        Return the list of targets/chroots used in testing farm.
+        Has to be a sub-set of the `build_targets`.
+
+        (Used when submitting the koji/copr build and as a part of the commit status name.)
+
+        Return an empty list if there is no job configured.
+
+        If not defined:
+        1. use the build_targets if the job si configured
+        2. use "fedora-stable" alias otherwise
+        """
+        raise NotImplementedError("Use subclass instead.")
+
+    @property
     def test_check_names(self) -> List[str]:
+        """
+        List of full names of the commit statuses.
+
+        e.g. ["packit/copr-build-fedora-rawhide-x86_64"]
+        or ["packit-stg/production-build-f31", "packit-stg/production-build-f32"]
+        """
         if not self._test_check_names:
             self._test_check_names = [
-                self.get_test_check(chroot) for chroot in self.tests_chroots
+                self.get_test_check(target) for target in self.tests_targets
             ]
         return self._test_check_names
 
     @property
     def build_check_names(self) -> List[str]:
+        """
+        List of full names of the commit statuses.
+
+        e.g. ["packit/copr-build-fedora-rawhide-x86_64"]
+        or ["packit-stg/production-build-f31", "packit-stg/production-build-f32"]
+        """
         if not self._build_check_names:
             self._build_check_names = [
-                self.get_build_check(chroot) for chroot in self.build_chroots
+                self.get_build_check(target) for target in self.build_targets
             ]
         return self._build_check_names
 
@@ -393,7 +429,7 @@ class BaseBuildJobHelper:
     def report_status_to_build_for_chroot(
         self, description, state, url: str = "", chroot: str = ""
     ) -> None:
-        if self.job_build and chroot in self.build_chroots:
+        if self.job_build and chroot in self.build_targets:
             cs = self.get_build_check(chroot)
             self._report(
                 description=description, state=state, url=url, check_names=cs,
@@ -402,7 +438,7 @@ class BaseBuildJobHelper:
     def report_status_to_test_for_chroot(
         self, description, state, url: str = "", chroot: str = ""
     ) -> None:
-        if self.job_tests and chroot in self.tests_chroots:
+        if self.job_tests and chroot in self.tests_targets:
             self._report(
                 description=description,
                 state=state,

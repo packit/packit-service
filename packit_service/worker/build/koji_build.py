@@ -21,10 +21,11 @@
 # SOFTWARE.
 import logging
 from re import search
-from typing import Optional, Union, Tuple, Dict
+from typing import Optional, Union, Tuple, Dict, Set
 
 from ogr.abstract import CommitStatus, GitProject
 from packit.config import JobType, PackageConfig, JobConfig
+from packit.config.aliases import get_koji_targets, get_all_koji_targets
 from packit.exceptions import PackitCommandFailedError
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
@@ -68,9 +69,48 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         super().__init__(config, package_config, project, event, job)
         self.msg_retrigger: str = MSG_RETRIGGER.format(build="production-build")
 
+        # Lazy properties
+        self._supported_koji_targets = None
+
     @property
     def is_scratch(self) -> bool:
         return self.job_build and self.job_build.metadata.scratch
+
+    @property
+    def build_targets(self) -> Set[str]:
+        """
+        Return the targets/chroots to build.
+
+        (Used when submitting the koji/copr build and as a part of the commit status name.)
+
+        1. If the job is not defined, use the test chroots.
+        2. If the job is defined without targets, use "fedora-stable".
+        """
+        return get_koji_targets(*self.configured_build_targets)
+
+    @property
+    def tests_targets(self) -> Set[str]:
+        """
+        [not used now]
+
+        Return the list of targets/chroots used in testing farm.
+        Has to be a sub-set of the `build_targets`.
+
+        (Used when submitting the koji/copr build and as a part of the commit status name.)
+
+        Return an empty list if there is no job configured.
+
+        If not defined:
+        1. use the build_targets if the job si configured
+        2. use "fedora-stable" alias otherwise
+        """
+        return get_koji_targets(*self.configured_tests_targets)
+
+    @property
+    def supported_koji_targets(self):
+        if self._supported_koji_targets is None:
+            self._supported_koji_targets = get_all_koji_targets()
+        return self._supported_koji_targets
 
     def run_koji_build(self) -> HandlerResults:
         self.report_status_to_all(
@@ -102,27 +142,39 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             return HandlerResults(success=False, details={"msg": msg})
 
         errors: Dict[str, str] = {}
-        for chroot in self.build_chroots:
+        for target in self.build_targets:
+
+            if target not in self.supported_koji_targets:
+                msg = f"Target not supported: {target}"
+                self.report_status_to_all_for_chroot(
+                    state=CommitStatus.error,
+                    description=msg,
+                    url=get_srpm_log_url_from_flask(self.srpm_model.id),
+                    chroot=target,
+                )
+                errors[target] = msg
+                continue
 
             try:
-                build_id, web_url = self.run_build(target=chroot)
+                build_id, web_url = self.run_build(target=target)
             except Exception as ex:
                 sentry_integration.send_to_sentry(ex)
                 # TODO: Where can we show more info about failure?
                 # TODO: Retry
-                self.report_status_to_all(
+                self.report_status_to_all_for_chroot(
                     state=CommitStatus.error,
                     description=f"Submit of the build failed: {ex}",
                     url=get_srpm_log_url_from_flask(self.srpm_model.id),
+                    chroot=target,
                 )
-                errors[chroot] = str(ex)
+                errors[target] = str(ex)
                 continue
 
             koji_build = KojiBuildModel.get_or_create(
                 build_id=str(build_id),
                 commit_sha=self.event.commit_sha,
                 web_url=web_url,
-                target=chroot,
+                target=target,
                 status="pending",
                 srpm_build=self.srpm_model,
                 trigger_model=self.event.db_trigger,
@@ -132,7 +184,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 state=CommitStatus.pending,
                 description="Building RPM ...",
                 url=url,
-                chroot=chroot,
+                chroot=target,
             )
 
         if errors:

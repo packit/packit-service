@@ -27,7 +27,12 @@ from flexmock import flexmock
 
 from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
-from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
+from packit.config import (
+    PackageConfig,
+    JobConfig,
+    JobType,
+    JobConfigTriggerType,
+)
 from packit.config.job_config import JobMetadataConfig
 from packit.exceptions import PackitCommandFailedError
 from packit.upstream import Upstream
@@ -45,6 +50,7 @@ from packit_service.service.urls import (
     get_koji_build_log_url_from_flask,
     get_srpm_log_url_from_flask,
 )
+from packit_service.worker.build import koji_build
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.reporting import StatusReporter
 
@@ -95,21 +101,23 @@ def test_koji_build_check_names(pull_request_event):
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
     helper = build_helper(
-        event=pull_request_event,
-        metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="nobody"),
+        event=pull_request_event, metadata=JobMetadataConfig(targets=["bright-future"]),
     )
+    flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
+        ["dark-past", "bright-future"]
+    ).once()
 
     koji_build_url = get_koji_build_log_url_from_flask(1)
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building SRPM ...",
-        check_name="packit-stg/production-build-bright-future-x86_64",
+        check_name="packit-stg/production-build-bright-future",
         url="",
     ).and_return()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building RPM ...",
-        check_name="packit-stg/production-build-bright-future-x86_64",
+        check_name="packit-stg/production-build-bright-future",
         url=koji_build_url,
     ).and_return()
 
@@ -141,20 +149,22 @@ def test_koji_build_failed_kerberos(pull_request_event):
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
     helper = build_helper(
-        event=pull_request_event,
-        metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="nobody"),
+        event=pull_request_event, metadata=JobMetadataConfig(targets=["bright-future"]),
     )
+    flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
+        ["dark-past", "bright-future"]
+    ).never()
 
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building SRPM ...",
-        check_name="packit-stg/production-build-bright-future-x86_64",
+        check_name="packit-stg/production-build-bright-future",
         url="",
     ).and_return()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.error,
         description="Kerberos authentication error: the bad authentication error",
-        check_name="packit-stg/production-build-bright-future-x86_64",
+        check_name="packit-stg/production-build-bright-future",
         url=get_srpm_log_url_from_flask(1),
     ).and_return()
 
@@ -182,16 +192,59 @@ def test_koji_build_failed_kerberos(pull_request_event):
     )
 
 
+def test_koji_build_target_not_supported(pull_request_event):
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
+        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
+    )
+    helper = build_helper(
+        event=pull_request_event,
+        metadata=JobMetadataConfig(targets=["nonexisting-target"]),
+    )
+    flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
+        ["dark-past", "bright-future"]
+    ).once()
+
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=CommitStatus.pending,
+        description="Building SRPM ...",
+        check_name="packit-stg/production-build-nonexisting-target",
+        url="",
+    ).and_return()
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=CommitStatus.error,
+        description="Target not supported: nonexisting-target",
+        check_name="packit-stg/production-build-nonexisting-target",
+        url=get_srpm_log_url_from_flask(1),
+    ).and_return()
+
+    flexmock(GitProject).should_receive("set_commit_status").and_return().never()
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        SRPMBuildModel(id=1, success=True)
+    )
+    flexmock(KojiBuildModel).should_receive("get_or_create").and_return(
+        KojiBuildModel(id=1)
+    )
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+
+    response = helper.run_koji_build()
+    assert not response["success"]
+    assert (
+        "Target not supported: nonexisting-target"
+        == response["details"]["errors"]["nonexisting-target"]
+    )
+
+
 def test_koji_build_with_multiple_targets(pull_request_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
     helper = build_helper(
         event=pull_request_event,
-        metadata=JobMetadataConfig(
-            targets=["bright-future-x86_64", "dark-past-i386"], owner="nobody"
-        ),
+        metadata=JobMetadataConfig(targets=["bright-future", "dark-past"]),
     )
+    flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
+        ["dark-past", "bright-future"]
+    ).once()
 
     # 2x SRPM + 2x RPM
     flexmock(StatusReporter).should_receive("set_status").and_return().times(4)
@@ -228,13 +281,16 @@ def test_koji_build_failed(pull_request_event):
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
     helper = build_helper(
-        event=pull_request_event,
-        metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="nobody"),
+        event=pull_request_event, metadata=JobMetadataConfig(targets=["bright-future"]),
     )
+    flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
+        ["dark-past", "bright-future"]
+    ).once()
+
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building SRPM ...",
-        check_name="packit-stg/production-build-bright-future-x86_64",
+        check_name="packit-stg/production-build-bright-future",
         url="",
     ).and_return()
 
@@ -242,7 +298,7 @@ def test_koji_build_failed(pull_request_event):
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.error,
         description="Submit of the build failed: some error",
-        check_name="packit-stg/production-build-bright-future-x86_64",
+        check_name="packit-stg/production-build-bright-future",
         url=srpm_build_url,
     ).and_return()
 
@@ -262,7 +318,7 @@ def test_koji_build_failed(pull_request_event):
     result = helper.run_koji_build()
     assert not result["success"]
     assert result["details"]["errors"]
-    assert result["details"]["errors"]["bright-future-x86_64"] == "some error"
+    assert result["details"]["errors"]["bright-future"] == "some error"
 
 
 def test_koji_build_failed_srpm(pull_request_event):
@@ -270,20 +326,19 @@ def test_koji_build_failed_srpm(pull_request_event):
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
     helper = build_helper(
-        event=pull_request_event,
-        metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="nobody"),
+        event=pull_request_event, metadata=JobMetadataConfig(targets=["bright-future"]),
     )
     srpm_build_url = get_srpm_log_url_from_flask(2)
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building SRPM ...",
-        check_name="packit-stg/production-build-bright-future-x86_64",
+        check_name="packit-stg/production-build-bright-future",
         url="",
     ).and_return()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.failure,
         description="SRPM build failed, check the logs for details.",
-        check_name="packit-stg/production-build-bright-future-x86_64",
+        check_name="packit-stg/production-build-bright-future",
         url=srpm_build_url,
     ).and_return()
 
