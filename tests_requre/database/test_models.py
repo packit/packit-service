@@ -494,3 +494,11 @@ def test_get_installation_by_account(
 ):
     assert InstallationModel.get_by_account_login("teg").sender_login == "teg"
     assert InstallationModel.get_by_account_login("Pac23").sender_login == "Pac23"
+
+
+def test_pr_get_copr_builds(
+    clean_before_and_after, a_copr_build_for_pr, different_pr_model
+):
+    pr_model = a_copr_build_for_pr.job_trigger.get_trigger_object()
+    assert a_copr_build_for_pr in pr_model.get_copr_builds()
+    assert not different_pr_model.get_copr_builds()

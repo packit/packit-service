@@ -28,6 +28,7 @@ from typing import Optional, Dict, Union, Type, Set
 
 from packit.config import JobType, PackageConfig, JobConfig
 from packit_service.config import ServiceConfig
+from packit_service.models import PullRequestModel
 from packit_service.log_versions import log_job_versions
 from packit_service.service.events import (
     PullRequestCommentGithubEvent,
@@ -245,6 +246,13 @@ class SteveJobs:
                     "msg": f"{msg} does not contain a valid packit-service command."
                 },
             )
+
+        if packit_action == CommentAction.test and isinstance(
+            event.db_trigger, PullRequestModel
+        ):
+            if not event.db_trigger.get_copr_builds():
+                packit_action = CommentAction.build
+
         handler_kls: Type[CommentActionHandler] = MAP_COMMENT_ACTION_TO_HANDLER.get(
             packit_action, None
         )

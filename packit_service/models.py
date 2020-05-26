@@ -186,6 +186,11 @@ class PullRequestModel(Base):
                 session.add(pr)
             return pr
 
+    def get_copr_builds(self):
+        return JobTriggerModel.get_or_create(
+            type=JobTriggerModelType.pull_request, trigger_id=self.id
+        ).copr_builds
+
     def __repr__(self):
         return f"PullRequestModel(id={self.pr_id}, project={self.project})"
 
