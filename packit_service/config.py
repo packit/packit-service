@@ -62,6 +62,8 @@ class ServiceConfig(Config):
         validate_webhooks: bool = True,
         admins: list = None,
         fas_password: Optional[str] = "",
+        bugzilla_url: str = "",
+        bugzilla_api_key: str = "",
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -74,6 +76,9 @@ class ServiceConfig(Config):
         # fas.fedoraproject.org needs password to authenticate
         # 'fas_user' is inherited from packit.config.Config
         self.fas_password = fas_password
+
+        self.bugzilla_url = bugzilla_url
+        self.bugzilla_api_key = bugzilla_api_key
 
         # List of github users who are allowed to trigger p-s on any repository
         self.admins: Set[str] = set(admins or [])
@@ -94,6 +99,8 @@ class ServiceConfig(Config):
             f"validate_webhooks='{self.validate_webhooks}', "
             f"admins='{self.admins}', "
             f"fas_password='{hide(self.fas_password)}', "
+            f"bugzilla_url='{self.bugzilla_url}', "
+            f"bugzilla_api_key='{hide(self.bugzilla_api_key)}', "
             f"server_name='{self.server_name}')"
         )
 
