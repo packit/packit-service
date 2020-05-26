@@ -245,14 +245,14 @@ class BaseBuildJobHelper:
         (Used when submitting the koji/copr build and as a part of the commit status name.)
 
         1. If the job is not defined, use the test chroots.
-        2. If the job is defined, but not the targets, use "fedora-stable" alias otherwise.
+        2. If the job is defined without targets, use "fedora-stable".
         """
         raise NotImplementedError("Use subclass instead.")
 
     @property
     def tests_targets(self) -> Set[str]:
         """
-        Return the list of targets/chroots used in the testing farm.
+        Return the list of targets/chroots used in testing farm.
         Has to be a sub-set of the `build_targets`.
 
         (Used when submitting the koji/copr build and as a part of the commit status name.)
