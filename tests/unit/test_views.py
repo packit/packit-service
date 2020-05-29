@@ -10,11 +10,10 @@ from packit_service.models import (
     PullRequestModel,
     GitProjectModel,
     SRPMBuildModel,
-    optional_time,
 )
 from packit_service.service.app import application
 from packit_service.service.urls import (
-    get_copr_build_log_url_from_flask,
+    get_copr_build_info_url_from_flask,
     get_srpm_log_url_from_flask,
 )
 
@@ -55,13 +54,10 @@ def test_get_logs(client):
     pr.pr_id = 234
     pr.project = project
 
-    srpm_build = SRPMBuildModel()
-    srpm_build.logs = "asd<br>qwe"
-
     c = CoprBuildModel()
     c.target = chroot
     c.build_id = str(build_id)
-    c.srpm_build = srpm_build
+    c.srpm_build_id = 11
     c.status = state
     c.web_url = (
         "https://copr.fedorainfracloud.org/coprs/john-foo-bar/john-foo-bar/build/2/"
@@ -74,25 +70,15 @@ def test_get_logs(client):
         flexmock(get_trigger_object=lambda: pr)
     )
 
-    url = f"/copr-build/1/logs"
-    logs_url = get_copr_build_log_url_from_flask(1)
+    url = f"/copr-build/1"
+    logs_url = get_copr_build_info_url_from_flask(1)
     assert logs_url.endswith(url)
 
-    resp = client.get(url)
-    expected = (
-        "<html><head>"
-        f"<title>COPR build {project.namespace}/{project.repo_name}:"
-        f" PR #{pr.pr_id}</title></head><body>"
-        f"COPR build ID: {c.build_id}<br>"
-        f"Submitted: {optional_time(c.build_submitted_time)}<br>"
-        f"State: {c.status}<br><br>"
-        f'Build web interface URL: <a href="{c.web_url}">{c.web_url}</a><br>'
-        f'Build logs: <a href="{c.build_logs_url}">{c.build_logs_url}</a><br>'
-        "SRPM creation logs:<br><br>"
-        f"<pre>{c.srpm_build.logs}</pre>"
-        "<br></body></html>"
-    )
-    assert resp.data == expected.encode()
+    resp = client.get(url).data.decode()
+    assert f"srpm-build/{c.srpm_build_id}/logs" in resp
+    assert c.web_url in resp
+    assert c.build_logs_url in resp
+    assert c.target in resp
 
 
 def test_get_srpm_logs(client):
@@ -106,12 +92,6 @@ def test_get_srpm_logs(client):
     logs_url = get_srpm_log_url_from_flask(2)
     assert logs_url.endswith(url)
 
-    resp = client.get(url)
-    expected = (
-        "<html><head>"
-        "<title>SRPM Build id=2</title></head><body>"
-        "SRPM creation logs:<br><br>"
-        "<pre>asd\nqwe</pre>"
-        "<br></body></html>"
-    )
-    assert resp.data == expected.encode()
+    resp = client.get(url).data.decode()
+    assert srpm_build.logs in resp
+    assert f"build {srpm_build.id}" in resp

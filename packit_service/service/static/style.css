@@ -1,0 +1,11 @@
+* {
+  font-family: sans-serif;
+}
+
+pre {
+  font-family: monospace;
+}
+
+#build-result-page > h1 {
+  font-size: 14pt;
+}

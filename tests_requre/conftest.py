@@ -240,7 +240,7 @@ def srpm_build_model():
 
 @pytest.fixture()
 def a_copr_build_for_pr(pr_model, srpm_build_model):
-    yield CoprBuildModel.get_or_create(
+    model = CoprBuildModel.get_or_create(
         build_id=SampleValues.build_id,
         commit_sha=SampleValues.commit_sha,
         project_name=SampleValues.project,
@@ -251,11 +251,15 @@ def a_copr_build_for_pr(pr_model, srpm_build_model):
         srpm_build=srpm_build_model,
         trigger_model=pr_model,
     )
+    model.set_build_logs_url(
+        "https://copr.somewhere/results/owner/package/target/build.logs"
+    )
+    yield model
 
 
 @pytest.fixture()
 def a_copr_build_for_branch_push(branch_model, srpm_build_model):
-    yield CoprBuildModel.get_or_create(
+    model = CoprBuildModel.get_or_create(
         build_id=SampleValues.build_id,
         commit_sha=SampleValues.commit_sha,
         project_name=SampleValues.project,
@@ -266,11 +270,15 @@ def a_copr_build_for_branch_push(branch_model, srpm_build_model):
         srpm_build=srpm_build_model,
         trigger_model=branch_model,
     )
+    model.set_build_logs_url(
+        "https://copr.somewhere/results/owner/package/target/build.logs"
+    )
+    yield model
 
 
 @pytest.fixture()
 def a_copr_build_for_release(release_model, srpm_build_model):
-    yield CoprBuildModel.get_or_create(
+    model = CoprBuildModel.get_or_create(
         build_id=SampleValues.build_id,
         commit_sha=SampleValues.commit_sha,
         project_name=SampleValues.project,
@@ -281,6 +289,10 @@ def a_copr_build_for_release(release_model, srpm_build_model):
         srpm_build=srpm_build_model,
         trigger_model=release_model,
     )
+    model.set_build_logs_url(
+        "https://copr.somewhere/results/owner/package/target/build.logs"
+    )
+    yield model
 
 
 @pytest.fixture()
@@ -368,7 +380,7 @@ def copr_builds_with_different_triggers(
 
 @pytest.fixture()
 def a_koji_build_for_pr(pr_model, srpm_build_model):
-    yield KojiBuildModel.get_or_create(
+    build = KojiBuildModel.get_or_create(
         build_id=SampleValues.build_id,
         commit_sha=SampleValues.commit_sha,
         web_url=SampleValues.koji_web_url,
@@ -377,6 +389,10 @@ def a_koji_build_for_pr(pr_model, srpm_build_model):
         srpm_build=srpm_build_model,
         trigger_model=pr_model,
     )
+    build.set_build_logs_url(
+        "https://koji.somewhere/results/owner/package/target/build.logs"
+    )
+    yield build
 
 
 @pytest.fixture()

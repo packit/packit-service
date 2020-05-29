@@ -85,11 +85,18 @@ def get_sa_session() -> Session:
         raise
 
 
-def optional_time(datetime_object) -> Union[str, None]:
-    """Returns a string if argument is a datetime object."""
+def optional_time(
+    datetime_object: Union[datetime, None], fmt: str = "%d/%m/%Y %H:%M:%S"
+) -> Union[str, None]:
+    """Returns a formatted date-time string if argument is a datetime object
+
+    :param datetime_object: datatime to be converted to string
+    :param fmt: format string to be used to produce the string
+    :return: formatted string or None
+    """
     if datetime_object is None:
         return None
-    return datetime_object.strftime("%d/%m/%Y %H:%M:%S")
+    return datetime_object.strftime(fmt)
 
 
 # https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^

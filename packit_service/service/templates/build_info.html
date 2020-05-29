@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+<!-- prettier-ignore -->
+{% block title %}Builds for {{ project.namespace }}/{{ project.repo_name }}: {{ title_identifier }}{% endblock %}
+{% block content %}
+<!-- prettier-ignore -->
+<h1>
+  Builds for {{ project.namespace }}/{{ project.repo_name }}: {{ title_identifier }}
+</h1>
+<p>
+  <a
+    href="{{ url_for('builds.get_srpm_build_logs_by_id', id_=build.srpm_build_id) }}"
+  >
+    SRPM build
+  </a>
+</p>
+{% if build.build_id %}
+<p>
+  <a href="{{ build.web_url }}">{{ build_description }}</a>
+  {% if build.build_logs_url %} &gt; Build for
+  <a href="{{ build.build_logs_url }}">{{ build.target }}</a> started at {{
+  build_submitted_time }}, status: {{ build.status }} {% endif %}
+</p>
+<!-- prettier-ignore -->
+{% endif %}
+{% endblock %}
