@@ -24,8 +24,12 @@
 A book with our finest spells
 """
 from pathlib import Path
-
+from typing import Any
 
 TESTS_DIR = Path(__file__).parent
 DATA_DIR = TESTS_DIR / "data"
 SAVED_HTTPD_REQS = DATA_DIR / "http-requests"
+
+
+def first_dict_value(a_dict: dict) -> Any:
+    return list(a_dict.values())[0]

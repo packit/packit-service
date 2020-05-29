@@ -68,7 +68,7 @@ def copr_build_end():
 
 @pytest.fixture(scope="module")
 def pc_build_pr():
-    return PackageConfig(
+    pc = PackageConfig(
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
@@ -77,6 +77,16 @@ def pc_build_pr():
             )
         ]
     )
+    pc.raw_dict = {
+        "jobs": [
+            {
+                "job": "build",
+                "trigger": "pull_request",
+                "metadata": {"targets": "fedora-all"},
+            }
+        ]
+    }
+    return pc
 
 
 @pytest.fixture(scope="module")
@@ -597,6 +607,45 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     ).once()
 
     steve.process_message(copr_build_start)
+
+
+def test_copr_build_start_with_overrides(copr_build_start, pc_build_pr, copr_build_pr):
+    steve = SteveJobs()
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    pc_build_pr.specfile_path = "a"
+    pc_build_pr.jobs[0].overrides = {"specfile_path": "x"}
+    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+        pc_build_pr
+    )
+    flexmock(CoprBuildJobHelper).should_receive("get_build_check").and_return(
+        EXPECTED_BUILD_CHECK_NAME
+    )
+
+    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
+    url = get_copr_build_log_url_from_flask(1)
+    flexmock(requests).should_receive("get").and_return(requests.Response())
+    flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
+
+    copr_build_pr.should_receive("set_start_time").once()
+    copr_build_pr.should_receive("set_status").with_args("pending").once()
+
+    def make_sure_its_overridden(build_logs: str):
+        assert pc_build_pr.specfile_path == "x"
+
+    copr_build_pr.should_receive("set_build_logs_url").replace_with(
+        make_sure_its_overridden
+    )
+
+    # check if packit-service set correct PR status
+    flexmock(StatusReporter).should_receive("report").with_args(
+        state=CommitStatus.pending,
+        description="RPM build is in progress...",
+        url=url,
+        check_names=EXPECTED_BUILD_CHECK_NAME,
+    ).once()
+
+    steve.process_message(copr_build_start)
+    assert pc_build_pr.specfile_path == "a"  # make sure it's reset
 
 
 def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr):

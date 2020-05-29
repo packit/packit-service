@@ -23,10 +23,15 @@
 """
 We love you, Steve Jobs.
 """
+import datetime
 import logging
-from typing import Optional, Dict, Union, Type, Set, List, Any
+from copy import deepcopy
+from typing import Any
+from typing import Optional, Dict, Union, Type, Set, List
 
 from packit.config import JobType, PackageConfig, JobConfig
+from packit.constants import DATETIME_FORMAT
+
 from packit_service.config import ServiceConfig
 from packit_service.log_versions import log_job_versions
 from packit_service.models import PullRequestModel
@@ -100,7 +105,7 @@ def get_handlers_for_event(
 
 
 def get_config_for_handler_kls(
-    handler_kls: Type[JobHandler], event: Event, package_config: PackageConfig
+    handler_kls: Type[Handler], event: Event, package_config: PackageConfig
 ) -> List[JobConfig]:
     """
     Get a JobConfig relevant to event and the handler class.
@@ -179,6 +184,8 @@ class SteveJobs:
             logger.warning(f"There is no handler for {event.trigger} event.")
             return handlers_results
 
+        pristine_package_config = deepcopy(event.package_config.__dict__)
+
         for handler_kls in handler_classes:
             job_configs = get_config_for_handler_kls(
                 handler_kls=handler_kls,
@@ -206,8 +213,16 @@ class SteveJobs:
                     config=self.config, job_config=job_config, event=event
                 )
                 if handler.pre_check():
-                    handlers_results[job_config.type.value] = handler.run_n_clean()
-            # don't break here, other handlers may react to the same event
+                    event.package_config.set_job_overrides(job_config)
+                    # we can have multiple job definitions with the same type
+
+                    current_time = datetime.datetime.now().strftime(DATETIME_FORMAT)
+                    result_key = f"{job_config.type.value}-{current_time}"
+                    handlers_results[result_key] = handler.run_n_clean()
+                    # once the handler is done, we need to reset package_config
+                    # to the former content because not every job may override the same values
+                    event.package_config.__dict__ = deepcopy(pristine_package_config)
+                # we want to run handlers for all possible jobs, not just the first one
 
         return handlers_results
 
@@ -247,7 +262,7 @@ class SteveJobs:
             PullRequestCommentPagureEvent,
             IssueCommentEvent,
         ],
-    ) -> HandlerResults:
+    ) -> Dict[str, HandlerResults]:
 
         msg = f"comment '{event.comment}'"
         packit_command, pr_comment_error_msg = self.find_packit_command(
@@ -255,18 +270,24 @@ class SteveJobs:
         )
 
         if pr_comment_error_msg:
-            return HandlerResults(success=True, details={"msg": pr_comment_error_msg},)
+            return {
+                event.trigger.value: HandlerResults(
+                    success=True, details={"msg": pr_comment_error_msg},
+                )
+            }
 
         # packit has command `copr-build`. But PullRequestCommentAction has enum `copr_build`.
         try:
             packit_action = CommentAction[packit_command[0].replace("-", "_")]
         except KeyError:
-            return HandlerResults(
-                success=True,
-                details={
-                    "msg": f"{msg} does not contain a valid packit-service command."
-                },
-            )
+            return {
+                event.trigger.value: HandlerResults(
+                    success=True,
+                    details={
+                        "msg": f"{msg} does not contain a valid packit-service command."
+                    },
+                )
+            }
 
         if packit_action == CommentAction.test and isinstance(
             event.db_trigger, PullRequestModel
@@ -278,9 +299,12 @@ class SteveJobs:
             packit_action, None
         )
         if not handler_kls:
-            return HandlerResults(
-                success=True, details={"msg": f"{msg} is not a packit-service command."}
-            )
+            return {
+                event.trigger.value: HandlerResults(
+                    success=True,
+                    details={"msg": f"{msg} is not a packit-service command."},
+                )
+            }
 
         # check whitelist approval for every job to be able to track down which jobs
         # failed because of missing whitelist approval
@@ -289,9 +313,11 @@ class SteveJobs:
         if user_login and user_login in self.config.admins:
             logger.info(f"{user_login} is admin, you shall pass.")
         elif not whitelist.check_and_report(event, event.project, config=self.config):
-            return HandlerResults(
-                success=True, details={"msg": "Account is not whitelisted!"}
-            )
+            return {
+                event.trigger.value: HandlerResults(
+                    success=True, details={"msg": f"Account is not whitelisted!"}
+                )
+            }
 
         # VERY UGLY
         # TODO: REFACTOR !!!
@@ -300,8 +326,23 @@ class SteveJobs:
         ):
             handler_kls = PagurePullRequestCommentCoprBuildHandler
 
-        handler_instance: Handler = handler_kls(config=self.config, event=event)
-        return handler_instance.run_n_clean()
+        handlers_results: Dict[str, HandlerResults] = {}
+        pristine_package_config = deepcopy(event.package_config.__dict__)
+        jobs = get_config_for_handler_kls(
+            handler_kls=handler_kls, event=event, package_config=event.package_config,
+        )
+        for job in jobs:
+            handler_instance: Handler = handler_kls(
+                config=self.config, event=event, job=job
+            )
+            event.package_config.set_job_overrides(job)
+            result_key = (
+                f"{job.type.value}-{datetime.datetime.now().strftime(DATETIME_FORMAT)}"
+            )
+            handlers_results[result_key] = handler_instance.run_n_clean()
+            # once the handler is done, we need to reset package_config to the former content
+            event.package_config.__dict__ = deepcopy(pristine_package_config)
+        return handlers_results
 
     def process_message(
         self, event: dict, topic: str = None, source: str = None
@@ -309,9 +350,9 @@ class SteveJobs:
         """
         Entrypoint for message processing.
 
+        :param event:  dict with webhook/fed-mes payload
         :param topic:  meant to be a topic provided by messaging subsystem (fedmsg, mqqt)
         :param source: source of message
-
         """
 
         if topic:
@@ -380,8 +421,7 @@ class SteveJobs:
                 ),
             )
         ):
-            job_type = JobType.pull_request_action.value
-            jobs_results[job_type] = self.process_comment_jobs(event_object)
+            jobs_results = self.process_comment_jobs(event_object)
         else:
             # Processing the jobs from the config.
             jobs_results = self.process_jobs(event_object)

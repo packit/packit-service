@@ -36,9 +36,13 @@ from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
+from packit_service.models import ProjectReleaseModel
+from packit_service.service.events import IssueCommentEvent
+from packit_service.worker.handlers import Handler
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.result import HandlerResults
 from packit_service.worker.whitelist import Whitelist
-from tests.spellbook import DATA_DIR
+from tests.spellbook import DATA_DIR, first_dict_value
 
 
 @pytest.fixture(scope="module")
@@ -109,5 +113,37 @@ def test_issue_comment_propose_update_handler(
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
         is_private=lambda: False,
     )
+    flexmock(IssueCommentEvent, db_trigger=ProjectReleaseModel())
     results = SteveJobs().process_message(issue_comment_propose_update_event)
-    assert results["jobs"]["pull_request_action"]["success"]
+    assert first_dict_value(results["jobs"])["success"]
+
+
+def test_issue_comment_with_overrides(issue_comment_propose_update_event):
+    packit_yaml = (
+        '{"specfile_path": "", "synced_files": [],'
+        '"downstream_package_name": "ogr",'
+        '"jobs": [{"trigger": "release", "job": "propose_downstream",'
+        '"metadata": {"dist-git-branch": "master"},'
+        '"overrides": {"downstream_package_name": "packit"}}]}'
+    )
+    flexmock(
+        GithubProject,
+        get_file_content=lambda path, ref: packit_yaml,
+        full_repo_name="packit-service/packit",
+        get_files=lambda ref, filter_regex: [],
+        get_web_url=lambda: "https://github.com/the-namespace/the-repo",
+        is_private=lambda: False,
+    )
+    flexmock(IssueCommentEvent, db_trigger=ProjectReleaseModel())
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+    config = ServiceConfig()
+    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
+    flexmock(Whitelist, check_and_report=True)
+
+    flexmock(Handler, run_n_clean=lambda: HandlerResults(True))
+
+    results = SteveJobs().process_message(issue_comment_propose_update_event)
+    assert first_dict_value(results["jobs"])["success"]
+    # making sure it's reset
+    assert results["event"]["_package_config"].downstream_package_name == "ogr"

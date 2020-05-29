@@ -38,6 +38,7 @@ from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
+from tests.spellbook import first_dict_value
 
 
 @pytest.mark.parametrize(
@@ -85,5 +86,7 @@ def test_process_message(event):
     )
     flexmock(Whitelist, check_and_report=True)
     results = SteveJobs().process_message(event)
-    assert "propose_downstream" in results["jobs"]
+    j = first_dict_value(results["jobs"])
+    assert "propose_downstream" in list(results["jobs"].keys())[0]
+    assert j["success"]
     assert results["event"]["trigger"] == "release"

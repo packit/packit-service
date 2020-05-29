@@ -143,6 +143,7 @@ class NewDistGitCommitHandler(FedmsgHandler):
 
 @add_topic
 @use_for(job_type=JobType.copr_build)
+@use_for(job_type=JobType.build)
 @required_by(job_type=JobType.tests)
 class CoprBuildEndHandler(FedmsgHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
@@ -268,6 +269,7 @@ class CoprBuildEndHandler(FedmsgHandler):
 
 @add_topic
 @use_for(job_type=JobType.copr_build)
+@use_for(job_type=JobType.build)
 @required_by(job_type=JobType.tests)
 class CoprBuildStartHandler(FedmsgHandler):
     topic = "org.fedoraproject.prod.copr.build.start"
