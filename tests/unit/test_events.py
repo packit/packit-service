@@ -58,6 +58,7 @@ from packit_service.service.events import (
     TheJobTriggerType,
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
+    PullRequestLabelPagureEvent,
 )
 from packit_service.worker.parser import Parser, CentosEventParser
 from tests.conftest import copr_build_model
@@ -682,6 +683,11 @@ class TestCentOSEventParser:
         ) as outfile:
             return json.load(outfile)
 
+    @pytest.fixture()
+    def pagure_pr_tag_added(self):
+        with open(DATA_DIR / "centosmsg" / "pull-request.tag.added.json") as outfile:
+            return json.load(outfile)
+
     def test_new_pull_request_event(self, pagure_pr_new):
         centos_event_parser = CentosEventParser()
         event_object = centos_event_parser.parse_event(pagure_pr_new)
@@ -806,6 +812,47 @@ class TestCentOSEventParser:
             project=event_object.project,
             pr_id=16,
             reference="dfe787d04101728c6ddc213d3f4bf39c969f194c",
+            fail_when_missing=False,
+            spec_file_path="SPECS/packit-hello-world.spec",
+        ).and_return(
+            flexmock()
+        ).once()
+        flexmock(PagureProject).should_receive("get_web_url").and_return(
+            "https://git.stg.centos.org/source-git/packit-hello-world"
+        )
+        assert event_object.package_config
+
+    def test_pull_request_tag_event(self, pagure_pr_tag_added):
+        centos_event_parser = CentosEventParser()
+        event_object = centos_event_parser.parse_event(pagure_pr_tag_added)
+
+        assert isinstance(event_object, PullRequestLabelPagureEvent)
+        assert event_object.pr_id == 18
+        assert event_object.base_repo_namespace == "source-git"
+        assert event_object.base_repo_name == "packit-hello-world"
+        assert event_object.base_repo_owner == "packit"
+        assert event_object.base_ref == "master"
+        assert event_object.labels == {"accepted"}
+        assert (
+            event_object.project_url
+            == "https://git.stg.centos.org/source-git/packit-hello-world"
+        )
+
+        assert isinstance(event_object.project, PagureProject)
+        assert event_object.project.full_repo_name == "source-git/packit-hello-world"
+        assert isinstance(event_object.base_project, PagureProject)
+        assert (
+            event_object.base_project.full_repo_name
+            == "fork/packit/source-git/packit-hello-world"
+        )
+
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=event_object.base_project,
+            project=event_object.project,
+            pr_id=18,
+            reference="0ec7f861383821218c485a45810d384ca224e357",
             fail_when_missing=False,
             spec_file_path="SPECS/packit-hello-world.spec",
         ).and_return(
