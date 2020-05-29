@@ -61,11 +61,6 @@ from packit_service.service.events import (
 )
 from packit_service.worker.parser import Parser, CentosEventParser
 from tests.conftest import copr_build_model
-from tests.data.centosmsg_listener_events import (
-    pagure_pr_update,
-    pagure_pr_new,
-    pagure_pr_comment_added,
-)
 from tests.spellbook import DATA_DIR
 
 
@@ -650,9 +645,9 @@ class TestEvents:
         assert json.dumps(event_object.result)
 
 
-class TestCentOsEventParser:
-    @pytest.fixture()
-    def mock_config(self):
+class TestCentOSEventParser:
+    @classmethod
+    def setup_class(cls):
         service_config = ServiceConfig()
         service_config.services = {
             GithubService(token="12345"),
@@ -670,7 +665,24 @@ class TestCentOsEventParser:
             forge_instance="git.stg.centos.org",
         )
 
-    def test_new_pull_request_event(self, mock_config):
+    @pytest.fixture()
+    def pagure_pr_new(self):
+        with open(DATA_DIR / "centosmsg" / "pull-request.new.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def pagure_pr_update(self):
+        with open(DATA_DIR / "centosmsg" / "pull-request.updated.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def pagure_pr_comment_added(self):
+        with open(
+            DATA_DIR / "centosmsg" / "pull-request.comment.added.json"
+        ) as outfile:
+            return json.load(outfile)
+
+    def test_new_pull_request_event(self, pagure_pr_new):
         centos_event_parser = CentosEventParser()
         event_object = centos_event_parser.parse_event(pagure_pr_new)
 
@@ -715,7 +727,7 @@ class TestCentOsEventParser:
         )
         assert event_object.package_config
 
-    def test_update_pull_request_event(self, mock_config):
+    def test_update_pull_request_event(self, pagure_pr_update):
         centos_event_parser = CentosEventParser()
         event_object = centos_event_parser.parse_event(pagure_pr_update)
 
@@ -760,7 +772,7 @@ class TestCentOsEventParser:
         )
         assert event_object.package_config
 
-    def test_pull_request_comment_event(self, mock_config):
+    def test_pull_request_comment_event(self, pagure_pr_comment_added):
         centos_event_parser = CentosEventParser()
         event_object = centos_event_parser.parse_event(pagure_pr_comment_added)
 
@@ -805,7 +817,7 @@ class TestCentOsEventParser:
         assert event_object.package_config
 
     def test_parse_copr_build_event_start(
-        self, copr_build_results_start, copr_build_centos_pr, mock_config
+        self, copr_build_results_start, copr_build_centos_pr
     ):
         flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
             copr_build_centos_pr
@@ -857,7 +869,7 @@ class TestCentOsEventParser:
         assert event_object.package_config
 
     def test_parse_copr_build_event_end(
-        self, copr_build_results_end, copr_build_centos_pr, mock_config
+        self, copr_build_results_end, copr_build_centos_pr
     ):
         flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
             copr_build_centos_pr
