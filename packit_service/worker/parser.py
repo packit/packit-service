@@ -28,6 +28,7 @@ from functools import partial
 from typing import Optional, Union, List, Dict
 
 from packit.utils import nested_get
+
 from packit_service.service.events import (
     PullRequestGithubEvent,
     PullRequestCommentGithubEvent,

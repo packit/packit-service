@@ -32,7 +32,7 @@ from packit.sync import SyncFilesItem
 from packit_service.config import ServiceConfig, Deployment, PackageConfigGetter
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def service_config_valid():
     return {
         "debug": True,
@@ -83,7 +83,7 @@ def test_parse_valid(service_config_valid):
     assert config.server_name == "hub.packit.org"
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def service_config_invalid():
     return {
         "deployment": False,  # wrong option

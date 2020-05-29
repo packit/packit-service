@@ -24,56 +24,120 @@ import json
 
 import pytest
 from flexmock import flexmock
-
+from github import Github
 from ogr.services.github import GithubProject
+from packit.config import JobConfigTriggerType
+from packit.local_project import LocalProject
+
+from packit_service.config import ServiceConfig
+from packit_service.constants import SANDCASTLE_WORK_DIR
+from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import HandlerResults
+from packit_service.worker.whitelist import Whitelist
 from tests.spellbook import DATA_DIR
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def pr_copr_build_comment_event():
     return json.loads(
-        (DATA_DIR / "webhooks" / "github_pr_comment_copr_build.json").read_text()
+        (DATA_DIR / "webhooks" / "github" / "pr_comment_copr_build.json").read_text()
     )
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def pr_build_comment_event():
     return json.loads(
-        (DATA_DIR / "webhooks" / "github_pr_comment_build.json").read_text()
+        (DATA_DIR / "webhooks" / "github" / "pr_comment_build.json").read_text()
     )
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def pr_embedded_command_comment_event():
     return json.loads(
-        (DATA_DIR / "webhooks" / "github_pr_comment_embedded_command.json").read_text()
+        (
+            DATA_DIR / "webhooks" / "github" / "pr_comment_embedded_command.json"
+        ).read_text()
     )
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def pr_empty_comment_event():
     return json.loads(
-        (DATA_DIR / "webhooks" / "github_pr_comment_empty.json").read_text()
+        (DATA_DIR / "webhooks" / "github" / "pr_comment_empty.json").read_text()
     )
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def pr_packit_only_comment_event():
     return json.loads(
-        (DATA_DIR / "webhooks" / "github_issue_comment_packit_only.json").read_text()
+        (
+            DATA_DIR / "webhooks" / "github" / "issue_comment_packit_only.json"
+        ).read_text()
     )
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def pr_wrong_packit_comment_event():
     return json.loads(
         (
-            DATA_DIR / "webhooks" / "github_issue_comment_wrong_packit_command.json"
+            DATA_DIR / "webhooks" / "github" / "issue_comment_wrong_packit_command.json"
         ).read_text()
     )
+
+
+@pytest.fixture(
+    params=[
+        [
+            {
+                "trigger": "pull_request",
+                "job": "copr_build",
+                "metadata": {"targets": "fedora-rawhide-x86_64"},
+            }
+        ],
+        [
+            {
+                "trigger": "pull_request",
+                "job": "tests",
+                "metadata": {"targets": "fedora-rawhide-x86_64"},
+            }
+        ],
+        [
+            {
+                "trigger": "pull_request",
+                "job": "copr_build",
+                "metadata": {"targets": "fedora-rawhide-x86_64"},
+            },
+            {
+                "trigger": "pull_request",
+                "job": "tests",
+                "metadata": {"targets": "fedora-rawhide-x86_64"},
+            },
+        ],
+    ]
+)
+def mock_pr_comment_functionality(request):
+    packit_yaml = (
+        "{'specfile_path': '', 'synced_files': [], 'jobs': " + str(request.param) + "}"
+    )
+    flexmock(
+        GithubProject,
+        full_repo_name="packit-service/hello-world",
+        get_file_content=lambda path, ref: packit_yaml,
+        get_web_url=lambda: "https://github.com/the-namespace/the-repo",
+        get_pr=lambda pr_id: flexmock(head_commit="12345"),
+    )
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+
+    config = ServiceConfig()
+    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
+        flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(Whitelist, check_and_report=True)
 
 
 def test_pr_comment_copr_build_handler(

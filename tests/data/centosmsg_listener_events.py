@@ -60,7 +60,7 @@ push_to_branch_no_pr = {
     "topic": "git.stg.centos.org/git.receive",
 }
 
-pr_update = {
+pagure_pr_update = {
     "pullrequest": {
         "last_updated": "1587473297",
         "uid": "e5ec77308f524f4b826553b1ad952a01",
@@ -163,7 +163,7 @@ pr_update = {
     "topic": "git.stg.centos.org/pull-request.updated",
 }
 
-pr_new = {
+pagure_pr_new = {
     "pullrequest": {
         "last_updated": "1587375481",
         "uid": "29cde88200084893a523d31afb501ed6",
@@ -266,7 +266,7 @@ pr_new = {
     "topic": "git.stg.centos.org/pull-request.new",
 }
 
-pr_comment_added = {
+pagure_pr_comment_added = {
     "pullrequest": {
         "last_updated": "1587482301",
         "uid": "0c204631eeb24789ae48a784215afbd0",

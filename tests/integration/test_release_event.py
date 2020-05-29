@@ -1,21 +1,18 @@
-import json
-
 import pytest
 from flexmock import flexmock
 from github import Github
-
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.config.aliases import get_branches
 from packit.fedpkg import FedPKG
 from packit.local_project import LocalProject
+
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
-from tests.spellbook import DATA_DIR
 
 
 @pytest.fixture(scope="module")
@@ -23,12 +20,7 @@ def fedora_branches():
     return sorted(get_branches("fedora-all"))
 
 
-@pytest.fixture()
-def release_event():
-    return json.loads((DATA_DIR / "webhooks" / "github_release_event.json").read_text())
-
-
-def test_dist_git_push_release_handle(release_event):
+def test_dist_git_push_release_handle(github_release_webhook):
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, metadata: {targets:[]}}]}"
@@ -58,12 +50,14 @@ def test_dist_git_push_release_handle(release_event):
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
 
-    results = SteveJobs().process_message(release_event)
+    results = SteveJobs().process_message(github_release_webhook)
     assert results["jobs"]["propose_downstream"]["success"]
     assert results["event"]["trigger"] == "release"
 
 
-def test_dist_git_push_release_handle_multiple_branches(release_event, fedora_branches):
+def test_dist_git_push_release_handle_multiple_branches(
+    github_release_webhook, fedora_branches
+):
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, "
@@ -97,12 +91,14 @@ def test_dist_git_push_release_handle_multiple_branches(release_event, fedora_br
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
 
-    results = SteveJobs().process_message(release_event)
+    results = SteveJobs().process_message(github_release_webhook)
     assert results["jobs"]["propose_downstream"]["success"]
     assert results["event"]["trigger"] == "release"
 
 
-def test_dist_git_push_release_handle_one_failed(release_event, fedora_branches):
+def test_dist_git_push_release_handle_one_failed(
+    github_release_webhook, fedora_branches
+):
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, "
@@ -147,12 +143,14 @@ def test_dist_git_push_release_handle_one_failed(release_event, fedora_branches)
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
 
-    results = SteveJobs().process_message(release_event)
+    results = SteveJobs().process_message(github_release_webhook)
     assert not results["jobs"]["propose_downstream"]["success"]
     assert results["event"]["trigger"] == "release"
 
 
-def test_dist_git_push_release_handle_all_failed(release_event, fedora_branches):
+def test_dist_git_push_release_handle_all_failed(
+    github_release_webhook, fedora_branches
+):
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, "
@@ -203,6 +201,6 @@ def test_dist_git_push_release_handle_all_failed(release_event, fedora_branches)
         len(fedora_branches)
     )
 
-    results = SteveJobs().process_message(release_event)
+    results = SteveJobs().process_message(github_release_webhook)
     assert not results["jobs"]["propose_downstream"]["success"]
     assert results["event"]["trigger"] == "release"

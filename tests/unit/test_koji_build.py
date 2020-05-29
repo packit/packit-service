@@ -96,12 +96,12 @@ def build_helper(
     return handler
 
 
-def test_koji_build_check_names(pull_request_event):
+def test_koji_build_check_names(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
     helper = build_helper(
-        event=pull_request_event, metadata=JobMetadataConfig(targets=["bright-future"]),
+        event=github_pr_event, metadata=JobMetadataConfig(targets=["bright-future"]),
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
         ["dark-past", "bright-future"]
@@ -144,12 +144,12 @@ def test_koji_build_check_names(pull_request_event):
     assert helper.run_koji_build()["success"]
 
 
-def test_koji_build_failed_kerberos(pull_request_event):
+def test_koji_build_failed_kerberos(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
     helper = build_helper(
-        event=pull_request_event, metadata=JobMetadataConfig(targets=["bright-future"]),
+        event=github_pr_event, metadata=JobMetadataConfig(targets=["bright-future"]),
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
         ["dark-past", "bright-future"]
@@ -192,12 +192,12 @@ def test_koji_build_failed_kerberos(pull_request_event):
     )
 
 
-def test_koji_build_target_not_supported(pull_request_event):
+def test_koji_build_target_not_supported(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
     helper = build_helper(
-        event=pull_request_event,
+        event=github_pr_event,
         metadata=JobMetadataConfig(targets=["nonexisting-target"]),
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
@@ -234,12 +234,12 @@ def test_koji_build_target_not_supported(pull_request_event):
     )
 
 
-def test_koji_build_with_multiple_targets(pull_request_event):
+def test_koji_build_with_multiple_targets(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
     helper = build_helper(
-        event=pull_request_event,
+        event=github_pr_event,
         metadata=JobMetadataConfig(targets=["bright-future", "dark-past"]),
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
@@ -276,12 +276,12 @@ def test_koji_build_with_multiple_targets(pull_request_event):
     assert helper.run_koji_build()["success"]
 
 
-def test_koji_build_failed(pull_request_event):
+def test_koji_build_failed(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
     helper = build_helper(
-        event=pull_request_event, metadata=JobMetadataConfig(targets=["bright-future"]),
+        event=github_pr_event, metadata=JobMetadataConfig(targets=["bright-future"]),
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
         ["dark-past", "bright-future"]
@@ -321,12 +321,12 @@ def test_koji_build_failed(pull_request_event):
     assert result["details"]["errors"]["bright-future"] == "some error"
 
 
-def test_koji_build_failed_srpm(pull_request_event):
+def test_koji_build_failed_srpm(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
     helper = build_helper(
-        event=pull_request_event, metadata=JobMetadataConfig(targets=["bright-future"]),
+        event=github_pr_event, metadata=JobMetadataConfig(targets=["bright-future"]),
     )
     srpm_build_url = get_srpm_log_url_from_flask(2)
     flexmock(StatusReporter).should_receive("set_status").with_args(

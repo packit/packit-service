@@ -65,7 +65,7 @@ def test_handler_cleanup(tmpdir, trick_p_s_with_k8s):
     assert len(list(t.iterdir())) == 0
 
 
-def test_precheck(pull_request_event):
+def test_precheck(github_pr_event):
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(
@@ -85,12 +85,12 @@ def test_precheck(pull_request_event):
         job_config=JobConfig(
             type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
         ),
-        event=pull_request_event,
+        event=github_pr_event,
     )
     assert copr_build_handler.pre_check()
 
 
-def test_precheck_skip_tests_when_build_defined(pull_request_event):
+def test_precheck_skip_tests_when_build_defined(github_pr_event):
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(
@@ -113,6 +113,6 @@ def test_precheck_skip_tests_when_build_defined(pull_request_event):
         job_config=JobConfig(
             type=JobType.tests, trigger=JobConfigTriggerType.pull_request,
         ),
-        event=pull_request_event,
+        event=github_pr_event,
     )
     assert not copr_build_handler.pre_check()
