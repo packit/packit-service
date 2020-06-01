@@ -85,7 +85,11 @@ def build_helper(
     handler = CoprBuildJobHelper(
         config=ServiceConfig(),
         package_config=pkg_conf,
-        project=GitProject(repo=flexmock(), service=flexmock(), namespace=flexmock()),
+        project=GitProject(
+            repo="the-example-repo",
+            service=flexmock(),
+            namespace="the-example-namespace",
+        ),
         event=event,
     )
     handler._api = PackitAPI(ServiceConfig(), pkg_conf)
@@ -129,9 +133,14 @@ def test_copr_build_check_names(pull_request_event):
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
     # copr build
-    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
-        None
-    )
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").with_args(
+        project="the-example-namespace-the-example-repo-342-stg",
+        chroots=["bright-future-x86_64"],
+        owner="nobody",
+        description=None,
+        instructions=None,
+    ).and_return(None)
+
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         flexmock(
             config={"copr_url": "https://copr.fedorainfracloud.org/"},

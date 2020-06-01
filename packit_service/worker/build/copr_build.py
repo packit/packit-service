@@ -218,7 +218,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         self.api.copr_helper.create_copr_project_if_not_exists(
             project=self.job_project,
-            chroots=self.build_targets,
+            chroots=list(self.build_targets),
             owner=owner,
             description=None,
             instructions=None,
