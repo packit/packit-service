@@ -47,7 +47,7 @@ def get_srpm_build_logs_by_id(id_):
     srpm_build = SRPMBuildModel.get_by_id(id_)
     if srpm_build:
         return render_template("srpm_logs.html", id=id_, srpm_build=srpm_build)
-    return f"We can't find any info about SRPM build {id_}.\n"
+    return f"We can't find any info about SRPM build {id_}.\n", 404
 
 
 def _get_build_info(
@@ -88,7 +88,7 @@ def copr_build_info(id_):
     build = CoprBuildModel.get_by_id(id_)
     if build:
         return _get_build_info(build, build_description="Copr build")
-    return f"We can't find any info about Copr build {id_}.\n"
+    return f"We can't find any info about Copr build {id_}.\n", 404
 
 
 @builds_blueprint.route("/koji-build/<int:id_>/logs", methods=("GET",))
@@ -102,4 +102,4 @@ def koji_build_info(id_):
     build = KojiBuildModel.get_by_id(id_)
     if build:
         return _get_build_info(build, build_description="Koji build")
-    return f"We can't find any info about Koji build {id_}.\n"
+    return f"We can't find any info about Koji build {id_}.\n", 404
