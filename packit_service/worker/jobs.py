@@ -24,12 +24,12 @@
 We love you, Steve Jobs.
 """
 import logging
-from typing import Optional, Dict, Union, Type, Set
+from typing import Optional, Dict, Union, Type, Set, List
 
 from packit.config import JobType, PackageConfig, JobConfig
 from packit_service.config import ServiceConfig
-from packit_service.models import PullRequestModel
 from packit_service.log_versions import log_job_versions
+from packit_service.models import PullRequestModel
 from packit_service.service.events import (
     PullRequestCommentGithubEvent,
     IssueCommentEvent,
@@ -98,7 +98,7 @@ def get_handlers_for_event(
 
 def get_config_for_handler_kls(
     handler_kls: Type[JobHandler], event: Event, package_config: PackageConfig
-) -> Optional[JobConfig]:
+) -> List[JobConfig]:
     """
     Get a JobConfig relevant to event and the handler class.
 
@@ -107,22 +107,36 @@ def get_config_for_handler_kls(
     :param package_config: we pick the JobConfig from this package_config instance
     :return: JobConfig
     """
-    for job in package_config.jobs:
-        if job.type in MAP_HANDLER_TO_JOB_TYPES[handler_kls] and (
-            (
-                event.db_trigger
-                and event.db_trigger.job_config_trigger_type == job.trigger
-            )
-            or is_trigger_matching_job_config(trigger=event.trigger, job_config=job)
-        ):
-            return job
+    matching_jobs = []
+    jobs_that_can_be_triggered = []
 
-        required_handlers = MAP_REQUIRED_JOB_TO_HANDLERS[job.type]
-        for pos_handler in required_handlers:
+    for job in package_config.jobs:
+        if (
+            event.db_trigger and event.db_trigger.job_config_trigger_type == job.trigger
+        ) or is_trigger_matching_job_config(trigger=event.trigger, job_config=job):
+            jobs_that_can_be_triggered.append(job)
+
+    matching_job_types = MAP_HANDLER_TO_JOB_TYPES[handler_kls]
+    for job in jobs_that_can_be_triggered:
+        if job.type in matching_job_types and job not in matching_jobs:
+            matching_jobs.append(job)
+
+    if matching_jobs:
+        return matching_jobs
+
+    # The job was not configured but let's try required ones.
+    # e.g. we can use `tests` configuration when running build
+    for job in jobs_that_can_be_triggered:
+        matching_required_job_types = MAP_REQUIRED_JOB_TO_HANDLERS[job.type]
+        for pos_handler in matching_required_job_types:
             for trigger in pos_handler.triggers:
-                if trigger == event.trigger:
-                    return job
-    return None
+                if (
+                    is_trigger_matching_job_config(trigger=trigger, job_config=job)
+                    and job not in matching_jobs
+                ):
+                    matching_jobs.append(job)
+
+    return matching_jobs
 
 
 class SteveJobs:
@@ -163,7 +177,7 @@ class SteveJobs:
             return handlers_results
 
         for handler_kls in handler_classes:
-            job = get_config_for_handler_kls(
+            job_configs = get_config_for_handler_kls(
                 handler_kls=handler_kls,
                 event=event,
                 package_config=event.package_config,
@@ -177,15 +191,19 @@ class SteveJobs:
             elif not whitelist.check_and_report(
                 event, event.project, config=self.config
             ):
-                handlers_results[job.type.value] = HandlerResults(
-                    success=False, details={"msg": "Account is not whitelisted!"}
-                )
+                for job_config in job_configs:
+                    handlers_results[job_config.type.value] = HandlerResults(
+                        success=False, details={"msg": "Account is not whitelisted!"}
+                    )
                 return handlers_results
 
-            logger.debug(f"Running handler: {str(handler_kls)}")
-            handler = handler_kls(config=self.config, job_config=job, event=event)
-            if handler.pre_check():
-                handlers_results[job.type.value] = handler.run_n_clean()
+            for job_config in job_configs:
+                logger.debug(f"Running handler: {str(handler_kls)} for {job_config}")
+                handler = handler_kls(
+                    config=self.config, job_config=job_config, event=event
+                )
+                if handler.pre_check():
+                    handlers_results[job_config.type.value] = handler.run_n_clean()
             # don't break here, other handlers may react to the same event
 
         return handlers_results

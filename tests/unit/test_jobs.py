@@ -23,6 +23,7 @@ import pytest
 from flexmock import flexmock
 
 from packit.config import JobConfig, JobType, JobConfigTriggerType
+from packit.config.job_config import JobMetadataConfig
 from packit_service.service.events import TheJobTriggerType
 from packit_service.worker.handlers import (
     PullRequestCoprBuildHandler,
@@ -37,7 +38,10 @@ from packit_service.worker.handlers.github_handlers import (
     PushCoprBuildHandler,
     ReleaseGithubKojiBuildHandler,
 )
-from packit_service.worker.jobs import get_handlers_for_event
+from packit_service.worker.jobs import (
+    get_handlers_for_event,
+    get_config_for_handler_kls,
+)
 
 
 @pytest.mark.parametrize(
@@ -306,3 +310,269 @@ def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
         )
     )
     assert event_handlers == result
+
+
+@pytest.mark.parametrize(
+    "handler_kls,event,jobs,result_job_config",
+    [
+        pytest.param(
+            PullRequestCoprBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.pull_request,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
+                )
+            ],
+            [
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
+                )
+            ],
+            id="copr_build_for_pr",
+        ),
+        pytest.param(
+            PullRequestCoprBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.pull_request,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
+            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
+            id="copr_build_for_pr_when_test_defined",
+        ),
+        pytest.param(
+            PullRequestCoprBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.pull_request,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
+                )
+            ],
+            id="copr_build_for_pr_when_test_and_build_defined",
+        ),
+        pytest.param(
+            PullRequestCoprBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.pull_request,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.release
+                ),
+            ],
+            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
+            id="copr_build_for_pr_when_test_for_pr_and_build_for_release_are_defined",
+        ),
+        pytest.param(
+            PullRequestCoprBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.commit,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.commit
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
+                ),
+            ],
+            [],
+            id="copr_build_for_commit_when_test_and_build_are_defined_for_pr",
+        ),
+        pytest.param(
+            PullRequestCoprBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.commit,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.commit
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit),
+            ],
+            [JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit)],
+            id="copr_build_for_commit_when_test_and_build_are_defined_for_pr_and_build_for_push",
+        ),
+        pytest.param(
+            PullRequestCoprBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.commit,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.commit
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(branch="a"),
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(branch="b"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(branch="a"),
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(branch="b"),
+                ),
+            ],
+            id="copr_build_for_commit_when_test_and_build_are_defined_for_pr_and_build_for_push"
+            "@more_branches",
+        ),
+        pytest.param(
+            PullRequestCoprBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.pull_request,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                ),
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
+                )
+            ],
+            id="copr_build_for_pr_when_test_build_and_koji_build_defined",
+        ),
+        pytest.param(
+            PullRequestGithubKojiBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.pull_request,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            id="koji_build_for_pr",
+        ),
+        pytest.param(
+            PullRequestGithubKojiBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.commit,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.commit
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(branch="some-branch"),
+                ),
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(branch="some-branch"),
+                ),
+            ],
+            id="koji_build_for_commit_when_pr_and_branch_configured",
+        ),
+        pytest.param(
+            ProposeDownstreamHandler,
+            flexmock(
+                trigger=TheJobTriggerType.release,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.release
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                )
+            ],
+            [
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                )
+            ],
+            id="propose_downstream",
+        ),
+    ],
+)
+def test_get_config_for_handler_kls(handler_kls, event, jobs, result_job_config):
+    job_config = get_config_for_handler_kls(
+        handler_kls=handler_kls, event=event, package_config=flexmock(jobs=jobs),
+    )
+    assert job_config == result_job_config
