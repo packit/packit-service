@@ -33,7 +33,6 @@ from typing import Dict, Optional, Type, List, Set
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobType
 from packit.local_project import LocalProject
-
 from packit_service.config import ServiceConfig
 from packit_service.sentry_integration import push_scope_to_sentry
 from packit_service.service.events import Event, TheJobTriggerType

@@ -27,7 +27,7 @@ import copy
 import enum
 import logging
 from datetime import datetime, timezone
-from typing import Optional, List, Union, Dict
+from typing import Optional, List, Union, Dict, Set
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
@@ -71,6 +71,11 @@ class IssueCommentAction(enum.Enum):
     edited = "edited"
 
 
+class PullRequestLabelAction(enum.Enum):
+    added = "added"
+    removed = "removed"
+
+
 class FedmsgTopic(enum.Enum):
     dist_git_push = "org.fedoraproject.prod.git.receive"
     copr_build_finished = "org.fedoraproject.prod.copr.build.end"
@@ -92,6 +97,7 @@ class TheJobTriggerType(str, enum.Enum):
     installation = "installation"
     testing_farm_results = "testing_farm_results"
     pr_comment = "pr_comment"
+    pr_label = "pr_label"
     issue_comment = "issue_comment"
     copr_start = "copr_start"
     copr_end = "copr_end"
@@ -829,6 +835,48 @@ class PullRequestPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
         self.project_url = project_url
+
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        result["action"] = result["action"].value
+        return result
+
+    def get_base_project(self) -> GitProject:
+        fork = self.project.service.get_project(
+            namespace=self.base_repo_namespace,
+            repo=self.base_repo_name,
+            username=self.base_repo_owner,
+            is_fork=True,
+        )
+        logger.debug(f"Base project: {fork} owned by {self.base_repo_owner}")
+        return fork
+
+
+class PullRequestLabelPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
+    def __init__(
+        self,
+        action: PullRequestLabelAction,
+        pr_id: int,
+        base_repo_namespace: str,
+        base_repo_name: str,
+        base_repo_owner: str,
+        base_ref: Optional[str],
+        commit_sha: str,
+        project_url: str,
+        labels: Set[str],
+    ):
+        super().__init__(
+            trigger=TheJobTriggerType.pr_label, project_url=project_url, pr_id=pr_id
+        )
+        self.action = action
+        self.base_repo_namespace = base_repo_namespace
+        self.base_repo_name = base_repo_name
+        self.base_repo_owner = base_repo_owner
+        self.base_ref = base_ref
+        self.identifier = str(pr_id)
+        self.git_ref = None  # pr_id will be used for checkout
+        self.commit_sha = commit_sha
+        self.labels = labels
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()

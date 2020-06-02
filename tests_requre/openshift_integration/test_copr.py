@@ -34,7 +34,7 @@ def pr_event():
 
 def pr_comment_event():
     return json.loads(
-        (DATA_DIR / "webhooks" / "github_pr_comment_copr_build.json").read_text()
+        (DATA_DIR / "webhooks" / "github" / "pr_comment_copr_build.json").read_text()
     )
 
 

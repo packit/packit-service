@@ -29,10 +29,10 @@ from datetime import datetime, timezone
 
 import pytest
 from flexmock import flexmock
-
 from ogr import PagureService
 from ogr.services.github import GithubProject, GithubService
 from ogr.services.pagure import PagureProject
+
 from packit_service.config import (
     ServiceConfig,
     PackageConfigGetter,
@@ -58,87 +58,78 @@ from packit_service.service.events import (
     TheJobTriggerType,
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
+    PullRequestLabelPagureEvent,
 )
 from packit_service.worker.parser import Parser, CentosEventParser
-from tests.data.centosmsg_listener_events import (
-    pr_update,
-    pr_new,
-    pr_comment_added,
-)
+from tests.conftest import copr_build_model
 from tests.spellbook import DATA_DIR
+
+
+@pytest.fixture(scope="module")
+def copr_build_results_start():
+    with open(DATA_DIR / "fedmsg" / "copr_build_start.json") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture(scope="module")
+def copr_build_results_end():
+    with open(DATA_DIR / "fedmsg" / "copr_build_end.json") as outfile:
+        return json.load(outfile)
 
 
 class TestEvents:
     @pytest.fixture()
-    def installation(self, request):
+    def github_installation(self, request):
         file = f"installation_{request.param}.json"
-        with open(DATA_DIR / "webhooks" / file) as outfile:
+        with open(DATA_DIR / "webhooks" / "github" / file) as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
-    def release(self):
-        with open(DATA_DIR / "webhooks" / "release_event.json", "r") as outfile:
-            return json.load(outfile)
-
-    @pytest.fixture()
-    def pull_request(self):
-        with open(DATA_DIR / "webhooks" / "github_pr_event.json", "r") as outfile:
-            return json.load(outfile)
-
-    @pytest.fixture()
-    def issue_comment_request(self):
+    def github_issue_comment_propose_update(self):
         with open(
-            DATA_DIR / "webhooks" / "github_issue_propose_update.json", "r"
+            DATA_DIR / "webhooks" / "github" / "issue_propose_update.json"
         ) as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
     def testing_farm_results(self):
-        with open(DATA_DIR / "webhooks" / "testing_farm_results.json", "r") as outfile:
+        with open(DATA_DIR / "webhooks" / "testing_farm" / "results.json") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
     def testing_farm_results_error(self):
         with open(
-            DATA_DIR / "webhooks" / "testing_farm_results_error.json", "r"
+            DATA_DIR / "webhooks" / "testing_farm" / "results_error.json"
         ) as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
-    def pr_comment_created_request(self):
+    def github_pr_comment_created(self):
         with open(
-            DATA_DIR / "webhooks" / "github_pr_comment_copr_build.json", "r"
+            DATA_DIR / "webhooks" / "github" / "pr_comment_copr_build.json"
         ) as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
-    def pr_comment_empty_request(self):
-        with open(DATA_DIR / "webhooks" / "github_pr_comment_empty.json") as outfile:
+    def github_pr_comment_empty(self):
+        with open(
+            DATA_DIR / "webhooks" / "github" / "pr_comment_empty.json"
+        ) as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
     def github_push(self):
-        with open(DATA_DIR / "webhooks" / "github_push.json") as outfile:
+        with open(DATA_DIR / "webhooks" / "github" / "push.json") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
     def github_push_branch(self):
-        with open(DATA_DIR / "webhooks" / "github_push_branch.json") as outfile:
+        with open(DATA_DIR / "webhooks" / "github" / "push_branch.json") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
     def distgit_commit(self):
-        with open(DATA_DIR / "webhooks" / "distgit_commit.json") as outfile:
-            return json.load(outfile)
-
-    @pytest.fixture()
-    def copr_build_results_start(self):
-        with open(DATA_DIR / "fedmsg" / "copr_build_start.json", "r") as outfile:
-            return json.load(outfile)
-
-    @pytest.fixture()
-    def copr_build_results_end(self):
-        with open(DATA_DIR / "fedmsg" / "copr_build_end.json", "r") as outfile:
+        with open(DATA_DIR / "fedmsg" / "distgit_commit.json") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -152,9 +143,9 @@ class TestEvents:
         ServiceConfig.service_config = service_config
 
     # https://stackoverflow.com/questions/35413134/what-does-indirect-true-false-in-pytest-mark-parametrize-do-mean
-    @pytest.mark.parametrize("installation", ["added", "created"], indirect=True)
-    def test_parse_installation(self, installation):
-        event_object = Parser.parse_event(installation)
+    @pytest.mark.parametrize("github_installation", ["added", "created"], indirect=True)
+    def test_parse_installation(self, github_installation):
+        event_object = Parser.parse_event(github_installation)
 
         assert isinstance(event_object, InstallationEvent)
         assert event_object.trigger == TheJobTriggerType.installation
@@ -171,18 +162,20 @@ class TestEvents:
         assert event_object.status == WhitelistStatus.waiting
         assert event_object.repositories == ["jpopelka/brewutils"]
 
-    def test_parse_release(self, release):
-        event_object = Parser.parse_event(release)
+    def test_parse_release(self, github_release_webhook):
+        event_object = Parser.parse_event(github_release_webhook)
 
         assert isinstance(event_object, ReleaseEvent)
         assert event_object.trigger == TheJobTriggerType.release
-        assert event_object.repo_namespace == "Codertocat"
-        assert event_object.repo_name == "Hello-World"
-        assert event_object.tag_name == "0.0.1"
-        assert event_object.project_url == "https://github.com/Codertocat/Hello-World"
+        assert event_object.repo_namespace == "packit-service"
+        assert event_object.repo_name == "hello-world"
+        assert event_object.tag_name == "0.3.0"
+        assert (
+            event_object.project_url == "https://github.com/packit-service/hello-world"
+        )
 
-    def test_parse_pr(self, pull_request):
-        event_object = Parser.parse_event(pull_request)
+    def test_parse_pr(self, github_pr_webhook):
+        event_object = Parser.parse_event(github_pr_webhook)
 
         assert isinstance(event_object, PullRequestGithubEvent)
         assert event_object.trigger == TheJobTriggerType.pull_request
@@ -216,8 +209,8 @@ class TestEvents:
         ).once()
         assert event_object.package_config
 
-    def test_parse_pr_comment_created(self, pr_comment_created_request):
-        event_object = Parser.parse_event(pr_comment_created_request)
+    def test_parse_pr_comment_created(self, github_pr_comment_created):
+        event_object = Parser.parse_event(github_pr_comment_created)
 
         assert isinstance(event_object, PullRequestCommentGithubEvent)
         assert event_object.trigger == TheJobTriggerType.pr_comment
@@ -257,8 +250,8 @@ class TestEvents:
         ).once()
         assert event_object.package_config
 
-    def test_parse_pr_comment_empty(self, pr_comment_empty_request):
-        event_object = Parser.parse_event(pr_comment_empty_request)
+    def test_parse_pr_comment_empty(self, github_pr_comment_empty):
+        event_object = Parser.parse_event(github_pr_comment_empty)
 
         assert isinstance(event_object, PullRequestCommentGithubEvent)
         assert event_object.trigger == TheJobTriggerType.pr_comment
@@ -299,8 +292,8 @@ class TestEvents:
 
         assert event_object.package_config
 
-    def test_parse_issue_comment(self, issue_comment_request):
-        event_object = Parser.parse_event(issue_comment_request)
+    def test_parse_issue_comment(self, github_issue_comment_propose_update):
+        event_object = Parser.parse_event(github_issue_comment_propose_update)
 
         assert isinstance(event_object, IssueCommentEvent)
         assert event_object.trigger == TheJobTriggerType.issue_comment
@@ -599,8 +592,8 @@ class TestEvents:
 
         assert event_object.package_config
 
-    def test_get_project_pr(self, pull_request, mock_config):
-        event_object = Parser.parse_event(pull_request)
+    def test_get_project_pr(self, github_pr_webhook, mock_config):
+        event_object = Parser.parse_event(github_pr_webhook)
 
         assert isinstance(event_object, PullRequestGithubEvent)
 
@@ -609,15 +602,15 @@ class TestEvents:
         assert event_object.project.namespace == "packit-service"
         assert event_object.project.repo == "packit"
 
-    def test_get_project_release(self, release, mock_config):
-        event_object = Parser.parse_event(release)
+    def test_get_project_release(self, github_release_webhook, mock_config):
+        event_object = Parser.parse_event(github_release_webhook)
 
         assert isinstance(event_object, ReleaseEvent)
 
         assert isinstance(event_object.project, GithubProject)
         assert isinstance(event_object.project.service, GithubService)
-        assert event_object.project.namespace == "Codertocat"
-        assert event_object.project.repo == "Hello-World"
+        assert event_object.project.namespace == "packit-service"
+        assert event_object.project.repo == "hello-world"
 
     def test_get_project_testing_farm_results(self, testing_farm_results, mock_config):
         event_object = Parser.parse_event(testing_farm_results)
@@ -653,9 +646,9 @@ class TestEvents:
         assert json.dumps(event_object.result)
 
 
-class TestCentOsEventParser:
-    @pytest.fixture()
-    def mock_config(self):
+class TestCentOSEventParser:
+    @classmethod
+    def setup_class(cls):
         service_config = ServiceConfig()
         service_config.services = {
             GithubService(token="12345"),
@@ -666,18 +659,38 @@ class TestCentOsEventParser:
         ServiceConfig.service_config = service_config
 
     @pytest.fixture()
-    def copr_build_results_start(self):
-        with open(DATA_DIR / "fedmsg" / "copr_build_start.json", "r") as outfile:
+    def copr_build_centos_pr(self):
+        return copr_build_model(
+            repo_name="packit-hello-world",
+            repo_namespace="source-git",
+            forge_instance="git.stg.centos.org",
+        )
+
+    @pytest.fixture()
+    def pagure_pr_new(self):
+        with open(DATA_DIR / "centosmsg" / "pull-request.new.json") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
-    def copr_build_results_end(self):
-        with open(DATA_DIR / "fedmsg" / "copr_build_end.json", "r") as outfile:
+    def pagure_pr_update(self):
+        with open(DATA_DIR / "centosmsg" / "pull-request.updated.json") as outfile:
             return json.load(outfile)
 
-    def test_new_pull_request_event(self, mock_config):
+    @pytest.fixture()
+    def pagure_pr_comment_added(self):
+        with open(
+            DATA_DIR / "centosmsg" / "pull-request.comment.added.json"
+        ) as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def pagure_pr_tag_added(self):
+        with open(DATA_DIR / "centosmsg" / "pull-request.tag.added.json") as outfile:
+            return json.load(outfile)
+
+    def test_new_pull_request_event(self, pagure_pr_new):
         centos_event_parser = CentosEventParser()
-        event_object = centos_event_parser.parse_event(pr_new)
+        event_object = centos_event_parser.parse_event(pagure_pr_new)
 
         assert isinstance(event_object, PullRequestPagureEvent)
         assert event_object.action == PullRequestAction.opened
@@ -720,9 +733,9 @@ class TestCentOsEventParser:
         )
         assert event_object.package_config
 
-    def test_update_pull_request_event(self, mock_config):
+    def test_update_pull_request_event(self, pagure_pr_update):
         centos_event_parser = CentosEventParser()
-        event_object = centos_event_parser.parse_event(pr_update)
+        event_object = centos_event_parser.parse_event(pagure_pr_update)
 
         assert isinstance(event_object, PullRequestPagureEvent)
         assert event_object.action == PullRequestAction.synchronize
@@ -765,9 +778,9 @@ class TestCentOsEventParser:
         )
         assert event_object.package_config
 
-    def test_pull_request_comment_event(self, mock_config):
+    def test_pull_request_comment_event(self, pagure_pr_comment_added):
         centos_event_parser = CentosEventParser()
-        event_object = centos_event_parser.parse_event(pr_comment_added)
+        event_object = centos_event_parser.parse_event(pagure_pr_comment_added)
 
         assert isinstance(event_object, PullRequestCommentPagureEvent)
         assert event_object.pr_id == 16
@@ -809,8 +822,49 @@ class TestCentOsEventParser:
         )
         assert event_object.package_config
 
+    def test_pull_request_tag_event(self, pagure_pr_tag_added):
+        centos_event_parser = CentosEventParser()
+        event_object = centos_event_parser.parse_event(pagure_pr_tag_added)
+
+        assert isinstance(event_object, PullRequestLabelPagureEvent)
+        assert event_object.pr_id == 18
+        assert event_object.base_repo_namespace == "source-git"
+        assert event_object.base_repo_name == "packit-hello-world"
+        assert event_object.base_repo_owner == "packit"
+        assert event_object.base_ref == "master"
+        assert event_object.labels == {"accepted"}
+        assert (
+            event_object.project_url
+            == "https://git.stg.centos.org/source-git/packit-hello-world"
+        )
+
+        assert isinstance(event_object.project, PagureProject)
+        assert event_object.project.full_repo_name == "source-git/packit-hello-world"
+        assert isinstance(event_object.base_project, PagureProject)
+        assert (
+            event_object.base_project.full_repo_name
+            == "fork/packit/source-git/packit-hello-world"
+        )
+
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=event_object.base_project,
+            project=event_object.project,
+            pr_id=18,
+            reference="0ec7f861383821218c485a45810d384ca224e357",
+            fail_when_missing=False,
+            spec_file_path="SPECS/packit-hello-world.spec",
+        ).and_return(
+            flexmock()
+        ).once()
+        flexmock(PagureProject).should_receive("get_web_url").and_return(
+            "https://git.stg.centos.org/source-git/packit-hello-world"
+        )
+        assert event_object.package_config
+
     def test_parse_copr_build_event_start(
-        self, copr_build_results_start, copr_build_centos_pr, mock_config
+        self, copr_build_results_start, copr_build_centos_pr
     ):
         flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
             copr_build_centos_pr
@@ -862,7 +916,7 @@ class TestCentOsEventParser:
         assert event_object.package_config
 
     def test_parse_copr_build_event_end(
-        self, copr_build_results_end, copr_build_centos_pr, mock_config
+        self, copr_build_results_end, copr_build_centos_pr
     ):
         flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
             copr_build_centos_pr

@@ -19,17 +19,19 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import json
 from typing import Union
 
+import pytest
 from celery import Celery
 from flexmock import flexmock
-
 from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
 from packit.copr_helper import CoprHelper
 from packit.exceptions import FailedCreateSRPM
+
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuildModel, SRPMBuildModel
@@ -47,7 +49,15 @@ from packit_service.service.events import (
 )
 from packit_service.worker.build import copr_build
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
+from packit_service.worker.parser import Parser
 from packit_service.worker.reporting import StatusReporter
+from tests.spellbook import DATA_DIR
+
+
+@pytest.fixture(scope="module")
+def branch_push_event() -> PushGitHubEvent:
+    file_content = (DATA_DIR / "webhooks" / "github" / "push_branch.json").read_text()
+    return Parser.parse_push_event(json.loads(file_content))
 
 
 def build_helper(
@@ -96,12 +106,12 @@ def build_helper(
     return handler
 
 
-def test_copr_build_check_names(pull_request_event):
+def test_copr_build_check_names(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
     helper = build_helper(
-        event=pull_request_event,
+        event=github_pr_event,
         metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="nobody"),
     )
 
@@ -158,7 +168,7 @@ def test_copr_build_check_names(pull_request_event):
     assert helper.run_copr_build()["success"]
 
 
-def test_copr_build_success_set_test_check(pull_request_event):
+def test_copr_build_success_set_test_check(github_pr_event):
     # status is set for each build-target (4x):
     #  - Building SRPM ...
     #  - Starting RPM build...
@@ -173,7 +183,7 @@ def test_copr_build_success_set_test_check(pull_request_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
-    helper = build_helper(jobs=[test_job], event=pull_request_event)
+    helper = build_helper(jobs=[test_job], event=github_pr_event)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(16)
     flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create").and_return(
@@ -312,11 +322,11 @@ def test_copr_build_for_release(release_event):
     assert helper.run_copr_build()["success"]
 
 
-def test_copr_build_success(pull_request_event):
+def test_copr_build_success(github_pr_event):
     # status is set for each build-target (4x):
     #  - Building SRPM ...
     #  - Starting RPM build...
-    helper = build_helper(event=pull_request_event)
+    helper = build_helper(event=github_pr_event)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create").and_return(
@@ -349,11 +359,11 @@ def test_copr_build_success(pull_request_event):
     assert helper.run_copr_build()["success"]
 
 
-def test_copr_build_fails_in_packit(pull_request_event):
+def test_copr_build_fails_in_packit(github_pr_event):
     # status is set for each build-target (4x):
     #  - Building SRPM ...
     #  - Build failed, check latest comment for details.
-    helper = build_helper(event=pull_request_event)
+    helper = build_helper(event=github_pr_event)
     templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
     flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
         "https://test.url"
@@ -394,12 +404,12 @@ def test_copr_build_fails_in_packit(pull_request_event):
     assert not helper.run_copr_build()["success"]
 
 
-def test_copr_build_no_targets(pull_request_event):
+def test_copr_build_no_targets(github_pr_event):
     # status is set for each build-target (fedora-stable => 2x):
     #  - Building SRPM ...
     #  - Starting RPM build...
     helper = build_helper(
-        event=pull_request_event, metadata=JobMetadataConfig(owner="nobody")
+        event=github_pr_event, metadata=JobMetadataConfig(owner="nobody")
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
     flexmock(GitProject).should_receive("get_pr").and_return(flexmock())

@@ -29,10 +29,7 @@
 
 
 from packit_service.worker.handlers.abstract import Handler, JobHandler
-from packit_service.worker.handlers.comment_action_handler import (
-    CommentActionHandler,
-    PagurePullRequestCommentCoprBuildHandler,
-)
+from packit_service.worker.handlers.comment_action_handler import CommentActionHandler
 from packit_service.worker.handlers.fedmsg_handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -52,6 +49,9 @@ from packit_service.worker.handlers.github_handlers import (
     GithubTestingFarmHandler,
 )
 
+from packit_service.worker.handlers.pagure_handlers import (
+    PagurePullRequestCommentCoprBuildHandler,
+)
 from packit_service.worker.handlers.testing_farm_handlers import (
     TestingFarmResultsHandler,
 )

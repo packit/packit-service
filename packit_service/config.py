@@ -22,7 +22,7 @@
 import enum
 import logging
 from pathlib import Path
-from typing import Set, Optional
+from typing import Set, Optional, List
 
 from yaml import safe_load
 
@@ -64,6 +64,7 @@ class ServiceConfig(Config):
         fas_password: Optional[str] = "",
         bugzilla_url: str = "",
         bugzilla_api_key: str = "",
+        pr_accepted_labels: List[str] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -79,6 +80,8 @@ class ServiceConfig(Config):
 
         self.bugzilla_url = bugzilla_url
         self.bugzilla_api_key = bugzilla_api_key
+        # Labels/Tags to mark a PR as accepted - handler will create a bug & attach patch from PR
+        self.pr_accepted_labels: Set[str] = set(pr_accepted_labels or ["accepted"])
 
         # List of github users who are allowed to trigger p-s on any repository
         self.admins: Set[str] = set(admins or [])

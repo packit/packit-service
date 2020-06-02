@@ -21,23 +21,19 @@
 # SOFTWARE.
 
 """
-This file defines classes for issue comments which are sent by GitHub.
+This file defines classes for issue/pr comments which are sent by a git forge.
 """
 
 import enum
 import logging
-from typing import Dict, Type, Union, Optional
+from typing import Dict, Type, Union
 
 from packit_service.config import ServiceConfig
 from packit_service.service.events import (
     PullRequestCommentGithubEvent,
     IssueCommentEvent,
 )
-from packit_service.service.events import (
-    TheJobTriggerType,
-    PullRequestCommentPagureEvent,
-)
-from packit_service.worker.build import CoprBuildJobHelper
+from packit_service.service.events import PullRequestCommentPagureEvent
 from packit_service.worker.handlers import Handler
 from packit_service.worker.result import HandlerResults
 
@@ -99,33 +95,3 @@ class CommentActionHandler(Handler):
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")
-
-
-class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
-    """ Handler for PR comment `/packit copr-build` """
-
-    type = CommentAction.copr_build
-    triggers = [TheJobTriggerType.pr_comment]
-    event: PullRequestCommentPagureEvent
-
-    def __init__(
-        self, config: ServiceConfig, event: PullRequestCommentPagureEvent,
-    ):
-        super().__init__(config=config, event=event)
-
-        # lazy property
-        self._copr_build_helper: Optional[CoprBuildJobHelper] = None
-
-    @property
-    def copr_build_helper(self) -> CoprBuildJobHelper:
-        if not self._copr_build_helper:
-            self._copr_build_helper = CoprBuildJobHelper(
-                config=self.config,
-                package_config=self.event.package_config,
-                project=self.event.project,
-                event=self.event,
-            )
-        return self._copr_build_helper
-
-    def run(self) -> HandlerResults:
-        return self.copr_build_helper.run_copr_build()

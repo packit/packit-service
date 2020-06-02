@@ -1,0 +1,209 @@
+{
+  "project": {
+    "custom_keys": [],
+    "name": "packit-hello-world",
+    "parent": null,
+    "date_modified": "1585301472",
+    "access_users": {
+      "owner": ["packit"],
+      "admin": ["sakalosj"],
+      "ticket": [],
+      "commit": []
+    },
+    "namespace": "source-git",
+    "priorities": {},
+    "close_status": [],
+    "access_groups": {
+      "admin": ["git-packit-team"],
+      "commit": [],
+      "ticket": []
+    },
+    "milestones": {},
+    "user": {
+      "fullname": "Packit Team",
+      "name": "packit"
+    },
+    "date_created": "1584797507",
+    "fullname": "source-git/packit-hello-world",
+    "url_path": "source-git/packit-hello-world",
+    "id": 6843,
+    "tags": [],
+    "description": "packit test repo"
+  },
+  "tags": ["accepted"],
+  "agent": "jpopelka",
+  "pull_request": {
+    "last_updated": "1590419714",
+    "uid": "34c5be2e95dd4f708b0c6a3acdcc3019",
+    "initial_comment": null,
+    "commit_stop": "0ec7f861383821218c485a45810d384ca224e357",
+    "closed_at": null,
+    "remote_git": null,
+    "id": 18,
+    "title": "dummy",
+    "comments": [
+      {
+        "comment": "Failed to load packit config file:\n```\nCannot parse package config: ValidationError({'jobs': {1: {'trigger': ['Invalid enum member push']}}}).\n```",
+        "reactions": {},
+        "parent": null,
+        "user": {
+          "fullname": "Packit Team",
+          "name": "packit"
+        },
+        "commit": null,
+        "line": null,
+        "id": 336,
+        "notification": false,
+        "tree": null,
+        "filename": null,
+        "edited_on": null,
+        "editor": null,
+        "date_created": "1590419524"
+      },
+      {
+        "comment": "**Metadata Update from @jpopelka**:\n- Request assigned",
+        "reactions": {},
+        "parent": null,
+        "user": {
+          "fullname": "Jiri Popelka",
+          "name": "jpopelka"
+        },
+        "commit": null,
+        "line": null,
+        "id": 337,
+        "notification": true,
+        "tree": null,
+        "filename": null,
+        "edited_on": null,
+        "editor": null,
+        "date_created": "1590419699"
+      },
+      {
+        "comment": "**Metadata Update from @jpopelka**:\n- Request assignee reset",
+        "reactions": {},
+        "parent": null,
+        "user": {
+          "fullname": "Jiri Popelka",
+          "name": "jpopelka"
+        },
+        "commit": null,
+        "line": null,
+        "id": 338,
+        "notification": true,
+        "tree": null,
+        "filename": null,
+        "edited_on": null,
+        "editor": null,
+        "date_created": "1590419714"
+      }
+    ],
+    "branch": "master",
+    "status": "Open",
+    "tags": [],
+    "user": {
+      "fullname": "Jiri Popelka",
+      "name": "jpopelka"
+    },
+    "date_created": "1590419522",
+    "closed_by": null,
+    "branch_from": "test-tags",
+    "assignee": null,
+    "commit_start": "0ec7f861383821218c485a45810d384ca224e357",
+    "project": {
+      "custom_keys": [],
+      "name": "packit-hello-world",
+      "parent": null,
+      "date_modified": "1585301472",
+      "access_users": {
+        "owner": ["packit"],
+        "admin": ["sakalosj"],
+        "ticket": [],
+        "commit": []
+      },
+      "namespace": "source-git",
+      "priorities": {},
+      "close_status": [],
+      "access_groups": {
+        "admin": ["git-packit-team"],
+        "commit": [],
+        "ticket": []
+      },
+      "milestones": {},
+      "user": {
+        "fullname": "Packit Team",
+        "name": "packit"
+      },
+      "date_created": "1584797507",
+      "fullname": "source-git/packit-hello-world",
+      "url_path": "source-git/packit-hello-world",
+      "id": 6843,
+      "tags": [],
+      "description": "packit test repo"
+    },
+    "repo_from": {
+      "custom_keys": [],
+      "name": "packit-hello-world",
+      "parent": {
+        "custom_keys": [],
+        "name": "packit-hello-world",
+        "parent": null,
+        "date_modified": "1585301472",
+        "access_users": {
+          "owner": ["packit"],
+          "admin": ["sakalosj"],
+          "ticket": [],
+          "commit": []
+        },
+        "namespace": "source-git",
+        "priorities": {},
+        "close_status": [],
+        "access_groups": {
+          "admin": ["git-packit-team"],
+          "commit": [],
+          "ticket": []
+        },
+        "milestones": {},
+        "user": {
+          "fullname": "Packit Team",
+          "name": "packit"
+        },
+        "date_created": "1584797507",
+        "fullname": "source-git/packit-hello-world",
+        "url_path": "source-git/packit-hello-world",
+        "id": 6843,
+        "tags": [],
+        "description": "packit test repo"
+      },
+      "date_modified": "1590418012",
+      "access_users": {
+        "owner": ["jpopelka"],
+        "admin": [],
+        "ticket": [],
+        "commit": []
+      },
+      "namespace": "source-git",
+      "priorities": {},
+      "close_status": [],
+      "access_groups": {
+        "admin": [],
+        "commit": [],
+        "ticket": []
+      },
+      "milestones": {},
+      "user": {
+        "fullname": "Jiri Popelka",
+        "name": "jpopelka"
+      },
+      "date_created": "1590418012",
+      "fullname": "forks/jpopelka/source-git/packit-hello-world",
+      "url_path": "fork/jpopelka/source-git/packit-hello-world",
+      "id": 6855,
+      "tags": [],
+      "description": "packit test repo"
+    },
+    "cached_merge_status": "FFORWARD",
+    "updated_on": "1590419714",
+    "threshold_reached": null
+  },
+  "topic": "git.stg.centos.org/pull-request.tag.added"
+}

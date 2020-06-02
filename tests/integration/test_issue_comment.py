@@ -25,19 +25,66 @@ from datetime import datetime
 
 import pytest
 from flexmock import flexmock
-
+from github import Github
+from github.GitRelease import GitRelease as PyGithubRelease
+from ogr.abstract import GitTag
 from ogr.abstract import PullRequest, PRStatus
-from ogr.services.github.project import GithubProject
+from ogr.services.github import GithubProject
+from ogr.services.github import GithubRelease
 from packit.api import PackitAPI
+from packit.local_project import LocalProject
+
+from packit_service.config import ServiceConfig
+from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.whitelist import Whitelist
 from tests.spellbook import DATA_DIR
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def issue_comment_propose_update_event():
     return json.loads(
-        (DATA_DIR / "webhooks" / "github_issue_propose_update.json").read_text()
+        (DATA_DIR / "webhooks" / "github" / "issue_propose_update.json").read_text()
     )
+
+
+@pytest.fixture(scope="module")
+def mock_issue_comment_functionality():
+    packit_yaml = (
+        "{'specfile_path': '', 'synced_files': [],"
+        "'jobs': [{'trigger': 'release', 'job': 'propose_downstream',"
+        "'metadata': {'dist-git-branch': 'master'}}],"
+        "'downstream_package_name': 'packit'}"
+    )
+    flexmock(
+        GithubProject,
+        get_file_content=lambda path, ref: packit_yaml,
+        full_repo_name="packit-service/packit",
+    )
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+    (
+        flexmock(GithubProject)
+        .should_receive("can_merge_pr")
+        .with_args("phracek")
+        .and_return(True)
+    )
+    flexmock(GithubProject).should_receive("issue_comment").and_return(None)
+    flexmock(GithubProject).should_receive("issue_close").and_return(None)
+    gr = GithubRelease(
+        tag_name="0.5.1",
+        url="packit-service/packit",
+        created_at="",
+        tarball_url="https://foo/bar",
+        git_tag=flexmock(GitTag),
+        project=flexmock(GithubProject),
+        raw_release=flexmock(PyGithubRelease),
+    )
+    flexmock(GithubProject).should_receive("get_releases").and_return([gr])
+    config = ServiceConfig()
+    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(Whitelist, check_and_report=True)
 
 
 def test_issue_comment_propose_update_handler(

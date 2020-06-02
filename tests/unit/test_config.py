@@ -32,7 +32,7 @@ from packit.sync import SyncFilesItem
 from packit_service.config import ServiceConfig, Deployment, PackageConfigGetter
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def service_config_valid():
     return {
         "debug": True,
@@ -55,6 +55,7 @@ def service_config_valid():
         "testing_farm_secret": "granko",
         "bugzilla_url": "https://ladybug-zilla",
         "bugzilla_api_key": "ratamahatta",
+        "pr_accepted_labels": ["good-enough", "will-maintain-this"],
         "command_handler": "sandcastle",
         "command_handler_work_dir": "/sandcastle",
         "command_handler_image_reference": "docker.io/usercont/sandcastle",
@@ -76,12 +77,13 @@ def test_parse_valid(service_config_valid):
     assert config.testing_farm_secret == "granko"
     assert config.bugzilla_url == "https://ladybug-zilla"
     assert config.bugzilla_api_key == "ratamahatta"
+    assert config.pr_accepted_labels == {"good-enough", "will-maintain-this"}
     assert config.command_handler_work_dir == "/sandcastle"
     assert config.admins == {"Dasher", "Dancer", "Vixen", "Comet", "Blitzen"}
     assert config.server_name == "hub.packit.org"
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def service_config_invalid():
     return {
         "deployment": False,  # wrong option

@@ -300,11 +300,6 @@ to store and replay data for tests.
   ```bash
   make check-inside-openshift PATH_TO_SECRETS=<absolute-path-to-valid-secrets>
   ```
-- Remove timestamps and another data what are changed every time, to avoid unwanted
-  changes of generated files.
-  ```bash
-  make requre-purge-files
-  ```
 
 #### Debugging
 

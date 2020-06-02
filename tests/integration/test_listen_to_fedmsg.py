@@ -48,6 +48,7 @@ from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.testing_farm import TestingFarmJobHelper
+from tests.conftest import copr_build_model
 from tests.spellbook import DATA_DIR
 
 CHROOT = "fedora-rawhide-x86_64"
@@ -55,17 +56,17 @@ EXPECTED_BUILD_CHECK_NAME = f"packit-stg/rpm-build-{CHROOT}"
 EXPECTED_TESTING_FARM_CHECK_NAME = f"packit-stg/testing-farm-{CHROOT}"
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def copr_build_start():
     return json.loads((DATA_DIR / "fedmsg" / "copr_build_start.json").read_text())
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def copr_build_end():
     return json.loads((DATA_DIR / "fedmsg" / "copr_build_end.json").read_text())
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def pc_build_pr():
     return PackageConfig(
         jobs=[
@@ -78,7 +79,7 @@ def pc_build_pr():
     )
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def pc_build_push():
     return PackageConfig(
         jobs=[
@@ -91,7 +92,7 @@ def pc_build_push():
     )
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def pc_build_release():
     return PackageConfig(
         jobs=[
@@ -104,7 +105,7 @@ def pc_build_release():
     )
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def pc_tests():
     return PackageConfig(
         jobs=[
@@ -114,6 +115,25 @@ def pc_tests():
                 metadata=JobMetadataConfig(targets=["fedora-all"]),
             )
         ]
+    )
+
+
+@pytest.fixture(scope="module")
+def copr_build_branch_push():
+    return copr_build_model(
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        job_trigger_model_type=JobTriggerModelType.branch_push,
+        name="build-branch",
+    )
+
+
+@pytest.fixture(scope="module")
+def copr_build_release():
+    return copr_build_model(
+        job_config_trigger_type=JobConfigTriggerType.release,
+        job_trigger_model_type=JobTriggerModelType.release,
+        tag_name="v1.0.1",
+        commit_hash="0011223344",
     )
 
 

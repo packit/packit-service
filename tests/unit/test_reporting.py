@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 import pytest
-import flexmock
+from flexmock import flexmock
 
 from ogr.abstract import CommitStatus
 from packit_service.worker.reporting import StatusReporter
