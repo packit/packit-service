@@ -19,11 +19,12 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 import pytest
 from flexmock import flexmock
-
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
+
 from packit_service.service.events import TheJobTriggerType
 from packit_service.worker.handlers import (
     PullRequestCoprBuildHandler,
@@ -498,6 +499,40 @@ def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
             id="copr_build_for_pr_when_test_build_and_koji_build_defined",
         ),
         pytest.param(
+            PullRequestCoprBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.pull_request,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                ),
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(
+                    type=JobType.build, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(
+                    type=JobType.build, trigger=JobConfigTriggerType.pull_request
+                ),
+            ],
+            id="copr_build_for_pr_multiple_defs",
+        ),
+        pytest.param(
             PullRequestGithubKojiBuildHandler,
             flexmock(
                 trigger=TheJobTriggerType.pull_request,
@@ -568,6 +603,40 @@ def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
                 )
             ],
             id="propose_downstream",
+        ),
+        pytest.param(
+            ProposeDownstreamHandler,
+            flexmock(
+                trigger=TheJobTriggerType.release,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.release
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(targets=["a"]),
+                ),
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(targets=["b"]),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(targets=["a"]),
+                ),
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(targets=["b"]),
+                ),
+            ],
+            id="propose_downstream_multiple",
         ),
     ],
 )

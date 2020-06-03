@@ -24,6 +24,7 @@ import logging
 from typing import Optional, Union, Any
 
 from packit.config import JobType, JobConfig
+
 from packit_service.config import ServiceConfig
 from packit_service.service.events import (
     TheJobTriggerType,
@@ -35,12 +36,15 @@ from packit_service.worker.handlers import (
     CommentActionHandler,
     AbstractGitForgeJobHandler,
 )
+from packit_service.worker.handlers.abstract import use_for
 from packit_service.worker.handlers.comment_action_handler import CommentAction
 from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
 
 
+@use_for(JobType.build)
+@use_for(JobType.copr_build)
 class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
     """ Handler for PR comment `/packit copr-build` """
 
@@ -49,9 +53,12 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
     event: PullRequestCommentPagureEvent
 
     def __init__(
-        self, config: ServiceConfig, event: PullRequestCommentPagureEvent,
+        self,
+        config: ServiceConfig,
+        event: PullRequestCommentPagureEvent,
+        job: JobConfig,
     ):
-        super().__init__(config=config, event=event)
+        super().__init__(config=config, event=event, job=job)
 
         # lazy property
         self._copr_build_helper: Optional[CoprBuildJobHelper] = None
@@ -64,6 +71,7 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
                 package_config=self.event.package_config,
                 project=self.event.project,
                 event=self.event,
+                job=self.job,
             )
         return self._copr_build_helper
 

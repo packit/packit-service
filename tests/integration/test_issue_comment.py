@@ -36,9 +36,11 @@ from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
+from packit_service.models import ProjectReleaseModel
+from packit_service.service.events import IssueCommentEvent
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
-from tests.spellbook import DATA_DIR
+from tests.spellbook import DATA_DIR, first_dict_value
 
 
 @pytest.fixture(scope="module")
@@ -109,5 +111,6 @@ def test_issue_comment_propose_update_handler(
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
         is_private=lambda: False,
     )
+    flexmock(IssueCommentEvent, db_trigger=ProjectReleaseModel())
     results = SteveJobs().process_message(issue_comment_propose_update_event)
-    assert results["jobs"]["pull_request_action"]["success"]
+    assert first_dict_value(results["jobs"])["success"]

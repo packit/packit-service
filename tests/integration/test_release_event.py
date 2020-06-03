@@ -13,6 +13,7 @@ from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
+from tests.spellbook import first_dict_value
 
 
 @pytest.fixture(scope="module")
@@ -51,7 +52,7 @@ def test_dist_git_push_release_handle(github_release_webhook):
     )
 
     results = SteveJobs().process_message(github_release_webhook)
-    assert results["jobs"]["propose_downstream"]["success"]
+    assert first_dict_value(results["jobs"])["success"]
     assert results["event"]["trigger"] == "release"
 
 
@@ -92,7 +93,7 @@ def test_dist_git_push_release_handle_multiple_branches(
     )
 
     results = SteveJobs().process_message(github_release_webhook)
-    assert results["jobs"]["propose_downstream"]["success"]
+    assert first_dict_value(results["jobs"])["success"]
     assert results["event"]["trigger"] == "release"
 
 
@@ -144,7 +145,7 @@ def test_dist_git_push_release_handle_one_failed(
     )
 
     results = SteveJobs().process_message(github_release_webhook)
-    assert not results["jobs"]["propose_downstream"]["success"]
+    assert not first_dict_value(results["jobs"])["success"]
     assert results["event"]["trigger"] == "release"
 
 
@@ -202,5 +203,5 @@ def test_dist_git_push_release_handle_all_failed(
     )
 
     results = SteveJobs().process_message(github_release_webhook)
-    assert not results["jobs"]["propose_downstream"]["success"]
+    assert not first_dict_value(results["jobs"])["success"]
     assert results["event"]["trigger"] == "release"

@@ -46,7 +46,7 @@ MAP_EVENT_TRIGGER_TO_HANDLERS: Dict[
     TheJobTriggerType, Set[Type["JobHandler"]]
 ] = defaultdict(set)
 
-MAP_HANDLER_TO_JOB_TYPES: Dict[Type["JobHandler"], Set[JobType]] = defaultdict(set)
+MAP_HANDLER_TO_JOB_TYPES: Dict[Type["Handler"], Set[JobType]] = defaultdict(set)
 
 
 def required_by(job_type: JobType):
