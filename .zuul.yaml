@@ -24,10 +24,10 @@
           label: cloud-fedora-31
 
 - job:
-    name: packit-service-base
+    name: packit-service-cluster
     parent: base
     attempts: 1
-    description: Run tests of packit-service
+    description: Deploy packit-service in a cluster
     # this will clone the deployment repo to a predictable path
     required-projects:
       - github.com/packit-service/deployment
@@ -45,12 +45,18 @@
 
 - job:
     name: packit-service-tests
-    parent: packit-service-base
+    parent: base
     description: Run tests of packit-service
     run: files/zuul-tests.yaml
+    extra-vars:
+      ansible_python_interpreter: /usr/bin/python3
+    nodeset:
+      nodes:
+        - name: test-node
+          label: cloud-fedora-31
 
 - job:
     name: packit-service-tests-requre
-    parent: packit-service-base
+    parent: packit-service-cluster
     description: Run tests with requre support
     run: files/zuul-tests-requre.yaml
