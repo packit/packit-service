@@ -41,7 +41,10 @@ from packit_service.service.events import (
     TheJobTriggerType,
     PullRequestCommentPagureEvent,
 )
-from packit_service.trigger_mapping import is_trigger_matching_job_config
+from packit_service.trigger_mapping import (
+    is_trigger_matching_job_config,
+    are_job_types_same,
+)
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -146,7 +149,10 @@ def get_config_for_handler_kls(
 
     matching_job_types = MAP_HANDLER_TO_JOB_TYPES[handler_kls]
     for job in jobs_that_can_be_triggered:
-        if job.type in matching_job_types and job not in matching_jobs:
+        if (
+            any(are_job_types_same(job.type, type) for type in matching_job_types)
+            and job not in matching_jobs
+        ):
             matching_jobs.append(job)
 
     if matching_jobs:
