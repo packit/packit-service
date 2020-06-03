@@ -38,7 +38,12 @@ from packit_service.config import (
     ServiceConfig,
     PackageConfigGetter,
 )
-from packit_service.models import CoprBuildModel, TFTTestRunModel, PullRequestModel
+from packit_service.models import (
+    CoprBuildModel,
+    TFTTestRunModel,
+    PullRequestModel,
+    KojiBuildModel,
+)
 from packit_service.service.events import (
     WhitelistStatus,
     InstallationEvent,
@@ -62,6 +67,7 @@ from packit_service.service.events import (
     PullRequestLabelPagureEvent,
     MergeRequestGitlabEvent,
     GitlabEventAction,
+    KojiBuildEvent,
 )
 from packit_service.worker.parser import Parser, CentosEventParser
 from tests.conftest import copr_build_model
@@ -143,6 +149,18 @@ class TestEvents:
     @pytest.fixture()
     def distgit_commit(self):
         with open(DATA_DIR / "fedmsg" / "distgit_commit.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def koji_build_scratch_start(self):
+        with open(
+            DATA_DIR / "fedmsg" / "koji_build_scratch_start.json", "r"
+        ) as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def koji_build_scratch_end(self):
+        with open(DATA_DIR / "fedmsg" / "koji_build_scratch_end.json", "r") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -661,6 +679,83 @@ class TestEvents:
         ).once()
 
         assert event_object.package_config
+
+    def test_parse_koji_build_scratch_event_start(
+        self, koji_build_scratch_start, koji_build_pr
+    ):
+        flexmock(KojiBuildModel).should_receive("get_by_build_id").and_return(
+            koji_build_pr
+        )
+
+        event_object = Parser.parse_event(koji_build_scratch_start)
+
+        assert isinstance(event_object, KojiBuildEvent)
+        assert event_object.build_id == 45270170
+        assert event_object.status == "OPEN"
+
+        assert isinstance(event_object.project, GithubProject)
+        assert event_object.project.full_repo_name == "foo/bar"
+
+        """
+        assert (
+            not event_object.base_project  # With Github app, we cannot work with fork repo
+        )
+
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=None,
+            project=event_object.project,
+            pr_id=123,
+            reference="0011223344",
+            fail_when_missing=False,
+            spec_file_path=None,
+        ).and_return(
+            flexmock()
+        ).once()
+
+        assert event_object.package_config
+        """
+
+    def test_parse_koji_build_scratch_event_end(
+        self, koji_build_scratch_end, koji_build_pr
+    ):
+        flexmock(KojiBuildModel).should_receive("get_by_build_id").and_return(
+            koji_build_pr
+        )
+
+        event_object = Parser.parse_event(koji_build_scratch_end)
+
+        assert isinstance(event_object, KojiBuildEvent)
+        assert event_object.build_id == 45270170
+        assert event_object.status == "CLOSED"
+
+        flexmock(GithubProject).should_receive("get_pr").with_args(
+            pr_id=123
+        ).and_return(flexmock(author="the-fork"))
+        assert isinstance(event_object.project, GithubProject)
+        assert event_object.project.full_repo_name == "foo/bar"
+
+        """
+        assert (
+            not event_object.base_project  # With Github app, we cannot work with fork repo
+        )
+
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=None,
+            project=event_object.project,
+            pr_id=123,
+            reference="0011223344",
+            fail_when_missing=False,
+            spec_file_path=None,
+        ).and_return(
+            flexmock()
+        ).once()
+
+        assert event_object.package_config
+        """
 
     def test_get_project_pr(self, github_pr_webhook, mock_config):
         event_object = Parser.parse_event(github_pr_webhook)

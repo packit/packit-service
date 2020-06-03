@@ -1,0 +1,73 @@
+{
+  "topic": "org.fedoraproject.prod.buildsys.task.state.change",
+  "info": {
+    "parent": null,
+    "completion_time": 1590993215.0,
+    "start_time": 1590993047.0,
+    "request": [
+      "cli-build/1590993046.5615945.hqCGfULV/hello-0.74-1.20200601063010016064.fc31.src.rpm",
+      "rawhide",
+      {
+        "scratch": true,
+        "wait_builds": []
+      }
+    ],
+    "waiting": false,
+    "awaited": null,
+    "id": 45270170,
+    "priority": 20,
+    "channel_id": 1,
+    "state": 2,
+    "create_time": 1590993047.0,
+    "result": null,
+    "owner": 4641,
+    "host_id": 305,
+    "method": "build",
+    "label": null,
+    "arch": "noarch",
+    "children": [
+      {
+        "parent": 45270170,
+        "completion_time": 1590993124.0,
+        "start_time": 1590993048.0,
+        "waiting": null,
+        "awaited": false,
+        "label": "srpm",
+        "priority": 19,
+        "channel_id": 1,
+        "state": 2,
+        "create_time": 1590993047.0,
+        "owner": 4641,
+        "host_id": 303,
+        "method": "rebuildSRPM",
+        "arch": "noarch",
+        "id": 45270171
+      },
+      {
+        "parent": 45270170,
+        "completion_time": 1590993214.0,
+        "start_time": 1590993131.0,
+        "waiting": null,
+        "awaited": false,
+        "label": "noarch",
+        "priority": 19,
+        "channel_id": 1,
+        "state": 2,
+        "create_time": 1590993131.0,
+        "owner": 4641,
+        "host_id": 305,
+        "method": "buildArch",
+        "arch": "noarch",
+        "id": 45270227
+      }
+    ]
+  },
+  "old": "OPEN",
+  "attribute": "state",
+  "id": 45270170,
+  "instance": "primary",
+  "owner": "packit",
+  "new": "CLOSED",
+  "srpm": "hello-0.74-1.20200601063010016064.fc31.src.rpm",
+  "method": "build"
+}

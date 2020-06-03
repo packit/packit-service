@@ -52,6 +52,7 @@ from packit_service.service.events import (
     AbstractPagureEvent,
     PullRequestLabelPagureEvent,
     PullRequestLabelAction,
+    KojiBuildEvent,
 )
 from packit_service.worker.handlers import NewDistGitCommitHandler
 
@@ -79,6 +80,7 @@ class Parser:
             CoprBuildEvent,
             PushGitHubEvent,
             MergeRequestGitlabEvent,
+            KojiBuildEvent,
         ]
     ]:
         """
@@ -103,6 +105,7 @@ class Parser:
                 CoprBuildEvent,
                 PushGitHubEvent,
                 MergeRequestGitlabEvent,
+                KojiBuildEvent,
             ]
         ] = Parser.parse_pr_event(event)
         if response:
@@ -141,6 +144,10 @@ class Parser:
             return response
 
         response = Parser.parse_mr_event(event)
+        if response:
+            return response
+
+        response = Parser.parse_koji_event(event)
         if response:
             return response
 
@@ -596,6 +603,39 @@ class Parser:
 
         return CoprBuildEvent.from_build_id(
             topic, build_id, chroot, status, owner, project_name, pkg, timestamp
+        )
+
+    @staticmethod
+    def parse_koji_event(event) -> Optional[KojiBuildEvent]:
+        if event.get("topic") != "org.fedoraproject.prod.buildsys.task.state.change":
+            return None
+
+        build_id = event.get("id")
+        logger.info(f"Koji event: build_id={build_id}")
+
+        state = nested_get(event, "info", "state")
+
+        if not state:
+            logger.debug("Cannot find build state.")
+            return None
+
+        state_str = {
+            0: "FREE",
+            1: "OPEN",
+            2: "CLOSED",
+            3: "CANCELED",
+            4: "ASSIGNED",
+            5: "FAILED",
+        }[state]
+
+        start_time = nested_get(event, "info", "start_time")
+        completion_time = nested_get(event, "info", "completion_time")
+
+        return KojiBuildEvent(
+            build_id=build_id,
+            status=state_str,
+            start_time=start_time,
+            completion_time=completion_time,
         )
 
 

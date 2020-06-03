@@ -135,6 +135,39 @@ def copr_build_pr():
     return copr_build_model()
 
 
+@pytest.fixture()
+def koji_build_pr():
+    project_model = flexmock(
+        repo_name="bar", namespace="foo", project_url="https://github.com/foo/bar"
+    )
+    pr_model = flexmock(
+        id=1,
+        pr_id=123,
+        project=project_model,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+    )
+    trigger_model = flexmock(
+        id=2,
+        type=JobTriggerModelType.pull_request,
+        trigger_id=1,
+        get_trigger_object=lambda: pr_model,
+    )
+    koji_build_model = flexmock(
+        id=1,
+        build_id="1",
+        commit_sha="0011223344",
+        project_name="some-project",
+        owner="some-owner",
+        web_url="https://some-url",
+        target="some-target",
+        status="some-status",
+        srpm_build=flexmock(logs="asdsdf"),
+        job_trigger=trigger_model,
+    )
+
+    return koji_build_model
+
+
 @pytest.fixture(scope="module")
 def github_release_webhook() -> dict:
     with open(DATA_DIR / "webhooks" / "github" / "release.json") as outfile:
