@@ -47,7 +47,7 @@ check_in_container: test_image
 		-w /src-packit-service \
 		--security-opt label=disable \
 		-v $(CURDIR)/files/packit-service.yaml:/root/.config/packit-service.yaml \
-		$(TEST_IMAGE) make check
+		$(TEST_IMAGE) make check "TEST_TARGET=$(TEST_TARGET)"
 
 # This is my target so don't touch it! :) How to:
 # * No dependencies - take care of them yourself
