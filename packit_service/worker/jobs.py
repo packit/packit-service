@@ -150,6 +150,9 @@ def get_config_for_handler_kls(
     matching_job_types = MAP_HANDLER_TO_JOB_TYPES[handler_kls]
     for job in jobs_that_can_be_triggered:
         if (
+            # Check if the job matches any job supported by the handler.
+            # The function `are_job_types_same` is used
+            # because of the `build` x `copr_build` aliasing.
             any(are_job_types_same(job.type, type) for type in matching_job_types)
             and job not in matching_jobs
         ):

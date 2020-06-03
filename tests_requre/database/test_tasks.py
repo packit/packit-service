@@ -25,7 +25,9 @@ from copr.v3 import Client, BuildProxy, BuildChrootProxy
 from flexmock import flexmock
 from munch import Munch
 
-from packit.config import PackageConfig
+from ogr.services.github import GithubProject
+from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
+from packit.config.job_config import JobMetadataConfig
 from packit_service.constants import PG_COPR_BUILD_STATUS_SUCCESS
 from packit_service.models import (
     CoprBuildModel,
@@ -33,7 +35,7 @@ from packit_service.models import (
     PullRequestModel,
 )
 from packit_service.service.events import CoprBuildEvent
-from packit_service.worker.tasks import babysit_copr_build
+from packit_service.worker.build.babysit import check_copr_build
 
 BUILD_ID = 1300329
 
@@ -89,10 +91,25 @@ def packit_build_752():
     )
 
 
-def test_babysit_copr_build(clean_before_and_after, packit_build_752):
+def test_check_copr_build(clean_before_and_after, packit_build_752):
     flexmock(Client).should_receive("create_from_config_file").and_return(Client(None))
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
-        PackageConfig()
+        PackageConfig(
+            jobs=[
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(
+                        targets=[
+                            "fedora-30-x86_64",
+                            "fedora-rawhide-x86_64",
+                            "fedora-31-x86_64",
+                            "fedora-32-x86_64",
+                        ]
+                    ),
+                )
+            ]
+        )
     )
     coprs_response = Munch(
         {
@@ -143,5 +160,11 @@ def test_babysit_copr_build(clean_before_and_after, packit_build_752):
         BUILD_ID, "fedora-rawhide-x86_64"
     ).and_return(chroot_response)
 
-    babysit_copr_build(BUILD_ID)
+    # Reporting
+    flexmock(GithubProject).should_receive("get_pr").and_return(flexmock())
+    flexmock(GithubProject).should_receive("get_pr_comments").and_return([])
+    flexmock(GithubProject).should_receive("pr_comment").and_return()
+    flexmock(GithubProject).should_receive("set_commit_status").and_return().once()
+
+    check_copr_build(BUILD_ID)
     assert packit_build_752.status == PG_COPR_BUILD_STATUS_SUCCESS
