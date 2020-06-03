@@ -34,7 +34,7 @@ from packit_service.constants import (
 from packit_service.models import CoprBuildModel, TaskResultModel
 from packit_service.service.events import CoprBuildEvent, FedmsgTopic
 from packit_service.worker.handlers import CoprBuildEndHandler
-from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.jobs import SteveJobs, get_config_for_handler_kls
 
 logger = logging.getLogger(__name__)
 
@@ -117,8 +117,18 @@ def babysit_copr_build(self, build_id: int):
                 ),  # this seems to be the SRPM name
                 timestamp=chroot_build.ended_on,
             )
-            CoprBuildEndHandler(
-                ServiceConfig.get_service_config(), job_config=None, event=event
-            ).run()
+
+            job_configs = get_config_for_handler_kls(
+                handler_kls=CoprBuildEndHandler,
+                event=event,
+                package_config=event.get_package_config(),
+            )
+
+            for job_config in job_configs:
+                CoprBuildEndHandler(
+                    ServiceConfig.get_service_config(),
+                    job_config=job_config,
+                    event=event,
+                ).run()
     else:
         logger.warning(f"Copr build {build_id} not in DB.")
