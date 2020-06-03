@@ -149,11 +149,14 @@ class CoprBuildEndHandler(FedmsgHandler):
     triggers = [TheJobTriggerType.copr_end]
     event: CoprBuildEvent
 
-    def was_last_build_successful(self):
+    def was_last_packit_comment_with_congratulation(self):
         """
-        Check if the last copr build of the PR was successful
+        Check if the last comment by the packit app
+        was about successful build to not duplicate it.
+
         :return: bool
         """
+
         comments = self.event.project.get_pr_comments(
             pr_id=self.event.pr_id, reverse=True
         )
@@ -220,8 +223,9 @@ class CoprBuildEndHandler(FedmsgHandler):
         if (
             build_job_helper.job_build
             and build_job_helper.job_build.trigger == JobConfigTriggerType.pull_request
+            and self.event.pr_id
             and isinstance(self.event.project, GithubProject)
-            and not self.was_last_build_successful()
+            and not self.was_last_packit_comment_with_congratulation()
             and self.event.package_config.notifications.pull_request.successful_build
         ):
             msg = (
