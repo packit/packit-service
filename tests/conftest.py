@@ -28,6 +28,7 @@ from flexmock import flexmock
 
 from ogr import GithubService, GitlabService
 from packit.config import JobConfigTriggerType
+
 from packit_service.config import ServiceConfig
 from packit_service.models import JobTriggerModelType
 from packit_service.service.events import (

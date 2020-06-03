@@ -35,6 +35,7 @@ from packit_service.service.events import (
     PullRequestGithubEvent,
     PullRequestCommentGithubEvent,
     TestingFarmResultsEvent,
+    MergeRequestGitlabEvent,
 )
 from packit_service.worker.parser import Parser
 from tests_requre.conftest import SampleValues
@@ -140,6 +141,23 @@ def test_pr_event_existing_pr(clean_before_and_after, pr_model, pr_event_dict):
     assert isinstance(event_object.db_trigger.project, GitProjectModel)
     assert event_object.db_trigger.project.namespace == "the-namespace"
     assert event_object.db_trigger.project.repo_name == "the-repo-name"
+
+
+def test_mr_event_existing_mr(clean_before_and_after, mr_model, mr_event_dict):
+    event_object = Parser.parse_event(mr_event_dict)
+    assert isinstance(event_object, MergeRequestGitlabEvent)
+
+    assert event_object.git_ref is None
+    assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
+    assert event_object.pr_id == 2
+
+    assert isinstance(event_object.db_trigger, PullRequestModel)
+    assert event_object.db_trigger == mr_model
+    assert event_object.db_trigger.pr_id == 2
+
+    assert isinstance(event_object.db_trigger.project, GitProjectModel)
+    assert event_object.db_trigger.project.namespace == "the-namespace"
+    assert event_object.db_trigger.project.repo_name == "repo-name"
 
 
 def test_pr_event_non_existing_pr(clean_before_and_after, pr_event_dict):

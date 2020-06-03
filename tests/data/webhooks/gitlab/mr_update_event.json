@@ -1,0 +1,126 @@
+{
+  "object_kind": "merge_request",
+  "event_type": "merge_request",
+  "user": {
+    "name": "Shreyas Papinwar",
+    "username": "shreyaspapi",
+    "avatar_url": "https://assets.gitlab-static.net/uploads/-/system/user/avatar/5647360/avatar.png",
+    "email": "spapinwar@gmail.com"
+  },
+  "project": {
+    "id": 18032222,
+    "name": "Hello there",
+    "description": "Hehehehe",
+    "web_url": "https://gitlab.com/testing-packit/hello-there",
+    "avatar_url": null,
+    "git_ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+    "git_http_url": "https://gitlab.com/testing-packit/hello-there.git",
+    "namespace": "Testing packit",
+    "visibility_level": 20,
+    "path_with_namespace": "testing-packit/hello-there",
+    "default_branch": "master",
+    "ci_config_path": null,
+    "homepage": "https://gitlab.com/testing-packit/hello-there",
+    "url": "git@gitlab.com:testing-packit/hello-there.git",
+    "ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+    "http_url": "https://gitlab.com/testing-packit/hello-there.git"
+  },
+  "object_attributes": {
+    "assignee_id": null,
+    "author_id": 5647360,
+    "created_at": "2020-05-24 19:45:07 UTC",
+    "description": "",
+    "head_pipeline_id": null,
+    "id": 59533079,
+    "iid": 2,
+    "last_edited_at": null,
+    "last_edited_by_id": null,
+    "merge_commit_sha": null,
+    "merge_error": null,
+    "merge_params": {
+      "force_remove_source_branch": "1"
+    },
+    "merge_status": "unchecked",
+    "merge_user_id": null,
+    "merge_when_pipeline_succeeds": false,
+    "milestone_id": null,
+    "source_branch": "test1",
+    "source_project_id": 18032222,
+    "state_id": 1,
+    "target_branch": "master",
+    "target_project_id": 18032222,
+    "time_estimate": 0,
+    "title": "Update README.md",
+    "updated_at": "2020-06-01 07:24:00 UTC",
+    "updated_by_id": null,
+    "url": "https://gitlab.com/testing-packit/hello-there/-/merge_requests/2",
+    "source": {
+      "id": 18032222,
+      "name": "Hello there",
+      "description": "Hehehehe",
+      "web_url": "https://gitlab.com/testing-packit/hello-there",
+      "avatar_url": null,
+      "git_ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+      "git_http_url": "https://gitlab.com/testing-packit/hello-there.git",
+      "namespace": "Testing packit",
+      "visibility_level": 20,
+      "path_with_namespace": "testing-packit/hello-there",
+      "default_branch": "master",
+      "ci_config_path": null,
+      "homepage": "https://gitlab.com/testing-packit/hello-there",
+      "url": "git@gitlab.com:testing-packit/hello-there.git",
+      "ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+      "http_url": "https://gitlab.com/testing-packit/hello-there.git"
+    },
+    "target": {
+      "id": 18032222,
+      "name": "Hello there",
+      "description": "Hehehehe",
+      "web_url": "https://gitlab.com/testing-packit/hello-there",
+      "avatar_url": null,
+      "git_ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+      "git_http_url": "https://gitlab.com/testing-packit/hello-there.git",
+      "namespace": "Testing packit",
+      "visibility_level": 20,
+      "path_with_namespace": "testing-packit/hello-there",
+      "default_branch": "master",
+      "ci_config_path": null,
+      "homepage": "https://gitlab.com/testing-packit/hello-there",
+      "url": "git@gitlab.com:testing-packit/hello-there.git",
+      "ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+      "http_url": "https://gitlab.com/testing-packit/hello-there.git"
+    },
+    "last_commit": {
+      "id": "45e272a57335e4e308f3176df6e9226a9e7805a9",
+      "message": "Update README.md",
+      "title": "Update README.md",
+      "timestamp": "2020-06-01T07:24:37+00:00",
+      "url": "https://gitlab.com/testing-packit/hello-there/-/commit/45e272a57335e4e308f3176df6e9226a9e7805a9",
+      "author": {
+        "name": "Shreyas Papinwar",
+        "email": "spapinwar@gmail.com"
+      }
+    },
+    "work_in_progress": false,
+    "total_time_spent": 0,
+    "human_total_time_spent": null,
+    "human_time_estimate": null,
+    "assignee_ids": [],
+    "state": "opened",
+    "action": "update",
+    "oldrev": "94ccba9f986629e24b432c11d9c7fd20bb2ea51d"
+  },
+  "labels": [],
+  "changes": {
+    "total_time_spent": {
+      "previous": null,
+      "current": 0
+    }
+  },
+  "repository": {
+    "name": "Hello there",
+    "url": "git@gitlab.com:testing-packit/hello-there.git",
+    "description": "Hehehehe",
+    "homepage": "https://gitlab.com/testing-packit/hello-there"
+  }
+}

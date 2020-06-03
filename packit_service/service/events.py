@@ -61,6 +61,12 @@ class PullRequestAction(enum.Enum):
     synchronize = "synchronize"
 
 
+class GitlabEventAction(enum.Enum):
+    opened = "opened"
+    reopen = "reopen"
+    update = "update"
+
+
 class PullRequestCommentAction(enum.Enum):
     created = "created"
     edited = "edited"
@@ -304,6 +310,18 @@ class AbstractGithubEvent(AbstractForgeIndependentEvent):
         )
 
 
+class AbstractGitlabEvent(AbstractForgeIndependentEvent):
+    def __init__(
+        self, trigger: TheJobTriggerType, project_url: str, pr_id: Optional[int] = None,
+    ):
+        super().__init__(trigger, pr_id=pr_id)
+        self.project_url: str = project_url
+        self.git_ref: Optional[str] = None
+        self.identifier: Optional[str] = (
+            None  # will be shown to users -- e.g. in logs or in the copr-project name
+        )
+
+
 class ReleaseEvent(AddReleaseDbTrigger, AbstractGithubEvent):
     def __init__(
         self, repo_namespace: str, repo_name: str, tag_name: str, project_url: str
@@ -339,6 +357,42 @@ class PushGitHubEvent(AddBranchPushDbTrigger, AbstractGithubEvent):
         self.git_ref = git_ref
         self.commit_sha = commit_sha
         self.identifier = git_ref
+
+
+class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
+    def __init__(
+        self,
+        action: GitlabEventAction,
+        username: str,
+        object_id: int,
+        object_iid: int,
+        source_repo_name: str,
+        source_repo_namespace: str,
+        target_repo_namespace: str,
+        target_repo_name: str,
+        https_url: str,
+        commit_sha: str,
+    ):
+        super().__init__(
+            trigger=TheJobTriggerType.pull_request,
+            project_url=https_url,
+            pr_id=object_iid,
+        )
+        self.action = action
+        self.username = username
+        self.object_id = object_id
+        self.object_iid = object_iid
+        self.source_repo_name = source_repo_name
+        self.source_repo_namespace = source_repo_namespace
+        self.target_repo_namespace = target_repo_namespace
+        self.target_repo_name = target_repo_name
+        self.https_url = https_url
+        self.commit_sha = commit_sha
+
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        result["action"] = result["action"].value
+        return result
 
 
 class PullRequestGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):

@@ -50,6 +50,15 @@ ping_payload = ns.model(
     },
 )
 
+ping_payload_gitlab = ns.model(
+    "Gitlab webhook ping",
+    {
+        "zen": fields.String(required=False),
+        "hook_id": fields.String(required=False),
+        "hook": fields.String(required=False),
+    },
+)
+
 
 @ns.route("/github")
 class GithubWebhook(Resource):
@@ -146,4 +155,84 @@ class GithubWebhook(Resource):
         logger.debug(
             f"{event_type} {uuid}{' (not interested)' if not _interested else ''}"
         )
+        return _interested
+
+
+@ns.route("/gitlab")
+class GitlabWebhook(Resource):
+    @ns.response(HTTPStatus.OK, "Webhook accepted, returning reply")
+    @ns.response(HTTPStatus.ACCEPTED, "Webhook accepted, request is being processed")
+    @ns.response(HTTPStatus.BAD_REQUEST, "Bad request data")
+    @ns.response(HTTPStatus.UNAUTHORIZED, "X-Gitlab-Token validation failed")
+    # Just to be able to specify some payload in Swagger UI
+    @ns.expect(ping_payload_gitlab)
+    def post(self):
+        """
+        A webhook used by Packit-as-a-Service Gitlab hook.
+        """
+        msg = request.json
+
+        if not msg:
+            logger.debug("/webhooks/gitlab: we haven't received any JSON data.")
+            return "We haven't received any JSON data.", HTTPStatus.BAD_REQUEST
+
+        if all([msg.get("zen"), msg.get("hook_id"), msg.get("hook")]):
+            logger.debug(f"/webhooks/gitlab received ping event: {msg['hook']}")
+            return "Pong!", HTTPStatus.OK
+
+        try:
+            self.validate_token()
+        except ValidationFailed as exc:
+            logger.info(f"/webhooks/gitlab {exc}")
+            return str(exc), HTTPStatus.UNAUTHORIZED
+
+        if not self.interested():
+            return "Thanks but we don't care about this event", HTTPStatus.ACCEPTED
+
+        # TODO: define task names at one place
+        celery_app.send_task(
+            name="task.steve_jobs.process_message", kwargs={"event": msg}
+        )
+
+        return "Webhook accepted. We thank you, Gitlab.", HTTPStatus.ACCEPTED
+
+    @staticmethod
+    def validate_token():
+        """
+        https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#secret-token
+        """
+        if "X-Gitlab-Token" not in request.headers:
+            if config.validate_webhooks:
+                msg = "X-Gitlab-Token not in request.headers"
+                logger.warning(msg)
+                raise ValidationFailed(msg)
+            else:
+                # don't validate signatures when testing locally
+                logger.debug("Ain't validating token.")
+                return
+
+        token = request.headers["X-Gitlab-Token"]
+
+        # Find a better solution
+        if token != config.gitlab_webhook_token:
+            raise ValidationFailed("Payload token validation failed.")
+
+        logger.debug("Payload token is OK.")
+
+    @staticmethod
+    def interested():
+        """
+        Check object_kind in request body for events we know we give a f...
+        ...finely prepared response to.
+        :return: False if we are not interested in this kind of event
+        """
+
+        interesting_events = {
+            "Note Hook",
+            "Merge Request Hook",
+        }
+        event_type = request.headers.get("X-Gitlab-Event")
+        _interested = event_type in interesting_events
+
+        logger.debug(f"{event_type} {' (not interested)' if not _interested else ''}")
         return _interested
