@@ -76,9 +76,16 @@ def get_handlers_for_event(
     """
     Get all handlers that we need to run for the given event.
 
+    We need to return all handler classes that:
+    - can react to the given event AND
+    - are configured in the package_config (either directly or as a required job)
+
+    Examples of the matching can be found in the tests:
+    ./tests/unit/test_jobs.py:test_get_handlers_for_event
+
     :param event: event which we are reacting to
     :param package_config: for checking configured jobs
-    :return: set of handler instances
+    :return: set of handler instances that we need to run for given event and user configuration
     """
     handlers: Set[Type[JobHandler]] = set()
     classes_for_trigger = MAP_EVENT_TRIGGER_TO_HANDLERS[event.trigger]
@@ -90,6 +97,9 @@ def get_handlers_for_event(
             for pos_handler in classes_for_trigger:
                 if job.type in MAP_HANDLER_TO_JOB_TYPES[pos_handler]:
                     handlers.add(pos_handler)
+
+        # We need to return also handlers that are required for the configured jobs.
+        # e.g. we need to run `build` when only `test` is configured
         required_handlers = MAP_REQUIRED_JOB_TO_HANDLERS[job.type]
         for pos_handler in required_handlers:
             for trigger in pos_handler.triggers:
@@ -103,12 +113,23 @@ def get_config_for_handler_kls(
     handler_kls: Type[JobHandler], event: Event, package_config: PackageConfig
 ) -> List[JobConfig]:
     """
-    Get a JobConfig relevant to event and the handler class.
+    Get a list of JobConfigs relevant to event and the handler class.
+
+    We need to find all job configurations that:
+    - can be run by the given handler class AND
+    - that matches the trigger of the event
+
+    If there is no matching job-config found, we will pick the ones that are required.
+    e.g.: For build handler, you can pick the test config since tests require the build.
+
+    Examples of the matching can be found in the tests:
+    ./tests/unit/test_jobs.py:test_get_config_for_handler_kls
 
     :param handler_kls: class that will use the JobConfig
     :param event: which we are reacting to
-    :param package_config: we pick the JobConfig from this package_config instance
-    :return: JobConfig
+    :param package_config: we pick the JobConfig(s) from this package_config instance
+    :return: list of JobConfigs relevant to the given handler and event
+             preserving the order in the config
     """
     matching_jobs = []
     jobs_that_can_be_triggered = []
