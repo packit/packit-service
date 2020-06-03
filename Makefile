@@ -74,7 +74,7 @@ check-in-container-tomas:
 		-v $(CURDIR)/tests_requre/test_data/:/tmp/test_data/ \
 		--network packit-service_default \
 		-e REDIS_SERVICE_HOST=redis \
-		$(TEST_IMAGE) make check TEST_TARGET=$(TEST_TARGET)
+		$(TEST_IMAGE) make check "TEST_TARGET=$(TEST_TARGET)"
 
 # deploy a pod with tests and run them
 check-inside-openshift: worker test_image
