@@ -44,6 +44,7 @@ from packit_service.models import (
     TestingFarmResult,
     TFTTestRunModel,
     PullRequestModel,
+    KojiBuildModel,
 )
 from packit_service.service.db_triggers import (
     AddReleaseDbTrigger,
@@ -102,6 +103,7 @@ class TheJobTriggerType(str, enum.Enum):
     commit = "commit"
     installation = "installation"
     testing_farm_results = "testing_farm_results"
+    koji_results = "koji_results"
     pr_comment = "pr_comment"
     pr_label = "pr_label"
     issue_comment = "issue_comment"
@@ -650,6 +652,58 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
             run_model = TFTTestRunModel.get_by_pipeline_id(pipeline_id=self.pipeline_id)
             if run_model:
                 self._db_trigger = run_model.job_trigger.get_trigger_object()
+        return self._db_trigger
+
+    def get_base_project(self) -> Optional[GitProject]:
+        if self.pr_id is not None:
+            if isinstance(self.project, PagureProject):
+                pull_request = self.project.get_pr(pr_id=self.pr_id)
+                return self.project.service.get_project(
+                    namespace=self.project.namespace,
+                    username=pull_request.author,
+                    repo=self.project.repo,
+                    is_fork=True,
+                )
+            else:
+                return None  # With Github app, we cannot work with fork repo
+        return self.project
+
+
+class KojiBuildEvent(AbstractForgeIndependentEvent):
+    def __init__(
+        self,
+        build_id: int,
+        status: str,
+        start_time: Optional[Union[int, float, str]] = None,
+        completion_time: Optional[Union[int, float, str]] = None,
+    ):
+        super().__init__(trigger=TheJobTriggerType.koji_results)
+        self.build_id = build_id
+        self.status = status
+        self.start_time: Optional[Union[int, float, str]] = start_time
+        self.completion_time: Optional[Union[int, float, str]] = completion_time
+
+        # Lazy properties
+        self._pr_id: Optional[int] = None
+        self._db_trigger: Optional[AbstractTriggerDbType] = None
+
+    @property
+    def pr_id(self) -> Optional[int]:
+        if not self._pr_id and isinstance(self.db_trigger, PullRequestModel):
+            self._pr_id = self.db_trigger.pr_id
+        return self._pr_id
+
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        result["result"] = result["result"].value
+        return result
+
+    @property
+    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        if not self._db_trigger:
+            build_model = KojiBuildModel.get_by_build_id(build_id=self.build_id)
+            if build_model:
+                self._db_trigger = build_model.job_trigger.get_trigger_object()
         return self._db_trigger
 
     def get_base_project(self) -> Optional[GitProject]:
