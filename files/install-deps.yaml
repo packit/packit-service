@@ -16,14 +16,14 @@
           - nss_wrapper
           - python3-packit
           - python3-pip # not included in base fedora:31 image, needed for next task
-          # temporary depdendencies
+          # temporary dependencies
           - krb5-devel
           - gcc
           - python3-devel
           - python3-alembic
           - python3-sqlalchemy
           - python3-psycopg2
-          - python3-celery
+          #- python3-celery # don't, the liveness probe doesn't work
           - python3-redis
           - python3-lazy-object-proxy
           #- python3-flask-restx # Needs Fedora 32
