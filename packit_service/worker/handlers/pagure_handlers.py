@@ -23,6 +23,7 @@
 import logging
 from typing import Optional, Union, Any
 
+from ogr.abstract import CommitStatus, GitProject, PullRequest
 from packit.config import JobType, JobConfig
 
 from packit_service.config import ServiceConfig
@@ -38,6 +39,7 @@ from packit_service.worker.handlers import (
 )
 from packit_service.worker.handlers.abstract import use_for
 from packit_service.worker.handlers.comment_action_handler import CommentAction
+from packit_service.worker.psbugzilla import Bugzilla
 from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
@@ -93,7 +95,74 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
         super().__init__(config=config, job_config=job_config, event=event)
 
         self.event = event
-        self.project = self.config.get_project(event.project_url)
+        self.project: GitProject = self.config.get_project(event.project_url)
+        self.pr: PullRequest = self.project.get_pr(event.pr_id)
+        self.bz_id: Optional[int] = None
+        self.bz_url: Optional[str] = None
+        self._bugzilla: Optional[Bugzilla] = None
+
+    @property
+    def bugzilla(self) -> Bugzilla:
+        if self._bugzilla is None:
+            self._bugzilla = Bugzilla(
+                url=self.config.bugzilla_url, api_key=self.config.bugzilla_api_key
+            )
+        return self._bugzilla
+
+    def _bug_exists(self) -> bool:
+        """ Check existing PR flags for a RHBZ one (created by us). """
+        if not hasattr(self.pr, "get_flags"):
+            logger.error(f"{self.pr} has no get_flags()")
+            return False
+
+        for flag in self.pr.get_flags():
+            if flag["username"].startswith("RHBZ#"):
+                self.bz_url = flag["url"]
+                self.bz_id = int(flag["url"].split("=")[1])
+                logger.debug(
+                    f"Bug #{self.bz_id} has already been created: {self.bz_url}"
+                )
+                return True
+        return False
+
+    def _set_flag(self):
+        """ Set a pull request flag with bug id as a name and a link to the created bug. """
+        if not (self.bz_id and self.bz_url):
+            logger.error(f"bz_id & bz_url not set")
+            return
+        if not hasattr(self.pr, "set_flag"):
+            logger.error(f"{self.pr} has no set_flag()")
+            return
+
+        logger.debug(f"Setting a PR flag with link to {self.bz_url}")
+        self.pr.set_flag(
+            username=f"RHBZ#{self.bz_id}",
+            comment="Bugzilla bug created.",
+            url=self.bz_url,
+            status=CommitStatus.success,
+        )
+
+    def _create_bug(self):
+        """ Fill a Bugzilla bug. """
+        self.bz_id, self.bz_url = self.bugzilla.create_bug(
+            product="Red Hat Enterprise Linux 8",
+            version="CentOS-Stream",
+            component=self.event.base_repo_name,
+            summary=self.pr.title,
+            description=f"Based on approved CentOS Stream Pull Request: {self.pr.url}",
+        )
+
+    def _attach_patch(self):
+        """ Attach a patch from the pull request to the bug. """
+        if not self.bz_id:
+            logger.error(f"bz_id not set")
+            return
+
+        self.bugzilla.add_patch(
+            bzid=self.bz_id,
+            content=self.pr.patch,
+            file_name=f"pr-{self.event.pr_id}.patch",
+        )
 
     def run(self) -> HandlerResults:
         e = self.event
@@ -102,7 +171,11 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
             f"{e.base_repo_owner}/{e.base_repo_namespace}/{e.base_repo_name}/{e.identifier}"
         )
         if e.labels.intersection(self.config.pr_accepted_labels):
-            logger.debug(f"About to create a bug @ {self.config.bugzilla_url}")
+            if not self._bug_exists():
+                self._create_bug()
+                self._set_flag()
+            # Attach patch anyway, even if the bug (with patch) already existed.
+            self._attach_patch()
         else:
             logger.debug(f"We accept only {self.config.pr_accepted_labels} labels/tags")
         return HandlerResults(success=True)

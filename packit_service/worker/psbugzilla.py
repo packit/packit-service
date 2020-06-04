@@ -23,7 +23,6 @@
 # This module is called psbugzilla to avoid conflicts with python-bugzilla module.
 
 import logging
-from os import getenv
 from tempfile import TemporaryFile
 from typing import List, Tuple
 from xmlrpc.client import Fault
@@ -31,20 +30,14 @@ from xmlrpc.client import Fault
 import backoff
 from bugzilla import Bugzilla as XMLRPCBugzilla
 
-from ogr.abstract import PullRequest
-from ogr.services.pagure import PagureService
-
 
 class Bugzilla:
     """ To create a Bugzilla bug & attach a patch. Uses Bugzilla XMLRPC access module. """
 
-    def __init__(self, url: str = None, api_key: str = None):
+    def __init__(self, url: str, api_key: str):
         self.logger = logging.getLogger(__name__)
-        self.url = (
-            url or getenv("BUGZILLA_URL") or "https://partner-bugzilla.redhat.com"
-        )
-        self._api_key = api_key or getenv("BUGZILLA_API_KEY")
-        self._url = None
+        self.url = url
+        self._api_key = api_key
         self._api = None
 
     @property
@@ -96,6 +89,7 @@ class Bugzilla:
         try:
             newbug = self.api.createbug(createinfo)
         except Fault as exc:
+            createinfo.pop("Bugzilla_api_key", None)
             msg = f"Failed to create a bug with {createinfo}. Exception: {exc.faultString}"
             raise RuntimeError(msg)
         self.logger.info(f"Created bug #{newbug.id} at {newbug.weburl}")
@@ -134,30 +128,33 @@ class Bugzilla:
         return attachment_id
 
 
-def get_pr(namespace: str, repo: str, pr_num: int) -> PullRequest:
+# PAGURE_TOKEN="ABC" BUGZILLA_API_KEY="XYZ" python3 psbugzilla.py
+if __name__ == "__main__":
+    from os import getenv
+    from ogr.services.pagure import PagureService
+
+    namespace = getenv("NAMESPACE") or "source-git"
+    repo = getenv("REPO") or "rpm"
+    pr_id = int(getenv("PR_ID")) or 19
     service = PagureService(
-        instance_url=getenv("PAGURE_URL") or "https://git.stg.centos.org",
+        instance_url="https://git.stg.centos.org",
         token=getenv("PAGURE_TOKEN"),
         read_only=True,
     )
     project = service.get_project(namespace=namespace, repo=repo)
-    return project.get_pr(pr_num)
+    pr = project.get_pr(pr_id)
 
-
-# PAGURE_TOKEN="ABC" BUGZILLA_API_KEY="XYZ" python3 psbugzilla.py
-if __name__ == "__main__":
-    repo = getenv("REPO") or "rpm"
-    pr_id = int(getenv("PR_ID")) or 19
-    pr = get_pr(getenv("NAMESPACE") or "source-git", repo, pr_id)
-    bz = Bugzilla()
+    bz = Bugzilla(
+        url="https://partner-bugzilla.redhat.com", api_key=getenv("BUGZILLA_API_KEY")
+    )
     logging.basicConfig()
     bz.logger.setLevel(logging.DEBUG)
     description = f"Based on approved CentOS Stream Pull Request: {pr.url}"
     bzid, url = bz.create_bug(
         product="Red Hat Enterprise Linux 8",
-        version="8.2",
+        version="CentOS-Stream",
         component=repo,
-        summary=f"[CentOS Stream] {pr.title}",
+        summary=pr.title,
         description=description,
     )
     bz.add_patch(bzid=bzid, content=pr.patch, file_name=f"centos-pr-{pr_id}.patch")

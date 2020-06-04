@@ -90,7 +90,7 @@ class StatusReporter:
     def set_status(
         self, state: CommitStatus, description: str, check_name: str, url: str = "",
     ):
-        # required because pagure api doesnt accept, empty url
+        # Required because Pagure API doesn't accept empty url.
         if not url and isinstance(self.project, PagureProject):
             url = "https://wiki.centos.org/Manuals/ReleaseNotes/CentOSStream"
 
