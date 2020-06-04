@@ -14,7 +14,7 @@
           - mod_md
           - mod_ssl
           - nss_wrapper
-          - python3-packit
+          #- python3-packit # temporary workaround for sake of marhsmallow
           - python3-pip # not included in base fedora:31 image, needed for next task
           # temporary dependencies
           - krb5-devel
@@ -33,6 +33,8 @@
     - name: Install pip deps
       pip:
         name:
+          # temporary workaround for sake of marhsmallow
+          - git+https://github.com/packit-service/packit.git
           - persistentdict # still needed by one Alembic migration script
           - sentry-sdk==0.14.4
           - sentry-sdk[flask]==0.14.4
