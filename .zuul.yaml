@@ -21,7 +21,7 @@
     nodeset:
       nodes:
         - name: test-node
-          label: cloud-fedora-31
+          label: cloud-fedora-32
 
 - job:
     name: packit-service-cluster
@@ -53,7 +53,7 @@
     nodeset:
       nodes:
         - name: test-node
-          label: cloud-fedora-31
+          label: cloud-fedora-32
 
 - job:
     name: packit-service-tests-requre
