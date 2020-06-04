@@ -4,8 +4,19 @@
   hosts: all
   tasks:
     - include_tasks: tasks/zuul-project-setup.yaml
+    - name: Install podman
+      dnf:
+        name:
+          - podman
+        state: present
+      become: true
+    - name: Build the worker image
+      command: "make worker"
+      args:
+        chdir: "{{ project_dir }}"
     - name: Run tests within a container
       command: "make check_in_container"
       args:
         chdir: "{{ project_dir }}"
-      become: true
+      environment:
+        COLOR: "no"
