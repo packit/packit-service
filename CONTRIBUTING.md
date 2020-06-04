@@ -288,6 +288,7 @@ to store and replay data for tests.
   ```bash
   sudo dnf install origin-clients python3-openshift
   oc cluster up --base-dir=/tmp/openshift_cluster
+  oc login -u developer -p anything https://127.0.0.1:8443
   ```
 
 ### Data regeneration
