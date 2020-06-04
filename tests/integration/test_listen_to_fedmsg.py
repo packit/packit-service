@@ -150,7 +150,7 @@ def test_copr_build_end(
         pc_build_pr
     )
     flexmock(CoprBuildEndHandler).should_receive(
-        "was_last_build_successful"
+        "was_last_packit_comment_with_congratulation"
     ).and_return(False)
     if pr_comment_called:
         flexmock(GithubProject).should_receive("pr_comment")
@@ -183,7 +183,7 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
         pc_build_push
     )
     flexmock(CoprBuildEndHandler).should_receive(
-        "was_last_build_successful"
+        "was_last_packit_comment_with_congratulation"
     ).and_return(False)
 
     # we cannot comment for branch push events
@@ -219,7 +219,7 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
         pc_build_release
     )
     flexmock(CoprBuildEndHandler).should_receive(
-        "was_last_build_successful"
+        "was_last_packit_comment_with_congratulation"
     ).and_return(False)
 
     # we cannot comment for branch push events
@@ -274,7 +274,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         "get_package_config_from_repo"
     ).and_return(config)
     flexmock(CoprBuildEndHandler).should_receive(
-        "was_last_build_successful"
+        "was_last_packit_comment_with_congratulation"
     ).and_return(False)
     flexmock(GithubProject).should_receive("pr_comment")
 
@@ -390,7 +390,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         "get_package_config_from_repo"
     ).and_return(config)
     flexmock(CoprBuildEndHandler).should_receive(
-        "was_last_build_successful"
+        "was_last_packit_comment_with_congratulation"
     ).and_return(False)
     flexmock(GithubProject).should_receive("pr_comment")
 
@@ -492,7 +492,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         "get_package_config_from_repo"
     ).and_return(config)
     flexmock(CoprBuildEndHandler).should_receive(
-        "was_last_build_successful"
+        "was_last_packit_comment_with_congratulation"
     ).and_return(False)
     flexmock(GithubProject).should_receive("pr_comment")
 
@@ -647,7 +647,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     )
 
     flexmock(CoprBuildEndHandler).should_receive(
-        "was_last_build_successful"
+        "was_last_packit_comment_with_congratulation"
     ).and_return(True)
     flexmock(GithubProject).should_receive("pr_comment").never()
 
