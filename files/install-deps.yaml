@@ -23,6 +23,8 @@
           - python3-alembic
           - python3-sqlalchemy
           - python3-psycopg2
+          - python3-celery
+          - python3-redis
           - python3-lazy-object-proxy
           #- python3-flask-restx # Needs Fedora 32
           - python3-flexmock # because of the hack during the alembic upgrade
@@ -32,7 +34,7 @@
       pip:
         name:
           - persistentdict # still needed by one Alembic migration script
-          - sentry-sdk==0.14.3
-          - sentry-sdk[flask]==0.14.3
+          - sentry-sdk==0.14.4
+          - sentry-sdk[flask]==0.14.4
           - flask-restx
         executable: pip3
