@@ -18,3 +18,5 @@
       command: "make check_in_container"
       args:
         chdir: "{{ project_dir }}"
+      environment:
+        COLOR: "no"
