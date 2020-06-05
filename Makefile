@@ -77,7 +77,7 @@ check-in-container-tomas:
 		$(TEST_IMAGE) make check "TEST_TARGET=$(TEST_TARGET)"
 
 # deploy a pod with tests and run them
-check-inside-openshift: worker test_image
+check-inside-openshift: service worker test_image
 	@# http://timmurphy.org/2015/09/27/how-to-get-a-makefile-directory-path/
 	@# sadly the hostPath volume doesn't work:
 	@#   Invalid value: "hostPath": hostPath volumes are not allowed to be used
