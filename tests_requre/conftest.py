@@ -33,6 +33,8 @@ $ alembic upgrade head
 
 import pytest
 
+from ogr import GithubService, GitlabService
+from packit_service.config import ServiceConfig
 from packit_service.models import (
     CoprBuildModel,
     get_sa_session,
@@ -97,6 +99,24 @@ class SampleValues:
     different_account_name = "Deoxys"
     another_different_acount_name = "Solgaleo"
     yet_another_different_acount_name = "Zacian"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def global_service_config():
+    """
+    This config will be used instead of the one loaded from the local config file.
+
+    You can still mock/overwrite the service config content in your tests
+    but this one will be used by default.
+    """
+    service_config = ServiceConfig()
+    service_config.services = {
+        GithubService(token="token"),
+        GitlabService(token="token"),
+    }
+    service_config.dry_run = False
+    service_config.github_requests_log_path = "/path"
+    ServiceConfig.service_config = service_config
 
 
 def clean_db():
