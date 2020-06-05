@@ -213,7 +213,7 @@ packit=# select * from git_projects;
 
 # Testing
 
-Tests are stored in [tests/](/tests) directory and tests using [requre](https://github.com/packit-service/requre) are stored in [tests-requre/](/tests-requre).
+Tests are stored in [tests/](/tests) directory and tests using [requre](https://github.com/packit-service/requre) are stored in [tests_requre/](/tests_requre).
 
 ## Test categories
 
