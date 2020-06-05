@@ -19,5 +19,5 @@ $ oc exec packit-worker-0 python3 /src-packit-service/files/scripts/whitelist.py
 Show all pending requests:
 
 ```
-oc exec <packit_worker_pod_name> python3 /src/files/scripts/whitelist.py waiting
+$ oc exec packit-worker-0 python3 /src-packit-service/files/scripts/whitelist.py waiting
 ```
