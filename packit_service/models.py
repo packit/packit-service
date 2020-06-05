@@ -308,7 +308,7 @@ class ProjectReleaseModel(Base):
 
 
 AbstractTriggerDbType = Union[
-    PullRequestModel, ProjectReleaseModel, GitBranchModel, IssueModel
+    PullRequestModel, ProjectReleaseModel, GitBranchModel, IssueModel,
 ]
 
 MODEL_FOR_TRIGGER: Dict[JobTriggerModelType, Type[AbstractTriggerDbType]] = {

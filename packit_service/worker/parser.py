@@ -47,6 +47,8 @@ from packit_service.service.events import (
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
     PushPagureEvent,
+    MergeRequestGitlabEvent,
+    GitlabEventAction,
     AbstractPagureEvent,
     PullRequestLabelPagureEvent,
     PullRequestLabelAction,
@@ -76,6 +78,7 @@ class Parser:
             IssueCommentEvent,
             CoprBuildEvent,
             PushGitHubEvent,
+            MergeRequestGitlabEvent,
         ]
     ]:
         """
@@ -99,6 +102,7 @@ class Parser:
                 IssueCommentEvent,
                 CoprBuildEvent,
                 PushGitHubEvent,
+                MergeRequestGitlabEvent,
             ]
         ] = Parser.parse_pr_event(event)
         if response:
@@ -136,10 +140,81 @@ class Parser:
         if response:
             return response
 
+        response = Parser.parse_mr_event(event)
+        if response:
+            return response
+
         if not response:
             logger.debug("We don't process this event.")
 
         return response
+
+    @staticmethod
+    def parse_mr_event(event) -> Optional[MergeRequestGitlabEvent]:
+        """ Look into the provided event and see if it's one for a new gitlab MR. """
+        if event.get("object_kind") != "merge_request":
+            return None
+
+        state = event["object_attributes"]["state"]
+        if state != "opened":
+            return None
+        action = nested_get(event, "object_attributes", "action")
+        if action not in {"reopen", "update"}:
+            action = state
+
+        username = event["user"]["username"]
+        if not username:
+            logger.warning("No Gitlab username from event.")
+            return None
+
+        object_id = event["object_attributes"]["id"]
+        if not object_id:
+            logger.warning("No object id from the event.")
+            return None
+
+        object_iid = event["object_attributes"]["iid"]
+        if not object_iid:
+            logger.warning("No object iid from the event.")
+            return None
+
+        source_repo_path_with_namespace = nested_get(
+            event, "object_attributes", "source", "path_with_namespace"
+        )
+        if not source_repo_path_with_namespace:
+            logger.warning("No source path from the event.")
+            return None
+        source_repo_namespace, source_repo_name = source_repo_path_with_namespace.split(
+            "/"
+        )
+
+        target_repo_path_with_namespace = nested_get(
+            event, "object_attributes", "target", "path_with_namespace"
+        )
+        if not target_repo_path_with_namespace:
+            logger.warning("No target path from the event.")
+            return None
+        target_repo_namespace, target_repo_name = target_repo_path_with_namespace.split(
+            "/"
+        )
+
+        logger.info(f"Target repo: {target_repo_path_with_namespace}.")
+
+        https_url = nested_get(event, "object_attributes", "target", "web_url")
+
+        commit_sha = nested_get(event, "object_attributes", "last_commit", "id")
+
+        return MergeRequestGitlabEvent(
+            action=GitlabEventAction[action],
+            username=username,
+            object_id=object_id,
+            object_iid=object_iid,
+            source_repo_name=source_repo_name,
+            source_repo_namespace=source_repo_namespace,
+            target_repo_namespace=target_repo_namespace,
+            target_repo_name=target_repo_name,
+            https_url=https_url,
+            commit_sha=commit_sha,
+        )
 
     @staticmethod
     def parse_pr_event(event) -> Optional[PullRequestGithubEvent]:

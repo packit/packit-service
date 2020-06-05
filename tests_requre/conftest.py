@@ -75,6 +75,12 @@ class SampleValues:
     pr_id = 342
     tag_name = "v1.0.2"
 
+    # gitlab
+    mr_id = 2
+    gitlab_repo_namespace = "the-namespace"
+    gitlab_repo_name = "repo-name"
+    gitlab_project_url = "https://gitlab.com/the-namespace/repo-name"
+
     # build
     build_id = "123456"
     different_build_id = "987654"
@@ -155,6 +161,16 @@ def pr_model():
         namespace=SampleValues.repo_namespace,
         repo_name=SampleValues.repo_name,
         project_url=SampleValues.project_url,
+    )
+
+
+@pytest.fixture()
+def mr_model():
+    yield PullRequestModel.get_or_create(
+        pr_id=SampleValues.mr_id,
+        namespace=SampleValues.gitlab_repo_namespace,
+        repo_name=SampleValues.gitlab_repo_name,
+        project_url=SampleValues.gitlab_project_url,
     )
 
 
@@ -837,6 +853,107 @@ def pr_event_dict():
         },
         "organization": {"login": "the-namespace"},
         "sender": {"login": "lbarcziova"},
+    }
+
+
+@pytest.fixture()
+def mr_event_dict():
+    """
+    Cleared version of the mr webhook content.
+    """
+    return {
+        "object_kind": "merge_request",
+        "event_type": "merge_request",
+        "user": {
+            "name": "Shreyas Papinwar",
+            "username": "shreyaspapi",
+            "email": "spapinwar@gmail.com",
+        },
+        "project": {
+            "id": 18032222,
+            "name": "Hello there",
+            "description": "Hehehehe",
+            "web_url": "https://gitlab.com/the-namespace/repo-name",
+            "git_ssh_url": "git@gitlab.com:the-namespace/repo-name.git",
+            "git_http_url": "https://gitlab.com/the-namespace/repo-name.git",
+            "namespace": "Testing packit",
+            "visibility_level": 20,
+            "path_with_namespace": "the-namespace/repo-name",
+            "default_branch": "master",
+            "homepage": "https://gitlab.com/the-namespace/repo-name",
+            "url": "git@gitlab.com:the-namespace/repo-name.git",
+            "ssh_url": "git@gitlab.com:the-namespace/repo-name.git",
+            "http_url": "https://gitlab.com/the-namespace/repo-name.git",
+        },
+        "object_attributes": {
+            "author_id": 5647360,
+            "created_at": "2020-05-24 19:45:07 UTC",
+            "description": "",
+            "id": 59533079,
+            "iid": 2,
+            "merge_status": "unchecked",
+            "source_branch": "test1",
+            "source_project_id": 18032222,
+            "state_id": 1,
+            "target_branch": "master",
+            "target_project_id": 18032222,
+            "time_estimate": 0,
+            "title": "Update README.md",
+            "updated_at": "2020-06-01 07:24:00 UTC",
+            "url": "https://gitlab.com/the-namespace/repo-name/-/merge_requests/2",
+            "source": {
+                "id": 18032222,
+                "name": "Hello there",
+                "description": "Hehehehe",
+                "web_url": "https://gitlab.com/the-namespace/repo-name",
+                "git_ssh_url": "git@gitlab.com:the-namespace/repo-name.git",
+                "git_http_url": "https://gitlab.com/the-namespace/repo-name.git",
+                "namespace": "Testing packit",
+                "visibility_level": 20,
+                "path_with_namespace": "the-namespace/repo-name",
+                "default_branch": "master",
+                "homepage": "https://gitlab.com/the-namespace/repo-name",
+                "url": "git@gitlab.com:the-namespace/repo-name.git",
+                "ssh_url": "git@gitlab.com:the-namespace/repo-name.git",
+                "http_url": "https://gitlab.com/the-namespace/repo-name.git",
+            },
+            "target": {
+                "id": 18032222,
+                "name": "Hello there",
+                "description": "Hehehehe",
+                "web_url": "https://gitlab.com/the-namespace/repo-name",
+                "git_ssh_url": "git@gitlab.com:the-namespace/repo-name.git",
+                "git_http_url": "https://gitlab.com/the-namespace/repo-name.git",
+                "namespace": "Testing packit",
+                "visibility_level": 20,
+                "path_with_namespace": "the-namespace/repo-name",
+                "default_branch": "master",
+                "homepage": "https://gitlab.com/the-namespace/repo-name",
+                "url": "git@gitlab.com:the-namespace/repo-name.git",
+                "ssh_url": "git@gitlab.com:the-namespace/repo-name.git",
+                "http_url": "https://gitlab.com/the-namespace/repo-name.git",
+            },
+            "last_commit": {
+                "id": "45e272a57335e4e308f3176df6e9226a9e7805a9",
+                "message": "Update README.md",
+                "title": "Update README.md",
+                "timestamp": "2020-06-01T07:24:37+00:00",
+                "url": "https://gitlab.com/the-namespace/repo-name/-/"
+                "commit/45e272a57335e4e308f3176df6e9226a9e7805a9",
+                "author": {"name": "Shreyas Papinwar", "email": "spapinwar@gmail.com"},
+            },
+            "assignee_ids": [],
+            "state": "opened",
+            "action": "update",
+            "oldrev": "94ccba9f986629e24b432c11d9c7fd20bb2ea51d",
+        },
+        "labels": [],
+        "repository": {
+            "name": "Hello there",
+            "url": "git@gitlab.com:the-namespace/repo-name.git",
+            "description": "Hehehehe",
+            "homepage": "https://gitlab.com/the-namespace/repo-name",
+        },
     }
 
 

@@ -32,6 +32,7 @@ from flexmock import flexmock
 from ogr import PagureService
 from ogr.services.github import GithubProject, GithubService
 from ogr.services.pagure import PagureProject
+from ogr.services.gitlab import GitlabProject, GitlabService
 
 from packit_service.config import (
     ServiceConfig,
@@ -59,6 +60,8 @@ from packit_service.service.events import (
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
     PullRequestLabelPagureEvent,
+    MergeRequestGitlabEvent,
+    GitlabEventAction,
 )
 from packit_service.worker.parser import Parser, CentosEventParser
 from tests.conftest import copr_build_model
@@ -111,6 +114,16 @@ class TestEvents:
             return json.load(outfile)
 
     @pytest.fixture()
+    def merge_request(self):
+        with open(DATA_DIR / "webhooks" / "gitlab" / "mr_event.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def merge_request_update(self):
+        with open(DATA_DIR / "webhooks" / "gitlab" / "mr_update_event.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
     def github_pr_comment_empty(self):
         with open(
             DATA_DIR / "webhooks" / "github" / "pr_comment_empty.json"
@@ -135,9 +148,10 @@ class TestEvents:
     @pytest.fixture()
     def mock_config(self):
         service_config = ServiceConfig()
-        service_config.github_app_id = 123123
-        service_config.github_app_cert_path = None
-        service_config.github_token = "token"
+        service_config.services = {
+            GithubService(token="token"),
+            GitlabService(token="token"),
+        }
         service_config.dry_run = False
         service_config.github_requests_log_path = "/path"
         ServiceConfig.service_config = service_config
@@ -173,6 +187,62 @@ class TestEvents:
         assert (
             event_object.project_url == "https://github.com/packit-service/hello-world"
         )
+
+    def test_parse_mr(self, merge_request):
+        event_object = Parser.parse_event(merge_request)
+
+        assert isinstance(event_object, MergeRequestGitlabEvent)
+        assert event_object.trigger == TheJobTriggerType.pull_request
+        assert event_object.action == GitlabEventAction.opened
+        assert event_object.object_id == 58759529
+        assert event_object.object_iid == 1
+        assert event_object.source_repo_namespace == "testing-packit"
+        assert event_object.source_repo_name == "hello-there"
+        assert event_object.commit_sha == "1f6a716aa7a618a9ffe56970d77177d99d100022"
+        assert event_object.target_repo_namespace == "testing-packit"
+        assert event_object.target_repo_name == "hello-there"
+        assert event_object.https_url == "https://gitlab.com/testing-packit/hello-there"
+
+        assert isinstance(event_object.project, GitlabProject)
+        assert event_object.project.full_repo_name == "testing-packit/hello-there"
+
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=None,
+            project=event_object.project,
+            pr_id=1,
+            reference="1f6a716aa7a618a9ffe56970d77177d99d100022",
+            fail_when_missing=False,
+            spec_file_path=None,
+        ).and_return(
+            flexmock()
+        ).once()
+        assert event_object.package_config
+
+    def test_parse_mr_action(self, merge_request_update):
+        event_object = Parser.parse_event(merge_request_update)
+        assert isinstance(event_object, MergeRequestGitlabEvent)
+        assert event_object.action == GitlabEventAction.update
+        assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
+        assert event_object.object_iid == 2
+
+        assert isinstance(event_object.project, GitlabProject)
+        assert event_object.project.full_repo_name == "testing-packit/hello-there"
+
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=None,
+            project=event_object.project,
+            pr_id=2,
+            reference="45e272a57335e4e308f3176df6e9226a9e7805a9",
+            fail_when_missing=False,
+            spec_file_path=None,
+        ).and_return(
+            flexmock()
+        ).once()
+        assert event_object.package_config
 
     def test_parse_pr(self, github_pr_webhook):
         event_object = Parser.parse_event(github_pr_webhook)
