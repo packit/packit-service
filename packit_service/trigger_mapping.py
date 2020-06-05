@@ -22,8 +22,9 @@
 
 from typing import Dict
 
-from packit.config import JobConfigTriggerType, JobConfig, JobType
+from deprecated import deprecated
 
+from packit.config import JobConfigTriggerType, JobConfig, JobType
 from packit_service.service.events import TheJobTriggerType
 
 MAP_JOB_TRIGGER_TO_JOB_CONFIG_TRIGGER_TYPE: Dict[
@@ -40,6 +41,11 @@ MAP_JOB_TRIGGER_TO_JOB_CONFIG_TRIGGER_TYPE: Dict[
 }
 
 
+@deprecated(
+    reason="Should be avoided since it is hardcoded. "
+    "We can use info from database instead for events without the real trigger "
+    "(e.g. copr/koji/tests results)."
+)
 def is_trigger_matching_job_config(
     trigger: TheJobTriggerType, job_config: JobConfig
 ) -> bool:

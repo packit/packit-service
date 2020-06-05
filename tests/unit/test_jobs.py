@@ -33,11 +33,13 @@ from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     TestingFarmResultsHandler,
 )
+from packit_service.worker.handlers.fedmsg_handlers import KojiBuildReportHandler
 from packit_service.worker.handlers.github_handlers import (
     PullRequestGithubKojiBuildHandler,
     PushGithubKojiBuildHandler,
     PushCoprBuildHandler,
     ReleaseGithubKojiBuildHandler,
+    GitHubPullRequestCommentCoprBuildHandler,
 )
 from packit_service.worker.jobs import (
     get_handlers_for_event,
@@ -300,6 +302,44 @@ from packit_service.worker.jobs import (
             ],
             {PushGithubKojiBuildHandler},
             id="config=production_build_on_pull_request_and_commit@trigger=commit",
+        ),
+        pytest.param(
+            TheJobTriggerType.koji_results,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {KojiBuildReportHandler},
+            id="config=production_build@trigger=koji_results",
+        ),
+        pytest.param(
+            TheJobTriggerType.koji_results,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            set(),
+            id="config=copr_build@trigger=koji_results",
+        ),
+        pytest.param(
+            TheJobTriggerType.koji_results,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {KojiBuildReportHandler},
+            id="config=production_build_and_copr_build@trigger=koji_results",
         ),
     ],
 )
@@ -669,6 +709,178 @@ def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
             [JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request)],
             [JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request)],
             id="copr_build_end_with_build_alias",
+        ),
+        pytest.param(
+            KojiBuildReportHandler,
+            flexmock(
+                trigger=TheJobTriggerType.koji_results,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            id="koji_results",
+        ),
+        pytest.param(
+            KojiBuildReportHandler,
+            flexmock(
+                trigger=TheJobTriggerType.koji_results,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
+                )
+            ],
+            [],
+            id="koji_results_when_copr_build_defined",
+        ),
+        pytest.param(
+            KojiBuildReportHandler,
+            flexmock(
+                trigger=TheJobTriggerType.koji_results,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
+            [],
+            id="koji_results_when_test_defined",
+        ),
+        pytest.param(
+            KojiBuildReportHandler,
+            flexmock(
+                trigger=TheJobTriggerType.koji_results,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            id="koji_results_when_test_and_copr_build_defined",
+        ),
+        pytest.param(
+            KojiBuildReportHandler,
+            flexmock(
+                trigger=TheJobTriggerType.koji_results,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.production_build, trigger=JobConfigTriggerType.release,
+                ),
+                JobConfig(
+                    type=JobType.production_build, trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            id="koji_results_when_multiple_triggers_defined",
+        ),
+        pytest.param(
+            KojiBuildReportHandler,
+            flexmock(
+                trigger=TheJobTriggerType.koji_results,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.release
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.production_build, trigger=JobConfigTriggerType.release,
+                ),
+                JobConfig(
+                    type=JobType.production_build, trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.production_build, trigger=JobConfigTriggerType.release,
+                )
+            ],
+            id="koji_results_for_release_when_multiple_triggers_defined",
+        ),
+        pytest.param(
+            KojiBuildReportHandler,
+            flexmock(
+                trigger=TheJobTriggerType.koji_results,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.commit
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.production_build, trigger=JobConfigTriggerType.release,
+                ),
+                JobConfig(
+                    type=JobType.production_build, trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.production_build, trigger=JobConfigTriggerType.commit,
+                )
+            ],
+            id="koji_results_for_commit_when_multiple_triggers_defined",
+        ),
+        pytest.param(
+            GitHubPullRequestCommentCoprBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.pr_comment,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
+            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
+            id="pr_comment_when_test_defined",
         ),
     ],
 )

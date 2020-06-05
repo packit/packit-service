@@ -80,6 +80,8 @@ def use_for(job_type: JobType):
 
 
 class Handler:
+    triggers: List[TheJobTriggerType]
+
     def __init__(self, config: ServiceConfig):
         self.config: ServiceConfig = config
         self.api: Optional[PackitAPI] = None

@@ -30,7 +30,6 @@ from typing import Optional, Dict, Union, Type, Set, List
 
 from packit.config import JobType, PackageConfig, JobConfig
 from packit.constants import DATETIME_FORMAT
-
 from packit_service.config import ServiceConfig
 from packit_service.log_versions import log_job_versions
 from packit_service.models import PullRequestModel
@@ -164,11 +163,12 @@ def get_config_for_handler_kls(
     # The job was not configured but let's try required ones.
     # e.g. we can use `tests` configuration when running build
     for job in jobs_that_can_be_triggered:
-        matching_required_job_types = MAP_REQUIRED_JOB_TO_HANDLERS[job.type]
-        for pos_handler in matching_required_job_types:
-            for trigger in pos_handler.triggers:
+        required_handlers = MAP_REQUIRED_JOB_TO_HANDLERS[job.type]
+        if handler_kls in required_handlers:
+            for trigger in handler_kls.triggers:
                 if (
-                    is_trigger_matching_job_config(trigger=trigger, job_config=job)
+                    (trigger == event.db_trigger.job_config_trigger_type)
+                    or is_trigger_matching_job_config(trigger=trigger, job_config=job)
                     and job not in matching_jobs
                 ):
                     matching_jobs.append(job)
