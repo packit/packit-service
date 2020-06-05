@@ -22,18 +22,9 @@
 import logging
 from typing import Optional
 
-from copr.v3 import Client as CoprClient
-
 from packit_service.celerizer import celery_app
-from packit_service.config import ServiceConfig
-from packit_service.constants import (
-    COPR_SUCC_STATE,
-    COPR_API_SUCC_STATE,
-    COPR_API_FAIL_STATE,
-)
-from packit_service.models import CoprBuildModel, TaskResultModel
-from packit_service.service.events import CoprBuildEvent, FedmsgTopic
-from packit_service.worker.handlers import CoprBuildEndHandler
+from packit_service.models import TaskResultModel
+from packit_service.worker.build.babysit import check_copr_build
 from packit_service.worker.jobs import SteveJobs
 
 logger = logging.getLogger(__name__)
@@ -81,44 +72,5 @@ def process_message(
 )
 def babysit_copr_build(self, build_id: int):
     """ check status of a copr build and update it in DB """
-    logger.debug(f"Getting copr build ID {build_id} from DB.")
-    builds = CoprBuildModel.get_all_by_build_id(build_id)
-    if builds:
-        copr_client = CoprClient.create_from_config_file()
-        build_copr = copr_client.build_proxy.get(build_id)
-
-        if not build_copr.ended_on:
-            logger.info("The copr build is still in progress.")
-            self.retry()
-        logger.info(f"The status is {build_copr.state!r}.")
-
-        for build in builds:
-            if build.status != "pending":
-                logger.info(
-                    f"DB state says {build.status!r}, "
-                    "things were taken care of already, skipping."
-                )
-                continue
-            chroot_build = copr_client.build_chroot_proxy.get(build_id, build.target)
-            event = CoprBuildEvent(
-                topic=FedmsgTopic.copr_build_finished.value,
-                build_id=build_id,
-                build=build,
-                chroot=build.target,
-                status=(
-                    COPR_API_SUCC_STATE
-                    if chroot_build.state == COPR_SUCC_STATE
-                    else COPR_API_FAIL_STATE
-                ),
-                owner=build.owner,
-                project_name=build.project_name,
-                pkg=build_copr.source_package.get(
-                    "name", ""
-                ),  # this seems to be the SRPM name
-                timestamp=chroot_build.ended_on,
-            )
-            CoprBuildEndHandler(
-                ServiceConfig.get_service_config(), job_config=None, event=event
-            ).run()
-    else:
-        logger.warning(f"Copr build {build_id} not in DB.")
+    if not check_copr_build(build_id=build_id):
+        self.retry()
