@@ -68,7 +68,7 @@ def copr_build_end():
 
 @pytest.fixture(scope="module")
 def pc_build_pr():
-    return PackageConfig(
+    pc = PackageConfig(
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
@@ -77,6 +77,7 @@ def pc_build_pr():
             )
         ]
     )
+    return pc
 
 
 @pytest.fixture(scope="module")

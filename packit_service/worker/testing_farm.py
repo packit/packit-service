@@ -31,6 +31,7 @@ import requests
 from ogr.abstract import GitProject, CommitStatus
 from ogr.utils import RequestResponse
 from packit.config import PackageConfig
+from packit.config.job_config import JobConfig
 from packit.exceptions import PackitConfigException
 from packit_service.config import ServiceConfig
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
@@ -59,8 +60,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             CoprBuildEvent,
             PullRequestCommentGithubEvent,
         ],
+        job: JobConfig = None,
     ):
-        super().__init__(config, package_config, project, event)
+        super().__init__(config, package_config, project, event, job=job)
         self.session = requests.session()
         adapter = requests.adapters.HTTPAdapter(max_retries=5)
         self.insecure = False

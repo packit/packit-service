@@ -140,6 +140,15 @@ def mock_pr_comment_functionality(request):
     flexmock(Whitelist, check_and_report=True)
 
 
+def one_job_finished_with_msg(results: dict, msg: str):
+    for value in results["jobs"].values():
+        assert value["success"]
+        if value["details"]["msg"] == msg:
+            break
+    else:
+        raise AssertionError(f"None of the jobs finished with {msg!r}")
+
+
 def test_pr_comment_copr_build_handler(
     mock_pr_comment_functionality, pr_copr_build_comment_event
 ):
@@ -160,7 +169,8 @@ def test_pr_comment_copr_build_handler(
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     results = SteveJobs().process_message(pr_copr_build_comment_event)
 
-    assert results["jobs"]["pull_request_action"]["success"]
+    for value in results["jobs"].values():
+        assert value["success"]
 
 
 def test_pr_comment_build_handler(
@@ -179,7 +189,8 @@ def test_pr_comment_build_handler(
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     results = SteveJobs().process_message(pr_build_comment_event)
-    assert results["jobs"]["pull_request_action"]["success"]
+    for value in results["jobs"].values():
+        assert value["success"]
 
 
 @pytest.mark.parametrize(
@@ -233,7 +244,8 @@ def test_pr_embedded_command_handler(
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    assert results["jobs"]["pull_request_action"]["success"]
+    for value in results["jobs"].values():
+        assert value["success"]
 
 
 def test_pr_comment_empty_handler(
@@ -242,9 +254,8 @@ def test_pr_comment_empty_handler(
     flexmock(GithubProject).should_receive("is_private").and_return(False)
 
     results = SteveJobs().process_message(pr_empty_comment_event)
-    assert results["jobs"]["pull_request_action"]["success"]
     msg = "comment '' is empty."
-    assert results["jobs"]["pull_request_action"]["details"]["msg"] == msg
+    one_job_finished_with_msg(results, msg)
 
 
 def test_pr_comment_packit_only_handler(
@@ -253,9 +264,8 @@ def test_pr_comment_packit_only_handler(
     flexmock(GithubProject).should_receive("is_private").and_return(False)
 
     results = SteveJobs().process_message(pr_packit_only_comment_event)
-    assert results["jobs"]["pull_request_action"]["success"]
     msg = "comment '/packit' does not contain a packit-service command."
-    assert results["jobs"]["pull_request_action"]["details"]["msg"] == msg
+    one_job_finished_with_msg(results, msg)
 
 
 def test_pr_comment_wrong_packit_command_handler(
@@ -264,6 +274,5 @@ def test_pr_comment_wrong_packit_command_handler(
     flexmock(GithubProject).should_receive("is_private").and_return(False)
 
     results = SteveJobs().process_message(pr_wrong_packit_comment_event)
-    assert results["jobs"]["pull_request_action"]["success"]
     msg = "comment '/packit foobar' does not contain a valid packit-service command."
-    assert results["jobs"]["pull_request_action"]["details"]["msg"] == msg
+    one_job_finished_with_msg(results, msg)

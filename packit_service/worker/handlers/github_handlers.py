@@ -480,6 +480,8 @@ class GithubTestingFarmHandler(AbstractGitForgeJobHandler):
         self.chroot = chroot
 
     def run(self) -> HandlerResults:
+        # TODO: once we turn hanadlers into respective celery tasks, we should iterate
+        #       here over *all* matching jobs and do them all, not just the first one
         testing_farm_helper = TestingFarmJobHelper(
             config=self.config,
             package_config=self.event.package_config,
@@ -492,6 +494,8 @@ class GithubTestingFarmHandler(AbstractGitForgeJobHandler):
 
 @add_to_comment_action_mapping
 @add_to_comment_action_mapping_with_name(name=CommentAction.build)
+@use_for(JobType.build)
+@use_for(JobType.copr_build)
 class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
     """ Handler for PR comment `/packit copr-build` """
 
@@ -514,6 +518,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
             package_config=self.event.package_config,
             project=self.event.project,
             event=self.event,
+            job=self.job,
         )
         handler_results = cbh.run_copr_build()
 
@@ -521,6 +526,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
 
 
 @add_to_comment_action_mapping
+@use_for(JobType.propose_downstream)
 class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
     """ Handler for issue comment `/packit propose-update` """
 
@@ -536,9 +542,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
         :return: list of dist-git branches
         """
         configured_branches = set()
-        for job in self.event.package_config.jobs:
-            if job.type == JobType.propose_downstream:
-                configured_branches.update(job.metadata.dist_git_branches)
+        configured_branches.update(self.job.metadata.dist_git_branches)
 
         if configured_branches:
             return get_branches(*configured_branches)
@@ -604,6 +608,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
 
 
 @add_to_comment_action_mapping
+@use_for(JobType.tests)
 class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
     """ Issue handler for comment `/packit test` """
 
@@ -617,6 +622,7 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
             package_config=self.event.package_config,
             project=self.event.project,
             event=self.event,
+            job=self.job,
         )
         user_can_merge_pr = self.event.project.can_merge_pr(self.event.user_login)
         if not (user_can_merge_pr or self.event.user_login in self.config.admins):

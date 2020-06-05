@@ -28,6 +28,8 @@ import enum
 import logging
 from typing import Dict, Type, Union
 
+from packit.config.job_config import JobConfig
+
 from packit_service.config import ServiceConfig
 from packit_service.service.events import (
     PullRequestCommentGithubEvent,
@@ -85,6 +87,7 @@ class CommentActionHandler(Handler):
             IssueCommentEvent,
             PullRequestCommentPagureEvent,
         ],
+        job: JobConfig,
     ):
         super().__init__(config)
         self.event: Union[
@@ -92,6 +95,7 @@ class CommentActionHandler(Handler):
             IssueCommentEvent,
             PullRequestCommentPagureEvent,
         ] = event
+        self.job = job
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")
