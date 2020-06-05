@@ -52,6 +52,7 @@ def global_service_config():
         GitlabService(token="token"),
     }
     service_config.dry_run = False
+    service_config.server_name = "localhost"
     service_config.github_requests_log_path = "/path"
     ServiceConfig.service_config = service_config
 
