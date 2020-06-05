@@ -24,6 +24,7 @@
           - python3-openshift
           - make
           - skopeo
+          - podman
       become: true
     - name: get token
       command: oc whoami -t
@@ -113,6 +114,8 @@
           without_dashboard: true
           sandbox_namespace: packit-dev-sandbox
           worker_replicas: 1
+          # To tag & push images to cluster, default: "podman"
+          # container_engine: "docker"
         dest: "{{ deployment_dir }}/vars/dev.yml"
     - name: Actually deploy
       command: make deploy
