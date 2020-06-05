@@ -45,6 +45,7 @@ from packit_service.service.events import (
     PushPagureEvent,
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
+    KojiBuildEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
 
@@ -201,7 +202,13 @@ class Whitelist:
             return True
         if isinstance(
             event,
-            (CoprBuildEvent, TestingFarmResultsEvent, DistGitEvent, InstallationEvent),
+            (
+                CoprBuildEvent,
+                TestingFarmResultsEvent,
+                DistGitEvent,
+                InstallationEvent,
+                KojiBuildEvent,
+            ),
         ):
             return True
         if isinstance(event, (PullRequestGithubEvent, PullRequestCommentGithubEvent)):

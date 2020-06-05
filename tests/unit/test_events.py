@@ -38,6 +38,7 @@ from packit_service.config import (
     ServiceConfig,
     PackageConfigGetter,
 )
+from packit_service.constants import KojiBuildState
 from packit_service.models import (
     CoprBuildModel,
     TFTTestRunModel,
@@ -68,6 +69,8 @@ from packit_service.service.events import (
     MergeRequestGitlabEvent,
     GitlabEventAction,
     KojiBuildEvent,
+    get_koji_build_logs_url,
+    get_koji_rpm_build_web_url,
 )
 from packit_service.worker.parser import Parser, CentosEventParser
 from tests.conftest import copr_build_model
@@ -691,7 +694,8 @@ class TestEvents:
 
         assert isinstance(event_object, KojiBuildEvent)
         assert event_object.build_id == 45270170
-        assert event_object.status == "OPEN"
+        assert event_object.state == KojiBuildState.open
+        assert not event_object.rpm_build_task_id
 
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "foo/bar"
@@ -728,7 +732,8 @@ class TestEvents:
 
         assert isinstance(event_object, KojiBuildEvent)
         assert event_object.build_id == 45270170
-        assert event_object.status == "CLOSED"
+        assert event_object.state == KojiBuildState.closed
+        assert event_object.rpm_build_task_id == 45270227
 
         flexmock(GithubProject).should_receive("get_pr").with_args(
             pr_id=123
@@ -1128,3 +1133,37 @@ class TestCentOSEventParser:
             "https://git.stg.centos.org/source-git/packit-hello-world"
         )
         assert event_object.package_config
+
+
+@pytest.mark.parametrize(
+    "event,result",
+    [
+        (
+            flexmock(rpm_build_task_id=45270227),
+            "https://kojipkgs.fedoraproject.org//work/tasks/227/45270227/build.log",
+        ),
+        (
+            flexmock(rpm_build_task_id=45452270),
+            "https://kojipkgs.fedoraproject.org//work/tasks/2270/45452270/build.log",
+        ),
+    ],
+)
+def test_get_koji_build_logs_url(event, result):
+    assert get_koji_build_logs_url(event) == result
+
+
+@pytest.mark.parametrize(
+    "event,result",
+    [
+        (
+            flexmock(rpm_build_task_id=45270227),
+            "https://koji.fedoraproject.org/koji/taskinfo?taskID=45270227",
+        ),
+        (
+            flexmock(rpm_build_task_id=45452270),
+            "https://koji.fedoraproject.org/koji/taskinfo?taskID=45452270",
+        ),
+    ],
+)
+def test_get_koji_rpm_build_web_url(event, result):
+    assert get_koji_rpm_build_web_url(event) == result

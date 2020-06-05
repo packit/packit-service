@@ -36,6 +36,7 @@ from packit_service.config import (
     ServiceConfig,
     PackageConfigGetter,
 )
+from packit_service.constants import KojiBuildState
 from packit_service.constants import WHITELIST_CONSTANTS
 from packit_service.models import (
     CoprBuildModel,
@@ -45,6 +46,8 @@ from packit_service.models import (
     TFTTestRunModel,
     PullRequestModel,
     KojiBuildModel,
+    ProjectReleaseModel,
+    GitBranchModel,
 )
 from packit_service.service.db_triggers import (
     AddReleaseDbTrigger,
@@ -673,19 +676,27 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
     def __init__(
         self,
         build_id: int,
-        status: str,
+        state: KojiBuildState,
+        old_state: Optional[KojiBuildState] = None,
+        rpm_build_task_id: Optional[int] = None,
         start_time: Optional[Union[int, float, str]] = None,
         completion_time: Optional[Union[int, float, str]] = None,
     ):
         super().__init__(trigger=TheJobTriggerType.koji_results)
         self.build_id = build_id
-        self.status = status
+        self.state = state
+        self.old_state = old_state
         self.start_time: Optional[Union[int, float, str]] = start_time
         self.completion_time: Optional[Union[int, float, str]] = completion_time
+        self.rpm_build_task_id = rpm_build_task_id
 
         # Lazy properties
         self._pr_id: Optional[int] = None
+        self._commit_sha: Optional[str] = None
         self._db_trigger: Optional[AbstractTriggerDbType] = None
+        self._identifier: Optional[str] = None
+        self._build_model: Optional[KojiBuildModel] = None
+        self._git_ref: Optional[str] = None
 
     @property
     def pr_id(self) -> Optional[int]:
@@ -693,18 +704,51 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
             self._pr_id = self.db_trigger.pr_id
         return self._pr_id
 
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
-        result = super().get_dict()
-        result["result"] = result["result"].value
-        return result
+    @property
+    def commit_sha(self,) -> Optional[str]:  # type:ignore
+        # mypy does not like properties
+        if not self._commit_sha:
+            self._commit_sha = self.build_model.commit_sha
+        return self._commit_sha
+
+    @property
+    def build_model(self) -> Optional[KojiBuildModel]:
+        if not self._build_model:
+            self._build_model = KojiBuildModel.get_by_build_id(build_id=self.build_id)
+        return self._build_model
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         if not self._db_trigger:
-            build_model = KojiBuildModel.get_by_build_id(build_id=self.build_id)
-            if build_model:
-                self._db_trigger = build_model.job_trigger.get_trigger_object()
+            if self.build_model:
+                self._db_trigger = self.build_model.job_trigger.get_trigger_object()
         return self._db_trigger
+
+    @property
+    def git_ref(self) -> str:
+        if not self._git_ref:
+            if isinstance(self.db_trigger, PullRequestModel):
+                self._git_ref = self.commit_sha
+            elif isinstance(self.db_trigger, ProjectReleaseModel):
+                self._git_ref = self.db_trigger.tag_name
+            elif isinstance(self.db_trigger, GitBranchModel):
+                self._git_ref = self.db_trigger.name
+            else:
+                self._git_ref = self.commit_sha
+        return self._git_ref
+
+    @property
+    def identifier(self) -> str:
+        if not self._identifier:
+            if isinstance(self.db_trigger, PullRequestModel):
+                self._identifier = str(self.db_trigger.pr_id)
+            elif isinstance(self.db_trigger, ProjectReleaseModel):
+                self._identifier = self.db_trigger.tag_name
+            elif isinstance(self.db_trigger, GitBranchModel):
+                self._identifier = self.db_trigger.name
+            else:
+                self._identifier = self.commit_sha
+        return self._identifier
 
     def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:
@@ -837,6 +881,25 @@ def get_copr_build_logs_url(event: CoprBuildEvent) -> str:
         f"https://copr-be.cloud.fedoraproject.org/results/{event.owner}/"
         f"{event.project_name}/{event.chroot}/"
         f"{event.build_id:08d}-{event.pkg}/builder-live.log.gz"
+    )
+
+
+def get_koji_build_logs_url(event: KojiBuildEvent) -> Optional[str]:
+    if not event.rpm_build_task_id:
+        return None
+
+    return (
+        f"https://kojipkgs.fedoraproject.org//work/tasks/"
+        f"{event.rpm_build_task_id % 10000}/{event.rpm_build_task_id}/build.log"
+    )
+
+
+def get_koji_rpm_build_web_url(event: KojiBuildEvent) -> Optional[str]:
+    if not event.rpm_build_task_id:
+        return None
+
+    return (
+        f"https://koji.fedoraproject.org/koji/taskinfo?taskID={event.rpm_build_task_id}"
     )
 
 

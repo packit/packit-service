@@ -42,6 +42,7 @@ from packit_service.service.events import (
     ReleaseEvent,
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
+    KojiBuildEvent,
 )
 from packit_service.trigger_mapping import (
     is_trigger_matching_job_config,
@@ -72,6 +73,7 @@ class BaseBuildJobHelper:
             CoprBuildEvent,
             PushGitHubEvent,
             ReleaseEvent,
+            KojiBuildEvent,
         ],
         job: Optional[JobConfig] = None,
     ):
@@ -86,6 +88,7 @@ class BaseBuildJobHelper:
             CoprBuildEvent,
             PushGitHubEvent,
             ReleaseEvent,
+            KojiBuildEvent,
         ] = event
         self.msg_retrigger: Optional[str] = ""
 

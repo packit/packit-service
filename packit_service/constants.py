@@ -1,3 +1,5 @@
+from enum import Enum
+
 FAQ_URL = "https://packit.dev/packit-as-a-service/#faq"
 SANDCASTLE_WORK_DIR = "/sandcastle"
 SANDCASTLE_IMAGE = "docker.io/usercont/sandcastle"
@@ -33,3 +35,20 @@ WHITELIST_CONSTANTS = {
     "waiting": "waiting",
     "approved_manually": "approved_manually",
 }
+
+
+class KojiBuildState(Enum):
+    """
+    Koji states used in fedmsg payloads.
+
+    Sometimes, koji use numbers instead,
+    but we don't need them yet.
+    Corresponding numbers are as comments if anyone needs them.
+    """
+
+    free = "FREE"  # 0
+    open = "OPEN"  # 1
+    closed = "CLOSED"  # 2
+    canceled = "CANCELED"  # 3
+    assigned = "ASSIGNED"  # 4
+    failed = "FAILED"  # 5

@@ -29,6 +29,7 @@ from typing import Optional, Union, List, Dict
 
 from packit.utils import nested_get
 
+from packit_service.constants import KojiBuildState
 from packit_service.service.events import (
     PullRequestGithubEvent,
     PullRequestCommentGithubEvent,
@@ -619,23 +620,25 @@ class Parser:
             logger.debug("Cannot find build state.")
             return None
 
-        state_str = {
-            0: "FREE",
-            1: "OPEN",
-            2: "CLOSED",
-            3: "CANCELED",
-            4: "ASSIGNED",
-            5: "FAILED",
-        }[state]
+        state_enum = KojiBuildState(event.get("new")) if "new" in event else None
+        old_state = KojiBuildState(event.get("old")) if "old" in event else None
 
         start_time = nested_get(event, "info", "start_time")
         completion_time = nested_get(event, "info", "completion_time")
 
+        rpm_build_task_id = None
+        for children in nested_get(event, "info", "children", default=[]):
+            if children.get("method") == "buildArch":
+                rpm_build_task_id = children.get("id")
+                break
+
         return KojiBuildEvent(
             build_id=build_id,
-            status=state_str,
+            state=state_enum,
+            old_state=old_state,
             start_time=start_time,
             completion_time=completion_time,
+            rpm_build_task_id=rpm_build_task_id,
         )
 
 

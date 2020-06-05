@@ -546,6 +546,11 @@ class KojiBuildModel(Base):
             self.build_logs_url = build_logs
             session.add(self)
 
+    def set_web_url(self, web_url: str):
+        with get_sa_session() as session:
+            self.web_url = web_url
+            session.add(self)
+
     def get_project(self) -> GitProjectModel:
         return self.job_trigger.get_trigger_object().project
 
