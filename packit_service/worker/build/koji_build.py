@@ -39,7 +39,7 @@ from packit_service.service.events import (
 )
 from packit_service.service.urls import (
     get_srpm_log_url_from_flask,
-    get_koji_build_log_url_from_flask,
+    get_koji_build_info_url_from_flask,
 )
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.result import HandlerResults
@@ -179,7 +179,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 srpm_build=self.srpm_model,
                 trigger_model=self.event.db_trigger,
             )
-            url = get_koji_build_log_url_from_flask(id_=koji_build.id)
+            url = get_koji_build_info_url_from_flask(id_=koji_build.id)
             self.report_status_to_all_for_chroot(
                 state=CommitStatus.pending,
                 description="Building RPM ...",

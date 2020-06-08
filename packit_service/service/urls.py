@@ -38,25 +38,25 @@ def get_srpm_log_url_from_flask(id_: int = None,) -> str:
         )
 
 
-def get_copr_build_log_url_from_flask(id_: int = None,) -> str:
+def get_copr_build_info_url_from_flask(id_: int = None,) -> str:
     """
     provide absolute URL to p-s copr build logs view meant to set in a commit status
     """
     with application.app_context():
         return url_for(
-            "builds.get_copr_build_logs_by_id",
+            "builds.copr_build_info",
             id_=id_,
             _external=True,  # _external = generate a URL with FQDN, not a relative one
         )
 
 
-def get_koji_build_log_url_from_flask(id_: int = None,) -> str:
+def get_koji_build_info_url_from_flask(id_: int = None,) -> str:
     """
     provide absolute URL to p-s koji build logs view meant to set in a commit status
     """
     with application.app_context():
         return url_for(
-            "builds.get_koji_build_logs_by_id",
+            "builds.koji_build_info",
             id_=id_,
             _external=True,  # _external = generate a URL with FQDN, not a relative one
         )

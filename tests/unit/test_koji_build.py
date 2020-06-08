@@ -47,7 +47,7 @@ from packit_service.service.events import (
     ReleaseEvent,
 )
 from packit_service.service.urls import (
-    get_koji_build_log_url_from_flask,
+    get_koji_build_info_url_from_flask,
     get_srpm_log_url_from_flask,
 )
 from packit_service.worker.build import koji_build
@@ -107,7 +107,7 @@ def test_koji_build_check_names(github_pr_event):
         ["dark-past", "bright-future"]
     ).once()
 
-    koji_build_url = get_koji_build_log_url_from_flask(1)
+    koji_build_url = get_koji_build_info_url_from_flask(1)
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building SRPM ...",

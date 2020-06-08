@@ -54,7 +54,7 @@ from packit_service.service.events import (
     get_copr_build_logs_url,
     TheJobTriggerType,
 )
-from packit_service.service.urls import get_copr_build_log_url_from_flask
+from packit_service.service.urls import get_copr_build_info_url_from_flask
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.handlers.abstract import JobHandler, use_for, required_by
 from packit_service.worker.handlers.github_handlers import GithubTestingFarmHandler
@@ -207,7 +207,7 @@ class CoprBuildEndHandler(FedmsgHandler):
             else None
         )
         build.set_end_time(end_time)
-        url = get_copr_build_log_url_from_flask(build.id)
+        url = get_copr_build_info_url_from_flask(build.id)
 
         # https://pagure.io/copr/copr/blob/master/f/common/copr_common/enums.py#_42
         if self.event.status != COPR_API_SUCC_STATE:
@@ -310,7 +310,7 @@ class CoprBuildStartHandler(FedmsgHandler):
             else None
         )
         build.set_start_time(start_time)
-        url = get_copr_build_log_url_from_flask(build.id)
+        url = get_copr_build_info_url_from_flask(build.id)
         build.set_status("pending")
         copr_build_logs = get_copr_build_logs_url(self.event)
         build.set_build_logs_url(copr_build_logs)

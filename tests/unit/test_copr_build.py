@@ -115,9 +115,9 @@ def test_copr_build_check_names(github_pr_event):
         metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="nobody"),
     )
 
-    flexmock(copr_build).should_receive("get_copr_build_log_url_from_flask").and_return(
-        "https://test.url"
-    )
+    flexmock(copr_build).should_receive(
+        "get_copr_build_info_url_from_flask"
+    ).and_return("https://test.url")
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building SRPM ...",
