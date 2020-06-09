@@ -263,7 +263,10 @@ class AbstractForgeIndependentEvent(Event):
     def pr_id(self) -> Optional[int]:
         return self._pr_id
 
-    def get_project(self) -> GitProject:
+    def get_project(self) -> Optional[GitProject]:
+        if not self.project_url and not self.db_trigger:
+            return None
+
         return ServiceConfig.get_service_config().get_project(
             url=self.project_url or self.db_trigger.project.project_url
         )
@@ -706,6 +709,9 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
 
     @property
     def commit_sha(self,) -> Optional[str]:  # type:ignore
+        if not self.build_model:
+            return None
+
         # mypy does not like properties
         if not self._commit_sha:
             self._commit_sha = self.build_model.commit_sha
