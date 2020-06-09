@@ -23,7 +23,6 @@ import logging
 
 from copr.v3 import Client as CoprClient
 
-from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COPR_SUCC_STATE,
     COPR_API_SUCC_STATE,
@@ -95,6 +94,8 @@ def check_copr_build(build_id: int) -> bool:
 
         for job_config in job_configs:
             CoprBuildEndHandler(
-                ServiceConfig.get_service_config(), job_config=job_config, event=event,
+                package_config=event.package_config,
+                job_config=job_config,
+                event=event.get_dict(),
             ).run()
     return True

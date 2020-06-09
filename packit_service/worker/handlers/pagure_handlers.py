@@ -21,23 +21,16 @@
 # SOFTWARE.
 
 import logging
-from typing import Optional, Union, Any
+from typing import Optional
 
-from ogr.abstract import CommitStatus, GitProject, PullRequest
-from packit.config import JobType, JobConfig
-from packit_service.config import ServiceConfig
+from ogr.abstract import CommitStatus, PullRequest
+
 from packit_service.models import BugzillaModel
-from packit_service.service.events import (
-    TheJobTriggerType,
-    PullRequestCommentPagureEvent,
-    PullRequestLabelPagureEvent,
-)
+from packit.config import JobType, JobConfig, PackageConfig
+from packit_service.service.events import TheJobTriggerType, PullRequestLabelAction
 from packit_service.worker.build import CoprBuildJobHelper
-from packit_service.worker.handlers import (
-    CommentActionHandler,
-    AbstractGitForgeJobHandler,
-)
-from packit_service.worker.handlers.abstract import use_for
+from packit_service.worker.handlers import CommentActionHandler
+from packit_service.worker.handlers.abstract import use_for, JobHandler
 from packit_service.worker.handlers.comment_action_handler import CommentAction
 from packit_service.worker.psbugzilla import Bugzilla
 from packit_service.worker.reporting import StatusReporter
@@ -53,15 +46,13 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
 
     type = CommentAction.copr_build
     triggers = [TheJobTriggerType.pr_comment]
-    event: PullRequestCommentPagureEvent
 
     def __init__(
-        self,
-        config: ServiceConfig,
-        event: PullRequestCommentPagureEvent,
-        job: JobConfig,
+        self, package_config: PackageConfig, job_config: JobConfig, event: dict
     ):
-        super().__init__(config=config, event=event, job=job)
+        super().__init__(
+            package_config=package_config, job_config=job_config, event=event,
+        )
 
         # lazy property
         self._copr_build_helper: Optional[CoprBuildJobHelper] = None
@@ -71,10 +62,11 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
         if not self._copr_build_helper:
             self._copr_build_helper = CoprBuildJobHelper(
                 config=self.config,
-                package_config=self.event.package_config,
-                project=self.event.project,
+                package_config=self.package_config,
+                project=self.project,
                 event=self.event,
-                job=self.job,
+                db_trigger=self.db_trigger,
+                job=self.job_config,
             )
         return self._copr_build_helper
 
@@ -82,22 +74,29 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
         return self.copr_build_helper.run_copr_build()
 
 
-class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
+class PagurePullRequestLabelHandler(JobHandler):
     type = JobType.create_bugzilla
     triggers = [TheJobTriggerType.pr_label]
-    event: PullRequestLabelPagureEvent
 
     def __init__(
         self,
-        config: ServiceConfig,
+        package_config: PackageConfig,
         job_config: Optional[JobConfig],
-        event: Union[PullRequestLabelPagureEvent, Any],
+        event: dict,
     ):
-        super().__init__(config=config, job_config=job_config, event=event)
+        super().__init__(
+            package_config=package_config, job_config=job_config, event=event
+        )
+        self.labels = event.get("labels")
+        self.identifier = event.get("identifier")
+        self.pr_id = event.get("pr_id")
+        self.commit_sha = event.get("commit_sha")
+        self.action = PullRequestLabelAction(event.get("action"))
+        self.base_repo_owner = event.get("base_repo_owner")
+        self.base_repo_name = event.get("base_repo_namespace")
+        self.base_repo_namespace = event.get("base_repo_name")
 
-        self.event = event
-        self.project: GitProject = self.config.get_project(event.project_url)
-        self.pr: PullRequest = self.project.get_pr(event.pr_id)
+        self.pr: PullRequest = self.project.get_pr(self.pr_id)
         # lazy properties
         self._bz_model: Optional[BugzillaModel] = None
         self._bugzilla: Optional[Bugzilla] = None
@@ -107,10 +106,10 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
     def bz_model(self) -> Optional[BugzillaModel]:
         if self._bz_model is None:
             self._bz_model = BugzillaModel.get_by_pr(
-                pr_id=self.event.pr_id,
-                namespace=self.event.base_repo_namespace,
-                repo_name=self.event.base_repo_name,
-                project_url=self.event.project_url,
+                pr_id=self.pr_id,
+                namespace=self.base_repo_namespace,
+                repo_name=self.base_repo_name,
+                project_url=self.project_url,
             )
         return self._bz_model
 
@@ -126,7 +125,7 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
     def status_reporter(self) -> StatusReporter:
         if not self._status_reporter:
             self._status_reporter = StatusReporter(
-                self.project, self.event.commit_sha, self.event.pr_id
+                self.project, self.commit_sha, self.pr_id
             )
         return self._status_reporter
 
@@ -135,15 +134,15 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
         bug_id, bug_url = self.bugzilla.create_bug(
             product="Red Hat Enterprise Linux 8",
             version="CentOS-Stream",
-            component=self.event.base_repo_name,
+            component=self.base_repo_name,
             summary=self.pr.title,
             description=f"Based on approved CentOS Stream pull-request: {self.pr.url}",
         )
         self._bz_model = BugzillaModel.get_or_create(
-            pr_id=self.event.pr_id,
-            namespace=self.event.base_repo_namespace,
-            repo_name=self.event.base_repo_name,
-            project_url=self.event.project_url,
+            pr_id=self.pr_id,
+            namespace=self.base_repo_namespace,
+            repo_name=self.base_repo_name,
+            project_url=self.project_url,
             bug_id=bug_id,
             bug_url=bug_url,
         )
@@ -158,7 +157,7 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
         self.bugzilla.add_patch(
             bzid=self.bz_model.bug_id,
             content=self.pr.patch,
-            file_name=f"pr-{self.event.pr_id}.patch",
+            file_name=f"pr-{self.pr_id}.patch",
         )
 
     def _set_status(self):
@@ -178,12 +177,12 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
         )
 
     def run(self) -> HandlerResults:
-        e = self.event
         logger.debug(
-            f"Handling labels/tags {e.labels} {e.action.value} to Pagure PR "
-            f"{e.base_repo_owner}/{e.base_repo_namespace}/{e.base_repo_name}/{e.identifier}"
+            f"Handling labels/tags {self.labels} {self.action.value} to Pagure PR "
+            f"{self.base_repo_owner}/{self.base_repo_namespace}/"
+            f"{self.base_repo_name}/{self.identifier}"
         )
-        if e.labels.intersection(self.config.pr_accepted_labels):
+        if self.labels.intersection(self.config.pr_accepted_labels):
             if not self.bz_model:
                 self._create_bug()
             self._attach_patch()

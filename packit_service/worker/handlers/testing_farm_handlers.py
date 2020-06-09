@@ -27,18 +27,13 @@ import logging
 from typing import Optional
 
 from ogr.abstract import CommitStatus
-from packit.config import (
-    JobType,
-    JobConfig,
-)
-from packit_service.config import ServiceConfig
+from packit.config import JobType, JobConfig, PackageConfig
 from packit_service.models import TFTTestRunModel
 from packit_service.service.events import (
-    TestingFarmResultsEvent,
     TestingFarmResult,
     TheJobTriggerType,
 )
-from packit_service.worker.handlers import AbstractGitForgeJobHandler
+from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.abstract import use_for
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import HandlerResults
@@ -48,37 +43,46 @@ logger = logging.getLogger(__name__)
 
 
 @use_for(job_type=JobType.tests)
-class TestingFarmResultsHandler(AbstractGitForgeJobHandler):
+class TestingFarmResultsHandler(JobHandler):
     type = JobType.report_test_results
     triggers = [TheJobTriggerType.testing_farm_results]
-    event: TestingFarmResultsEvent
 
     def __init__(
         self,
-        config: ServiceConfig,
+        package_config: PackageConfig,
         job_config: Optional[JobConfig],
-        event: TestingFarmResultsEvent,
+        event: dict,
     ):
-        super().__init__(config=config, job_config=job_config, event=event)
+        super().__init__(
+            package_config=package_config, job_config=job_config, event=event
+        )
+
+        self.tests = event.get("tests")
+        self.result = event.get("result")
+        self.pipeline_id = event.get("pipeline_id")
+        self.log_url = event.get("log_url")
+        self.commit_sha = event.get("commit_sha")
+        self.copr_chroot = event.get("copr_chroot")
+        self.message = event.get("message")
 
     def run(self) -> HandlerResults:
 
-        logger.debug(f"Received testing-farm result:\n{self.event.result}")
-        logger.debug(f"Received testing-farm test results:\n{self.event.tests}")
+        logger.debug(f"Received testing-farm result:\n{self.result}")
+        logger.debug(f"Received testing-farm test results:\n{self.tests}")
 
         test_run_model = TFTTestRunModel.get_by_pipeline_id(
-            pipeline_id=self.event.pipeline_id
+            pipeline_id=self.pipeline_id
         )
         if not test_run_model:
             logger.warning(
                 f"Unknown pipeline_id received from the testing-farm: "
-                f"{self.event.pipeline_id}"
+                f"{self.pipeline_id}"
             )
 
         if test_run_model:
-            test_run_model.set_status(self.event.result)
+            test_run_model.set_status(self.result)
 
-        if self.event.result == TestingFarmResult.passed:
+        if self.result == TestingFarmResult.passed:
             status = CommitStatus.success
             passed = True
 
@@ -86,23 +90,20 @@ class TestingFarmResultsHandler(AbstractGitForgeJobHandler):
             status = CommitStatus.failure
             passed = False
 
-        if (
-            len(self.event.tests) == 1
-            and self.event.tests[0].name == "/install/copr-build"
-        ):
+        if len(self.tests) == 1 and self.tests[0].name == "/install/copr-build":
             logger.debug("No-fmf scenario discovered.")
             short_msg = "Installation passed" if passed else "Installation failed"
         else:
-            short_msg = self.event.message
+            short_msg = self.message
 
         if test_run_model:
-            test_run_model.set_web_url(self.event.log_url)
-        status_reporter = StatusReporter(self.event.project, self.event.commit_sha)
+            test_run_model.set_web_url(self.log_url)
+        status_reporter = StatusReporter(self.project, self.commit_sha)
         status_reporter.report(
             state=status,
             description=short_msg,
-            url=self.event.log_url,
-            check_names=TestingFarmJobHelper.get_test_check(self.event.copr_chroot),
+            url=self.log_url,
+            check_names=TestingFarmJobHelper.get_test_check(self.copr_chroot),
         )
 
         return HandlerResults(success=True, details={})

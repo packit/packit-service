@@ -202,6 +202,11 @@ class PullRequestModel(Base):
             type=JobTriggerModelType.pull_request, trigger_id=self.id
         ).copr_builds
 
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["PullRequestModel"]:
+        with get_sa_session() as session:
+            return session.query(PullRequestModel).filter_by(id=id_).first()
+
     def __repr__(self):
         return f"PullRequestModel(id={self.pr_id}, project={self.project})"
 
@@ -234,6 +239,11 @@ class IssueModel(Base):
                 issue.project_id = project.id
                 session.add(issue)
             return issue
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["IssueModel"]:
+        with get_sa_session() as session:
+            return session.query(IssueModel).filter_by(id=id_).first()
 
     def __repr__(self):
         return f"IssueModel(id={self.issue_id}, project={self.project})"
@@ -268,6 +278,11 @@ class GitBranchModel(Base):
                 git_branch.project_id = project.id
                 session.add(git_branch)
             return git_branch
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["GitBranchModel"]:
+        with get_sa_session() as session:
+            return session.query(GitBranchModel).filter_by(id=id_).first()
 
     def __repr__(self):
         return f"GitBranchModel(name={self.name},  project={self.project})"
@@ -362,6 +377,11 @@ class ProjectReleaseModel(Base):
                 project_release.commit_hash = commit_hash
                 session.add(project_release)
             return project_release
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["ProjectReleaseModel"]:
+        with get_sa_session() as session:
+            return session.query(ProjectReleaseModel).filter_by(id=id_).first()
 
     def __repr__(self):
         return (
@@ -1007,20 +1027,23 @@ class InstallationModel(Base):
             return session.query(InstallationModel).all()
 
     @classmethod
-    def create(cls, event):
+    def create(cls, event: dict):
         with get_sa_session() as session:
-            installation = cls.get_by_account_login(event.account_login)
+            account_login = event.get("account_login")
+            installation = cls.get_by_account_login(account_login)
             if not installation:
                 installation = cls()
-                installation.account_login = event.account_login
-                installation.account_id = event.account_id
-                installation.account_url = event.account_url
-                installation.account_type = event.account_type
-                installation.sender_login = event.sender_login
-                installation.sender_id = event.sender_id
-                installation.created_at = event.created_at
+                installation.account_login = account_login
+                installation.account_id = event.get("account_id")
+                installation.account_url = event.get("account_url")
+                installation.account_type = event.get("account_type")
+                installation.sender_login = event.get("sender_login")
+                installation.sender_id = event.get("sender_id")
+                installation.created_at = datetime.fromtimestamp(
+                    event.get("created_at")
+                )
                 installation.repositories = [
-                    cls.get_project(repo).id for repo in event.repositories
+                    cls.get_project(repo).id for repo in event.get("repositories")
                 ]
                 session.add(installation)
             return installation

@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
-from typing import Union, Optional, Tuple, Set, List
+from typing import Optional, Tuple, Set, List
 
 from ogr.abstract import GitProject, CommitStatus
 from packit.config import PackageConfig, JobType, JobConfig
@@ -31,18 +31,6 @@ from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import MSG_RETRIGGER
 from packit_service.models import CoprBuildModel
-from packit_service.service.events import (
-    PullRequestGithubEvent,
-    PullRequestCommentGithubEvent,
-    CoprBuildEvent,
-    PushGitHubEvent,
-    ReleaseEvent,
-    PullRequestPagureEvent,
-    PullRequestCommentPagureEvent,
-    MergeRequestCommentGitlabEvent,
-    MergeRequestGitlabEvent,
-    PushGitlabEvent,
-)
 from packit_service.service.urls import (
     get_srpm_log_url_from_flask,
     get_copr_build_info_url_from_flask,
@@ -64,25 +52,18 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
-        event: Union[
-            PullRequestGithubEvent,
-            PullRequestPagureEvent,
-            PullRequestCommentGithubEvent,
-            PullRequestCommentPagureEvent,
-            CoprBuildEvent,
-            PushGitHubEvent,
-            ReleaseEvent,
-            MergeRequestCommentGitlabEvent,
-            MergeRequestGitlabEvent,
-            PushGitlabEvent,
-        ],
+        event: dict,
+        db_trigger,
         job: Optional[JobConfig] = None,
     ):
-        super().__init__(config, package_config, project, event, job)
+        super().__init__(
+            config, package_config, project, event, db_trigger, job,
+        )
 
         self.msg_retrigger: str = MSG_RETRIGGER.format(
             build="copr-build" if self.job_build else "build"
         )
+        self.identifier = event.get("identifier")
 
     @property
     def default_project_name(self) -> str:
@@ -90,9 +71,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         Project name for copr -- add `-stg` suffix for the stg app.
         """
         stg = "-stg" if self.config.deployment == Deployment.stg else ""
-        return (
-            f"{self.project.namespace}-{self.project.repo}-{self.event.identifier}{stg}"
-        )
+        return f"{self.project.namespace}-{self.project.repo}-{self.identifier}{stg}"
 
     @property
     def job_project(self) -> Optional[str]:
@@ -202,14 +181,14 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         for chroot in self.build_targets:
             copr_build = CoprBuildModel.get_or_create(
                 build_id=str(build_id),
-                commit_sha=self.event.commit_sha,
+                commit_sha=self.commit_sha,
                 project_name=self.job_project,
                 owner=self.job_owner,
                 web_url=web_url,
                 target=chroot,
                 status="pending",
                 srpm_build=self.srpm_model,
-                trigger_model=self.event.db_trigger,
+                trigger_model=self.db_trigger,
             )
             url = get_copr_build_info_url_from_flask(id_=copr_build.id)
             self.report_status_to_all_for_chroot(

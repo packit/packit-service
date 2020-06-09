@@ -87,7 +87,7 @@ class Whitelist:
         logger.info(f"Cannot verify whether {account_login!r} signed FPCA.")
         return False
 
-    def add_account(self, event: InstallationEvent) -> bool:
+    def add_account(self, account_login: str, sender_login: str) -> bool:
         """
         Add account to whitelist.
         Status is set to 'waiting' or to 'approved_automatically'
@@ -95,14 +95,15 @@ class Whitelist:
         :param event: Github app installation info
         :return: was the account (auto/already)-whitelisted?
         """
-        if WhitelistModel.get_account(event.account_login):
+        if WhitelistModel.get_account(account_login):
             return True
 
-        WhitelistModel.add_account(event.account_login, WhitelistStatus.waiting.value)
+        WhitelistModel.add_account(account_login, WhitelistStatus.waiting.value)
 
-        if self._signed_fpca(event.sender_login):
-            event.status = WhitelistStatus.approved_automatically
-            WhitelistModel.add_account(event.account_login, event.status.value)
+        if self._signed_fpca(sender_login):
+            WhitelistModel.add_account(
+                account_login, WhitelistStatus.approved_automatically.value
+            )
             return True
 
         return False
@@ -225,7 +226,8 @@ class Whitelist:
                         config=config,
                         package_config=event.get_package_config(),
                         project=project,
-                        event=event,
+                        event=event.get_dict(),
+                        db_trigger=event.db_trigger,
                     )
                     msg = "Account is not whitelisted!"  # needs to be shorter
                     job_helper.report_status_to_all(

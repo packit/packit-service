@@ -24,7 +24,7 @@
 This file defines classes for job handlers specific for Github hooks
 """
 import logging
-from typing import Union, Any, Optional, Callable, Set
+from typing import Optional, Callable, Set
 
 from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
@@ -37,25 +37,9 @@ from packit.config.aliases import get_branches
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 from packit_service import sentry_integration
-from packit_service.config import ServiceConfig
 from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
 from packit_service.models import InstallationModel
-from packit_service.service.events import (
-    PullRequestGithubEvent,
-    InstallationEvent,
-    ReleaseEvent,
-    PullRequestCommentGithubEvent,
-    IssueCommentEvent,
-    CoprBuildEvent,
-    PushGitHubEvent,
-    TheJobTriggerType,
-    PullRequestPagureEvent,
-    PushPagureEvent,
-    Event,
-    PushGitlabEvent,
-    MergeRequestGitlabEvent,
-    MergeRequestCommentGitlabEvent,
-)
+from packit_service.service.events import TheJobTriggerType, EventType
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.handlers import (
@@ -78,34 +62,24 @@ from packit_service.worker.whitelist import Whitelist
 logger = logging.getLogger(__name__)
 
 
-class AbstractGitForgeJobHandler(JobHandler):
-    def __init__(
-        self, config: ServiceConfig, job_config: Optional[JobConfig], event: Event
-    ):
-        super().__init__(config, job_config, event)
-        # lazy property
-        self._package_config: Optional[PackageConfig] = None
-
-
-class GithubAppInstallationHandler(AbstractGitForgeJobHandler):
+class GithubAppInstallationHandler(JobHandler):
     type = JobType.add_to_whitelist
     triggers = [TheJobTriggerType.installation]
-    event: InstallationEvent
 
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
 
     def __init__(
         self,
-        config: ServiceConfig,
+        package_config: PackageConfig,
         job_config: Optional[JobConfig],
-        event: Union[InstallationEvent, Any],
+        event: dict,
     ):
-        super().__init__(config=config, job_config=job_config, event=event)
-
-        self.event = event
-        self.project = self.config.get_project(
-            url="https://github.com/packit-service/notifications"
+        super().__init__(
+            package_config=package_config, job_config=job_config, event=event,
         )
+        self.account_type = event.get("account_type")
+        self.account_login = event.get("account_login")
+        self.sender_login = event.get("sender_login")
 
     def run(self) -> HandlerResults:
         """
@@ -119,38 +93,41 @@ class GithubAppInstallationHandler(AbstractGitForgeJobHandler):
         whitelist = Whitelist(
             fas_user=self.config.fas_user, fas_password=self.config.fas_password,
         )
-        account_login = self.event.account_login
-        account_type = self.event.account_type
-        if not whitelist.add_account(self.event):
+        if not whitelist.add_account(self.account_login, self.sender_login):
             # Create an issue in our repository, so we are notified when someone install the app
             self.project.create_issue(
-                title=f"{account_type} {account_login} needs to be approved.",
+                title=f"{self.account_type} {self.account_login} needs to be approved.",
                 body=(
-                    f"Hi @{self.event.sender_login}, we need to approve you in "
+                    f"Hi @{self.sender_login}, we need to approve you in "
                     "order to start using Packit-as-a-Service. Someone from our team will "
                     "get back to you shortly.\n\n"
                     "For more info, please check out the documentation: "
                     "http://packit.dev/packit-as-a-service/"
                 ),
             )
-            msg = f"{account_type} {account_login} needs to be approved manually!"
+            msg = f"{self.account_type} {self.account_login} needs to be approved manually!"
         else:
-            msg = f"{account_type} {account_login} whitelisted!"
+            msg = f"{self.account_type} {self.account_login} whitelisted!"
 
         logger.info(msg)
         return HandlerResults(success=True, details={"msg": msg})
 
 
 @use_for(job_type=JobType.propose_downstream)
-class ProposeDownstreamHandler(AbstractGitForgeJobHandler):
+class ProposeDownstreamHandler(JobHandler):
     type = JobType.propose_downstream
     triggers = [TheJobTriggerType.release]
-    event: ReleaseEvent
 
     def __init__(
-        self, config: ServiceConfig, job_config: JobConfig, event: ReleaseEvent
+        self,
+        package_config: PackageConfig,
+        job_config: Optional[JobConfig],
+        event: dict,
     ):
-        super().__init__(config=config, job_config=job_config, event=event)
+        super().__init__(
+            package_config=package_config, job_config=job_config, event=event,
+        )
+        self.tag_name = event.get("tag_name")
 
     def run(self) -> HandlerResults:
         """
@@ -158,20 +135,17 @@ class ProposeDownstreamHandler(AbstractGitForgeJobHandler):
         """
 
         self.local_project = LocalProject(
-            git_project=self.event.project,
-            working_dir=self.config.command_handler_work_dir,
+            git_project=self.project, working_dir=self.config.command_handler_work_dir,
         )
 
-        self.api = PackitAPI(self.config, self.event.package_config, self.local_project)
+        self.api = PackitAPI(self.config, self.package_config, self.local_project)
 
         errors = {}
         for branch in get_branches(
             *self.job_config.metadata.dist_git_branches, default="master"
         ):
             try:
-                self.api.sync_release(
-                    dist_git_branch=branch, version=self.event.tag_name
-                )
+                self.api.sync_release(dist_git_branch=branch, version=self.tag_name)
             except Exception as ex:
                 sentry_integration.send_to_sentry(ex)
                 errors[branch] = str(ex)
@@ -193,8 +167,8 @@ class ProposeDownstreamHandler(AbstractGitForgeJobHandler):
                 " to the issue comment.\n"
             )
 
-            self.event.project.create_issue(
-                title=f"[packit] Propose update failed for release {self.event.tag_name}",
+            self.project.create_issue(
+                title=f"[packit] Propose update failed for release {self.tag_name}",
                 body=body_msg,
             )
 
@@ -206,45 +180,31 @@ class ProposeDownstreamHandler(AbstractGitForgeJobHandler):
         return HandlerResults(success=True, details={})
 
 
-class AbstractCoprBuildHandler(AbstractGitForgeJobHandler):
+class AbstractCoprBuildHandler(JobHandler):
     type = JobType.copr_build
-    event: Union[
-        PullRequestGithubEvent,
-        ReleaseEvent,
-        PushGitHubEvent,
-        PullRequestPagureEvent,
-        MergeRequestGitlabEvent,
-        PushGitlabEvent,
-    ]
 
     def __init__(
         self,
-        config: ServiceConfig,
-        job_config: JobConfig,
-        event: Union[
-            PullRequestGithubEvent,
-            ReleaseEvent,
-            PushGitHubEvent,
-            PullRequestPagureEvent,
-            PushPagureEvent,
-            MergeRequestGitlabEvent,
-            PushGitlabEvent,
-        ],
+        package_config: PackageConfig,
+        job_config: Optional[JobConfig],
+        event: dict,
     ):
-        super().__init__(config=config, job_config=job_config, event=event)
+        super().__init__(
+            package_config=package_config, job_config=job_config, event=event,
+        )
 
         # lazy property
         self._copr_build_helper: Optional[CoprBuildJobHelper] = None
-        self._project: Optional[GitProject] = None
 
     @property
     def copr_build_helper(self) -> CoprBuildJobHelper:
         if not self._copr_build_helper:
             self._copr_build_helper = CoprBuildJobHelper(
                 config=self.config,
-                package_config=self.event.package_config,
-                project=self.event.project,
+                package_config=self.package_config,
+                project=self.project,
                 event=self.event,
+                db_trigger=self.db_trigger,
                 job=self.job_config,
             )
         return self._copr_build_helper
@@ -258,7 +218,7 @@ class AbstractCoprBuildHandler(AbstractGitForgeJobHandler):
         ] = lambda job: job.type == JobType.copr_build
 
         if self.job_config.type == JobType.tests and any(
-            filter(is_copr_build, self.event.package_config.jobs)
+            filter(is_copr_build, self.package_config.jobs)
         ):
             logger.info(
                 "Skipping build for testing. The COPR build is defined in the config."
@@ -275,12 +235,10 @@ class ReleaseCoprBuildHandler(AbstractCoprBuildHandler):
         TheJobTriggerType.release,
     ]
 
-    event: ReleaseEvent
-
     def pre_check(self) -> bool:
         return (
-            isinstance(self.event, ReleaseEvent)
-            and self.event.trigger == TheJobTriggerType.release
+            self.event_type == EventType.release
+            and self.trigger == TheJobTriggerType.release
             and super().pre_check()
         )
 
@@ -292,12 +250,11 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
     triggers = [
         TheJobTriggerType.pull_request,
     ]
-    event: PullRequestGithubEvent
 
     def run(self) -> HandlerResults:
-        if isinstance(self.event, (PullRequestGithubEvent, MergeRequestGitlabEvent)):
-            user_can_merge_pr = self.event.project.can_merge_pr(self.event.user_login)
-            if not (user_can_merge_pr or self.event.user_login in self.config.admins):
+        if self.event_type in (EventType.pull_request_gh, EventType.merge_request_gl):
+            user_can_merge_pr = self.project.can_merge_pr(self.user_login)
+            if not (user_can_merge_pr or self.user_login in self.config.admins):
                 self.copr_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=CommitStatus.failure,
@@ -309,15 +266,8 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
 
     def pre_check(self) -> bool:
         return (
-            isinstance(
-                self.event,
-                (
-                    PullRequestGithubEvent,
-                    PullRequestPagureEvent,
-                    MergeRequestGitlabEvent,
-                ),
-            )
-            and self.event.trigger == TheJobTriggerType.pull_request
+            self.event_type in (EventType.pull_request_gh, EventType.pull_request_pg, EventType.merge_request_gl)
+            and self.trigger == TheJobTriggerType.pull_request
             and super().pre_check()
         )
 
@@ -330,41 +280,50 @@ class PushCoprBuildHandler(AbstractCoprBuildHandler):
         TheJobTriggerType.push,
         TheJobTriggerType.commit,
     ]
-    event: PushGitHubEvent
+
+    def __init__(
+        self,
+        package_config: PackageConfig,
+        job_config: Optional[JobConfig],
+        event: dict,
+    ):
+        super().__init__(
+            package_config=package_config, job_config=job_config, event=event,
+        )
+        self.git_ref = event.get("git_ref")
 
     def pre_check(self) -> bool:
         valid = (
-            isinstance(self.event, (PushGitHubEvent, PushPagureEvent, PushGitlabEvent))
-            and self.event.trigger == TheJobTriggerType.push
+            self.event_type in (EventType.push_gh, EventType.push_pagure, EventType.push_gl)
+            and self.trigger == TheJobTriggerType.push
             and super().pre_check()
         )
         if not valid:
             return False
 
         configured_branch = self.copr_build_helper.job_build_branch
-        if self.event.git_ref != configured_branch:
+        if self.git_ref != configured_branch:
             logger.info(
-                f"Skipping build on '{self.event.git_ref}'. "
+                f"Skipping build on '{self.git_ref}'. "
                 f"Push configured only for '{configured_branch}'."
             )
             return False
         return True
 
 
-class AbstractGithubKojiBuildHandler(AbstractGitForgeJobHandler):
+class AbstractGithubKojiBuildHandler(JobHandler):
     type = JobType.production_build
-    event: Union[PullRequestGithubEvent, ReleaseEvent, PushGitHubEvent]
 
     def __init__(
-        self,
-        config: ServiceConfig,
-        job_config: JobConfig,
-        event: Union[PullRequestGithubEvent, ReleaseEvent, PushGitHubEvent],
+        self, package_config: PackageConfig, job_config: JobConfig, event: dict
     ):
-        super().__init__(config=config, job_config=job_config, event=event)
+        super().__init__(
+            package_config=package_config, job_config=job_config, event=event,
+        )
 
-        if not isinstance(
-            event, (PullRequestGithubEvent, PushGitHubEvent, ReleaseEvent)
+        if not (
+            self.event_type
+            in (EventType.pull_request_gh, EventType.push_gh, EventType.release)
         ):
             raise PackitException(
                 "Unknown event, only "
@@ -381,9 +340,10 @@ class AbstractGithubKojiBuildHandler(AbstractGitForgeJobHandler):
         if not self._koji_build_helper:
             self._koji_build_helper = KojiBuildJobHelper(
                 config=self.config,
-                package_config=self.event.package_config,
-                project=self.event.project,
+                package_config=self.package_config,
+                project=self.project,
                 event=self.event,
+                db_trigger=self.db_trigger,
                 job=self.job_config,
             )
         return self._koji_build_helper
@@ -397,7 +357,7 @@ class AbstractGithubKojiBuildHandler(AbstractGitForgeJobHandler):
         ] = lambda job: job.type == JobType.copr_build
 
         if self.job_config.type == JobType.tests and any(
-            filter(is_copr_build, self.event.package_config.jobs)
+            filter(is_copr_build, self.package_config.jobs)
         ):
             logger.info(
                 "Skipping build for testing. The COPR build is defined in the config."
@@ -412,13 +372,11 @@ class ReleaseGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
         TheJobTriggerType.release,
     ]
 
-    event: ReleaseEvent
-
     def pre_check(self) -> bool:
         return (
             super().pre_check()
-            and isinstance(self.event, ReleaseEvent)
-            and self.event.trigger == TheJobTriggerType.release
+            and self.event_type == EventType.release
+            and self.trigger == TheJobTriggerType.release
         )
 
 
@@ -427,12 +385,11 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     triggers = [
         TheJobTriggerType.pull_request,
     ]
-    event: PullRequestGithubEvent
 
     def run(self) -> HandlerResults:
-        if isinstance(self.event, PullRequestGithubEvent):
-            user_can_merge_pr = self.event.project.can_merge_pr(self.event.user_login)
-            if not (user_can_merge_pr or self.event.user_login in self.config.admins):
+        if self.event_type == EventType.pull_request_gh:
+            user_can_merge_pr = self.project.can_merge_pr(self.user_login)
+            if not (user_can_merge_pr or self.user_login in self.config.admins):
                 self.koji_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=CommitStatus.failure,
@@ -445,8 +402,8 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     def pre_check(self) -> bool:
         return (
             super().pre_check()
-            and isinstance(self.event, PullRequestGithubEvent)
-            and self.event.trigger == TheJobTriggerType.pull_request
+            and self.event_type == EventType.pull_request_gh
+            and self.trigger == TheJobTriggerType.pull_request
         )
 
 
@@ -456,44 +413,55 @@ class PushGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
         TheJobTriggerType.push,
         TheJobTriggerType.commit,
     ]
-    event: PushGitHubEvent
+
+    def __init__(
+        self,
+        package_config: PackageConfig,
+        job_config: Optional[JobConfig],
+        event: dict,
+    ):
+        super().__init__(
+            package_config=package_config, job_config=job_config, event=event,
+        )
+        self.git_ref = event.get("git_ref")
 
     def pre_check(self) -> bool:
         valid = (
             super().pre_check()
-            and isinstance(self.event, PushGitHubEvent)
-            and self.event.trigger == TheJobTriggerType.push
+            and self.event_type == EventType.push_gh
+            and self.trigger == TheJobTriggerType.push
         )
         if not valid:
             return False
 
         configured_branch = self.koji_build_helper.job_build_branch
-        if self.event.git_ref != configured_branch:
+        if self.git_ref != configured_branch:
             logger.info(
-                f"Skipping build on '{self.event.git_ref}'. "
+                f"Skipping build on '{self.git_ref}'. "
                 f"Push configured only for '{configured_branch}'."
             )
             return False
         return True
 
 
-class GithubTestingFarmHandler(AbstractGitForgeJobHandler):
+class GithubTestingFarmHandler(JobHandler):
     """
     This class intentionally does not have a @add_to_mapping decorator as its
     trigger is finished copr build.
     """
 
     triggers = [TheJobTriggerType.pull_request]
-    event: Union[CoprBuildEvent, PullRequestCommentGithubEvent]
 
     def __init__(
         self,
-        config: ServiceConfig,
+        package_config: PackageConfig,
         job_config: JobConfig,
-        event: Union[CoprBuildEvent, PullRequestCommentGithubEvent],
+        event: dict,
         chroot: str,
     ):
-        super().__init__(config=config, job_config=job_config, event=event)
+        super().__init__(
+            package_config=package_config, job_config=job_config, event=event
+        )
         self.chroot = chroot
 
     def run(self) -> HandlerResults:
@@ -501,9 +469,11 @@ class GithubTestingFarmHandler(AbstractGitForgeJobHandler):
         #       here over *all* matching jobs and do them all, not just the first one
         testing_farm_helper = TestingFarmJobHelper(
             config=self.config,
-            package_config=self.event.package_config,
-            project=self.event.project,
+            package_config=self.package_config,
+            project=self.project,
             event=self.event,
+            db_trigger=self.db_trigger,
+            job=self.job_config,
         )
         logger.info("Running testing farm.")
         return testing_farm_helper.run_testing_farm(chroot=self.chroot)
@@ -519,24 +489,22 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
 
     type = CommentAction.copr_build
     triggers = [TheJobTriggerType.pr_comment]
-    event: PullRequestCommentGithubEvent
 
     def run(self) -> HandlerResults:
-        user_can_merge_pr = self.event.project.can_merge_pr(self.event.user_login)
-        if not (user_can_merge_pr or self.event.user_login in self.config.admins):
-            self.event.project.pr_comment(
-                self.event.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
-            )
+        user_can_merge_pr = self.project.can_merge_pr(self.user_login)
+        if not (user_can_merge_pr or self.user_login in self.config.admins):
+            self.project.pr_comment(self.identifier, PERMISSIONS_ERROR_WRITE_OR_ADMIN)
             return HandlerResults(
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
             )
 
         cbh = CoprBuildJobHelper(
             config=self.config,
-            package_config=self.event.package_config,
-            project=self.event.project,
+            package_config=self.package_config,
+            project=self.project,
             event=self.event,
-            job=self.job,
+            db_trigger=self.db_trigger,
+            job=self.job_config,
         )
         handler_results = cbh.run_copr_build()
 
@@ -560,7 +528,14 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
 
     type = CommentAction.propose_update
     triggers = [TheJobTriggerType.issue_comment]
-    event: IssueCommentEvent
+
+    def __init__(
+        self, package_config: PackageConfig, job_config: JobConfig, event: dict
+    ):
+        super().__init__(
+            package_config=package_config, job_config=job_config, event=event,
+        )
+        self.tag_name = event.get("tag_name")
 
     @property
     def dist_git_branches_to_sync(self) -> Set[str]:
@@ -570,7 +545,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
         :return: list of dist-git branches
         """
         configured_branches = set()
-        configured_branches.update(self.job.metadata.dist_git_branches)
+        configured_branches.update(self.job_config.metadata.dist_git_branches)
 
         if configured_branches:
             return get_branches(*configured_branches)
@@ -578,31 +553,30 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
 
     def run(self) -> HandlerResults:
         local_project = LocalProject(
-            git_project=self.event.project,
-            working_dir=self.config.command_handler_work_dir,
+            git_project=self.project, working_dir=self.config.command_handler_work_dir,
         )
 
         api = PackitAPI(
             config=self.config,
-            package_config=self.event.package_config,
+            package_config=self.package_config,
             upstream_local_project=local_project,
         )
 
-        user_can_merge_pr = self.event.project.can_merge_pr(self.event.user_login)
-        if not (user_can_merge_pr or self.event.user_login in self.config.admins):
-            self.event.project.issue_comment(
-                self.event.issue_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
+        user_can_merge_pr = self.project.can_merge_pr(self.user_login)
+        if not (user_can_merge_pr or self.user_login in self.config.admins):
+            self.project.issue_comment(
+                self.identifier, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )
             return HandlerResults(
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
             )
 
-        if not self.event.tag_name:
+        if not self.tag_name:
             msg = (
                 "There was an error while proposing a new update for the Fedora package: "
                 "no upstream release found."
             )
-            self.event.project.issue_comment(self.event.issue_id, msg)
+            self.project.issue_comment(self.identifier, msg)
             return HandlerResults(
                 success=False, details={"msg": "Propose update failed"}
             )
@@ -610,18 +584,18 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
         sync_failed = False
         for branch in self.dist_git_branches_to_sync:
             msg = (
-                f"for the Fedora package `{self.event.package_config.downstream_package_name}`"
-                f"with the tag `{self.event.tag_name}` in the `{branch}` branch.\n"
+                f"for the Fedora package `{self.package_config.downstream_package_name}`"
+                f"with the tag `{self.tag_name}` in the `{branch}` branch.\n"
             )
             try:
                 new_pr = api.sync_release(
-                    dist_git_branch=branch, version=self.event.tag_name, create_pr=True
+                    dist_git_branch=branch, version=self.tag_name, create_pr=True
                 )
                 msg = f"Packit-as-a-Service proposed [a new update]({new_pr.url}) {msg}"
-                self.event.project.issue_comment(self.event.issue_id, msg)
+                self.project.issue_comment(self.identifier, msg)
             except PackitException as ex:
                 msg = f"There was an error while proposing a new update {msg} Traceback is: `{ex}`"
-                self.event.project.issue_comment(self.event.issue_id, msg)
+                self.project.issue_comment(self.identifier, msg)
                 logger.error(f"Error while running a build: {ex}")
                 sync_failed = True
         if sync_failed:
@@ -630,7 +604,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
             )
 
         # Close issue if propose-update was successful in all branches
-        self.event.project.issue_close(self.event.issue_id)
+        self.project.issue_close(self.identifier)
 
         return HandlerResults(success=True, details={})
 
@@ -641,22 +615,20 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
     """ Issue handler for comment `/packit test` """
 
     type = CommentAction.test
-    event: PullRequestCommentGithubEvent
     triggers = [TheJobTriggerType.pr_comment]
 
     def run(self) -> HandlerResults:
         testing_farm_helper = TestingFarmJobHelper(
             config=self.config,
-            package_config=self.event.package_config,
-            project=self.event.project,
+            package_config=self.package_config,
+            project=self.project,
             event=self.event,
-            job=self.job,
+            db_trigger=self.db_trigger,
+            job=self.job_config,
         )
-        user_can_merge_pr = self.event.project.can_merge_pr(self.event.user_login)
-        if not (user_can_merge_pr or self.event.user_login in self.config.admins):
-            self.event.project.pr_comment(
-                self.event.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
-            )
+        user_can_merge_pr = self.project.can_merge_pr(self.user_login)
+        if not (user_can_merge_pr or self.user_login in self.config.admins):
+            self.project.pr_comment(self.identifier, PERMISSIONS_ERROR_WRITE_OR_ADMIN)
             return HandlerResults(
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
             )

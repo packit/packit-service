@@ -240,7 +240,9 @@ class SteveJobs:
             for job_config in job_configs:
                 logger.debug(f"Running handler: {str(handler_kls)} for {job_config}")
                 handler = handler_kls(
-                    config=self.config, job_config=job_config, event=event
+                    package_config=event.package_config,
+                    job_config=job_config,
+                    event=event.get_dict(),
                 )
                 if handler.pre_check():
                     current_time = datetime.datetime.now().strftime(DATETIME_FORMAT)
@@ -357,7 +359,9 @@ class SteveJobs:
         )
         for job in jobs:
             handler_instance: Handler = handler_kls(
-                config=self.config, event=event, job=job
+                package_config=event.package_config,
+                job_config=jobs,
+                event=event.get_dict(),
             )
             result_key = (
                 f"{job.type.value}-{datetime.datetime.now().strftime(DATETIME_FORMAT)}"
@@ -418,14 +422,18 @@ class SteveJobs:
         # not repository, so package config with jobs is missing
         if event_object.trigger == TheJobTriggerType.installation:
             handler = GithubAppInstallationHandler(
-                self.config, job_config=None, event=event_object
+                package_config=event_object.package_config,
+                job_config=None,
+                event=event_object.get_dict(),
             )
             job_type = JobType.add_to_whitelist.value
             jobs_results[job_type] = handler.run_n_clean()
         # Label/Tag added event handler is run even when the job is not configured in package
         elif event_object.trigger == TheJobTriggerType.pr_label:
             handler = PagurePullRequestLabelHandler(
-                self.config, job_config=None, event=event_object
+                package_config=event_object.package_config,
+                job_config=None,
+                event=event_object.get_dict(),
             )
             job_type = JobType.create_bugzilla.value
             jobs_results[job_type] = handler.run_n_clean()

@@ -30,12 +30,21 @@ from os import getenv
 from pathlib import Path
 from typing import Dict, Optional, Type, List, Set
 
+from ogr.abstract import GitProject
+
 from packit.api import PackitAPI
-from packit.config import JobConfig, JobType
+from packit.config import JobConfig, JobType, PackageConfig
 from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.sentry_integration import push_scope_to_sentry
-from packit_service.service.events import Event, TheJobTriggerType
+from packit_service.models import (
+    AbstractTriggerDbType,
+    PullRequestModel,
+    IssueModel,
+    ProjectReleaseModel,
+    GitBranchModel,
+)
+from packit_service.service.events import TheJobTriggerType, EventType
 from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
@@ -81,11 +90,15 @@ def use_for(job_type: JobType):
 
 class Handler:
     triggers: List[TheJobTriggerType]
+    api: Optional[PackitAPI] = None
+    local_project: Optional[LocalProject] = None
+    _config: Optional[ServiceConfig] = None
 
-    def __init__(self, config: ServiceConfig):
-        self.config: ServiceConfig = config
-        self.api: Optional[PackitAPI] = None
-        self.local_project: Optional[LocalProject] = None
+    @property
+    def config(self) -> ServiceConfig:
+        if not self._config:
+            self._config = ServiceConfig.get_service_config()
+        return self._config
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")
@@ -161,12 +174,50 @@ class JobHandler(Handler):
     triggers: List[TheJobTriggerType]
 
     def __init__(
-        self, config: ServiceConfig, job_config: Optional[JobConfig], event: Event
+        self,
+        package_config: PackageConfig,
+        job_config: Optional[JobConfig],
+        event: dict,
     ):
-        super().__init__(config)
+        self.package_config: PackageConfig = package_config
         self.job_config: Optional[JobConfig] = job_config
+        self.event_type = EventType(event.get("event_type"))
+        self.trigger = TheJobTriggerType(event.get("trigger"))
+        self.user_login = event.get("user_login")
+        self.trigger_id = event.get("trigger_id")
+        self.project_url = event.get("project_url")
+
         self.event = event
+        self._db_trigger: Optional[AbstractTriggerDbType] = None
+        self._project: Optional[GitProject] = None
+        self._config: Optional[ServiceConfig] = None
         self._clean_workplace()
+
+    @property
+    def db_trigger(self):
+        if not self._db_trigger and self.trigger_id is not None:
+            if self.trigger in (
+                TheJobTriggerType.pull_request,
+                TheJobTriggerType.pr_comment,
+                TheJobTriggerType.pr_label,
+            ):
+                self._db_trigger = PullRequestModel.get_by_id(self.trigger_id)
+            elif self.trigger == TheJobTriggerType.issue_comment:
+                self._db_trigger = IssueModel.get_by_id(self.trigger_id)
+            elif self.trigger == TheJobTriggerType.release:
+                self._db_trigger = ProjectReleaseModel.get_by_id(self.trigger_id)
+            elif self.trigger in (TheJobTriggerType.push, TheJobTriggerType.commit):
+                self._db_trigger = GitBranchModel.get_by_id(self.trigger_id)
+        return self._db_trigger
+
+    @property
+    def project(self) -> GitProject:
+        if not self._project:
+            self._project = self.get_project()
+        return self._project
+
+    def get_project(self) -> GitProject:
+        return self.config.get_project(url=self.project_url)
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")

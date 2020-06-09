@@ -26,19 +26,11 @@ This file defines classes for issue/pr comments which are sent by a git forge.
 
 import enum
 import logging
-from typing import Dict, Type, Union
 
-from packit.config.job_config import JobConfig
+from typing import Dict, Type, Optional
 
-from packit_service.config import ServiceConfig
-from packit_service.service.events import (
-    PullRequestCommentGithubEvent,
-    IssueCommentEvent,
-    PullRequestCommentPagureEvent,
-    MergeRequestCommentGitlabEvent,
-    IssueCommentGitlabEvent,
-)
-from packit_service.worker.handlers import Handler
+from packit.config import PackageConfig, JobConfig
+from packit_service.worker.handlers import JobHandler
 from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
@@ -78,30 +70,17 @@ def add_to_comment_action_mapping_with_name(name: CommentAction):
     return add_to_comment_action_mapping_with_name_inner
 
 
-class CommentActionHandler(Handler):
+class CommentActionHandler(JobHandler):
     type: CommentAction
 
     def __init__(
         self,
-        config: ServiceConfig,
-        event: Union[
-            PullRequestCommentGithubEvent,
-            IssueCommentEvent,
-            PullRequestCommentPagureEvent,
-            MergeRequestCommentGitlabEvent,
-            IssueCommentGitlabEvent,
-        ],
-        job: JobConfig,
+        package_config: PackageConfig,
+        job_config: Optional[JobConfig],
+        event: dict,
     ):
-        super().__init__(config)
-        self.event: Union[
-            PullRequestCommentGithubEvent,
-            IssueCommentEvent,
-            PullRequestCommentPagureEvent,
-            MergeRequestCommentGitlabEvent,
-            IssueCommentGitlabEvent,
-        ] = event
-        self.job = job
+        super().__init__(package_config, job_config, event)
+        self.identifier = event.get("pr_id") or event.get("issue_id")
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")

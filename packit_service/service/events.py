@@ -114,6 +114,24 @@ class TheJobTriggerType(str, enum.Enum):
     copr_end = "copr_end"
 
 
+class EventType(str, enum.Enum):
+    installation = "InstallationEvent"
+    copr_build = "CoprBuildEvent"
+    koji_build = "KojiBuildEvent"
+    tft_result = "TestingFarmResultEvent"
+    release = "ReleaseEvent"
+    push_gh = "PushGithubGHEvent"
+    pull_request_gh = "PullRequestGHEvent"
+    pull_request_comment_gh = "PullRequestCommentGHEvent"
+    issue_comment = "IssueCommentEvent"
+    push_pagure = "PushPagureEvent"
+    pull_request_comment_pg = "PullRequestCommentPagureEvent"
+    pull_request_pg = "PullRequestPagureEvent"
+    push_gl = "PushGitlabEvent"
+    merge_request_gl = "MergeRequestGitlabEvent"
+    merge_request_comment_gl = "MergeRequestCommentGitlabEvent"
+
+
 class TestResult(dict):
     def __init__(self, name: str, result: TestingFarmResult, log_url: str):
         dict.__init__(self, name=name, result=result, log_url=log_url)
@@ -175,7 +193,9 @@ class Event:
         d = default_dict or self.__dict__
         d = copy.deepcopy(d)
         # whole dict have to be JSON serializable because of redis
+        d["event_type"] = self.__class__.__name__
         d["trigger"] = d["trigger"].value
+        d["trigger_id"] = self.db_trigger.id if self.db_trigger else None
         d["created_at"] = int(d["created_at"].timestamp())
         return d
 
@@ -955,14 +975,6 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
         result["topic"] = result["topic"].value
         self.build = build
         return result
-
-
-def get_copr_build_logs_url(event: CoprBuildEvent) -> str:
-    return (
-        f"https://copr-be.cloud.fedoraproject.org/results/{event.owner}/"
-        f"{event.project_name}/{event.chroot}/"
-        f"{event.build_id:08d}-{event.pkg}/builder-live.log.gz"
-    )
 
 
 def get_koji_build_logs_url(event: KojiBuildEvent) -> Optional[str]:
