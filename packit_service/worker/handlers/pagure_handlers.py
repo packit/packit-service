@@ -40,6 +40,7 @@ from packit_service.worker.handlers import (
 from packit_service.worker.handlers.abstract import use_for
 from packit_service.worker.handlers.comment_action_handler import CommentAction
 from packit_service.worker.psbugzilla import Bugzilla
+from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
@@ -109,38 +110,13 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
             )
         return self._bugzilla
 
-    def _bug_exists(self) -> bool:
-        """ Check existing PR flags for a RHBZ one (created by us). """
-        if not hasattr(self.pr, "get_flags"):
-            logger.error(f"{self.pr} has no get_flags()")
-            return False
-
-        for flag in self.pr.get_flags():
-            if flag["username"].startswith("RHBZ#"):
-                self.bz_url = flag["url"]
-                self.bz_id = int(flag["url"].split("=")[1])
-                logger.debug(
-                    f"Bug #{self.bz_id} has already been created: {self.bz_url}"
-                )
-                return True
-        return False
-
-    def _set_flag(self):
-        """ Set a pull request flag with bug id as a name and a link to the created bug. """
-        if not (self.bz_id and self.bz_url):
-            logger.error(f"bz_id & bz_url not set")
-            return
-        if not hasattr(self.pr, "set_flag"):
-            logger.error(f"{self.pr} has no set_flag()")
-            return
-
-        logger.debug(f"Setting a PR flag with link to {self.bz_url}")
-        self.pr.set_flag(
-            username=f"RHBZ#{self.bz_id}",
-            comment="Bugzilla bug created.",
-            url=self.bz_url,
-            status=CommitStatus.success,
-        )
+    @property
+    def status_reporter(self) -> StatusReporter:
+        if not self._status_reporter:
+            self._status_reporter = StatusReporter(
+                self.project, self.event.commit_sha, self.event.pr_id
+            )
+        return self._status_reporter
 
     def _create_bug(self):
         """ Fill a Bugzilla bug. """
@@ -164,6 +140,22 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
             file_name=f"pr-{self.event.pr_id}.patch",
         )
 
+    def _set_status(self):
+        """
+        Set commit status & pull-request flag with bug id as a name and a link to the created bug.
+        """
+        if not (self.bz_model and self.bz_model.bug_id and self.bz_model.bug_url):
+            raise RuntimeError(
+                f"PagurePullRequestLabelHandler._set_status(): bug_id or bug_url not set"
+            )
+
+        self.status_reporter.set_status(
+            state=CommitStatus.success,
+            description="Bugzilla bug created.",
+            check_name=f"RHBZ#{self.bz_model.bug_id}",
+            url=self.bz_model.bug_url,
+        )
+
     def run(self) -> HandlerResults:
         e = self.event
         logger.debug(
@@ -173,9 +165,8 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
         if e.labels.intersection(self.config.pr_accepted_labels):
             if not self._bug_exists():
                 self._create_bug()
-                self._set_flag()
-            # Attach patch anyway, even if the bug (with patch) already existed.
             self._attach_patch()
+            self._set_status()
         else:
             logger.debug(f"We accept only {self.config.pr_accepted_labels} labels/tags")
         return HandlerResults(success=True)
