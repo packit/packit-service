@@ -171,6 +171,8 @@ class PullRequestModel(Base):
     pr_id = Column(Integer, index=True)
     project_id = Column(Integer, ForeignKey("git_projects.id"))
     project = relationship("GitProjectModel", back_populates="pull_requests")
+    # CentOS Pagure only
+    bugzilla = relationship("BugzillaModel", back_populates="pull_request")
 
     job_config_trigger_type = JobConfigTriggerType.pull_request
     job_trigger_model_type = JobTriggerModelType.pull_request
@@ -269,6 +271,59 @@ class GitBranchModel(Base):
 
     def __repr__(self):
         return f"GitBranchModel(name={self.name},  project={self.project})"
+
+
+class BugzillaModel(Base):
+    __tablename__ = "bugzillas"
+    id = Column(Integer, primary_key=True)
+    bug_id = Column(Integer, index=True)
+    bug_url = Column(String)
+    pull_request_id = Column(Integer, ForeignKey("pull_requests.id"))
+    pull_request = relationship("PullRequestModel", back_populates="bugzilla")
+
+    @classmethod
+    def get_or_create(
+        cls,
+        pr_id: int,
+        namespace: str,
+        repo_name: str,
+        project_url: str,
+        bug_id: int = None,
+        bug_url: str = None,
+    ) -> "BugzillaModel":
+        with get_sa_session() as session:
+            pull_request = PullRequestModel.get_or_create(
+                pr_id=pr_id,
+                namespace=namespace,
+                repo_name=repo_name,
+                project_url=project_url,
+            )
+            bugzilla = (
+                session.query(BugzillaModel)
+                .filter_by(pull_request_id=pull_request.id)
+                .first()
+            )
+            if not bugzilla and bug_id and bug_url:
+                bugzilla = BugzillaModel()
+                bugzilla.bug_id = bug_id
+                bugzilla.bug_url = bug_url
+                bugzilla.pull_request_id = pull_request.id
+                session.add(bugzilla)
+            return bugzilla
+
+    @classmethod
+    def get_by_pr(
+        cls, pr_id: int, namespace: str, repo_name: str, project_url: str,
+    ) -> Optional["BugzillaModel"]:
+        return cls.get_or_create(
+            pr_id=pr_id,
+            namespace=namespace,
+            repo_name=repo_name,
+            project_url=project_url,
+        )
+
+    def __repr__(self):
+        return f"BugzillaModel(bug_id={self.bug_id}, bug_url={self.bug_url})"
 
 
 class ProjectReleaseModel(Base):

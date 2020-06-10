@@ -25,8 +25,8 @@ from typing import Optional, Union, Any
 
 from ogr.abstract import CommitStatus, GitProject, PullRequest
 from packit.config import JobType, JobConfig
-
 from packit_service.config import ServiceConfig
+from packit_service.models import BugzillaModel
 from packit_service.service.events import (
     TheJobTriggerType,
     PullRequestCommentPagureEvent,
@@ -98,9 +98,21 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
         self.event = event
         self.project: GitProject = self.config.get_project(event.project_url)
         self.pr: PullRequest = self.project.get_pr(event.pr_id)
-        self.bz_id: Optional[int] = None
-        self.bz_url: Optional[str] = None
+        # lazy properties
+        self._bz_model: Optional[BugzillaModel] = None
         self._bugzilla: Optional[Bugzilla] = None
+        self._status_reporter: Optional[StatusReporter] = None
+
+    @property
+    def bz_model(self) -> Optional[BugzillaModel]:
+        if self._bz_model is None:
+            self._bz_model = BugzillaModel.get_by_pr(
+                pr_id=self.event.pr_id,
+                namespace=self.event.base_repo_namespace,
+                repo_name=self.event.base_repo_name,
+                project_url=self.event.project_url,
+            )
+        return self._bz_model
 
     @property
     def bugzilla(self) -> Bugzilla:
@@ -119,23 +131,32 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
         return self._status_reporter
 
     def _create_bug(self):
-        """ Fill a Bugzilla bug. """
-        self.bz_id, self.bz_url = self.bugzilla.create_bug(
+        """ Fill a Bugzilla bug and store in db. """
+        bug_id, bug_url = self.bugzilla.create_bug(
             product="Red Hat Enterprise Linux 8",
             version="CentOS-Stream",
             component=self.event.base_repo_name,
             summary=self.pr.title,
-            description=f"Based on approved CentOS Stream Pull Request: {self.pr.url}",
+            description=f"Based on approved CentOS Stream pull-request: {self.pr.url}",
+        )
+        self._bz_model = BugzillaModel.get_or_create(
+            pr_id=self.event.pr_id,
+            namespace=self.event.base_repo_namespace,
+            repo_name=self.event.base_repo_name,
+            project_url=self.event.project_url,
+            bug_id=bug_id,
+            bug_url=bug_url,
         )
 
     def _attach_patch(self):
         """ Attach a patch from the pull request to the bug. """
-        if not self.bz_id:
-            logger.error(f"bz_id not set")
-            return
+        if not (self.bz_model and self.bz_model.bug_id):
+            raise RuntimeError(
+                f"PagurePullRequestLabelHandler._attach_patch(): bug_id not set"
+            )
 
         self.bugzilla.add_patch(
-            bzid=self.bz_id,
+            bzid=self.bz_model.bug_id,
             content=self.pr.patch,
             file_name=f"pr-{self.event.pr_id}.patch",
         )
@@ -163,7 +184,7 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
             f"{e.base_repo_owner}/{e.base_repo_namespace}/{e.base_repo_name}/{e.identifier}"
         )
         if e.labels.intersection(self.config.pr_accepted_labels):
-            if not self._bug_exists():
+            if not self.bz_model:
                 self._create_bug()
             self._attach_patch()
             self._set_status()
