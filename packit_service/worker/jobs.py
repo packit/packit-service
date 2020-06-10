@@ -360,7 +360,7 @@ class SteveJobs:
         for job in jobs:
             handler_instance: Handler = handler_kls(
                 package_config=event.package_config,
-                job_config=jobs,
+                job_config=job,
                 event=event.get_dict(),
             )
             result_key = (

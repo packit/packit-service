@@ -53,7 +53,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         job: JobConfig = None,
     ):
         super().__init__(
-            config, package_config, project, event, db_trigger, job,
+            config=config,
+            package_config=package_config,
+            project=project,
+            event=event,
+            db_trigger=db_trigger,
+            job=job,
         )
         self.project_url = event.get("project_url")
 

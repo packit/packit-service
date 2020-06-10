@@ -158,6 +158,7 @@ class CoprBuildHandler(FedmsgHandler):
         self.pr_id = event.get("pr_id")
         self.timestamp = event.get("timestamp")
         self.pkg = event.get("pkg")
+        self.status = event.get("status")
         self._build = None
 
     def get_copr_build_url(self) -> str:
@@ -261,10 +262,10 @@ class CoprBuildEndHandler(CoprBuildHandler):
         if (
             build_job_helper.job_build
             and build_job_helper.job_build.trigger == JobConfigTriggerType.pull_request
-            and self.event.pr_id
+            and self.pr_id
             and isinstance(self.project, GithubProject)
             and not self.was_last_packit_comment_with_congratulation()
-            and self.event.package_config.notifications.pull_request.successful_build
+            and self.package_config.notifications.pull_request.successful_build
         ):
             msg = (
                 f"Congratulations! One of the builds has completed. :champagne:\n\n"
@@ -293,10 +294,11 @@ class CoprBuildEndHandler(CoprBuildHandler):
 
         if build_job_helper.job_tests and self.chroot in build_job_helper.tests_targets:
             testing_farm_handler = GithubTestingFarmHandler(
-                config=self.config,
+                package_config=self.package_config,
                 job_config=build_job_helper.job_tests,
                 event=self.event,
                 chroot=self.chroot,
+                db_trigger=self.db_trigger,
             )
             testing_farm_handler.run()
         else:

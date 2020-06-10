@@ -57,7 +57,12 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         job: Optional[JobConfig] = None,
     ):
         super().__init__(
-            config, package_config, project, event, db_trigger, job,
+            config=config,
+            package_config=package_config,
+            project=project,
+            event=event,
+            db_trigger=db_trigger,
+            job=job,
         )
 
         self.msg_retrigger: str = MSG_RETRIGGER.format(

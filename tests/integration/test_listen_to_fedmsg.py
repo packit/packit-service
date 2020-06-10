@@ -351,6 +351,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
         job_trigger_model_type=JobTriggerModelType.pull_request,
+        id=1,
     )
     flexmock(CoprBuildEvent).should_receive("db_trigger").and_return(trigger)
 

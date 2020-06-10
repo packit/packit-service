@@ -52,12 +52,15 @@ def test_handler_cleanup(tmpdir, trick_p_s_with_k8s):
     t.joinpath(".h").symlink_to(".g", target_is_directory=False)
 
     c = ServiceConfig()
+    pc = flexmock(PackageConfig)
     c.command_handler_work_dir = t
     jc = JobConfig(
         type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request, metadata={}
     )
     j = JobHandler(
-        config=c, job_config=jc, event=Event(trigger=TheJobTriggerType.pull_request)
+        package_config=pc,
+        job_config=jc,
+        event=Event(trigger=TheJobTriggerType.pull_request).get_dict(),
     )
 
     j._clean_workplace()
@@ -81,11 +84,11 @@ def test_precheck(github_pr_event):
         )
     )
     copr_build_handler = AbstractCoprBuildHandler(
-        config=flexmock(),
+        package_config=flexmock(),
         job_config=JobConfig(
             type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
         ),
-        event=github_pr_event,
+        event=github_pr_event.get_dict(),
     )
     assert copr_build_handler.pre_check()
 
@@ -109,10 +112,10 @@ def test_precheck_skip_tests_when_build_defined(github_pr_event):
         "https://github.com/the-namespace/the-repo"
     )
     copr_build_handler = AbstractCoprBuildHandler(
-        config=flexmock(),
+        package_config=flexmock(),
         job_config=JobConfig(
             type=JobType.tests, trigger=JobConfigTriggerType.pull_request,
         ),
-        event=github_pr_event,
+        event=github_pr_event.get_dict(),
     )
     assert not copr_build_handler.pre_check()

@@ -120,9 +120,9 @@ class EventType(str, enum.Enum):
     koji_build = "KojiBuildEvent"
     tft_result = "TestingFarmResultsEvent"
     release = "ReleaseEvent"
-    push_gh = "PushGithubGHEvent"
-    pull_request_gh = "PullRequestGHEvent"
-    pull_request_comment_gh = "PullRequestCommentGHEvent"
+    push_gh = "PushGitHubEvent"
+    pull_request_gh = "PullRequestGithubEvent"
+    pull_request_comment_gh = "PullRequestCommentGithubEvent"
     issue_comment = "IssueCommentEvent"
     push_pagure = "PushPagureEvent"
     pull_request_comment_pg = "PullRequestCommentPagureEvent"
@@ -984,11 +984,9 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
         return True
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
-        d = self.__dict__
-        build = d.pop("build")
-        result = super().get_dict(d)
+        result = super().get_dict()
         result["topic"] = result["topic"].value
-        self.build = build
+        # self.build = build
         return result
 
 

@@ -38,7 +38,7 @@ from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 from packit_service import sentry_integration
 from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
-from packit_service.models import InstallationModel
+from packit_service.models import InstallationModel, AbstractTriggerDbType
 from packit_service.service.events import TheJobTriggerType, EventType
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
@@ -458,11 +458,17 @@ class GithubTestingFarmHandler(JobHandler):
         job_config: JobConfig,
         event: dict,
         chroot: str,
+        db_trigger: AbstractTriggerDbType,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, event=event
         )
         self.chroot = chroot
+        self._db_trigger = db_trigger
+
+    @property
+    def db_trigger(self):
+        return self._db_trigger
 
     def run(self) -> HandlerResults:
         # TODO: once we turn hanadlers into respective celery tasks, we should iterate
