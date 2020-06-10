@@ -38,6 +38,8 @@ from packit_service.service.events import (
     TestingFarmResultsEvent,
     MergeRequestGitlabEvent,
     KojiBuildEvent,
+    MergeRequestCommentGitlabEvent,
+    PushGitlabEvent,
 )
 from packit_service.worker.parser import Parser
 from tests_requre.conftest import SampleValues
@@ -156,6 +158,43 @@ def test_mr_event_existing_mr(clean_before_and_after, mr_model, mr_event_dict):
     assert isinstance(event_object.db_trigger, PullRequestModel)
     assert event_object.db_trigger == mr_model
     assert event_object.db_trigger.pr_id == 2
+
+    assert isinstance(event_object.db_trigger.project, GitProjectModel)
+    assert event_object.db_trigger.project.namespace == "the-namespace"
+    assert event_object.db_trigger.project.repo_name == "repo-name"
+
+
+def test_merge_request_comment_event(clean_before_and_after, mr_comment_event_dict):
+    event_object = Parser.parse_event(mr_comment_event_dict)
+    assert isinstance(event_object, MergeRequestCommentGitlabEvent)
+
+    assert event_object.pr_id == 2
+    assert event_object.identifier == "2"
+    assert event_object.git_ref is None
+
+    assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
+
+    assert isinstance(event_object.db_trigger, PullRequestModel)
+    assert event_object.db_trigger.pr_id == 2
+
+    assert isinstance(event_object.db_trigger.project, GitProjectModel)
+    assert event_object.db_trigger.project.namespace == "testing-packit"
+    assert event_object.db_trigger.project.repo_name == "hello-there"
+
+
+def test_push_gitlab_event(
+    clean_before_and_after, branch_model_gitlab, push_gitlab_event_dict
+):
+    event_object = Parser.parse_event(push_gitlab_event_dict)
+    assert isinstance(event_object, PushGitlabEvent)
+
+    assert event_object.identifier == "build-branch"
+    assert event_object.git_ref == "build-branch"
+    assert event_object.commit_sha == "cb2859505e101785097e082529dced35bbee0c8f"
+
+    assert isinstance(event_object.db_trigger, GitBranchModel)
+    assert event_object.db_trigger == branch_model_gitlab
+    assert event_object.db_trigger.name == "build-branch"
 
     assert isinstance(event_object.db_trigger.project, GitProjectModel)
     assert event_object.db_trigger.project.namespace == "the-namespace"

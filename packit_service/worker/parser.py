@@ -54,6 +54,9 @@ from packit_service.service.events import (
     PullRequestLabelPagureEvent,
     PullRequestLabelAction,
     KojiBuildEvent,
+    MergeRequestCommentGitlabEvent,
+    IssueCommentGitlabEvent,
+    PushGitlabEvent,
 )
 from packit_service.worker.handlers import NewDistGitCommitHandler
 
@@ -82,6 +85,9 @@ class Parser:
             PushGitHubEvent,
             MergeRequestGitlabEvent,
             KojiBuildEvent,
+            MergeRequestCommentGitlabEvent,
+            IssueCommentGitlabEvent,
+            PushGitlabEvent,
         ]
     ]:
         """
@@ -103,10 +109,13 @@ class Parser:
                 TestingFarmResultsEvent,
                 PullRequestCommentGithubEvent,
                 IssueCommentEvent,
+                KojiBuildEvent,
                 CoprBuildEvent,
                 PushGitHubEvent,
                 MergeRequestGitlabEvent,
-                KojiBuildEvent,
+                MergeRequestCommentGitlabEvent,
+                IssueCommentGitlabEvent,
+                PushGitlabEvent,
             ]
         ] = Parser.parse_pr_event(event)
         if response:
@@ -149,6 +158,18 @@ class Parser:
             return response
 
         response = Parser.parse_koji_event(event)
+        if response:
+            return response
+
+        response = Parser.parse_merge_request_comment_event(event)
+        if response:
+            return response
+
+        response = Parser.parse_gitlab_issue_comment_event(event)
+        if response:
+            return response
+
+        response = Parser.parse_gitlab_push_event(event)
         if response:
             return response
 
@@ -281,6 +302,67 @@ class Parser:
         )
 
     @staticmethod
+    def parse_gitlab_push_event(event) -> Optional[PushGitlabEvent]:
+        """
+        Look into the provided event and see if it's one for a new push to the gitlab branch.
+        https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#push-events
+        """
+
+        if event.get("object_kind") != "push":
+            return None
+
+        raw_ref = event.get("ref")
+        before = event.get("before")
+        pusher = event.get("user_username")
+
+        commits = event.get("commits")
+
+        if not (raw_ref and commits and before and pusher):
+            return None
+
+        number_of_commits = event.get("total_commits_count")
+
+        if not number_of_commits:
+            logger.warning("No number of commits info from event.")
+
+        raw_ref = raw_ref.split("/", maxsplit=2)
+
+        if not raw_ref:
+            logger.warning("No ref info from event.")
+
+        ref = raw_ref[-1]
+
+        head_commit = commits[-1]["id"]
+
+        if not raw_ref:
+            logger.warning("No commit_id info from event.")
+
+        logger.info(
+            f"Gitlab push event on '{raw_ref}': {before[:8]} -> {head_commit[:8]} "
+            f"by {pusher} "
+            f"({number_of_commits} {'commit' if number_of_commits == 1 else 'commits'})"
+        )
+
+        repo_path_with_namespace = nested_get(event, "project", "path_with_namespace")
+
+        if not repo_path_with_namespace:
+            logger.warning("No full name of the repository.")
+            return None
+        repo_namespace, repo_name = repo_path_with_namespace.split("/")
+
+        repo_url = nested_get(event, "project", "web_url")
+        if not repo_url:
+            logger.warning("No repo url info from event.")
+
+        return PushGitlabEvent(
+            repo_namespace=repo_namespace,
+            repo_name=repo_name,
+            git_ref=ref,
+            project_url=repo_url,
+            commit_sha=head_commit,
+        )
+
+    @staticmethod
     def parse_push_event(event) -> Optional[PushGitHubEvent]:
         """
         Look into the provided event and see if it's one for a new push to the github branch.
@@ -364,6 +446,149 @@ class Parser:
             https_url,
             user_login,
             comment,
+        )
+
+    @staticmethod
+    def parse_gitlab_issue_comment_event(event) -> Optional[IssueCommentGitlabEvent]:
+        """ Look into the provided event and see if it is Gitlab Issue comment event. """
+        if event.get("object_kind") != "note":
+            return None
+
+        issue = event.get("issue")
+        if not issue:
+            return None
+
+        issue_id = nested_get(event, "issue", "id")
+        if not issue_id:
+            logger.warning("No issue id from the event.")
+            return None
+        issue_iid = nested_get(event, "issue", "iid")
+        if not issue_iid:
+            logger.warning("No issue iid from the event.")
+            return None
+        comment = nested_get(event, "object_attributes", "note")
+        if not comment:
+            logger.warning("No note from the event.")
+            return None
+
+        state = nested_get(event, "issue", "state")
+        if not state:
+            logger.warning("No state from the event.")
+            return None
+        if state != "opened":
+            return None
+        action = nested_get(event, "object_attributes", "action")
+        if action not in {"reopen", "update"}:
+            action = state
+
+        logger.info(
+            f"Gitlab issue ID: {issue_id} IID: {issue_iid} comment: {comment!r} {action!r} event."
+        )
+
+        repo_path_with_namespace = nested_get(event, "project", "path_with_namespace")
+        if not repo_path_with_namespace:
+            logger.warning("No path from the event.")
+            return None
+        repo_namespace, repo_name = repo_path_with_namespace.split("/")
+
+        logger.info(f"Repo: {repo_path_with_namespace}.")
+
+        username = nested_get(event, "user", "username")
+        if not username:
+            logger.warning("No Gitlab username from event.")
+            return None
+
+        https_url = event["project"]["web_url"]
+
+        return IssueCommentGitlabEvent(
+            action=GitlabEventAction[action],
+            issue_id=issue_id,
+            issue_iid=issue_iid,
+            repo_namespace=repo_namespace,
+            repo_name=repo_name,
+            https_url=https_url,
+            username=username,
+            comment=comment,
+        )
+
+    @staticmethod
+    def parse_merge_request_comment_event(
+        event,
+    ) -> Optional[MergeRequestCommentGitlabEvent]:
+        """ Look into the provided event and see if it is Gitlab MR comment event. """
+        if event.get("object_kind") != "note":
+            return None
+
+        merge_request = event.get("merge_request")
+        if not merge_request:
+            return None
+
+        state = nested_get(event, "merge_request", "state")
+        if state != "opened":
+            return None
+
+        action = nested_get(event, "merge_request", "action")
+        if action not in {"reopen", "update"}:
+            action = state
+
+        object_iid = nested_get(event, "merge_request", "iid")
+        if not object_iid:
+            logger.warning("No object iid from the event.")
+
+        object_id = nested_get(event, "merge_request", "id")
+        if not object_id:
+            logger.warning("No object id from the event.")
+
+        comment = nested_get(event, "object_attributes", "note")
+        logger.info(
+            f"Gitlab MR id#{object_id} iid#{object_iid} comment: {comment!r} {action!r} event."
+        )
+
+        source_repo_path_with_namespace = nested_get(
+            event, "merge_request", "source", "path_with_namespace"
+        )
+        if not source_repo_path_with_namespace:
+            logger.warning("No source path from the event.")
+            return None
+        source_repo_namespace, source_repo_name = source_repo_path_with_namespace.split(
+            "/"
+        )
+
+        target_repo_path_with_namespace = nested_get(
+            event, "merge_request", "target", "path_with_namespace"
+        )
+        if not target_repo_path_with_namespace:
+            logger.warning("No target path from the event.")
+            return None
+        target_repo_namespace, target_repo_name = target_repo_path_with_namespace.split(
+            "/"
+        )
+
+        logger.info(f"Target repo: {target_repo_path_with_namespace}.")
+
+        username = nested_get(event, "user", "username")
+        if not username:
+            logger.warning("No Gitlab username from event.")
+            return None
+
+        commit_sha = nested_get(event, "merge_request", "last_commit", "id")
+        if not commit_sha:
+            logger.warning("No commit_sha from the event.")
+            return None
+
+        https_url = event["project"]["web_url"]
+        return MergeRequestCommentGitlabEvent(
+            action=GitlabEventAction[action],
+            object_id=object_id,
+            object_iid=object_iid,
+            source_repo_namespace=source_repo_namespace,
+            source_repo_name=source_repo_name,
+            target_repo_namespace=target_repo_namespace,
+            target_repo_name=target_repo_name,
+            https_url=https_url,
+            username=username,
+            comment=comment,
+            commit_sha=commit_sha,
         )
 
     @staticmethod

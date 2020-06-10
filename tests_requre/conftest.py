@@ -206,6 +206,16 @@ def branch_model():
 
 
 @pytest.fixture()
+def branch_model_gitlab():
+    yield GitBranchModel.get_or_create(
+        branch_name=SampleValues.branch,
+        namespace=SampleValues.gitlab_repo_namespace,
+        repo_name=SampleValues.gitlab_repo_name,
+        project_url=SampleValues.gitlab_project_url,
+    )
+
+
+@pytest.fixture()
 def pr_trigger_model(pr_model):
     yield JobTriggerModel.get_or_create(
         type=JobTriggerModelType.pull_request, trigger_id=pr_model.id
@@ -780,6 +790,182 @@ def push_branch_event_dict():
             "added": [],
             "removed": [],
             "modified": [".packit.yaml"],
+        },
+    }
+
+
+@pytest.fixture()
+def mr_comment_event_dict():
+    """
+    Cleared version of the mr comment webhook content.
+    """
+    return {
+        "object_kind": "note",
+        "event_type": "note",
+        "user": {
+            "name": "Shreyas Papinwar",
+            "username": "shreyaspapi",
+            "avatar_url": "https://assets.gitlab-static.net/uploads/-/system/"
+            "user/avatar/5647360/avatar.png",
+            "email": "spapinwar@gmail.com",
+        },
+        "project_id": 18032222,
+        "project": {
+            "id": 18032222,
+            "name": "Hello there",
+            "description": "Hehehehe",
+            "web_url": "https://gitlab.com/testing-packit/hello-there",
+            "git_ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+            "git_http_url": "https://gitlab.com/testing-packit/hello-there.git",
+            "namespace": "Testing packit",
+            "path_with_namespace": "testing-packit/hello-there",
+            "default_branch": "master",
+            "homepage": "https://gitlab.com/testing-packit/hello-there",
+            "url": "git@gitlab.com:testing-packit/hello-there.git",
+            "ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+            "http_url": "https://gitlab.com/testing-packit/hello-there.git",
+        },
+        "object_attributes": {
+            "author_id": 5647360,
+            "created_at": "2020-06-04 20:52:17 UTC",
+            "discussion_id": "79a989acbaa824ddfb5a7850228cfe56ac779a96",
+            "id": 355648957,
+            "note": "must be reopened",
+            "noteable_id": 59533079,
+            "noteable_type": "MergeRequest",
+            "project_id": 18032222,
+            "updated_at": "2020-06-04 20:52:17 UTC",
+            "description": "must be reopened",
+            "url": "https://gitlab.com/testing-packit/hello-there/"
+            "-/merge_requests/2#note_355648957",
+        },
+        "repository": {
+            "name": "Hello there",
+            "url": "git@gitlab.com:testing-packit/hello-there.git",
+            "description": "Hehehehe",
+            "homepage": "https://gitlab.com/testing-packit/hello-there",
+        },
+        "merge_request": {
+            "author_id": 5647360,
+            "created_at": "2020-05-24 19:45:07 UTC",
+            "description": "",
+            "id": 59533079,
+            "iid": 2,
+            "merge_status": "can_be_merged",
+            "source_branch": "test1",
+            "source_project_id": 18032222,
+            "state_id": 1,
+            "target_branch": "master",
+            "target_project_id": 18032222,
+            "time_estimate": 0,
+            "title": "Update README.md",
+            "updated_at": "2020-06-04 20:52:03 UTC",
+            "url": "https://gitlab.com/testing-packit/hello-there/-/merge_requests/2",
+            "source": {
+                "id": 18032222,
+                "name": "Hello there",
+                "description": "Hehehehe",
+                "web_url": "https://gitlab.com/testing-packit/hello-there",
+                "git_ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+                "git_http_url": "https://gitlab.com/testing-packit/hello-there.git",
+                "namespace": "Testing packit",
+                "visibility_level": 20,
+                "path_with_namespace": "testing-packit/hello-there",
+                "default_branch": "master",
+                "homepage": "https://gitlab.com/testing-packit/hello-there",
+                "url": "git@gitlab.com:testing-packit/hello-there.git",
+                "ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+                "http_url": "https://gitlab.com/testing-packit/hello-there.git",
+            },
+            "target": {
+                "id": 18032222,
+                "name": "Hello there",
+                "description": "Hehehehe",
+                "web_url": "https://gitlab.com/testing-packit/hello-there",
+                "git_ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+                "git_http_url": "https://gitlab.com/testing-packit/hello-there.git",
+                "namespace": "Testing packit",
+                "visibility_level": 20,
+                "path_with_namespace": "testing-packit/hello-there",
+                "default_branch": "master",
+                "homepage": "https://gitlab.com/testing-packit/hello-there",
+                "url": "git@gitlab.com:testing-packit/hello-there.git",
+                "ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+                "http_url": "https://gitlab.com/testing-packit/hello-there.git",
+            },
+            "last_commit": {
+                "id": "45e272a57335e4e308f3176df6e9226a9e7805a9",
+                "message": "Update README.md",
+                "title": "Update README.md",
+                "timestamp": "2020-06-01T07:24:37+00:00",
+                "url": "https://gitlab.com/testing-packit/hello-there/-/commit"
+                "/45e272a57335e4e308f3176df6e9226a9e7805a9",
+                "author": {"name": "Shreyas Papinwar", "email": "spapinwar@gmail.com"},
+            },
+            "state": "opened",
+        },
+    }
+
+
+@pytest.fixture()
+def push_gitlab_event_dict():
+    """
+    Cleared version of the push gitlab webhook content.
+    """
+    return {
+        "object_kind": "push",
+        "event_name": "push",
+        "before": "0e27f070efa4bef2a7c0168f07a0ac36ef90d8cb",
+        "after": "cb2859505e101785097e082529dced35bbee0c8f",
+        "ref": "refs/heads/build-branch",
+        "checkout_sha": "cb2859505e101785097e082529dced35bbee0c8f",
+        "user_id": 5647360,
+        "user_name": "Shreyas Papinwar",
+        "user_username": "shreyaspapi",
+        "user_email": "",
+        "user_avatar": "https://assets.gitlab-static.net/uploads/-"
+        "/system/user/avatar/5647360/avatar.png",
+        "project_id": 18032222,
+        "project": {
+            "id": 18032222,
+            "name": "Hello there",
+            "description": "Hehehehe",
+            "web_url": "https://gitlab.com/the-namespace/repo-name",
+            "git_ssh_url": "git@gitlab.com:the-namespace/repo-name.git",
+            "git_http_url": "https://gitlab.com/the-namespace/repo-name.git",
+            "namespace": "Testing packit",
+            "visibility_level": 20,
+            "path_with_namespace": "the-namespace/repo-name",
+            "default_branch": "master",
+            "homepage": "https://gitlab.com/the-namespace/repo-name",
+            "url": "git@gitlab.com:the-namespace/repo-name.git",
+            "ssh_url": "git@gitlab.com:the-namespace/repo-name.git",
+            "http_url": "https://gitlab.com/the-namespace/repo-name.git",
+        },
+        "commits": [
+            {
+                "id": "cb2859505e101785097e082529dced35bbee0c8f",
+                "message": "Update README.md",
+                "title": "Update README.md",
+                "timestamp": "2020-06-04T23:14:57+00:00",
+                "url": "https://gitlab.com/the-namespace/repo-name/-/commit/"
+                "cb2859505e101785097e082529dced35bbee0c8f",
+                "author": {"name": "Shreyas Papinwar", "email": "spapinwar@gmail.com"},
+                "added": [],
+                "modified": ["README.md"],
+                "removed": [],
+            }
+        ],
+        "total_commits_count": 1,
+        "push_options": {},
+        "repository": {
+            "name": "Hello there",
+            "url": "git@gitlab.com:the-namespace/repo-name.git",
+            "description": "Hehehehe",
+            "homepage": "https://gitlab.com/the-namespace/repo-name",
+            "git_http_url": "https://gitlab.com/the-namespace/repo-name.git",
+            "git_ssh_url": "git@gitlab.com:the-namespace/repo-name.git",
+            "visibility_level": 20,
         },
     }
 

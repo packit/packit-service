@@ -367,6 +367,23 @@ class PushGitHubEvent(AddBranchPushDbTrigger, AbstractGithubEvent):
         self.identifier = git_ref
 
 
+class PushGitlabEvent(AddBranchPushDbTrigger, AbstractGitlabEvent):
+    def __init__(
+        self,
+        repo_namespace: str,
+        repo_name: str,
+        git_ref: str,
+        project_url: str,
+        commit_sha: str,
+    ):
+        super().__init__(trigger=TheJobTriggerType.push, project_url=project_url)
+        self.repo_namespace = repo_namespace
+        self.repo_name = repo_name
+        self.git_ref = git_ref
+        self.commit_sha = commit_sha
+        self.identifier = git_ref
+
+
 class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
     def __init__(
         self,
@@ -440,6 +457,40 @@ class PullRequestGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         return None  # With Github app, we cannot work with fork repo
 
 
+class MergeRequestCommentGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
+    def __init__(
+        self,
+        action: GitlabEventAction,
+        object_id: int,
+        object_iid: int,
+        source_repo_namespace: str,
+        source_repo_name: Optional[str],
+        target_repo_namespace: str,
+        target_repo_name: str,
+        https_url: str,
+        username: str,
+        comment: str,
+        commit_sha: str,
+    ):
+        super().__init__(
+            trigger=TheJobTriggerType.pr_comment,
+            project_url=https_url,
+            pr_id=object_iid,
+        )
+        self.action = action
+        self.object_id = object_id
+        self.object_iid = object_iid
+        self.source_repo_namespace = source_repo_namespace
+        self.source_repo_name = source_repo_name
+        self.target_repo_namespace = target_repo_namespace
+        self.target_repo_name = target_repo_name
+        self.https_url = https_url
+        self.username = username
+        self.comment = comment
+        self.commit_sha = commit_sha
+        self.identifier = str(object_iid)
+
+
 class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
     def __init__(
         self,
@@ -486,6 +537,30 @@ class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent
 
     def get_base_project(self) -> Optional[GitProject]:
         return None  # With Github app, we cannot work with fork repo
+
+
+class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
+    def __init__(
+        self,
+        action: GitlabEventAction,
+        issue_id: int,
+        issue_iid: int,
+        repo_namespace: str,
+        repo_name: str,
+        https_url: str,
+        username: str,
+        comment: str,
+    ):
+        super().__init__(trigger=TheJobTriggerType.issue_comment, project_url=https_url)
+        self.action = action
+        self.issue_id = issue_id
+        self.issue_iid = issue_iid
+        self.repo_namespace = repo_namespace
+        self.repo_name = repo_name
+        self.https_url = https_url
+        self.username = username
+        self.comment = comment
+        self.commit_sha = None
 
 
 class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):

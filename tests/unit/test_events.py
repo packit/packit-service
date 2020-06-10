@@ -71,6 +71,9 @@ from packit_service.service.events import (
     KojiBuildEvent,
     get_koji_build_logs_url,
     get_koji_rpm_build_web_url,
+    IssueCommentGitlabEvent,
+    MergeRequestCommentGitlabEvent,
+    PushGitlabEvent,
 )
 from packit_service.worker.parser import Parser, CentosEventParser
 from tests.conftest import copr_build_model
@@ -147,6 +150,30 @@ class TestEvents:
     @pytest.fixture()
     def github_push_branch(self):
         with open(DATA_DIR / "webhooks" / "github" / "push_branch.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def gitlab_push(self):
+        with open(
+            DATA_DIR / "webhooks" / "gitlab" / "push_with_one_commit.json"
+        ) as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def gitlab_push_many_commits(self):
+        with open(
+            DATA_DIR / "webhooks" / "gitlab" / "push_with_many_commits.json"
+        ) as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def gitlab_issue_comment(self):
+        with open(DATA_DIR / "webhooks" / "gitlab" / "issue_comment.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def gitlab_mr_comment(self):
+        with open(DATA_DIR / "webhooks" / "gitlab" / "mr_comment.json") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -341,6 +368,39 @@ class TestEvents:
         ).once()
         assert event_object.package_config
 
+    def test_parse_mr_comment(self, gitlab_mr_comment):
+        event_object = Parser.parse_event(gitlab_mr_comment)
+
+        assert isinstance(event_object, MergeRequestCommentGitlabEvent)
+        assert event_object.trigger == TheJobTriggerType.pr_comment
+        assert event_object.action == GitlabEventAction.opened
+        assert event_object.pr_id == 2
+        assert event_object.source_repo_namespace == "testing-packit"
+        assert event_object.source_repo_name == "hello-there"
+        assert event_object.target_repo_namespace == "testing-packit"
+        assert event_object.target_repo_name == "hello-there"
+        assert event_object.https_url == "https://gitlab.com/testing-packit/hello-there"
+        assert event_object.username == "shreyaspapi"
+        assert event_object.comment == "must be reopened"
+        assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
+
+        assert isinstance(event_object.project, GitlabProject)
+        assert event_object.project.full_repo_name == "testing-packit/hello-there"
+
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=None,
+            project=event_object.project,
+            pr_id=2,
+            reference="45e272a57335e4e308f3176df6e9226a9e7805a9",
+            fail_when_missing=False,
+            spec_file_path=None,
+        ).and_return(
+            flexmock()
+        ).once()
+        assert event_object.package_config
+
     def test_parse_pr_comment_empty(self, github_pr_comment_empty):
         event_object = Parser.parse_event(github_pr_comment_empty)
 
@@ -419,6 +479,39 @@ class TestEvents:
         ).once()
         assert event_object.package_config
 
+    def test_parse_gitlab_issue_comment(self, gitlab_issue_comment):
+        event_object = Parser.parse_event(gitlab_issue_comment)
+
+        assert isinstance(event_object, IssueCommentGitlabEvent)
+        assert event_object.action == GitlabEventAction.opened
+        assert event_object.issue_id == 35452477
+        assert event_object.issue_iid == 1
+        assert event_object.repo_namespace == "testing-packit"
+        assert event_object.repo_name == "hello-there"
+
+        assert (
+            event_object.project_url == "https://gitlab.com/testing-packit/hello-there"
+        )
+        assert event_object.username == "shreyaspapi"
+        assert event_object.comment == "testing comment"
+
+        assert isinstance(event_object.project, GitlabProject)
+        assert event_object.project.full_repo_name == "testing-packit/hello-there"
+
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=event_object.base_project,
+            project=event_object.project,
+            pr_id=None,
+            reference=None,
+            fail_when_missing=False,
+            spec_file_path=None,
+        ).and_return(
+            flexmock()
+        ).once()
+        assert event_object.package_config
+
     def test_parse_github_push(self, github_push):
         event_object = Parser.parse_event(github_push)
 
@@ -441,6 +534,66 @@ class TestEvents:
             project=event_object.project,
             pr_id=None,
             reference="0000000000000000000000000000000000000000",
+            fail_when_missing=False,
+            spec_file_path=None,
+        ).and_return(
+            flexmock()
+        ).once()
+        assert event_object.package_config
+
+    def test_parse_gitlab_push(self, gitlab_push):
+        event_object = Parser.parse_event(gitlab_push)
+
+        assert isinstance(event_object, PushGitlabEvent)
+        assert event_object.trigger == TheJobTriggerType.push
+        assert event_object.repo_namespace == "testing-packit"
+        assert event_object.repo_name == "hello-there"
+        assert event_object.commit_sha == "cb2859505e101785097e082529dced35bbee0c8f"
+        assert (
+            event_object.project_url == "https://gitlab.com/testing-packit/hello-there"
+        )
+        assert event_object.git_ref == "test2"
+
+        assert isinstance(event_object.project, GitlabProject)
+        assert event_object.project.full_repo_name == "testing-packit/hello-there"
+        assert not event_object.base_project
+
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=event_object.base_project,
+            project=event_object.project,
+            pr_id=None,
+            reference="cb2859505e101785097e082529dced35bbee0c8f",
+            fail_when_missing=False,
+            spec_file_path=None,
+        ).and_return(
+            flexmock()
+        ).once()
+        assert event_object.package_config
+
+    def test_parse_gitlab_push_many_commits(self, gitlab_push_many_commits):
+        event_object = Parser.parse_event(gitlab_push_many_commits)
+
+        assert isinstance(event_object, PushGitlabEvent)
+        assert event_object.trigger == TheJobTriggerType.push
+        assert event_object.repo_namespace == "mike"
+        assert event_object.repo_name == "diaspora"
+        assert event_object.commit_sha == "da1560886d4f094c3e6c9ef40349f7d38b5d27d7"
+        assert event_object.project_url == "http://gitlab.com/mike/diaspora"
+        assert event_object.git_ref == "master"
+
+        assert isinstance(event_object.project, GitlabProject)
+        assert event_object.project.full_repo_name == "mike/diaspora"
+        assert not event_object.base_project
+
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=event_object.base_project,
+            project=event_object.project,
+            pr_id=None,
+            reference="da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
             fail_when_missing=False,
             spec_file_path=None,
         ).and_return(
