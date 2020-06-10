@@ -23,6 +23,7 @@
 
 from typing import Union
 
+import pytest
 from flexmock import flexmock
 
 from ogr.abstract import GitProject, CommitStatus
@@ -53,6 +54,7 @@ from packit_service.service.urls import (
 from packit_service.worker.build import koji_build
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.reporting import StatusReporter
+from packit_service.worker.handlers.fedmsg_handlers import KojiBuildReportHandler
 
 
 def build_helper(
@@ -355,3 +357,41 @@ def test_koji_build_failed_srpm(github_pr_event):
     result = helper.run_koji_build()
     assert not result["success"]
     assert "SRPM build failed" in result["details"]["msg"]
+
+
+@pytest.mark.parametrize(
+    "id_,result",
+    [
+        (
+            45270227,
+            "https://kojipkgs.fedoraproject.org//work/tasks/227/45270227/build.log",
+        ),
+        (
+            45452270,
+            "https://kojipkgs.fedoraproject.org//work/tasks/2270/45452270/build.log",
+        ),
+    ],
+)
+def test_get_koji_build_logs_url(id_, result):
+    handler = KojiBuildReportHandler(
+        package_config=flexmock(),
+        job_config=flexmock(),
+        event={"rpm_build_task_id": id_},
+    )
+    assert handler.get_koji_build_logs_url() == result
+
+
+@pytest.mark.parametrize(
+    "id_,result",
+    [
+        (45270227, "https://koji.fedoraproject.org/koji/taskinfo?taskID=45270227",),
+        (45452270, "https://koji.fedoraproject.org/koji/taskinfo?taskID=45452270",),
+    ],
+)
+def test_get_koji_rpm_build_web_url(id_, result):
+    handler = KojiBuildReportHandler(
+        package_config=flexmock(),
+        job_config=flexmock(),
+        event={"rpm_build_task_id": id_},
+    )
+    assert handler.get_koji_rpm_build_web_url() == result

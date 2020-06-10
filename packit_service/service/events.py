@@ -870,6 +870,16 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
                 return None  # With Github app, we cannot work with fork repo
         return self.project
 
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        result["state"] = result["state"].value
+        result["old_state"] = result["old_state"].value
+        result["commit_sha"] = self.commit_sha
+        result["pr_id"] = self.pr_id
+        result["git_ref"] = self.git_ref
+        result["identifier"] = self.identifier
+        return result
+
 
 class CoprBuildEvent(AbstractForgeIndependentEvent):
     build: Optional[CoprBuildModel]
@@ -980,25 +990,6 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
         result["topic"] = result["topic"].value
         self.build = build
         return result
-
-
-def get_koji_build_logs_url(event: KojiBuildEvent) -> Optional[str]:
-    if not event.rpm_build_task_id:
-        return None
-
-    return (
-        f"https://kojipkgs.fedoraproject.org//work/tasks/"
-        f"{event.rpm_build_task_id % 10000}/{event.rpm_build_task_id}/build.log"
-    )
-
-
-def get_koji_rpm_build_web_url(event: KojiBuildEvent) -> Optional[str]:
-    if not event.rpm_build_task_id:
-        return None
-
-    return (
-        f"https://koji.fedoraproject.org/koji/taskinfo?taskID={event.rpm_build_task_id}"
-    )
 
 
 class AbstractPagureEvent(AbstractForgeIndependentEvent):

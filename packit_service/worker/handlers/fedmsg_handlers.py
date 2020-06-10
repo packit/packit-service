@@ -46,23 +46,12 @@ from packit_service.constants import (
     COPR_API_SUCC_STATE,
     KojiBuildState,
 )
-from packit_service.models import CoprBuildModel, KojiBuildModel
-from packit_service.service.events import (
-    Event,
-    DistGitEvent,
-    CoprBuildEvent,
-    get_copr_build_logs_url,
-    TheJobTriggerType,
-    KojiBuildEvent,
-    get_koji_build_logs_url,
-)
+from packit_service.service.events import TheJobTriggerType
 from packit_service.service.urls import (
     get_copr_build_info_url_from_flask,
     get_koji_build_info_url_from_flask,
 )
-from packit_service.models import CoprBuildModel, AbstractTriggerDbType
-from packit_service.service.events import TheJobTriggerType
-from packit_service.service.urls import get_copr_build_info_url_from_flask
+from packit_service.models import CoprBuildModel, KojiBuildModel, AbstractTriggerDbType
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.handlers.abstract import JobHandler, use_for, required_by
@@ -369,85 +358,127 @@ class CoprBuildStartHandler(CoprBuildHandler):
 class KojiBuildReportHandler(FedmsgHandler):
     topic = "org.fedoraproject.prod.buildsys.task.state.change"
     triggers = [TheJobTriggerType.koji_results]
-    event: KojiBuildEvent
+
+    def __init__(
+        self, package_config: PackageConfig, job_config: JobConfig, event: dict,
+    ):
+        super().__init__(
+            package_config=package_config, job_config=job_config, event=event
+        )
+        self.build_id = event.get("build_id")
+        self.state = KojiBuildState(event.get("state")) if event.get("state") else None
+        self.old_state = (
+            KojiBuildState(event.get("old_state")) if event.get("old_state") else None
+        )
+        self.start_time = event.get("start_time")
+        self.rpm_build_task_id = event.get("rpm_build_task_id")
+        self._db_trigger: Optional[AbstractTriggerDbType] = None
+        self._build: Optional[KojiBuildModel] = None
+
+    @property
+    def build(self) -> Optional[KojiBuildModel]:
+        if not self._build:
+            self._build = KojiBuildModel.get_by_build_id(build_id=str(self.build_id))
+        return self._build
+
+    @property
+    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        if not self._db_trigger:
+            if self.build:
+                self._db_trigger = self.build.job_trigger.get_trigger_object()
+        return self._db_trigger
+
+    def get_koji_build_logs_url(self) -> Optional[str]:
+        if not self.rpm_build_task_id:
+            return None
+
+        return (
+            f"https://kojipkgs.fedoraproject.org//work/tasks/"
+            f"{self.rpm_build_task_id % 10000}/{self.rpm_build_task_id}/build.log"
+        )
+
+    def get_koji_rpm_build_web_url(self) -> Optional[str]:
+        if not self.rpm_build_task_id:
+            return None
+
+        return f"https://koji.fedoraproject.org/koji/taskinfo?taskID={self.rpm_build_task_id}"
 
     def run(self):
-        build = KojiBuildModel.get_by_build_id(build_id=str(self.event.build_id))
-
-        if not build:
-            msg = f"Koji build {self.event.build_id} not found in the database."
+        if not self.build:
+            msg = f"Koji build {self.build_id} not found in the database."
             logger.warning(msg)
             return HandlerResults(success=False, details={"msg": msg})
 
         logger.debug(
-            f"Build on {build.target} in koji changed state "
-            f"from {self.event.old_state} to {self.event.state}."
+            f"Build on {self.build.target} in koji changed state "
+            f"from {self.old_state} to {self.state}."
         )
 
-        build.set_build_start_time(
-            datetime.utcfromtimestamp(self.event.start_time)
-            if self.event.start_time
+        self.build.set_build_start_time(
+            datetime.utcfromtimestamp(self.start_time)
+            if self.start_time
             else None
         )
 
-        build.set_build_finished_time(
-            datetime.utcfromtimestamp(self.event.completion_time)
-            if self.event.completion_time
+        self.build.set_build_finished_time(
+            datetime.utcfromtimestamp(self.completion_time)
+            if self.completion_time
             else None
         )
 
-        url = get_koji_build_info_url_from_flask(build.id)
+        url = get_koji_build_info_url_from_flask(self.build.id)
         build_job_helper = KojiBuildJobHelper(
             config=self.config,
-            package_config=self.event.package_config,
-            project=self.event.project,
+            package_config=self.package_config,
+            project=self.project,
             event=self.event,
+            db_trigger=self.db_trigger,
         )
 
-        if self.event.state == KojiBuildState.open:
-            build.set_status("pending")
+        if self.state == KojiBuildState.open:
+            self.build.set_status("pending")
             build_job_helper.report_status_to_all_for_chroot(
                 description="RPM build is in progress...",
                 state=CommitStatus.pending,
                 url=url,
-                chroot=build.target,
+                chroot=self.build.target,
             )
-        elif self.event.state == KojiBuildState.closed:
-            build.set_status("success")
+        elif self.state == KojiBuildState.closed:
+            self.build.set_status("success")
             build_job_helper.report_status_to_all_for_chroot(
                 description="RPMs were built successfully.",
                 state=CommitStatus.success,
                 url=url,
-                chroot=build.target,
+                chroot=self.build.target,
             )
-        elif self.event.state == KojiBuildState.failed:
-            build.set_status("failed")
+        elif self.state == KojiBuildState.failed:
+            self.build.set_status("failed")
             build_job_helper.report_status_to_all_for_chroot(
                 description="RPMs failed to be built.",
                 state=CommitStatus.failure,
                 url=url,
-                chroot=build.target,
+                chroot=self.build.target,
             )
-        elif self.event.state == KojiBuildState.canceled:
-            build.set_status("error")
+        elif self.state == KojiBuildState.canceled:
+            self.build.set_status("error")
             build_job_helper.report_status_to_all_for_chroot(
                 description="RPMs build was canceled.",
                 state=CommitStatus.error,
                 url=url,
-                chroot=build.target,
+                chroot=self.build.target,
             )
         else:
             logger.debug(
-                f"We don't react to this koji build state change: {self.event.state}"
+                f"We don't react to this koji build state change: {self.state}"
             )
 
-        koji_build_logs = get_koji_build_logs_url(self.event)
-        build.set_build_logs_url(koji_build_logs)
-        koji_rpm_task_web_url = get_koji_build_logs_url(self.event)
-        build.set_web_url(koji_rpm_task_web_url)
+        koji_build_logs = self.get_koji_build_logs_url()
+        self.build.set_build_logs_url(koji_build_logs)
+        koji_rpm_task_web_url = self.get_koji_build_logs_url()
+        self.build.set_web_url(koji_rpm_task_web_url)
 
         msg = (
-            f"Build on {build.target} in koji changed state "
-            f"from {self.event.old_state} to {self.event.state}."
+            f"Build on {self.build.target} in koji changed state "
+            f"from {self.old_state} to {self.state}."
         )
         return HandlerResults(success=True, details={"msg": msg})
