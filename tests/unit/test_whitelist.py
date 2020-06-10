@@ -313,6 +313,7 @@ def test_check_and_report(
     for event, is_valid in events:
         if isinstance(event, PullRequestGithubEvent) and not is_valid:
             # Report the status
+            flexmock(event).should_receive("db_trigger").and_return(None)
             flexmock(CoprHelper).should_receive("get_copr_client").and_return(
                 Client(
                     config={

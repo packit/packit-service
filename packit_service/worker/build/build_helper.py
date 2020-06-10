@@ -68,8 +68,10 @@ class BaseBuildJobHelper:
 
         self.pr_id = event.get("pr_id")
         self.git_ref = event.get("git_ref")
-        self.commit_sha = event.get("_commit_sha")
-        self.trigger = TheJobTriggerType(event.get("trigger"))
+        self.commit_sha = event.get("commit_sha")
+        self.trigger = (
+            TheJobTriggerType(event.get("trigger")) if event.get("trigger") else None
+        )
 
         # lazy properties
         self._api = None

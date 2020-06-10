@@ -65,6 +65,7 @@ def build_helper(
     metadata=None,
     trigger=None,
     jobs=None,
+    db_trigger=None,
 ):
     if not metadata:
         metadata = JobMetadataConfig(
@@ -90,7 +91,8 @@ def build_helper(
         config=ServiceConfig(),
         package_config=pkg_conf,
         project=GitProject(repo=flexmock(), service=flexmock(), namespace=flexmock()),
-        event=event,
+        event=event.get_dict(),
+        db_trigger=db_trigger,
     )
     handler._api = PackitAPI(config=ServiceConfig(), package_config=pkg_conf)
     return handler

@@ -173,8 +173,14 @@ def test_testing_farm_response(
             ],
         )
     )
+    config = flexmock(command_handler_work_dir=flexmock())
+    flexmock(TFResultsHandler).should_receive("config").and_return(config)
+    flexmock(TFResultsEvent).should_receive("db_trigger").and_return(None)
+    config.should_receive("get_project").with_args(
+        url="https://github.com/packit-service/ogr"
+    ).and_return()
     test_farm_handler = TFResultsHandler(
-        config=flexmock(command_handler_work_dir=flexmock()),
+        package_config=flexmock(),
         job_config=flexmock(),
         event=TFResultsEvent(
             pipeline_id="id",
@@ -190,7 +196,7 @@ def test_testing_farm_response(
             git_ref=flexmock(),
             project_url="https://github.com/packit-service/ogr",
             commit_sha=flexmock(),
-        ),
+        ).get_dict(),
     )
     flexmock(StatusReporter).should_receive("report").with_args(
         state=status_status,
@@ -271,11 +277,15 @@ def test_trigger_payload(
         service="GitHub",
         get_git_urls=lambda: {"git": f"{project_url}.git"},
     )
-    event = flexmock(
-        commit_sha=commit_sha, project_url=project_url, git_ref=git_ref, pr_id=None
-    )
+    event = {
+        "commit_sha": commit_sha,
+        "project_url": project_url,
+        "git_ref": git_ref,
+        "pr_id": None,
+    }
+    db_trigger = flexmock()
 
-    job_helper = TFJobHelper(config, package_config, project, event)
+    job_helper = TFJobHelper(config, package_config, project, event, db_trigger)
     job_helper = flexmock(job_helper)
 
     job_helper.should_receive("job_owner").and_return(copr_owner)

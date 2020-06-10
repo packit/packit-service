@@ -181,8 +181,12 @@ class JobHandler(Handler):
     ):
         self.package_config: PackageConfig = package_config
         self.job_config: Optional[JobConfig] = job_config
-        self.event_type = EventType(event.get("event_type"))
-        self.trigger = TheJobTriggerType(event.get("trigger"))
+        self.event_type = (
+            EventType(event.get("event_type")) if event.get("event_type") else None
+        )
+        self.trigger = (
+            TheJobTriggerType(event.get("trigger")) if event.get("trigger") else None
+        )
         self.user_login = event.get("user_login")
         self.trigger_id = event.get("trigger_id")
         self.project_url = event.get("project_url")

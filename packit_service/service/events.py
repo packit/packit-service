@@ -118,7 +118,7 @@ class EventType(str, enum.Enum):
     installation = "InstallationEvent"
     copr_build = "CoprBuildEvent"
     koji_build = "KojiBuildEvent"
-    tft_result = "TestingFarmResultEvent"
+    tft_result = "TestingFarmResultsEvent"
     release = "ReleaseEvent"
     push_gh = "PushGithubGHEvent"
     pull_request_gh = "PullRequestGHEvent"
@@ -368,6 +368,11 @@ class ReleaseEvent(AddReleaseDbTrigger, AbstractGithubEvent):
         if not self._commit_sha:
             self._commit_sha = self.project.get_sha_from_tag(tag_name=self.tag_name)
         return self._commit_sha
+
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        result["commit_sha"] = self.commit_sha
+        return result
 
 
 class PushGitHubEvent(AddBranchPushDbTrigger, AbstractGithubEvent):

@@ -83,6 +83,7 @@ def build_helper(
     metadata=None,
     trigger=None,
     jobs=None,
+    db_trigger=None,
 ):
     if not metadata:
         metadata = JobMetadataConfig(
@@ -112,7 +113,8 @@ def build_helper(
             service=flexmock(),
             namespace="the-example-namespace",
         ),
-        event=event,
+        event=event.get_dict(),
+        db_trigger=db_trigger,
     )
     handler._api = PackitAPI(ServiceConfig(), pkg_conf)
     return handler
@@ -125,6 +127,7 @@ def test_copr_build_check_names(github_pr_event):
     helper = build_helper(
         event=github_pr_event,
         metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="nobody"),
+        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.release),
     )
 
     flexmock(copr_build).should_receive(
@@ -199,7 +202,11 @@ def test_copr_build_success_set_test_check(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
-    helper = build_helper(jobs=[test_job], event=github_pr_event)
+    helper = build_helper(
+        jobs=[test_job],
+        event=github_pr_event,
+        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(16)
     flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create").and_return(
@@ -252,7 +259,11 @@ def test_copr_build_for_branch(branch_push_event):
     flexmock(AddBranchPushDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
-    helper = build_helper(jobs=[branch_build_job], event=branch_push_event)
+    helper = build_helper(
+        jobs=[branch_build_job],
+        event=branch_push_event,
+        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
@@ -305,7 +316,11 @@ def test_copr_build_for_release(release_event):
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     )
-    helper = build_helper(jobs=[branch_build_job], event=release_event)
+    helper = build_helper(
+        jobs=[branch_build_job],
+        event=release_event,
+        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+    )
     flexmock(ReleaseEvent).should_receive("get_project").and_return(helper.project)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(GitProject).should_receive("get_sha_from_tag").and_return("123456").once()

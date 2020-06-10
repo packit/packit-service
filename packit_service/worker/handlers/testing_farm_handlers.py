@@ -58,7 +58,9 @@ class TestingFarmResultsHandler(JobHandler):
         )
 
         self.tests = event.get("tests")
-        self.result = event.get("result")
+        self.result = (
+            TestingFarmResult(event.get("result")) if event.get("result") else None
+        )
         self.pipeline_id = event.get("pipeline_id")
         self.log_url = event.get("log_url")
         self.commit_sha = event.get("commit_sha")
