@@ -496,6 +496,7 @@ class GithubTestingFarmHandler(AbstractGitForgeJobHandler):
 @add_to_comment_action_mapping_with_name(name=CommentAction.build)
 @use_for(JobType.build)
 @use_for(JobType.copr_build)
+@required_by(JobType.tests)
 class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
     """ Handler for PR comment `/packit copr-build` """
 

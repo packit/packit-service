@@ -168,6 +168,9 @@ class PackageConfigGetter:
         Get the package config and catch the invalid config scenario and possibly no-config scenario
         """
 
+        if not base_project and not project:
+            return None
+
         project_to_search_in = base_project or project
         try:
             package_config: PackageConfig = get_package_config_from_repo(

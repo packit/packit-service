@@ -40,16 +40,20 @@ from packit_service.models import (
     TestingFarmResult,
     TFTTestRunModel,
     JobTriggerModelType,
+    KojiBuildModel,
 )
-from packit_service.service.events import CoprBuildEvent
-from packit_service.service.urls import get_copr_build_info_url_from_flask
+from packit_service.service.events import CoprBuildEvent, KojiBuildEvent
+from packit_service.service.urls import (
+    get_copr_build_info_url_from_flask,
+    get_koji_build_info_url_from_flask,
+)
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 from tests.conftest import copr_build_model
-from tests.spellbook import DATA_DIR
+from tests.spellbook import DATA_DIR, first_dict_value
 
 CHROOT = "fedora-rawhide-x86_64"
 EXPECTED_BUILD_CHECK_NAME = f"packit-stg/rpm-build-{CHROOT}"
@@ -67,11 +71,37 @@ def copr_build_end():
 
 
 @pytest.fixture(scope="module")
+def koji_build_scratch_start():
+    return json.loads(
+        (DATA_DIR / "fedmsg" / "koji_build_scratch_start.json").read_text()
+    )
+
+
+@pytest.fixture(scope="module")
+def koji_build_scratch_end():
+    return json.loads((DATA_DIR / "fedmsg" / "koji_build_scratch_end.json").read_text())
+
+
+@pytest.fixture(scope="module")
 def pc_build_pr():
     pc = PackageConfig(
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
+                metadata=JobMetadataConfig(targets=["fedora-all"]),
+            )
+        ]
+    )
+    return pc
+
+
+@pytest.fixture(scope="module")
+def pc_koji_build_pr():
+    pc = PackageConfig(
+        jobs=[
+            JobConfig(
+                type=JobType.production_build,
                 trigger=JobConfigTriggerType.pull_request,
                 metadata=JobMetadataConfig(targets=["fedora-all"]),
             )
@@ -671,3 +701,76 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     flexmock(CoprBuildJobHelper).should_receive("job_tests").and_return(None)
 
     steve.process_message(copr_build_end)
+
+
+def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build_pr):
+    koji_build_pr.target = "rawhide"
+    steve = SteveJobs()
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(KojiBuildEvent).should_receive("get_package_config").and_return(
+        pc_koji_build_pr
+    )
+
+    flexmock(KojiBuildModel).should_receive("get_by_build_id").and_return(koji_build_pr)
+    url = get_koji_build_info_url_from_flask(1)
+    flexmock(requests).should_receive("get").and_return(requests.Response())
+    flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
+
+    koji_build_pr.should_receive("set_start_time").once()
+    koji_build_pr.should_receive("set_status").with_args("pending").once()
+    koji_build_pr.should_receive("set_build_logs_url")
+    koji_build_pr.should_receive("set_web_url")
+
+    # check if packit-service set correct PR status
+    flexmock(StatusReporter).should_receive("report").with_args(
+        state=CommitStatus.pending,
+        description="RPM build is in progress...",
+        url=url,
+        check_names="packit-stg/production-build-rawhide",
+    ).once()
+
+    result = steve.process_message(koji_build_scratch_start)
+    assert first_dict_value(result["jobs"])["success"]
+
+
+def test_koji_build_start_build_not_found(koji_build_scratch_start):
+    steve = SteveJobs()
+    flexmock(KojiBuildModel).should_receive("get_by_build_id").and_return(None)
+
+    # check if packit-service set correct PR status
+    flexmock(StatusReporter).should_receive("report").never()
+
+    result = steve.process_message(koji_build_scratch_start)
+    assert (
+        "No packit config in repo" == result["jobs"]["koji_results"]["details"]["msg"]
+    )
+
+
+def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr):
+    koji_build_pr.target = "rawhide"
+    steve = SteveJobs()
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(KojiBuildEvent).should_receive("get_package_config").and_return(
+        pc_koji_build_pr
+    )
+
+    flexmock(KojiBuildModel).should_receive("get_by_build_id").and_return(koji_build_pr)
+    url = get_koji_build_info_url_from_flask(1)
+    flexmock(requests).should_receive("get").and_return(requests.Response())
+    flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
+
+    koji_build_pr.should_receive("set_start_time").once()
+    koji_build_pr.should_receive("set_status").with_args("success").once()
+    koji_build_pr.should_receive("set_build_logs_url")
+    koji_build_pr.should_receive("set_web_url")
+
+    # check if packit-service set correct PR status
+    flexmock(StatusReporter).should_receive("report").with_args(
+        state=CommitStatus.success,
+        description="RPMs were built successfully.",
+        url=url,
+        check_names="packit-stg/production-build-rawhide",
+    ).once()
+
+    result = steve.process_message(koji_build_scratch_end)
+    assert first_dict_value(result["jobs"])["success"]

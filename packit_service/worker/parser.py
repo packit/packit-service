@@ -29,6 +29,7 @@ from typing import Optional, Union, List, Dict
 
 from packit.utils import nested_get
 
+from packit_service.constants import KojiBuildState
 from packit_service.service.events import (
     PullRequestGithubEvent,
     PullRequestCommentGithubEvent,
@@ -52,6 +53,7 @@ from packit_service.service.events import (
     AbstractPagureEvent,
     PullRequestLabelPagureEvent,
     PullRequestLabelAction,
+    KojiBuildEvent,
 )
 from packit_service.worker.handlers import NewDistGitCommitHandler
 
@@ -79,6 +81,7 @@ class Parser:
             CoprBuildEvent,
             PushGitHubEvent,
             MergeRequestGitlabEvent,
+            KojiBuildEvent,
         ]
     ]:
         """
@@ -103,6 +106,7 @@ class Parser:
                 CoprBuildEvent,
                 PushGitHubEvent,
                 MergeRequestGitlabEvent,
+                KojiBuildEvent,
             ]
         ] = Parser.parse_pr_event(event)
         if response:
@@ -141,6 +145,10 @@ class Parser:
             return response
 
         response = Parser.parse_mr_event(event)
+        if response:
+            return response
+
+        response = Parser.parse_koji_event(event)
         if response:
             return response
 
@@ -596,6 +604,41 @@ class Parser:
 
         return CoprBuildEvent.from_build_id(
             topic, build_id, chroot, status, owner, project_name, pkg, timestamp
+        )
+
+    @staticmethod
+    def parse_koji_event(event) -> Optional[KojiBuildEvent]:
+        if event.get("topic") != "org.fedoraproject.prod.buildsys.task.state.change":
+            return None
+
+        build_id = event.get("id")
+        logger.info(f"Koji event: build_id={build_id}")
+
+        state = nested_get(event, "info", "state")
+
+        if not state:
+            logger.debug("Cannot find build state.")
+            return None
+
+        state_enum = KojiBuildState(event.get("new")) if "new" in event else None
+        old_state = KojiBuildState(event.get("old")) if "old" in event else None
+
+        start_time = nested_get(event, "info", "start_time")
+        completion_time = nested_get(event, "info", "completion_time")
+
+        rpm_build_task_id = None
+        for children in nested_get(event, "info", "children", default=[]):
+            if children.get("method") == "buildArch":
+                rpm_build_task_id = children.get("id")
+                break
+
+        return KojiBuildEvent(
+            build_id=build_id,
+            state=state_enum,
+            old_state=old_state,
+            start_time=start_time,
+            completion_time=completion_time,
+            rpm_build_task_id=rpm_build_task_id,
         )
 
 

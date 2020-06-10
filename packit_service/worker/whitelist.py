@@ -23,13 +23,12 @@ from typing import Optional, Any, List
 
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
+
 from ogr.abstract import GitProject, CommitStatus
 from packit.exceptions import PackitException
-
-from packit_service.models import WhitelistModel
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import FAQ_URL
+from packit_service.models import WhitelistModel
 from packit_service.service.events import (
     PullRequestGithubEvent,
     PullRequestCommentGithubEvent,
@@ -45,6 +44,7 @@ from packit_service.service.events import (
     PushPagureEvent,
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
+    KojiBuildEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
 
@@ -201,7 +201,13 @@ class Whitelist:
             return True
         if isinstance(
             event,
-            (CoprBuildEvent, TestingFarmResultsEvent, DistGitEvent, InstallationEvent),
+            (
+                CoprBuildEvent,
+                TestingFarmResultsEvent,
+                DistGitEvent,
+                InstallationEvent,
+                KojiBuildEvent,
+            ),
         ):
             return True
         if isinstance(event, (PullRequestGithubEvent, PullRequestCommentGithubEvent)):

@@ -546,6 +546,11 @@ class KojiBuildModel(Base):
             self.build_logs_url = build_logs
             session.add(self)
 
+    def set_web_url(self, web_url: str):
+        with get_sa_session() as session:
+            self.web_url = web_url
+            session.add(self)
+
     def get_project(self) -> GitProjectModel:
         return self.job_trigger.get_trigger_object().project
 
@@ -602,7 +607,7 @@ class KojiBuildModel(Base):
     # returns the build matching the build_id and the target
     @classmethod
     def get_by_build_id(
-        cls, build_id: Union[str, int], target: str
+        cls, build_id: Union[str, int], target: Optional[str] = None
     ) -> Optional["KojiBuildModel"]:
         if isinstance(build_id, int):
             # PG is pesky about this:
@@ -611,11 +616,13 @@ class KojiBuildModel(Base):
             #   You might need to add explicit type casts.
             build_id = str(build_id)
         with get_sa_session() as session:
-            return (
-                session.query(KojiBuildModel)
-                .filter_by(build_id=build_id, target=target)
-                .first()
-            )
+            if target:
+                return (
+                    session.query(KojiBuildModel)
+                    .filter_by(build_id=build_id, target=target)
+                    .first()
+                )
+            return session.query(KojiBuildModel).filter_by(build_id=build_id).first()
 
     @classmethod
     def get_or_create(

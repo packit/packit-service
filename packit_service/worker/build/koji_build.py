@@ -36,6 +36,7 @@ from packit_service.service.events import (
     PullRequestCommentGithubEvent,
     PushGitHubEvent,
     ReleaseEvent,
+    KojiBuildEvent,
 )
 from packit_service.service.urls import (
     get_srpm_log_url_from_flask,
@@ -63,6 +64,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             PullRequestCommentGithubEvent,
             PushGitHubEvent,
             ReleaseEvent,
+            KojiBuildEvent,
         ],
         job: Optional[JobConfig] = None,
     ):

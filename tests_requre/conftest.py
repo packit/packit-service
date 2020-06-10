@@ -1087,3 +1087,117 @@ def tf_result_dict_branch_push():
         "token": "XXXXXXXXXXXXXXXXXXXXXXXXXX",
         "url": "https://console-testing-farm.apps.ci.centos.org/" "pipeline/123456",
     }
+
+
+@pytest.fixture()
+def koji_build_scratch_start_dict():
+    return {
+        "topic": "org.fedoraproject.prod.buildsys.task.state.change",
+        "info": {
+            "parent": None,
+            "completion_time": None,
+            "start_time": 1590993047.0,
+            "request": [
+                "cli-build/1590993046.5615945.hqCGfULV/"
+                "hello-0.74-1.20200601063010016064.fc31.src.rpm",
+                "rawhide",
+                {"scratch": True, "wait_builds": []},
+            ],
+            "waiting": None,
+            "awaited": None,
+            "id": SampleValues.build_id,
+            "priority": 20,
+            "channel_id": 1,
+            "state": 1,
+            "create_time": 1590993047.0,
+            "owner": 4641,
+            "host_id": 305,
+            "method": "build",
+            "label": None,
+            "arch": "noarch",
+            "children": [],
+        },
+        "old": "FREE",
+        "attribute": "state",
+        "id": SampleValues.build_id,
+        "instance": "primary",
+        "owner": "packit",
+        "new": "OPEN",
+        "srpm": "hello-0.74-1.20200601063010016064.fc31.src.rpm",
+        "method": "build",
+    }
+
+
+@pytest.fixture()
+def koji_build_scratch_end_dict():
+    return {
+        "topic": "org.fedoraproject.prod.buildsys.task.state.change",
+        "info": {
+            "parent": None,
+            "completion_time": 1590993215.0,
+            "start_time": 1590993047.0,
+            "request": [
+                "cli-build/1590993046.5615945.hqCGfULV/"
+                "hello-0.74-1.20200601063010016064.fc31.src.rpm",
+                "rawhide",
+                {"scratch": True, "wait_builds": []},
+            ],
+            "waiting": False,
+            "awaited": None,
+            "id": SampleValues.build_id,
+            "priority": 20,
+            "channel_id": 1,
+            "state": 2,
+            "create_time": 1590993047.0,
+            "result": None,
+            "owner": 4641,
+            "host_id": 305,
+            "method": "build",
+            "label": None,
+            "arch": "noarch",
+            "children": [
+                {
+                    "parent": SampleValues.build_id,
+                    "completion_time": 1590993124.0,
+                    "start_time": 1590993048.0,
+                    "waiting": None,
+                    "awaited": False,
+                    "label": "srpm",
+                    "priority": 19,
+                    "channel_id": 1,
+                    "state": 2,
+                    "create_time": 1590993047.0,
+                    "owner": 4641,
+                    "host_id": 303,
+                    "method": "rebuildSRPM",
+                    "arch": "noarch",
+                    "id": 45270171,
+                },
+                {
+                    "parent": SampleValues.build_id,
+                    "completion_time": 1590993214.0,
+                    "start_time": 1590993131.0,
+                    "waiting": None,
+                    "awaited": False,
+                    "label": "noarch",
+                    "priority": 19,
+                    "channel_id": 1,
+                    "state": 2,
+                    "create_time": 1590993131.0,
+                    "owner": 4641,
+                    "host_id": 305,
+                    "method": "buildArch",
+                    "arch": "noarch",
+                    "id": 45270227,
+                },
+            ],
+        },
+        "old": "OPEN",
+        "attribute": "state",
+        "id": SampleValues.build_id,
+        "instance": "primary",
+        "owner": "packit",
+        "new": "CLOSED",
+        "srpm": "hello-0.74-1.20200601063010016064.fc31.src.rpm",
+        "method": "build",
+    }

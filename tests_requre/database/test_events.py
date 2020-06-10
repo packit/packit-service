@@ -23,6 +23,7 @@
 from flexmock import flexmock
 
 from ogr.services.github import GithubProject
+from packit_service.constants import KojiBuildState
 from packit_service.models import (
     ProjectReleaseModel,
     GitProjectModel,
@@ -36,6 +37,7 @@ from packit_service.service.events import (
     PullRequestCommentGithubEvent,
     TestingFarmResultsEvent,
     MergeRequestGitlabEvent,
+    KojiBuildEvent,
 )
 from packit_service.worker.parser import Parser
 from tests_requre.conftest import SampleValues
@@ -292,3 +294,39 @@ def test_testing_farm_response_non_existing_branch_push(
     assert event_object.git_ref == "687abc76d67d"
 
     assert not event_object.db_trigger
+
+
+def test_koji_build_scratch_start(
+    clean_before_and_after, pr_model, a_koji_build_for_pr, koji_build_scratch_start_dict
+):
+    event_object = Parser.parse_event(koji_build_scratch_start_dict)
+    assert isinstance(event_object, KojiBuildEvent)
+
+    assert event_object.build_id == SampleValues.build_id
+    assert event_object.state == KojiBuildState.open
+
+    assert isinstance(event_object.db_trigger, PullRequestModel)
+    assert event_object.db_trigger == pr_model
+    assert event_object.db_trigger.pr_id == 342
+
+    assert isinstance(event_object.db_trigger.project, GitProjectModel)
+    assert event_object.db_trigger.project.namespace == "the-namespace"
+    assert event_object.db_trigger.project.repo_name == "the-repo-name"
+
+
+def test_koji_build_scratch_end(
+    clean_before_and_after, pr_model, a_koji_build_for_pr, koji_build_scratch_end_dict
+):
+    event_object = Parser.parse_event(koji_build_scratch_end_dict)
+    assert isinstance(event_object, KojiBuildEvent)
+
+    assert event_object.build_id == SampleValues.build_id
+    assert event_object.state == KojiBuildState.closed
+
+    assert isinstance(event_object.db_trigger, PullRequestModel)
+    assert event_object.db_trigger == pr_model
+    assert event_object.db_trigger.pr_id == 342
+
+    assert isinstance(event_object.db_trigger.project, GitProjectModel)
+    assert event_object.db_trigger.project.namespace == "the-namespace"
+    assert event_object.db_trigger.project.repo_name == "the-repo-name"

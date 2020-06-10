@@ -1,0 +1,37 @@
+{
+  "topic": "org.fedoraproject.prod.buildsys.task.state.change",
+  "info": {
+    "parent": null,
+    "completion_time": null,
+    "start_time": 1590993047.0,
+    "request": [
+      "cli-build/1590993046.5615945.hqCGfULV/hello-0.74-1.20200601063010016064.fc31.src.rpm",
+      "rawhide",
+      {
+        "scratch": true,
+        "wait_builds": []
+      }
+    ],
+    "waiting": null,
+    "awaited": null,
+    "id": 45270170,
+    "priority": 20,
+    "channel_id": 1,
+    "state": 1,
+    "create_time": 1590993047.0,
+    "owner": 4641,
+    "host_id": 305,
+    "method": "build",
+    "label": null,
+    "arch": "noarch",
+    "children": []
+  },
+  "old": "FREE",
+  "attribute": "state",
+  "id": 45270170,
+  "instance": "primary",
+  "owner": "packit",
+  "new": "OPEN",
+  "srpm": "hello-0.74-1.20200601063010016064.fc31.src.rpm",
+  "method": "build"
+}
