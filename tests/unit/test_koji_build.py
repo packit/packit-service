@@ -101,11 +101,12 @@ def build_helper(
 
 
 def test_koji_build_check_names(github_pr_event):
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
-        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
-    )
+    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
-        event=github_pr_event, metadata=JobMetadataConfig(targets=["bright-future"]),
+        event=github_pr_event,
+        metadata=JobMetadataConfig(targets=["bright-future"]),
+        db_trigger=trigger,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
         ["dark-past", "bright-future"]
@@ -149,11 +150,12 @@ def test_koji_build_check_names(github_pr_event):
 
 
 def test_koji_build_failed_kerberos(github_pr_event):
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
-        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
-    )
+    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
-        event=github_pr_event, metadata=JobMetadataConfig(targets=["bright-future"]),
+        event=github_pr_event,
+        metadata=JobMetadataConfig(targets=["bright-future"]),
+        db_trigger=trigger,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
         ["dark-past", "bright-future"]
@@ -197,12 +199,12 @@ def test_koji_build_failed_kerberos(github_pr_event):
 
 
 def test_koji_build_target_not_supported(github_pr_event):
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
-        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
-    )
+    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
         metadata=JobMetadataConfig(targets=["nonexisting-target"]),
+        db_trigger=trigger,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
         ["dark-past", "bright-future"]
@@ -239,12 +241,12 @@ def test_koji_build_target_not_supported(github_pr_event):
 
 
 def test_koji_build_with_multiple_targets(github_pr_event):
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
-        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
-    )
+    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
         metadata=JobMetadataConfig(targets=["bright-future", "dark-past"]),
+        db_trigger=trigger,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
         ["dark-past", "bright-future"]
@@ -281,11 +283,12 @@ def test_koji_build_with_multiple_targets(github_pr_event):
 
 
 def test_koji_build_failed(github_pr_event):
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
-        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
-    )
+    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
-        event=github_pr_event, metadata=JobMetadataConfig(targets=["bright-future"]),
+        event=github_pr_event,
+        metadata=JobMetadataConfig(targets=["bright-future"]),
+        db_trigger=trigger,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
         ["dark-past", "bright-future"]
@@ -326,11 +329,12 @@ def test_koji_build_failed(github_pr_event):
 
 
 def test_koji_build_failed_srpm(github_pr_event):
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
-        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
-    )
+    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
-        event=github_pr_event, metadata=JobMetadataConfig(targets=["bright-future"]),
+        event=github_pr_event,
+        metadata=JobMetadataConfig(targets=["bright-future"]),
+        db_trigger=trigger,
     )
     srpm_build_url = get_srpm_log_url_from_flask(2)
     flexmock(StatusReporter).should_receive("set_status").with_args(

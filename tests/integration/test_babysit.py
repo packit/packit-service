@@ -90,6 +90,7 @@ def test_check_copr_build_updated():
                         ),
                         pr_id=5,
                         job_config_trigger_type=JobConfigTriggerType.pull_request,
+                        id=123,
                     )
                 )
                 .mock(),

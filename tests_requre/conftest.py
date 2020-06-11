@@ -719,7 +719,7 @@ def installation_events():
             repositories=[],
             sender_id=5409,
             sender_login="teg",
-        ),
+        ).get_dict(),
         InstallationEvent(
             installation_id=6813698,
             account_login="Pac23",
@@ -730,7 +730,7 @@ def installation_events():
             repositories=["Pac23/awesome-piracy"],
             sender_id=11048203,
             sender_login="Pac23",
-        ),
+        ).get_dict(),
     ]
 
 

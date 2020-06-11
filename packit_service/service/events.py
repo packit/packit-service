@@ -197,6 +197,9 @@ class Event:
         d["trigger"] = d["trigger"].value
         d["trigger_id"] = self.db_trigger.id if self.db_trigger else None
         d["created_at"] = int(d["created_at"].timestamp())
+        d["project_url"] = d.get("project_url") or (
+            self.db_trigger.project.project_url if self.db_trigger else None
+        )
         return d
 
     @property
@@ -629,6 +632,7 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
+        result["tag_name"] = self.tag_name
         return result
 
 

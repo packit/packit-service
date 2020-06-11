@@ -160,6 +160,7 @@ class CoprBuildHandler(FedmsgHandler):
         self.pkg = event.get("pkg")
         self.status = event.get("status")
         self._build = None
+        self._db_trigger = None
 
     def get_copr_build_url(self) -> str:
         return (
@@ -184,7 +185,9 @@ class CoprBuildHandler(FedmsgHandler):
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        return self.build.job_trigger.get_trigger_object()
+        if not self._db_trigger:
+            self._db_trigger = self.build.job_trigger.get_trigger_object()
+        return self._db_trigger
 
 
 @add_topic
