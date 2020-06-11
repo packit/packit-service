@@ -210,17 +210,20 @@ class JobHandler(Handler):
                 self._db_trigger = IssueModel.get_by_id(self.trigger_id)
             elif self.trigger == TheJobTriggerType.release:
                 self._db_trigger = ProjectReleaseModel.get_by_id(self.trigger_id)
-            elif self.trigger in (TheJobTriggerType.push, TheJobTriggerType.commit):
+            elif self.trigger in TheJobTriggerType.push:
                 self._db_trigger = GitBranchModel.get_by_id(self.trigger_id)
         return self._db_trigger
 
     @property
-    def project(self) -> GitProject:
+    def project(self) -> Optional[GitProject]:
         if not self._project:
             self._project = self.get_project()
         return self._project
 
-    def get_project(self) -> GitProject:
+    def get_project(self) -> Optional[GitProject]:
+        if not self.project_url:
+            return None
+
         return self.config.get_project(url=self.project_url)
 
     def run(self) -> HandlerResults:

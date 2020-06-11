@@ -105,13 +105,6 @@ class NewDistGitCommitHandler(FedmsgHandler):
         )
         self.branch = event.get("branch")
 
-        # TODO check these, whether they can be created from the future task info
-        # self.project = event.get_project()
-        # self.package_config = get_package_config_from_repo(self.project, event.git_ref)
-
-        if not self.package_config:
-            raise ValueError(f"No config file found in {self.project.full_repo_name}")
-
     def run(self) -> HandlerResults:
         # self.project is dist-git, we need to get upstream
         dg = DistGit(self.config, self.package_config)

@@ -358,6 +358,7 @@ class SteveJobs:
             handler_kls=handler_kls, event=event, package_config=event.package_config,
         )
         for job in jobs:
+            # here will be the celery tasks created
             handler_instance: Handler = handler_kls(
                 package_config=event.package_config,
                 job_config=job,

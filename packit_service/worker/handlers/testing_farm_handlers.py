@@ -28,7 +28,7 @@ from typing import Optional
 
 from ogr.abstract import CommitStatus
 from packit.config import JobType, JobConfig, PackageConfig
-from packit_service.models import TFTTestRunModel
+from packit_service.models import TFTTestRunModel, AbstractTriggerDbType
 from packit_service.service.events import (
     TestingFarmResult,
     TheJobTriggerType,
@@ -66,6 +66,15 @@ class TestingFarmResultsHandler(JobHandler):
         self.commit_sha = event.get("commit_sha")
         self.copr_chroot = event.get("copr_chroot")
         self.message = event.get("message")
+        self._db_trigger: Optional[AbstractTriggerDbType] = None
+
+    @property
+    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        if not self._db_trigger:
+            run_model = TFTTestRunModel.get_by_pipeline_id(pipeline_id=self.pipeline_id)
+            if run_model:
+                self._db_trigger = run_model.job_trigger.get_trigger_object()
+        return self._db_trigger
 
     def run(self) -> HandlerResults:
 

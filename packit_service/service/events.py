@@ -31,7 +31,7 @@ from typing import Optional, List, Union, Dict, Set
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
-from packit.config import PackageConfig
+from packit.config import PackageConfig, get_package_config_from_repo
 from packit_service.config import (
     ServiceConfig,
     PackageConfigGetter,
@@ -127,9 +127,13 @@ class EventType(str, enum.Enum):
     push_pagure = "PushPagureEvent"
     pull_request_comment_pg = "PullRequestCommentPagureEvent"
     pull_request_pg = "PullRequestPagureEvent"
-    push_gl = "PushGitlabEvent"
-    merge_request_gl = "MergeRequestGitlabEvent"
+    pull_request_label_pg = "PullRequestLabelPagureEvent"
+    dist_git_event = "DistGitEvent"
+    issue_comment_gl = "IssueCommentGitlabEvent"
     merge_request_comment_gl = "MergeRequestCommentGitlabEvent"
+    merge_request_gl = "MergeRequestGitlabEvent"
+    push_gl = "PushGitlabEvent"
+
 
 
 class TestResult(dict):
@@ -518,6 +522,11 @@ class MergeRequestCommentGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEven
         self.commit_sha = commit_sha
         self.identifier = str(object_iid)
 
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        result["action"] = result["action"].value
+        return result
+
 
 class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
     def __init__(
@@ -561,6 +570,7 @@ class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
+        result["commit_sha"] = self.commit_sha
         return result
 
     def get_base_project(self) -> Optional[GitProject]:
@@ -589,6 +599,11 @@ class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
         self.user_login = username
         self.comment = comment
         self.commit_sha = None
+
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        result["action"] = result["action"].value
+        return result
 
 
 class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
@@ -698,6 +713,8 @@ class DistGitEvent(AbstractForgeIndependentEvent):
         self.project_url = project_url
         self.identifier = branch
 
+        self._package_config = None
+
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["topic"] = result["topic"].value
@@ -705,6 +722,14 @@ class DistGitEvent(AbstractForgeIndependentEvent):
 
     def get_project(self) -> GitProject:
         return ServiceConfig.get_service_config().get_project(self.project_url)
+
+    @property
+    def package_config(self):
+        if not self._package_config:
+            self._package_config = get_package_config_from_repo(
+                self.project, self.git_ref
+            )
+        return self._package_config
 
 
 class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
@@ -754,6 +779,7 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["result"] = result["result"].value
+        result["pr_id"] = self.pr_id
         return result
 
     @property
