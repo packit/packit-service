@@ -107,19 +107,37 @@ def test_copr_build_get_pr_id(
     assert not copr_builds_with_different_triggers[2].get_pr_id()
 
 
+def test_get_merged_chroots(clean_before_and_after, too_many_copr_builds):
+    # fetch 10 merged groups of builds
+    builds_list = CoprBuildModel.get_merged_chroots(10, 20)
+    assert len(builds_list) == 10
+    # two merged chroots so two statuses
+    assert len(builds_list[0].status) == 2
+    assert len(builds_list[0].target) == 2
+    assert builds_list[1].status[0][0] == "success"
+    assert builds_list[2].target[0][0] == "fedora-42-x86_64"
+
+
 def test_get_copr_build(clean_before_and_after, a_copr_build_for_pr):
     assert a_copr_build_for_pr.id
+
+    # pass in a build_id and a target
     b = CoprBuildModel.get_by_build_id(
         a_copr_build_for_pr.build_id, SampleValues.target
     )
     assert b.id == a_copr_build_for_pr.id
     # let's make sure passing int works as well
-    b = CoprBuildModel.get_by_build_id(
+    b2 = CoprBuildModel.get_by_build_id(
         int(a_copr_build_for_pr.build_id), SampleValues.target
     )
-    assert b.id == a_copr_build_for_pr.id
-    b2 = CoprBuildModel.get_by_id(b.id)
     assert b2.id == a_copr_build_for_pr.id
+
+    # pass in a build_id and without a target
+    b3 = CoprBuildModel.get_by_build_id(a_copr_build_for_pr.build_id, None)
+    assert b3.commit_sha == a_copr_build_for_pr.commit_sha
+
+    b4 = CoprBuildModel.get_by_id(b.id)
+    assert b4.id == a_copr_build_for_pr.id
 
 
 def test_copr_build_set_status(clean_before_and_after, a_copr_build_for_pr):
