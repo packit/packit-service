@@ -109,7 +109,7 @@ def test_copr_build_get_pr_id(
 
 def test_get_merged_chroots(clean_before_and_after, too_many_copr_builds):
     # fetch 10 merged groups of builds
-    builds_list = CoprBuildModel.get_merged_chroots(10, 20)
+    builds_list = list(CoprBuildModel.get_merged_chroots(10, 20))
     assert len(builds_list) == 10
     # two merged chroots so two statuses
     assert len(builds_list[0].status) == 2
@@ -268,8 +268,8 @@ def test_errors_while_doing_db(clean_before_and_after):
 
 
 # return all builds in table
-def test_get_all(clean_before_and_after, multiple_copr_builds):
-    builds_list = CoprBuildModel.get_all()
+def test_get_all_builds(clean_before_and_after, multiple_copr_builds):
+    builds_list = list(CoprBuildModel.get_all())
     assert len(builds_list) == 3
     # we just wanna check if result is iterable
     # order doesn't matter, so all of them are set to pending in supplied data
@@ -278,8 +278,8 @@ def test_get_all(clean_before_and_after, multiple_copr_builds):
 
 # return all builds with given build_id
 def test_get_all_build_id(clean_before_and_after, multiple_copr_builds):
-    builds_list = CoprBuildModel.get_all_by_build_id(str(123456))
-    assert len(list(builds_list)) == 2
+    builds_list = list(CoprBuildModel.get_all_by_build_id(str(123456)))
+    assert len(builds_list) == 2
     # both should have the same project_name
     assert builds_list[1].project_name == builds_list[0].project_name
     assert builds_list[1].project_name == "the-project-name"
@@ -490,7 +490,7 @@ def test_tmt_test_get_by_pipeline_id_release(clean_before_and_after, release_mod
 
 
 def test_get_task_results(clean_before_and_after, multiple_task_results_entries):
-    results = TaskResultModel.get_all()
+    results = list(TaskResultModel.get_all())
     assert len(results) == 2
     assert results[0].task_id == "ab1"
     assert results[1].task_id == "ab2"
@@ -520,7 +520,7 @@ def test_project_property_for_koji_build(a_koji_build_for_pr):
 
 
 def test_get_installations(clean_before_and_after, multiple_installation_entries):
-    results = InstallationModel.get_all()
+    results = list(InstallationModel.get_all())
     assert len(results) == 2
 
 

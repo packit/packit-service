@@ -615,7 +615,7 @@ class InstallationEvent(Event):
         account_id: int,
         account_url: str,
         account_type: str,
-        created_at: int,
+        created_at: Union[int, float, str],
         repositories: List[str],
         sender_id: int,
         sender_login: str,
