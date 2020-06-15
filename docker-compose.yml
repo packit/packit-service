@@ -127,3 +127,12 @@ services:
       - ./secrets/dev/centos-server-ca.cert:/secrets/centos-server-ca.cert:ro,Z
       - ./secrets/dev/centos.cert:/secrets/centos.cert:ro,Z
     user: "123123"
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    depends_on:
+      - postgres
+    ports:
+      - 8082:8080
+    user: "123123"

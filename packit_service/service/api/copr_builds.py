@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from http import HTTPStatus
-from itertools import islice
 from json import dumps
 from logging import getLogger
 
@@ -51,42 +50,28 @@ class CoprBuildsList(Resource):
         # Usecases like the packit-dashboard copr-builds table
 
         result = []
-        checklist = []
+
         first, last = indices()
-        for build in islice(CoprBuildModel.get_all(), first, last):
-            if int(build.build_id) not in checklist:
+        for build in CoprBuildModel.get_merged_chroots(first, last):
+            build_info = CoprBuildModel.get_by_build_id(build.build_id, None)
+            project_info = build_info.get_project()
+            build_dict = {
+                "project": build_info.project_name,
+                "build_id": build.build_id,
+                "status_per_chroot": {},
+                "build_submitted_time": optional_time(build_info.build_submitted_time),
+                "web_url": build_info.web_url,
+                "ref": build_info.commit_sha,
+                "pr_id": build_info.get_pr_id(),
+                "repo_namespace": project_info.namespace,
+                "repo_name": project_info.repo_name,
+            }
 
-                build_dict = {
-                    "project": build.project_name,
-                    "owner": build.owner,
-                    "build_id": build.build_id,
-                    "status": build.status,  # Legacy, remove later.
-                    "status_per_chroot": {},
-                    "chroots": [],
-                    "build_submitted_time": optional_time(build.build_submitted_time),
-                    "web_url": build.web_url,
-                }
+            for count, chroot in enumerate(build.target):
+                # [0] because sqlalchemy returns a single element sub-list
+                build_dict["status_per_chroot"][chroot[0]] = build.status[count][0]
 
-                project = build.get_project()
-                if project:
-                    build_dict["repo_namespace"] = project.namespace
-                    build_dict["repo_name"] = project.repo_name
-
-                # same_buildid_builds are copr builds created due to the same trigger
-                # multiple identical builds are created which differ only in target
-                # so we merge them into one
-                same_buildid_builds = CoprBuildModel.get_all_by_build_id(
-                    str(build.build_id)
-                )
-                for sbid_build in same_buildid_builds:
-                    build_dict["chroots"].append(sbid_build.target)
-                    # Get status per chroot as well
-                    build_dict["status_per_chroot"][
-                        sbid_build.target
-                    ] = sbid_build.status
-
-                checklist.append(int(build.build_id))
-                result.append(build_dict)
+            result.append(build_dict)
 
         resp = make_response(dumps(result), HTTPStatus.PARTIAL_CONTENT)
         resp.headers["Content-Range"] = f"copr-builds {first + 1}-{last}/{len(result)}"

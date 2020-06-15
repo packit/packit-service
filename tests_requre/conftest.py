@@ -345,6 +345,59 @@ def multiple_copr_builds(pr_model, different_pr_model, srpm_build_model):
 
 
 @pytest.fixture()
+def too_many_copr_builds(pr_model, different_pr_model, srpm_build_model):
+    """Don't use for testing anything other than pagination, use multiple_copr_builds."""
+    for i in range(20):
+
+        # The following two are similar, except for target, status
+        CoprBuildModel.get_or_create(
+            build_id=SampleValues.build_id + str(i),
+            commit_sha=SampleValues.ref,
+            project_name=SampleValues.project,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url + str(i),
+            target=SampleValues.target,
+            status=SampleValues.status_success,
+            srpm_build=srpm_build_model,
+            trigger_model=pr_model,
+        )
+        CoprBuildModel.get_or_create(
+            build_id=SampleValues.build_id + str(i),
+            commit_sha=SampleValues.ref,
+            project_name=SampleValues.project,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url + str(i),
+            target=SampleValues.different_target,
+            status=SampleValues.status_pending,
+            srpm_build=srpm_build_model,
+            trigger_model=pr_model,
+        )
+        # The following two are similar, except for target, status
+        CoprBuildModel.get_or_create(
+            build_id=SampleValues.different_build_id + str(i),
+            commit_sha=SampleValues.different_commit_sha,
+            project_name=SampleValues.different_project_name,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url + str(i),
+            target=SampleValues.target,
+            status=SampleValues.status_success,
+            srpm_build=srpm_build_model,
+            trigger_model=different_pr_model,
+        )
+        CoprBuildModel.get_or_create(
+            build_id=SampleValues.different_build_id + str(i),
+            commit_sha=SampleValues.different_commit_sha,
+            project_name=SampleValues.different_project_name,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url + str(i),
+            target=SampleValues.different_target,
+            status=SampleValues.status_success,
+            srpm_build=srpm_build_model,
+            trigger_model=different_pr_model,
+        )
+
+
+@pytest.fixture()
 def copr_builds_with_different_triggers(
     pr_model, branch_model, release_model, srpm_build_model
 ):

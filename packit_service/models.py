@@ -41,11 +41,13 @@ from sqlalchemy import (
     desc,
     JSON,
     create_engine,
+    func,
     Boolean,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 from sqlalchemy.types import PickleType, ARRAY
+from sqlalchemy.dialects.postgresql import array as psql_array
 
 from packit.config import JobConfigTriggerType
 from packit_service.constants import WHITELIST_CONSTANTS
@@ -440,6 +442,32 @@ class CoprBuildModel(Base):
         with get_sa_session() as session:
             return session.query(CoprBuildModel).order_by(desc(CoprBuildModel.id)).all()
 
+    @classmethod
+    def get_merged_chroots(
+        cls, first: int, last: int
+    ) -> Optional[Iterable["CoprBuildModel"]]:
+        """Returns a list of unique build ids with merged status, chroots
+        Details:
+        https://github.com/packit-service/packit-service/pull/674#discussion_r439819852
+        """
+        with get_sa_session() as session:
+            builds = (
+                session.query(
+                    # We need something to order our merged builds by,
+                    # so set new_id to be min(ids of to-be-merged rows)
+                    func.min(CoprBuildModel.id).label("new_id"),
+                    # Select identical element(s)
+                    CoprBuildModel.build_id,
+                    # Merge chroots and statuses from different rows into one
+                    func.array_agg(psql_array([CoprBuildModel.target])).label("target"),
+                    func.array_agg(psql_array([CoprBuildModel.status])).label("status"),
+                )
+                .group_by(CoprBuildModel.build_id)  # Group by identical element(s)
+                .order_by(desc("new_id"))[first:last]
+            )
+
+            return builds
+
     # Returns all builds with that build_id, irrespective of target
     @classmethod
     def get_all_by_build_id(
@@ -454,7 +482,7 @@ class CoprBuildModel(Base):
     # returns the build matching the build_id and the target
     @classmethod
     def get_by_build_id(
-        cls, build_id: Union[str, int], target: str
+        cls, build_id: Union[str, int], target: str = None
     ) -> Optional["CoprBuildModel"]:
         if isinstance(build_id, int):
             # PG is pesky about this:
@@ -463,11 +491,10 @@ class CoprBuildModel(Base):
             #   You might need to add explicit type casts.
             build_id = str(build_id)
         with get_sa_session() as session:
-            return (
-                session.query(CoprBuildModel)
-                .filter_by(build_id=build_id, target=target)
-                .first()
-            )
+            query = session.query(CoprBuildModel).filter_by(build_id=build_id)
+            if target:
+                query = query.filter_by(target=target)
+            return query.first()
 
     @classmethod
     def get_or_create(
