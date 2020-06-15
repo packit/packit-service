@@ -28,7 +28,7 @@ from ogr.abstract import CommitStatus, PullRequest
 from packit_service.models import BugzillaModel
 from packit.config import JobType, JobConfig, PackageConfig
 from packit_service.service.events import TheJobTriggerType, PullRequestLabelAction
-from packit_service.worker.build import CoprBuildJobHelper
+from packit_service.worker.build import CoprBuildJobHelper, BuildHelperMetadata
 from packit_service.worker.handlers import CommentActionHandler
 from packit_service.worker.handlers.abstract import use_for, JobHandler
 from packit_service.worker.handlers.comment_action_handler import CommentAction
@@ -54,6 +54,8 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
             package_config=package_config, job_config=job_config, event=event,
         )
 
+        self.build_helper_metadata = BuildHelperMetadata.from_event_dict(event)
+
         # lazy property
         self._copr_build_helper: Optional[CoprBuildJobHelper] = None
 
@@ -64,7 +66,7 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
                 config=self.config,
                 package_config=self.package_config,
                 project=self.project,
-                event=self.event,
+                metadata=self.build_helper_metadata,
                 db_trigger=self.db_trigger,
                 job=self.job_config,
             )

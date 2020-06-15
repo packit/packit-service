@@ -5,6 +5,7 @@ from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerTyp
 from packit.config.aliases import ALIASES
 from packit.config.job_config import JobMetadataConfig
 from packit_service.service.events import TheJobTriggerType
+from packit_service.worker.build import BuildHelperMetadata
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 
@@ -269,7 +270,7 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
         config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
         project=flexmock(),
-        event={"trigger": trigger, "pr_id": None},
+        metadata=BuildHelperMetadata(trigger=trigger, pr_id=None),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
     )
 
@@ -339,7 +340,7 @@ def test_targets_for_koji_build(
         config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
         project=flexmock(),
-        event={"trigger": trigger, "pr_id": pr_id},
+        metadata=BuildHelperMetadata(trigger=trigger, pr_id=pr_id),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
     )
 

@@ -35,7 +35,10 @@ from packit_service.service.urls import (
     get_srpm_log_url_from_flask,
     get_koji_build_info_url_from_flask,
 )
-from packit_service.worker.build.build_helper import BaseBuildJobHelper
+from packit_service.worker.build.build_helper import (
+    BaseBuildJobHelper,
+    BuildHelperMetadata,
+)
 from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
@@ -52,12 +55,12 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
-        event: dict,
+        metadata: BuildHelperMetadata,
         db_trigger,
         job: Optional[JobConfig] = None,
     ):
         super().__init__(
-            config, package_config, project, event, db_trigger, job,
+            config, package_config, project, metadata, db_trigger, job,
         )
         self.msg_retrigger: str = MSG_RETRIGGER.format(build="production-build")
 
@@ -164,7 +167,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
 
             koji_build = KojiBuildModel.get_or_create(
                 build_id=str(build_id),
-                commit_sha=self.commit_sha,
+                commit_sha=self.metadata.commit_sha,
                 web_url=web_url,
                 target=target,
                 status="pending",

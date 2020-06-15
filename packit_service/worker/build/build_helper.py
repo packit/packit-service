@@ -45,6 +45,44 @@ from sandcastle import SandcastleTimeoutReached
 logger = logging.getLogger(__name__)
 
 
+class BuildHelperMetadata:
+    """
+    Class to represent the data from event needed by BaseBuildJobHelper.
+    """
+
+    def __init__(
+        self,
+        trigger: TheJobTriggerType,
+        pr_id: Optional[int] = None,
+        git_ref: Optional[str] = None,
+        commit_sha: Optional[str] = None,
+        # identifier of the respective event (PR, release) used e.g. in copr project name
+        identifier: Optional[str] = None,
+    ):
+        self.trigger = trigger
+        self.pr_id = pr_id
+        self.git_ref = git_ref
+        self.commit_sha = commit_sha
+        self.identifier = identifier
+
+    @classmethod
+    def from_event_dict(cls, event: dict):
+        trigger = (
+            TheJobTriggerType(event.get("trigger")) if event.get("trigger") else None
+        )
+        pr_id = event.get("pr_id")
+        git_ref = event.get("git_ref")
+        commit_sha = event.get("commit_sha")
+        identifier = event.get("identifier")
+        return BuildHelperMetadata(
+            trigger=trigger,
+            pr_id=pr_id,
+            git_ref=git_ref,
+            commit_sha=commit_sha,
+            identifier=identifier,
+        )
+
+
 class BaseBuildJobHelper:
     job_type_build: Optional[JobType] = None
     job_type_test: Optional[JobType] = None
@@ -56,7 +94,7 @@ class BaseBuildJobHelper:
         config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
-        event: dict,
+        metadata: BuildHelperMetadata,
         db_trigger,
         job: Optional[JobConfig] = None,
     ):
@@ -65,13 +103,7 @@ class BaseBuildJobHelper:
         self.project: GitProject = project
         self.db_trigger = db_trigger
         self.msg_retrigger: Optional[str] = ""
-
-        self.pr_id = event.get("pr_id")
-        self.git_ref = event.get("git_ref")
-        self.commit_sha = event.get("commit_sha")
-        self.trigger = (
-            TheJobTriggerType(event.get("trigger")) if event.get("trigger") else None
-        )
+        self.metadata: BuildHelperMetadata = metadata
 
         # lazy properties
         self._api = None
@@ -96,8 +128,8 @@ class BaseBuildJobHelper:
             self._local_project = LocalProject(
                 git_project=self.project,
                 working_dir=self.config.command_handler_work_dir,
-                ref=self.git_ref,
-                pr_id=self.pr_id,
+                ref=self.metadata.git_ref,
+                pr_id=self.metadata.pr_id,
             )
         return self._local_project
 
@@ -163,7 +195,6 @@ class BaseBuildJobHelper:
         """
         if not self.job_type_build:
             return None
-
         if not self._job_build:
             for job in self.package_config.jobs:
                 if are_job_types_same(job.type, self.job_type_build) and (
@@ -172,7 +203,7 @@ class BaseBuildJobHelper:
                         and self.db_trigger.job_config_trigger_type == job.trigger
                     )
                     or is_trigger_matching_job_config(
-                        trigger=self.trigger, job_config=job
+                        trigger=self.metadata.trigger, job_config=job
                     )
                 ):
                     self._job_build = job
@@ -206,7 +237,7 @@ class BaseBuildJobHelper:
                         and self.db_trigger.job_config_trigger_type == job.trigger
                     )
                     or is_trigger_matching_job_config(
-                        trigger=self.trigger, job_config=job
+                        trigger=self.metadata.trigger, job_config=job
                     )
                 ):
                     self._job_tests = job
@@ -217,7 +248,7 @@ class BaseBuildJobHelper:
     def status_reporter(self) -> StatusReporter:
         if not self._status_reporter:
             self._status_reporter = StatusReporter(
-                self.project, self.commit_sha, self.pr_id
+                self.project, self.metadata.commit_sha, self.metadata.pr_id
             )
         return self._status_reporter
 

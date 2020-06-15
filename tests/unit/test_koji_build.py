@@ -46,15 +46,15 @@ from packit_service.service.events import (
     PullRequestCommentGithubEvent,
     PushGitHubEvent,
     ReleaseEvent,
+    KojiBuildEvent,
 )
 from packit_service.service.urls import (
     get_koji_build_info_url_from_flask,
     get_srpm_log_url_from_flask,
 )
-from packit_service.worker.build import koji_build
+from packit_service.worker.build import koji_build, BuildHelperMetadata
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.reporting import StatusReporter
-from packit_service.worker.handlers.fedmsg_handlers import KojiBuildReportHandler
 
 
 def build_helper(
@@ -93,7 +93,13 @@ def build_helper(
         config=ServiceConfig(),
         package_config=pkg_conf,
         project=GitProject(repo=flexmock(), service=flexmock(), namespace=flexmock()),
-        event=event.get_dict(),
+        metadata=BuildHelperMetadata(
+            trigger=event.trigger,
+            pr_id=event.pr_id,
+            git_ref=event.git_ref,
+            commit_sha=event.commit_sha,
+            identifier=event.identifier,
+        ),
         db_trigger=db_trigger,
     )
     handler._api = PackitAPI(config=ServiceConfig(), package_config=pkg_conf)
@@ -377,12 +383,8 @@ def test_koji_build_failed_srpm(github_pr_event):
     ],
 )
 def test_get_koji_build_logs_url(id_, result):
-    handler = KojiBuildReportHandler(
-        package_config=flexmock(),
-        job_config=flexmock(),
-        event={"rpm_build_task_id": id_},
-    )
-    assert handler.get_koji_build_logs_url() == result
+    event = KojiBuildEvent(build_id=flexmock(), state=flexmock(), rpm_build_task_id=id_)
+    assert event.get_koji_build_logs_url() == result
 
 
 @pytest.mark.parametrize(
@@ -393,9 +395,5 @@ def test_get_koji_build_logs_url(id_, result):
     ],
 )
 def test_get_koji_rpm_build_web_url(id_, result):
-    handler = KojiBuildReportHandler(
-        package_config=flexmock(),
-        job_config=flexmock(),
-        event={"rpm_build_task_id": id_},
-    )
-    assert handler.get_koji_rpm_build_web_url() == result
+    event = KojiBuildEvent(build_id=flexmock(), state=flexmock(), rpm_build_task_id=id_)
+    assert event.get_koji_rpm_build_web_url() == result

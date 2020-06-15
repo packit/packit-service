@@ -47,7 +47,7 @@ from packit_service.service.events import (
     MergeRequestGitlabEvent,
     MergeRequestCommentGitlabEvent,
 )
-from packit_service.worker.build import copr_build
+from packit_service.worker.build import copr_build, BuildHelperMetadata
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.parser import Parser
 from packit_service.worker.reporting import StatusReporter
@@ -67,7 +67,7 @@ def branch_push_event_gitlab() -> PushGitlabEvent:
 
 
 def build_helper(
-    event: dict, metadata=None, trigger=None, jobs=None, db_trigger=None,
+    event, metadata=None, trigger=None, jobs=None, db_trigger=None,
 ):
     if not metadata:
         metadata = JobMetadataConfig(
@@ -97,7 +97,13 @@ def build_helper(
             service=flexmock(),
             namespace="the-example-namespace",
         ),
-        event=event,
+        metadata=BuildHelperMetadata(
+            trigger=event.trigger,
+            pr_id=event.pr_id,
+            git_ref=event.git_ref,
+            commit_sha=event.commit_sha,
+            identifier=event.identifier,
+        ),
         db_trigger=db_trigger,
     )
     handler._api = PackitAPI(ServiceConfig(), pkg_conf)
@@ -108,7 +114,7 @@ def test_copr_build_check_names(github_pr_event):
     trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
-        event=github_pr_event.get_dict(),
+        event=github_pr_event,
         metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="nobody"),
         db_trigger=trigger,
     )
@@ -166,7 +172,6 @@ def test_copr_build_check_names(github_pr_event):
     )
 
     flexmock(Celery).should_receive("send_task").once()
-
     assert helper.run_copr_build()["success"]
 
 
@@ -184,9 +189,7 @@ def test_copr_build_success_set_test_check(github_pr_event):
     )
     trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
-    helper = build_helper(
-        jobs=[test_job], event=github_pr_event.get_dict(), db_trigger=trigger,
-    )
+    helper = build_helper(jobs=[test_job], event=github_pr_event, db_trigger=trigger,)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(16)
     flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create").and_return(
@@ -239,7 +242,7 @@ def test_copr_build_for_branch(branch_push_event):
     trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     flexmock(AddBranchPushDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
-        jobs=[branch_build_job], event=branch_push_event.get_dict(), db_trigger=trigger,
+        jobs=[branch_build_job], event=branch_push_event, db_trigger=trigger,
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(SRPMBuildModel).should_receive("create").and_return(
@@ -296,7 +299,7 @@ def test_copr_build_for_release(release_event):
         "123456"
     )
     helper = build_helper(
-        jobs=[branch_build_job], event=release_event.get_dict(), db_trigger=trigger,
+        jobs=[branch_build_job], event=release_event, db_trigger=trigger,
     )
     flexmock(ReleaseEvent).should_receive("get_project").and_return(helper.project)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
@@ -333,7 +336,7 @@ def test_copr_build_success(github_pr_event):
     # status is set for each build-target (4x):
     #  - Building SRPM ...
     #  - Starting RPM build...
-    helper = build_helper(event=github_pr_event.get_dict())
+    helper = build_helper(event=github_pr_event)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create").and_return(
@@ -370,7 +373,7 @@ def test_copr_build_fails_in_packit(github_pr_event):
     # status is set for each build-target (4x):
     #  - Building SRPM ...
     #  - Build failed, check latest comment for details.
-    helper = build_helper(event=github_pr_event.get_dict())
+    helper = build_helper(event=github_pr_event)
     templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
     flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
         "https://test.url"
@@ -416,7 +419,7 @@ def test_copr_build_no_targets(github_pr_event):
     #  - Building SRPM ...
     #  - Starting RPM build...
     helper = build_helper(
-        event=github_pr_event.get_dict(), metadata=JobMetadataConfig(owner="nobody")
+        event=github_pr_event, metadata=JobMetadataConfig(owner="nobody")
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
     flexmock(GitProject).should_receive("get_pr").and_return(flexmock())

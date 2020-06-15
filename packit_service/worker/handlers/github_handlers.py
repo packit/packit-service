@@ -48,10 +48,11 @@ from packit_service.service.events import (
     PushPagureEvent,
     MergeRequestGitlabEvent,
     PushGitlabEvent,
-    PullRequestCommentGithubEvent
-    MergeRequestCommentGitlabEvent
+    PullRequestCommentGithubEvent,
+    MergeRequestCommentGitlabEvent,
+    InstallationEvent,
 )
-from packit_service.worker.build import CoprBuildJobHelper
+from packit_service.worker.build import CoprBuildJobHelper, BuildHelperMetadata
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.handlers import (
     CommentActionHandler,
@@ -92,6 +93,25 @@ class GithubAppInstallationHandler(JobHandler):
         self.account_login = event.get("account_login")
         self.sender_login = event.get("sender_login")
 
+        account_id = event.get("account_id")
+        account_url = event.get("account_url")
+        sender_id = event.get("sender_id")
+        created_at = event.get("created_at")
+        installation_id = event.get("installation_id")
+        repositories = event.get("repositories")
+
+        self.installation_event = InstallationEvent(
+            installation_id=installation_id,
+            account_login=self.account_login,
+            account_id=account_id,
+            account_url=account_url,
+            account_type=self.account_type,
+            created_at=created_at,
+            repositories=repositories,
+            sender_id=sender_id,
+            sender_login=self.sender_login,
+        )
+
     def run(self) -> HandlerResults:
         """
         Discover information about organization/user which wants to install packit on his repository
@@ -99,7 +119,7 @@ class GithubAppInstallationHandler(JobHandler):
         user is a packager.
         :return: HandlerResults
         """
-        InstallationModel.create(event=self.event)
+        InstallationModel.create(event=self.installation_event)
         # try to add user to whitelist
         whitelist = Whitelist(
             fas_user=self.config.fas_user, fas_password=self.config.fas_password,
@@ -203,6 +223,7 @@ class AbstractCoprBuildHandler(JobHandler):
         super().__init__(
             package_config=package_config, job_config=job_config, event=event,
         )
+        self.build_helper_metadata = BuildHelperMetadata.from_event_dict(event)
 
         # lazy property
         self._copr_build_helper: Optional[CoprBuildJobHelper] = None
@@ -214,7 +235,7 @@ class AbstractCoprBuildHandler(JobHandler):
                 config=self.config,
                 package_config=self.package_config,
                 project=self.project,
-                event=self.event,
+                metadata=self.build_helper_metadata,
                 db_trigger=self.db_trigger,
                 job=self.job_config,
             )
@@ -350,6 +371,7 @@ class AbstractGithubKojiBuildHandler(JobHandler):
                 "PullRequestEvent, ReleaseEvent, and PushGitHubEvent "
                 "are accepted."
             )
+        self.build_helper_metadata = BuildHelperMetadata.from_event_dict(event)
 
         # lazy property
         self._koji_build_helper: Optional[KojiBuildJobHelper] = None
@@ -362,7 +384,7 @@ class AbstractGithubKojiBuildHandler(JobHandler):
                 config=self.config,
                 package_config=self.package_config,
                 project=self.project,
-                event=self.event,
+                metadata=self.build_helper_metadata,
                 db_trigger=self.db_trigger,
                 job=self.job_config,
             )
@@ -483,6 +505,7 @@ class GithubTestingFarmHandler(JobHandler):
         super().__init__(
             package_config=package_config, job_config=job_config, event=event
         )
+        self.build_helper_metadata = BuildHelperMetadata.from_event_dict(event)
         self.chroot = chroot
         self._db_trigger = db_trigger
 
@@ -497,9 +520,10 @@ class GithubTestingFarmHandler(JobHandler):
             config=self.config,
             package_config=self.package_config,
             project=self.project,
-            event=self.event,
+            metadata=self.build_helper_metadata,
             db_trigger=self.db_trigger,
             job=self.job_config,
+            project_url=self.project_url,
         )
         logger.info("Running testing farm.")
         return testing_farm_helper.run_testing_farm(chroot=self.chroot)
@@ -516,10 +540,20 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
     type = CommentAction.copr_build
     triggers = [TheJobTriggerType.pr_comment]
 
+    def __init__(
+        self, package_config: PackageConfig, job_config: JobConfig, event: dict,
+    ):
+        super().__init__(
+            package_config=package_config, job_config=job_config, event=event
+        )
+        self.build_helper_metadata = BuildHelperMetadata.from_event_dict(event)
+
     def run(self) -> HandlerResults:
         user_can_merge_pr = self.project.can_merge_pr(self.user_login)
         if not (user_can_merge_pr or self.user_login in self.config.admins):
-            self.project.pr_comment(self.identifier, PERMISSIONS_ERROR_WRITE_OR_ADMIN)
+            self.project.pr_comment(
+                self.db_trigger.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
+            )
             return HandlerResults(
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
             )
@@ -528,7 +562,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
             config=self.config,
             package_config=self.package_config,
             project=self.project,
-            event=self.event,
+            metadata=self.build_helper_metadata,
             db_trigger=self.db_trigger,
             job=self.job_config,
         )
@@ -590,7 +624,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
         user_can_merge_pr = self.project.can_merge_pr(self.user_login)
         if not (user_can_merge_pr or self.user_login in self.config.admins):
             self.project.issue_comment(
-                self.identifier, PERMISSIONS_ERROR_WRITE_OR_ADMIN
+                self.db_trigger.issue_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )
             return HandlerResults(
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
@@ -601,7 +635,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
                 "There was an error while proposing a new update for the Fedora package: "
                 "no upstream release found."
             )
-            self.project.issue_comment(self.identifier, msg)
+            self.project.issue_comment(self.db_trigger.issue_id, msg)
             return HandlerResults(
                 success=False, details={"msg": "Propose update failed"}
             )
@@ -617,10 +651,10 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
                     dist_git_branch=branch, version=self.tag_name, create_pr=True
                 )
                 msg = f"Packit-as-a-Service proposed [a new update]({new_pr.url}) {msg}"
-                self.project.issue_comment(self.identifier, msg)
+                self.project.issue_comment(self.db_trigger.issue_id, msg)
             except PackitException as ex:
                 msg = f"There was an error while proposing a new update {msg} Traceback is: `{ex}`"
-                self.project.issue_comment(self.identifier, msg)
+                self.project.issue_comment(self.db_trigger.issue_id, msg)
                 logger.error(f"Error while running a build: {ex}")
                 sync_failed = True
         if sync_failed:
@@ -629,7 +663,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
             )
 
         # Close issue if propose-update was successful in all branches
-        self.project.issue_close(self.identifier)
+        self.project.issue_close(self.db_trigger.issue_id)
 
         return HandlerResults(success=True, details={})
 
@@ -642,18 +676,29 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
     type = CommentAction.test
     triggers = [TheJobTriggerType.pr_comment]
 
+    def __init__(
+        self, package_config: PackageConfig, job_config: JobConfig, event: dict,
+    ):
+        super().__init__(
+            package_config=package_config, job_config=job_config, event=event
+        )
+        self.build_helper_metadata = BuildHelperMetadata.from_event_dict(event)
+
     def run(self) -> HandlerResults:
         testing_farm_helper = TestingFarmJobHelper(
             config=self.config,
             package_config=self.package_config,
             project=self.project,
-            event=self.event,
+            metadata=self.build_helper_metadata,
             db_trigger=self.db_trigger,
             job=self.job_config,
+            project_url=self.project_url,
         )
         user_can_merge_pr = self.project.can_merge_pr(self.user_login)
         if not (user_can_merge_pr or self.user_login in self.config.admins):
-            self.project.pr_comment(self.identifier, PERMISSIONS_ERROR_WRITE_OR_ADMIN)
+            self.project.pr_comment(
+                self.db_trigger.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
+            )
             return HandlerResults(
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
             )

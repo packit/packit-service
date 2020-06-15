@@ -35,7 +35,10 @@ from packit_service.service.urls import (
     get_srpm_log_url_from_flask,
     get_copr_build_info_url_from_flask,
 )
-from packit_service.worker.build.build_helper import BaseBuildJobHelper
+from packit_service.worker.build.build_helper import (
+    BaseBuildJobHelper,
+    BuildHelperMetadata,
+)
 from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
@@ -52,7 +55,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
-        event: dict,
+        metadata: BuildHelperMetadata,
         db_trigger,
         job: Optional[JobConfig] = None,
     ):
@@ -60,7 +63,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             config=config,
             package_config=package_config,
             project=project,
-            event=event,
+            metadata=metadata,
             db_trigger=db_trigger,
             job=job,
         )
@@ -68,7 +71,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         self.msg_retrigger: str = MSG_RETRIGGER.format(
             build="copr-build" if self.job_build else "build"
         )
-        self.identifier = event.get("identifier")
 
     @property
     def default_project_name(self) -> str:
@@ -76,7 +78,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         Project name for copr -- add `-stg` suffix for the stg app.
         """
         stg = "-stg" if self.config.deployment == Deployment.stg else ""
-        return f"{self.project.namespace}-{self.project.repo}-{self.identifier}{stg}"
+        return f"{self.project.namespace}-{self.project.repo}-{self.metadata.identifier}{stg}"
 
     @property
     def job_project(self) -> Optional[str]:
@@ -186,7 +188,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         for chroot in self.build_targets:
             copr_build = CoprBuildModel.get_or_create(
                 build_id=str(build_id),
-                commit_sha=self.commit_sha,
+                commit_sha=self.metadata.commit_sha,
                 project_name=self.job_project,
                 owner=self.job_owner,
                 web_url=web_url,

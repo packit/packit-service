@@ -888,6 +888,21 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
         result["identifier"] = self.identifier
         return result
 
+    def get_koji_build_logs_url(self) -> Optional[str]:
+        if not self.rpm_build_task_id:
+            return None
+
+        return (
+            f"https://kojipkgs.fedoraproject.org//work/tasks/"
+            f"{self.rpm_build_task_id % 10000}/{self.rpm_build_task_id}/build.log"
+        )
+
+    def get_koji_rpm_build_web_url(self) -> Optional[str]:
+        if not self.rpm_build_task_id:
+            return None
+
+        return f"https://koji.fedoraproject.org/koji/taskinfo?taskID={self.rpm_build_task_id}"
+
 
 class CoprBuildEvent(AbstractForgeIndependentEvent):
     build: Optional[CoprBuildModel]
@@ -996,6 +1011,19 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
         result["topic"] = result["topic"].value
         # self.build = build
         return result
+
+    def get_copr_build_url(self) -> str:
+        return (
+            "https://copr.fedorainfracloud.org/coprs/"
+            f"{self.owner}/{self.project_name}/build/{self.build_id}/"
+        )
+
+    def get_copr_build_logs_url(self) -> str:
+        return (
+            f"https://copr-be.cloud.fedoraproject.org/results/{self.owner}/"
+            f"{self.project_name}/{self.chroot}/"
+            f"{self.build_id:08d}-{self.pkg}/builder-live.log.gz"
+        )
 
 
 class AbstractPagureEvent(AbstractForgeIndependentEvent):

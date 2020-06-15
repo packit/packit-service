@@ -1027,23 +1027,20 @@ class InstallationModel(Base):
             return session.query(InstallationModel).all()
 
     @classmethod
-    def create(cls, event: dict):
+    def create(cls, event):
         with get_sa_session() as session:
-            account_login = event.get("account_login")
-            installation = cls.get_by_account_login(account_login)
+            installation = cls.get_by_account_login(event.account_login)
             if not installation:
                 installation = cls()
-                installation.account_login = account_login
-                installation.account_id = event.get("account_id")
-                installation.account_url = event.get("account_url")
-                installation.account_type = event.get("account_type")
-                installation.sender_login = event.get("sender_login")
-                installation.sender_id = event.get("sender_id")
-                installation.created_at = datetime.fromtimestamp(
-                    event.get("created_at")
-                )
+                installation.account_login = event.account_login
+                installation.account_id = event.account_id
+                installation.account_url = event.account_url
+                installation.account_type = event.account_type
+                installation.sender_login = event.sender_login
+                installation.sender_id = event.sender_id
+                installation.created_at = event.created_at
                 installation.repositories = [
-                    cls.get_project(repo).id for repo in event.get("repositories")
+                    cls.get_project(repo).id for repo in event.repositories
                 ]
                 session.add(installation)
             return installation

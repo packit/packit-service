@@ -24,6 +24,7 @@
 import json
 import logging
 import uuid
+from typing import Optional
 
 import requests
 
@@ -36,7 +37,7 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.models import TFTTestRunModel, TestingFarmResult
 from packit_service.sentry_integration import send_to_sentry
-from packit_service.worker.build import CoprBuildJobHelper
+from packit_service.worker.build import CoprBuildJobHelper, BuildHelperMetadata
 from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
@@ -48,19 +49,20 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
-        event: dict,
+        metadata: BuildHelperMetadata,
         db_trigger,
-        job: JobConfig = None,
+        project_url: Optional[str] = None,
+        job: Optional[JobConfig] = None,
     ):
         super().__init__(
             config=config,
             package_config=package_config,
             project=project,
-            event=event,
+            metadata=metadata,
             db_trigger=db_trigger,
             job=job,
         )
-        self.project_url = event.get("project_url")
+        self.project_url = project_url
 
         self.session = requests.session()
         adapter = requests.adapters.HTTPAdapter(max_retries=5)
@@ -85,9 +87,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 "repo-namespace": self.project.namespace,
                 "copr-repo-name": f"{self.job_owner}/{self.job_project}",
                 "copr-chroot": chroot,
-                "commit-sha": self.commit_sha,
+                "commit-sha": self.metadata.commit_sha,
                 "git-url": git_url,
-                "git-ref": self.git_ref if self.git_ref else self.commit_sha,
+                "git-ref": self.metadata.git_ref
+                if self.metadata.git_ref
+                else self.metadata.commit_sha,
             },
         }
 
@@ -145,7 +149,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         test_run_model = TFTTestRunModel.create(
             pipeline_id=pipeline_id,
-            commit_sha=self.commit_sha,
+            commit_sha=self.metadata.commit_sha,
             status=TestingFarmResult.new,
             target=chroot,
             web_url=None,

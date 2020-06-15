@@ -181,13 +181,11 @@ class JobHandler(Handler):
     ):
         self.package_config: PackageConfig = package_config
         self.job_config: Optional[JobConfig] = job_config
-        self.event_type = event.get("event_type")
-        self.trigger = (
-            TheJobTriggerType(event.get("trigger")) if event.get("trigger") else None
-        )
-        self.user_login = event.get("user_login")
-        self.trigger_id = event.get("trigger_id")
-        self.project_url = event.get("project_url")
+        self.event_type: str = event.get("event_type")
+        self.trigger: TheJobTriggerType = TheJobTriggerType(event.get("trigger"))
+        self.user_login: str = event.get("user_login")
+        self.trigger_id: int = event.get("trigger_id")
+        self.project_url: str = event.get("project_url")
 
         self.event = event
         self._db_trigger: Optional[AbstractTriggerDbType] = None
@@ -214,15 +212,9 @@ class JobHandler(Handler):
 
     @property
     def project(self) -> Optional[GitProject]:
-        if not self._project:
-            self._project = self.get_project()
+        if not self._project and self.project_url:
+            self._project = self.config.get_project(url=self.project_url)
         return self._project
-
-    def get_project(self) -> Optional[GitProject]:
-        if not self.project_url:
-            return None
-
-        return self.config.get_project(url=self.project_url)
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")

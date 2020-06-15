@@ -80,7 +80,6 @@ class CommentActionHandler(JobHandler):
         event: dict,
     ):
         super().__init__(package_config, job_config, event)
-        self.identifier = event.get("pr_id") or event.get("issue_id")
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")

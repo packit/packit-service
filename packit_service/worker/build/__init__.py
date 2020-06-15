@@ -20,10 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from packit_service.worker.build.build_helper import BaseBuildJobHelper
+from packit_service.worker.build.build_helper import (
+    BaseBuildJobHelper,
+    BuildHelperMetadata,
+)
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 
 __all__ = [
     CoprBuildJobHelper.__name__,
     BaseBuildJobHelper.__name__,
+    BuildHelperMetadata.__name__,
 ]

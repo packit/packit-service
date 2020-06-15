@@ -46,7 +46,7 @@ from packit_service.service.events import (
     PullRequestCommentPagureEvent,
     KojiBuildEvent,
 )
-from packit_service.worker.build import CoprBuildJobHelper
+from packit_service.worker.build import CoprBuildJobHelper, BuildHelperMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +92,8 @@ class Whitelist:
         Add account to whitelist.
         Status is set to 'waiting' or to 'approved_automatically'
         if the account is a packager in Fedora.
-        :param event: Github app installation info
+        :param sender_login: login of the user who installed the app into 'account'
+        :param account_login: login of the account into which the app was installed
         :return: was the account (auto/already)-whitelisted?
         """
         if WhitelistModel.get_account(account_login):
@@ -226,7 +227,13 @@ class Whitelist:
                         config=config,
                         package_config=event.get_package_config(),
                         project=project,
-                        event=event.get_dict(),
+                        metadata=BuildHelperMetadata(
+                            pr_id=event.pr_id,
+                            git_ref=event.git_ref,
+                            commit_sha=event.commit_sha,
+                            trigger=event.trigger,
+                            identifier=event.identifier,
+                        ),
                         db_trigger=event.db_trigger,
                     )
                     msg = "Account is not whitelisted!"  # needs to be shorter

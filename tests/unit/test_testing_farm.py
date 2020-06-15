@@ -39,6 +39,7 @@ from packit_service.service.events import (
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelper
+from packit_service.worker.build import BuildHelperMetadata
 
 
 @pytest.mark.parametrize(
@@ -277,15 +278,14 @@ def test_trigger_payload(
         service="GitHub",
         get_git_urls=lambda: {"git": f"{project_url}.git"},
     )
-    event = {
-        "commit_sha": commit_sha,
-        "project_url": project_url,
-        "git_ref": git_ref,
-        "pr_id": None,
-    }
+    metadata = BuildHelperMetadata(
+        trigger=flexmock(), commit_sha=commit_sha, git_ref=git_ref,
+    )
     db_trigger = flexmock()
 
-    job_helper = TFJobHelper(config, package_config, project, event, db_trigger)
+    job_helper = TFJobHelper(
+        config, package_config, project, metadata, db_trigger, project_url
+    )
     job_helper = flexmock(job_helper)
 
     job_helper.should_receive("job_owner").and_return(copr_owner)

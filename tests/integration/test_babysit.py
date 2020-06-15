@@ -69,6 +69,7 @@ def test_check_copr_build_already_successful():
 
 
 def test_check_copr_build_updated():
+    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return()
     flexmock(CoprBuildModel).should_receive("get_all_by_build_id").with_args(
         1
     ).and_return(
