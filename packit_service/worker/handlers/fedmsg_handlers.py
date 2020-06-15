@@ -351,14 +351,20 @@ class KojiBuildReportHandler(FedmsgHandler):
             f"Build on {build.target} in koji changed state "
             f"from {self.event.old_state} to {self.event.state}."
         )
-        start_time = (
+
+        build.set_build_start_time(
             datetime.utcfromtimestamp(self.event.start_time)
             if self.event.start_time
             else None
         )
-        build.set_start_time(start_time)
-        url = get_koji_build_info_url_from_flask(build.id)
 
+        build.set_build_finished_time(
+            datetime.utcfromtimestamp(self.event.completion_time)
+            if self.event.completion_time
+            else None
+        )
+
+        url = get_koji_build_info_url_from_flask(build.id)
         build_job_helper = KojiBuildJobHelper(
             config=self.config,
             package_config=self.event.package_config,
