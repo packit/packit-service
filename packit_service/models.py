@@ -581,6 +581,21 @@ class KojiBuildModel(Base):
     def get_project(self) -> GitProjectModel:
         return self.job_trigger.get_trigger_object().project
 
+    def set_build_start_time(self, build_start_time: Optional[DateTime]):
+        with get_sa_session() as session:
+            self.build_start_time = build_start_time
+            session.add(self)
+
+    def set_build_finished_time(self, build_finished_time: Optional[DateTime]):
+        with get_sa_session() as session:
+            self.build_finished_time = build_finished_time
+            session.add(self)
+
+    def set_build_submitted_time(self, build_submitted_time: Optional[DateTime]):
+        with get_sa_session() as session:
+            self.build_submitted_time = build_submitted_time
+            session.add(self)
+
     @property
     def api_structure(self) -> Dict[str, Any]:
         base = {
