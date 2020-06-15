@@ -39,7 +39,18 @@ from packit.local_project import LocalProject
 from packit_service import sentry_integration
 from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
 from packit_service.models import InstallationModel, AbstractTriggerDbType
-from packit_service.service.events import TheJobTriggerType, EventType
+from packit_service.service.events import (
+    TheJobTriggerType,
+    ReleaseEvent,
+    PullRequestGithubEvent,
+    PullRequestPagureEvent,
+    PushGitHubEvent,
+    PushPagureEvent,
+    MergeRequestGitlabEvent,
+    PushGitlabEvent,
+    PullRequestCommentGithubEvent
+    MergeRequestCommentGitlabEvent
+)
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.handlers import (
@@ -237,7 +248,7 @@ class ReleaseCoprBuildHandler(AbstractCoprBuildHandler):
 
     def pre_check(self) -> bool:
         return (
-            self.event_type == EventType.release
+            self.event_type == ReleaseEvent.__name__
             and self.trigger == TheJobTriggerType.release
             and super().pre_check()
         )
@@ -252,7 +263,7 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
     ]
 
     def run(self) -> HandlerResults:
-        if self.event_type in (EventType.pull_request_gh, EventType.merge_request_gl):
+        if self.event_type in (PullRequestGithubEvent.__name__, MergeRequestGitlabEvent.__name__):
             user_can_merge_pr = self.project.can_merge_pr(self.user_login)
             if not (user_can_merge_pr or self.user_login in self.config.admins):
                 self.copr_build_helper.report_status_to_all(
@@ -266,7 +277,10 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
 
     def pre_check(self) -> bool:
         return (
-            self.event_type in (EventType.pull_request_gh, EventType.pull_request_pg, EventType.merge_request_gl)
+            self.event_type
+            in (PullRequestGithubEvent.__name__,
+                PullRequestPagureEvent.__name__,
+                MergeRequestGitlabEvent.__name__)
             and self.trigger == TheJobTriggerType.pull_request
             and super().pre_check()
         )
@@ -294,7 +308,9 @@ class PushCoprBuildHandler(AbstractCoprBuildHandler):
 
     def pre_check(self) -> bool:
         valid = (
-            self.event_type in (EventType.push_gh, EventType.push_pagure, EventType.push_gl)
+            self.event_type in (PushGitHubEvent.__name__,
+                                PushPagureEvent.__name__,
+                                PushGitlabEvent.__name__)
             and self.trigger == TheJobTriggerType.push
             and super().pre_check()
         )
@@ -323,7 +339,11 @@ class AbstractGithubKojiBuildHandler(JobHandler):
 
         if not (
             self.event_type
-            in (EventType.pull_request_gh, EventType.push_gh, EventType.release)
+            in (
+                PullRequestGithubEvent.__name__,
+                PushGitHubEvent.__name__,
+                ReleaseEvent.__name__,
+            )
         ):
             raise PackitException(
                 "Unknown event, only "
@@ -375,7 +395,7 @@ class ReleaseGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     def pre_check(self) -> bool:
         return (
             super().pre_check()
-            and self.event_type == EventType.release
+            and self.event_type == ReleaseEvent.__name__
             and self.trigger == TheJobTriggerType.release
         )
 
@@ -387,7 +407,7 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     ]
 
     def run(self) -> HandlerResults:
-        if self.event_type == EventType.pull_request_gh:
+        if self.event_type == PullRequestGithubEvent.__name__:
             user_can_merge_pr = self.project.can_merge_pr(self.user_login)
             if not (user_can_merge_pr or self.user_login in self.config.admins):
                 self.koji_build_helper.report_status_to_all(
@@ -402,7 +422,7 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     def pre_check(self) -> bool:
         return (
             super().pre_check()
-            and self.event_type == EventType.pull_request_gh
+            and self.event_type == PullRequestGithubEvent.__name__
             and self.trigger == TheJobTriggerType.pull_request
         )
 
@@ -428,7 +448,7 @@ class PushGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     def pre_check(self) -> bool:
         valid = (
             super().pre_check()
-            and self.event_type == EventType.push_gh
+            and self.event_type == PushGitHubEvent.__name__
             and self.trigger == TheJobTriggerType.push
         )
         if not valid:
@@ -518,9 +538,8 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
 
     def pre_check(self) -> bool:
         return (
-            isinstance(
-                self.event,
-                (PullRequestCommentGithubEvent, MergeRequestCommentGitlabEvent,),
+            self.event_type in (
+                (PullRequestCommentGithubEvent.__name__, MergeRequestCommentGitlabEvent.__name__
             )
             and self.event.trigger == TheJobTriggerType.pr_comment
             and super().pre_check()

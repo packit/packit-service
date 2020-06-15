@@ -114,28 +114,6 @@ class TheJobTriggerType(str, enum.Enum):
     copr_end = "copr_end"
 
 
-class EventType(str, enum.Enum):
-    installation = "InstallationEvent"
-    copr_build = "CoprBuildEvent"
-    koji_build = "KojiBuildEvent"
-    tft_result = "TestingFarmResultsEvent"
-    release = "ReleaseEvent"
-    push_gh = "PushGitHubEvent"
-    pull_request_gh = "PullRequestGithubEvent"
-    pull_request_comment_gh = "PullRequestCommentGithubEvent"
-    issue_comment = "IssueCommentEvent"
-    push_pagure = "PushPagureEvent"
-    pull_request_comment_pg = "PullRequestCommentPagureEvent"
-    pull_request_pg = "PullRequestPagureEvent"
-    pull_request_label_pg = "PullRequestLabelPagureEvent"
-    dist_git_event = "DistGitEvent"
-    issue_comment_gl = "IssueCommentGitlabEvent"
-    merge_request_comment_gl = "MergeRequestCommentGitlabEvent"
-    merge_request_gl = "MergeRequestGitlabEvent"
-    push_gl = "PushGitlabEvent"
-
-
-
 class TestResult(dict):
     def __init__(self, name: str, result: TestingFarmResult, log_url: str):
         dict.__init__(self, name=name, result=result, log_url=log_url)

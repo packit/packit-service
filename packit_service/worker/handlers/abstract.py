@@ -44,7 +44,7 @@ from packit_service.models import (
     ProjectReleaseModel,
     GitBranchModel,
 )
-from packit_service.service.events import TheJobTriggerType, EventType
+from packit_service.service.events import TheJobTriggerType
 from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
@@ -181,9 +181,7 @@ class JobHandler(Handler):
     ):
         self.package_config: PackageConfig = package_config
         self.job_config: Optional[JobConfig] = job_config
-        self.event_type = (
-            EventType(event.get("event_type")) if event.get("event_type") else None
-        )
+        self.event_type = event.get("event_type")
         self.trigger = (
             TheJobTriggerType(event.get("trigger")) if event.get("trigger") else None
         )
