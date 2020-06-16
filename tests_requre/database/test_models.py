@@ -38,6 +38,7 @@ from packit_service.models import (
     TaskResultModel,
     GitProjectModel,
     InstallationModel,
+    BugzillaModel,
 )
 from tests_requre.conftest import SampleValues
 
@@ -537,3 +538,20 @@ def test_pr_get_copr_builds(
     pr_model = a_copr_build_for_pr.job_trigger.get_trigger_object()
     assert a_copr_build_for_pr in pr_model.get_copr_builds()
     assert not different_pr_model.get_copr_builds()
+
+
+def test_bugzilla_create(clean_before_and_after, bugzilla_model):
+    assert isinstance(bugzilla_model, BugzillaModel)
+    assert bugzilla_model.bug_id == SampleValues.bug_id
+    assert bugzilla_model.bug_url == SampleValues.bug_url
+
+
+def test_bugzilla_get_by_id(clean_before_and_after, bugzilla_model):
+    bz = BugzillaModel.get_by_pr(
+        pr_id=SampleValues.pr_id,
+        namespace=SampleValues.repo_namespace,
+        repo_name=SampleValues.repo_name,
+        project_url=SampleValues.project_url,
+    )
+    assert bz.bug_id == bugzilla_model.bug_id == SampleValues.bug_id
+    assert bz.bug_url == bugzilla_model.bug_url == SampleValues.bug_url
