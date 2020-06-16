@@ -74,7 +74,7 @@ class CoprBuildsList(Resource):
             result.append(build_dict)
 
         resp = make_response(dumps(result), HTTPStatus.PARTIAL_CONTENT)
-        resp.headers["Content-Range"] = f"copr-builds {first + 1}-{last}/{len(result)}"
+        resp.headers["Content-Range"] = f"copr-builds {first + 1}-{last}/*"
         resp.headers["Content-Type"] = "application/json"
 
         return resp

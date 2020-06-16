@@ -409,6 +409,17 @@ def test_tmt_test_run_set_status(clean_before_and_after, a_new_test_run_pr):
     assert b.status == TestingFarmResult.running
 
 
+def test_tmt_test_run_get_project(clean_before_and_after, a_new_test_run_pr):
+    assert a_new_test_run_pr.status == TestingFarmResult.new
+    assert a_new_test_run_pr.get_project().namespace == "the-namespace"
+    assert a_new_test_run_pr.get_project().repo_name == "the-repo-name"
+
+
+def test_tmt_test_run_get_pr_id(clean_before_and_after, a_new_test_run_pr):
+    assert a_new_test_run_pr.status == TestingFarmResult.new
+    assert a_new_test_run_pr.get_pr_id() == 342
+
+
 def test_tmt_test_run_set_web_url(clean_before_and_after, pr_model):
     test_run_model = TFTTestRunModel.create(
         pipeline_id="123456",
@@ -442,6 +453,12 @@ def test_tmt_test_get_by_pipeline_id_pr(clean_before_and_after, pr_model):
     b = TFTTestRunModel.get_by_pipeline_id(test_run_model.pipeline_id)
     assert b
     assert b.job_trigger.get_trigger_object() == pr_model
+
+
+def test_tmt_test_get_range(clean_before_and_after, multiple_new_test_runs):
+    assert multiple_new_test_runs
+    results = TFTTestRunModel.get_range(0, 10)
+    assert len(results) == 3
 
 
 def test_tmt_test_get_by_pipeline_id_branch_push(clean_before_and_after, branch_model):
