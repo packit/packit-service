@@ -24,7 +24,7 @@
           - python3-openshift
           - make
           - skopeo
-          # - podman
+          - podman
       become: true
     - name: get token
       command: oc whoami -t
