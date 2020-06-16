@@ -854,6 +854,18 @@ class TFTTestRunModel(Base):
             self.web_url = web_url
             session.add(self)
 
+    def get_project(self) -> Optional[GitProjectModel]:
+        trigger_object = self.job_trigger.get_trigger_object()
+        if not trigger_object:
+            return None
+        return trigger_object.project
+
+    def get_pr_id(self) -> Optional[int]:
+        trigger_object = self.job_trigger.get_trigger_object()
+        if isinstance(trigger_object, PullRequestModel):
+            return trigger_object.pr_id
+        return None
+
     @classmethod
     def create(
         cls,
@@ -887,6 +899,13 @@ class TFTTestRunModel(Base):
                 .filter_by(pipeline_id=pipeline_id)
                 .first()
             )
+
+    @classmethod
+    def get_range(cls, first: int, last: int) -> Optional[Iterable["TFTTestRunModel"]]:
+        with get_sa_session() as session:
+            return session.query(TFTTestRunModel).order_by(desc(TFTTestRunModel.id))[
+                first:last
+            ]
 
 
 class InstallationModel(Base):
