@@ -243,7 +243,7 @@ class TestEvents:
         assert event_object.trigger == TheJobTriggerType.pull_request
         assert event_object.action == GitlabEventAction.opened
         assert event_object.object_id == 58759529
-        assert event_object.object_iid == 1
+        assert event_object.identifier == "1"
         assert event_object.source_repo_namespace == "testing-packit"
         assert event_object.source_repo_name == "hello-there"
         assert event_object.commit_sha == "1f6a716aa7a618a9ffe56970d77177d99d100022"
@@ -273,7 +273,7 @@ class TestEvents:
         assert isinstance(event_object, MergeRequestGitlabEvent)
         assert event_object.action == GitlabEventAction.update
         assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
-        assert event_object.object_iid == 2
+        assert event_object.identifier == "2"
 
         assert isinstance(event_object.project, GitlabProject)
         assert event_object.project.full_repo_name == "testing-packit/hello-there"
@@ -380,7 +380,7 @@ class TestEvents:
         assert event_object.target_repo_namespace == "testing-packit"
         assert event_object.target_repo_name == "hello-there"
         assert event_object.https_url == "https://gitlab.com/testing-packit/hello-there"
-        assert event_object.username == "shreyaspapi"
+        assert event_object.user_login == "shreyaspapi"
         assert event_object.comment == "must be reopened"
         assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
 
@@ -492,7 +492,7 @@ class TestEvents:
         assert (
             event_object.project_url == "https://gitlab.com/testing-packit/hello-there"
         )
-        assert event_object.username == "shreyaspapi"
+        assert event_object.user_login == "shreyaspapi"
         assert event_object.comment == "testing comment"
 
         assert isinstance(event_object.project, GitlabProject)

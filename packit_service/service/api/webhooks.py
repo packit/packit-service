@@ -224,7 +224,7 @@ class GitlabWebhook(Resource):
         token = request.headers["X-Gitlab-Token"]
 
         # Find a better solution
-        if token != config.gitlab_webhook_token:
+        if token not in config.gitlab_webhook_tokens:
             raise ValidationFailed("Payload token validation failed.")
 
         logger.debug("Payload token is OK.")

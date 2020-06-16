@@ -1,0 +1,172 @@
+{
+  "object_kind": "push",
+  "event_name": "push",
+  "before": "1f6a716aa7a618a9ffe56970d77177d99d100022",
+  "after": "952cfd32c1a9317f4c460dbe4a6bb3ac406c1002",
+  "ref": "refs/heads/test",
+  "checkout_sha": "952cfd32c1a9317f4c460dbe4a6bb3ac406c1002",
+  "message": null,
+  "user_id": 5647360,
+  "user_name": "Shreyas Papinwar",
+  "user_username": "shreyaspapi",
+  "user_email": "",
+  "user_avatar": "https://assets.gitlab-static.net/uploads/-/system/user/avatar/5647360/avatar.png",
+  "project_id": 18032222,
+  "project": {
+    "id": 18032222,
+    "name": "Hello there",
+    "description": "Hehehehe",
+    "web_url": "https://gitlab.com/testing-packit/hello-there",
+    "avatar_url": null,
+    "git_ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+    "git_http_url": "https://gitlab.com/testing-packit/hello-there.git",
+    "namespace": "Testing packit",
+    "visibility_level": 20,
+    "path_with_namespace": "testing-packit/hello-there",
+    "default_branch": "master",
+    "ci_config_path": null,
+    "homepage": "https://gitlab.com/testing-packit/hello-there",
+    "url": "git@gitlab.com:testing-packit/hello-there.git",
+    "ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+    "http_url": "https://gitlab.com/testing-packit/hello-there.git"
+  },
+  "commits": [
+    {
+      "id": "122d758394da57e3a25a20ace968a8a17ed62123",
+      "message": "Update README.md",
+      "title": "Update README.md",
+      "timestamp": "2020-05-24T19:44:56+00:00",
+      "url": "https://gitlab.com/testing-packit/hello-there/-/commit/122d758394da57e3a25a20ace968a8a17ed62123",
+      "author": {
+        "name": "Shreyas Papinwar",
+        "email": "spapinwar@gmail.com"
+      },
+      "added": [],
+      "modified": ["README.md"],
+      "removed": []
+    },
+    {
+      "id": "da1335ecc129ac0fc48d64ba7b8fa724e7187acb",
+      "message": "Update README.md",
+      "title": "Update README.md",
+      "timestamp": "2020-05-26T22:03:19+00:00",
+      "url": "https://gitlab.com/testing-packit/hello-there/-/commit/da1335ecc129ac0fc48d64ba7b8fa724e7187acb",
+      "author": {
+        "name": "Shreyas Papinwar",
+        "email": "spapinwar@gmail.com"
+      },
+      "added": [],
+      "modified": ["README.md"],
+      "removed": []
+    },
+    {
+      "id": "94ccba9f986629e24b432c11d9c7fd20bb2ea51d",
+      "message": "Update README.md",
+      "title": "Update README.md",
+      "timestamp": "2020-06-01T07:23:58+00:00",
+      "url": "https://gitlab.com/testing-packit/hello-there/-/commit/94ccba9f986629e24b432c11d9c7fd20bb2ea51d",
+      "author": {
+        "name": "Shreyas Papinwar",
+        "email": "spapinwar@gmail.com"
+      },
+      "added": [],
+      "modified": ["README.md"],
+      "removed": []
+    },
+    {
+      "id": "45e272a57335e4e308f3176df6e9226a9e7805a9",
+      "message": "Update README.md",
+      "title": "Update README.md",
+      "timestamp": "2020-06-01T07:24:37+00:00",
+      "url": "https://gitlab.com/testing-packit/hello-there/-/commit/45e272a57335e4e308f3176df6e9226a9e7805a9",
+      "author": {
+        "name": "Shreyas Papinwar",
+        "email": "spapinwar@gmail.com"
+      },
+      "added": [],
+      "modified": ["README.md"],
+      "removed": []
+    },
+    {
+      "id": "0e27f070efa4bef2a7c0168f07a0ac36ef90d8cb",
+      "message": "Merge branch 'test1' into 'master'\n\nUpdate README.md testing edit\n\nSee merge request testing-packit/hello-there!2",
+      "title": "Merge branch 'test1' into 'master'",
+      "timestamp": "2020-06-04T22:44:10+00:00",
+      "url": "https://gitlab.com/testing-packit/hello-there/-/commit/0e27f070efa4bef2a7c0168f07a0ac36ef90d8cb",
+      "author": {
+        "name": "Shreyas Papinwar",
+        "email": "spapinwar@gmail.com"
+      },
+      "added": [],
+      "modified": ["README.md"],
+      "removed": []
+    },
+    {
+      "id": "cb2859505e101785097e082529dced35bbee0c8f",
+      "message": "Update README.md",
+      "title": "Update README.md",
+      "timestamp": "2020-06-04T23:14:57+00:00",
+      "url": "https://gitlab.com/testing-packit/hello-there/-/commit/cb2859505e101785097e082529dced35bbee0c8f",
+      "author": {
+        "name": "Shreyas Papinwar",
+        "email": "spapinwar@gmail.com"
+      },
+      "added": [],
+      "modified": ["README.md"],
+      "removed": []
+    },
+    {
+      "id": "6e55d9508feed40c25b490a871dd0d6e6bc7987e",
+      "message": "Update README.md",
+      "title": "Update README.md",
+      "timestamp": "2020-06-06T21:41:37+00:00",
+      "url": "https://gitlab.com/testing-packit/hello-there/-/commit/6e55d9508feed40c25b490a871dd0d6e6bc7987e",
+      "author": {
+        "name": "Shreyas Papinwar",
+        "email": "spapinwar@gmail.com"
+      },
+      "added": [],
+      "modified": ["README.md"],
+      "removed": []
+    },
+    {
+      "id": "05648081a33caf84a20822a8741f54f9e70af40a",
+      "message": "Merge branch 'test2' into 'master'\n\nUpdate README.md\n\nSee merge request testing-packit/hello-there!4",
+      "title": "Merge branch 'test2' into 'master'",
+      "timestamp": "2020-06-06T21:42:04+00:00",
+      "url": "https://gitlab.com/testing-packit/hello-there/-/commit/05648081a33caf84a20822a8741f54f9e70af40a",
+      "author": {
+        "name": "Shreyas Papinwar",
+        "email": "spapinwar@gmail.com"
+      },
+      "added": [],
+      "modified": ["README.md"],
+      "removed": []
+    },
+    {
+      "id": "952cfd32c1a9317f4c460dbe4a6bb3ac406c1002",
+      "message": "Merge branch 'master' into 'test'\n\n# Conflicts:\n#   README.md",
+      "title": "Merge branch 'master' into 'test'",
+      "timestamp": "2020-06-18T21:12:30+00:00",
+      "url": "https://gitlab.com/testing-packit/hello-there/-/commit/952cfd32c1a9317f4c460dbe4a6bb3ac406c1002",
+      "author": {
+        "name": "Shreyas Papinwar",
+        "email": "spapinwar@gmail.com"
+      },
+      "added": [],
+      "modified": ["README.md"],
+      "removed": []
+    }
+  ],
+  "total_commits_count": 9,
+  "push_options": {},
+  "repository": {
+    "name": "Hello there",
+    "url": "git@gitlab.com:testing-packit/hello-there.git",
+    "description": "Hehehehe",
+    "homepage": "https://gitlab.com/testing-packit/hello-there",
+    "git_http_url": "https://gitlab.com/testing-packit/hello-there.git",
+    "git_ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+    "visibility_level": 20
+  }
+}

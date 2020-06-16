@@ -56,6 +56,7 @@ class ServiceConfigSchema(UserConfigSchema):
     pr_accepted_labels = fields.List(fields.String())
     admins = fields.List(fields.String())
     server_name = fields.String()
+    gitlab_webhook_tokens = fields.List(fields.String())
 
     @post_load
     def make_instance(self, data, **kwargs):

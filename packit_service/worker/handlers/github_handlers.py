@@ -52,6 +52,9 @@ from packit_service.service.events import (
     PullRequestPagureEvent,
     PushPagureEvent,
     Event,
+    PushGitlabEvent,
+    MergeRequestGitlabEvent,
+    MergeRequestCommentGitlabEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
@@ -206,7 +209,12 @@ class ProposeDownstreamHandler(AbstractGitForgeJobHandler):
 class AbstractCoprBuildHandler(AbstractGitForgeJobHandler):
     type = JobType.copr_build
     event: Union[
-        PullRequestGithubEvent, ReleaseEvent, PushGitHubEvent, PullRequestPagureEvent
+        PullRequestGithubEvent,
+        ReleaseEvent,
+        PushGitHubEvent,
+        PullRequestPagureEvent,
+        MergeRequestGitlabEvent,
+        PushGitlabEvent,
     ]
 
     def __init__(
@@ -219,6 +227,8 @@ class AbstractCoprBuildHandler(AbstractGitForgeJobHandler):
             PushGitHubEvent,
             PullRequestPagureEvent,
             PushPagureEvent,
+            MergeRequestGitlabEvent,
+            PushGitlabEvent,
         ],
     ):
         super().__init__(config=config, job_config=job_config, event=event)
@@ -285,7 +295,7 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
     event: PullRequestGithubEvent
 
     def run(self) -> HandlerResults:
-        if isinstance(self.event, PullRequestGithubEvent):
+        if isinstance(self.event, (PullRequestGithubEvent, MergeRequestGitlabEvent)):
             user_can_merge_pr = self.event.project.can_merge_pr(self.event.user_login)
             if not (user_can_merge_pr or self.event.user_login in self.config.admins):
                 self.copr_build_helper.report_status_to_all(
@@ -299,7 +309,14 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
 
     def pre_check(self) -> bool:
         return (
-            isinstance(self.event, (PullRequestGithubEvent, PullRequestPagureEvent))
+            isinstance(
+                self.event,
+                (
+                    PullRequestGithubEvent,
+                    PullRequestPagureEvent,
+                    MergeRequestGitlabEvent,
+                ),
+            )
             and self.event.trigger == TheJobTriggerType.pull_request
             and super().pre_check()
         )
@@ -317,7 +334,7 @@ class PushCoprBuildHandler(AbstractCoprBuildHandler):
 
     def pre_check(self) -> bool:
         valid = (
-            isinstance(self.event, (PushGitHubEvent, PushPagureEvent))
+            isinstance(self.event, (PushGitHubEvent, PushPagureEvent, PushGitlabEvent))
             and self.event.trigger == TheJobTriggerType.push
             and super().pre_check()
         )
@@ -524,6 +541,16 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
         handler_results = cbh.run_copr_build()
 
         return handler_results
+
+    def pre_check(self) -> bool:
+        return (
+            isinstance(
+                self.event,
+                (PullRequestCommentGithubEvent, MergeRequestCommentGitlabEvent,),
+            )
+            and self.event.trigger == TheJobTriggerType.pr_comment
+            and super().pre_check()
+        )
 
 
 @add_to_comment_action_mapping

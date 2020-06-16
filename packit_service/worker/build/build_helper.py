@@ -43,6 +43,9 @@ from packit_service.service.events import (
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
     KojiBuildEvent,
+    MergeRequestCommentGitlabEvent,
+    MergeRequestGitlabEvent,
+    PushGitlabEvent,
 )
 from packit_service.trigger_mapping import (
     is_trigger_matching_job_config,
@@ -74,6 +77,9 @@ class BaseBuildJobHelper:
             PushGitHubEvent,
             ReleaseEvent,
             KojiBuildEvent,
+            MergeRequestCommentGitlabEvent,
+            MergeRequestGitlabEvent,
+            PushGitlabEvent,
         ],
         job: Optional[JobConfig] = None,
     ):
@@ -89,6 +95,9 @@ class BaseBuildJobHelper:
             PushGitHubEvent,
             ReleaseEvent,
             KojiBuildEvent,
+            MergeRequestCommentGitlabEvent,
+            MergeRequestGitlabEvent,
+            PushGitlabEvent,
         ] = event
         self.msg_retrigger: Optional[str] = ""
 

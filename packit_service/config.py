@@ -65,6 +65,7 @@ class ServiceConfig(Config):
         bugzilla_url: str = "",
         bugzilla_api_key: str = "",
         pr_accepted_labels: List[str] = None,
+        gitlab_webhook_tokens: List[str] = [],
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -89,6 +90,9 @@ class ServiceConfig(Config):
         # for flask SERVER_NAME so we can create links to logs
         self.server_name: str = ""
 
+        # Makeshift for now to authenticate webhooks coming from gitlab instances
+        self.gitlab_webhook_tokens: Set[str] = set(gitlab_webhook_tokens or [])
+
     def __repr__(self):
         def hide(token: str) -> str:
             return f"{token[:1]}***{token[-1:]}" if token else ""
@@ -104,6 +108,7 @@ class ServiceConfig(Config):
             f"fas_password='{hide(self.fas_password)}', "
             f"bugzilla_url='{self.bugzilla_url}', "
             f"bugzilla_api_key='{hide(self.bugzilla_api_key)}', "
+            f"gitlab_webhook_tokens='{self.gitlab_webhook_tokens}',"
             f"server_name='{self.server_name}')"
         )
 

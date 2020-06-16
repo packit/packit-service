@@ -404,9 +404,9 @@ class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
             pr_id=object_iid,
         )
         self.action = action
-        self.username = username
+        self.user_login = username
         self.object_id = object_id
-        self.object_iid = object_iid
+        self.identifier = str(object_iid)
         self.source_repo_name = source_repo_name
         self.source_repo_namespace = source_repo_namespace
         self.target_repo_namespace = target_repo_namespace
@@ -485,7 +485,7 @@ class MergeRequestCommentGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEven
         self.target_repo_namespace = target_repo_namespace
         self.target_repo_name = target_repo_name
         self.https_url = https_url
-        self.username = username
+        self.user_login = username
         self.comment = comment
         self.commit_sha = commit_sha
         self.identifier = str(object_iid)
@@ -558,7 +558,7 @@ class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.https_url = https_url
-        self.username = username
+        self.user_login = username
         self.comment = comment
         self.commit_sha = None
 
