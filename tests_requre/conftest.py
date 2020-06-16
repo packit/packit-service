@@ -33,7 +33,7 @@ $ alembic upgrade head
 
 import pytest
 
-from ogr import GithubService, GitlabService
+from ogr import GithubService, GitlabService, PagureService
 from packit_service.config import ServiceConfig
 from packit_service.models import (
     CoprBuildModel,
@@ -66,6 +66,7 @@ class SampleValues:
     different_project_name = "different-project-name"
     project_url = "https://github.com/the-namespace/the-repo-name"
     https_url = "https://github.com/the-namespace/the-repo-name.git"
+    pagure_project_url = "https://git.stg.centos.org/the-namespace/the-repo-name"
     project = "the-project-name"
     owner = "the-owner"
     ref = "80201a74d96c"
@@ -119,6 +120,7 @@ def global_service_config():
     service_config.services = {
         GithubService(token="token"),
         GitlabService(token="token"),
+        PagureService(token="token", instance_url="https://git.stg.centos.org"),
     }
     service_config.dry_run = False
     service_config.github_requests_log_path = "/path"
@@ -181,6 +183,16 @@ def different_pr_model():
         namespace=SampleValues.repo_namespace,
         repo_name=SampleValues.repo_name,
         project_url=SampleValues.project_url,
+    )
+
+
+@pytest.fixture()
+def pagure_pr_model():
+    yield PullRequestModel.get_or_create(
+        pr_id=SampleValues.pr_id,
+        namespace=SampleValues.repo_namespace,
+        repo_name=SampleValues.repo_name,
+        project_url=SampleValues.pagure_project_url,
     )
 
 
@@ -1269,6 +1281,69 @@ def pr_comment_event_dict_packit_build():
         },
         "organization": {"login": "the-namespace"},
         "sender": {"login": "phracek", "html_url": "https://github.com/phracek"},
+    }
+
+
+@pytest.fixture()
+def pagure_pr_tag_added():
+    """
+    Cleared version of the pr webhook content.
+    """
+    return {
+        "project": {
+            "name": "the-repo-name",
+            "namespace": "the-namespace",
+            "user": {"fullname": "Packit Team", "name": "packit"},
+            "fullname": "the-namespace/the-repo-name",
+            "url_path": "the-namespace/the-repo-name",
+            "id": 6843,
+            "tags": [],
+        },
+        "tags": ["accepted"],
+        "pull_request": {
+            "uid": "34c5be2e95dd4f708b0c6a3acdcc3019",
+            "initial_comment": None,
+            "commit_stop": "0ec7f861383821218c485a45810d384ca224e357",
+            "id": 342,
+            "title": "dummy",
+            "comments": [],
+            "branch": "master",
+            "tags": [],
+            "user": {"fullname": "Jiri Popelka", "name": "jpopelka"},
+            "branch_from": "test-tags",
+            "commit_start": "0ec7f861383821218c485a45810d384ca224e357",
+            "project": {
+                "name": "the-repo-name",
+                "namespace": "the-namespace",
+                "user": {"fullname": "Packit Team", "name": "packit"},
+                "fullname": "the-namespace/the-repo-name",
+                "url_path": "the-namespace/the-repo-name",
+                "id": 6843,
+                "tags": [],
+                "description": "packit test repo",
+            },
+            "repo_from": {
+                "name": "the-repo-name",
+                "parent": {
+                    "name": "the-repo-name",
+                    "namespace": "the-namespace",
+                    "user": {"fullname": "Packit Team", "name": "packit"},
+                    "fullname": "the-namespace/the-repo-name",
+                    "url_path": "the-namespace/the-repo-name",
+                    "id": 6843,
+                    "tags": [],
+                    "description": "packit test repo",
+                },
+                "namespace": "the-namespace",
+                "user": {"fullname": "Jiri Popelka", "name": "jpopelka"},
+                "fullname": "forks/jpopelka/the-namespace/the-repo-name",
+                "url_path": "fork/jpopelka/the-namespace/the-repo-name",
+                "id": 6855,
+                "tags": [],
+                "description": "packit test repo",
+            },
+        },
+        "topic": "git.stg.centos.org/pull-request.tag.added",
     }
 
 
