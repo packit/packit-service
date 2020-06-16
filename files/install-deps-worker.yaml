@@ -13,6 +13,7 @@
           - python3-fedora # to access FAS
           - python3-requests
           - python3-alembic
+          - python3-prometheus_client
           - python3-sqlalchemy
           - python3-psycopg2
           #- python3-celery # don't, the liveness probe doesn't work

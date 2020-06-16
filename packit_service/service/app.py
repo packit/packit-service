@@ -25,6 +25,8 @@ from os import getenv
 
 from flask import Flask
 from lazy_object_proxy import Proxy
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
+from prometheus_client import make_wsgi_app as prometheus_app
 from packit.utils import set_logging
 
 from packit_service.config import ServiceConfig
@@ -64,8 +66,10 @@ def get_flask_application():
     return app
 
 
-application = Proxy(get_flask_application)
+packit_as_a_service = Proxy(get_flask_application)
 
+# Make Prometheus Client serve the /metrics endpoint
+application = DispatcherMiddleware(packit_as_a_service, {"/metrics": prometheus_app()})
 
 # With the code below, you can debug ALL requests coming to flask
 # @application.before_request
