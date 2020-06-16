@@ -157,3 +157,28 @@ def test_whitelist_specific(client, clean_before_and_after, new_whitelist_entry)
 
     user_2 = client.get(url_for("api.whitelist_white_list_item", login="Zacian"))
     assert user_2.status_code == 204  # No content when not in whitelist
+
+
+#  Test Get Testing Farm Results
+def test_get_testing_farm_results(
+    client, clean_before_and_after, multiple_new_test_runs
+):
+    response = client.get(url_for("api.testing-farm_testing_farm_results"))
+    response_dict = response.json
+    assert len(response_dict) == 3
+    assert response_dict[0]["pipeline_id"] == SampleValues.another_different_pipeline_id
+    assert response_dict[0]["target"] == SampleValues.chroots[0]
+    assert response_dict[0]["ref"] == SampleValues.different_commit_sha
+    assert response_dict[0]["pr_id"] == 4
+    assert response_dict[0]["status"] == "running"
+    assert response_dict[0]["repo_namespace"] == SampleValues.repo_namespace
+    assert response_dict[0]["repo_name"] == SampleValues.repo_name
+    assert response_dict[0]["web_url"] == SampleValues.testing_farm_url
+
+    assert response_dict[1]["pipeline_id"] == SampleValues.different_pipeline_id
+    assert response_dict[1]["target"] == SampleValues.chroots[0]
+    assert response_dict[1]["ref"] == SampleValues.commit_sha
+    assert response_dict[1]["pr_id"] == 342
+    assert response_dict[1]["status"] == "new"
+
+    assert response_dict[2]["target"] == SampleValues.chroots[1]
