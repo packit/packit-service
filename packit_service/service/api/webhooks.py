@@ -25,6 +25,7 @@ from http import HTTPStatus
 from logging import getLogger
 
 from flask import request
+from prometheus_client import Counter
 
 try:
     from flask_restx import Namespace, Resource, fields
@@ -59,6 +60,10 @@ ping_payload_gitlab = ns.model(
     },
 )
 
+github_webhook_calls = Counter(
+    "github_webhook_calls", "Number of times the GitHub webhook is called", ["result"]
+)
+
 
 @ns.route("/github")
 class GithubWebhook(Resource):
@@ -76,25 +81,30 @@ class GithubWebhook(Resource):
 
         if not msg:
             logger.debug("/webhooks/github: we haven't received any JSON data.")
+            github_webhook_calls.labels(result="no_data").inc()
             return "We haven't received any JSON data.", HTTPStatus.BAD_REQUEST
 
         if all([msg.get("zen"), msg.get("hook_id"), msg.get("hook")]):
             logger.debug(f"/webhooks/github received ping event: {msg['hook']}")
+            github_webhook_calls.labels(result="pong").inc()
             return "Pong!", HTTPStatus.OK
 
         try:
             self.validate_signature()
         except ValidationFailed as exc:
             logger.info(f"/webhooks/github {exc}")
+            github_webhook_calls.labels(result="invalid_signature").inc()
             return str(exc), HTTPStatus.UNAUTHORIZED
 
         if not self.interested():
+            github_webhook_calls.labels(result="not_interested").inc()
             return "Thanks but we don't care about this event", HTTPStatus.ACCEPTED
 
         # TODO: define task names at one place
         celery_app.send_task(
             name="task.steve_jobs.process_message", kwargs={"event": msg}
         )
+        github_webhook_calls.labels(result="accepted").inc()
 
         return "Webhook accepted. We thank you, Github.", HTTPStatus.ACCEPTED
 

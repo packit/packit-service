@@ -22,7 +22,7 @@
 
 import pytest
 
-from packit_service.service.app import application
+from packit_service.service.app import packit_as_a_service as application
 
 
 @pytest.fixture

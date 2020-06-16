@@ -11,7 +11,7 @@ from packit_service.models import (
     GitProjectModel,
     SRPMBuildModel,
 )
-from packit_service.service.app import application
+from packit_service.service.app import packit_as_a_service as application
 from packit_service.service.urls import (
     get_copr_build_info_url_from_flask,
     get_srpm_log_url_from_flask,
