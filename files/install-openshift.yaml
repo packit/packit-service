@@ -8,6 +8,7 @@
         name:
           - git
           - rpmdevtools
+          # - podman
         state: present
       become: true
     # Docs: https://docs.docker.com/install/linux/docker-ce/fedora/
