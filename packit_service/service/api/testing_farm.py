@@ -22,8 +22,9 @@
 
 import logging
 from http import HTTPStatus
+from json import dumps
 
-from flask import request
+from flask import request, make_response
 
 try:
     from flask_restx import Namespace, Resource, fields
@@ -33,6 +34,8 @@ except ModuleNotFoundError:
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
 from packit_service.service.api.errors import ValidationFailed
+from packit_service.models import TFTTestRunModel
+from packit_service.service.api.parsers import indices, pagination_arguments
 
 logger = logging.getLogger("packit_service")
 
@@ -134,3 +137,36 @@ class TestingFarmResults(Resource):
         msg = "Invalid testing farm secret provided"
         logger.warning(msg)
         raise ValidationFailed(msg)
+
+    @ns.expect(pagination_arguments)
+    @ns.response(HTTPStatus.PARTIAL_CONTENT, "Testing Farm Results follow")
+    def get(self):
+        """ List all Testing Farm  results. """
+
+        result = []
+
+        first, last = indices()
+        # results have nothing other than ref in common, so it doesnt make sense to
+        # merge them like copr builds
+        for tf_result in TFTTestRunModel.get_range(first, last):
+
+            result_dict = {
+                "pipeline_id": tf_result.pipeline_id,
+                "ref": tf_result.commit_sha,
+                "status": tf_result.status,
+                "target": tf_result.target,
+                "web_url": tf_result.web_url,
+                "pr_id": tf_result.get_pr_id(),
+            }
+
+            project = tf_result.get_project()
+            result_dict["repo_namespace"] = project.namespace
+            result_dict["repo_name"] = project.repo_name
+
+            result.append(result_dict)
+
+        resp = make_response(dumps(result), HTTPStatus.PARTIAL_CONTENT)
+        resp.headers["Content-Range"] = f"test-results {first + 1}-{last}/*"
+        resp.headers["Content-Type"] = "application/json"
+
+        return resp
