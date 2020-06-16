@@ -38,6 +38,7 @@ from packit_service.models import (
     TaskResultModel,
     GitProjectModel,
     InstallationModel,
+    BugzillaModel,
 )
 from tests_requre.conftest import SampleValues
 
@@ -109,7 +110,7 @@ def test_copr_build_get_pr_id(
 
 def test_get_merged_chroots(clean_before_and_after, too_many_copr_builds):
     # fetch 10 merged groups of builds
-    builds_list = CoprBuildModel.get_merged_chroots(10, 20)
+    builds_list = list(CoprBuildModel.get_merged_chroots(10, 20))
     assert len(builds_list) == 10
     # two merged chroots so two statuses
     assert len(builds_list[0].status) == 2
@@ -268,8 +269,8 @@ def test_errors_while_doing_db(clean_before_and_after):
 
 
 # return all builds in table
-def test_get_all(clean_before_and_after, multiple_copr_builds):
-    builds_list = CoprBuildModel.get_all()
+def test_get_all_builds(clean_before_and_after, multiple_copr_builds):
+    builds_list = list(CoprBuildModel.get_all())
     assert len(builds_list) == 3
     # we just wanna check if result is iterable
     # order doesn't matter, so all of them are set to pending in supplied data
@@ -278,8 +279,8 @@ def test_get_all(clean_before_and_after, multiple_copr_builds):
 
 # return all builds with given build_id
 def test_get_all_build_id(clean_before_and_after, multiple_copr_builds):
-    builds_list = CoprBuildModel.get_all_by_build_id(str(123456))
-    assert len(list(builds_list)) == 2
+    builds_list = list(CoprBuildModel.get_all_by_build_id(str(123456)))
+    assert len(builds_list) == 2
     # both should have the same project_name
     assert builds_list[1].project_name == builds_list[0].project_name
     assert builds_list[1].project_name == "the-project-name"
@@ -490,7 +491,7 @@ def test_tmt_test_get_by_pipeline_id_release(clean_before_and_after, release_mod
 
 
 def test_get_task_results(clean_before_and_after, multiple_task_results_entries):
-    results = TaskResultModel.get_all()
+    results = list(TaskResultModel.get_all())
     assert len(results) == 2
     assert results[0].task_id == "ab1"
     assert results[1].task_id == "ab2"
@@ -520,7 +521,7 @@ def test_project_property_for_koji_build(a_koji_build_for_pr):
 
 
 def test_get_installations(clean_before_and_after, multiple_installation_entries):
-    results = InstallationModel.get_all()
+    results = list(InstallationModel.get_all())
     assert len(results) == 2
 
 
@@ -537,3 +538,20 @@ def test_pr_get_copr_builds(
     pr_model = a_copr_build_for_pr.job_trigger.get_trigger_object()
     assert a_copr_build_for_pr in pr_model.get_copr_builds()
     assert not different_pr_model.get_copr_builds()
+
+
+def test_bugzilla_create(clean_before_and_after, bugzilla_model):
+    assert isinstance(bugzilla_model, BugzillaModel)
+    assert bugzilla_model.bug_id == SampleValues.bug_id
+    assert bugzilla_model.bug_url == SampleValues.bug_url
+
+
+def test_bugzilla_get_by_id(clean_before_and_after, bugzilla_model):
+    bz = BugzillaModel.get_by_pr(
+        pr_id=SampleValues.pr_id,
+        namespace=SampleValues.repo_namespace,
+        repo_name=SampleValues.repo_name,
+        project_url=SampleValues.project_url,
+    )
+    assert bz.bug_id == bugzilla_model.bug_id == SampleValues.bug_id
+    assert bz.bug_url == bugzilla_model.bug_url == SampleValues.bug_url

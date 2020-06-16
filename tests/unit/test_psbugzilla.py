@@ -32,7 +32,7 @@ def test_bugzilla_create_bug():
     flexmock(Bugzilla).should_receive("createbug").and_return(
         flexmock(id=1, weburl="url")
     )
-    bz_id, bz_url = PSBugzilla().create_bug(
+    bz_id, bz_url = PSBugzilla("", "").create_bug(
         "product", "version", "component", "summary"
     )
     assert bz_id == 1
@@ -42,4 +42,4 @@ def test_bugzilla_create_bug():
 def test_bugzilla_add_patch():
     flexmock(Bugzilla).should_receive("logged_in").and_return(True)
     flexmock(Bugzilla).should_receive("attachfile").and_return(123)
-    assert PSBugzilla().add_patch(666, b"") == 123
+    assert PSBugzilla("", "").add_patch(666, b"") == 123

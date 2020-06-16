@@ -23,9 +23,10 @@
 import logging
 from typing import Optional, Union, Any
 
+from ogr.abstract import CommitStatus, GitProject, PullRequest
 from packit.config import JobType, JobConfig
-
 from packit_service.config import ServiceConfig
+from packit_service.models import BugzillaModel
 from packit_service.service.events import (
     TheJobTriggerType,
     PullRequestCommentPagureEvent,
@@ -38,6 +39,8 @@ from packit_service.worker.handlers import (
 )
 from packit_service.worker.handlers.abstract import use_for
 from packit_service.worker.handlers.comment_action_handler import CommentAction
+from packit_service.worker.psbugzilla import Bugzilla
+from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
@@ -93,7 +96,86 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
         super().__init__(config=config, job_config=job_config, event=event)
 
         self.event = event
-        self.project = self.config.get_project(event.project_url)
+        self.project: GitProject = self.config.get_project(event.project_url)
+        self.pr: PullRequest = self.project.get_pr(event.pr_id)
+        # lazy properties
+        self._bz_model: Optional[BugzillaModel] = None
+        self._bugzilla: Optional[Bugzilla] = None
+        self._status_reporter: Optional[StatusReporter] = None
+
+    @property
+    def bz_model(self) -> Optional[BugzillaModel]:
+        if self._bz_model is None:
+            self._bz_model = BugzillaModel.get_by_pr(
+                pr_id=self.event.pr_id,
+                namespace=self.event.base_repo_namespace,
+                repo_name=self.event.base_repo_name,
+                project_url=self.event.project_url,
+            )
+        return self._bz_model
+
+    @property
+    def bugzilla(self) -> Bugzilla:
+        if self._bugzilla is None:
+            self._bugzilla = Bugzilla(
+                url=self.config.bugzilla_url, api_key=self.config.bugzilla_api_key
+            )
+        return self._bugzilla
+
+    @property
+    def status_reporter(self) -> StatusReporter:
+        if not self._status_reporter:
+            self._status_reporter = StatusReporter(
+                self.project, self.event.commit_sha, self.event.pr_id
+            )
+        return self._status_reporter
+
+    def _create_bug(self):
+        """ Fill a Bugzilla bug and store in db. """
+        bug_id, bug_url = self.bugzilla.create_bug(
+            product="Red Hat Enterprise Linux 8",
+            version="CentOS-Stream",
+            component=self.event.base_repo_name,
+            summary=self.pr.title,
+            description=f"Based on approved CentOS Stream pull-request: {self.pr.url}",
+        )
+        self._bz_model = BugzillaModel.get_or_create(
+            pr_id=self.event.pr_id,
+            namespace=self.event.base_repo_namespace,
+            repo_name=self.event.base_repo_name,
+            project_url=self.event.project_url,
+            bug_id=bug_id,
+            bug_url=bug_url,
+        )
+
+    def _attach_patch(self):
+        """ Attach a patch from the pull request to the bug. """
+        if not (self.bz_model and self.bz_model.bug_id):
+            raise RuntimeError(
+                f"PagurePullRequestLabelHandler._attach_patch(): bug_id not set"
+            )
+
+        self.bugzilla.add_patch(
+            bzid=self.bz_model.bug_id,
+            content=self.pr.patch,
+            file_name=f"pr-{self.event.pr_id}.patch",
+        )
+
+    def _set_status(self):
+        """
+        Set commit status & pull-request flag with bug id as a name and a link to the created bug.
+        """
+        if not (self.bz_model and self.bz_model.bug_id and self.bz_model.bug_url):
+            raise RuntimeError(
+                f"PagurePullRequestLabelHandler._set_status(): bug_id or bug_url not set"
+            )
+
+        self.status_reporter.set_status(
+            state=CommitStatus.success,
+            description="Bugzilla bug created.",
+            check_name=f"RHBZ#{self.bz_model.bug_id}",
+            url=self.bz_model.bug_url,
+        )
 
     def run(self) -> HandlerResults:
         e = self.event
@@ -102,7 +184,10 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
             f"{e.base_repo_owner}/{e.base_repo_namespace}/{e.base_repo_name}/{e.identifier}"
         )
         if e.labels.intersection(self.config.pr_accepted_labels):
-            logger.debug(f"About to create a bug @ {self.config.bugzilla_url}")
+            if not self.bz_model:
+                self._create_bug()
+            self._attach_patch()
+            self._set_status()
         else:
             logger.debug(f"We accept only {self.config.pr_accepted_labels} labels/tags")
         return HandlerResults(success=True)

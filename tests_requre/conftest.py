@@ -52,6 +52,7 @@ from packit_service.models import (
     TestingFarmResult,
     TaskResultModel,
     InstallationModel,
+    BugzillaModel,
 )
 from packit_service.service.events import InstallationEvent
 
@@ -107,6 +108,10 @@ class SampleValues:
     another_different_acount_name = "Solgaleo"
     yet_another_different_acount_name = "Zacian"
 
+    # Bugzilla
+    bug_id = 123456
+    bug_url = f"https://partner-bugzilla.redhat.com/show_bug.cgi?id={bug_id}"
+
 
 @pytest.fixture(scope="session", autouse=True)
 def global_service_config():
@@ -138,6 +143,7 @@ def clean_db():
 
         session.query(WhitelistModel).delete()
         session.query(InstallationModel).delete()
+        session.query(BugzillaModel).delete()
 
         session.query(JobTriggerModel).delete()
 
@@ -258,6 +264,18 @@ def branch_trigger_model(branch_model):
 @pytest.fixture()
 def srpm_build_model():
     yield SRPMBuildModel.create(SampleValues.srpm_logs, success=True)
+
+
+@pytest.fixture()
+def bugzilla_model():
+    yield BugzillaModel.get_or_create(
+        pr_id=SampleValues.pr_id,
+        namespace=SampleValues.repo_namespace,
+        repo_name=SampleValues.repo_name,
+        project_url=SampleValues.project_url,
+        bug_id=SampleValues.bug_id,
+        bug_url=SampleValues.bug_url,
+    )
 
 
 @pytest.fixture()
