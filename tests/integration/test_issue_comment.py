@@ -27,16 +27,16 @@ import pytest
 from flexmock import flexmock
 from github import Github
 from github.GitRelease import GitRelease as PyGithubRelease
+
 from ogr.abstract import GitTag
 from ogr.abstract import PullRequest, PRStatus
 from ogr.services.github import GithubProject
 from ogr.services.github import GithubRelease
 from packit.api import PackitAPI
 from packit.local_project import LocalProject
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
-from packit_service.models import ProjectReleaseModel
+from packit_service.models import IssueModel
 from packit_service.service.events import IssueCommentEvent
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
@@ -111,6 +111,6 @@ def test_issue_comment_propose_update_handler(
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
         is_private=lambda: False,
     )
-    flexmock(IssueCommentEvent, db_trigger=ProjectReleaseModel())
+    flexmock(IssueCommentEvent, db_trigger=IssueModel())
     results = SteveJobs().process_message(issue_comment_propose_update_event)
     assert first_dict_value(results["jobs"])["success"]

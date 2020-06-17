@@ -40,6 +40,7 @@ from packit_service.worker.handlers.github_handlers import (
     PushCoprBuildHandler,
     ReleaseGithubKojiBuildHandler,
     GitHubPullRequestCommentCoprBuildHandler,
+    GitHubIssueCommentProposeUpdateHandler,
 )
 from packit_service.worker.jobs import (
     get_handlers_for_event,
@@ -340,6 +341,18 @@ from packit_service.worker.jobs import (
             ],
             {KojiBuildReportHandler},
             id="config=production_build_and_copr_build@trigger=koji_results",
+        ),
+        pytest.param(
+            TheJobTriggerType.issue_comment,
+            flexmock(job_config_trigger_type=None),
+            [
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            {GitHubIssueCommentProposeUpdateHandler},
+            id="config=propose_downstream@trigger=issue_comment",
         ),
     ],
 )
@@ -881,6 +894,26 @@ def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
             [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
             [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
             id="pr_comment_when_test_defined",
+        ),
+        pytest.param(
+            ProposeDownstreamHandler,
+            flexmock(
+                trigger=TheJobTriggerType.release,
+                db_trigger=flexmock(job_config_trigger_type=None),
+            ),
+            [
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                )
+            ],
+            [
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                )
+            ],
+            id="issue_comment_when_propose_downstream_defined",
         ),
     ],
 )
