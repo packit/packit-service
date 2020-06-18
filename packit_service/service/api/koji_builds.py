@@ -54,6 +54,7 @@ class KojiBuildsList(Resource):
         resp = make_response(dumps(result), HTTPStatus.PARTIAL_CONTENT)
         resp.headers["Content-Range"] = f"koji-builds {first + 1}-{last}/{len(result)}"
         resp.headers["Content-Type"] = "application/json"
+        resp.headers["Access-Control-Allow-Origin"] = "*"
 
         return resp
 
@@ -77,6 +78,7 @@ class KojiBuildItem(Resource):
             )
             build = make_response(dumps(build_dict))
             build.headers["Content-Type"] = "application/json"
+            build.headers["Access-Control-Allow-Origin"] = "*"
             return build if build else ("", HTTPStatus.NO_CONTENT)
 
         else:

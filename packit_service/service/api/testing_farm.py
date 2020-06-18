@@ -168,5 +168,6 @@ class TestingFarmResults(Resource):
         resp = make_response(dumps(result), HTTPStatus.PARTIAL_CONTENT)
         resp.headers["Content-Range"] = f"test-results {first + 1}-{last}/*"
         resp.headers["Content-Type"] = "application/json"
+        resp.headers["Access-Control-Allow-Origin"] = "*"
 
         return resp

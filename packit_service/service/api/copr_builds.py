@@ -76,6 +76,7 @@ class CoprBuildsList(Resource):
         resp = make_response(dumps(result), HTTPStatus.PARTIAL_CONTENT)
         resp.headers["Content-Range"] = f"copr-builds {first + 1}-{last}/*"
         resp.headers["Content-Type"] = "application/json"
+        resp.headers["Access-Control-Allow-Origin"] = "*"
 
         return resp
 
@@ -128,6 +129,7 @@ class InstallationItem(Resource):
 
             build = make_response(dumps(build_dict))
             build.headers["Content-Type"] = "application/json"
+            build.headers["Access-Control-Allow-Origin"] = "*"
             return build if build else ("", HTTPStatus.NO_CONTENT)
 
         else:
