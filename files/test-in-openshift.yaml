@@ -25,7 +25,7 @@ objects:
           containers:
             - name: packit-tests
               image: packit-service-tests:latest
-              imagePullPolicy: Never # IfNotPresent
+              imagePullPolicy: IfNotPresent
               workingDir: /src-packit-service
               env:
                 - name: POSTGRESQL_USER
