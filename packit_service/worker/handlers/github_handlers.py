@@ -51,17 +51,15 @@ from packit_service.service.events import (
     PullRequestCommentGithubEvent,
     MergeRequestCommentGitlabEvent,
     InstallationEvent,
+    EventData,
 )
-from packit_service.worker.build import CoprBuildJobHelper, BuildHelperMetadata
+from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.handlers import (
     CommentActionHandler,
     JobHandler,
 )
-from packit_service.worker.handlers.abstract import (
-    required_by,
-    use_for,
-)
+from packit_service.worker.handlers.abstract import required_by, use_for
 from packit_service.worker.handlers.comment_action_handler import (
     add_to_comment_action_mapping,
     add_to_comment_action_mapping_with_name,
@@ -83,11 +81,12 @@ class GithubAppInstallationHandler(JobHandler):
     def __init__(
         self,
         package_config: PackageConfig,
-        job_config: Optional[JobConfig],
+        job_config: JobConfig,
+        data: EventData,
         event: dict,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, event=event,
+            package_config=package_config, job_config=job_config, data=data,
         )
         self.account_type = event.get("account_type")
         self.account_login = event.get("account_login")
@@ -149,17 +148,6 @@ class ProposeDownstreamHandler(JobHandler):
     type = JobType.propose_downstream
     triggers = [TheJobTriggerType.release]
 
-    def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: Optional[JobConfig],
-        event: dict,
-    ):
-        super().__init__(
-            package_config=package_config, job_config=job_config, event=event,
-        )
-        self.tag_name = event.get("tag_name")
-
     def run(self) -> HandlerResults:
         """
         Sync the upstream release to dist-git as a pull request.
@@ -176,7 +164,9 @@ class ProposeDownstreamHandler(JobHandler):
             *self.job_config.metadata.dist_git_branches, default="master"
         ):
             try:
-                self.api.sync_release(dist_git_branch=branch, version=self.tag_name)
+                self.api.sync_release(
+                    dist_git_branch=branch, version=self.data.tag_name
+                )
             except Exception as ex:
                 sentry_integration.send_to_sentry(ex)
                 errors[branch] = str(ex)
@@ -199,7 +189,7 @@ class ProposeDownstreamHandler(JobHandler):
             )
 
             self.project.create_issue(
-                title=f"[packit] Propose update failed for release {self.tag_name}",
+                title=f"[packit] Propose update failed for release {self.data.tag_name}",
                 body=body_msg,
             )
 
@@ -217,15 +207,14 @@ class AbstractCoprBuildHandler(JobHandler):
     def __init__(
         self,
         package_config: PackageConfig,
-        job_config: Optional[JobConfig],
-        event: dict,
+        job_config: JobConfig,
+        data: EventData,
+        **kwargs,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, event=event,
+            package_config=package_config, job_config=job_config, data=data,
         )
-        self.build_helper_metadata = BuildHelperMetadata.from_event_dict(event)
 
-        # lazy property
         self._copr_build_helper: Optional[CoprBuildJobHelper] = None
 
     @property
@@ -235,7 +224,7 @@ class AbstractCoprBuildHandler(JobHandler):
                 config=self.config,
                 package_config=self.package_config,
                 project=self.project,
-                metadata=self.build_helper_metadata,
+                metadata=self.data,
                 db_trigger=self.db_trigger,
                 job=self.job_config,
             )
@@ -269,8 +258,8 @@ class ReleaseCoprBuildHandler(AbstractCoprBuildHandler):
 
     def pre_check(self) -> bool:
         return (
-            self.event_type == ReleaseEvent.__name__
-            and self.trigger == TheJobTriggerType.release
+            self.data.event_type == ReleaseEvent.__name__
+            and self.data.trigger == TheJobTriggerType.release
             and super().pre_check()
         )
 
@@ -284,9 +273,12 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
     ]
 
     def run(self) -> HandlerResults:
-        if self.event_type in (PullRequestGithubEvent.__name__, MergeRequestGitlabEvent.__name__):
-            user_can_merge_pr = self.project.can_merge_pr(self.user_login)
-            if not (user_can_merge_pr or self.user_login in self.config.admins):
+        if self.data.event_type in (
+            PullRequestGithubEvent.__name__,
+            MergeRequestGitlabEvent.__name__,
+        ):
+            user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
+            if not (user_can_merge_pr or self.data.user_login in self.config.admins):
                 self.copr_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=CommitStatus.failure,
@@ -298,11 +290,13 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
 
     def pre_check(self) -> bool:
         return (
-            self.event_type
-            in (PullRequestGithubEvent.__name__,
+            self.data.event_type
+            in (
+                PullRequestGithubEvent.__name__,
                 PullRequestPagureEvent.__name__,
-                MergeRequestGitlabEvent.__name__)
-            and self.trigger == TheJobTriggerType.pull_request
+                MergeRequestGitlabEvent.__name__,
+            )
+            and self.data.trigger == TheJobTriggerType.pull_request
             and super().pre_check()
         )
 
@@ -316,32 +310,24 @@ class PushCoprBuildHandler(AbstractCoprBuildHandler):
         TheJobTriggerType.commit,
     ]
 
-    def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: Optional[JobConfig],
-        event: dict,
-    ):
-        super().__init__(
-            package_config=package_config, job_config=job_config, event=event,
-        )
-        self.git_ref = event.get("git_ref")
-
     def pre_check(self) -> bool:
         valid = (
-            self.event_type in (PushGitHubEvent.__name__,
-                                PushPagureEvent.__name__,
-                                PushGitlabEvent.__name__)
-            and self.trigger == TheJobTriggerType.push
+            self.data.event_type
+            in (
+                PushGitHubEvent.__name__,
+                PushPagureEvent.__name__,
+                PushGitlabEvent.__name__,
+            )
+            and self.data.trigger == TheJobTriggerType.push
             and super().pre_check()
         )
         if not valid:
             return False
 
         configured_branch = self.copr_build_helper.job_build_branch
-        if self.git_ref != configured_branch:
+        if self.data.git_ref != configured_branch:
             logger.info(
-                f"Skipping build on '{self.git_ref}'. "
+                f"Skipping build on '{self.data.git_ref}'. "
                 f"Push configured only for '{configured_branch}'."
             )
             return False
@@ -352,14 +338,18 @@ class AbstractGithubKojiBuildHandler(JobHandler):
     type = JobType.production_build
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, event: dict
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
+        **kwargs,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, event=event,
+            package_config=package_config, job_config=job_config, data=data,
         )
 
         if not (
-            self.event_type
+            self.data.event_type
             in (
                 PullRequestGithubEvent.__name__,
                 PushGitHubEvent.__name__,
@@ -371,7 +361,6 @@ class AbstractGithubKojiBuildHandler(JobHandler):
                 "PullRequestEvent, ReleaseEvent, and PushGitHubEvent "
                 "are accepted."
             )
-        self.build_helper_metadata = BuildHelperMetadata.from_event_dict(event)
 
         # lazy property
         self._koji_build_helper: Optional[KojiBuildJobHelper] = None
@@ -384,7 +373,7 @@ class AbstractGithubKojiBuildHandler(JobHandler):
                 config=self.config,
                 package_config=self.package_config,
                 project=self.project,
-                metadata=self.build_helper_metadata,
+                metadata=self.data,
                 db_trigger=self.db_trigger,
                 job=self.job_config,
             )
@@ -417,8 +406,8 @@ class ReleaseGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     def pre_check(self) -> bool:
         return (
             super().pre_check()
-            and self.event_type == ReleaseEvent.__name__
-            and self.trigger == TheJobTriggerType.release
+            and self.data.event_type == ReleaseEvent.__name__
+            and self.data.trigger == TheJobTriggerType.release
         )
 
 
@@ -429,9 +418,9 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     ]
 
     def run(self) -> HandlerResults:
-        if self.event_type == PullRequestGithubEvent.__name__:
-            user_can_merge_pr = self.project.can_merge_pr(self.user_login)
-            if not (user_can_merge_pr or self.user_login in self.config.admins):
+        if self.data.event_type == PullRequestGithubEvent.__name__:
+            user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
+            if not (user_can_merge_pr or self.data.user_login in self.config.admins):
                 self.koji_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=CommitStatus.failure,
@@ -444,8 +433,8 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     def pre_check(self) -> bool:
         return (
             super().pre_check()
-            and self.event_type == PullRequestGithubEvent.__name__
-            and self.trigger == TheJobTriggerType.pull_request
+            and self.data.event_type == PullRequestGithubEvent.__name__
+            and self.data.trigger == TheJobTriggerType.pull_request
         )
 
 
@@ -456,30 +445,19 @@ class PushGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
         TheJobTriggerType.commit,
     ]
 
-    def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: Optional[JobConfig],
-        event: dict,
-    ):
-        super().__init__(
-            package_config=package_config, job_config=job_config, event=event,
-        )
-        self.git_ref = event.get("git_ref")
-
     def pre_check(self) -> bool:
         valid = (
             super().pre_check()
-            and self.event_type == PushGitHubEvent.__name__
-            and self.trigger == TheJobTriggerType.push
+            and self.data.event_type == PushGitHubEvent.__name__
+            and self.data.trigger == TheJobTriggerType.push
         )
         if not valid:
             return False
 
         configured_branch = self.koji_build_helper.job_build_branch
-        if self.git_ref != configured_branch:
+        if self.data.git_ref != configured_branch:
             logger.info(
-                f"Skipping build on '{self.git_ref}'. "
+                f"Skipping build on '{self.data.git_ref}'. "
                 f"Push configured only for '{configured_branch}'."
             )
             return False
@@ -498,14 +476,13 @@ class GithubTestingFarmHandler(JobHandler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        event: dict,
+        data: EventData,
         chroot: str,
         db_trigger: AbstractTriggerDbType,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, event=event
+            package_config=package_config, job_config=job_config, data=data
         )
-        self.build_helper_metadata = BuildHelperMetadata.from_event_dict(event)
         self.chroot = chroot
         self._db_trigger = db_trigger
 
@@ -520,10 +497,9 @@ class GithubTestingFarmHandler(JobHandler):
             config=self.config,
             package_config=self.package_config,
             project=self.project,
-            metadata=self.build_helper_metadata,
+            metadata=self.data,
             db_trigger=self.db_trigger,
             job=self.job_config,
-            project_url=self.project_url,
         )
         logger.info("Running testing farm.")
         return testing_farm_helper.run_testing_farm(chroot=self.chroot)
@@ -540,17 +516,9 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
     type = CommentAction.copr_build
     triggers = [TheJobTriggerType.pr_comment]
 
-    def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, event: dict,
-    ):
-        super().__init__(
-            package_config=package_config, job_config=job_config, event=event
-        )
-        self.build_helper_metadata = BuildHelperMetadata.from_event_dict(event)
-
     def run(self) -> HandlerResults:
-        user_can_merge_pr = self.project.can_merge_pr(self.user_login)
-        if not (user_can_merge_pr or self.user_login in self.config.admins):
+        user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
+        if not (user_can_merge_pr or self.data.user_login in self.config.admins):
             self.project.pr_comment(
                 self.db_trigger.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )
@@ -562,7 +530,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
             config=self.config,
             package_config=self.package_config,
             project=self.project,
-            metadata=self.build_helper_metadata,
+            metadata=self.data,
             db_trigger=self.db_trigger,
             job=self.job_config,
         )
@@ -572,10 +540,14 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
 
     def pre_check(self) -> bool:
         return (
-            self.event_type in (
-                (PullRequestCommentGithubEvent.__name__, MergeRequestCommentGitlabEvent.__name__
+            self.data.event_type
+            in (
+                (
+                    PullRequestCommentGithubEvent.__name__,
+                    MergeRequestCommentGitlabEvent.__name__,
+                )
             )
-            and self.event.trigger == TheJobTriggerType.pr_comment
+            and self.data.trigger == TheJobTriggerType.pr_comment
             and super().pre_check()
         )
 
@@ -587,14 +559,6 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
 
     type = CommentAction.propose_update
     triggers = [TheJobTriggerType.issue_comment]
-
-    def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, event: dict
-    ):
-        super().__init__(
-            package_config=package_config, job_config=job_config, event=event,
-        )
-        self.tag_name = event.get("tag_name")
 
     @property
     def dist_git_branches_to_sync(self) -> Set[str]:
@@ -621,8 +585,8 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
             upstream_local_project=local_project,
         )
 
-        user_can_merge_pr = self.project.can_merge_pr(self.user_login)
-        if not (user_can_merge_pr or self.user_login in self.config.admins):
+        user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
+        if not (user_can_merge_pr or self.data.user_login in self.config.admins):
             self.project.issue_comment(
                 self.db_trigger.issue_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )
@@ -630,7 +594,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
             )
 
-        if not self.tag_name:
+        if not self.data.tag_name:
             msg = (
                 "There was an error while proposing a new update for the Fedora package: "
                 "no upstream release found."
@@ -644,11 +608,11 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
         for branch in self.dist_git_branches_to_sync:
             msg = (
                 f"for the Fedora package `{self.package_config.downstream_package_name}`"
-                f"with the tag `{self.tag_name}` in the `{branch}` branch.\n"
+                f"with the tag `{self.data.tag_name}` in the `{branch}` branch.\n"
             )
             try:
                 new_pr = api.sync_release(
-                    dist_git_branch=branch, version=self.tag_name, create_pr=True
+                    dist_git_branch=branch, version=self.data.tag_name, create_pr=True
                 )
                 msg = f"Packit-as-a-Service proposed [a new update]({new_pr.url}) {msg}"
                 self.project.issue_comment(self.db_trigger.issue_id, msg)
@@ -676,26 +640,17 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
     type = CommentAction.test
     triggers = [TheJobTriggerType.pr_comment]
 
-    def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, event: dict,
-    ):
-        super().__init__(
-            package_config=package_config, job_config=job_config, event=event
-        )
-        self.build_helper_metadata = BuildHelperMetadata.from_event_dict(event)
-
     def run(self) -> HandlerResults:
         testing_farm_helper = TestingFarmJobHelper(
             config=self.config,
             package_config=self.package_config,
             project=self.project,
-            metadata=self.build_helper_metadata,
+            metadata=self.data,
             db_trigger=self.db_trigger,
             job=self.job_config,
-            project_url=self.project_url,
         )
-        user_can_merge_pr = self.project.can_merge_pr(self.user_login)
-        if not (user_can_merge_pr or self.user_login in self.config.admins):
+        user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
+        if not (user_can_merge_pr or self.data.user_login in self.config.admins):
             self.project.pr_comment(
                 self.db_trigger.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )

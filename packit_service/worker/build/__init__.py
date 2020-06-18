@@ -5,7 +5,7 @@
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# to use, copy, modiffy, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
@@ -20,14 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from packit_service.worker.build.build_helper import (
-    BaseBuildJobHelper,
-    BuildHelperMetadata,
-)
+from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 
 __all__ = [
     CoprBuildJobHelper.__name__,
     BaseBuildJobHelper.__name__,
-    BuildHelperMetadata.__name__,
 ]

@@ -35,11 +35,9 @@ from packit_service.service.urls import (
     get_srpm_log_url_from_flask,
     get_copr_build_info_url_from_flask,
 )
-from packit_service.worker.build.build_helper import (
-    BaseBuildJobHelper,
-    BuildHelperMetadata,
-)
+from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.result import HandlerResults
+from packit_service.service.events import EventData
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +53,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
-        metadata: BuildHelperMetadata,
+        metadata: EventData,
         db_trigger,
         job: Optional[JobConfig] = None,
     ):

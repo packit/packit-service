@@ -50,16 +50,20 @@ from packit_service.service.events import (
     TheJobTriggerType,
     CoprBuildEvent,
     KojiBuildEvent,
+    EventData,
 )
 from packit_service.service.urls import (
     get_copr_build_info_url_from_flask,
     get_koji_build_info_url_from_flask,
 )
 from packit_service.models import CoprBuildModel, KojiBuildModel, AbstractTriggerDbType
-from packit_service.worker.build import BuildHelperMetadata
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
-from packit_service.worker.handlers.abstract import JobHandler, use_for, required_by
+from packit_service.worker.handlers.abstract import (
+    JobHandler,
+    use_for,
+    required_by,
+)
 from packit_service.worker.handlers.github_handlers import GithubTestingFarmHandler
 from packit_service.worker.result import HandlerResults
 
@@ -80,10 +84,14 @@ class FedmsgHandler(JobHandler):
     topic: str
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, event: dict
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
+        **kwargs,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, event=event
+            package_config=package_config, job_config=job_config, data=data,
         )
         self._pagure_service = None
 
@@ -102,11 +110,12 @@ class NewDistGitCommitHandler(FedmsgHandler):
     def __init__(
         self,
         package_config: PackageConfig,
-        job_config: Optional[JobConfig],
+        job_config: JobConfig,
+        data: EventData,
         event: dict,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, event=event,
+            package_config=package_config, job_config=job_config, data=data,
         )
         self.branch = event.get("branch")
 
@@ -142,12 +151,16 @@ class NewDistGitCommitHandler(FedmsgHandler):
         return HandlerResults(success=True, details={})
 
 
-class CoprBuildHandler(FedmsgHandler):
+class AbstractCoprBuildReportHandler(FedmsgHandler):
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, event: dict,
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
+        event: dict,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, event=event
+            package_config=package_config, job_config=job_config, data=data,
         )
         topic = event.get("topic")
         project_name = event.get("project_name")
@@ -168,7 +181,6 @@ class CoprBuildHandler(FedmsgHandler):
             pkg=pkg,
             timestamp=timestamp,
         )
-        self.build_helper_metadata = BuildHelperMetadata.from_event_dict(event)
         self._build = None
         self._db_trigger = None
 
@@ -191,7 +203,7 @@ class CoprBuildHandler(FedmsgHandler):
 @use_for(job_type=JobType.copr_build)
 @use_for(job_type=JobType.build)
 @required_by(job_type=JobType.tests)
-class CoprBuildEndHandler(CoprBuildHandler):
+class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
     triggers = [TheJobTriggerType.copr_end]
 
@@ -218,7 +230,7 @@ class CoprBuildEndHandler(CoprBuildHandler):
             config=self.config,
             package_config=self.package_config,
             project=self.project,
-            metadata=self.build_helper_metadata,
+            metadata=self.data,
             db_trigger=self.db_trigger,
             job=self.job_config,
         )
@@ -305,7 +317,7 @@ class CoprBuildEndHandler(CoprBuildHandler):
             testing_farm_handler = GithubTestingFarmHandler(
                 package_config=self.package_config,
                 job_config=build_job_helper.job_tests,
-                event=self.event,
+                data=self.data,
                 chroot=self.copr_event.chroot,
                 db_trigger=self.db_trigger,
             )
@@ -320,7 +332,7 @@ class CoprBuildEndHandler(CoprBuildHandler):
 @use_for(job_type=JobType.copr_build)
 @use_for(job_type=JobType.build)
 @required_by(job_type=JobType.tests)
-class CoprBuildStartHandler(CoprBuildHandler):
+class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.start"
     triggers = [TheJobTriggerType.copr_start]
 
@@ -329,7 +341,7 @@ class CoprBuildStartHandler(CoprBuildHandler):
             config=self.config,
             package_config=self.package_config,
             project=self.project,
-            metadata=self.build_helper_metadata,
+            metadata=self.data,
             db_trigger=self.db_trigger,
             job=self.job_config,
         )
@@ -373,10 +385,14 @@ class KojiBuildReportHandler(FedmsgHandler):
     triggers = [TheJobTriggerType.koji_results]
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, event: dict,
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
+        event: dict,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, event=event
+            package_config=package_config, job_config=job_config, data=data,
         )
         build_id = event.get("build_id")
         state = KojiBuildState(event.get("state")) if event.get("state") else None
@@ -395,7 +411,6 @@ class KojiBuildReportHandler(FedmsgHandler):
             start_time=start_time,
             completion_time=completion_time,
         )
-        self.build_helper_metadata = BuildHelperMetadata.from_event_dict(event)
         self._db_trigger: Optional[AbstractTriggerDbType] = None
         self._build: Optional[KojiBuildModel] = None
 
@@ -444,7 +459,7 @@ class KojiBuildReportHandler(FedmsgHandler):
             config=self.config,
             package_config=self.package_config,
             project=self.project,
-            metadata=self.build_helper_metadata,
+            metadata=self.data,
             db_trigger=self.db_trigger,
         )
 

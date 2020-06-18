@@ -27,11 +27,12 @@ This file defines classes for issue/pr comments which are sent by a git forge.
 import enum
 import logging
 
-from typing import Dict, Type, Optional
+from typing import Dict, Type
 
 from packit.config import PackageConfig, JobConfig
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.result import HandlerResults
+from packit_service.service.events import EventData
 
 logger = logging.getLogger(__name__)
 
@@ -76,10 +77,13 @@ class CommentActionHandler(JobHandler):
     def __init__(
         self,
         package_config: PackageConfig,
-        job_config: Optional[JobConfig],
-        event: dict,
+        job_config: JobConfig,
+        data: EventData,
+        **kwargs
     ):
-        super().__init__(package_config, job_config, event)
+        super().__init__(
+            package_config=package_config, job_config=job_config, data=data,
+        )
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")

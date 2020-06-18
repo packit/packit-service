@@ -37,7 +37,8 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.models import TFTTestRunModel, TestingFarmResult
 from packit_service.sentry_integration import send_to_sentry
-from packit_service.worker.build import CoprBuildJobHelper, BuildHelperMetadata
+from packit_service.service.events import EventData
+from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
@@ -49,9 +50,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
-        metadata: BuildHelperMetadata,
+        metadata: EventData,
         db_trigger,
-        project_url: Optional[str] = None,
         job: Optional[JobConfig] = None,
     ):
         super().__init__(
@@ -62,7 +62,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             db_trigger=db_trigger,
             job=job,
         )
-        self.project_url = project_url
 
         self.session = requests.session()
         adapter = requests.adapters.HTTPAdapter(max_retries=5)
@@ -74,7 +73,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """Produce payload that can be used to trigger tests in Testing
            Farm using the Copr chroot given.
         """
-        git_url = self.project_url
+        git_url = self.metadata.project_url
         if not git_url.endswith(".git"):
             git_url = f"{git_url}.git"
 

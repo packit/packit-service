@@ -141,6 +141,62 @@ class TestResult(dict):
         )
 
 
+class EventData:
+    """
+    Class to represent the data which are common for handlers and comes from the original event
+    """
+
+    def __init__(
+        self,
+        event_type: str,
+        trigger: TheJobTriggerType,
+        user_login: str,
+        trigger_id: int,
+        project_url: str,
+        tag_name: Optional[str],
+        git_ref: Optional[str],
+        pr_id: Optional[int],
+        commit_sha: Optional[str],
+        identifier: Optional[str],
+    ):
+        self.event_type = event_type
+        self.trigger = trigger
+        self.user_login = user_login
+        self.trigger_id = trigger_id
+        self.project_url = project_url
+        self.tag_name = tag_name
+        self.git_ref = git_ref
+        self.pr_id = pr_id
+        self.commit_sha = commit_sha
+        self.identifier = identifier
+
+    @classmethod
+    def from_event_dict(cls, event: dict):
+        event_type = event.get("event_type")
+        trigger = TheJobTriggerType(event.get("trigger"))
+        user_login = event.get("user_login")
+        trigger_id = event.get("trigger_id")
+        project_url = event.get("project_url")
+        tag_name = event.get("tag_name")
+        git_ref = event.get("git_ref")
+        pr_id = event.get("pr_id")
+        commit_sha = event.get("commit_sha")
+        identifier = event.get("identifier")
+
+        return EventData(
+            event_type=event_type,
+            trigger=trigger,
+            user_login=user_login,
+            trigger_id=trigger_id,
+            project_url=project_url,
+            tag_name=tag_name,
+            git_ref=git_ref,
+            pr_id=pr_id,
+            commit_sha=commit_sha,
+            identifier=identifier,
+        )
+
+
 class Event:
     def __init__(
         self, trigger: TheJobTriggerType, created_at: Union[int, float, str] = None
@@ -1009,7 +1065,7 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["topic"] = result["topic"].value
-        # self.build = build
+        result.pop("build")
         return result
 
     def get_copr_build_url(self) -> str:

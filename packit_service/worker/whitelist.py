@@ -45,8 +45,9 @@ from packit_service.service.events import (
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
     KojiBuildEvent,
+    EventData,
 )
-from packit_service.worker.build import CoprBuildJobHelper, BuildHelperMetadata
+from packit_service.worker.build import CoprBuildJobHelper
 
 logger = logging.getLogger(__name__)
 
@@ -227,13 +228,7 @@ class Whitelist:
                         config=config,
                         package_config=event.get_package_config(),
                         project=project,
-                        metadata=BuildHelperMetadata(
-                            pr_id=event.pr_id,
-                            git_ref=event.git_ref,
-                            commit_sha=event.commit_sha,
-                            trigger=event.trigger,
-                            identifier=event.identifier,
-                        ),
+                        metadata=EventData.from_event_dict((event.get_dict())),
                         db_trigger=event.db_trigger,
                     )
                     msg = "Account is not whitelisted!"  # needs to be shorter

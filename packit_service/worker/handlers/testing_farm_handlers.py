@@ -32,6 +32,7 @@ from packit_service.models import TFTTestRunModel, AbstractTriggerDbType
 from packit_service.service.events import (
     TestingFarmResult,
     TheJobTriggerType,
+    EventData,
 )
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.abstract import use_for
@@ -50,11 +51,12 @@ class TestingFarmResultsHandler(JobHandler):
     def __init__(
         self,
         package_config: PackageConfig,
-        job_config: Optional[JobConfig],
+        job_config: JobConfig,
+        data: EventData,
         event: dict,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, event=event
+            package_config=package_config, job_config=job_config, data=data,
         )
 
         self.tests = event.get("tests")
@@ -63,7 +65,6 @@ class TestingFarmResultsHandler(JobHandler):
         )
         self.pipeline_id = event.get("pipeline_id")
         self.log_url = event.get("log_url")
-        self.commit_sha = event.get("commit_sha")
         self.copr_chroot = event.get("copr_chroot")
         self.message = event.get("message")
         self._db_trigger: Optional[AbstractTriggerDbType] = None
@@ -109,7 +110,7 @@ class TestingFarmResultsHandler(JobHandler):
 
         if test_run_model:
             test_run_model.set_web_url(self.log_url)
-        status_reporter = StatusReporter(self.project, self.commit_sha)
+        status_reporter = StatusReporter(self.project, self.data.commit_sha)
         status_reporter.report(
             state=status,
             description=short_msg,

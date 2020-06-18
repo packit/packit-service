@@ -27,8 +27,12 @@ from ogr.abstract import CommitStatus, PullRequest
 
 from packit_service.models import BugzillaModel
 from packit.config import JobType, JobConfig, PackageConfig
-from packit_service.service.events import TheJobTriggerType, PullRequestLabelAction
-from packit_service.worker.build import CoprBuildJobHelper, BuildHelperMetadata
+from packit_service.service.events import (
+    TheJobTriggerType,
+    PullRequestLabelAction,
+    EventData,
+)
+from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.handlers import CommentActionHandler
 from packit_service.worker.handlers.abstract import use_for, JobHandler
 from packit_service.worker.handlers.comment_action_handler import CommentAction
@@ -48,13 +52,15 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
     triggers = [TheJobTriggerType.pr_comment]
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, event: dict
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
+        **kwargs,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, event=event,
+            package_config=package_config, job_config=job_config, data=data,
         )
-
-        self.build_helper_metadata = BuildHelperMetadata.from_event_dict(event)
 
         # lazy property
         self._copr_build_helper: Optional[CoprBuildJobHelper] = None
@@ -66,7 +72,7 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
                 config=self.config,
                 package_config=self.package_config,
                 project=self.project,
-                metadata=self.build_helper_metadata,
+                metadata=self.data,
                 db_trigger=self.db_trigger,
                 job=self.job_config,
             )
@@ -83,22 +89,20 @@ class PagurePullRequestLabelHandler(JobHandler):
     def __init__(
         self,
         package_config: PackageConfig,
-        job_config: Optional[JobConfig],
+        job_config: JobConfig,
+        data: EventData,
         event: dict,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, event=event
+            package_config=package_config, job_config=job_config, data=data
         )
         self.labels = event.get("labels")
-        self.identifier = event.get("identifier")
-        self.pr_id = event.get("pr_id")
-        self.commit_sha = event.get("commit_sha")
         self.action = PullRequestLabelAction(event.get("action"))
         self.base_repo_owner = event.get("base_repo_owner")
         self.base_repo_name = event.get("base_repo_namespace")
         self.base_repo_namespace = event.get("base_repo_name")
 
-        self.pr: PullRequest = self.project.get_pr(self.pr_id)
+        self.pr: PullRequest = self.project.get_pr(self.data.pr_id)
         # lazy properties
         self._bz_model: Optional[BugzillaModel] = None
         self._bugzilla: Optional[Bugzilla] = None
@@ -108,10 +112,10 @@ class PagurePullRequestLabelHandler(JobHandler):
     def bz_model(self) -> Optional[BugzillaModel]:
         if self._bz_model is None:
             self._bz_model = BugzillaModel.get_by_pr(
-                pr_id=self.pr_id,
+                pr_id=self.data.pr_id,
                 namespace=self.base_repo_namespace,
                 repo_name=self.base_repo_name,
-                project_url=self.project_url,
+                project_url=self.data.project_url,
             )
         return self._bz_model
 
@@ -127,7 +131,7 @@ class PagurePullRequestLabelHandler(JobHandler):
     def status_reporter(self) -> StatusReporter:
         if not self._status_reporter:
             self._status_reporter = StatusReporter(
-                self.project, self.commit_sha, self.pr_id
+                self.project, self.data.commit_sha, self.data.pr_id
             )
         return self._status_reporter
 
@@ -141,10 +145,10 @@ class PagurePullRequestLabelHandler(JobHandler):
             description=f"Based on approved CentOS Stream pull-request: {self.pr.url}",
         )
         self._bz_model = BugzillaModel.get_or_create(
-            pr_id=self.pr_id,
+            pr_id=self.data.pr_id,
             namespace=self.base_repo_namespace,
             repo_name=self.base_repo_name,
-            project_url=self.project_url,
+            project_url=self.data.project_url,
             bug_id=bug_id,
             bug_url=bug_url,
         )
@@ -159,7 +163,7 @@ class PagurePullRequestLabelHandler(JobHandler):
         self.bugzilla.add_patch(
             bzid=self.bz_model.bug_id,
             content=self.pr.patch,
-            file_name=f"pr-{self.pr_id}.patch",
+            file_name=f"pr-{self.data.pr_id}.patch",
         )
 
     def _set_status(self):
@@ -182,7 +186,7 @@ class PagurePullRequestLabelHandler(JobHandler):
         logger.debug(
             f"Handling labels/tags {self.labels} {self.action.value} to Pagure PR "
             f"{self.base_repo_owner}/{self.base_repo_namespace}/"
-            f"{self.base_repo_name}/{self.identifier}"
+            f"{self.base_repo_name}/{self.data.identifier}"
         )
         if self.labels.intersection(self.config.pr_accepted_labels):
             if not self.bz_model:

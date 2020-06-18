@@ -44,7 +44,7 @@ from packit_service.models import (
     ProjectReleaseModel,
     GitBranchModel,
 )
-from packit_service.service.events import TheJobTriggerType
+from packit_service.service.events import TheJobTriggerType, EventData
 from packit_service.worker.result import HandlerResults
 
 logger = logging.getLogger(__name__)
@@ -177,43 +177,38 @@ class JobHandler(Handler):
         self,
         package_config: PackageConfig,
         job_config: Optional[JobConfig],
-        event: dict,
+        data: EventData,
+        **kwargs,
     ):
-        self.package_config: PackageConfig = package_config
-        self.job_config: Optional[JobConfig] = job_config
-        self.event_type: str = event.get("event_type")
-        self.trigger: TheJobTriggerType = TheJobTriggerType(event.get("trigger"))
-        self.user_login: str = event.get("user_login")
-        self.trigger_id: int = event.get("trigger_id")
-        self.project_url: str = event.get("project_url")
+        self.package_config = package_config
+        self.job_config = job_config
+        self.data = data
 
-        self.event = event
         self._db_trigger: Optional[AbstractTriggerDbType] = None
         self._project: Optional[GitProject] = None
-        self._config: Optional[ServiceConfig] = None
         self._clean_workplace()
 
     @property
     def db_trigger(self):
-        if not self._db_trigger and self.trigger_id is not None:
-            if self.trigger in (
+        if not self._db_trigger and self.data.trigger_id is not None:
+            if self.data.trigger in (
                 TheJobTriggerType.pull_request,
                 TheJobTriggerType.pr_comment,
                 TheJobTriggerType.pr_label,
             ):
-                self._db_trigger = PullRequestModel.get_by_id(self.trigger_id)
-            elif self.trigger == TheJobTriggerType.issue_comment:
-                self._db_trigger = IssueModel.get_by_id(self.trigger_id)
-            elif self.trigger == TheJobTriggerType.release:
-                self._db_trigger = ProjectReleaseModel.get_by_id(self.trigger_id)
-            elif self.trigger in TheJobTriggerType.push:
-                self._db_trigger = GitBranchModel.get_by_id(self.trigger_id)
+                self._db_trigger = PullRequestModel.get_by_id(self.data.trigger_id)
+            elif self.data.trigger == TheJobTriggerType.issue_comment:
+                self._db_trigger = IssueModel.get_by_id(self.data.trigger_id)
+            elif self.data.trigger == TheJobTriggerType.release:
+                self._db_trigger = ProjectReleaseModel.get_by_id(self.data.trigger_id)
+            elif self.data.trigger in TheJobTriggerType.push:
+                self._db_trigger = GitBranchModel.get_by_id(self.data.trigger_id)
         return self._db_trigger
 
     @property
     def project(self) -> Optional[GitProject]:
-        if not self._project and self.project_url:
-            self._project = self.config.get_project(url=self.project_url)
+        if not self._project and self.data.project_url:
+            self._project = self.config.get_project(url=self.data.project_url)
         return self._project
 
     def run(self) -> HandlerResults:

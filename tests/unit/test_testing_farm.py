@@ -35,11 +35,11 @@ from packit_service.service.events import (
     TestingFarmResultsEvent as TFResultsEvent,
     TestingFarmResult as TFResult,
     TestResult as TResult,
+    EventData,
 )
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelper
-from packit_service.worker.build import BuildHelperMetadata
 
 
 @pytest.mark.parametrize(
@@ -180,24 +180,26 @@ def test_testing_farm_response(
     config.should_receive("get_project").with_args(
         url="https://github.com/packit-service/ogr"
     ).and_return()
+    event_dict = TFResultsEvent(
+        pipeline_id="id",
+        result=tests_result,
+        environment=flexmock(),
+        message=tests_message,
+        log_url="some url",
+        copr_repo_name=flexmock(),
+        copr_chroot="fedora-rawhide-x86_64",
+        tests=tests_tests,
+        repo_namespace=flexmock(),
+        repo_name=flexmock(),
+        git_ref=flexmock(),
+        project_url="https://github.com/packit-service/ogr",
+        commit_sha=flexmock(),
+    ).get_dict()
     test_farm_handler = TFResultsHandler(
         package_config=flexmock(),
         job_config=flexmock(),
-        event=TFResultsEvent(
-            pipeline_id="id",
-            result=tests_result,
-            environment=flexmock(),
-            message=tests_message,
-            log_url="some url",
-            copr_repo_name=flexmock(),
-            copr_chroot="fedora-rawhide-x86_64",
-            tests=tests_tests,
-            repo_namespace=flexmock(),
-            repo_name=flexmock(),
-            git_ref=flexmock(),
-            project_url="https://github.com/packit-service/ogr",
-            commit_sha=flexmock(),
-        ).get_dict(),
+        data=EventData.from_event_dict(event_dict),
+        event=event_dict,
     )
     flexmock(StatusReporter).should_receive("report").with_args(
         state=status_status,
@@ -278,14 +280,15 @@ def test_trigger_payload(
         service="GitHub",
         get_git_urls=lambda: {"git": f"{project_url}.git"},
     )
-    metadata = BuildHelperMetadata(
-        trigger=flexmock(), commit_sha=commit_sha, git_ref=git_ref,
+    metadata = flexmock(
+        trigger=flexmock(),
+        commit_sha=commit_sha,
+        git_ref=git_ref,
+        project_url=project_url,
     )
     db_trigger = flexmock()
 
-    job_helper = TFJobHelper(
-        config, package_config, project, metadata, db_trigger, project_url
-    )
+    job_helper = TFJobHelper(config, package_config, project, metadata, db_trigger)
     job_helper = flexmock(job_helper)
 
     job_helper.should_receive("job_owner").and_return(copr_owner)

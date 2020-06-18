@@ -29,7 +29,7 @@ from packit_service.constants import (
     COPR_API_FAIL_STATE,
 )
 from packit_service.models import CoprBuildModel
-from packit_service.service.events import CoprBuildEvent, FedmsgTopic
+from packit_service.service.events import CoprBuildEvent, FedmsgTopic, EventData
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.jobs import get_config_for_handler_kls
 
@@ -93,9 +93,11 @@ def check_copr_build(build_id: int) -> bool:
         )
 
         for job_config in job_configs:
+            event_dict = event.get_dict()
             CoprBuildEndHandler(
                 package_config=event.package_config,
                 job_config=job_config,
-                event=event.get_dict(),
+                data=EventData.from_event_dict(event_dict),
+                event=event_dict,
             ).run()
     return True

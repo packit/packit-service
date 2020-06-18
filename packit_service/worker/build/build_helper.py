@@ -39,48 +39,10 @@ from packit_service.trigger_mapping import (
     are_job_types_same,
 )
 from packit_service.worker.reporting import StatusReporter
-from packit_service.service.events import TheJobTriggerType
+from packit_service.service.events import EventData
 from sandcastle import SandcastleTimeoutReached
 
 logger = logging.getLogger(__name__)
-
-
-class BuildHelperMetadata:
-    """
-    Class to represent the data from event needed by BaseBuildJobHelper.
-    """
-
-    def __init__(
-        self,
-        trigger: TheJobTriggerType,
-        pr_id: Optional[int] = None,
-        git_ref: Optional[str] = None,
-        commit_sha: Optional[str] = None,
-        # identifier of the respective event (PR, release) used e.g. in copr project name
-        identifier: Optional[str] = None,
-    ):
-        self.trigger = trigger
-        self.pr_id = pr_id
-        self.git_ref = git_ref
-        self.commit_sha = commit_sha
-        self.identifier = identifier
-
-    @classmethod
-    def from_event_dict(cls, event: dict):
-        trigger = (
-            TheJobTriggerType(event.get("trigger")) if event.get("trigger") else None
-        )
-        pr_id = event.get("pr_id")
-        git_ref = event.get("git_ref")
-        commit_sha = event.get("commit_sha")
-        identifier = event.get("identifier")
-        return BuildHelperMetadata(
-            trigger=trigger,
-            pr_id=pr_id,
-            git_ref=git_ref,
-            commit_sha=commit_sha,
-            identifier=identifier,
-        )
 
 
 class BaseBuildJobHelper:
@@ -94,7 +56,7 @@ class BaseBuildJobHelper:
         config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
-        metadata: BuildHelperMetadata,
+        metadata: EventData,
         db_trigger,
         job: Optional[JobConfig] = None,
     ):
@@ -103,7 +65,7 @@ class BaseBuildJobHelper:
         self.project: GitProject = project
         self.db_trigger = db_trigger
         self.msg_retrigger: Optional[str] = ""
-        self.metadata: BuildHelperMetadata = metadata
+        self.metadata: EventData = metadata
 
         # lazy properties
         self._api = None

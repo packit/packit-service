@@ -52,7 +52,7 @@ from packit_service.service.urls import (
     get_koji_build_info_url_from_flask,
     get_srpm_log_url_from_flask,
 )
-from packit_service.worker.build import koji_build, BuildHelperMetadata
+from packit_service.worker.build import koji_build
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.reporting import StatusReporter
 
@@ -93,7 +93,7 @@ def build_helper(
         config=ServiceConfig(),
         package_config=pkg_conf,
         project=GitProject(repo=flexmock(), service=flexmock(), namespace=flexmock()),
-        metadata=BuildHelperMetadata(
+        metadata=flexmock(
             trigger=event.trigger,
             pr_id=event.pr_id,
             git_ref=event.git_ref,
