@@ -12,37 +12,39 @@ FILTERS = (
         where="download_helper",
         what="DownloadHelper.request",
         who_name="lookaside_cache_helper",
-        decorator=RequestResponseHandling.decorator_plain,
+        decorator=RequestResponseHandling.decorator_plain(),
     )
     .replace_module(where="^tempfile$", who_name="^packit", replacement=TempFile)
     .decorate(
         where="^packit$",
         who_name="fedpkg",
         what="utils.run_command_remote",
-        decorator=Simple.decorator_plain,
+        decorator=Simple.decorator_plain(),
     )
     .decorate(
         where="packit.fedpkg",
         what="FedPKG.clone",
-        decorator=StoreFiles.arg_references(files_params={"target_path": 2}),
+        decorator=StoreFiles.where_arg_references(
+            key_position_params_dict={"target_path": 2}
+        ),
     )
     .decorate(
         where="git",
         who_name="local_project",
         what="remote.Remote.push",
-        decorator=PushInfoStorageList.decorator_plain,
+        decorator=PushInfoStorageList.decorator_plain(),
     )
     .decorate(
         where="git",
         who_name="local_project",
         what="remote.Remote.fetch",
-        decorator=RemoteFetch.decorator_plain,
+        decorator=RemoteFetch.decorator_plain(),
     )
     .decorate(
         where="git",
         who_name="local_project",
         what="remote.Remote.pull",
-        decorator=RemoteFetch.decorator_plain,
+        decorator=RemoteFetch.decorator_plain(),
     )
     .decorate(  # ogr
         where="^requests$",
@@ -57,6 +59,6 @@ FILTERS = (
             "^copr",
             "packit.distgit",
         ],
-        decorator=RequestResponseHandling.decorator_plain,
+        decorator=RequestResponseHandling.decorator_plain(),
     )
 )
