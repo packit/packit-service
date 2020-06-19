@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
-from typing import Union, Optional, Tuple, Set
+from typing import Union, Optional, Tuple, Set, List
 
 from ogr.abstract import GitProject, CommitStatus
 from packit.config import PackageConfig, JobType, JobConfig
@@ -113,6 +113,27 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             return self.job_build.metadata.owner
 
         return self.api.copr_helper.copr_client.config.get("username")
+
+    @property
+    def preserve_project(self) -> Optional[bool]:
+        """
+        If the project will be preserved or can be removed after 60 days.
+        """
+        return self.job_build.metadata.preserve_project if self.job_build else None
+
+    @property
+    def list_on_homepage(self) -> Optional[bool]:
+        """
+        If the project will be shown on the copr home page.
+        """
+        return self.job_build.metadata.list_on_homepage if self.job_build else None
+
+    @property
+    def additional_repos(self) -> Optional[List[str]]:
+        """
+        Additional repos that will be enable for copr build.
+        """
+        return self.job_build.metadata.additional_repos if self.job_build else None
 
     @property
     def build_targets(self) -> Set[str]:
@@ -228,6 +249,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             owner=owner,
             description=None,
             instructions=None,
+            list_on_homepage=self.list_on_homepage,
+            preserve_project=self.preserve_project,
+            additional_repos=self.additional_repos,
+            update_additional_values=(owner == "packit"),
         )
         logger.debug(
             f"owner={owner}, project={self.job_project}, path={self.srpm_path}"
