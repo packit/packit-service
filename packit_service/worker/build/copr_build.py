@@ -39,6 +39,9 @@ from packit_service.service.events import (
     ReleaseEvent,
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
+    MergeRequestCommentGitlabEvent,
+    MergeRequestGitlabEvent,
+    PushGitlabEvent,
 )
 from packit_service.service.urls import (
     get_srpm_log_url_from_flask,
@@ -69,6 +72,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             CoprBuildEvent,
             PushGitHubEvent,
             ReleaseEvent,
+            MergeRequestCommentGitlabEvent,
+            MergeRequestGitlabEvent,
+            PushGitlabEvent,
         ],
         job: Optional[JobConfig] = None,
     ):

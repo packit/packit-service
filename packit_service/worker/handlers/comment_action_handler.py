@@ -34,8 +34,10 @@ from packit_service.config import ServiceConfig
 from packit_service.service.events import (
     PullRequestCommentGithubEvent,
     IssueCommentEvent,
+    PullRequestCommentPagureEvent,
+    MergeRequestCommentGitlabEvent,
+    IssueCommentGitlabEvent,
 )
-from packit_service.service.events import PullRequestCommentPagureEvent
 from packit_service.worker.handlers import Handler
 from packit_service.worker.result import HandlerResults
 
@@ -86,6 +88,8 @@ class CommentActionHandler(Handler):
             PullRequestCommentGithubEvent,
             IssueCommentEvent,
             PullRequestCommentPagureEvent,
+            MergeRequestCommentGitlabEvent,
+            IssueCommentGitlabEvent,
         ],
         job: JobConfig,
     ):
@@ -94,6 +98,8 @@ class CommentActionHandler(Handler):
             PullRequestCommentGithubEvent,
             IssueCommentEvent,
             PullRequestCommentPagureEvent,
+            MergeRequestCommentGitlabEvent,
+            IssueCommentGitlabEvent,
         ] = event
         self.job = job
 

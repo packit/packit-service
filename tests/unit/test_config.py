@@ -62,6 +62,7 @@ def service_config_valid():
         "command_handler_k8s_namespace": "packit-test-sandbox",
         "admins": ["Dasher", "Dancer", "Vixen", "Comet", "Blitzen"],
         "server_name": "hub.packit.org",
+        "gitlab_webhook_tokens": ["token1", "token2", "token3", "aged"],
     }
 
 
@@ -81,6 +82,7 @@ def test_parse_valid(service_config_valid):
     assert config.command_handler_work_dir == "/sandcastle"
     assert config.admins == {"Dasher", "Dancer", "Vixen", "Comet", "Blitzen"}
     assert config.server_name == "hub.packit.org"
+    assert config.gitlab_webhook_tokens == {"token1", "token2", "token3", "aged"}
 
 
 @pytest.fixture(scope="module")
@@ -133,6 +135,7 @@ def test_config_opts(sc):
     assert sc.github_requests_log_path is not None
     assert sc.webhook_secret is not None
     assert sc.validate_webhooks is not None
+    assert sc.gitlab_webhook_tokens is not None
 
 
 @pytest.mark.parametrize(

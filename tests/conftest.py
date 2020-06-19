@@ -33,6 +33,7 @@ from packit_service.models import JobTriggerModelType
 from packit_service.service.events import (
     PullRequestGithubEvent,
     ReleaseEvent,
+    MergeRequestGitlabEvent,
 )
 from packit_service.worker.parser import Parser
 from tests.spellbook import SAVED_HTTPD_REQS, DATA_DIR
@@ -187,3 +188,14 @@ def github_pr_webhook():
 @pytest.fixture(scope="module")
 def github_pr_event(github_pr_webhook) -> PullRequestGithubEvent:
     return Parser.parse_pr_event(github_pr_webhook)
+
+
+@pytest.fixture(scope="module")
+def gitlab_mr_webhook():
+    with open(DATA_DIR / "webhooks" / "gitlab" / "mr_event.json") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture(scope="module")
+def gitlab_mr_event(gitlab_mr_webhook) -> MergeRequestGitlabEvent:
+    return Parser.parse_mr_event(gitlab_mr_webhook)

@@ -39,6 +39,8 @@ from packit_service.service.events import (
     Event,
     TheJobTriggerType,
     PullRequestCommentPagureEvent,
+    MergeRequestCommentGitlabEvent,
+    IssueCommentGitlabEvent,
 )
 from packit_service.trigger_mapping import (
     is_trigger_matching_job_config,
@@ -282,6 +284,8 @@ class SteveJobs:
             PullRequestCommentGithubEvent,
             PullRequestCommentPagureEvent,
             IssueCommentEvent,
+            MergeRequestCommentGitlabEvent,
+            IssueCommentGitlabEvent,
         ],
     ) -> Dict[str, HandlerResults]:
 
@@ -435,6 +439,8 @@ class SteveJobs:
                     PullRequestCommentGithubEvent,
                     PullRequestCommentPagureEvent,
                     IssueCommentEvent,
+                    MergeRequestCommentGitlabEvent,
+                    IssueCommentGitlabEvent,
                 ),
             )
         ):
