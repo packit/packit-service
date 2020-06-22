@@ -296,14 +296,13 @@ to store and replay data for tests.
   ```bash
   sudo dnf install origin-clients python3-openshift
   oc cluster up --base-dir=/tmp/openshift_cluster
-  oc login -u developer -p anything https://127.0.0.1:8443
   ```
 
 ### Data regeneration
 
 - remove files which you want to regenerate:
   ```bash
-  rm -r tests_requre/test_data/test_*
+  rm -r tests_requre/openshift_integration/test_data/test_*
   ```
 - Run the tests with the secrets - the response files will be regenerated (container images for `worker` and `test_image` are done in this step)
   ```bash
