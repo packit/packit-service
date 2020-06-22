@@ -4,6 +4,7 @@ mock webhook payload and send it to an existing packit service
 import pytest
 import requests
 
+
 # TODO: create a script to start service+redis containers before running this
 @pytest.mark.xfail  # depends on http://localhost:8443
 def test_prop_update_on_packit_020():

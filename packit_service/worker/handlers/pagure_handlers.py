@@ -152,7 +152,7 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
         """ Attach a patch from the pull request to the bug. """
         if not (self.bz_model and self.bz_model.bug_id):
             raise RuntimeError(
-                f"PagurePullRequestLabelHandler._attach_patch(): bug_id not set"
+                "PagurePullRequestLabelHandler._attach_patch(): bug_id not set"
             )
 
         self.bugzilla.add_patch(
@@ -167,7 +167,7 @@ class PagurePullRequestLabelHandler(AbstractGitForgeJobHandler):
         """
         if not (self.bz_model and self.bz_model.bug_id and self.bz_model.bug_url):
             raise RuntimeError(
-                f"PagurePullRequestLabelHandler._set_status(): bug_id or bug_url not set"
+                "PagurePullRequestLabelHandler._set_status(): bug_id or bug_url not set"
             )
 
         self.status_reporter.set_status(

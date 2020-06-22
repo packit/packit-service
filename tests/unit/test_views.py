@@ -70,7 +70,7 @@ def test_get_logs(client):
         flexmock(get_trigger_object=lambda: pr)
     )
 
-    url = f"/copr-build/1"
+    url = "/copr-build/1"
     logs_url = get_copr_build_info_url_from_flask(1)
     assert logs_url.endswith(url)
 
@@ -88,7 +88,7 @@ def test_get_srpm_logs(client):
 
     flexmock(SRPMBuildModel).should_receive("get_by_id").and_return(srpm_build)
 
-    url = f"/srpm-build/2/logs"
+    url = "/srpm-build/2/logs"
     logs_url = get_srpm_log_url_from_flask(2)
     assert logs_url.endswith(url)
 

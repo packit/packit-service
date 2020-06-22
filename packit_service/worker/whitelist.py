@@ -194,9 +194,7 @@ class Whitelist:
             if not account_name:
                 raise KeyError(f"Failed to get account_name from {type(event)!r}")
             if not self.is_approved(account_name):
-                logger.info(
-                    f"Refusing release event on not whitelisted repo namespace."
-                )
+                logger.info("Refusing release event on not whitelisted repo namespace.")
                 return False
             return True
         if isinstance(
