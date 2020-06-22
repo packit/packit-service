@@ -360,7 +360,7 @@ class BaseBuildJobHelper:
             )
         except SandcastleTimeoutReached as ex:
             exception = ex
-            extra_logs = f"\nYou have reached 10-minute timeout while creating SRPM.\n"
+            extra_logs = "\nYou have reached 10-minute timeout while creating SRPM.\n"
         except ApiException as ex:
             exception = ex
             # this is an internal error: let's not expose anything to public

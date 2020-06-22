@@ -50,7 +50,7 @@ from packit_service.service.events import WhitelistStatus
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.whitelist import Whitelist
 
-EXPECTED_TESTING_FARM_CHECK_NAME = f"packit-stg/testing-farm-fedora-rawhide-x86_64"
+EXPECTED_TESTING_FARM_CHECK_NAME = "packit-stg/testing-farm-fedora-rawhide-x86_64"
 
 
 @pytest.fixture()

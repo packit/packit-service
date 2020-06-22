@@ -340,7 +340,7 @@ class SteveJobs:
         elif not whitelist.check_and_report(event, event.project, config=self.config):
             return {
                 event.trigger.value: HandlerResults(
-                    success=True, details={"msg": f"Account is not whitelisted!"}
+                    success=True, details={"msg": "Account is not whitelisted!"}
                 )
             }
 
