@@ -25,13 +25,13 @@ from typing import Union
 import pytest
 from celery import Celery
 from flexmock import flexmock
+
 from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
 from packit.copr_helper import CoprHelper
 from packit.exceptions import FailedCreateSRPM
-
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuildModel, SRPMBuildModel
@@ -161,6 +161,10 @@ def test_copr_build_check_names(github_pr_event):
         owner="nobody",
         description=None,
         instructions=None,
+        preserve_project=False,
+        list_on_homepage=False,
+        additional_repos=[],
+        update_additional_values=False,
     ).and_return(None)
 
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -500,6 +504,10 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
         owner="nobody",
         description=None,
         instructions=None,
+        preserve_project=False,
+        list_on_homepage=False,
+        additional_repos=[],
+        update_additional_values=False,
     ).and_return(None)
 
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
