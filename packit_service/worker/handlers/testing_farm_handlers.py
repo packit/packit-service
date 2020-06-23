@@ -49,24 +49,22 @@ class TestingFarmResultsHandler(JobHandler):
     triggers = [TheJobTriggerType.testing_farm_results]
 
     def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        data: EventData,
-        event: dict,
+        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,
         )
 
-        self.tests = event.get("tests")
+        self.tests = data.event_dict.get("tests")
         self.result = (
-            TestingFarmResult(event.get("result")) if event.get("result") else None
+            TestingFarmResult(data.event_dict.get("result"))
+            if data.event_dict.get("result")
+            else None
         )
-        self.pipeline_id = event.get("pipeline_id")
-        self.log_url = event.get("log_url")
-        self.copr_chroot = event.get("copr_chroot")
-        self.message = event.get("message")
+        self.pipeline_id = data.event_dict.get("pipeline_id")
+        self.log_url = data.event_dict.get("log_url")
+        self.copr_chroot = data.event_dict.get("copr_chroot")
+        self.message = data.event_dict.get("message")
         self._db_trigger: Optional[AbstractTriggerDbType] = None
 
     @property

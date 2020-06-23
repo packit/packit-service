@@ -84,11 +84,7 @@ class FedmsgHandler(JobHandler):
     topic: str
 
     def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        data: EventData,
-        **kwargs,
+        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,
@@ -108,16 +104,12 @@ class NewDistGitCommitHandler(FedmsgHandler):
     triggers = [TheJobTriggerType.commit]
 
     def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        data: EventData,
-        event: dict,
+        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,
         )
-        self.branch = event.get("branch")
+        self.branch = data.event_dict.get("branch")
 
     def run(self) -> HandlerResults:
         # self.project is dist-git, we need to get upstream
@@ -153,23 +145,19 @@ class NewDistGitCommitHandler(FedmsgHandler):
 
 class AbstractCoprBuildReportHandler(FedmsgHandler):
     def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        data: EventData,
-        event: dict,
+        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,
         )
-        topic = event.get("topic")
-        project_name = event.get("project_name")
-        owner = event.get("owner")
-        build_id = event.get("build_id")
-        chroot = event.get("chroot")
-        timestamp = event.get("timestamp")
-        pkg = event.get("pkg")
-        status = event.get("status")
+        topic = data.event_dict.get("topic")
+        project_name = data.event_dict.get("project_name")
+        owner = data.event_dict.get("owner")
+        build_id = data.event_dict.get("build_id")
+        chroot = data.event_dict.get("chroot")
+        timestamp = data.event_dict.get("timestamp")
+        pkg = data.event_dict.get("pkg")
+        status = data.event_dict.get("status")
 
         self.copr_event = CoprBuildEvent.from_build_id(
             topic=topic,
@@ -385,23 +373,25 @@ class KojiBuildReportHandler(FedmsgHandler):
     triggers = [TheJobTriggerType.koji_results]
 
     def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        data: EventData,
-        event: dict,
+        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,
         )
-        build_id = event.get("build_id")
-        state = KojiBuildState(event.get("state")) if event.get("state") else None
-        old_state = (
-            KojiBuildState(event.get("old_state")) if event.get("old_state") else None
+        build_id = data.event_dict.get("build_id")
+        state = (
+            KojiBuildState(data.event_dict.get("state"))
+            if data.event_dict.get("state")
+            else None
         )
-        start_time = event.get("start_time")
-        rpm_build_task_id = event.get("rpm_build_task_id")
-        completion_time = event.get("completion_time")
+        old_state = (
+            KojiBuildState(data.event_dict.get("old_state"))
+            if data.event_dict.get("old_state")
+            else None
+        )
+        start_time = data.event_dict.get("start_time")
+        rpm_build_task_id = data.event_dict.get("rpm_build_task_id")
+        completion_time = data.event_dict.get("completion_time")
 
         self.koji_event = KojiBuildEvent(
             build_id=build_id,

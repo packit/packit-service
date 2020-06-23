@@ -79,25 +79,21 @@ class GithubAppInstallationHandler(JobHandler):
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
 
     def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        data: EventData,
-        event: dict,
+        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,
         )
-        self.account_type = event.get("account_type")
-        self.account_login = event.get("account_login")
-        self.sender_login = event.get("sender_login")
+        self.account_type = data.event_dict.get("account_type")
+        self.account_login = data.event_dict.get("account_login")
+        self.sender_login = data.event_dict.get("sender_login")
 
-        account_id = event.get("account_id")
-        account_url = event.get("account_url")
-        sender_id = event.get("sender_id")
-        created_at = event.get("created_at")
-        installation_id = event.get("installation_id")
-        repositories = event.get("repositories")
+        account_id = data.event_dict.get("account_id")
+        account_url = data.event_dict.get("account_url")
+        sender_id = data.event_dict.get("sender_id")
+        created_at = data.event_dict.get("created_at")
+        installation_id = data.event_dict.get("installation_id")
+        repositories = data.event_dict.get("repositories")
 
         self.installation_event = InstallationEvent(
             installation_id=installation_id,
@@ -205,11 +201,7 @@ class AbstractCoprBuildHandler(JobHandler):
     type = JobType.copr_build
 
     def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        data: EventData,
-        **kwargs,
+        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,
@@ -338,11 +330,7 @@ class AbstractGithubKojiBuildHandler(JobHandler):
     type = JobType.production_build
 
     def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        data: EventData,
-        **kwargs,
+        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,

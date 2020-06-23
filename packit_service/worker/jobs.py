@@ -245,7 +245,6 @@ class SteveJobs:
                     package_config=event.package_config,
                     job_config=job_config,
                     data=EventData.from_event_dict(event_dict),
-                    event=event_dict,
                 )
                 if handler.pre_check():
                     current_time = datetime.datetime.now().strftime(DATETIME_FORMAT)
@@ -367,7 +366,6 @@ class SteveJobs:
                 package_config=event.package_config,
                 job_config=job,
                 data=EventData.from_event_dict(event_dict),
-                event=event_dict,
             )
             result_key = (
                 f"{job.type.value}-{datetime.datetime.now().strftime(DATETIME_FORMAT)}"
@@ -432,7 +430,6 @@ class SteveJobs:
                 package_config=event_object.package_config,
                 job_config=None,
                 data=EventData.from_event_dict(event_dict),
-                event=event_dict,
             )
             job_type = JobType.add_to_whitelist.value
             jobs_results[job_type] = handler.run_n_clean()
@@ -442,7 +439,6 @@ class SteveJobs:
                 package_config=event_object.package_config,
                 job_config=None,
                 data=EventData.from_event_dict(event_dict),
-                event=event_dict,
             )
             job_type = JobType.create_bugzilla.value
             jobs_results[job_type] = handler.run_n_clean()

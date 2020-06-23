@@ -87,20 +87,16 @@ class PagurePullRequestLabelHandler(JobHandler):
     triggers = [TheJobTriggerType.pr_label]
 
     def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        data: EventData,
-        event: dict,
+        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data
         )
-        self.labels = event.get("labels")
-        self.action = PullRequestLabelAction(event.get("action"))
-        self.base_repo_owner = event.get("base_repo_owner")
-        self.base_repo_name = event.get("base_repo_namespace")
-        self.base_repo_namespace = event.get("base_repo_name")
+        self.labels = data.event_dict.get("labels")
+        self.action = PullRequestLabelAction(data.event_dict.get("action"))
+        self.base_repo_owner = data.event_dict.get("base_repo_owner")
+        self.base_repo_name = data.event_dict.get("base_repo_namespace")
+        self.base_repo_namespace = data.event_dict.get("base_repo_name")
 
         self.pr: PullRequest = self.project.get_pr(self.data.pr_id)
         # lazy properties

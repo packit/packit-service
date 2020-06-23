@@ -199,7 +199,6 @@ def test_testing_farm_response(
         package_config=flexmock(),
         job_config=flexmock(),
         data=EventData.from_event_dict(event_dict),
-        event=event_dict,
     )
     flexmock(StatusReporter).should_receive("report").with_args(
         state=status_status,

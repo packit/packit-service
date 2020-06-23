@@ -98,6 +98,5 @@ def check_copr_build(build_id: int) -> bool:
                 package_config=event.package_config,
                 job_config=job_config,
                 data=EventData.from_event_dict(event_dict),
-                event=event_dict,
             ).run()
     return True

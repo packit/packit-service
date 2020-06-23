@@ -158,6 +158,7 @@ class EventData:
         pr_id: Optional[int],
         commit_sha: Optional[str],
         identifier: Optional[str],
+        event_dict: Optional[dict],
     ):
         self.event_type = event_type
         self.trigger = trigger
@@ -169,6 +170,7 @@ class EventData:
         self.pr_id = pr_id
         self.commit_sha = commit_sha
         self.identifier = identifier
+        self.event_dict = event_dict
 
     @classmethod
     def from_event_dict(cls, event: dict):
@@ -194,6 +196,7 @@ class EventData:
             pr_id=pr_id,
             commit_sha=commit_sha,
             identifier=identifier,
+            event_dict=event,
         )
 
 

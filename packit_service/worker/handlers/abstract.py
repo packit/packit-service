@@ -178,7 +178,6 @@ class JobHandler(Handler):
         package_config: PackageConfig,
         job_config: Optional[JobConfig],
         data: EventData,
-        **kwargs,
     ):
         self.package_config = package_config
         self.job_config = job_config
