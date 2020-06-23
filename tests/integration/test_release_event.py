@@ -48,7 +48,7 @@ def test_dist_git_push_release_handle(github_release_webhook):
     ).once()
 
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
-        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
+        flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     )
 
     results = SteveJobs().process_message(github_release_webhook)
@@ -89,7 +89,7 @@ def test_dist_git_push_release_handle_multiple_branches(
     flexmock(FedPKG).should_receive("clone").and_return(None)
 
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
-        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
+        flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     )
 
     results = SteveJobs().process_message(github_release_webhook)
@@ -141,7 +141,7 @@ def test_dist_git_push_release_handle_one_failed(
 
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
-        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
+        flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     )
 
     results = SteveJobs().process_message(github_release_webhook)
@@ -195,7 +195,7 @@ def test_dist_git_push_release_handle_all_failed(
         Exception, "Failed"
     ).times(len(fedora_branches))
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
-        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
+        flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     )
 
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().times(

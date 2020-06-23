@@ -21,7 +21,7 @@
 # SOFTWARE.
 import logging
 from re import search
-from typing import Optional, Union, Tuple, Dict, Set
+from typing import Optional, Tuple, Dict, Set
 
 from ogr.abstract import CommitStatus, GitProject
 from packit.config import JobType, PackageConfig, JobConfig
@@ -31,19 +31,13 @@ from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import MSG_RETRIGGER
 from packit_service.models import KojiBuildModel
-from packit_service.service.events import (
-    PullRequestGithubEvent,
-    PullRequestCommentGithubEvent,
-    PushGitHubEvent,
-    ReleaseEvent,
-    KojiBuildEvent,
-)
 from packit_service.service.urls import (
     get_srpm_log_url_from_flask,
     get_koji_build_info_url_from_flask,
 )
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.result import HandlerResults
+from packit_service.service.events import EventData
 
 logger = logging.getLogger(__name__)
 
@@ -59,16 +53,18 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
-        event: Union[
-            PullRequestGithubEvent,
-            PullRequestCommentGithubEvent,
-            PushGitHubEvent,
-            ReleaseEvent,
-            KojiBuildEvent,
-        ],
+        metadata: EventData,
+        db_trigger,
         job: Optional[JobConfig] = None,
     ):
-        super().__init__(config, package_config, project, event, job)
+        super().__init__(
+            config=config,
+            package_config=package_config,
+            project=project,
+            metadata=metadata,
+            db_trigger=db_trigger,
+            job=job,
+        )
         self.msg_retrigger: str = MSG_RETRIGGER.format(build="production-build")
 
         # Lazy properties
@@ -174,12 +170,12 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
 
             koji_build = KojiBuildModel.get_or_create(
                 build_id=str(build_id),
-                commit_sha=self.event.commit_sha,
+                commit_sha=self.metadata.commit_sha,
                 web_url=web_url,
                 target=target,
                 status="pending",
                 srpm_build=self.srpm_model,
-                trigger_model=self.event.db_trigger,
+                trigger_model=self.db_trigger,
             )
             url = get_koji_build_info_url_from_flask(id_=koji_build.id)
             self.report_status_to_all_for_chroot(

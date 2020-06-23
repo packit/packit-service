@@ -31,6 +31,7 @@ from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
+from packit_service.models import PullRequestModel
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.jobs import SteveJobs
@@ -133,8 +134,12 @@ def mock_pr_comment_functionality(request):
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(
-        flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
+        trigger
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)

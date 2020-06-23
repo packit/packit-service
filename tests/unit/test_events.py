@@ -69,8 +69,6 @@ from packit_service.service.events import (
     MergeRequestGitlabEvent,
     GitlabEventAction,
     KojiBuildEvent,
-    get_koji_build_logs_url,
-    get_koji_rpm_build_web_url,
     IssueCommentGitlabEvent,
     MergeRequestCommentGitlabEvent,
     PushGitlabEvent,
@@ -1286,37 +1284,3 @@ class TestCentOSEventParser:
             "https://git.stg.centos.org/source-git/packit-hello-world"
         )
         assert event_object.package_config
-
-
-@pytest.mark.parametrize(
-    "event,result",
-    [
-        (
-            flexmock(rpm_build_task_id=45270227),
-            "https://kojipkgs.fedoraproject.org//work/tasks/227/45270227/build.log",
-        ),
-        (
-            flexmock(rpm_build_task_id=45452270),
-            "https://kojipkgs.fedoraproject.org//work/tasks/2270/45452270/build.log",
-        ),
-    ],
-)
-def test_get_koji_build_logs_url(event, result):
-    assert get_koji_build_logs_url(event) == result
-
-
-@pytest.mark.parametrize(
-    "event,result",
-    [
-        (
-            flexmock(rpm_build_task_id=45270227),
-            "https://koji.fedoraproject.org/koji/taskinfo?taskID=45270227",
-        ),
-        (
-            flexmock(rpm_build_task_id=45452270),
-            "https://koji.fedoraproject.org/koji/taskinfo?taskID=45452270",
-        ),
-    ],
-)
-def test_get_koji_rpm_build_web_url(event, result):
-    assert get_koji_rpm_build_web_url(event) == result

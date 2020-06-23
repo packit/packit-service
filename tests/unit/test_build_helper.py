@@ -269,11 +269,8 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
         config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
         project=flexmock(),
-        event=flexmock(
-            trigger=trigger,
-            db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
-            pr_id=None,
-        ),
+        metadata=flexmock(trigger=trigger, pr_id=None),
+        db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
     )
 
     assert copr_build_handler.package_config.jobs
@@ -337,15 +334,13 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
 def test_targets_for_koji_build(
     jobs, trigger, job_config_trigger_type, build_targets, koji_targets
 ):
+    pr_id = 41 if trigger == TheJobTriggerType.pull_request else None
     koji_build_handler = KojiBuildJobHelper(
         config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
         project=flexmock(),
-        event=flexmock(
-            trigger=trigger,
-            db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
-            pr_id=41 if trigger == TheJobTriggerType.pull_request else None,
-        ),
+        metadata=flexmock(trigger=trigger, pr_id=pr_id),
+        db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
     )
 
     assert koji_build_handler.package_config.jobs

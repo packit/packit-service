@@ -41,6 +41,7 @@ from packit_service.service.events import (
     PullRequestCommentPagureEvent,
     MergeRequestCommentGitlabEvent,
     IssueCommentGitlabEvent,
+    EventData,
 )
 from packit_service.trigger_mapping import (
     is_trigger_matching_job_config,
@@ -239,8 +240,11 @@ class SteveJobs:
             # we want to run handlers for all possible jobs, not just the first one
             for job_config in job_configs:
                 logger.debug(f"Running handler: {str(handler_kls)} for {job_config}")
+                event_dict = event.get_dict()
                 handler = handler_kls(
-                    config=self.config, job_config=job_config, event=event
+                    package_config=event.package_config,
+                    job_config=job_config,
+                    data=EventData.from_event_dict(event_dict),
                 )
                 if handler.pre_check():
                     current_time = datetime.datetime.now().strftime(DATETIME_FORMAT)
@@ -356,8 +360,12 @@ class SteveJobs:
             handler_kls=handler_kls, event=event, package_config=event.package_config,
         )
         for job in jobs:
+            # here will be the celery tasks created
+            event_dict = event.get_dict()
             handler_instance: Handler = handler_kls(
-                config=self.config, event=event, job=job
+                package_config=event.package_config,
+                job_config=job,
+                data=EventData.from_event_dict(event_dict),
             )
             result_key = (
                 f"{job.type.value}-{datetime.datetime.now().strftime(DATETIME_FORMAT)}"
@@ -416,16 +424,21 @@ class SteveJobs:
         jobs_results: Dict[str, HandlerResults] = {}
         # installation is handled differently b/c app is installed to GitHub account
         # not repository, so package config with jobs is missing
+        event_dict = event_object.get_dict()
         if event_object.trigger == TheJobTriggerType.installation:
             handler = GithubAppInstallationHandler(
-                self.config, job_config=None, event=event_object
+                package_config=event_object.package_config,
+                job_config=None,
+                data=EventData.from_event_dict(event_dict),
             )
             job_type = JobType.add_to_whitelist.value
             jobs_results[job_type] = handler.run_n_clean()
         # Label/Tag added event handler is run even when the job is not configured in package
         elif event_object.trigger == TheJobTriggerType.pr_label:
             handler = PagurePullRequestLabelHandler(
-                self.config, job_config=None, event=event_object
+                package_config=event_object.package_config,
+                job_config=None,
+                data=EventData.from_event_dict(event_dict),
             )
             job_type = JobType.create_bugzilla.value
             jobs_results[job_type] = handler.run_n_clean()

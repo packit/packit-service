@@ -37,7 +37,6 @@ from packit_service.worker.handlers.fedmsg_handlers import (
     NewDistGitCommitHandler,
 )
 from packit_service.worker.handlers.github_handlers import (
-    AbstractGitForgeJobHandler,
     GithubAppInstallationHandler,
     ReleaseCoprBuildHandler,
     PullRequestCoprBuildHandler,
@@ -57,7 +56,6 @@ from packit_service.worker.handlers.testing_farm_handlers import (
 )
 
 __all__ = [
-    AbstractGitForgeJobHandler.__name__,
     CommentActionHandler.__name__,
     CoprBuildEndHandler.__name__,
     CoprBuildStartHandler.__name__,

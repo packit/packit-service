@@ -24,7 +24,7 @@
 import json
 import logging
 import uuid
-from typing import Union
+from typing import Optional
 
 import requests
 
@@ -37,11 +37,7 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.models import TFTTestRunModel, TestingFarmResult
 from packit_service.sentry_integration import send_to_sentry
-from packit_service.service.events import (
-    PullRequestGithubEvent,
-    PullRequestCommentGithubEvent,
-    CoprBuildEvent,
-)
+from packit_service.service.events import EventData
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.result import HandlerResults
 
@@ -54,15 +50,19 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
-        event: Union[
-            PullRequestGithubEvent,
-            PullRequestCommentGithubEvent,
-            CoprBuildEvent,
-            PullRequestCommentGithubEvent,
-        ],
-        job: JobConfig = None,
+        metadata: EventData,
+        db_trigger,
+        job: Optional[JobConfig] = None,
     ):
-        super().__init__(config, package_config, project, event, job=job)
+        super().__init__(
+            config=config,
+            package_config=package_config,
+            project=project,
+            metadata=metadata,
+            db_trigger=db_trigger,
+            job=job,
+        )
+
         self.session = requests.session()
         adapter = requests.adapters.HTTPAdapter(max_retries=5)
         self.insecure = False
@@ -73,7 +73,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """Produce payload that can be used to trigger tests in Testing
            Farm using the Copr chroot given.
         """
-        git_url = self.event.project_url
+        git_url = self.metadata.project_url
         if not git_url.endswith(".git"):
             git_url = f"{git_url}.git"
 
@@ -86,11 +86,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 "repo-namespace": self.project.namespace,
                 "copr-repo-name": f"{self.job_owner}/{self.job_project}",
                 "copr-chroot": chroot,
-                "commit-sha": self.event.commit_sha,
+                "commit-sha": self.metadata.commit_sha,
                 "git-url": git_url,
-                "git-ref": self.event.git_ref
-                if self.event.git_ref
-                else self.event.commit_sha,
+                "git-ref": self.metadata.git_ref
+                if self.metadata.git_ref
+                else self.metadata.commit_sha,
             },
         }
 
@@ -148,11 +148,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         test_run_model = TFTTestRunModel.create(
             pipeline_id=pipeline_id,
-            commit_sha=self.event.commit_sha,
+            commit_sha=self.metadata.commit_sha,
             status=TestingFarmResult.new,
             target=chroot,
             web_url=None,
-            trigger_model=self.event.db_trigger,
+            trigger_model=self.db_trigger,
         )
 
         logger.debug("Sending testing farm request...")

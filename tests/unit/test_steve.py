@@ -82,7 +82,7 @@ def test_process_message(event):
         dist_git_branch="master", version="1.2.3"
     ).once()
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
-        flexmock(job_config_trigger_type=JobConfigTriggerType.release)
+        flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=1)
     )
     flexmock(Whitelist, check_and_report=True)
     results = SteveJobs().process_message(event)

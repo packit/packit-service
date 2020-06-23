@@ -111,6 +111,10 @@ def test_issue_comment_propose_update_handler(
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
         is_private=lambda: False,
     )
-    flexmock(IssueCommentEvent, db_trigger=IssueModel())
+
+    flexmock(IssueCommentEvent, db_trigger=IssueModel(id=123))
+    flexmock(IssueModel).should_receive("get_by_id").with_args(123).and_return(
+        flexmock(issue_id=12345)
+    )
     results = SteveJobs().process_message(issue_comment_propose_update_event)
     assert first_dict_value(results["jobs"])["success"]

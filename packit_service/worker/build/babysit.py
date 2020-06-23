@@ -23,14 +23,13 @@ import logging
 
 from copr.v3 import Client as CoprClient
 
-from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COPR_SUCC_STATE,
     COPR_API_SUCC_STATE,
     COPR_API_FAIL_STATE,
 )
 from packit_service.models import CoprBuildModel
-from packit_service.service.events import CoprBuildEvent, FedmsgTopic
+from packit_service.service.events import CoprBuildEvent, FedmsgTopic, EventData
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.jobs import get_config_for_handler_kls
 
@@ -94,7 +93,10 @@ def check_copr_build(build_id: int) -> bool:
         )
 
         for job_config in job_configs:
+            event_dict = event.get_dict()
             CoprBuildEndHandler(
-                ServiceConfig.get_service_config(), job_config=job_config, event=event,
+                package_config=event.package_config,
+                job_config=job_config,
+                data=EventData.from_event_dict(event_dict),
             ).run()
     return True

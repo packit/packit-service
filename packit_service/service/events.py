@@ -31,7 +31,7 @@ from typing import Optional, List, Union, Dict, Set
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
-from packit.config import PackageConfig
+from packit.config import PackageConfig, get_package_config_from_repo
 from packit_service.config import (
     ServiceConfig,
     PackageConfigGetter,
@@ -141,6 +141,65 @@ class TestResult(dict):
         )
 
 
+class EventData:
+    """
+    Class to represent the data which are common for handlers and comes from the original event
+    """
+
+    def __init__(
+        self,
+        event_type: str,
+        trigger: TheJobTriggerType,
+        user_login: str,
+        trigger_id: int,
+        project_url: str,
+        tag_name: Optional[str],
+        git_ref: Optional[str],
+        pr_id: Optional[int],
+        commit_sha: Optional[str],
+        identifier: Optional[str],
+        event_dict: Optional[dict],
+    ):
+        self.event_type = event_type
+        self.trigger = trigger
+        self.user_login = user_login
+        self.trigger_id = trigger_id
+        self.project_url = project_url
+        self.tag_name = tag_name
+        self.git_ref = git_ref
+        self.pr_id = pr_id
+        self.commit_sha = commit_sha
+        self.identifier = identifier
+        self.event_dict = event_dict
+
+    @classmethod
+    def from_event_dict(cls, event: dict):
+        event_type = event.get("event_type")
+        trigger = TheJobTriggerType(event.get("trigger"))
+        user_login = event.get("user_login")
+        trigger_id = event.get("trigger_id")
+        project_url = event.get("project_url")
+        tag_name = event.get("tag_name")
+        git_ref = event.get("git_ref")
+        pr_id = event.get("pr_id")
+        commit_sha = event.get("commit_sha")
+        identifier = event.get("identifier")
+
+        return EventData(
+            event_type=event_type,
+            trigger=trigger,
+            user_login=user_login,
+            trigger_id=trigger_id,
+            project_url=project_url,
+            tag_name=tag_name,
+            git_ref=git_ref,
+            pr_id=pr_id,
+            commit_sha=commit_sha,
+            identifier=identifier,
+            event_dict=event,
+        )
+
+
 class Event:
     def __init__(
         self, trigger: TheJobTriggerType, created_at: Union[int, float, str] = None
@@ -175,8 +234,13 @@ class Event:
         d = default_dict or self.__dict__
         d = copy.deepcopy(d)
         # whole dict have to be JSON serializable because of redis
+        d["event_type"] = self.__class__.__name__
         d["trigger"] = d["trigger"].value
+        d["trigger_id"] = self.db_trigger.id if self.db_trigger else None
         d["created_at"] = int(d["created_at"].timestamp())
+        d["project_url"] = d.get("project_url") or (
+            self.db_trigger.project.project_url if self.db_trigger else None
+        )
         return d
 
     @property
@@ -349,6 +413,11 @@ class ReleaseEvent(AddReleaseDbTrigger, AbstractGithubEvent):
             self._commit_sha = self.project.get_sha_from_tag(tag_name=self.tag_name)
         return self._commit_sha
 
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        result["commit_sha"] = self.commit_sha
+        return result
+
 
 class PushGitHubEvent(AddBranchPushDbTrigger, AbstractGithubEvent):
     def __init__(
@@ -490,6 +559,11 @@ class MergeRequestCommentGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEven
         self.commit_sha = commit_sha
         self.identifier = str(object_iid)
 
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        result["action"] = result["action"].value
+        return result
+
 
 class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
     def __init__(
@@ -533,6 +607,7 @@ class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
+        result["commit_sha"] = self.commit_sha
         return result
 
     def get_base_project(self) -> Optional[GitProject]:
@@ -561,6 +636,11 @@ class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
         self.user_login = username
         self.comment = comment
         self.commit_sha = None
+
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        result["action"] = result["action"].value
+        return result
 
 
 class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
@@ -604,6 +684,7 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
+        result["tag_name"] = self.tag_name
         return result
 
 
@@ -669,6 +750,8 @@ class DistGitEvent(AbstractForgeIndependentEvent):
         self.project_url = project_url
         self.identifier = branch
 
+        self._package_config = None
+
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["topic"] = result["topic"].value
@@ -676,6 +759,14 @@ class DistGitEvent(AbstractForgeIndependentEvent):
 
     def get_project(self) -> GitProject:
         return ServiceConfig.get_service_config().get_project(self.project_url)
+
+    @property
+    def package_config(self):
+        if not self._package_config:
+            self._package_config = get_package_config_from_repo(
+                self.project, self.git_ref
+            )
+        return self._package_config
 
 
 class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
@@ -725,6 +816,7 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["result"] = result["result"].value
+        result["pr_id"] = self.pr_id
         return result
 
     @property
@@ -845,6 +937,31 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
                 return None  # With Github app, we cannot work with fork repo
         return self.project
 
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        result["state"] = result["state"].value
+        result["old_state"] = result["old_state"].value
+        result["commit_sha"] = self.commit_sha
+        result["pr_id"] = self.pr_id
+        result["git_ref"] = self.git_ref
+        result["identifier"] = self.identifier
+        return result
+
+    def get_koji_build_logs_url(self) -> Optional[str]:
+        if not self.rpm_build_task_id:
+            return None
+
+        return (
+            f"https://kojipkgs.fedoraproject.org//work/tasks/"
+            f"{self.rpm_build_task_id % 10000}/{self.rpm_build_task_id}/build.log"
+        )
+
+    def get_koji_rpm_build_web_url(self) -> Optional[str]:
+        if not self.rpm_build_task_id:
+            return None
+
+        return f"https://koji.fedoraproject.org/koji/taskinfo?taskID={self.rpm_build_task_id}"
+
 
 class CoprBuildEvent(AbstractForgeIndependentEvent):
     build: Optional[CoprBuildModel]
@@ -949,39 +1066,23 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
         return True
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
-        d = self.__dict__
-        build = d.pop("build")
-        result = super().get_dict(d)
+        result = super().get_dict()
         result["topic"] = result["topic"].value
-        self.build = build
+        result.pop("build")
         return result
 
+    def get_copr_build_url(self) -> str:
+        return (
+            "https://copr.fedorainfracloud.org/coprs/"
+            f"{self.owner}/{self.project_name}/build/{self.build_id}/"
+        )
 
-def get_copr_build_logs_url(event: CoprBuildEvent) -> str:
-    return (
-        f"https://copr-be.cloud.fedoraproject.org/results/{event.owner}/"
-        f"{event.project_name}/{event.chroot}/"
-        f"{event.build_id:08d}-{event.pkg}/builder-live.log.gz"
-    )
-
-
-def get_koji_build_logs_url(event: KojiBuildEvent) -> Optional[str]:
-    if not event.rpm_build_task_id:
-        return None
-
-    return (
-        f"https://kojipkgs.fedoraproject.org//work/tasks/"
-        f"{event.rpm_build_task_id % 10000}/{event.rpm_build_task_id}/build.log"
-    )
-
-
-def get_koji_rpm_build_web_url(event: KojiBuildEvent) -> Optional[str]:
-    if not event.rpm_build_task_id:
-        return None
-
-    return (
-        f"https://koji.fedoraproject.org/koji/taskinfo?taskID={event.rpm_build_task_id}"
-    )
+    def get_copr_build_logs_url(self) -> str:
+        return (
+            f"https://copr-be.cloud.fedoraproject.org/results/{self.owner}/"
+            f"{self.project_name}/{self.chroot}/"
+            f"{self.build_id:08d}-{self.pkg}/builder-live.log.gz"
+        )
 
 
 class AbstractPagureEvent(AbstractForgeIndependentEvent):

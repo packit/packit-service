@@ -34,24 +34,12 @@ from packit.utils import PackitFormatter
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.models import SRPMBuildModel
-from packit_service.service.events import (
-    PullRequestGithubEvent,
-    PullRequestCommentGithubEvent,
-    CoprBuildEvent,
-    PushGitHubEvent,
-    ReleaseEvent,
-    PullRequestPagureEvent,
-    PullRequestCommentPagureEvent,
-    KojiBuildEvent,
-    MergeRequestCommentGitlabEvent,
-    MergeRequestGitlabEvent,
-    PushGitlabEvent,
-)
 from packit_service.trigger_mapping import (
     is_trigger_matching_job_config,
     are_job_types_same,
 )
 from packit_service.worker.reporting import StatusReporter
+from packit_service.service.events import EventData
 from sandcastle import SandcastleTimeoutReached
 
 logger = logging.getLogger(__name__)
@@ -68,38 +56,16 @@ class BaseBuildJobHelper:
         config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
-        event: Union[
-            PullRequestGithubEvent,
-            PullRequestPagureEvent,
-            PullRequestCommentGithubEvent,
-            PullRequestCommentPagureEvent,
-            CoprBuildEvent,
-            PushGitHubEvent,
-            ReleaseEvent,
-            KojiBuildEvent,
-            MergeRequestCommentGitlabEvent,
-            MergeRequestGitlabEvent,
-            PushGitlabEvent,
-        ],
+        metadata: EventData,
+        db_trigger,
         job: Optional[JobConfig] = None,
     ):
         self.config: ServiceConfig = config
         self.package_config: PackageConfig = package_config
         self.project: GitProject = project
-        self.event: Union[
-            PullRequestGithubEvent,
-            PullRequestPagureEvent,
-            PullRequestCommentGithubEvent,
-            PullRequestCommentPagureEvent,
-            CoprBuildEvent,
-            PushGitHubEvent,
-            ReleaseEvent,
-            KojiBuildEvent,
-            MergeRequestCommentGitlabEvent,
-            MergeRequestGitlabEvent,
-            PushGitlabEvent,
-        ] = event
+        self.db_trigger = db_trigger
         self.msg_retrigger: Optional[str] = ""
+        self.metadata: EventData = metadata
 
         # lazy properties
         self._api = None
@@ -124,8 +90,8 @@ class BaseBuildJobHelper:
             self._local_project = LocalProject(
                 git_project=self.project,
                 working_dir=self.config.command_handler_work_dir,
-                ref=self.event.git_ref,
-                pr_id=self.event.pr_id,
+                ref=self.metadata.git_ref,
+                pr_id=self.metadata.pr_id,
             )
         return self._local_project
 
@@ -191,16 +157,15 @@ class BaseBuildJobHelper:
         """
         if not self.job_type_build:
             return None
-
         if not self._job_build:
             for job in self.package_config.jobs:
                 if are_job_types_same(job.type, self.job_type_build) and (
                     (
-                        self.event.db_trigger
-                        and self.event.db_trigger.job_config_trigger_type == job.trigger
+                        self.db_trigger
+                        and self.db_trigger.job_config_trigger_type == job.trigger
                     )
                     or is_trigger_matching_job_config(
-                        trigger=self.event.trigger, job_config=job
+                        trigger=self.metadata.trigger, job_config=job
                     )
                 ):
                     self._job_build = job
@@ -230,11 +195,11 @@ class BaseBuildJobHelper:
             for job in self.package_config.jobs:
                 if are_job_types_same(job.type, self.job_type_test) and (
                     (
-                        self.event.db_trigger
-                        and self.event.db_trigger.job_config_trigger_type == job.trigger
+                        self.db_trigger
+                        and self.db_trigger.job_config_trigger_type == job.trigger
                     )
                     or is_trigger_matching_job_config(
-                        trigger=self.event.trigger, job_config=job
+                        trigger=self.metadata.trigger, job_config=job
                     )
                 ):
                     self._job_tests = job
@@ -245,7 +210,7 @@ class BaseBuildJobHelper:
     def status_reporter(self) -> StatusReporter:
         if not self._status_reporter:
             self._status_reporter = StatusReporter(
-                self.project, self.event.commit_sha, self.event.pr_id
+                self.project, self.metadata.commit_sha, self.metadata.pr_id
             )
         return self._status_reporter
 
