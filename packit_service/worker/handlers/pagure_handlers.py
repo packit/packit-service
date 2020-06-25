@@ -95,8 +95,8 @@ class PagurePullRequestLabelHandler(JobHandler):
         self.labels = data.event_dict.get("labels")
         self.action = PullRequestLabelAction(data.event_dict.get("action"))
         self.base_repo_owner = data.event_dict.get("base_repo_owner")
-        self.base_repo_name = data.event_dict.get("base_repo_namespace")
-        self.base_repo_namespace = data.event_dict.get("base_repo_name")
+        self.base_repo_namespace = data.event_dict.get("base_repo_namespace")
+        self.base_repo_name = data.event_dict.get("base_repo_name")
 
         self.pr: PullRequest = self.project.get_pr(self.data.pr_id)
         # lazy properties
