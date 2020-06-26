@@ -105,15 +105,12 @@
           project: myproject
           host: https://127.0.0.1:8443
           api_key: {{ kubeconfig_token.stdout }}
-          # To work-around 'SSL: CERTIFICATE_VERIFY_FAILED'
-          validate_certs: no
           # we don't need these services while testing p-s now
-          without_fedmsg: true
-          without_redis_commander: true
-          without_flower: true
-          without_dashboard: true
-          sandbox_namespace: packit-dev-sandbox
-          worker_replicas: 1
+          with_fedmsg: false
+          with_centosmsg: false
+          with_redis_commander: false
+          with_flower: false
+          with_dashboard: false
         dest: "{{ deployment_dir }}/vars/dev.yml"
     - name: Actually deploy
       command: make deploy

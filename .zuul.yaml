@@ -36,12 +36,6 @@
     parent: base
     description: Run tests of packit-service
     run: files/zuul-tests.yaml
-    extra-vars:
-      ansible_python_interpreter: /usr/bin/python3
-    nodeset:
-      nodes:
-        - name: test-node
-          label: cloud-fedora-32
 
 - job:
     name: packit-service-tests-requre
