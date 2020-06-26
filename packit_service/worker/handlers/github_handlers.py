@@ -31,11 +31,12 @@ from packit.api import PackitAPI
 from packit.config import (
     JobConfig,
     JobType,
-    PackageConfig,
 )
 from packit.config.aliases import get_branches
+from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject
+
 from packit_service import sentry_integration
 from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
 from packit_service.models import InstallationModel, AbstractTriggerDbType
@@ -153,7 +154,7 @@ class ProposeDownstreamHandler(JobHandler):
             git_project=self.project, working_dir=self.config.command_handler_work_dir,
         )
 
-        self.api = PackitAPI(self.config, self.package_config, self.local_project)
+        self.api = PackitAPI(self.config, self.job_config, self.local_project)
 
         errors = {}
         for branch in get_branches(
@@ -218,7 +219,7 @@ class AbstractCoprBuildHandler(JobHandler):
                 project=self.project,
                 metadata=self.data,
                 db_trigger=self.db_trigger,
-                job=self.job_config,
+                job_config=self.job_config,
             )
         return self._copr_build_helper
 
@@ -363,7 +364,7 @@ class AbstractGithubKojiBuildHandler(JobHandler):
                 project=self.project,
                 metadata=self.data,
                 db_trigger=self.db_trigger,
-                job=self.job_config,
+                job_config=self.job_config,
             )
         return self._koji_build_helper
 
@@ -469,7 +470,7 @@ class GithubTestingFarmHandler(JobHandler):
         db_trigger: AbstractTriggerDbType,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, data=data
+            package_config=package_config, job_config=job_config, data=data,
         )
         self.chroot = chroot
         self._db_trigger = db_trigger
@@ -487,7 +488,7 @@ class GithubTestingFarmHandler(JobHandler):
             project=self.project,
             metadata=self.data,
             db_trigger=self.db_trigger,
-            job=self.job_config,
+            job_config=self.job_config,
         )
         logger.info("Running testing farm.")
         return testing_farm_helper.run_testing_farm(chroot=self.chroot)
@@ -520,7 +521,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
             project=self.project,
             metadata=self.data,
             db_trigger=self.db_trigger,
-            job=self.job_config,
+            job_config=self.job_config,
         )
         handler_results = cbh.run_copr_build()
 
@@ -569,7 +570,9 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
 
         api = PackitAPI(
             config=self.config,
-            package_config=self.package_config,
+            # job_config and package_config are the same for PackitAPI
+            # and we want to use job_config since people can override things in there
+            package_config=self.job_config,
             upstream_local_project=local_project,
         )
 
@@ -595,7 +598,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
         sync_failed = False
         for branch in self.dist_git_branches_to_sync:
             msg = (
-                f"for the Fedora package `{self.package_config.downstream_package_name}`"
+                f"for the Fedora package `{self.job_config.downstream_package_name}`"
                 f"with the tag `{self.data.tag_name}` in the `{branch}` branch.\n"
             )
             try:
@@ -635,7 +638,7 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
             project=self.project,
             metadata=self.data,
             db_trigger=self.db_trigger,
-            job=self.job_config,
+            job_config=self.job_config,
         )
         user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
         if not (user_can_merge_pr or self.data.user_login in self.config.admins):

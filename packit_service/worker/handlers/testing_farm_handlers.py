@@ -27,7 +27,9 @@ import logging
 from typing import Optional
 
 from ogr.abstract import CommitStatus
-from packit.config import JobType, JobConfig, PackageConfig
+from packit.config import JobType, JobConfig
+from packit.config.package_config import PackageConfig
+
 from packit_service.models import TFTTestRunModel, AbstractTriggerDbType
 from packit_service.service.events import (
     TestingFarmResult,

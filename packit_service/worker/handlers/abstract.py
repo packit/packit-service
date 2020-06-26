@@ -31,12 +31,12 @@ from pathlib import Path
 from typing import Dict, Optional, Type, List, Set
 
 from ogr.abstract import GitProject
-
 from packit.api import PackitAPI
-from packit.config import JobConfig, JobType, PackageConfig
+from packit.config import JobConfig, JobType
+from packit.config.package_config import PackageConfig
 from packit.local_project import LocalProject
+
 from packit_service.config import ServiceConfig
-from packit_service.sentry_integration import push_scope_to_sentry
 from packit_service.models import (
     AbstractTriggerDbType,
     PullRequestModel,
@@ -44,6 +44,7 @@ from packit_service.models import (
     ProjectReleaseModel,
     GitBranchModel,
 )
+from packit_service.sentry_integration import push_scope_to_sentry
 from packit_service.service.events import TheJobTriggerType, EventData
 from packit_service.worker.result import HandlerResults
 
@@ -174,12 +175,11 @@ class JobHandler(Handler):
     triggers: List[TheJobTriggerType]
 
     def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: Optional[JobConfig],
-        data: EventData,
+        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
     ):
+        # build helper needs package_config to resolve dependencies b/w tests and build jobs
         self.package_config = package_config
+        # always use job_config to pick up values, use package_config only for package_config.jobs
         self.job_config = job_config
         self.data = data
 

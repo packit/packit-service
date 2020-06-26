@@ -24,9 +24,9 @@ import logging
 from typing import Optional
 
 from ogr.abstract import CommitStatus, PullRequest
+from packit.config import JobType, JobConfig, PackageConfig
 
 from packit_service.models import BugzillaModel
-from packit.config import JobType, JobConfig, PackageConfig
 from packit_service.service.events import (
     TheJobTriggerType,
     PullRequestLabelAction,
@@ -74,7 +74,7 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
                 project=self.project,
                 metadata=self.data,
                 db_trigger=self.db_trigger,
-                job=self.job_config,
+                job_config=self.job_config,
             )
         return self._copr_build_helper
 

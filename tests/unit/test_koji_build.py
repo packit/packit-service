@@ -92,6 +92,7 @@ def build_helper(
     handler = KojiBuildJobHelper(
         config=ServiceConfig(),
         package_config=pkg_conf,
+        job_config=pkg_conf.jobs[0],
         project=GitProject(repo=flexmock(), service=flexmock(), namespace=flexmock()),
         metadata=flexmock(
             trigger=event.trigger,

@@ -268,6 +268,7 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
     copr_build_handler = CoprBuildJobHelper(
         config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
+        job_config=jobs[0],  # BuildHelper looks at all jobs in the end
         project=flexmock(),
         metadata=flexmock(trigger=trigger, pr_id=None),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
@@ -338,6 +339,7 @@ def test_targets_for_koji_build(
     koji_build_handler = KojiBuildJobHelper(
         config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
+        job_config=jobs[0],
         project=flexmock(),
         metadata=flexmock(trigger=trigger, pr_id=pr_id),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),

@@ -24,15 +24,14 @@
 import json
 import logging
 import uuid
-from typing import Optional
 
 import requests
-
 from ogr.abstract import GitProject, CommitStatus
 from ogr.utils import RequestResponse
-from packit.config import PackageConfig
 from packit.config.job_config import JobConfig
+from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitConfigException
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.models import TFTTestRunModel, TestingFarmResult
@@ -52,7 +51,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         project: GitProject,
         metadata: EventData,
         db_trigger,
-        job: Optional[JobConfig] = None,
+        job_config: JobConfig,
     ):
         super().__init__(
             config=config,
@@ -60,7 +59,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             project=project,
             metadata=metadata,
             db_trigger=db_trigger,
-            job=job,
+            job_config=job_config,
         )
 
         self.session = requests.session()

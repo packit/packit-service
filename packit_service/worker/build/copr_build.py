@@ -23,21 +23,23 @@ import logging
 from typing import Optional, Tuple, Set, List
 
 from ogr.abstract import GitProject, CommitStatus
-from packit.config import PackageConfig, JobType, JobConfig
+from packit.config import JobType, JobConfig
 from packit.config.aliases import get_build_targets
+from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitCoprException
+
 from packit_service import sentry_integration
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import MSG_RETRIGGER
 from packit_service.models import CoprBuildModel
+from packit_service.service.events import EventData
 from packit_service.service.urls import (
     get_srpm_log_url_from_flask,
     get_copr_build_info_url_from_flask,
 )
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.result import HandlerResults
-from packit_service.service.events import EventData
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +57,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         project: GitProject,
         metadata: EventData,
         db_trigger,
-        job: Optional[JobConfig] = None,
+        job_config: JobConfig,
     ):
         super().__init__(
             config=config,
@@ -63,7 +65,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             project=project,
             metadata=metadata,
             db_trigger=db_trigger,
-            job=job,
+            job_config=job_config,
         )
 
         self.msg_retrigger: str = MSG_RETRIGGER.format(

@@ -25,22 +25,23 @@ from pathlib import Path
 from typing import Union, List, Optional, Tuple, Set
 
 from kubernetes.client.rest import ApiException
-
 from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
-from packit.config import PackageConfig, JobType, JobConfig
+from packit.config import JobType, JobConfig
+from packit.config.package_config import PackageConfig
 from packit.local_project import LocalProject
 from packit.utils import PackitFormatter
+from sandcastle import SandcastleTimeoutReached
+
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.models import SRPMBuildModel
+from packit_service.service.events import EventData
 from packit_service.trigger_mapping import (
     is_trigger_matching_job_config,
     are_job_types_same,
 )
 from packit_service.worker.reporting import StatusReporter
-from packit_service.service.events import EventData
-from sandcastle import SandcastleTimeoutReached
 
 logger = logging.getLogger(__name__)
 
@@ -58,10 +59,11 @@ class BaseBuildJobHelper:
         project: GitProject,
         metadata: EventData,
         db_trigger,
-        job: Optional[JobConfig] = None,
+        job_config: JobConfig,
     ):
         self.config: ServiceConfig = config
-        self.package_config: PackageConfig = package_config
+        self.job_config = job_config
+        self.package_config = package_config
         self.project: GitProject = project
         self.db_trigger = db_trigger
         self.msg_retrigger: Optional[str] = ""
@@ -75,14 +77,8 @@ class BaseBuildJobHelper:
         self._build_check_names: Optional[List[str]] = None
         self._srpm_model: Optional[SRPMBuildModel] = None
         self._srpm_path: Optional[Path] = None
-
-        # lazy properties, current job by default
-        self._job_build = (
-            job if job and are_job_types_same(job.type, self.job_type_build) else None
-        )
-        self._job_tests = (
-            job if job and are_job_types_same(job.type, self.job_type_test) else None
-        )
+        self._job_tests: Optional[JobConfig] = None
+        self._job_build: Optional[JobConfig] = None
 
     @property
     def local_project(self) -> LocalProject:
@@ -98,7 +94,7 @@ class BaseBuildJobHelper:
     @property
     def api(self) -> PackitAPI:
         if not self._api:
-            self._api = PackitAPI(self.config, self.package_config, self.local_project)
+            self._api = PackitAPI(self.config, self.job_config, self.local_project)
         return self._api
 
     @property
