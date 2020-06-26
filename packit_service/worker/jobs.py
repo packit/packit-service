@@ -436,7 +436,7 @@ class SteveJobs:
         # Label/Tag added event handler is run even when the job is not configured in package
         elif event_object.trigger == TheJobTriggerType.pr_label:
             handler = PagurePullRequestLabelHandler(
-                package_config=event_object.package_config,
+                package_config=None,
                 job_config=None,
                 data=EventData.from_event_dict(event_dict),
             )
