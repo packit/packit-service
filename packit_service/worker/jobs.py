@@ -427,7 +427,7 @@ class SteveJobs:
         event_dict = event_object.get_dict()
         if event_object.trigger == TheJobTriggerType.installation:
             handler = GithubAppInstallationHandler(
-                package_config=event_object.package_config,
+                package_config=None,
                 job_config=None,
                 data=EventData.from_event_dict(event_dict),
             )
