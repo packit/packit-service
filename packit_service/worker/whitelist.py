@@ -47,6 +47,10 @@ from packit_service.service.events import (
     PullRequestCommentPagureEvent,
     KojiBuildEvent,
     EventData,
+    MergeRequestCommentGitlabEvent,
+    IssueCommentGitlabEvent,
+    MergeRequestGitlabEvent,
+    PushGitlabEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
 
@@ -189,12 +193,22 @@ class Whitelist:
         :return:
         """
 
-        # whitelist checks dont apply to CentOS (Pagure)
+        # whitelist checks dont apply to CentOS (Pagure, Gitlab)
         if isinstance(
             event,
-            (PushPagureEvent, PullRequestPagureEvent, PullRequestCommentPagureEvent),
+            (
+                PushPagureEvent,
+                PullRequestPagureEvent,
+                PullRequestCommentPagureEvent,
+                MergeRequestCommentGitlabEvent,
+                IssueCommentGitlabEvent,
+                MergeRequestGitlabEvent,
+                PushGitlabEvent,
+            ),
         ):
-            logger.info("Centos (Pagure) events don't require whitelist checks.")
+            logger.info(
+                "Centos (Pagure, Gitlab) events don't require whitelist checks."
+            )
             return True
 
         # TODO: modify event hierarchy so we can use some abstract classes instead
