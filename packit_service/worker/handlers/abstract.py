@@ -26,14 +26,15 @@ This file defines generic job handler
 import logging
 import shutil
 from collections import defaultdict
+from datetime import datetime
 from os import getenv
 from pathlib import Path
 from typing import Dict, Optional, Type, List, Set
 
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
-from packit.config import JobConfig, JobType
-from packit.config.package_config import PackageConfig
+from packit.config import JobConfig, JobType, PackageConfig
+from packit.constants import DATETIME_FORMAT
 from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
@@ -46,7 +47,7 @@ from packit_service.models import (
 )
 from packit_service.sentry_integration import push_scope_to_sentry
 from packit_service.service.events import TheJobTriggerType, EventData
-from packit_service.worker.result import HandlerResults
+from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +102,7 @@ class Handler:
             self._service_config = ServiceConfig.get_service_config()
         return self._service_config
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")
 
     def get_tag_info(self) -> dict:
@@ -116,7 +117,7 @@ class Handler:
             )
         return tags
 
-    def run_n_clean(self) -> HandlerResults:
+    def run_n_clean(self) -> TaskResults:
         try:
             with push_scope_to_sentry() as scope:
                 for k, v in self.get_tag_info().items():
@@ -173,6 +174,7 @@ class JobHandler(Handler):
 
     type: JobType
     triggers: List[TheJobTriggerType]
+    task_name: str
 
     def __init__(
         self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
@@ -200,7 +202,7 @@ class JobHandler(Handler):
                 self._db_trigger = IssueModel.get_by_id(self.data.trigger_id)
             elif self.data.trigger == TheJobTriggerType.release:
                 self._db_trigger = ProjectReleaseModel.get_by_id(self.data.trigger_id)
-            elif self.data.trigger in TheJobTriggerType.push:
+            elif self.data.trigger == TheJobTriggerType.push:
                 self._db_trigger = GitBranchModel.get_by_id(self.data.trigger_id)
         return self._db_trigger
 
@@ -210,5 +212,26 @@ class JobHandler(Handler):
             self._project = self.service_config.get_project(url=self.data.project_url)
         return self._project
 
-    def run(self) -> HandlerResults:
+    def run_job(self):
+        """
+        If pre-check succeeds, run the job for the specific handler.
+        :return: TaskResults
+        """
+        job_type = self.job_config.type or self.type
+        logger.debug(f"Running handler {str(self)} for {job_type}")
+        job_results: Dict[str, TaskResults] = {}
+        if self.pre_check():
+            current_time = datetime.now().strftime(DATETIME_FORMAT)
+            result_key = f"{job_type.value}-{current_time}"
+            job_results[result_key] = self.run_n_clean()
+            logger.debug("Job finished!")
+
+            for v in job_results.values():
+                if not (v and v["success"]):
+                    logger.warning(job_results)
+                    logger.error(v["details"]["msg"])
+
+        return job_results
+
+    def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")

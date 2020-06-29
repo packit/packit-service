@@ -1,4 +1,5 @@
 import pytest
+from celery import Celery
 from flexmock import flexmock
 from github import Github
 from packit.api import PackitAPI
@@ -13,6 +14,7 @@ from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
+from packit_service.worker.tasks import run_propose_downstream_handler
 from tests.spellbook import first_dict_value
 
 
@@ -50,10 +52,19 @@ def test_dist_git_push_release_handle(github_release_webhook):
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     )
+    flexmock(Celery).should_receive("send_task").once()
 
-    results = SteveJobs().process_message(github_release_webhook)
-    assert first_dict_value(results["jobs"])["success"]
-    assert results["event"]["trigger"] == "release"
+    processing_results = SteveJobs().process_message(github_release_webhook)
+    assert processing_results["details"]["event"]["trigger"] == "release"
+
+    event_dict = processing_results["details"]["event"]
+    package_config = processing_results["details"]["package_config"]
+    job = processing_results["details"]["matching_jobs"][0]
+
+    results = run_propose_downstream_handler(
+        package_config=package_config, event=event_dict, job_config=job,
+    )
+    assert first_dict_value(results)["success"]
 
 
 def test_dist_git_push_release_handle_multiple_branches(

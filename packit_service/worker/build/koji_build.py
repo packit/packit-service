@@ -39,7 +39,8 @@ from packit_service.service.urls import (
     get_koji_build_info_url_from_flask,
 )
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
-from packit_service.worker.result import HandlerResults
+from packit_service.worker.result import TaskResults
+from packit_service.service.events import EventData
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +113,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             self._supported_koji_targets = get_all_koji_targets()
         return self._supported_koji_targets
 
-    def run_koji_build(self) -> HandlerResults:
+    def run_koji_build(self) -> TaskResults:
         self.report_status_to_all(
             description="Building SRPM ...", state=CommitStatus.pending
         )
@@ -125,7 +126,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 description=msg,
                 url=get_srpm_log_url_from_flask(self.srpm_model.id),
             )
-            return HandlerResults(success=False, details={"msg": msg})
+            return TaskResults(success=False, details={"msg": msg})
 
         try:
             # We need to do it manually
@@ -139,7 +140,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 description=msg,
                 url=get_srpm_log_url_from_flask(self.srpm_model.id),
             )
-            return HandlerResults(success=False, details={"msg": msg})
+            return TaskResults(success=False, details={"msg": msg})
 
         errors: Dict[str, str] = {}
         for target in self.build_targets:
@@ -188,7 +189,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             )
 
         if errors:
-            return HandlerResults(
+            return TaskResults(
                 success=False,
                 details={
                     "msg": "Koji build submit was not successful for all chroots.",
@@ -205,7 +206,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         )
         """
 
-        return HandlerResults(success=True, details={})
+        return TaskResults(success=True, details={})
 
     def run_build(
         self, target: Optional[str] = None

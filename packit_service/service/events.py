@@ -719,10 +719,38 @@ class InstallationEvent(Event):
         self.sender_login = sender_login
         self.status = status
 
+    @classmethod
+    def from_event_dict(cls, event: dict):
+        account_type = event.get("account_type")
+        account_login = event.get("account_login")
+        sender_login = event.get("sender_login")
+        account_id = event.get("account_id")
+        account_url = event.get("account_url")
+        sender_id = event.get("sender_id")
+        created_at = event.get("created_at")
+        installation_id = event.get("installation_id")
+        repositories = event.get("repositories")
+
+        return InstallationEvent(
+            installation_id=installation_id,
+            account_login=account_login,
+            account_id=account_id,
+            account_url=account_url,
+            account_type=account_type,
+            created_at=created_at,
+            repositories=repositories,
+            sender_id=sender_id,
+            sender_login=sender_login,
+        )
+
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["status"] = result["status"].value
         return result
+
+    @property
+    def package_config(self):
+        return None
 
     @property
     def project(self):
@@ -926,6 +954,26 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
                 self._identifier = self.commit_sha
         return self._identifier
 
+    @classmethod
+    def from_event_dict(cls, event: dict):
+        build_id = event.get("build_id")
+        state = KojiBuildState(event.get("state")) if event.get("state") else None
+        old_state = (
+            KojiBuildState(event.get("old_state")) if event.get("old_state") else None
+        )
+        start_time = event.get("start_time")
+        rpm_build_task_id = event.get("rpm_build_task_id")
+        completion_time = event.get("completion_time")
+
+        return KojiBuildEvent(
+            build_id=build_id,
+            state=state,
+            old_state=old_state,
+            rpm_build_task_id=rpm_build_task_id,
+            start_time=start_time,
+            completion_time=completion_time,
+        )
+
     def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:
             if isinstance(self.project, PagureProject):
@@ -1059,6 +1107,28 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
             return None
         return cls(
             topic, build_id, build, chroot, status, owner, project_name, pkg, timestamp
+        )
+
+    @classmethod
+    def from_event_dict(cls, event: dict):
+        topic = event.get("topic")
+        project_name = event.get("project_name")
+        owner = event.get("owner")
+        build_id = event.get("build_id")
+        chroot = event.get("chroot")
+        timestamp = event.get("timestamp")
+        pkg = event.get("pkg")
+        status = event.get("status")
+
+        return CoprBuildEvent.from_build_id(
+            topic=topic,
+            build_id=build_id,
+            chroot=chroot,
+            status=status,
+            owner=owner,
+            project_name=project_name,
+            pkg=pkg,
+            timestamp=timestamp,
         )
 
     def pre_check(self):
@@ -1233,6 +1303,10 @@ class PullRequestLabelPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
         self.git_ref = None  # pr_id will be used for checkout
         self.commit_sha = commit_sha
         self.labels = labels
+
+    @property
+    def package_config(self):
+        return None
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()

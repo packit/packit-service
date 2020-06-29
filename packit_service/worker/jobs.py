@@ -23,15 +23,15 @@
 """
 We love you, Steve Jobs.
 """
-import datetime
 import logging
 from typing import Any
 from typing import Optional, Dict, Union, Type, Set, List
 
-from packit.config import JobType, PackageConfig, JobConfig
-from packit.constants import DATETIME_FORMAT
+from packit.config import PackageConfig, JobConfig
+from packit.schema import PackageConfigSchema, JobConfigSchema
 
 from packit_service.config import ServiceConfig
+from packit_service.celerizer import celery_app
 from packit_service.log_versions import log_job_versions
 from packit_service.models import PullRequestModel
 from packit_service.service.events import (
@@ -42,7 +42,6 @@ from packit_service.service.events import (
     PullRequestCommentPagureEvent,
     MergeRequestCommentGitlabEvent,
     IssueCommentGitlabEvent,
-    EventData,
 )
 from packit_service.trigger_mapping import (
     is_trigger_matching_job_config,
@@ -72,7 +71,7 @@ from packit_service.worker.handlers.pagure_handlers import (
 )
 from packit_service.worker.handlers.pagure_handlers import PagurePullRequestLabelHandler
 from packit_service.worker.parser import Parser, CentosEventParser
-from packit_service.worker.result import HandlerResults
+from packit_service.worker.result import TaskResults
 from packit_service.worker.whitelist import Whitelist
 
 REQUESTED_PULL_REQUEST_COMMENT = "/packit"
@@ -195,26 +194,26 @@ class SteveJobs:
             self._service_config = ServiceConfig.get_service_config()
         return self._service_config
 
-    def process_jobs(self, event: Event) -> Dict[str, HandlerResults]:
+    def process_jobs(self, event: Event) -> Dict[str, TaskResults]:
         """
-        Run a job handler (if trigger matches) for every job defined in config.
+        Create a Celery task for a job handler (if trigger matches) for every job defined in config.
         """
 
-        handlers_results = {}
+        processing_results = {}
 
         if not event.package_config:
             # this happens when service receives events for repos which don't have packit config
             # success=True - it's not an error that people don't have packit.yaml in their repo
-            handlers_results[event.trigger.value] = HandlerResults(
+            processing_results[event.trigger.value] = TaskResults(
                 success=True, details={"msg": "No packit config in repo"}
             )
-            return handlers_results
+            return processing_results
 
         handler_classes = get_handlers_for_event(event, event.package_config)
 
         if not handler_classes:
             logger.warning(f"There is no handler for {event.trigger} event.")
-            return handlers_results
+            return processing_results
 
         for handler_kls in handler_classes:
             job_configs = get_config_for_handler_kls(
@@ -235,26 +234,28 @@ class SteveJobs:
                 job_configs=job_configs,
             ):
                 for job_config in job_configs:
-                    handlers_results[job_config.type.value] = HandlerResults(
+                    processing_results[job_config.type.value] = TaskResults(
                         success=False, details={"msg": "Account is not whitelisted!"}
                     )
-                return handlers_results
+                return processing_results
 
             # we want to run handlers for all possible jobs, not just the first one
             for job_config in job_configs:
-                logger.debug(f"Running handler: {str(handler_kls)} for {job_config}")
-                event_dict = event.get_dict()
-                handler = handler_kls(
-                    package_config=event.package_config,
-                    job_config=job_config,
-                    data=EventData.from_event_dict(event_dict),
+                send_handler_task(
+                    task_name=handler_kls.task_name, event=event, job=job_config
                 )
-                if handler.pre_check():
-                    current_time = datetime.datetime.now().strftime(DATETIME_FORMAT)
-                    result_key = f"{job_config.type.value}-{current_time}"
-                    handlers_results[result_key] = handler.run_n_clean()
-
-        return handlers_results
+        return TaskResults(
+            success=True,
+            details={
+                "event": event.get_dict(),
+                "matching_jobs": [
+                    JobConfigSchema().dump_config(job) for job in job_configs
+                ],
+                "package_config": PackageConfigSchema().dump_config(
+                    event.package_config
+                ),
+            },
+        )
 
     def find_packit_command(self, comment):
         packit_command = []
@@ -294,7 +295,7 @@ class SteveJobs:
             MergeRequestCommentGitlabEvent,
             IssueCommentGitlabEvent,
         ],
-    ) -> Dict[str, HandlerResults]:
+    ) -> Dict[str, TaskResults]:
 
         msg = f"comment '{event.comment}'"
         packit_command, pr_comment_error_msg = self.find_packit_command(
@@ -303,7 +304,7 @@ class SteveJobs:
 
         if pr_comment_error_msg:
             return {
-                event.trigger.value: HandlerResults(
+                event.trigger.value: TaskResults(
                     success=True, details={"msg": pr_comment_error_msg},
                 )
             }
@@ -313,7 +314,7 @@ class SteveJobs:
             packit_action = CommentAction[packit_command[0].replace("-", "_")]
         except KeyError:
             return {
-                event.trigger.value: HandlerResults(
+                event.trigger.value: TaskResults(
                     success=True,
                     details={
                         "msg": f"{msg} does not contain a valid packit-service command."
@@ -332,7 +333,7 @@ class SteveJobs:
         )
         if not handler_kls:
             return {
-                event.trigger.value: HandlerResults(
+                event.trigger.value: TaskResults(
                     success=True,
                     details={"msg": f"{msg} is not a packit-service command."},
                 )
@@ -351,7 +352,7 @@ class SteveJobs:
             event, event.project, service_config=self.service_config, job_configs=jobs
         ):
             return {
-                event.trigger.value: HandlerResults(
+                event.trigger.value: TaskResults(
                     success=True, details={"msg": "Account is not whitelisted!"}
                 )
             }
@@ -363,20 +364,21 @@ class SteveJobs:
         ):
             handler_kls = PagurePullRequestCommentCoprBuildHandler
 
-        handlers_results: Dict[str, HandlerResults] = {}
+        jobs = get_config_for_handler_kls(
+            handler_kls=handler_kls, event=event, package_config=event.package_config,
+        )
         for job in jobs:
-            # here will be the celery tasks created
-            event_dict = event.get_dict()
-            handler_instance: Handler = handler_kls(
-                package_config=event.package_config,
-                job_config=job,
-                data=EventData.from_event_dict(event_dict),
-            )
-            result_key = (
-                f"{job.type.value}-{datetime.datetime.now().strftime(DATETIME_FORMAT)}"
-            )
-            handlers_results[result_key] = handler_instance.run_n_clean()
-        return handlers_results
+            send_handler_task(task_name=handler_kls.task_name, event=event, job=job)
+        return TaskResults(
+            success=True,
+            details={
+                "event": event.get_dict(),
+                "matching_jobs": [JobConfigSchema().dump_config(job) for job in jobs],
+                "package_config": PackageConfigSchema().dump_config(
+                    event.package_config
+                ),
+            },
+        )
 
     def process_message(
         self, event: dict, topic: str = None, source: str = None
@@ -426,27 +428,21 @@ class SteveJobs:
             CoprBuildEndHandler,
             PagurePullRequestLabelHandler,
         ]
-        jobs_results: Dict[str, HandlerResults] = {}
+        processing_results = None
+
         # installation is handled differently b/c app is installed to GitHub account
         # not repository, so package config with jobs is missing
-        event_dict = event_object.get_dict()
         if event_object.trigger == TheJobTriggerType.installation:
-            handler = GithubAppInstallationHandler(
-                package_config=None,
-                job_config=None,
-                data=EventData.from_event_dict(event_dict),
+            send_handler_task(
+                task_name="task.run_installation_handler", event=event_object, job=None
             )
-            job_type = JobType.add_to_whitelist.value
-            jobs_results[job_type] = handler.run_n_clean()
         # Label/Tag added event handler is run even when the job is not configured in package
         elif event_object.trigger == TheJobTriggerType.pr_label:
-            handler = PagurePullRequestLabelHandler(
-                package_config=None,
-                job_config=None,
-                data=EventData.from_event_dict(event_dict),
+            send_handler_task(
+                task_name="task.run_pagure_pr_label_handler",
+                event=event_object,
+                job=None,
             )
-            job_type = JobType.create_bugzilla.value
-            jobs_results[job_type] = handler.run_n_clean()
         elif event_object.trigger in {
             TheJobTriggerType.issue_comment,
             TheJobTriggerType.pr_comment,
@@ -462,17 +458,36 @@ class SteveJobs:
                 ),
             )
         ):
-            jobs_results = self.process_comment_jobs(event_object)
+            processing_results = self.process_comment_jobs(event_object)
         else:
             # Processing the jobs from the config.
-            jobs_results = self.process_jobs(event_object)
+            processing_results = self.process_jobs(event_object)
 
-        logger.debug("All jobs finished!")
+        return processing_results or TaskResults(
+            success=True,
+            details={
+                "event": event_object.get_dict(),
+                "package_config": None,
+                "matching_jobs": None,
+            },
+        )
 
-        task_results = {"jobs": jobs_results, "event": event_object.get_dict()}
 
-        for v in jobs_results.values():
-            if not (v and v["success"]):
-                logger.warning(task_results)
-                logger.error(v["details"]["msg"])
-        return task_results
+def send_handler_task(task_name: str, event: Event, job: Optional[JobConfig]):
+    """
+    Send a task which will run the handler to Celery.
+    :param task_name: name of the Celery task
+    :param event: event which triggered the task
+    :param job: job to process
+    """
+    logger.debug(f"Sending task {task_name} to Celery.")
+    celery_app.send_task(
+        name=task_name,
+        kwargs={
+            "package_config": PackageConfigSchema().dump_config(event.package_config)
+            if event.package_config
+            else None,
+            "job_config": JobConfigSchema().dump_config(job) if job else None,
+            "event": event.get_dict(),
+        },
+    )

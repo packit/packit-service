@@ -1,7 +1,7 @@
 from typing import Dict, Any
 
 
-class HandlerResults(dict):
+class TaskResults(dict):
     """
     Job handler results.
     Inherit from dict to be JSON serializable.

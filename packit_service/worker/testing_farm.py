@@ -38,7 +38,7 @@ from packit_service.models import TFTTestRunModel, TestingFarmResult
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.events import EventData
 from packit_service.worker.build import CoprBuildJobHelper
-from packit_service.worker.result import HandlerResults
+from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 
@@ -108,27 +108,27 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 failed[chroot] = result.get("details")
 
         if not failed:
-            return HandlerResults(success=True, details={})
+            return TaskResults(success=True, details={})
 
-        return HandlerResults(
+        return TaskResults(
             success=False,
             details={"msg": f"Failed testing farm targets: '{failed.keys()}'."}.update(
                 failed
             ),
         )
 
-    def run_testing_farm(self, chroot: str) -> HandlerResults:
+    def run_testing_farm(self, chroot: str) -> TaskResults:
         if chroot not in self.tests_targets:
             # Leaving here just to be sure that we will discover this situation if it occurs.
             # Currently not possible to trigger this situation.
             msg = f"Target '{chroot}' not defined for tests but triggered."
             logger.error(msg)
             send_to_sentry(PackitConfigException(msg))
-            return HandlerResults(success=False, details={"msg": msg},)
+            return TaskResults(success=False, details={"msg": msg},)
 
         if chroot not in self.build_targets:
             self.report_missing_build_chroot(chroot)
-            return HandlerResults(
+            return TaskResults(
                 success=False,
                 details={
                     "msg": f"Target '{chroot}' not defined for build. "
@@ -169,7 +169,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 state=CommitStatus.failure, description=msg, chroot=chroot,
             )
             test_run_model.set_status(TestingFarmResult.error)
-            return HandlerResults(success=False, details={"msg": msg})
+            return TaskResults(success=False, details={"msg": msg})
         else:
             logger.debug(
                 f"Submitted to testing farm with return code: {req.status_code}"
@@ -196,7 +196,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                     state=CommitStatus.failure, description=msg, chroot=chroot,
                 )
                 test_run_model.set_status(TestingFarmResult.error)
-                return HandlerResults(success=False, details={"msg": msg})
+                return TaskResults(success=False, details={"msg": msg})
 
             test_run_model.set_status(TestingFarmResult.running)
             self.report_status_to_test_for_chroot(
@@ -206,7 +206,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 chroot=chroot,
             )
 
-        return HandlerResults(success=True, details={})
+        return TaskResults(success=True, details={})
 
     def send_testing_farm_request(
         self, url: str, method: str = None, params: dict = None, data=None

@@ -33,7 +33,9 @@ from packit.config.package_config import PackageConfig
 
 from packit_service.service.events import EventData
 from packit_service.worker.handlers import JobHandler
-from packit_service.worker.result import HandlerResults
+
+from packit_service.worker.result import TaskResults
+from packit_service.service.events import EventData
 
 logger = logging.getLogger(__name__)
 
@@ -86,5 +88,5 @@ class CommentActionHandler(JobHandler):
             package_config=package_config, job_config=job_config, data=data,
         )
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")

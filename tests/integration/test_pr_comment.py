@@ -35,7 +35,7 @@ from packit_service.models import PullRequestModel
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.jobs import SteveJobs
-from packit_service.worker.result import HandlerResults
+from packit_service.worker.result import TaskResults
 from packit_service.worker.whitelist import Whitelist
 from tests.spellbook import DATA_DIR
 
@@ -158,7 +158,7 @@ def test_pr_comment_copr_build_handler(
     mock_pr_comment_functionality, pr_copr_build_comment_event
 ):
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
-        HandlerResults(success=True, details={})
+        TaskResults(success=True, details={})
     ).once()
     (
         flexmock(GithubProject)
@@ -182,7 +182,7 @@ def test_pr_comment_build_handler(
     mock_pr_comment_functionality, pr_build_comment_event
 ):
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
-        HandlerResults(success=True, details={})
+        TaskResults(success=True, details={})
     )
     (
         flexmock(GithubProject)
@@ -237,7 +237,7 @@ def test_pr_embedded_command_handler(
 ):
     pr_embedded_command_comment_event["comment"]["body"] = comments_list
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
-        HandlerResults(success=True, details={})
+        TaskResults(success=True, details={})
     )
     (
         flexmock(GithubProject)
