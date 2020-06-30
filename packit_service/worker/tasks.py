@@ -45,6 +45,7 @@ from packit_service.worker.handlers.github_handlers import (
     PullRequestCoprBuildHandler,
     ProposeDownstreamHandler,
     GitHubPullRequestCommentTestingFarmHandler,
+    GitHubPullRequestCommentCoprBuildHandler,
 )
 
 from packit_service.worker.handlers.fedmsg_handlers import (
@@ -161,7 +162,7 @@ def run_pr_copr_build_handler(event: dict, package_config: dict, job_config: dic
 def run_pr_comment_copr_build_handler(
     event: dict, package_config: dict, job_config: dict
 ):
-    handler = PullRequestCoprBuildHandler(
+    handler = GitHubPullRequestCommentCoprBuildHandler(
         package_config=PackageConfigSchema().load_config(package_config),
         job_config=JobConfigSchema().load_config(job_config),
         data=EventData.from_event_dict(event),

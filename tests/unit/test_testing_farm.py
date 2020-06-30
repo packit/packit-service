@@ -199,6 +199,12 @@ def test_testing_farm_response(
         package_config=flexmock(),
         job_config=flexmock(),
         data=EventData.from_event_dict(event_dict),
+        tests=tests_tests,
+        result=tests_result,
+        pipeline_id="id",
+        log_url="some url",
+        copr_chroot="fedora-rawhide-x86_64",
+        message=tests_message,
     )
     flexmock(StatusReporter).should_receive("report").with_args(
         state=status_status,
@@ -220,6 +226,7 @@ def test_testing_farm_response(
     )
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
+
     test_farm_handler.run()
 
 

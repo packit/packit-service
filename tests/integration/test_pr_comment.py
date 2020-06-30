@@ -23,6 +23,7 @@
 import json
 
 import pytest
+from celery import Celery
 from flexmock import flexmock
 from github import Github
 from ogr.services.github import GithubProject
@@ -37,7 +38,8 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import TaskResults
 from packit_service.worker.whitelist import Whitelist
-from tests.spellbook import DATA_DIR
+from packit_service.worker.tasks import run_pr_comment_copr_build_handler
+from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
 @pytest.fixture(scope="module")
@@ -146,7 +148,7 @@ def mock_pr_comment_functionality(request):
 
 
 def one_job_finished_with_msg(results: dict, msg: str):
-    for value in results["jobs"].values():
+    for value in results.values():
         assert value["success"]
         if value["details"]["msg"] == msg:
             break
@@ -172,10 +174,15 @@ def test_pr_comment_copr_build_handler(
         "https://github.com/the-namespace/the-repo"
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    results = SteveJobs().process_message(pr_copr_build_comment_event)
+    flexmock(Celery).should_receive("send_task").once()
 
-    for value in results["jobs"].values():
-        assert value["success"]
+    processing_results = SteveJobs().process_message(pr_copr_build_comment_event)
+    event_dict, package_config, job = get_parameters_from_results(processing_results)
+
+    results = run_pr_comment_copr_build_handler(
+        package_config=package_config, event=event_dict, job_config=job,
+    )
+    assert first_dict_value(results)["success"]
 
 
 def test_pr_comment_build_handler(
@@ -193,9 +200,15 @@ def test_pr_comment_build_handler(
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    results = SteveJobs().process_message(pr_build_comment_event)
-    for value in results["jobs"].values():
-        assert value["success"]
+    flexmock(Celery).should_receive("send_task").once()
+
+    processing_results = SteveJobs().process_message(pr_build_comment_event)
+    event_dict, package_config, job = get_parameters_from_results(processing_results)
+
+    results = run_pr_comment_copr_build_handler(
+        package_config=package_config, event=event_dict, job_config=job,
+    )
+    assert first_dict_value(results)["success"]
 
 
 @pytest.mark.parametrize(
@@ -248,8 +261,16 @@ def test_pr_embedded_command_handler(
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    for value in results["jobs"].values():
+    flexmock(Celery).should_receive("send_task").once()
+
+    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
+    event_dict, package_config, job = get_parameters_from_results(processing_results)
+
+    results = run_pr_comment_copr_build_handler(
+        package_config=package_config, event=event_dict, job_config=job,
+    )
+
+    for value in results.values():
         assert value["success"]
 
 

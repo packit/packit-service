@@ -1304,10 +1304,6 @@ class PullRequestLabelPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
         self.commit_sha = commit_sha
         self.labels = labels
 
-    @property
-    def package_config(self):
-        return None
-
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value

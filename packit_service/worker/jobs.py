@@ -467,7 +467,7 @@ class SteveJobs:
             success=True,
             details={
                 "event": event_object.get_dict(),
-                "package_config": None,
+                "package_config": event_object.package_config,
                 "matching_jobs": None,
             },
         )
