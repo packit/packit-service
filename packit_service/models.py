@@ -45,7 +45,7 @@ from sqlalchemy import (
     Boolean,
 )
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session, relationship
+from sqlalchemy.orm import sessionmaker, Session, relationship, scoped_session
 from sqlalchemy.types import PickleType, ARRAY
 from sqlalchemy.dialects.postgresql import array as psql_array
 
@@ -66,24 +66,20 @@ def get_pg_url() -> str:
     )
 
 
+engine = create_engine(get_pg_url())
+ScopedSession = scoped_session(sessionmaker(bind=engine))
+
+
 @contextmanager
 def get_sa_session() -> Session:
     """ get SQLAlchemy session """
-    # we need to keep one session for all the operations b/c SA objects
-    # are bound to this session and we can use them, otherwise we'd need
-    # add objects into all newly created sessions:
-    #   Instance <PullRequest> is not bound to a Session; attribute refresh operation cannot proceed
-    global session_instance
-    if session_instance is None:
-        engine = create_engine(get_pg_url())
-        Session = sessionmaker(bind=engine)
-        session_instance = Session()
+    session = ScopedSession()
     try:
-        yield session_instance
-        session_instance.commit()
+        yield session
+        session.commit()
     except Exception as ex:
         logger.warning(f"Exception while working with database: {ex!r}")
-        session_instance.rollback()
+        session.rollback()
         raise
 
 
