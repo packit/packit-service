@@ -20,12 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import os
-from pathlib import Path
 
 import pytest
 from flexmock import flexmock
-
 from packit.config import JobConfig, JobType, JobConfigTriggerType, PackageConfig
+
 from packit_service.config import ServiceConfig
 from packit_service.service.events import TheJobTriggerType, EventData
 from packit_service.worker.handlers import JobHandler
@@ -39,20 +38,19 @@ def trick_p_s_with_k8s():
     del os.environ["KUBERNETES_SERVICE_HOST"]
 
 
-def test_handler_cleanup(tmpdir, trick_p_s_with_k8s):
-    t = Path(tmpdir)
-    t.joinpath("a").mkdir()
-    t.joinpath("b").write_text("a")
-    t.joinpath("c").symlink_to("b")
-    t.joinpath("d").symlink_to("a", target_is_directory=True)
-    t.joinpath("e").symlink_to("nope", target_is_directory=False)
-    t.joinpath("f").symlink_to("nopez", target_is_directory=True)
-    t.joinpath(".g").write_text("g")
-    t.joinpath(".h").symlink_to(".g", target_is_directory=False)
+def test_handler_cleanup(tmp_path, trick_p_s_with_k8s):
+    tmp_path.joinpath("a").mkdir()
+    tmp_path.joinpath("b").write_text("a")
+    tmp_path.joinpath("c").symlink_to("b")
+    tmp_path.joinpath("d").symlink_to("a", target_is_directory=True)
+    tmp_path.joinpath("e").symlink_to("nope", target_is_directory=False)
+    tmp_path.joinpath("f").symlink_to("nopez", target_is_directory=True)
+    tmp_path.joinpath(".g").write_text("g")
+    tmp_path.joinpath(".h").symlink_to(".g", target_is_directory=False)
 
     c = ServiceConfig()
     pc = flexmock(PackageConfig)
-    c.command_handler_work_dir = t
+    c.command_handler_work_dir = tmp_path
     jc = JobConfig(
         type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request, metadata={}
     )
@@ -66,7 +64,7 @@ def test_handler_cleanup(tmpdir, trick_p_s_with_k8s):
 
     j._clean_workplace()
 
-    assert len(list(t.iterdir())) == 0
+    assert len(list(tmp_path.iterdir())) == 0
 
 
 def test_precheck(github_pr_event):

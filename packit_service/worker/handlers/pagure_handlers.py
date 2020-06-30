@@ -135,7 +135,7 @@ class PagurePullRequestLabelHandler(JobHandler):
         """ Fill a Bugzilla bug and store in db. """
         bug_id, bug_url = self.bugzilla.create_bug(
             product="Red Hat Enterprise Linux 8",
-            version="CentOS-Stream",
+            version="CentOS Stream",
             component=self.base_repo_name,
             summary=self.pr.title,
             description=f"Based on approved CentOS Stream pull-request: {self.pr.url}",
