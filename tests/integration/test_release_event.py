@@ -61,7 +61,7 @@ def test_dist_git_push_release_handle(github_release_webhook):
     results = run_propose_downstream_handler(
         package_config=package_config, event=event_dict, job_config=job,
     )
-    assert first_dict_value(results)["success"]
+    assert first_dict_value(results["job"])["success"]
 
 
 def test_dist_git_push_release_handle_multiple_branches(
@@ -108,7 +108,7 @@ def test_dist_git_push_release_handle_multiple_branches(
     results = run_propose_downstream_handler(
         package_config=package_config, event=event_dict, job_config=job,
     )
-    assert first_dict_value(results)["success"]
+    assert first_dict_value(results["job"])["success"]
 
 
 def test_dist_git_push_release_handle_one_failed(
@@ -166,7 +166,7 @@ def test_dist_git_push_release_handle_one_failed(
     results = run_propose_downstream_handler(
         package_config=package_config, event=event_dict, job_config=job,
     )
-    assert not first_dict_value(results)["success"]
+    assert not first_dict_value(results["job"])["success"]
 
 
 def test_dist_git_push_release_handle_all_failed(
@@ -230,4 +230,4 @@ def test_dist_git_push_release_handle_all_failed(
     results = run_propose_downstream_handler(
         package_config=package_config, event=event_dict, job_config=job,
     )
-    assert not first_dict_value(results)["success"]
+    assert not first_dict_value(results["job"])["success"]

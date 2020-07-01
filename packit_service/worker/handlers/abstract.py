@@ -215,7 +215,7 @@ class JobHandler(Handler):
     def run_job(self):
         """
         If pre-check succeeds, run the job for the specific handler.
-        :return: TaskResults
+        :return: Dict [str, TaskResults]
         """
         job_type = self.job_config.type or self.type
         logger.debug(f"Running handler {str(self)} for {job_type}")

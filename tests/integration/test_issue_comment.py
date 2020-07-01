@@ -127,4 +127,4 @@ def test_issue_comment_propose_update_handler(
         package_config=package_config, event=event_dict, job_config=job,
     )
 
-    assert first_dict_value(results)["success"]
+    assert first_dict_value(results["job"])["success"]

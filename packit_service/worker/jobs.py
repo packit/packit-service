@@ -215,6 +215,7 @@ class SteveJobs:
             logger.warning(f"There is no handler for {event.trigger} event.")
             return processing_results
 
+        job_configs = []
         for handler_kls in handler_classes:
             job_configs = get_config_for_handler_kls(
                 handler_kls=handler_kls,
@@ -244,18 +245,7 @@ class SteveJobs:
                 send_handler_task(
                     task_name=handler_kls.task_name, event=event, job=job_config
                 )
-        return TaskResults(
-            success=True,
-            details={
-                "event": event.get_dict(),
-                "matching_jobs": [
-                    JobConfigSchema().dump_config(job) for job in job_configs
-                ],
-                "package_config": PackageConfigSchema().dump_config(
-                    event.package_config
-                ),
-            },
-        )
+        return get_processing_results(event=event, jobs=job_configs)
 
     def find_packit_command(self, comment):
         packit_command = []
@@ -369,16 +359,7 @@ class SteveJobs:
         )
         for job in jobs:
             send_handler_task(task_name=handler_kls.task_name, event=event, job=job)
-        return TaskResults(
-            success=True,
-            details={
-                "event": event.get_dict(),
-                "matching_jobs": [JobConfigSchema().dump_config(job) for job in jobs],
-                "package_config": PackageConfigSchema().dump_config(
-                    event.package_config
-                ),
-            },
-        )
+        return get_processing_results(event=event, jobs=jobs)
 
     def process_message(
         self, event: dict, topic: str = None, source: str = None
@@ -463,14 +444,7 @@ class SteveJobs:
             # Processing the jobs from the config.
             processing_results = self.process_jobs(event_object)
 
-        return processing_results or TaskResults(
-            success=True,
-            details={
-                "event": event_object.get_dict(),
-                "package_config": event_object.package_config,
-                "matching_jobs": None,
-            },
-        )
+        return processing_results or get_processing_results(event=event_object, jobs=[])
 
 
 def send_handler_task(task_name: str, event: Event, job: Optional[JobConfig]):
@@ -489,5 +463,18 @@ def send_handler_task(task_name: str, event: Event, job: Optional[JobConfig]):
             else None,
             "job_config": JobConfigSchema().dump_config(job) if job else None,
             "event": event.get_dict(),
+        },
+    )
+
+
+def get_processing_results(event: Event, jobs: List[JobConfig], success: bool = True):
+    return TaskResults(
+        success=success,
+        details={
+            "event": event.get_dict(),
+            "package_config": PackageConfigSchema().dump_config(event.package_config)
+            if event.package_config
+            else None,
+            "matching_jobs": [JobConfigSchema().dump_config(job) for job in jobs],
         },
     )

@@ -182,7 +182,7 @@ def test_pr_comment_copr_build_handler(
     results = run_pr_comment_copr_build_handler(
         package_config=package_config, event=event_dict, job_config=job,
     )
-    assert first_dict_value(results)["success"]
+    assert first_dict_value(results["job"])["success"]
 
 
 def test_pr_comment_build_handler(
@@ -208,7 +208,7 @@ def test_pr_comment_build_handler(
     results = run_pr_comment_copr_build_handler(
         package_config=package_config, event=event_dict, job_config=job,
     )
-    assert first_dict_value(results)["success"]
+    assert first_dict_value(results["job"])["success"]
 
 
 @pytest.mark.parametrize(
@@ -270,8 +270,7 @@ def test_pr_embedded_command_handler(
         package_config=package_config, event=event_dict, job_config=job,
     )
 
-    for value in results.values():
-        assert value["success"]
+    assert first_dict_value(results["job"])["success"]
 
 
 def test_pr_comment_empty_handler(

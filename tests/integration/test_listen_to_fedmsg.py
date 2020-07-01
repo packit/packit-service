@@ -772,7 +772,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
         package_config=package_config, event=event_dict, job_config=job,
     )
 
-    assert first_dict_value(results)["success"]
+    assert first_dict_value(results["job"])["success"]
 
 
 def test_koji_build_start_build_not_found(koji_build_scratch_start):
@@ -823,4 +823,4 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
         package_config=package_config, event=event_dict, job_config=job,
     )
 
-    assert first_dict_value(results)["success"]
+    assert first_dict_value(results["job"])["success"]
