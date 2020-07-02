@@ -23,7 +23,7 @@
 import json
 
 import pytest
-from celery import Celery
+from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
 from ogr.services.github import GithubProject
@@ -174,7 +174,7 @@ def test_pr_comment_copr_build_handler(
         "https://github.com/the-namespace/the-repo"
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_copr_build_comment_event)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
@@ -200,7 +200,7 @@ def test_pr_comment_build_handler(
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_build_comment_event)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
@@ -261,7 +261,7 @@ def test_pr_embedded_command_handler(
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
     event_dict, package_config, job = get_parameters_from_results(processing_results)

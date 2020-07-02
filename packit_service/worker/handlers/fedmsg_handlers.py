@@ -28,6 +28,8 @@ import logging
 from datetime import datetime
 from typing import Type, Optional
 
+from celery import signature
+
 from ogr.abstract import CommitStatus
 from ogr.services.github import GithubProject
 from packit.api import PackitAPI
@@ -65,8 +67,8 @@ from packit_service.worker.handlers.abstract import (
     use_for,
     required_by,
 )
-from packit_service.worker.handlers.github_handlers import GithubTestingFarmHandler
 from packit_service.worker.result import TaskResults
+from packit_service.utils import dump_package_config, dump_job_config
 
 logger = logging.getLogger(__name__)
 
@@ -289,14 +291,15 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             build_job_helper.job_tests
             and self.copr_event.chroot in build_job_helper.tests_targets
         ):
-            testing_farm_handler = GithubTestingFarmHandler(
-                package_config=self.package_config,
-                job_config=build_job_helper.job_tests,
-                data=self.data,
-                chroot=self.copr_event.chroot,
-                db_trigger=self.db_trigger,
-            )
-            testing_farm_handler.run()
+            signature(
+                "task.run_testing_farm_handler",
+                kwargs={
+                    "package_config": dump_package_config(self.package_config),
+                    "job_config": dump_job_config(build_job_helper.job_tests),
+                    "event": self.data.get_dict(),
+                    "chroot": self.copr_event.chroot,
+                },
+            ).apply_async()
         else:
             logger.debug("Testing farm not in the job config.")
 

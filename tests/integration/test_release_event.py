@@ -1,5 +1,5 @@
 import pytest
-from celery import Celery
+from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
 from packit.api import PackitAPI
@@ -52,7 +52,7 @@ def test_dist_git_push_release_handle(github_release_webhook):
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     )
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     assert processing_results["details"]["event"]["trigger"] == "release"
@@ -99,7 +99,7 @@ def test_dist_git_push_release_handle_multiple_branches(
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     )
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     assert processing_results["details"]["event"]["trigger"] == "release"
@@ -158,7 +158,7 @@ def test_dist_git_push_release_handle_one_failed(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     )
 
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
     processing_results = SteveJobs().process_message(github_release_webhook)
     assert processing_results["details"]["event"]["trigger"] == "release"
     event_dict, package_config, job = get_parameters_from_results(processing_results)
@@ -221,7 +221,7 @@ def test_dist_git_push_release_handle_all_failed(
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().times(
         len(fedora_branches)
     )
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     assert processing_results["details"]["event"]["trigger"] == "release"

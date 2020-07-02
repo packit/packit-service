@@ -26,7 +26,7 @@ Let's test that Steve's as awesome as we think he is.
 from json import dumps
 
 import pytest
-from celery import Celery
+from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
 
@@ -87,7 +87,7 @@ def test_process_message(event):
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=1)
     )
     flexmock(Whitelist, check_and_report=True)
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(event)
     assert processing_results["details"]["event"]["trigger"] == "release"

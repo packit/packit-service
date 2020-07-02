@@ -200,6 +200,12 @@ class EventData:
             event_dict=event,
         )
 
+    def get_dict(self) -> dict:
+        d = self.__dict__
+        d = copy.deepcopy(d)
+        d["trigger"] = d["trigger"].value
+        return d
+
 
 class Event:
     def __init__(
@@ -371,6 +377,14 @@ class AbstractForgeIndependentEvent(Event):
         if package_config:
             package_config.upstream_project_url = self.project_url
         return package_config
+
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        # so that it is JSON serializable (because of Celery tasks)
+        result.pop("_project")
+        result.pop("_base_project")
+        result.pop("_package_config")
+        return result
 
 
 class AbstractGithubEvent(AbstractForgeIndependentEvent):

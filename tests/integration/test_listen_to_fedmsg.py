@@ -24,7 +24,7 @@ import uuid
 
 import pytest
 import requests
-from celery import Celery
+from celery.canvas import Signature
 from flexmock import flexmock
 
 from ogr.abstract import CommitStatus
@@ -49,7 +49,7 @@ from packit_service.service.urls import (
     get_koji_build_info_url_from_flask,
 )
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
-from packit_service.worker.handlers import CoprBuildEndHandler
+from packit_service.worker.handlers import CoprBuildEndHandler, GithubTestingFarmHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.testing_farm import TestingFarmJobHelper
@@ -57,6 +57,7 @@ from packit_service.worker.tasks import (
     run_koji_build_report_handler,
     run_copr_build_end_handler,
     run_copr_build_start_handler,
+    run_testing_farm_handler,
 )
 from tests.conftest import copr_build_model
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
@@ -208,7 +209,7 @@ def test_copr_build_end(
 
     # skip testing farm
     flexmock(CoprBuildJobHelper).should_receive("job_tests").and_return(None)
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(copr_build_end)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
@@ -249,7 +250,7 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
 
     # skip testing farm
     flexmock(CoprBuildJobHelper).should_receive("job_tests").and_return(None)
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(copr_build_end)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
@@ -289,7 +290,7 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
 
     # skip testing farm
     flexmock(CoprBuildJobHelper).should_receive("job_tests").and_return(None)
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(copr_build_end)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
@@ -405,13 +406,24 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         url="some-url",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
     ).once()
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").twice()
 
     processing_results = SteveJobs().process_message(copr_build_end)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     run_copr_build_end_handler(
         package_config=package_config, event=event_dict, job_config=job,
+    )
+
+    flexmock(GithubTestingFarmHandler).should_receive("db_trigger").and_return(
+        copr_build_pr.job_trigger.get_trigger_object()
+    )
+
+    run_testing_farm_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
+        chroot="fedora-rawhide-x86_64",
     )
 
 
@@ -506,13 +518,24 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         trigger_model=copr_build_pr.job_trigger.get_trigger_object(),
         web_url=None,
     ).and_return(tft_test_run_model)
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").twice()
 
     processing_results = SteveJobs().process_message(copr_build_end)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     run_copr_build_end_handler(
         package_config=package_config, event=event_dict, job_config=job,
+    )
+
+    flexmock(GithubTestingFarmHandler).should_receive("db_trigger").and_return(
+        copr_build_pr.job_trigger.get_trigger_object()
+    )
+
+    run_testing_farm_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
+        chroot="fedora-rawhide-x86_64",
     )
 
 
@@ -609,13 +632,24 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         trigger_model=copr_build_pr.job_trigger.get_trigger_object(),
         web_url=None,
     ).and_return(tft_test_run_model)
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").twice()
 
     processing_results = SteveJobs().process_message(copr_build_end)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     run_copr_build_end_handler(
         package_config=package_config, event=event_dict, job_config=job,
+    )
+
+    flexmock(GithubTestingFarmHandler).should_receive("db_trigger").and_return(
+        copr_build_pr.job_trigger.get_trigger_object()
+    )
+
+    run_testing_farm_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
+        chroot="fedora-rawhide-x86_64",
     )
 
 
@@ -645,7 +679,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
         check_names=EXPECTED_BUILD_CHECK_NAME,
     ).once()
 
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(copr_build_start)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
@@ -687,7 +721,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
         url=url,
         check_names=TestingFarmJobHelper.get_test_check(copr_build_start["chroot"]),
     ).once()
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(copr_build_start)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
@@ -728,7 +762,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
 
     # skip testing farm
     flexmock(CoprBuildJobHelper).should_receive("job_tests").and_return(None)
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(copr_build_end)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
@@ -763,7 +797,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
         url=url,
         check_names="packit-stg/production-build-rawhide",
     ).once()
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(koji_build_scratch_start)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
@@ -814,7 +848,7 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
         url=url,
         check_names="packit-stg/production-build-rawhide",
     ).once()
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(koji_build_scratch_end)
     event_dict, package_config, job = get_parameters_from_results(processing_results)

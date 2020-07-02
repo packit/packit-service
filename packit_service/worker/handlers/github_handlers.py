@@ -39,7 +39,7 @@ from packit.local_project import LocalProject
 
 from packit_service import sentry_integration
 from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
-from packit_service.models import InstallationModel, AbstractTriggerDbType
+from packit_service.models import InstallationModel
 from packit_service.service.events import (
     TheJobTriggerType,
     ReleaseEvent,
@@ -467,17 +467,11 @@ class GithubTestingFarmHandler(JobHandler):
         job_config: JobConfig,
         data: EventData,
         chroot: str,
-        db_trigger: AbstractTriggerDbType,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,
         )
         self.chroot = chroot
-        self._db_trigger = db_trigger
-
-    @property
-    def db_trigger(self):
-        return self._db_trigger
 
     def run(self) -> TaskResults:
         # TODO: once we turn hanadlers into respective celery tasks, we should iterate

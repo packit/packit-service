@@ -24,7 +24,7 @@ import json
 from datetime import datetime
 
 import pytest
-from celery import Celery
+from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
 from github.GitRelease import GitRelease as PyGithubRelease
@@ -118,7 +118,7 @@ def test_issue_comment_propose_update_handler(
     flexmock(IssueModel).should_receive("get_by_id").with_args(123).and_return(
         flexmock(issue_id=12345)
     )
-    flexmock(Celery).should_receive("send_task").once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(issue_comment_propose_update_event)
     event_dict, package_config, job = get_parameters_from_results(processing_results)

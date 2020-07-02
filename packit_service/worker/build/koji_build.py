@@ -33,7 +33,6 @@ from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import MSG_RETRIGGER
 from packit_service.models import KojiBuildModel
-from packit_service.service.events import EventData
 from packit_service.service.urls import (
     get_srpm_log_url_from_flask,
     get_koji_build_info_url_from_flask,

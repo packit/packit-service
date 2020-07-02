@@ -24,14 +24,13 @@
 We love you, Steve Jobs.
 """
 import logging
+from celery import group, signature
 from typing import Any
 from typing import Optional, Dict, Union, Type, Set, List
 
 from packit.config import PackageConfig, JobConfig
-from packit.schema import PackageConfigSchema, JobConfigSchema
 
 from packit_service.config import ServiceConfig
-from packit_service.celerizer import celery_app
 from packit_service.log_versions import log_job_versions
 from packit_service.models import PullRequestModel
 from packit_service.service.events import (
@@ -73,6 +72,7 @@ from packit_service.worker.handlers.pagure_handlers import PagurePullRequestLabe
 from packit_service.worker.parser import Parser, CentosEventParser
 from packit_service.worker.result import TaskResults
 from packit_service.worker.whitelist import Whitelist
+from packit_service.utils import dump_package_config, dump_job_config
 
 REQUESTED_PULL_REQUEST_COMMENT = "/packit"
 
@@ -241,10 +241,14 @@ class SteveJobs:
                 return processing_results
 
             # we want to run handlers for all possible jobs, not just the first one
-            for job_config in job_configs:
-                send_handler_task(
+            signatures = [
+                get_signature(
                     task_name=handler_kls.task_name, event=event, job=job_config
                 )
+                for job_config in job_configs
+            ]
+            # https://docs.celeryproject.org/en/stable/userguide/canvas.html#groups
+            group(signatures).apply_async()
         return get_processing_results(event=event, jobs=job_configs)
 
     def find_packit_command(self, comment):
@@ -357,8 +361,13 @@ class SteveJobs:
         jobs = get_config_for_handler_kls(
             handler_kls=handler_kls, event=event, package_config=event.package_config,
         )
-        for job in jobs:
-            send_handler_task(task_name=handler_kls.task_name, event=event, job=job)
+
+        signatures = [
+            get_signature(task_name=handler_kls.task_name, event=event, job=job)
+            for job in jobs
+        ]
+        # https://docs.celeryproject.org/en/stable/userguide/canvas.html#groups
+        group(signatures).apply_async()
         return get_processing_results(event=event, jobs=jobs)
 
     def process_message(
@@ -414,16 +423,16 @@ class SteveJobs:
         # installation is handled differently b/c app is installed to GitHub account
         # not repository, so package config with jobs is missing
         if event_object.trigger == TheJobTriggerType.installation:
-            send_handler_task(
+            get_signature(
                 task_name="task.run_installation_handler", event=event_object, job=None
-            )
+            ).apply_async()
         # Label/Tag added event handler is run even when the job is not configured in package
         elif event_object.trigger == TheJobTriggerType.pr_label:
-            send_handler_task(
+            get_signature(
                 task_name="task.run_pagure_pr_label_handler",
                 event=event_object,
                 job=None,
-            )
+            ).apply_async()
         elif event_object.trigger in {
             TheJobTriggerType.issue_comment,
             TheJobTriggerType.pr_comment,
@@ -447,21 +456,20 @@ class SteveJobs:
         return processing_results or get_processing_results(event=event_object, jobs=[])
 
 
-def send_handler_task(task_name: str, event: Event, job: Optional[JobConfig]):
+def get_signature(task_name: str, event: Event, job: Optional[JobConfig]):
     """
-    Send a task which will run the handler to Celery.
+    Get the signature of a Celery task which will run the handler.
+    https://docs.celeryproject.org/en/stable/userguide/canvas.html#signatures
     :param task_name: name of the Celery task
     :param event: event which triggered the task
     :param job: job to process
     """
-    logger.debug(f"Sending task {task_name} to Celery.")
-    celery_app.send_task(
-        name=task_name,
+    logger.debug(f"Getting signature of a Celery task {task_name}.")
+    return signature(
+        task_name,
         kwargs={
-            "package_config": PackageConfigSchema().dump_config(event.package_config)
-            if event.package_config
-            else None,
-            "job_config": JobConfigSchema().dump_config(job) if job else None,
+            "package_config": dump_package_config(event.package_config),
+            "job_config": dump_job_config(job),
             "event": event.get_dict(),
         },
     )
@@ -472,9 +480,7 @@ def get_processing_results(event: Event, jobs: List[JobConfig], success: bool = 
         success=success,
         details={
             "event": event.get_dict(),
-            "package_config": PackageConfigSchema().dump_config(event.package_config)
-            if event.package_config
-            else None,
-            "matching_jobs": [JobConfigSchema().dump_config(job) for job in jobs],
+            "package_config": dump_package_config(event.package_config),
+            "matching_jobs": [dump_job_config(job) for job in jobs],
         },
     )
