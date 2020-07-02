@@ -89,7 +89,7 @@ def build_helper(
 
     pkg_conf = PackageConfig(jobs=jobs, downstream_package_name="dummy")
     handler = CoprBuildJobHelper(
-        config=ServiceConfig(),
+        service_config=ServiceConfig(),
         package_config=pkg_conf,
         job_config=jobs[0],
         project=GitProject(

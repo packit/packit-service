@@ -93,13 +93,13 @@ class Handler:
     triggers: List[TheJobTriggerType]
     api: Optional[PackitAPI] = None
     local_project: Optional[LocalProject] = None
-    _config: Optional[ServiceConfig] = None
+    _service_config: Optional[ServiceConfig] = None
 
     @property
-    def config(self) -> ServiceConfig:
-        if not self._config:
-            self._config = ServiceConfig.get_service_config()
-        return self._config
+    def service_config(self) -> ServiceConfig:
+        if not self._service_config:
+            self._service_config = ServiceConfig.get_service_config()
+        return self._service_config
 
     def run(self) -> HandlerResults:
         raise NotImplementedError("This should have been implemented.")
@@ -131,11 +131,11 @@ class Handler:
             logger.debug("This is not a kubernetes pod, won't clean.")
             return
         logger.debug("Removing contents of the PV.")
-        p = Path(self.config.command_handler_work_dir)
+        p = Path(self.service_config.command_handler_work_dir)
         # Do not clean dir if does not exist
         if not p.is_dir():
             logger.debug(
-                f"Directory {self.config.command_handler_work_dir!r} does not exist."
+                f"Directory {self.service_config.command_handler_work_dir!r} does not exist."
             )
             return
 
@@ -207,7 +207,7 @@ class JobHandler(Handler):
     @property
     def project(self) -> Optional[GitProject]:
         if not self._project and self.data.project_url:
-            self._project = self.config.get_project(url=self.data.project_url)
+            self._project = self.service_config.get_project(url=self.data.project_url)
         return self._project
 
     def run(self) -> HandlerResults:

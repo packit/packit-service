@@ -69,7 +69,7 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
     def copr_build_helper(self) -> CoprBuildJobHelper:
         if not self._copr_build_helper:
             self._copr_build_helper = CoprBuildJobHelper(
-                config=self.config,
+                service_config=self.service_config,
                 package_config=self.package_config,
                 project=self.project,
                 metadata=self.data,
@@ -119,7 +119,8 @@ class PagurePullRequestLabelHandler(JobHandler):
     def bugzilla(self) -> Bugzilla:
         if self._bugzilla is None:
             self._bugzilla = Bugzilla(
-                url=self.config.bugzilla_url, api_key=self.config.bugzilla_api_key
+                url=self.service_config.bugzilla_url,
+                api_key=self.service_config.bugzilla_api_key,
             )
         return self._bugzilla
 
@@ -184,11 +185,13 @@ class PagurePullRequestLabelHandler(JobHandler):
             f"{self.base_repo_owner}/{self.base_repo_namespace}/"
             f"{self.base_repo_name}/{self.data.identifier}"
         )
-        if self.labels.intersection(self.config.pr_accepted_labels):
+        if self.labels.intersection(self.service_config.pr_accepted_labels):
             if not self.bz_model:
                 self._create_bug()
             self._attach_patch()
             self._set_status()
         else:
-            logger.debug(f"We accept only {self.config.pr_accepted_labels} labels/tags")
+            logger.debug(
+                f"We accept only {self.service_config.pr_accepted_labels} labels/tags"
+            )
         return HandlerResults(success=True)

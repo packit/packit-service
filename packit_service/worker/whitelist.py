@@ -177,12 +177,12 @@ class Whitelist:
         self,
         event: Optional[Any],
         project: GitProject,
-        config: ServiceConfig,
+        service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
     ) -> bool:
         """
         Check if account is approved and report status back in case of PR
-        :param config: service config
+        :param service_config: service config
         :param event: PullRequest and Release TODO: handle more
         :param project: GitProject
         :param job_configs: iterable of jobconfigs - so we know how to update status of the PR
@@ -232,7 +232,7 @@ class Whitelist:
                 else:
                     for job_config in job_configs:
                         job_helper = CoprBuildJobHelper(
-                            config=config,
+                            service_config=service_config,
                             package_config=event.get_package_config(),
                             project=project,
                             metadata=EventData.from_event_dict((event.get_dict())),

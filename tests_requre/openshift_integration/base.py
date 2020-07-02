@@ -15,8 +15,8 @@ class PackitServiceTestCase(RequreTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.steve = SteveJobs()
-        self.steve.config.command_handler = RunCommandType.local
-        self.steve.config.command_handler_work_dir = "/tmp/hello-world"
+        self.steve.service_config.command_handler = RunCommandType.local
+        self.steve.service_config.command_handler_work_dir = "/tmp/hello-world"
 
     def tearDown(self):
         super().tearDown()

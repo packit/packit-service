@@ -52,7 +52,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
 
     def __init__(
         self,
-        config: ServiceConfig,
+        service_config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
@@ -60,7 +60,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         job_config: JobConfig,
     ):
         super().__init__(
-            config=config,
+            service_config=service_config,
             package_config=package_config,
             project=project,
             metadata=metadata,

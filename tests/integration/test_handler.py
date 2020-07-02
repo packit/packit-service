@@ -60,7 +60,7 @@ def test_handler_cleanup(tmp_path, trick_p_s_with_k8s):
         data=flexmock(trigger=TheJobTriggerType.pull_request),
     )
 
-    flexmock(j).should_receive("config").and_return(c)
+    flexmock(j).should_receive("service_config").and_return(c)
 
     j._clean_workplace()
 

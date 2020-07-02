@@ -90,7 +90,7 @@ def build_helper(
 
     pkg_conf = PackageConfig(jobs=jobs, downstream_package_name="dummy")
     handler = KojiBuildJobHelper(
-        config=ServiceConfig(),
+        service_config=ServiceConfig(),
         package_config=pkg_conf,
         job_config=pkg_conf.jobs[0],
         project=GitProject(repo=flexmock(), service=flexmock(), namespace=flexmock()),

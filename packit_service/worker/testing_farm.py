@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 class TestingFarmJobHelper(CoprBuildJobHelper):
     def __init__(
         self,
-        config: ServiceConfig,
+        service_config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
@@ -54,7 +54,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         job_config: JobConfig,
     ):
         super().__init__(
-            config=config,
+            service_config=service_config,
             package_config=package_config,
             project=project,
             metadata=metadata,
@@ -78,7 +78,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         return {
             "pipeline": {"id": pipeline_id},
-            "api": {"token": self.config.testing_farm_secret},
+            "api": {"token": self.service_config.testing_farm_secret},
             "response-url": f"{self.api_url}/testing-farm/results",
             "artifact": {
                 "repo-name": self.project.repo,
