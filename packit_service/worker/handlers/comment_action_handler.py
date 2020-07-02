@@ -26,13 +26,14 @@ This file defines classes for issue/pr comments which are sent by a git forge.
 
 import enum
 import logging
-
 from typing import Dict, Type
 
-from packit.config import PackageConfig, JobConfig
+from packit.config import JobConfig
+from packit.config.package_config import PackageConfig
+
+from packit_service.service.events import EventData
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.result import HandlerResults
-from packit_service.service.events import EventData
 
 logger = logging.getLogger(__name__)
 

@@ -32,6 +32,7 @@ from typing import Optional, List, Union, Dict, Set
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
 from packit.config import PackageConfig, get_package_config_from_repo
+
 from packit_service.config import (
     ServiceConfig,
     PackageConfigGetter,
@@ -365,6 +366,8 @@ class AbstractForgeIndependentEvent(Event):
             spec_file_path=spec_path,
         )
 
+        # job config change note:
+        #   this is used in sync-from-downstream which is buggy - we don't need to change this
         if package_config:
             package_config.upstream_project_url = self.project_url
         return package_config

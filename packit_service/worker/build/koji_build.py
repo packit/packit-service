@@ -24,20 +24,22 @@ from re import search
 from typing import Optional, Tuple, Dict, Set
 
 from ogr.abstract import CommitStatus, GitProject
-from packit.config import JobType, PackageConfig, JobConfig
+from packit.config import JobType, JobConfig
 from packit.config.aliases import get_koji_targets, get_all_koji_targets
+from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitCommandFailedError
+
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import MSG_RETRIGGER
 from packit_service.models import KojiBuildModel
+from packit_service.service.events import EventData
 from packit_service.service.urls import (
     get_srpm_log_url_from_flask,
     get_koji_build_info_url_from_flask,
 )
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.result import HandlerResults
-from packit_service.service.events import EventData
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +57,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         project: GitProject,
         metadata: EventData,
         db_trigger,
-        job: Optional[JobConfig] = None,
+        job_config: JobConfig,
     ):
         super().__init__(
             config=config,
@@ -63,7 +65,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             project=project,
             metadata=metadata,
             db_trigger=db_trigger,
-            job=job,
+            job_config=job_config,
         )
         self.msg_retrigger: str = MSG_RETRIGGER.format(build="production-build")
 

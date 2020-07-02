@@ -35,17 +35,19 @@ from packit.config import (
     JobType,
     JobConfig,
     JobConfigTriggerType,
-    PackageConfig,
 )
+from packit.config.package_config import PackageConfig
 from packit.distgit import DistGit
 from packit.local_project import LocalProject
 from packit.utils import get_namespace_and_repo_name
+
 from packit_service.constants import (
     PG_COPR_BUILD_STATUS_FAILURE,
     PG_COPR_BUILD_STATUS_SUCCESS,
     COPR_API_SUCC_STATE,
     KojiBuildState,
 )
+from packit_service.models import CoprBuildModel, KojiBuildModel, AbstractTriggerDbType
 from packit_service.service.events import (
     TheJobTriggerType,
     CoprBuildEvent,
@@ -56,7 +58,6 @@ from packit_service.service.urls import (
     get_copr_build_info_url_from_flask,
     get_koji_build_info_url_from_flask,
 )
-from packit_service.models import CoprBuildModel, KojiBuildModel, AbstractTriggerDbType
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.handlers.abstract import (
@@ -113,11 +114,9 @@ class NewDistGitCommitHandler(FedmsgHandler):
 
     def run(self) -> HandlerResults:
         # self.project is dist-git, we need to get upstream
-        dg = DistGit(self.config, self.package_config)
-        self.package_config.upstream_project_url = (
-            dg.get_project_url_from_distgit_spec()
-        )
-        if not self.package_config.upstream_project_url:
+        dg = DistGit(self.config, self.job_config)
+        self.job_config.upstream_project_url = dg.get_project_url_from_distgit_spec()
+        if not self.job_config.upstream_project_url:
             return HandlerResults(
                 success=False,
                 details={
@@ -126,13 +125,13 @@ class NewDistGitCommitHandler(FedmsgHandler):
                 },
             )
 
-        n, r = get_namespace_and_repo_name(self.package_config.upstream_project_url)
+        n, r = get_namespace_and_repo_name(self.job_config.upstream_project_url)
         up = self.project.service.get_project(repo=r, namespace=n)
         self.local_project = LocalProject(
             git_project=up, working_dir=self.config.command_handler_work_dir
         )
 
-        self.api = PackitAPI(self.config, self.package_config, self.local_project)
+        self.api = PackitAPI(self.config, self.job_config, self.local_project)
         self.api.sync_from_downstream(
             # rev is a commit
             # we use branch on purpose so we get the latest thing
@@ -220,7 +219,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             project=self.project,
             metadata=self.data,
             db_trigger=self.db_trigger,
-            job=self.job_config,
+            job_config=self.job_config,
         )
 
         if self.copr_event.chroot == "srpm-builds":
@@ -271,7 +270,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             and self.copr_event.pr_id
             and isinstance(self.project, GithubProject)
             and not self.was_last_packit_comment_with_congratulation()
-            and self.package_config.notifications.pull_request.successful_build
+            and self.job_config.notifications.pull_request.successful_build
         ):
             msg = (
                 f"Congratulations! One of the builds has completed. :champagne:\n\n"
@@ -331,7 +330,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
             project=self.project,
             metadata=self.data,
             db_trigger=self.db_trigger,
-            job=self.job_config,
+            job_config=self.job_config,
         )
 
         if self.copr_event.chroot == "srpm-builds":
@@ -451,6 +450,7 @@ class KojiBuildReportHandler(FedmsgHandler):
             project=self.project,
             metadata=self.data,
             db_trigger=self.db_trigger,
+            job_config=self.job_config,
         )
 
         if self.koji_event.state == KojiBuildState.open:

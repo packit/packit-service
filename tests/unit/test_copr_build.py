@@ -91,6 +91,7 @@ def build_helper(
     handler = CoprBuildJobHelper(
         config=ServiceConfig(),
         package_config=pkg_conf,
+        job_config=jobs[0],
         project=GitProject(
             repo="the-example-repo",
             service=flexmock(),

@@ -176,7 +176,7 @@ def test_copr_build_end(
 ):
     steve = SteveJobs()
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    pc_build_pr.notifications.pull_request.successful_build = pc_comment_pr_succ
+    pc_build_pr.jobs[0].notifications.pull_request.successful_build = pc_comment_pr_succ
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )

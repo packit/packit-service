@@ -30,6 +30,7 @@ from typing import Optional, Dict, Union, Type, Set, List
 
 from packit.config import JobType, PackageConfig, JobConfig
 from packit.constants import DATETIME_FORMAT
+
 from packit_service.config import ServiceConfig
 from packit_service.log_versions import log_job_versions
 from packit_service.models import PullRequestModel
@@ -202,8 +203,7 @@ class SteveJobs:
         handlers_results = {}
 
         if not event.package_config:
-            # this happens when service receives events for repos which
-            # don't have packit config, this is not an error
+            # this happens when service receives events for repos which don't have packit config
             # success=True - it's not an error that people don't have packit.yaml in their repo
             handlers_results[event.trigger.value] = HandlerResults(
                 success=True, details={"msg": "No packit config in repo"}
@@ -229,7 +229,7 @@ class SteveJobs:
             if user_login and user_login in self.config.admins:
                 logger.info(f"{user_login} is admin, you shall pass.")
             elif not whitelist.check_and_report(
-                event, event.project, config=self.config
+                event, event.project, config=self.config, job_configs=job_configs
             ):
                 for job_config in job_configs:
                     handlers_results[job_config.type.value] = HandlerResults(
@@ -339,9 +339,14 @@ class SteveJobs:
         # failed because of missing whitelist approval
         whitelist = Whitelist()
         user_login = getattr(event, "user_login", None)
+        jobs = get_config_for_handler_kls(
+            handler_kls=handler_kls, event=event, package_config=event.package_config,
+        )
         if user_login and user_login in self.config.admins:
             logger.info(f"{user_login} is admin, you shall pass.")
-        elif not whitelist.check_and_report(event, event.project, config=self.config):
+        elif not whitelist.check_and_report(
+            event, event.project, config=self.config, job_configs=jobs
+        ):
             return {
                 event.trigger.value: HandlerResults(
                     success=True, details={"msg": "Account is not whitelisted!"}
@@ -356,9 +361,6 @@ class SteveJobs:
             handler_kls = PagurePullRequestCommentCoprBuildHandler
 
         handlers_results: Dict[str, HandlerResults] = {}
-        jobs = get_config_for_handler_kls(
-            handler_kls=handler_kls, event=event, package_config=event.package_config,
-        )
         for job in jobs:
             # here will be the celery tasks created
             event_dict = event.get_dict()

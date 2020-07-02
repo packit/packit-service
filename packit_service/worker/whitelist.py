@@ -19,13 +19,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Iterable
 
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
-
 from ogr.abstract import GitProject, CommitStatus
+from packit.config.job_config import JobConfig
 from packit.exceptions import PackitException
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import FAQ_URL
 from packit_service.models import WhitelistModel
@@ -173,13 +174,18 @@ class Whitelist:
         ]
 
     def check_and_report(
-        self, event: Optional[Any], project: GitProject, config: ServiceConfig
+        self,
+        event: Optional[Any],
+        project: GitProject,
+        config: ServiceConfig,
+        job_configs: Iterable[JobConfig],
     ) -> bool:
         """
         Check if account is approved and report status back in case of PR
         :param config: service config
         :param event: PullRequest and Release TODO: handle more
         :param project: GitProject
+        :param job_configs: iterable of jobconfigs - so we know how to update status of the PR
         :return:
         """
 
@@ -224,17 +230,19 @@ class Whitelist:
                 if event.trigger == TheJobTriggerType.pr_comment:
                     project.pr_comment(event.pr_id, msg)
                 else:
-                    job_helper = CoprBuildJobHelper(
-                        config=config,
-                        package_config=event.get_package_config(),
-                        project=project,
-                        metadata=EventData.from_event_dict((event.get_dict())),
-                        db_trigger=event.db_trigger,
-                    )
-                    msg = "Account is not whitelisted!"  # needs to be shorter
-                    job_helper.report_status_to_all(
-                        description=msg, state=CommitStatus.error, url=FAQ_URL
-                    )
+                    for job_config in job_configs:
+                        job_helper = CoprBuildJobHelper(
+                            config=config,
+                            package_config=event.get_package_config(),
+                            project=project,
+                            metadata=EventData.from_event_dict((event.get_dict())),
+                            db_trigger=event.db_trigger,
+                            job_config=job_config,
+                        )
+                        msg = "Account is not whitelisted!"  # needs to be shorter
+                        job_helper.report_status_to_all(
+                            description=msg, state=CommitStatus.error, url=FAQ_URL
+                        )
                 return False
             # TODO: clear failing check when present
             return True

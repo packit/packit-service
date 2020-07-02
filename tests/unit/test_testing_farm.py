@@ -287,7 +287,9 @@ def test_trigger_payload(
     )
     db_trigger = flexmock()
 
-    job_helper = TFJobHelper(config, package_config, project, metadata, db_trigger)
+    job_helper = TFJobHelper(
+        config, package_config, project, metadata, db_trigger, flexmock()
+    )
     job_helper = flexmock(job_helper)
 
     job_helper.should_receive("job_owner").and_return(copr_owner)
