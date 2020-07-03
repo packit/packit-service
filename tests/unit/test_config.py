@@ -187,6 +187,18 @@ def test_config_opts(sc):
             "packit.spec",
             None,
         ),
+        (
+            "---\n"
+            "synced_files:\n"
+            "  - src: .packit.yaml\n"
+            "    dest: .packit2.yaml\n"
+            "jobs: [{job: build, trigger: pull_request}]\n",
+            GitProject(repo="", service=GitService(), namespace=""),
+            False,
+            "packit.spec",
+            "packit.spec",
+            None,
+        ),
     ],
 )
 def test_get_package_config_from_repo(
@@ -209,13 +221,19 @@ def test_get_package_config_from_repo(
     )
     assert isinstance(config, PackageConfig)
     assert config.specfile_path == spec_path
-    assert config.synced_files == SyncFilesConfig(
-        files_to_sync=[
-            SyncFilesItem(src="packit.spec", dest="packit.spec"),
-            SyncFilesItem(src=".packit.yaml", dest=".packit2.yaml"),
-        ]
+    assert set(config.get_all_files_to_sync().files_to_sync) == set(
+        SyncFilesConfig(
+            files_to_sync=[
+                SyncFilesItem(src="packit.spec", dest="packit.spec"),
+                SyncFilesItem(src=".packit.yaml", dest=".packit2.yaml"),
+            ]
+        ).files_to_sync
     )
     assert config.create_pr
+    for j in config.jobs:
+        assert j.specfile_path == spec_path
+        assert j.downstream_package_name == config.downstream_package_name
+        assert j.upstream_package_name == config.upstream_package_name
 
 
 def test_get_package_config_from_repo_alternative_config_name():
