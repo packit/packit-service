@@ -53,7 +53,7 @@ def issue_comment_propose_update_event():
 @pytest.fixture(scope="module")
 def mock_issue_comment_functionality():
     packit_yaml = (
-        "{'specfile_path': '', 'synced_files': [],"
+        "{'specfile_path': 'packit.spec', 'synced_files': [],"
         "'jobs': [{'trigger': 'release', 'job': 'propose_downstream',"
         "'metadata': {'dist-git-branch': 'master'}}],"
         "'downstream_package_name': 'packit'}"
