@@ -52,7 +52,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
     def __init__(
         self,
-        config: ServiceConfig,
+        service_config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
@@ -60,7 +60,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         job_config: JobConfig,
     ):
         super().__init__(
-            config=config,
+            service_config=service_config,
             package_config=package_config,
             project=project,
             metadata=metadata,
@@ -77,7 +77,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         Project name for copr -- add `-stg` suffix for the stg app.
         """
-        stg = "-stg" if self.config.deployment == Deployment.stg else ""
+        stg = "-stg" if self.service_config.deployment == Deployment.stg else ""
         return f"{self.project.namespace}-{self.project.repo}-{self.metadata.identifier}{stg}"
 
     @property

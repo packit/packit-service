@@ -118,7 +118,8 @@ class GithubAppInstallationHandler(JobHandler):
         InstallationModel.create(event=self.installation_event)
         # try to add user to whitelist
         whitelist = Whitelist(
-            fas_user=self.config.fas_user, fas_password=self.config.fas_password,
+            fas_user=self.service_config.fas_user,
+            fas_password=self.service_config.fas_password,
         )
         if not whitelist.add_account(self.account_login, self.sender_login):
             # Create an issue in our repository, so we are notified when someone install the app
@@ -151,10 +152,11 @@ class ProposeDownstreamHandler(JobHandler):
         """
 
         self.local_project = LocalProject(
-            git_project=self.project, working_dir=self.config.command_handler_work_dir,
+            git_project=self.project,
+            working_dir=self.service_config.command_handler_work_dir,
         )
 
-        self.api = PackitAPI(self.config, self.job_config, self.local_project)
+        self.api = PackitAPI(self.service_config, self.job_config, self.local_project)
 
         errors = {}
         for branch in get_branches(
@@ -214,7 +216,7 @@ class AbstractCoprBuildHandler(JobHandler):
     def copr_build_helper(self) -> CoprBuildJobHelper:
         if not self._copr_build_helper:
             self._copr_build_helper = CoprBuildJobHelper(
-                config=self.config,
+                service_config=self.service_config,
                 package_config=self.package_config,
                 project=self.project,
                 metadata=self.data,
@@ -271,7 +273,9 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
             MergeRequestGitlabEvent.__name__,
         ):
             user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
-            if not (user_can_merge_pr or self.data.user_login in self.config.admins):
+            if not (
+                user_can_merge_pr or self.data.user_login in self.service_config.admins
+            ):
                 self.copr_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=CommitStatus.failure,
@@ -359,7 +363,7 @@ class AbstractGithubKojiBuildHandler(JobHandler):
     def koji_build_helper(self) -> KojiBuildJobHelper:
         if not self._koji_build_helper:
             self._koji_build_helper = KojiBuildJobHelper(
-                config=self.config,
+                service_config=self.service_config,
                 package_config=self.package_config,
                 project=self.project,
                 metadata=self.data,
@@ -409,7 +413,9 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     def run(self) -> HandlerResults:
         if self.data.event_type == PullRequestGithubEvent.__name__:
             user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
-            if not (user_can_merge_pr or self.data.user_login in self.config.admins):
+            if not (
+                user_can_merge_pr or self.data.user_login in self.service_config.admins
+            ):
                 self.koji_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=CommitStatus.failure,
@@ -483,7 +489,7 @@ class GithubTestingFarmHandler(JobHandler):
         # TODO: once we turn hanadlers into respective celery tasks, we should iterate
         #       here over *all* matching jobs and do them all, not just the first one
         testing_farm_helper = TestingFarmJobHelper(
-            config=self.config,
+            service_config=self.service_config,
             package_config=self.package_config,
             project=self.project,
             metadata=self.data,
@@ -507,7 +513,9 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
 
     def run(self) -> HandlerResults:
         user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
-        if not (user_can_merge_pr or self.data.user_login in self.config.admins):
+        if not (
+            user_can_merge_pr or self.data.user_login in self.service_config.admins
+        ):
             self.project.pr_comment(
                 self.db_trigger.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )
@@ -516,7 +524,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
             )
 
         cbh = CoprBuildJobHelper(
-            config=self.config,
+            service_config=self.service_config,
             package_config=self.package_config,
             project=self.project,
             metadata=self.data,
@@ -565,11 +573,12 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
 
     def run(self) -> HandlerResults:
         local_project = LocalProject(
-            git_project=self.project, working_dir=self.config.command_handler_work_dir,
+            git_project=self.project,
+            working_dir=self.service_config.command_handler_work_dir,
         )
 
         api = PackitAPI(
-            config=self.config,
+            config=self.service_config,
             # job_config and package_config are the same for PackitAPI
             # and we want to use job_config since people can override things in there
             package_config=self.job_config,
@@ -577,7 +586,9 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
         )
 
         user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
-        if not (user_can_merge_pr or self.data.user_login in self.config.admins):
+        if not (
+            user_can_merge_pr or self.data.user_login in self.service_config.admins
+        ):
             self.project.issue_comment(
                 self.db_trigger.issue_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )
@@ -633,7 +644,7 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
 
     def run(self) -> HandlerResults:
         testing_farm_helper = TestingFarmJobHelper(
-            config=self.config,
+            service_config=self.service_config,
             package_config=self.package_config,
             project=self.project,
             metadata=self.data,
@@ -641,7 +652,9 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
             job_config=self.job_config,
         )
         user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
-        if not (user_can_merge_pr or self.data.user_login in self.config.admins):
+        if not (
+            user_can_merge_pr or self.data.user_login in self.service_config.admins
+        ):
             self.project.pr_comment(
                 self.db_trigger.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )

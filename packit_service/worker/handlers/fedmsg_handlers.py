@@ -114,7 +114,7 @@ class NewDistGitCommitHandler(FedmsgHandler):
 
     def run(self) -> HandlerResults:
         # self.project is dist-git, we need to get upstream
-        dg = DistGit(self.config, self.job_config)
+        dg = DistGit(self.service_config, self.job_config)
         self.job_config.upstream_project_url = dg.get_project_url_from_distgit_spec()
         if not self.job_config.upstream_project_url:
             return HandlerResults(
@@ -128,10 +128,10 @@ class NewDistGitCommitHandler(FedmsgHandler):
         n, r = get_namespace_and_repo_name(self.job_config.upstream_project_url)
         up = self.project.service.get_project(repo=r, namespace=n)
         self.local_project = LocalProject(
-            git_project=up, working_dir=self.config.command_handler_work_dir
+            git_project=up, working_dir=self.service_config.command_handler_work_dir
         )
 
-        self.api = PackitAPI(self.config, self.job_config, self.local_project)
+        self.api = PackitAPI(self.service_config, self.job_config, self.local_project)
         self.api.sync_from_downstream(
             # rev is a commit
             # we use branch on purpose so we get the latest thing
@@ -214,7 +214,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
 
     def run(self):
         build_job_helper = CoprBuildJobHelper(
-            config=self.config,
+            service_config=self.service_config,
             package_config=self.package_config,
             project=self.project,
             metadata=self.data,
@@ -325,7 +325,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
 
     def run(self):
         build_job_helper = CoprBuildJobHelper(
-            config=self.config,
+            service_config=self.service_config,
             package_config=self.package_config,
             project=self.project,
             metadata=self.data,
@@ -445,7 +445,7 @@ class KojiBuildReportHandler(FedmsgHandler):
 
         url = get_koji_build_info_url_from_flask(build.id)
         build_job_helper = KojiBuildJobHelper(
-            config=self.config,
+            service_config=self.service_config,
             package_config=self.package_config,
             project=self.project,
             metadata=self.data,

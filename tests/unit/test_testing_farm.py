@@ -175,7 +175,7 @@ def test_testing_farm_response(
         )
     )
     config = flexmock(command_handler_work_dir=flexmock())
-    flexmock(TFResultsHandler).should_receive("config").and_return(config)
+    flexmock(TFResultsHandler).should_receive("service_config").and_return(config)
     flexmock(TFResultsEvent).should_receive("db_trigger").and_return(None)
     config.should_receive("get_project").with_args(
         url="https://github.com/packit-service/ogr"

@@ -198,7 +198,10 @@ def test_check_and_report_calls_method(whitelist, event, method, approved):
         whitelist_mock.and_return(None)
     assert (
         whitelist.check_and_report(
-            event, gp, config=flexmock(deployment=Deployment.stg), job_configs=[]
+            event,
+            gp,
+            service_config=flexmock(deployment=Deployment.stg),
+            job_configs=[],
         )
         is approved
     )
@@ -348,7 +351,9 @@ def test_check_and_report(
             whitelist.check_and_report(
                 event,
                 git_project,
-                config=flexmock(deployment=Deployment.stg, command_handler_work_dir=""),
+                service_config=flexmock(
+                    deployment=Deployment.stg, command_handler_work_dir=""
+                ),
                 job_configs=job_configs,
             )
             is is_valid

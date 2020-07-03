@@ -54,14 +54,14 @@ class BaseBuildJobHelper:
 
     def __init__(
         self,
-        config: ServiceConfig,
+        service_config: ServiceConfig,
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
         db_trigger,
         job_config: JobConfig,
     ):
-        self.config: ServiceConfig = config
+        self.service_config: ServiceConfig = service_config
         self.job_config = job_config
         self.package_config = package_config
         self.project: GitProject = project
@@ -85,7 +85,7 @@ class BaseBuildJobHelper:
         if self._local_project is None:
             self._local_project = LocalProject(
                 git_project=self.project,
-                working_dir=self.config.command_handler_work_dir,
+                working_dir=self.service_config.command_handler_work_dir,
                 ref=self.metadata.git_ref,
                 pr_id=self.metadata.pr_id,
             )
@@ -94,14 +94,16 @@ class BaseBuildJobHelper:
     @property
     def api(self) -> PackitAPI:
         if not self._api:
-            self._api = PackitAPI(self.config, self.job_config, self.local_project)
+            self._api = PackitAPI(
+                self.service_config, self.job_config, self.local_project
+            )
         return self._api
 
     @property
     def api_url(self) -> str:
         return (
             "https://prod.packit.dev/api"
-            if self.config.deployment == Deployment.prod
+            if self.service_config.deployment == Deployment.prod
             else "https://stg.packit.dev/api"
         )
 

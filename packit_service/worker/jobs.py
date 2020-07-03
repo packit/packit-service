@@ -186,14 +186,14 @@ class SteveJobs:
     """
 
     def __init__(self):
-        self._config = None
+        self._service_config = None
         log_job_versions()
 
     @property
-    def config(self):
-        if self._config is None:
-            self._config = ServiceConfig.get_service_config()
-        return self._config
+    def service_config(self):
+        if self._service_config is None:
+            self._service_config = ServiceConfig.get_service_config()
+        return self._service_config
 
     def process_jobs(self, event: Event) -> Dict[str, HandlerResults]:
         """
@@ -226,10 +226,13 @@ class SteveJobs:
             # failed because of missing whitelist approval
             whitelist = Whitelist()
             user_login = getattr(event, "user_login", None)
-            if user_login and user_login in self.config.admins:
+            if user_login and user_login in self.service_config.admins:
                 logger.info(f"{user_login} is admin, you shall pass.")
             elif not whitelist.check_and_report(
-                event, event.project, config=self.config, job_configs=job_configs
+                event,
+                event.project,
+                service_config=self.service_config,
+                job_configs=job_configs,
             ):
                 for job_config in job_configs:
                     handlers_results[job_config.type.value] = HandlerResults(
@@ -342,10 +345,10 @@ class SteveJobs:
         jobs = get_config_for_handler_kls(
             handler_kls=handler_kls, event=event, package_config=event.package_config,
         )
-        if user_login and user_login in self.config.admins:
+        if user_login and user_login in self.service_config.admins:
             logger.info(f"{user_login} is admin, you shall pass.")
         elif not whitelist.check_and_report(
-            event, event.project, config=self.config, job_configs=jobs
+            event, event.project, service_config=self.service_config, job_configs=jobs
         ):
             return {
                 event.trigger.value: HandlerResults(

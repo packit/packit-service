@@ -266,7 +266,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
 )
 def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chroots):
     copr_build_handler = CoprBuildJobHelper(
-        config=flexmock(),
+        service_config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],  # BuildHelper looks at all jobs in the end
         project=flexmock(),
@@ -337,7 +337,7 @@ def test_targets_for_koji_build(
 ):
     pr_id = 41 if trigger == TheJobTriggerType.pull_request else None
     koji_build_handler = KojiBuildJobHelper(
-        config=flexmock(),
+        service_config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],
         project=flexmock(),
