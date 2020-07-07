@@ -197,5 +197,7 @@ class PagurePullRequestLabelHandler(JobHandler):
             self._attach_patch()
             self._set_status()
         else:
-            logger.debug(f"We accept only {self.service_config.pr_accepted_labels} labels/tags")
+            logger.debug(
+                f"We accept only {self.service_config.pr_accepted_labels} labels/tags"
+            )
         return TaskResults(success=True)

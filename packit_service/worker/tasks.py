@@ -220,23 +220,16 @@ def run_testing_farm_comment_handler(
 def run_testing_farm_results_handler(
     event: dict, package_config: dict, job_config: dict
 ):
-    tests = event.get("tests")
-    result = TestingFarmResult(event.get("result")) if event.get("result") else None
-    pipeline_id = event.get("pipeline_id")
-    log_url = event.get("log_url")
-    copr_chroot = event.get("copr_chroot")
-    message = event.get("message")
-
     handler = TestingFarmResultsHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         data=EventData.from_event_dict(event),
-        tests=tests,
-        result=result,
-        pipeline_id=pipeline_id,
-        log_url=log_url,
-        copr_chroot=copr_chroot,
-        message=message,
+        tests=event.get("tests"),
+        result=TestingFarmResult(event.get("result")) if event.get("result") else None,
+        pipeline_id=event.get("pipeline_id"),
+        log_url=event.get("log_url"),
+        copr_chroot=event.get("copr_chroot"),
+        message=event.get("message"),
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -317,21 +310,15 @@ def run_pagure_pr_comment_copr_build_handler(
 
 @celery_app.task(name="task.run_pagure_pr_label_handler")
 def run_pagure_pr_label_handler(event: dict, package_config: dict, job_config: dict):
-    labels = event.get("labels")
-    action = PullRequestLabelAction(event.get("action"))
-    base_repo_owner = event.get("base_repo_owner")
-    base_repo_namespace = event.get("base_repo_namespace")
-    base_repo_name = event.get("base_repo_name")
-
     handler = PagurePullRequestLabelHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         data=EventData.from_event_dict(event),
-        labels=labels,
-        action=action,
-        base_repo_owner=base_repo_owner,
-        base_repo_name=base_repo_name,
-        base_repo_namespace=base_repo_namespace,
+        labels=event.get("labels"),
+        action=PullRequestLabelAction(event.get("action")),
+        base_repo_owner=event.get("base_repo_owner"),
+        base_repo_name=event.get("base_repo_name"),
+        base_repo_namespace=event.get("base_repo_namespace"),
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -347,6 +334,6 @@ def run_koji_build_report_handler(event: dict, package_config: dict, job_config:
     return get_handlers_task_results(handler.run_job(), event)
 
 
-def get_handlers_task_results(results: dict, event: dict):
+def get_handlers_task_results(results: dict, event: dict) -> dict:
     # include original event to provide more info
     return {"job": results, "event": event}

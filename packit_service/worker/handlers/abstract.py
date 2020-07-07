@@ -31,6 +31,9 @@ from os import getenv
 from pathlib import Path
 from typing import Dict, Optional, Type, List, Set
 
+from celery import signature
+from celery.canvas import Signature
+
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobType, PackageConfig
@@ -46,8 +49,9 @@ from packit_service.models import (
     GitBranchModel,
 )
 from packit_service.sentry_integration import push_scope_to_sentry
-from packit_service.service.events import TheJobTriggerType, EventData
+from packit_service.service.events import TheJobTriggerType, EventData, Event
 from packit_service.worker.result import TaskResults
+from packit_service.utils import dump_package_config, dump_job_config
 
 logger = logging.getLogger(__name__)
 
@@ -226,12 +230,29 @@ class JobHandler(Handler):
             job_results[result_key] = self.run_n_clean()
             logger.debug("Job finished!")
 
-            for v in job_results.values():
-                if not (v and v["success"]):
-                    logger.warning(job_results)
-                    logger.error(v["details"]["msg"])
+            for result in job_results.values():
+                if not (result and result["success"]):
+                    logger.error(result["details"]["msg"])
 
         return job_results
+
+    @classmethod
+    def get_signature(cls, event: Event, job: Optional[JobConfig]) -> Signature:
+        """
+        Get the signature of a Celery task which will run the handler.
+        https://docs.celeryproject.org/en/stable/userguide/canvas.html#signatures
+        :param event: event which triggered the task
+        :param job: job to process
+        """
+        logger.debug(f"Getting signature of a Celery task {cls.task_name}.")
+        return signature(
+            cls.task_name,
+            kwargs={
+                "package_config": dump_package_config(event.package_config),
+                "job_config": dump_job_config(job),
+                "event": event.get_dict(),
+            },
+        )
 
     def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")

@@ -735,26 +735,16 @@ class InstallationEvent(Event):
 
     @classmethod
     def from_event_dict(cls, event: dict):
-        account_type = event.get("account_type")
-        account_login = event.get("account_login")
-        sender_login = event.get("sender_login")
-        account_id = event.get("account_id")
-        account_url = event.get("account_url")
-        sender_id = event.get("sender_id")
-        created_at = event.get("created_at")
-        installation_id = event.get("installation_id")
-        repositories = event.get("repositories")
-
         return InstallationEvent(
-            installation_id=installation_id,
-            account_login=account_login,
-            account_id=account_id,
-            account_url=account_url,
-            account_type=account_type,
-            created_at=created_at,
-            repositories=repositories,
-            sender_id=sender_id,
-            sender_login=sender_login,
+            installation_id=event.get("installation_id"),
+            account_login=event.get("account_login"),
+            account_id=event.get("account_id"),
+            account_url=event.get("account_url"),
+            account_type=event.get("account_type"),
+            created_at=event.get("created_at"),
+            repositories=event.get("repositories"),
+            sender_id=event.get("sender_id"),
+            sender_login=event.get("sender_login"),
         )
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
@@ -970,22 +960,17 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
 
     @classmethod
     def from_event_dict(cls, event: dict):
-        build_id = event.get("build_id")
-        state = KojiBuildState(event.get("state")) if event.get("state") else None
-        old_state = (
-            KojiBuildState(event.get("old_state")) if event.get("old_state") else None
-        )
-        start_time = event.get("start_time")
-        rpm_build_task_id = event.get("rpm_build_task_id")
-        completion_time = event.get("completion_time")
-
         return KojiBuildEvent(
-            build_id=build_id,
-            state=state,
-            old_state=old_state,
-            rpm_build_task_id=rpm_build_task_id,
-            start_time=start_time,
-            completion_time=completion_time,
+            build_id=event.get("build_id"),
+            state=KojiBuildState(event.get("state")) if event.get("state") else None,
+            old_state=(
+                KojiBuildState(event.get("old_state"))
+                if event.get("old_state")
+                else None
+            ),
+            rpm_build_task_id=event.get("rpm_build_task_id"),
+            start_time=event.get("start_time"),
+            completion_time=event.get("completion_time"),
         )
 
     def get_base_project(self) -> Optional[GitProject]:
@@ -1125,24 +1110,15 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
 
     @classmethod
     def from_event_dict(cls, event: dict):
-        topic = event.get("topic")
-        project_name = event.get("project_name")
-        owner = event.get("owner")
-        build_id = event.get("build_id")
-        chroot = event.get("chroot")
-        timestamp = event.get("timestamp")
-        pkg = event.get("pkg")
-        status = event.get("status")
-
         return CoprBuildEvent.from_build_id(
-            topic=topic,
-            build_id=build_id,
-            chroot=chroot,
-            status=status,
-            owner=owner,
-            project_name=project_name,
-            pkg=pkg,
-            timestamp=timestamp,
+            topic=event.get("topic"),
+            build_id=event.get("build_id"),
+            chroot=event.get("chroot"),
+            status=event.get("status"),
+            owner=event.get("owner"),
+            project_name=event.get("project_name"),
+            pkg=event.get("pkg"),
+            timestamp=event.get("timestamp"),
         )
 
     def pre_check(self):

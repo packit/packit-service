@@ -24,7 +24,7 @@
 We love you, Steve Jobs.
 """
 import logging
-from celery import group, signature
+from celery import group
 from typing import Any
 from typing import Optional, Dict, Union, Type, Set, List
 
@@ -242,9 +242,7 @@ class SteveJobs:
 
             # we want to run handlers for all possible jobs, not just the first one
             signatures = [
-                get_signature(
-                    task_name=handler_kls.task_name, event=event, job=job_config
-                )
+                handler_kls.get_signature(event=event, job=job_config)
                 for job_config in job_configs
             ]
             # https://docs.celeryproject.org/en/stable/userguide/canvas.html#groups
@@ -362,10 +360,7 @@ class SteveJobs:
             handler_kls=handler_kls, event=event, package_config=event.package_config,
         )
 
-        signatures = [
-            get_signature(task_name=handler_kls.task_name, event=event, job=job)
-            for job in jobs
-        ]
+        signatures = [handler_kls.get_signature(event=event, job=job) for job in jobs]
         # https://docs.celeryproject.org/en/stable/userguide/canvas.html#groups
         group(signatures).apply_async()
         return get_processing_results(event=event, jobs=jobs)
@@ -423,15 +418,13 @@ class SteveJobs:
         # installation is handled differently b/c app is installed to GitHub account
         # not repository, so package config with jobs is missing
         if event_object.trigger == TheJobTriggerType.installation:
-            get_signature(
-                task_name="task.run_installation_handler", event=event_object, job=None
+            GithubAppInstallationHandler.get_signature(
+                event=event_object, job=None
             ).apply_async()
         # Label/Tag added event handler is run even when the job is not configured in package
         elif event_object.trigger == TheJobTriggerType.pr_label:
-            get_signature(
-                task_name="task.run_pagure_pr_label_handler",
-                event=event_object,
-                job=None,
+            PagurePullRequestLabelHandler.get_signature(
+                event=event_object, job=None,
             ).apply_async()
         elif event_object.trigger in {
             TheJobTriggerType.issue_comment,
@@ -456,26 +449,9 @@ class SteveJobs:
         return processing_results or get_processing_results(event=event_object, jobs=[])
 
 
-def get_signature(task_name: str, event: Event, job: Optional[JobConfig]):
-    """
-    Get the signature of a Celery task which will run the handler.
-    https://docs.celeryproject.org/en/stable/userguide/canvas.html#signatures
-    :param task_name: name of the Celery task
-    :param event: event which triggered the task
-    :param job: job to process
-    """
-    logger.debug(f"Getting signature of a Celery task {task_name}.")
-    return signature(
-        task_name,
-        kwargs={
-            "package_config": dump_package_config(event.package_config),
-            "job_config": dump_job_config(job),
-            "event": event.get_dict(),
-        },
-    )
-
-
-def get_processing_results(event: Event, jobs: List[JobConfig], success: bool = True):
+def get_processing_results(
+    event: Event, jobs: List[JobConfig], success: bool = True
+) -> TaskResults:
     return TaskResults(
         success=success,
         details={
