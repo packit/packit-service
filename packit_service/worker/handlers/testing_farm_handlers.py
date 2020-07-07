@@ -24,7 +24,7 @@
 This file defines classes for job handlers specific for Testing farm
 """
 import logging
-from typing import Optional
+from typing import Optional, List
 
 from ogr.abstract import CommitStatus
 from packit.config import JobType, JobConfig
@@ -35,11 +35,12 @@ from packit_service.service.events import (
     TestingFarmResult,
     TheJobTriggerType,
     EventData,
+    TestResult,
 )
 from packit_service.worker.handlers import JobHandler
-from packit_service.worker.handlers.abstract import use_for
+from packit_service.worker.handlers.abstract import use_for, TaskName
 from packit_service.worker.reporting import StatusReporter
-from packit_service.worker.result import HandlerResults
+from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 
 logger = logging.getLogger(__name__)
@@ -49,24 +50,30 @@ logger = logging.getLogger(__name__)
 class TestingFarmResultsHandler(JobHandler):
     type = JobType.report_test_results
     triggers = [TheJobTriggerType.testing_farm_results]
+    task_name = TaskName.testing_farm_results
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
+        tests: List[TestResult],
+        result: TestingFarmResult,
+        pipeline_id: str,
+        log_url: str,
+        copr_chroot: str,
+        message: str,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,
         )
 
-        self.tests = data.event_dict.get("tests")
-        self.result = (
-            TestingFarmResult(data.event_dict.get("result"))
-            if data.event_dict.get("result")
-            else None
-        )
-        self.pipeline_id = data.event_dict.get("pipeline_id")
-        self.log_url = data.event_dict.get("log_url")
-        self.copr_chroot = data.event_dict.get("copr_chroot")
-        self.message = data.event_dict.get("message")
+        self.tests = tests
+        self.result = result
+        self.pipeline_id = pipeline_id
+        self.log_url = log_url
+        self.copr_chroot = copr_chroot
+        self.message = message
         self._db_trigger: Optional[AbstractTriggerDbType] = None
 
     @property
@@ -77,7 +84,7 @@ class TestingFarmResultsHandler(JobHandler):
                 self._db_trigger = run_model.job_trigger.get_trigger_object()
         return self._db_trigger
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
 
         logger.debug(f"Received testing-farm result:\n{self.result}")
         logger.debug(f"Received testing-farm test results:\n{self.tests}")
@@ -118,4 +125,4 @@ class TestingFarmResultsHandler(JobHandler):
             check_names=TestingFarmJobHelper.get_test_check(self.copr_chroot),
         )
 
-        return HandlerResults(success=True, details={})
+        return TaskResults(success=True, details={})

@@ -21,6 +21,10 @@
 # SOFTWARE.
 import logging
 
+from packit.config import JobConfig, PackageConfig
+
+from packit.schema import PackageConfigSchema, JobConfigSchema
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,3 +48,20 @@ class only_once(object):
             f"args: {args} and kwargs: {kwargs}"
         )
         return self.func(*args, **kwargs)
+
+
+# wrappers for dumping/loading of configs
+def load_package_config(package_config: PackageConfig):
+    return PackageConfigSchema().load_config(package_config) if package_config else None
+
+
+def dump_package_config(package_config: PackageConfig):
+    return PackageConfigSchema().dump_config(package_config) if package_config else None
+
+
+def load_job_config(job_config: JobConfig):
+    return JobConfigSchema().load_config(job_config) if job_config else None
+
+
+def dump_job_config(job_config: JobConfig):
+    return JobConfigSchema().dump_config(job_config) if job_config else None

@@ -39,7 +39,7 @@ from packit.local_project import LocalProject
 
 from packit_service import sentry_integration
 from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
-from packit_service.models import InstallationModel, AbstractTriggerDbType
+from packit_service.models import InstallationModel
 from packit_service.service.events import (
     TheJobTriggerType,
     ReleaseEvent,
@@ -60,13 +60,13 @@ from packit_service.worker.handlers import (
     CommentActionHandler,
     JobHandler,
 )
-from packit_service.worker.handlers.abstract import required_by, use_for
+from packit_service.worker.handlers.abstract import required_by, use_for, TaskName
 from packit_service.worker.handlers.comment_action_handler import (
     add_to_comment_action_mapping,
     add_to_comment_action_mapping_with_name,
     CommentAction,
 )
-from packit_service.worker.result import HandlerResults
+from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 from packit_service.worker.whitelist import Whitelist
 
@@ -76,44 +76,31 @@ logger = logging.getLogger(__name__)
 class GithubAppInstallationHandler(JobHandler):
     type = JobType.add_to_whitelist
     triggers = [TheJobTriggerType.installation]
+    task_name = TaskName.installation
 
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
+        installation_event: InstallationEvent,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,
         )
-        self.account_type = data.event_dict.get("account_type")
-        self.account_login = data.event_dict.get("account_login")
-        self.sender_login = data.event_dict.get("sender_login")
+        self.installation_event = installation_event
+        self.account_type = installation_event.account_type
+        self.account_login = installation_event.account_login
+        self.sender_login = installation_event.sender_login
 
-        account_id = data.event_dict.get("account_id")
-        account_url = data.event_dict.get("account_url")
-        sender_id = data.event_dict.get("sender_id")
-        created_at = data.event_dict.get("created_at")
-        installation_id = data.event_dict.get("installation_id")
-        repositories = data.event_dict.get("repositories")
-
-        self.installation_event = InstallationEvent(
-            installation_id=installation_id,
-            account_login=self.account_login,
-            account_id=account_id,
-            account_url=account_url,
-            account_type=self.account_type,
-            created_at=created_at,
-            repositories=repositories,
-            sender_id=sender_id,
-            sender_login=self.sender_login,
-        )
-
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         """
         Discover information about organization/user which wants to install packit on his repository
         Try to whitelist automatically if mapping from github username to FAS account can prove that
         user is a packager.
-        :return: HandlerResults
+        :return: TaskResults
         """
         InstallationModel.create(event=self.installation_event)
         # try to add user to whitelist
@@ -138,15 +125,16 @@ class GithubAppInstallationHandler(JobHandler):
             msg = f"{self.account_type} {self.account_login} whitelisted!"
 
         logger.info(msg)
-        return HandlerResults(success=True, details={"msg": msg})
+        return TaskResults(success=True, details={"msg": msg})
 
 
 @use_for(job_type=JobType.propose_downstream)
 class ProposeDownstreamHandler(JobHandler):
     type = JobType.propose_downstream
     triggers = [TheJobTriggerType.release]
+    task_name = TaskName.propose_downstream
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         """
         Sync the upstream release to dist-git as a pull request.
         """
@@ -192,12 +180,12 @@ class ProposeDownstreamHandler(JobHandler):
                 body=body_msg,
             )
 
-            return HandlerResults(
+            return TaskResults(
                 success=False,
                 details={"msg": "Propose update failed.", "errors": errors},
             )
 
-        return HandlerResults(success=True, details={})
+        return TaskResults(success=True, details={})
 
 
 class AbstractCoprBuildHandler(JobHandler):
@@ -225,7 +213,7 @@ class AbstractCoprBuildHandler(JobHandler):
             )
         return self._copr_build_helper
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         return self.copr_build_helper.run_copr_build()
 
     def pre_check(self) -> bool:
@@ -250,6 +238,7 @@ class ReleaseCoprBuildHandler(AbstractCoprBuildHandler):
     triggers = [
         TheJobTriggerType.release,
     ]
+    task_name = TaskName.release_copr_build
 
     def pre_check(self) -> bool:
         return (
@@ -266,8 +255,9 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
     triggers = [
         TheJobTriggerType.pull_request,
     ]
+    task_name = TaskName.pr_copr_build
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         if self.data.event_type in (
             PullRequestGithubEvent.__name__,
             MergeRequestGitlabEvent.__name__,
@@ -280,7 +270,7 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=CommitStatus.failure,
                 )
-                return HandlerResults(
+                return TaskResults(
                     success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
                 )
         return super().run()
@@ -306,6 +296,7 @@ class PushCoprBuildHandler(AbstractCoprBuildHandler):
         TheJobTriggerType.push,
         TheJobTriggerType.commit,
     ]
+    task_name = TaskName.push_copr_build
 
     def pre_check(self) -> bool:
         valid = (
@@ -372,7 +363,7 @@ class AbstractGithubKojiBuildHandler(JobHandler):
             )
         return self._koji_build_helper
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         return self.koji_build_helper.run_koji_build()
 
     def pre_check(self) -> bool:
@@ -395,6 +386,7 @@ class ReleaseGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     triggers = [
         TheJobTriggerType.release,
     ]
+    task_name = TaskName.release_koji_build
 
     def pre_check(self) -> bool:
         return (
@@ -409,8 +401,9 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     triggers = [
         TheJobTriggerType.pull_request,
     ]
+    task_name = TaskName.pr_koji_build
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         if self.data.event_type == PullRequestGithubEvent.__name__:
             user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
             if not (
@@ -420,7 +413,7 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=CommitStatus.failure,
                 )
-                return HandlerResults(
+                return TaskResults(
                     success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
                 )
         return super().run()
@@ -439,6 +432,7 @@ class PushGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
         TheJobTriggerType.push,
         TheJobTriggerType.commit,
     ]
+    task_name = TaskName.push_koji_build
 
     def pre_check(self) -> bool:
         valid = (
@@ -473,19 +467,13 @@ class GithubTestingFarmHandler(JobHandler):
         job_config: JobConfig,
         data: EventData,
         chroot: str,
-        db_trigger: AbstractTriggerDbType,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,
         )
         self.chroot = chroot
-        self._db_trigger = db_trigger
 
-    @property
-    def db_trigger(self):
-        return self._db_trigger
-
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         # TODO: once we turn hanadlers into respective celery tasks, we should iterate
         #       here over *all* matching jobs and do them all, not just the first one
         testing_farm_helper = TestingFarmJobHelper(
@@ -510,8 +498,9 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
 
     type = CommentAction.copr_build
     triggers = [TheJobTriggerType.pr_comment]
+    task_name = TaskName.pr_comment_copr_build
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
         if not (
             user_can_merge_pr or self.data.user_login in self.service_config.admins
@@ -519,7 +508,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
             self.project.pr_comment(
                 self.db_trigger.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )
-            return HandlerResults(
+            return TaskResults(
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
             )
 
@@ -556,6 +545,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
 
     type = CommentAction.propose_update
     triggers = [TheJobTriggerType.issue_comment]
+    task_name = TaskName.propose_update_comment
 
     @property
     def dist_git_branches_to_sync(self) -> Set[str]:
@@ -571,7 +561,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
             return get_branches(*configured_branches)
         return set()
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         local_project = LocalProject(
             git_project=self.project,
             working_dir=self.service_config.command_handler_work_dir,
@@ -592,7 +582,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
             self.project.issue_comment(
                 self.db_trigger.issue_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )
-            return HandlerResults(
+            return TaskResults(
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
             )
 
@@ -602,9 +592,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
                 "no upstream release found."
             )
             self.project.issue_comment(self.db_trigger.issue_id, msg)
-            return HandlerResults(
-                success=False, details={"msg": "Propose update failed"}
-            )
+            return TaskResults(success=False, details={"msg": "Propose update failed"})
 
         sync_failed = False
         for branch in self.dist_git_branches_to_sync:
@@ -624,14 +612,12 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
                 logger.error(f"Error while running a build: {ex}")
                 sync_failed = True
         if sync_failed:
-            return HandlerResults(
-                success=False, details={"msg": "Propose update failed"}
-            )
+            return TaskResults(success=False, details={"msg": "Propose update failed"})
 
         # Close issue if propose-update was successful in all branches
         self.project.issue_close(self.db_trigger.issue_id)
 
-        return HandlerResults(success=True, details={})
+        return TaskResults(success=True, details={})
 
 
 @add_to_comment_action_mapping
@@ -641,8 +627,9 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
 
     type = CommentAction.test
     triggers = [TheJobTriggerType.pr_comment]
+    task_name = TaskName.testing_farm_comment
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         testing_farm_helper = TestingFarmJobHelper(
             service_config=self.service_config,
             package_config=self.package_config,
@@ -658,11 +645,11 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
             self.project.pr_comment(
                 self.db_trigger.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
             )
-            return HandlerResults(
+            return TaskResults(
                 success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
             )
 
-        handler_results = HandlerResults(success=True, details={})
+        handler_results = TaskResults(success=True, details={})
 
         logger.debug(f"Test job config: {testing_farm_helper.job_tests}")
         if testing_farm_helper.job_tests:

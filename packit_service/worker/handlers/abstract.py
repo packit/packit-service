@@ -23,17 +23,22 @@
 """
 This file defines generic job handler
 """
+import enum
 import logging
 import shutil
 from collections import defaultdict
+from datetime import datetime
 from os import getenv
 from pathlib import Path
 from typing import Dict, Optional, Type, List, Set
 
+from celery import signature
+from celery.canvas import Signature
+
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
-from packit.config import JobConfig, JobType
-from packit.config.package_config import PackageConfig
+from packit.config import JobConfig, JobType, PackageConfig
+from packit.constants import DATETIME_FORMAT
 from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
@@ -45,8 +50,9 @@ from packit_service.models import (
     GitBranchModel,
 )
 from packit_service.sentry_integration import push_scope_to_sentry
-from packit_service.service.events import TheJobTriggerType, EventData
-from packit_service.worker.result import HandlerResults
+from packit_service.service.events import TheJobTriggerType, EventData, Event
+from packit_service.worker.result import TaskResults
+from packit_service.utils import dump_package_config, dump_job_config
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +95,28 @@ def use_for(job_type: JobType):
     return _add_to_mapping
 
 
+class TaskName(str, enum.Enum):
+    copr_build_start = "task.run_copr_build_start_handler"
+    copr_build_end = "task.run_copr_build_end_handler"
+    release_copr_build = "task.run_release_copr_build_handler"
+    pr_copr_build = "task.run_pr_copr_build_handler"
+    pr_comment_copr_build = "task.run_pr_comment_copr_build_handler"
+    push_copr_build = "task.run_push_copr_build_handler"
+    installation = "task.run_installation_handler"
+    testing_farm = "task.run_testing_farm_handler"
+    testing_farm_comment = "task.run_testing_farm_comment_handler"
+    testing_farm_results = "task.run_testing_farm_results_handler"
+    propose_update_comment = "task.run_propose_update_comment_handler"
+    propose_downstream = "task.run_propose_downstream_handler"
+    release_koji_build = "task.run_release_koji_build_handler"
+    pr_koji_build = "task.run_pr_koji_build_handler"
+    push_koji_build = "task.run_push_koji_build_handler"
+    distgit_commit = "task.run_distgit_commit_handler"
+    pagure_pr_comment_copr_build = "task.run_pagure_pr_comment_copr_build_handler"
+    pagure_pr_label = "task.run_pagure_pr_label_handler"
+    koji_build_report = "task.run_koji_build_report_handler"
+
+
 class Handler:
     triggers: List[TheJobTriggerType]
     api: Optional[PackitAPI] = None
@@ -101,7 +129,7 @@ class Handler:
             self._service_config = ServiceConfig.get_service_config()
         return self._service_config
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")
 
     def get_tag_info(self) -> dict:
@@ -116,7 +144,7 @@ class Handler:
             )
         return tags
 
-    def run_n_clean(self) -> HandlerResults:
+    def run_n_clean(self) -> TaskResults:
         try:
             with push_scope_to_sentry() as scope:
                 for k, v in self.get_tag_info().items():
@@ -173,6 +201,7 @@ class JobHandler(Handler):
 
     type: JobType
     triggers: List[TheJobTriggerType]
+    task_name: TaskName
 
     def __init__(
         self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
@@ -200,7 +229,7 @@ class JobHandler(Handler):
                 self._db_trigger = IssueModel.get_by_id(self.data.trigger_id)
             elif self.data.trigger == TheJobTriggerType.release:
                 self._db_trigger = ProjectReleaseModel.get_by_id(self.data.trigger_id)
-            elif self.data.trigger in TheJobTriggerType.push:
+            elif self.data.trigger == TheJobTriggerType.push:
                 self._db_trigger = GitBranchModel.get_by_id(self.data.trigger_id)
         return self._db_trigger
 
@@ -210,5 +239,43 @@ class JobHandler(Handler):
             self._project = self.service_config.get_project(url=self.data.project_url)
         return self._project
 
-    def run(self) -> HandlerResults:
+    def run_job(self):
+        """
+        If pre-check succeeds, run the job for the specific handler.
+        :return: Dict [str, TaskResults]
+        """
+        job_type = self.job_config.type or self.type
+        logger.debug(f"Running handler {str(self)} for {job_type}")
+        job_results: Dict[str, TaskResults] = {}
+        if self.pre_check():
+            current_time = datetime.now().strftime(DATETIME_FORMAT)
+            result_key = f"{job_type.value}-{current_time}"
+            job_results[result_key] = self.run_n_clean()
+            logger.debug("Job finished!")
+
+            for result in job_results.values():
+                if not (result and result["success"]):
+                    logger.error(result["details"]["msg"])
+
+        return job_results
+
+    @classmethod
+    def get_signature(cls, event: Event, job: Optional[JobConfig]) -> Signature:
+        """
+        Get the signature of a Celery task which will run the handler.
+        https://docs.celeryproject.org/en/stable/userguide/canvas.html#signatures
+        :param event: event which triggered the task
+        :param job: job to process
+        """
+        logger.debug(f"Getting signature of a Celery task {cls.task_name}.")
+        return signature(
+            cls.task_name.value,
+            kwargs={
+                "package_config": dump_package_config(event.package_config),
+                "job_config": dump_job_config(job),
+                "event": event.get_dict(),
+            },
+        )
+
+    def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")

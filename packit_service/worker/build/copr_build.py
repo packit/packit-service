@@ -39,7 +39,7 @@ from packit_service.service.urls import (
     get_copr_build_info_url_from_flask,
 )
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
-from packit_service.worker.result import HandlerResults
+from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 
@@ -149,12 +149,12 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         return get_build_targets(*self.configured_tests_targets, default=None)
 
-    def run_copr_build(self) -> HandlerResults:
+    def run_copr_build(self) -> TaskResults:
 
         if not (self.job_build or self.job_tests):
             msg = "No copr_build or tests job defined."
             # we can't report it to end-user at this stage
-            return HandlerResults(success=False, details={"msg": msg})
+            return TaskResults(success=False, details={"msg": msg})
 
         self.report_status_to_all(
             description="Building SRPM ...",
@@ -171,7 +171,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 description=msg,
                 url=get_srpm_log_url_from_flask(self.srpm_model.id),
             )
-            return HandlerResults(success=False, details={"msg": msg})
+            return TaskResults(success=False, details={"msg": msg})
 
         try:
             build_id, web_url = self.run_build()
@@ -183,7 +183,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 state=CommitStatus.error,
                 description=f"Submit of the build failed: {ex}",
             )
-            return HandlerResults(success=False, details={"error": str(ex)})
+            return TaskResults(success=False, details={"error": str(ex)})
 
         for chroot in self.build_targets:
             copr_build = CoprBuildModel.get_or_create(
@@ -212,7 +212,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             countdown=120,  # do the first check in 120s
         )
 
-        return HandlerResults(success=True, details={})
+        return TaskResults(success=True, details={})
 
     def run_build(
         self, target: Optional[str] = None

@@ -28,6 +28,8 @@ import logging
 from datetime import datetime
 from typing import Type, Optional
 
+from celery import signature
+
 from ogr.abstract import CommitStatus
 from ogr.services.github import GithubProject
 from packit.api import PackitAPI
@@ -64,9 +66,10 @@ from packit_service.worker.handlers.abstract import (
     JobHandler,
     use_for,
     required_by,
+    TaskName,
 )
-from packit_service.worker.handlers.github_handlers import GithubTestingFarmHandler
-from packit_service.worker.result import HandlerResults
+from packit_service.worker.result import TaskResults
+from packit_service.utils import dump_package_config, dump_job_config
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +95,7 @@ class FedmsgHandler(JobHandler):
         )
         self._pagure_service = None
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")
 
 
@@ -103,6 +106,7 @@ class NewDistGitCommitHandler(FedmsgHandler):
 
     topic = "org.fedoraproject.prod.git.receive"
     triggers = [TheJobTriggerType.commit]
+    task_name = TaskName.distgit_commit
 
     def __init__(
         self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
@@ -112,12 +116,12 @@ class NewDistGitCommitHandler(FedmsgHandler):
         )
         self.branch = data.event_dict.get("branch")
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         # self.project is dist-git, we need to get upstream
         dg = DistGit(self.service_config, self.job_config)
         self.job_config.upstream_project_url = dg.get_project_url_from_distgit_spec()
         if not self.job_config.upstream_project_url:
-            return HandlerResults(
+            return TaskResults(
                 success=False,
                 details={
                     "msg": "URL in specfile is not set. "
@@ -139,35 +143,21 @@ class NewDistGitCommitHandler(FedmsgHandler):
             dist_git_branch=self.branch,
             upstream_branch="master",  # TODO: this should be configurable
         )
-        return HandlerResults(success=True, details={})
+        return TaskResults(success=True, details={})
 
 
 class AbstractCoprBuildReportHandler(FedmsgHandler):
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
+        copr_event: CoprBuildEvent,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,
         )
-        topic = data.event_dict.get("topic")
-        project_name = data.event_dict.get("project_name")
-        owner = data.event_dict.get("owner")
-        build_id = data.event_dict.get("build_id")
-        chroot = data.event_dict.get("chroot")
-        timestamp = data.event_dict.get("timestamp")
-        pkg = data.event_dict.get("pkg")
-        status = data.event_dict.get("status")
-
-        self.copr_event = CoprBuildEvent.from_build_id(
-            topic=topic,
-            build_id=build_id,
-            chroot=chroot,
-            status=status,
-            owner=owner,
-            project_name=project_name,
-            pkg=pkg,
-            timestamp=timestamp,
-        )
+        self.copr_event = copr_event
         self._build = None
         self._db_trigger = None
 
@@ -193,6 +183,7 @@ class AbstractCoprBuildReportHandler(FedmsgHandler):
 class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
     triggers = [TheJobTriggerType.copr_end]
+    task_name = TaskName.copr_build_end
 
     def was_last_packit_comment_with_congratulation(self):
         """
@@ -226,13 +217,13 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             # we don't want to set check for this
             msg = "SRPM build in copr has finished."
             logger.debug(msg)
-            return HandlerResults(success=True, details={"msg": msg})
+            return TaskResults(success=True, details={"msg": msg})
 
         if not self.build:
             # TODO: how could this happen?
             msg = f"Copr build {self.copr_event.build_id} not in CoprBuildDB."
             logger.warning(msg)
-            return HandlerResults(success=False, details={"msg": msg})
+            return TaskResults(success=False, details={"msg": msg})
         if self.build.status in [
             PG_COPR_BUILD_STATUS_FAILURE,
             PG_COPR_BUILD_STATUS_SUCCESS,
@@ -242,7 +233,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 f" processed (status={self.copr_event.build.status})."
             )
             logger.info(msg)
-            return HandlerResults(success=True, details={"msg": msg})
+            return TaskResults(success=True, details={"msg": msg})
 
         end_time = (
             datetime.utcfromtimestamp(self.copr_event.timestamp)
@@ -262,7 +253,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 chroot=self.copr_event.chroot,
             )
             self.build.set_status(PG_COPR_BUILD_STATUS_FAILURE)
-            return HandlerResults(success=False, details={"msg": failed_msg})
+            return TaskResults(success=False, details={"msg": failed_msg})
 
         if (
             build_job_helper.job_build
@@ -301,18 +292,19 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             build_job_helper.job_tests
             and self.copr_event.chroot in build_job_helper.tests_targets
         ):
-            testing_farm_handler = GithubTestingFarmHandler(
-                package_config=self.package_config,
-                job_config=build_job_helper.job_tests,
-                data=self.data,
-                chroot=self.copr_event.chroot,
-                db_trigger=self.db_trigger,
-            )
-            testing_farm_handler.run()
+            signature(
+                "task.run_testing_farm_handler",
+                kwargs={
+                    "package_config": dump_package_config(self.package_config),
+                    "job_config": dump_job_config(build_job_helper.job_tests),
+                    "event": self.data.get_dict(),
+                    "chroot": self.copr_event.chroot,
+                },
+            ).apply_async()
         else:
             logger.debug("Testing farm not in the job config.")
 
-        return HandlerResults(success=True, details={})
+        return TaskResults(success=True, details={})
 
 
 @add_topic
@@ -322,6 +314,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
 class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.start"
     triggers = [TheJobTriggerType.copr_start]
+    task_name = TaskName.copr_build_start
 
     def run(self):
         build_job_helper = CoprBuildJobHelper(
@@ -337,12 +330,12 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
             # we don't want to set the check status for this
             msg = "SRPM build in copr has started."
             logger.debug(msg)
-            return HandlerResults(success=True, details={"msg": msg})
+            return TaskResults(success=True, details={"msg": msg})
 
         if not self.build:
             msg = f"Copr build {self.copr_event.build_id} not in CoprBuildDB."
             logger.warning(msg)
-            return HandlerResults(success=False, details={"msg": msg})
+            return TaskResults(success=False, details={"msg": msg})
 
         start_time = (
             datetime.utcfromtimestamp(self.copr_event.timestamp)
@@ -362,7 +355,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
             chroot=self.copr_event.chroot,
         )
         msg = f"Build on {self.copr_event.chroot} in copr has started..."
-        return HandlerResults(success=True, details={"msg": msg})
+        return TaskResults(success=True, details={"msg": msg})
 
 
 @add_topic
@@ -370,36 +363,19 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
 class KojiBuildReportHandler(FedmsgHandler):
     topic = "org.fedoraproject.prod.buildsys.task.state.change"
     triggers = [TheJobTriggerType.koji_results]
+    task_name = TaskName.koji_build_report
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
+        koji_event: KojiBuildEvent,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,
         )
-        build_id = data.event_dict.get("build_id")
-        state = (
-            KojiBuildState(data.event_dict.get("state"))
-            if data.event_dict.get("state")
-            else None
-        )
-        old_state = (
-            KojiBuildState(data.event_dict.get("old_state"))
-            if data.event_dict.get("old_state")
-            else None
-        )
-        start_time = data.event_dict.get("start_time")
-        rpm_build_task_id = data.event_dict.get("rpm_build_task_id")
-        completion_time = data.event_dict.get("completion_time")
-
-        self.koji_event = KojiBuildEvent(
-            build_id=build_id,
-            state=state,
-            old_state=old_state,
-            rpm_build_task_id=rpm_build_task_id,
-            start_time=start_time,
-            completion_time=completion_time,
-        )
+        self.koji_event = koji_event
         self._db_trigger: Optional[AbstractTriggerDbType] = None
         self._build: Optional[KojiBuildModel] = None
 
@@ -424,7 +400,7 @@ class KojiBuildReportHandler(FedmsgHandler):
         if not build:
             msg = f"Koji build {self.koji_event.build_id} not found in the database."
             logger.warning(msg)
-            return HandlerResults(success=False, details={"msg": msg})
+            return TaskResults(success=False, details={"msg": msg})
 
         logger.debug(
             f"Build on {build.target} in koji changed state "
@@ -499,4 +475,4 @@ class KojiBuildReportHandler(FedmsgHandler):
             f"Build on {build.target} in koji changed state "
             f"from {self.koji_event.old_state} to {self.koji_event.state}."
         )
-        return HandlerResults(success=True, details={"msg": msg})
+        return TaskResults(success=True, details={"msg": msg})

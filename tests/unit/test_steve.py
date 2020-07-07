@@ -26,6 +26,7 @@ Let's test that Steve's as awesome as we think he is.
 from json import dumps
 
 import pytest
+from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
 
@@ -38,7 +39,8 @@ from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
-from tests.spellbook import first_dict_value
+from packit_service.worker.tasks import run_propose_downstream_handler
+from tests.spellbook import first_dict_value, get_parameters_from_results
 
 
 @pytest.mark.parametrize(
@@ -85,8 +87,14 @@ def test_process_message(event):
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=1)
     )
     flexmock(Whitelist, check_and_report=True)
-    results = SteveJobs().process_message(event)
-    j = first_dict_value(results["jobs"])
-    assert "propose_downstream" in next(iter(results["jobs"]))
-    assert j["success"]
-    assert results["event"]["trigger"] == "release"
+    flexmock(Signature).should_receive("apply_async").once()
+
+    processing_results = SteveJobs().process_message(event)
+    assert processing_results["details"]["event"]["trigger"] == "release"
+    event_dict, package_config, job = get_parameters_from_results(processing_results)
+
+    results = run_propose_downstream_handler(
+        package_config=package_config, event=event_dict, job_config=job,
+    )
+    assert "propose_downstream" in next(iter(results["job"]))
+    assert first_dict_value(results["job"])["success"]

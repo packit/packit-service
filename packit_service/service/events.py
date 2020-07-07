@@ -200,6 +200,12 @@ class EventData:
             event_dict=event,
         )
 
+    def get_dict(self) -> dict:
+        d = self.__dict__
+        d = copy.deepcopy(d)
+        d["trigger"] = d["trigger"].value
+        return d
+
 
 class Event:
     def __init__(
@@ -371,6 +377,14 @@ class AbstractForgeIndependentEvent(Event):
         if package_config:
             package_config.upstream_project_url = self.project_url
         return package_config
+
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        # so that it is JSON serializable (because of Celery tasks)
+        result.pop("_project")
+        result.pop("_base_project")
+        result.pop("_package_config")
+        return result
 
 
 class AbstractGithubEvent(AbstractForgeIndependentEvent):
@@ -719,10 +733,28 @@ class InstallationEvent(Event):
         self.sender_login = sender_login
         self.status = status
 
+    @classmethod
+    def from_event_dict(cls, event: dict):
+        return InstallationEvent(
+            installation_id=event.get("installation_id"),
+            account_login=event.get("account_login"),
+            account_id=event.get("account_id"),
+            account_url=event.get("account_url"),
+            account_type=event.get("account_type"),
+            created_at=event.get("created_at"),
+            repositories=event.get("repositories"),
+            sender_id=event.get("sender_id"),
+            sender_login=event.get("sender_login"),
+        )
+
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["status"] = result["status"].value
         return result
+
+    @property
+    def package_config(self):
+        return None
 
     @property
     def project(self):
@@ -820,6 +852,7 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
         result = super().get_dict()
         result["result"] = result["result"].value
         result["pr_id"] = self.pr_id
+        result.pop("_db_trigger")
         return result
 
     @property
@@ -926,6 +959,21 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
                 self._identifier = self.commit_sha
         return self._identifier
 
+    @classmethod
+    def from_event_dict(cls, event: dict):
+        return KojiBuildEvent(
+            build_id=event.get("build_id"),
+            state=KojiBuildState(event.get("state")) if event.get("state") else None,
+            old_state=(
+                KojiBuildState(event.get("old_state"))
+                if event.get("old_state")
+                else None
+            ),
+            rpm_build_task_id=event.get("rpm_build_task_id"),
+            start_time=event.get("start_time"),
+            completion_time=event.get("completion_time"),
+        )
+
     def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:
             if isinstance(self.project, PagureProject):
@@ -948,6 +996,8 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
         result["pr_id"] = self.pr_id
         result["git_ref"] = self.git_ref
         result["identifier"] = self.identifier
+        result.pop("_build_model")
+        result.pop("_db_trigger")
         return result
 
     def get_koji_build_logs_url(self) -> Optional[str]:
@@ -1059,6 +1109,19 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
             return None
         return cls(
             topic, build_id, build, chroot, status, owner, project_name, pkg, timestamp
+        )
+
+    @classmethod
+    def from_event_dict(cls, event: dict):
+        return CoprBuildEvent.from_build_id(
+            topic=event.get("topic"),
+            build_id=event.get("build_id"),
+            chroot=event.get("chroot"),
+            status=event.get("status"),
+            owner=event.get("owner"),
+            project_name=event.get("project_name"),
+            pkg=event.get("pkg"),
+            timestamp=event.get("timestamp"),
         )
 
     def pre_check(self):

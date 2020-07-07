@@ -24,6 +24,7 @@ import json
 from datetime import datetime
 
 import pytest
+from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
 from github.GitRelease import GitRelease as PyGithubRelease
@@ -40,7 +41,8 @@ from packit_service.models import IssueModel
 from packit_service.service.events import IssueCommentEvent
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
-from tests.spellbook import DATA_DIR, first_dict_value
+from packit_service.worker.tasks import run_propose_update_comment_handler
+from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
 @pytest.fixture(scope="module")
@@ -116,5 +118,13 @@ def test_issue_comment_propose_update_handler(
     flexmock(IssueModel).should_receive("get_by_id").with_args(123).and_return(
         flexmock(issue_id=12345)
     )
-    results = SteveJobs().process_message(issue_comment_propose_update_event)
-    assert first_dict_value(results["jobs"])["success"]
+    flexmock(Signature).should_receive("apply_async").once()
+
+    processing_results = SteveJobs().process_message(issue_comment_propose_update_event)
+    event_dict, package_config, job = get_parameters_from_results(processing_results)
+
+    results = run_propose_update_comment_handler(
+        package_config=package_config, event=event_dict, job_config=job,
+    )
+
+    assert first_dict_value(results["job"])["success"]

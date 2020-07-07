@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 import logging
-from typing import Optional
+from typing import Optional, Set
 
 from ogr.abstract import CommitStatus, PullRequest
 from packit.config import JobType, JobConfig, PackageConfig
@@ -34,11 +34,11 @@ from packit_service.service.events import (
 )
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.handlers import CommentActionHandler
-from packit_service.worker.handlers.abstract import use_for, JobHandler
+from packit_service.worker.handlers.abstract import use_for, JobHandler, TaskName
 from packit_service.worker.handlers.comment_action_handler import CommentAction
 from packit_service.worker.psbugzilla import Bugzilla
 from packit_service.worker.reporting import StatusReporter
-from packit_service.worker.result import HandlerResults
+from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 
@@ -50,13 +50,10 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
 
     type = CommentAction.copr_build
     triggers = [TheJobTriggerType.pr_comment]
+    task_name = TaskName.pagure_pr_comment_copr_build
 
     def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        data: EventData,
-        **kwargs,
+        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,
@@ -78,25 +75,34 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
             )
         return self._copr_build_helper
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         return self.copr_build_helper.run_copr_build()
 
 
 class PagurePullRequestLabelHandler(JobHandler):
     type = JobType.create_bugzilla
     triggers = [TheJobTriggerType.pr_label]
+    task_name = TaskName.pagure_pr_label
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
+        labels: Set[str],
+        action: PullRequestLabelAction,
+        base_repo_owner: str,
+        base_repo_name: str,
+        base_repo_namespace: str,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data
         )
-        self.labels = data.event_dict.get("labels")
-        self.action = PullRequestLabelAction(data.event_dict.get("action"))
-        self.base_repo_owner = data.event_dict.get("base_repo_owner")
-        self.base_repo_namespace = data.event_dict.get("base_repo_namespace")
-        self.base_repo_name = data.event_dict.get("base_repo_name")
+        self.labels = labels
+        self.action = action
+        self.base_repo_owner = base_repo_owner
+        self.base_repo_name = base_repo_name
+        self.base_repo_namespace = base_repo_namespace
 
         self.pr: PullRequest = self.project.get_pr(self.data.pr_id)
         # lazy properties
@@ -179,7 +185,7 @@ class PagurePullRequestLabelHandler(JobHandler):
             url=self.bz_model.bug_url,
         )
 
-    def run(self) -> HandlerResults:
+    def run(self) -> TaskResults:
         logger.debug(
             f"Handling labels/tags {self.labels} {self.action.value} to Pagure PR "
             f"{self.base_repo_owner}/{self.base_repo_namespace}/"
@@ -194,4 +200,4 @@ class PagurePullRequestLabelHandler(JobHandler):
             logger.debug(
                 f"We accept only {self.service_config.pr_accepted_labels} labels/tags"
             )
-        return HandlerResults(success=True)
+        return TaskResults(success=True)

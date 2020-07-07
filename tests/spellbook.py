@@ -25,6 +25,7 @@ A book with our finest spells
 """
 from pathlib import Path
 from typing import Any
+from packit_service.worker.result import TaskResults
 
 TESTS_DIR = Path(__file__).parent
 DATA_DIR = TESTS_DIR / "data"
@@ -33,3 +34,10 @@ SAVED_HTTPD_REQS = DATA_DIR / "http-requests"
 
 def first_dict_value(a_dict: dict) -> Any:
     return a_dict[next(iter(a_dict))]
+
+
+def get_parameters_from_results(results: TaskResults):
+    event_dict = results["details"]["event"]
+    package_config = results["details"]["package_config"]
+    job = results["details"]["matching_jobs"][0]
+    return event_dict, package_config, job

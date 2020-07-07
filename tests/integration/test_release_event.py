@@ -1,4 +1,5 @@
 import pytest
+from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
 from packit.api import PackitAPI
@@ -13,7 +14,8 @@ from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
-from tests.spellbook import first_dict_value
+from packit_service.worker.tasks import run_propose_downstream_handler
+from tests.spellbook import first_dict_value, get_parameters_from_results
 
 
 @pytest.fixture(scope="module")
@@ -50,10 +52,16 @@ def test_dist_git_push_release_handle(github_release_webhook):
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     )
+    flexmock(Signature).should_receive("apply_async").once()
 
-    results = SteveJobs().process_message(github_release_webhook)
-    assert first_dict_value(results["jobs"])["success"]
-    assert results["event"]["trigger"] == "release"
+    processing_results = SteveJobs().process_message(github_release_webhook)
+    assert processing_results["details"]["event"]["trigger"] == "release"
+    event_dict, package_config, job = get_parameters_from_results(processing_results)
+
+    results = run_propose_downstream_handler(
+        package_config=package_config, event=event_dict, job_config=job,
+    )
+    assert first_dict_value(results["job"])["success"]
 
 
 def test_dist_git_push_release_handle_multiple_branches(
@@ -91,10 +99,16 @@ def test_dist_git_push_release_handle_multiple_branches(
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     )
+    flexmock(Signature).should_receive("apply_async").once()
 
-    results = SteveJobs().process_message(github_release_webhook)
-    assert first_dict_value(results["jobs"])["success"]
-    assert results["event"]["trigger"] == "release"
+    processing_results = SteveJobs().process_message(github_release_webhook)
+    assert processing_results["details"]["event"]["trigger"] == "release"
+    event_dict, package_config, job = get_parameters_from_results(processing_results)
+
+    results = run_propose_downstream_handler(
+        package_config=package_config, event=event_dict, job_config=job,
+    )
+    assert first_dict_value(results["job"])["success"]
 
 
 def test_dist_git_push_release_handle_one_failed(
@@ -144,9 +158,15 @@ def test_dist_git_push_release_handle_one_failed(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     )
 
-    results = SteveJobs().process_message(github_release_webhook)
-    assert not first_dict_value(results["jobs"])["success"]
-    assert results["event"]["trigger"] == "release"
+    flexmock(Signature).should_receive("apply_async").once()
+    processing_results = SteveJobs().process_message(github_release_webhook)
+    assert processing_results["details"]["event"]["trigger"] == "release"
+    event_dict, package_config, job = get_parameters_from_results(processing_results)
+
+    results = run_propose_downstream_handler(
+        package_config=package_config, event=event_dict, job_config=job,
+    )
+    assert not first_dict_value(results["job"])["success"]
 
 
 def test_dist_git_push_release_handle_all_failed(
@@ -201,7 +221,13 @@ def test_dist_git_push_release_handle_all_failed(
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().times(
         len(fedora_branches)
     )
+    flexmock(Signature).should_receive("apply_async").once()
 
-    results = SteveJobs().process_message(github_release_webhook)
-    assert not first_dict_value(results["jobs"])["success"]
-    assert results["event"]["trigger"] == "release"
+    processing_results = SteveJobs().process_message(github_release_webhook)
+    assert processing_results["details"]["event"]["trigger"] == "release"
+    event_dict, package_config, job = get_parameters_from_results(processing_results)
+
+    results = run_propose_downstream_handler(
+        package_config=package_config, event=event_dict, job_config=job,
+    )
+    assert not first_dict_value(results["job"])["success"]
