@@ -852,6 +852,7 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
         result = super().get_dict()
         result["result"] = result["result"].value
         result["pr_id"] = self.pr_id
+        result.pop("_db_trigger")
         return result
 
     @property
@@ -995,6 +996,8 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
         result["pr_id"] = self.pr_id
         result["git_ref"] = self.git_ref
         result["identifier"] = self.identifier
+        result.pop("_build_model")
+        result.pop("_db_trigger")
         return result
 
     def get_koji_build_logs_url(self) -> Optional[str]:

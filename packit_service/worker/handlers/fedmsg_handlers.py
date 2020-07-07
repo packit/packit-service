@@ -66,6 +66,7 @@ from packit_service.worker.handlers.abstract import (
     JobHandler,
     use_for,
     required_by,
+    TaskName,
 )
 from packit_service.worker.result import TaskResults
 from packit_service.utils import dump_package_config, dump_job_config
@@ -105,7 +106,7 @@ class NewDistGitCommitHandler(FedmsgHandler):
 
     topic = "org.fedoraproject.prod.git.receive"
     triggers = [TheJobTriggerType.commit]
-    task_name = "task.run_distgit_commit_handler"
+    task_name = TaskName.distgit_commit
 
     def __init__(
         self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
@@ -182,7 +183,7 @@ class AbstractCoprBuildReportHandler(FedmsgHandler):
 class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
     triggers = [TheJobTriggerType.copr_end]
-    task_name = "task.run_copr_build_end_handler"
+    task_name = TaskName.copr_build_end
 
     def was_last_packit_comment_with_congratulation(self):
         """
@@ -313,7 +314,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
 class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.start"
     triggers = [TheJobTriggerType.copr_start]
-    task_name = "task.run_copr_build_start_handler"
+    task_name = TaskName.copr_build_start
 
     def run(self):
         build_job_helper = CoprBuildJobHelper(
@@ -362,7 +363,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
 class KojiBuildReportHandler(FedmsgHandler):
     topic = "org.fedoraproject.prod.buildsys.task.state.change"
     triggers = [TheJobTriggerType.koji_results]
-    task_name = "task.run_koji_build_report_handler"
+    task_name = TaskName.koji_build_report
 
     def __init__(
         self,

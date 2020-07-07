@@ -23,6 +23,7 @@
 """
 This file defines generic job handler
 """
+import enum
 import logging
 import shutil
 from collections import defaultdict
@@ -92,6 +93,28 @@ def use_for(job_type: JobType):
         return kls
 
     return _add_to_mapping
+
+
+class TaskName(str, enum.Enum):
+    copr_build_start = "task.run_copr_build_start_handler"
+    copr_build_end = "task.run_copr_build_end_handler"
+    release_copr_build = "task.run_release_copr_build_handler"
+    pr_copr_build = "task.run_pr_copr_build_handler"
+    pr_comment_copr_build = "task.run_pr_comment_copr_build_handler"
+    push_copr_build = "task.run_push_copr_build_handler"
+    installation = "task.run_installation_handler"
+    testing_farm = "task.run_testing_farm_handler"
+    testing_farm_comment = "task.run_testing_farm_comment_handler"
+    testing_farm_results = "task.run_testing_farm_results_handler"
+    propose_update_comment = "task.run_propose_update_comment_handler"
+    propose_downstream = "task.run_propose_downstream_handler"
+    release_koji_build = "task.run_release_koji_build_handler"
+    pr_koji_build = "task.run_pr_koji_build_handler"
+    push_koji_build = "task.run_push_koji_build_handler"
+    distgit_commit = "task.run_distgit_commit_handler"
+    pagure_pr_comment_copr_build = "task.run_pagure_pr_comment_copr_build_handler"
+    pagure_pr_label = "task.run_pagure_pr_label_handler"
+    koji_build_report = "task.run_koji_build_report_handler"
 
 
 class Handler:
@@ -178,7 +201,7 @@ class JobHandler(Handler):
 
     type: JobType
     triggers: List[TheJobTriggerType]
-    task_name: str
+    task_name: TaskName
 
     def __init__(
         self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
@@ -246,7 +269,7 @@ class JobHandler(Handler):
         """
         logger.debug(f"Getting signature of a Celery task {cls.task_name}.")
         return signature(
-            cls.task_name,
+            cls.task_name.value,
             kwargs={
                 "package_config": dump_package_config(event.package_config),
                 "job_config": dump_job_config(job),

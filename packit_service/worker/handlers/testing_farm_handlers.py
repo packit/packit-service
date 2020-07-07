@@ -38,7 +38,7 @@ from packit_service.service.events import (
     TestResult,
 )
 from packit_service.worker.handlers import JobHandler
-from packit_service.worker.handlers.abstract import use_for
+from packit_service.worker.handlers.abstract import use_for, TaskName
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 class TestingFarmResultsHandler(JobHandler):
     type = JobType.report_test_results
     triggers = [TheJobTriggerType.testing_farm_results]
-    task_name = "task.run_testing_farm_results_handler"
+    task_name = TaskName.testing_farm_results
 
     def __init__(
         self,

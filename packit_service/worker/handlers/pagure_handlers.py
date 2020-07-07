@@ -34,7 +34,7 @@ from packit_service.service.events import (
 )
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.handlers import CommentActionHandler
-from packit_service.worker.handlers.abstract import use_for, JobHandler
+from packit_service.worker.handlers.abstract import use_for, JobHandler, TaskName
 from packit_service.worker.handlers.comment_action_handler import CommentAction
 from packit_service.worker.psbugzilla import Bugzilla
 from packit_service.worker.reporting import StatusReporter
@@ -50,7 +50,7 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
 
     type = CommentAction.copr_build
     triggers = [TheJobTriggerType.pr_comment]
-    task_name = "task.run_pagure_pr_comment_copr_build_handler"
+    task_name = TaskName.pagure_pr_comment_copr_build
 
     def __init__(
         self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
@@ -82,7 +82,7 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
 class PagurePullRequestLabelHandler(JobHandler):
     type = JobType.create_bugzilla
     triggers = [TheJobTriggerType.pr_label]
-    task_name = "task.run_pagure_pr_label_handler"
+    task_name = TaskName.pagure_pr_label
 
     def __init__(
         self,

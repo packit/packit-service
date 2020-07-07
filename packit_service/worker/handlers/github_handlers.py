@@ -60,7 +60,7 @@ from packit_service.worker.handlers import (
     CommentActionHandler,
     JobHandler,
 )
-from packit_service.worker.handlers.abstract import required_by, use_for
+from packit_service.worker.handlers.abstract import required_by, use_for, TaskName
 from packit_service.worker.handlers.comment_action_handler import (
     add_to_comment_action_mapping,
     add_to_comment_action_mapping_with_name,
@@ -76,7 +76,7 @@ logger = logging.getLogger(__name__)
 class GithubAppInstallationHandler(JobHandler):
     type = JobType.add_to_whitelist
     triggers = [TheJobTriggerType.installation]
-    task_name = "task.run_installation_handler"
+    task_name = TaskName.installation
 
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
 
@@ -132,7 +132,7 @@ class GithubAppInstallationHandler(JobHandler):
 class ProposeDownstreamHandler(JobHandler):
     type = JobType.propose_downstream
     triggers = [TheJobTriggerType.release]
-    task_name = "task.run_propose_downstream_handler"
+    task_name = TaskName.propose_downstream
 
     def run(self) -> TaskResults:
         """
@@ -238,7 +238,7 @@ class ReleaseCoprBuildHandler(AbstractCoprBuildHandler):
     triggers = [
         TheJobTriggerType.release,
     ]
-    task_name = "task.run_release_copr_build_handler"
+    task_name = TaskName.release_copr_build
 
     def pre_check(self) -> bool:
         return (
@@ -255,7 +255,7 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
     triggers = [
         TheJobTriggerType.pull_request,
     ]
-    task_name = "task.run_pr_copr_build_handler"
+    task_name = TaskName.pr_copr_build
 
     def run(self) -> TaskResults:
         if self.data.event_type in (
@@ -296,7 +296,7 @@ class PushCoprBuildHandler(AbstractCoprBuildHandler):
         TheJobTriggerType.push,
         TheJobTriggerType.commit,
     ]
-    task_name = "task.run_push_copr_build_handler"
+    task_name = TaskName.push_copr_build
 
     def pre_check(self) -> bool:
         valid = (
@@ -386,7 +386,7 @@ class ReleaseGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     triggers = [
         TheJobTriggerType.release,
     ]
-    task_name = "task.run_release_koji_build_handler"
+    task_name = TaskName.release_koji_build
 
     def pre_check(self) -> bool:
         return (
@@ -401,7 +401,7 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
     triggers = [
         TheJobTriggerType.pull_request,
     ]
-    task_name = "task.run_pr_koji_build_handler"
+    task_name = TaskName.pr_koji_build
 
     def run(self) -> TaskResults:
         if self.data.event_type == PullRequestGithubEvent.__name__:
@@ -432,7 +432,7 @@ class PushGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
         TheJobTriggerType.push,
         TheJobTriggerType.commit,
     ]
-    task_name = "task.run_push_koji_build_handler"
+    task_name = TaskName.push_koji_build
 
     def pre_check(self) -> bool:
         valid = (
@@ -498,7 +498,7 @@ class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
 
     type = CommentAction.copr_build
     triggers = [TheJobTriggerType.pr_comment]
-    task_name = "task.run_pr_comment_copr_build_handler"
+    task_name = TaskName.pr_comment_copr_build
 
     def run(self) -> TaskResults:
         user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
@@ -545,7 +545,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
 
     type = CommentAction.propose_update
     triggers = [TheJobTriggerType.issue_comment]
-    task_name = "task.run_propose_update_comment_handler"
+    task_name = TaskName.propose_update_comment
 
     @property
     def dist_git_branches_to_sync(self) -> Set[str]:
@@ -627,7 +627,7 @@ class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
 
     type = CommentAction.test
     triggers = [TheJobTriggerType.pr_comment]
-    task_name = "task.run_testing_farm_comment_handler"
+    task_name = TaskName.testing_farm_comment
 
     def run(self) -> TaskResults:
         testing_farm_helper = TestingFarmJobHelper(
