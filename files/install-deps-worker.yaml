@@ -22,7 +22,51 @@
           - python3-bugzilla # python-bugzilla (not bugzilla) on PyPI
           - python3-backoff # Bugzilla class
           #- python3-flask-restx # needs Fedora 32
+          - dnf-utils
+          - python3-pip
+          - make
+          # provides dnf builddep, required for packit dep installation from spec file
+          - dnf-plugins-core
         state: present
+    - name: Install dependencies for pakcit
+      block:
+        - name: Download script setupcfg2rpm.py
+          get_url:
+            url: https://raw.githubusercontent.com/packit-service/deployment/master/scripts/setupcfg2rpm.py
+            dest: ./setupcfg2rpm.py
+            mode: "0744"
+        - name: Download packit spec file
+          get_url:
+            url: https://raw.githubusercontent.com/packit-service/packit/master/packit.spec
+            dest: ./packit.spec
+        - name: Install packit RPM build dependencies from packit.spec
+          shell: dnf builddep packit.spec -y
+          args:
+            warn: no
+        - name: Install packit RPM runtime dependencies
+          shell: dnf install $(rpmspec -q --requires packit.spec | grep -v 'packit') -y
+          args:
+            warn: no
+          become: true
+        - name: Download packit setup.cfg
+          get_url:
+            url: https://raw.githubusercontent.com/packit-service/packit/master/setup.cfg
+            dest: ./packit_setup.cfg
+        - name: Install depndencies provided by setupcfg2rpm
+          shell: dnf install $(./setupcfg2rpm.py packit_setup.cfg)
+          become: true
+    - name: Install dependencies from setup.cfg as rpm packages for ogr
+      block:
+        # setupcfg2rpm.py was downloaded in previous block
+        - name: Download ogr setup.cfg
+          get_url:
+            url: https://raw.githubusercontent.com/packit-service/ogr/master/setup.cfg
+            dest: ./ogr_setup.cfg
+        - name: Install dependencies provided by setupcfg2rpm
+          shell: dnf install $(./setupcfg2rpm.py ogr_setup.cfg)
+          args:
+            warn: no
+          become: true
     - name: Install pip deps
       pip:
         name:
@@ -30,3 +74,13 @@
           - sentry-sdk
           - flask-restx
         executable: pip3
+    # to avoid unwanted pip packages installations, because of not installed rpms
+    - name: Install pip deps with --no-deps
+      pip:
+        name:
+          - git+https://github.com/packit-service/packit.git
+          - git+https://github.com/packit-service/ogr.git
+        executable: pip3
+        extra_args: --no-deps
+    - name: Chek if all pip packages have all dependencies installed
+      command: pip check

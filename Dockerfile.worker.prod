@@ -1,7 +1,7 @@
 # Celery worker which runs tasks (packit) from the web service
 # The only difference between this and Dockerfile.worker is the ":prod" on first line
 
-FROM docker.io/usercont/packit:prod
+FROM fedora:32
 
 ENV LANG=en_US.UTF-8 \
     ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3 \
@@ -10,9 +10,11 @@ ENV LANG=en_US.UTF-8 \
     HOME=/home/packit \
     PS_PATH=/src-packit-service
 
+
 # Ansible doesn't like /tmp
 COPY files/install-deps-worker.yaml $PS_PATH/files/
-RUN cd $PS_PATH/ \
+RUN dnf install -y ansible \
+    && cd $PS_PATH/ \
     && ansible-playbook -vv -c local -i localhost, files/install-deps-worker.yaml \
     && dnf clean all
 
