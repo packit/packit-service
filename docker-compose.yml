@@ -4,6 +4,8 @@ services:
   redis:
     image: registry.fedoraproject.org/f31/redis
     container_name: redis
+    environment:
+      REDIS_PASSWORD: redispasswd
     ports:
       - 6379:6379
     user: "123123"
@@ -15,6 +17,7 @@ services:
     environment:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+      REDIS_PASSWORD: redispasswd
     ports:
       - 8081:8081
     depends_on:
@@ -29,7 +32,15 @@ services:
     depends_on:
       - redis
     environment:
-      CELERY_BROKER_URL: redis://redis:6379/0
+      FLOWER_DEBUG: "True"
+      CELERY_BROKER_URL: redis://:redispasswd@redis:6379/0
+      # TODO: Why these don't work, even when prefixed with additional CELERY_ as described in
+      # https://www.distributedpython.com/2018/10/13/flower-docker/
+      #CELERY_BROKER_TRANSPORT: redis
+      #CELERY_REDIS_PASSWORD: redispasswd
+      #CELERY_REDIS_HOST: redis
+      #CELERY_REDIS_PORT: 6379
+      #CELERY_REDIS_DB: 0
     user: "123123"
 
   postgres:
@@ -56,6 +67,7 @@ services:
     environment:
       DEPLOYMENT: dev
       REDIS_SERVICE_HOST: redis
+      REDIS_PASSWORD: redispasswd
       APP: packit_service.worker.tasks
       KRB5CCNAME: FILE:/tmp/krb5cc_packit
       POSTGRESQL_USER: packit
@@ -90,6 +102,7 @@ services:
     environment:
       DEPLOYMENT: dev
       REDIS_SERVICE_HOST: redis
+      REDIS_PASSWORD: redispasswd
       POSTGRESQL_USER: packit
       POSTGRESQL_PASSWORD: secret-password
       POSTGRESQL_DATABASE: packit
@@ -107,10 +120,11 @@ services:
 
   fedora-messaging:
     container_name: fedora-messaging
-    image: docker.io/usercont/packit-service-fedmsg:stg
+    image: docker.io/usercont/packit-service-fedmsg:dev
     environment:
       FEDORA_MESSAGING_CONF: /home/packit/.config/fedora.toml
       REDIS_SERVICE_HOST: redis
+      REDIS_PASSWORD: redispasswd
     volumes:
       # get it from secrets
       - ./secrets/dev/fedora.toml:/home/packit/.config/fedora.toml:ro,Z
@@ -123,6 +137,8 @@ services:
       - redis
     environment:
       LOG_LEVEL: DEBUG
+      REDIS_SERVICE_HOST: redis
+      REDIS_PASSWORD: redispasswd
     volumes:
       - ./secrets/dev/centos-server-ca.cert:/secrets/centos-server-ca.cert:ro,Z
       - ./secrets/dev/centos.cert:/secrets/centos.cert:ro,Z
