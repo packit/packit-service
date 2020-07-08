@@ -39,7 +39,11 @@ from packit.local_project import LocalProject
 
 from packit_service import sentry_integration
 from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
-from packit_service.models import InstallationModel
+from packit_service.models import (
+    InstallationModel,
+    AbstractTriggerDbType,
+    CoprBuildModel,
+)
 from packit_service.service.events import (
     TheJobTriggerType,
     ReleaseEvent,
@@ -459,7 +463,11 @@ class GithubTestingFarmHandler(JobHandler):
     trigger is finished copr build.
     """
 
-    triggers = [TheJobTriggerType.pull_request]
+    triggers = [
+        TheJobTriggerType.pull_request,
+        TheJobTriggerType.release,
+        TheJobTriggerType.commit,
+    ]
 
     def __init__(
         self,
@@ -467,11 +475,21 @@ class GithubTestingFarmHandler(JobHandler):
         job_config: JobConfig,
         data: EventData,
         chroot: str,
+        build_id: int,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data,
         )
         self.chroot = chroot
+        self.build_id = build_id
+        self._db_trigger: Optional[AbstractTriggerDbType] = None
+
+    @property
+    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        if not self._db_trigger:
+            build = CoprBuildModel.get_by_id(self.build_id)
+            self._db_trigger = build.job_trigger.get_trigger_object()
+        return self._db_trigger
 
     def run(self) -> TaskResults:
         # TODO: once we turn hanadlers into respective celery tasks, we should iterate
