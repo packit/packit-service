@@ -736,7 +736,7 @@ class Parser:
 
         branch = nested_get(event, "msg", "commit", "branch")
         rev = nested_get(event, "msg", "commit", "rev")
-        if not branch or not rev:
+        if not (branch and rev):
             logger.warning("Target branch/rev for the new commits is not set.")
             return None
 
@@ -917,8 +917,7 @@ class CentosEventParser:
             logger.info(f"Event type {git_topic!r} is not processed.")
             return None
 
-        event_object = self.event_mapping[git_topic](event)
-        return event_object
+        return self.event_mapping[git_topic](event)
 
     @staticmethod
     def _pull_request_event(event: dict, action: str) -> PullRequestPagureEvent:

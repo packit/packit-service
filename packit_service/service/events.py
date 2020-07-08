@@ -335,7 +335,7 @@ class AbstractForgeIndependentEvent(Event):
         return self._pr_id
 
     def get_project(self) -> Optional[GitProject]:
-        if not self.project_url and not self.db_trigger:
+        if not (self.project_url or self.db_trigger):
             return None
 
         return ServiceConfig.get_service_config().get_project(
@@ -928,9 +928,8 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        if not self._db_trigger:
-            if self.build_model:
-                self._db_trigger = self.build_model.job_trigger.get_trigger_object()
+        if not self._db_trigger and self.build_model:
+            self._db_trigger = self.build_model.job_trigger.get_trigger_object()
         return self._db_trigger
 
     @property

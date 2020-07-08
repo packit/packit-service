@@ -314,11 +314,12 @@ class SteveJobs:
                 )
             }
 
-        if packit_action == CommentAction.test and isinstance(
-            event.db_trigger, PullRequestModel
+        if (
+            packit_action == CommentAction.test
+            and isinstance(event.db_trigger, PullRequestModel)
+            and not event.db_trigger.get_copr_builds()
         ):
-            if not event.db_trigger.get_copr_builds():
-                packit_action = CommentAction.build
+            packit_action = CommentAction.build
 
         handler_kls: Type[CommentActionHandler] = MAP_COMMENT_ACTION_TO_HANDLER.get(
             packit_action, None
@@ -393,7 +394,7 @@ class SteveJobs:
         else:
             event_object = Parser.parse_event(event)
 
-        if not event_object or not event_object.pre_check():
+        if not (event_object and event_object.pre_check()):
             return None
 
         # CoprBuildEvent.get_project returns None when the build id is not known
