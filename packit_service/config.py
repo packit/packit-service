@@ -65,7 +65,7 @@ class ServiceConfig(Config):
         bugzilla_url: str = "",
         bugzilla_api_key: str = "",
         pr_accepted_labels: List[str] = None,
-        gitlab_webhook_tokens: List[str] = [],
+        gitlab_webhook_tokens: List[str] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
