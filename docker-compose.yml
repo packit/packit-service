@@ -42,8 +42,8 @@ services:
     ports:
       - 5432:5432
 
-  packit-service-worker:
-    container_name: packit-worker
+  worker:
+    container_name: worker
     build:
       context: .
       dockerfile: Dockerfile.worker
@@ -74,8 +74,8 @@ services:
       #- .:/src:ro,z
     user: "123123"
 
-  packit-service:
-    container_name: packit-service
+  service:
+    container_name: service
     build:
       context: .
       dockerfile: Dockerfile
