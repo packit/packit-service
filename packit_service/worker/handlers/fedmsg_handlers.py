@@ -197,9 +197,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         )
         for comment in comments:
             if comment.author.startswith("packit-as-a-service"):
-                if "Congratulations!" in comment.comment:
-                    return True
-                return False
+                return "Congratulations!" in comment.comment
         # if there is no comment from p-s
         return False
 
@@ -389,9 +387,8 @@ class KojiBuildReportHandler(FedmsgHandler):
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        if not self._db_trigger:
-            if self.build:
-                self._db_trigger = self.build.job_trigger.get_trigger_object()
+        if not self._db_trigger and self.build:
+            self._db_trigger = self.build.job_trigger.get_trigger_object()
         return self._db_trigger
 
     def run(self):

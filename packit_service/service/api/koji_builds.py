@@ -46,10 +46,11 @@ class KojiBuildsList(Resource):
     def get(self):
         """ List all Koji builds. """
 
-        result = []
         first, last = indices()
-        for build in islice(KojiBuildModel.get_all(), first, last):
-            result.append(build.api_structure)
+        result = [
+            build.api_structure
+            for build in islice(KojiBuildModel.get_all(), first, last)
+        ]
 
         resp = make_response(dumps(result), HTTPStatus.PARTIAL_CONTENT)
         resp.headers["Content-Range"] = f"koji-builds {first + 1}-{last}/{len(result)}"
