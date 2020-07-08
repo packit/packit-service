@@ -287,6 +287,7 @@ def upgrade():
         host=getenv("REDIS_SERVICE_HOST", "localhost"),
         port=int(getenv("REDIS_SERVICE_PORT", "6379")),
         db=0,
+        password=getenv("REDIS_PASSWORD"),
         decode_responses=True,
     )
 
