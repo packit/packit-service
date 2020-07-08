@@ -291,12 +291,13 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             and self.copr_event.chroot in build_job_helper.tests_targets
         ):
             signature(
-                "task.run_testing_farm_handler",
+                TaskName.testing_farm,
                 kwargs={
                     "package_config": dump_package_config(self.package_config),
                     "job_config": dump_job_config(build_job_helper.job_tests),
                     "event": self.data.get_dict(),
                     "chroot": self.copr_event.chroot,
+                    "build_id": self.build.id,
                 },
             ).apply_async()
         else:

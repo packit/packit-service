@@ -424,6 +424,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         event=event_dict,
         job_config=job,
         chroot="fedora-rawhide-x86_64",
+        build_id=flexmock(),
     )
 
 
@@ -536,6 +537,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         event=event_dict,
         job_config=job,
         chroot="fedora-rawhide-x86_64",
+        build_id=flexmock(),
     )
 
 
@@ -650,6 +652,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         event=event_dict,
         job_config=job,
         chroot="fedora-rawhide-x86_64",
+        build_id=flexmock(),
     )
 
 

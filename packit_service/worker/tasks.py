@@ -31,6 +31,7 @@ from packit_service.service.events import (
     PullRequestLabelAction,
     TestingFarmResult,
     EventData,
+    TestResult,
 )
 from packit_service.worker.build.babysit import check_copr_build
 from packit_service.worker.jobs import SteveJobs
@@ -195,13 +196,14 @@ def run_installation_handler(event: dict, package_config: dict, job_config: dict
 
 @celery_app.task(name=TaskName.testing_farm)
 def run_testing_farm_handler(
-    event: dict, package_config: dict, job_config: dict, chroot: str
+    event: dict, package_config: dict, job_config: dict, chroot: str, build_id: int
 ):
     handler = GithubTestingFarmHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         data=EventData.from_event_dict(event),
         chroot=chroot,
+        build_id=build_id,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -226,7 +228,7 @@ def run_testing_farm_results_handler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         data=EventData.from_event_dict(event),
-        tests=event.get("tests"),
+        tests=[TestResult(**test) for test in event.get("tests", [])],
         result=TestingFarmResult(event.get("result")) if event.get("result") else None,
         pipeline_id=event.get("pipeline_id"),
         log_url=event.get("log_url"),
