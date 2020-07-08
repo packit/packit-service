@@ -291,7 +291,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             and self.copr_event.chroot in build_job_helper.tests_targets
         ):
             signature(
-                TaskName.testing_farm,
+                TaskName.testing_farm.value,
                 kwargs={
                     "package_config": dump_package_config(self.package_config),
                     "job_config": dump_job_config(build_job_helper.job_tests),
