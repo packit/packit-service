@@ -183,7 +183,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 state=CommitStatus.error,
                 description=f"Submit of the build failed: {ex}",
             )
-            return TaskResults(success=False, details={"error": str(ex)})
+            return TaskResults(
+                success=False,
+                details={"msg": "Submit of the Copr build failed.", "error": str(ex)},
+            )
 
         for chroot in self.build_targets:
             copr_build = CoprBuildModel.get_or_create(
