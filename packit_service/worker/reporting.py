@@ -22,6 +22,7 @@
 import hashlib
 import logging
 from typing import Optional, Union
+import gitlab
 
 from ogr.abstract import GitProject, CommitStatus
 from ogr.services.pagure import PagureProject
@@ -87,6 +88,24 @@ class StatusReporter:
                 uid=hashlib.md5(check_name.encode()).hexdigest(),
             )
 
+    def report_status_by_comment(
+        self,
+        state: CommitStatus,
+        url: str,
+        check_names: Union[str, list, None],
+    ):
+        """
+        Reporting build status with MR comment if no permission to the fork project
+        """
+
+        if isinstance(check_names, str):
+            check_names = [check_names]
+        comment_msg = [
+            f"| [{check}]({url}) | {state.name.upper()} |" for check in check_names
+        ]
+
+        self.project.pr_comment(self.pr_id, "\n\n".join(comment_msg))
+
     def set_status(
         self,
         state: CommitStatus,
@@ -99,9 +118,16 @@ class StatusReporter:
             url = "https://wiki.centos.org/Manuals/ReleaseNotes/CentOSStream"
 
         logger.debug(f"Setting status for check '{check_name}': {description}")
-        self.project.set_commit_status(
-            self.commit_sha, state, url, description, check_name, trim=True
-        )
+
+        try:
+            self.project.set_commit_status(
+                self.commit_sha, state, url, description, check_name, trim=True
+            )
+        except gitlab.exceptions.GitlabCreateError:
+            # Ignoring Gitlab 'enqueue' error
+            # https://github.com/packit-service/packit-service/issues/741
+            pass
+
         # Also set the status of the pull-request for forges which don't do
         # this automatically based on the flags on the last commit in the PR.
         self.__set_pull_request_status(check_name, description, url, state)

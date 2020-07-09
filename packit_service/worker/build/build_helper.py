@@ -27,6 +27,8 @@ from typing import Union, List, Optional, Tuple, Set
 from kubernetes.client.rest import ApiException
 
 from ogr.abstract import GitProject, CommitStatus
+from ogr.services.gitlab import GitlabProject
+from ogr.exceptions import GitlabAPIException
 from packit.api import PackitAPI
 from packit.config import JobType, JobConfig
 from packit.config.package_config import PackageConfig
@@ -79,6 +81,10 @@ class BaseBuildJobHelper:
         self._srpm_path: Optional[Path] = None
         self._job_tests: Optional[JobConfig] = None
         self._job_build: Optional[JobConfig] = None
+        self._base_project: Optional[GitProject] = None
+        self._pr_id: Optional[int] = None
+        self._is_reporting_allowed: Optional[bool] = None
+        self._is_gitlab_instance: Optional[bool] = None
 
     @property
     def local_project(self) -> LocalProject:
@@ -90,6 +96,47 @@ class BaseBuildJobHelper:
                 pr_id=self.metadata.pr_id,
             )
         return self._local_project
+
+    @property
+    def is_gitlab_instance(self) -> bool:
+        if self._is_gitlab_instance is None:
+            self._is_gitlab_instance = isinstance(self.project, GitlabProject)
+
+        return self._is_gitlab_instance
+
+    @property
+    def pr_id(self) -> Optional[int]:
+        if self._pr_id is None:
+            self._pr_id = self.metadata.pr_id
+        return self._pr_id
+
+    @property
+    def is_reporting_allowed(self) -> bool:
+        username = self.project.service.user.get_username()
+        if self._is_reporting_allowed is None:
+            self._is_reporting_allowed = self.base_project.can_merge_pr(username)
+        return self._is_reporting_allowed
+
+    @property
+    def base_project(self) -> GitProject:
+        """
+        Getting the source project info from PR,
+        In case of build events we loose the source info.
+        """
+        if self._base_project is None:
+            if self.pr_id:
+                self._base_project = self.project.get_pr(
+                    pr_id=self.pr_id
+                ).source_project
+            else:
+                self._base_project = self.project
+        return self._base_project
+
+    def request_project_access(self) -> None:
+        try:
+            self.base_project.request_access()
+        except GitlabAPIException:
+            logger.info("Access already requested")
 
     @property
     def api(self) -> PackitAPI:
@@ -208,7 +255,11 @@ class BaseBuildJobHelper:
     def status_reporter(self) -> StatusReporter:
         if not self._status_reporter:
             self._status_reporter = StatusReporter(
-                self.project, self.metadata.commit_sha, self.metadata.pr_id
+                project=self.base_project
+                if isinstance(self.project, GitlabProject) and self.is_reporting_allowed
+                else self.project,
+                commit_sha=self.metadata.commit_sha,
+                pr_id=self.metadata.pr_id,
             )
         return self._status_reporter
 
@@ -377,12 +428,28 @@ class BaseBuildJobHelper:
         The status reporting should be done through this method
         so we can extend it in subclasses easily.
         """
-        self.status_reporter.report(
-            description=description,
-            state=state,
-            url=url,
-            check_names=check_names,
-        )
+        if not self.is_gitlab_instance or self.is_reporting_allowed:
+            self.status_reporter.report(
+                description=description,
+                state=state,
+                url=url,
+                check_names=check_names,
+            )
+            return
+
+        # "Packit-User" does not have access to project.
+
+        self.request_project_access()
+        final_commit_states = [
+            CommitStatus.error,
+            CommitStatus.success,
+            CommitStatus.failure,
+        ]
+
+        # We are only commenting final states to avoid multiple comments for a build
+        # Ignoring all other states eg. pending, running
+        if state in final_commit_states and check_names is not None:
+            self.status_reporter.report_status_by_comment(state, url, check_names)
 
     def report_status_to_all(
         self, description: str, state: CommitStatus, url: str = ""

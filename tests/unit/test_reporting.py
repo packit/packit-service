@@ -121,3 +121,37 @@ def test_set_status(
         )
 
     reporter.set_status(state, description, check_name, url)
+
+
+@pytest.mark.parametrize(
+    ("project,commit_sha," "pr_id,pr_object," "state,description,check_names,url,"),
+    [
+        pytest.param(
+            flexmock(),
+            "7654321",
+            "11",
+            flexmock(),
+            CommitStatus.success,
+            "We made it!",
+            "packit/pr-rpm-build",
+            "https://api.packit.dev/build/111/logs",
+        ),
+    ],
+)
+def test_report_status_by_comment(
+    project,
+    commit_sha,
+    pr_id,
+    pr_object,
+    state,
+    description,
+    check_names,
+    url,
+):
+    reporter = StatusReporter(project, commit_sha, pr_id)
+
+    project.should_receive("pr_comment").with_args(
+        pr_id, f"| [{check_names}]({url}) | SUCCESS |"
+    ).once()
+
+    reporter.report_status_by_comment(state, url, check_names)

@@ -254,10 +254,12 @@ class TestEvents:
         assert isinstance(event_object.project, GitlabProject)
         assert event_object.project.full_repo_name == "testing-packit/hello-there"
 
+        assert event_object.base_project.full_repo_name == "testing-packit/hello-there"
+
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
-            base_project=None,
+            base_project=event_object.base_project,
             project=event_object.project,
             pr_id=1,
             reference="1f6a716aa7a618a9ffe56970d77177d99d100022",
@@ -278,10 +280,12 @@ class TestEvents:
         assert isinstance(event_object.project, GitlabProject)
         assert event_object.project.full_repo_name == "testing-packit/hello-there"
 
+        assert event_object.base_project.full_repo_name == "testing-packit/hello-there"
+
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
-            base_project=None,
+            base_project=event_object.base_project,
             project=event_object.project,
             pr_id=2,
             reference="45e272a57335e4e308f3176df6e9226a9e7805a9",
@@ -387,10 +391,13 @@ class TestEvents:
         assert isinstance(event_object.project, GitlabProject)
         assert event_object.project.full_repo_name == "testing-packit/hello-there"
 
+        assert isinstance(event_object.project, GitlabProject)
+        assert event_object.base_project.full_repo_name == "testing-packit/hello-there"
+
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
-            base_project=None,
+            base_project=event_object.base_project,
             project=event_object.project,
             pr_id=2,
             reference="45e272a57335e4e308f3176df6e9226a9e7805a9",

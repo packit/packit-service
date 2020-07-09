@@ -219,12 +219,12 @@ class GitlabWebhook(Resource):
             namespace=namespace, repo_name=repo_name, project_url=http_url
         )
 
-        if not project_authentication_issue.issue_created:
+        if not project_authentication_issue:
             token = jwt.encode(
                 {"namespace": namespace, "repo_name": repo_name},
                 config.gitlab_token_secret,
                 algorithm="HS256",
-            )
+            ).decode("utf-8")
 
             project = config.get_project(url=http_url)
             packit_user = project.service.user.get_username()
@@ -232,12 +232,12 @@ class GitlabWebhook(Resource):
             project.create_issue(
                 title="Packit-Service Authentication",
                 body=f"To configure Packit-Service with `{repo_name}` you need to\n"
-                f"configure the webhook settings. Head to {http_url}/hooks and add\n"
+                f"configure the webhook settings. Head to {project.get_web_url()}/hooks and add\n"
                 f"the Secret Token `{token}` to authenticate requests coming to Packit.\n\n"
                 f"Packit needs rights to set commit status to merge requests, Please grant\n"
                 f"[{packit_user}](https://gitlab.com/{packit_user}) `admin` permissions\n"
                 f"on the {namespace}/{repo_name} project. You can add the rights by clicking\n"
-                f"[here]({http_url}/-/project_members).",
+                f"[here]({project.get_web_url()}/-/project_members).",
                 private=True,
             )
 
@@ -313,6 +313,8 @@ class GitlabWebhook(Resource):
         interesting_events = {
             "Note Hook",
             "Merge Request Hook",
+            "Push Hook",
+            "Issue Hook",
         }
         event_type = request.headers.get("X-Gitlab-Event")
         _interested = event_type in interesting_events

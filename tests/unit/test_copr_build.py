@@ -48,7 +48,10 @@ from packit_service.service.events import (
     MergeRequestGitlabEvent,
 )
 from packit_service.worker.build import copr_build
-from packit_service.worker.build.copr_build import CoprBuildJobHelper
+from packit_service.worker.build.copr_build import (
+    CoprBuildJobHelper,
+    BaseBuildJobHelper,
+)
 from packit_service.worker.parser import Parser
 from packit_service.worker.reporting import StatusReporter
 from tests.spellbook import DATA_DIR
@@ -981,6 +984,54 @@ def test_copr_build_fails_in_packit_gitlab(gitlab_mr_event):
     flexmock(CoprBuildJobHelper).should_receive("run_build").never()
 
     assert not helper.run_copr_build()["success"]
+
+
+def test_copr_build_success_gitlab_comment(gitlab_mr_event):
+    helper = build_helper(event=gitlab_mr_event)
+    flexmock(BaseBuildJobHelper).should_receive("is_gitlab_instance").and_return(True)
+    flexmock(BaseBuildJobHelper).should_receive("base_project").and_return(
+        GitProject(
+            repo="the-example-repo",
+            service=flexmock(),
+            namespace="the-example-namespace",
+        )
+    )
+    flexmock(GitProject).should_receive("request_access").and_return()
+    flexmock(GitProject).should_receive("pr_comment").and_return()
+    flexmock(BaseBuildJobHelper).should_receive("is_reporting_allowed").and_return(
+        False
+    )
+    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        SRPMBuildModel(success=True)
+    )
+    flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
+        CoprBuildModel(id=1)
+    )
+    flexmock(MergeRequestGitlabEvent).should_receive("db_trigger").and_return(
+        flexmock()
+    )
+
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+
+    # copr build
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
+        None
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        flexmock(
+            config={"copr_url": "https://copr.fedorainfracloud.org/"},
+            build_proxy=flexmock()
+            .should_receive("create_from_file")
+            .and_return(
+                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+            )
+            .mock(),
+        )
+    )
+
+    flexmock(Celery).should_receive("send_task").once()
+    assert helper.run_copr_build()["success"]
 
 
 def test_copr_build_no_targets_gitlab(gitlab_mr_event):
