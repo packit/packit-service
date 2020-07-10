@@ -27,6 +27,7 @@ import enum
 import logging
 import os
 from contextlib import contextmanager
+from urllib.parse import urlparse
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional, Union, Iterable, Dict, Type, Any
 
@@ -129,6 +130,24 @@ class GitProjectModel(Base):
     project_url = Column(String)
 
     @classmethod
+    def __choose_project(
+        cls, session, forge, namespace, repo_name
+    ) -> "GitProjectModel":
+        """Returns a project (GitProjectModel) given session, forge, namespace and repo_name"""
+        projects = (
+            session.query(GitProjectModel)
+            .filter_by(namespace=namespace, repo_name=repo_name)
+            .all()
+        )
+        # This is a temp measure to identify forge until we start storing forge in GitProjectModel
+        # and label previous data as well
+        for project in projects:
+            forge_domain = urlparse(project.project_url).netloc
+            if forge == forge_domain:
+                return project
+        return None
+
+    @classmethod
     def get_or_create(
         cls, namespace: str, repo_name: str, project_url: str
     ) -> "GitProjectModel":
@@ -148,6 +167,68 @@ class GitProjectModel(Base):
                 project.project_url = project_url
                 session.add(project)
             return project
+
+    @classmethod
+    def get_projects(cls, first: int, last: int) -> Iterable["GitProjectModel"]:
+        with get_sa_session() as session:
+            projects = session.query(GitProjectModel).order_by(
+                GitProjectModel.namespace
+            )[first:last]
+            return projects
+
+    @classmethod
+    def get_project_prs(
+        cls, first: int, last: int, forge: str, namespace: str, repo_name: str
+    ) -> Optional[Iterable["PullRequestModel"]]:
+        with get_sa_session() as session:
+            project = cls.__choose_project(
+                session=session, forge=forge, namespace=namespace, repo_name=repo_name
+            )
+            if not project:
+                return None
+            pull_requests = (
+                session.query(PullRequestModel)
+                .filter_by(project_id=project.id)
+                .order_by(desc(PullRequestModel.pr_id))[first:last]
+            )
+
+            return pull_requests
+
+    @classmethod
+    def get_project_issues(
+        cls, forge: str, namespace: str, repo_name: str
+    ) -> Optional[Iterable["IssueModel"]]:
+        with get_sa_session() as session:
+            project = cls.__choose_project(
+                session=session, forge=forge, namespace=namespace, repo_name=repo_name
+            )
+            if not project:
+                return None
+            issues = (
+                session.query(IssueModel)
+                .filter_by(project_id=project.id)
+                .order_by(desc(IssueModel.issue_id))
+                .all()
+            )
+            return issues
+
+    @classmethod
+    def get_project_releases(
+        cls, forge: str, namespace: str, repo_name: str
+    ) -> Optional[Iterable["ProjectReleaseModel"]]:
+        with get_sa_session() as session:
+            project = cls.__choose_project(
+                session=session, forge=forge, namespace=namespace, repo_name=repo_name
+            )
+            if not project:
+                return None
+            releases = (
+                session.query(ProjectReleaseModel)
+                .filter_by(project_id=project.id)
+                .order_by(desc(ProjectReleaseModel.tag_name))
+                .all()
+            )
+            return releases
 
     def __repr__(self):
         return (
@@ -197,6 +278,11 @@ class PullRequestModel(Base):
         return JobTriggerModel.get_or_create(
             type=JobTriggerModelType.pull_request, trigger_id=self.id
         ).copr_builds
+
+    def get_test_runs(self):
+        return JobTriggerModel.get_or_create(
+            type=JobTriggerModelType.pull_request, trigger_id=self.id
+        ).test_runs
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["PullRequestModel"]:

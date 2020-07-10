@@ -513,6 +513,48 @@ def test_project_property_for_copr_build(a_copr_build_for_pr):
     assert project.repo_name == "the-repo-name"
 
 
+def test_get_projects(clean_before_and_after, a_copr_build_for_pr):
+    projects = GitProjectModel.get_projects(0, 10)
+    assert isinstance(projects[0], GitProjectModel)
+    assert projects[0].namespace == "the-namespace"
+    assert projects[0].repo_name == "the-repo-name"
+    assert projects[0].project_url == "https://github.com/the-namespace/the-repo-name"
+
+
+def test_get_project_prs(clean_before_and_after, a_copr_build_for_pr):
+    prs_a = GitProjectModel.get_project_prs(
+        0, 10, "github.com", "the-namespace", "the-repo-name"
+    )
+    assert prs_a is not None
+    assert len(prs_a) == 1
+    assert prs_a[0].id is not None  # cant explicitly check because its random like
+    prs_b = GitProjectModel.get_project_prs(
+        0, 10, "gitlab.com", "the-namespace", "the-repo-name"
+    )
+    assert prs_b is None
+    prs_c = GitProjectModel.get_project_prs(
+        0, 10, "github", "the-namespace", "the-repo-name"
+    )
+    assert prs_c is None
+
+
+def test_get_project_issues(clean_before_and_after, an_issue_model):
+    issues_list = GitProjectModel.get_project_issues(
+        "github.com", "the-namespace", "the-repo-name"
+    )
+    assert len(issues_list) == 1
+    assert issues_list[0].issue_id == 2020
+
+
+def test_get_project_releases(clean_before_and_after, release_model):
+    releases = GitProjectModel.get_project_releases(
+        "github.com", "the-namespace", "the-repo-name"
+    )
+    assert releases[0].tag_name == "v1.0.2"
+    assert releases[0].commit_hash == "80201a74d96c"
+    assert len(releases) == 1
+
+
 def test_project_property_for_koji_build(a_koji_build_for_pr):
     project = a_koji_build_for_pr.get_project()
     assert isinstance(project, GitProjectModel)

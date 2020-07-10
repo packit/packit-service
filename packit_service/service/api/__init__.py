@@ -29,6 +29,7 @@ except ModuleNotFoundError:
     from flask_restplus import Api
 
 from packit_service.service.api.copr_builds import ns as copr_builds_ns
+from packit_service.service.api.projects import ns as projects_ns
 from packit_service.service.api.healthz import ns as healthz_ns
 from packit_service.service.api.installations import ns as installations_ns
 from packit_service.service.api.tasks import ns as tasks_ns
@@ -46,6 +47,7 @@ api = Api(
 )
 
 api.add_namespace(copr_builds_ns)
+api.add_namespace(projects_ns)
 api.add_namespace(healthz_ns)
 api.add_namespace(installations_ns)
 api.add_namespace(tasks_ns)
