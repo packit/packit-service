@@ -140,8 +140,8 @@ def test_detailed_koji_build_info_for_release(
     assert response_dict["release"] == SampleValues.tag_name
 
 
-# Test Whitelist API (all)
 def test_whitelist_all(client, clean_before_and_after, new_whitelist_entry):
+    """Test Whitelist API (all)"""
     response = client.get(url_for("api.whitelist_white_list"))
     response_dict = response.json
     assert response_dict[0]["account"] == "Rayquaza"
@@ -149,8 +149,8 @@ def test_whitelist_all(client, clean_before_and_after, new_whitelist_entry):
     assert len(list(response_dict)) == 1
 
 
-# Test Whitelist API (specific user)
 def test_whitelist_specific(client, clean_before_and_after, new_whitelist_entry):
+    """Test Whitelist API (specific user)"""
     user_1 = client.get(url_for("api.whitelist_white_list_item", login="Rayquaza"))
     assert user_1.json["account"] == "Rayquaza"
     assert user_1.json["status"] == "approved_manually"
@@ -159,10 +159,10 @@ def test_whitelist_specific(client, clean_before_and_after, new_whitelist_entry)
     assert user_2.status_code == 204  # No content when not in whitelist
 
 
-#  Test Get Testing Farm Results
 def test_get_testing_farm_results(
     client, clean_before_and_after, multiple_new_test_runs
 ):
+    """Test Get Testing Farm Results"""
     response = client.get(url_for("api.testing-farm_testing_farm_results"))
     response_dict = response.json
     assert len(response_dict) == 3
@@ -182,3 +182,61 @@ def test_get_testing_farm_results(
     assert response_dict[1]["status"] == "new"
 
     assert response_dict[2]["target"] == SampleValues.chroots[1]
+
+
+def test_get_projects_list(client, clean_before_and_after, a_copr_build_for_pr):
+    """Test Get Projects"""
+    response = client.get(url_for("api.projects_projects_list"))
+    response_dict = response.json
+    assert len(response_dict) == 1
+    assert response_dict[0]["namespace"] == SampleValues.repo_namespace
+    assert response_dict[0]["repo_name"] == SampleValues.repo_name
+    assert response_dict[0]["project_url"] == SampleValues.project_url
+    assert response_dict[0]["prs_handled"] == 1
+
+
+def test_get_projects_prs(client, clean_before_and_after, a_copr_build_for_pr):
+    """Test Get Project's Pull Requests"""
+    response = client.get(
+        url_for(
+            "api.projects_projects_p_rs",
+            forge="github.com",
+            namespace="the-namespace",
+            repo_name="the-repo-name",
+        )
+    )
+    response_dict = response.json
+    assert len(response_dict) == 1
+    assert response_dict[0]["pr_id"] is not None
+    assert response_dict[0]["builds"][0]["build_id"] == SampleValues.build_id
+    assert response_dict[0]["builds"][0]["status"] == "pending"
+
+
+def test_get_projects_issues(client, clean_before_and_after, an_issue_model):
+    """Test Get Project's Issues"""
+    response = client.get(
+        url_for(
+            "api.projects_project_issues",
+            forge="github.com",
+            namespace="the-namespace",
+            repo_name="the-repo-name",
+        )
+    )
+    response_dict = response.json
+    assert response_dict["issues"][0] == SampleValues.issue_id
+
+
+def test_get_projects_releases(client, clean_before_and_after, release_model):
+    """Test Get Project's Releases"""
+    response = client.get(
+        url_for(
+            "api.projects_project_releases",
+            forge="github.com",
+            namespace="the-namespace",
+            repo_name="the-repo-name",
+        )
+    )
+    response_dict = response.json
+    assert len(response_dict) == 1
+    assert response_dict[0]["tag_name"] == SampleValues.tag_name
+    assert response_dict[0]["commit_hash"] == SampleValues.commit_sha
