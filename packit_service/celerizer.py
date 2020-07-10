@@ -37,10 +37,11 @@ class Celerizer:
     def celery_app(self):
         if self._celery_app is None:
             password = getenv("REDIS_PASSWORD", "")
+            authentication = f":{password}@" if password else ""
             host = getenv("REDIS_SERVICE_HOST", "redis")
             port = getenv("REDIS_SERVICE_PORT", "6379")
             db = getenv("REDIS_SERVICE_DB", "0")
-            redis_url = f"redis://:{password}@{host}:{port}/{db}"
+            redis_url = f"redis://{authentication}{host}:{port}/{db}"
 
             # https://docs.celeryproject.org/en/stable/userguide/configuration.html#database-url-examples
             postgres_url = f"db+{get_pg_url()}"
