@@ -31,8 +31,8 @@ import pytest
 from flexmock import flexmock
 from ogr import PagureService
 from ogr.services.github import GithubProject, GithubService
-from ogr.services.pagure import PagureProject
 from ogr.services.gitlab import GitlabProject, GitlabService
+from ogr.services.pagure import PagureProject
 
 from packit_service.config import (
     ServiceConfig,
@@ -45,6 +45,7 @@ from packit_service.models import (
     PullRequestModel,
     KojiBuildModel,
 )
+from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.service.events import (
     WhitelistStatus,
     InstallationEvent,
@@ -72,6 +73,7 @@ from packit_service.service.events import (
     IssueCommentGitlabEvent,
     MergeRequestCommentGitlabEvent,
     PushGitlabEvent,
+    EventData,
 )
 from packit_service.worker.parser import Parser, CentosEventParser
 from tests.conftest import copr_build_model
@@ -1284,3 +1286,15 @@ class TestCentOSEventParser:
             "https://git.stg.centos.org/source-git/packit-hello-world"
         )
         assert event_object.package_config
+
+
+def test_event_data_parse_pr(github_pr_event):
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(None)
+    data = EventData.from_event_dict(github_pr_event.get_dict())
+    assert data.event_type == "PullRequestGithubEvent"
+    assert data.trigger == TheJobTriggerType.pull_request
+    assert data.user_login == "lbarcziova"
+    assert not data.git_ref
+    assert data.commit_sha == "528b803be6f93e19ca4130bf4976f2800a3004c4"
+    assert data.identifier == "342"
+    assert data.pr_id == 342

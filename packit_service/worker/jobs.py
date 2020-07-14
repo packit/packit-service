@@ -336,6 +336,14 @@ class SteveJobs:
         # failed because of missing whitelist approval
         whitelist = Whitelist()
         user_login = getattr(event, "user_login", None)
+
+        # VERY UGLY
+        # TODO: REFACTOR !!!
+        if handler_kls == GitHubPullRequestCommentCoprBuildHandler and isinstance(
+            event, PullRequestCommentPagureEvent
+        ):
+            handler_kls = PagurePullRequestCommentCoprBuildHandler
+
         jobs = get_config_for_handler_kls(
             handler_kls=handler_kls, event=event, package_config=event.package_config,
         )
@@ -349,17 +357,6 @@ class SteveJobs:
                     success=True, details={"msg": "Account is not whitelisted!"}
                 )
             }
-
-        # VERY UGLY
-        # TODO: REFACTOR !!!
-        if handler_kls == GitHubPullRequestCommentCoprBuildHandler and isinstance(
-            event, PullRequestCommentPagureEvent
-        ):
-            handler_kls = PagurePullRequestCommentCoprBuildHandler
-
-        jobs = get_config_for_handler_kls(
-            handler_kls=handler_kls, event=event, package_config=event.package_config,
-        )
 
         signatures = [handler_kls.get_signature(event=event, job=job) for job in jobs]
         # https://docs.celeryproject.org/en/stable/userguide/canvas.html#groups

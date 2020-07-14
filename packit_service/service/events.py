@@ -182,7 +182,8 @@ class EventData:
         project_url = event.get("project_url")
         tag_name = event.get("tag_name")
         git_ref = event.get("git_ref")
-        pr_id = event.get("pr_id")
+        # event has _pr_id as the attribute while pr_id is a getter property
+        pr_id = event.get("_pr_id") or event.get("pr_id")
         commit_sha = event.get("commit_sha")
         identifier = event.get("identifier")
 
