@@ -23,7 +23,6 @@ import logging
 from typing import Optional
 
 from packit_service.celerizer import celery_app
-from packit_service.models import TaskResultModel
 from packit_service.service.events import (
     CoprBuildEvent,
     InstallationEvent,
@@ -95,14 +94,7 @@ def process_message(
     :param source: event source
     :return: dictionary containing task results
     """
-    task_results: dict = SteveJobs().process_message(
-        event=event, topic=topic, source=source
-    )
-    if task_results:
-        TaskResultModel.add_task_result(
-            task_id=self.request.id, task_result_dict=task_results
-        )
-    return task_results
+    return SteveJobs().process_message(event=event, topic=topic, source=source)
 
 
 @celery_app.task(

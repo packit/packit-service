@@ -35,7 +35,6 @@ from packit_service.models import (
     JobTriggerModel,
     TestingFarmResult,
     TFTTestRunModel,
-    TaskResultModel,
     GitProjectModel,
     InstallationModel,
     BugzillaModel,
@@ -488,22 +487,6 @@ def test_tmt_test_get_by_pipeline_id_release(clean_before_and_after, release_mod
     b = TFTTestRunModel.get_by_pipeline_id(test_run_model.pipeline_id)
     assert b
     assert b.job_trigger.get_trigger_object() == release_model
-
-
-def test_get_task_results(clean_before_and_after, multiple_task_results_entries):
-    results = list(TaskResultModel.get_all())
-    assert len(results) == 2
-    assert results[0].task_id == "ab1"
-    assert results[1].task_id == "ab2"
-
-
-def test_get_task_result_by_id(
-    clean_before_and_after, multiple_task_results_entries, task_results
-):
-    assert TaskResultModel.get_by_id("ab1").jobs == task_results[0].get("jobs")
-    assert TaskResultModel.get_by_id("ab1").event == task_results[0].get("event")
-    assert TaskResultModel.get_by_id("ab2").jobs == task_results[1].get("jobs")
-    assert TaskResultModel.get_by_id("ab2").event == task_results[1].get("event")
 
 
 def test_project_property_for_copr_build(a_copr_build_for_pr):

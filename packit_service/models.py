@@ -47,7 +47,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship, scoped_session
-from sqlalchemy.types import PickleType, ARRAY
+from sqlalchemy.types import ARRAY
 from sqlalchemy.dialects.postgresql import array as psql_array
 
 from packit.config import JobConfigTriggerType
@@ -940,45 +940,6 @@ class WhitelistModel(Base):
 
     def __repr__(self):
         return f"WhitelistModel(name={self.account_name})"
-
-
-class TaskResultModel(Base):
-    __tablename__ = "task_results"
-    task_id = Column(String, primary_key=True)
-    jobs = Column(PickleType)
-    event = Column(PickleType)
-
-    @classmethod
-    def get_by_id(cls, task_id: str) -> Optional["TaskResultModel"]:
-        with get_sa_session() as session:
-            return session.query(TaskResultModel).filter_by(task_id=task_id).first()
-
-    @classmethod
-    def get_all(cls) -> Optional[Iterable["TaskResultModel"]]:
-        with get_sa_session() as session:
-            return session.query(TaskResultModel).all()
-
-    @classmethod
-    def add_task_result(cls, task_id, task_result_dict):
-        with get_sa_session() as session:
-            task_result = cls.get_by_id(task_id)
-            if not task_result:
-                task_result = cls()
-                task_result.task_id = task_id
-                task_result.jobs = task_result_dict.get("jobs")
-                task_result.event = task_result_dict.get("event")
-                session.add(task_result)
-            return task_result
-
-    def to_dict(self):
-        return {
-            "task_id": self.task_id,
-            "jobs": self.jobs,
-            "event": self.event,
-        }
-
-    def __repr__(self):
-        return f"TaskResult(id={self.task_id})"
 
 
 class TestingFarmResult(str, enum.Enum):
