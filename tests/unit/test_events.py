@@ -465,13 +465,16 @@ class TestEvents:
         assert event_object.project.full_repo_name == "packit-service/packit"
         assert not event_object.base_project
 
+        flexmock(event_object.project).should_receive("get_releases").and_return(
+            [flexmock(tag_name="0.5.0"), flexmock(tag_name="0.4.1")]
+        )
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
             base_project=event_object.base_project,
             project=event_object.project,
             pr_id=None,
-            reference=None,
+            reference="0.5.0",
             fail_when_missing=False,
             spec_file_path=None,
         ).and_return(

@@ -690,7 +690,6 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
         self.user_login = user_login
         self.comment = comment
         self.identifier = str(issue_id)
-        self.commit_sha = None
 
     @property
     def tag_name(self):
@@ -698,6 +697,10 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
             releases = self.project.get_releases()
             self._tag_name = releases[0].tag_name if releases else ""
         return self._tag_name
+
+    @property
+    def commit_sha(self):
+        return self.tag_name
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
