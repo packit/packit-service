@@ -19,7 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
+from datetime import timedelta
 from os import getenv
 
 from celery import Celery
@@ -47,6 +47,11 @@ class Celerizer:
 
             # http://docs.celeryproject.org/en/latest/reference/celery.html#celery.Celery
             self._celery_app = Celery(backend=postgres_url, broker=redis_url)
+
+            days = int(getenv("CELERY_RESULT_EXPIRES", "30"))
+            # https://docs.celeryproject.org/en/latest/userguide/configuration.html#result-expires
+            self._celery_app.conf.result_expires = timedelta(days=days)
+
         return self._celery_app
 
 
