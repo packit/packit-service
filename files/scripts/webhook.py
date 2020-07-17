@@ -76,12 +76,14 @@ class PRWebhookPayload:
 @click.option(
     "--hostname",
     default="dev.packit.dev:8443",
-    help="Hostname of packit-service where we should connect",
+    help="Hostname of packit-service where we should connect.",
 )
 @click.option(
-    "--github-token", envvar="GITHUB_TOKEN", help="GitHub token so we can reach the api"
+    "--github-token",
+    envvar="GITHUB_TOKEN",
+    help="GitHub token so we can reach the api.",
 )
-@click.option("--pr", help="ID of the pull request", default=None, type=int)
+@click.option("--pr", help="ID of the pull request.", default=None, type=int)
 @click.argument(
     "project", default="packit-service/hello-world", metavar="<NAMESPACE/PROJECT>"
 )
@@ -91,10 +93,8 @@ def run(hostname, pr, project, github_token):
             'project should be specified as "PROJECT/NAMESPACE", e.g. "packit-service/ogr"'
         )
         return 1
-    project_namespace, project_name = project.split(
-        "/", 1
-    )  # now I need to create a project with / in its name
     if pr is not None:
+        project_namespace, project_name = project.split("/", 1)
         p = PRWebhookPayload(project_namespace, project_name, pr, github_token)
         j = p.generate()
         print(json.dumps(j, indent=2))
