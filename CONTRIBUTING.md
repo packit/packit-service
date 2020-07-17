@@ -95,14 +95,21 @@ When you are contributing to changelog, please follow these suggestions:
 Since packit-service is already a fairly complex system, it's not trivial to
 run it locally. This is why we are running everything in containers.
 
-This repository contains composefile for
+This repository contains [docker-compose.yml](./docker-compose.yml) for
 [docker-compose](https://github.com/docker/compose). Before you run it, we
-suggest you to open file and read all the comments.
-
+suggest you to open the file and read all the comments.
 You can also run only certain pieces of packit-service for local development
-(e.g. worker, database or httpd).
+(e.g. worker, database or service/httpd).
 
-When you are running httpd and making requests to it, make sure that `server_name` configuration file in `packit-service.yaml` is set. Then you **need** to make requests to httpd using that hostname (which can be done by creating a new entry in `/etc/hosts` on your laptop). Flask literally checks if the request is meant for it by comparing `Host` from the HTTP request with the value of [`SERVER_NAME`](https://flask.palletsprojects.com/en/1.1.x/config/#SERVER_NAME). The `SERVER_NAME` value also has to include port number if it differs from the default, hence your `packit-service.yaml` should contain something like this:
+When you are running service/httpd and making requests to it,
+make sure that `server_name` configuration file in `packit-service.yaml` is set.
+Then you **need** to make requests to httpd using that hostname
+(which can be done by creating a new entry in `/etc/hosts` on your laptop).
+Flask literally checks if the request is meant for it by comparing `Host`
+from the HTTP request with the value of
+[`SERVER_NAME`](https://flask.palletsprojects.com/en/1.1.x/config/#SERVER_NAME).
+The `SERVER_NAME` value also has to include port number if it differs from the
+default, hence your `packit-service.yaml` should contain something like this:
 
 ```yaml
 server_name: "dev.packit.dev:8443"
@@ -133,16 +140,19 @@ packit-service           | 172.18.0.1 - - [10/Apr/2020:10:22:35 +0000] "HEAD /ap
 
 ### Generating GitHub webhooks
 
-If you need to create a webhook payload, you can utilize script `files/scripts/webhook.py`. It is able to create a minimal json with the webhook payload and send it to p-s instance of your choice (the default is localhost:8443). Pull request changes are only supported right now. For more info, check out the readme:
+If you need to create a webhook payload, you can utilize script `files/scripts/webhook.py`.
+It is able to create a minimal json with the webhook payload and send it to
+p-s instance of your choice (the default is `dev.packit.dev:8443`).
+Pull request changes are only supported right now. For more info:
 
 ```
-$ GITHUB_TOKEN=the-token python3 files/scripts/webhook.py --help
+$ python3 files/scripts/webhook.py --help
 Usage: webhook.py [OPTIONS] <NAMESPACE/PROJECT>
 
 Options:
-  --hostname TEXT      Hostname of packit-service where we should connect
-  --github-token TEXT  GitHub token so we can reach the api
-  --pr INTEGER         ID of the pull request
+  --hostname TEXT      Hostname of packit-service where we should connect.
+  --github-token TEXT  GitHub token so we can reach the api.
+  --pr INTEGER         ID of the pull request.
   --help               Show this message and exit.
 ```
 
