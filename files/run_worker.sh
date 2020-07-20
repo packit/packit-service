@@ -6,6 +6,10 @@ if [[ -z ${APP} ]]; then
     exit 1
 fi
 
+# CELERY_COMMAND says whether to run Celery worker or beat (task scheduler)
+DEFAULT_CELERY_COMMAND="worker"
+CELERY_COMMAND="${CELERY_COMMAND:-$DEFAULT_CELERY_COMMAND}"
+
 if [[ ${DEPLOYMENT} == "prod" ]]; then
   LOGLEVEL="INFO"
 else
@@ -22,7 +26,14 @@ install -m 0400 /packit-ssh/config .
 grep -q pkgs.fedoraproject.org known_hosts || ssh-keyscan pkgs.fedoraproject.org >>known_hosts
 popd
 
-# concurrency: Number of concurrent worker processes/threads/green threads executing tasks.
-# prefetch-multiplier: How many messages to prefetch at a time multiplied by the number of concurrent processes.
-# http://docs.celeryproject.org/en/latest/userguide/optimizing.html#prefetch-limits
-exec celery worker --app="${APP}" --loglevel=${LOGLEVEL} --concurrency=1 --prefetch-multiplier=1
+if [[ "${CELERY_COMMAND}" == "beat" ]]; then
+    # when using the database backend, celery beat must be running for the results to be expired.
+    # https://docs.celeryproject.org/en/stable/userguide/periodic-tasks.html#starting-the-scheduler
+    exec celery beat --app="${APP}" --loglevel=${LOGLEVEL} --pidfile=/tmp/celerybeat.pid --schedule=/tmp/celerybeat-schedule
+
+elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
+    # concurrency: Number of concurrent worker processes/threads/green threads executing tasks.
+    # prefetch-multiplier: How many messages to prefetch at a time multiplied by the number of concurrent processes.
+    # http://docs.celeryproject.org/en/latest/userguide/optimizing.html#prefetch-limits
+    exec celery worker --app="${APP}" --loglevel=${LOGLEVEL} --concurrency=1 --prefetch-multiplier=1
+fi
