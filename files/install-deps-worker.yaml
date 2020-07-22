@@ -1,7 +1,15 @@
 ---
 - name: Install dependencies for packit-service worker.
   hosts: all
+  vars:
+    # added default value to not break functionality during implementing
+    # https://github.com/packit-service/packit-service/pull/717
+    # have to be removed once implemented
+    source_branch: "{{ lookup('env', 'SOURCE_BRANCH') or 'master' }}"
   tasks:
+    - name: Check source_branch value
+      debug:
+        msg: source_branch is set to {{ source_branch }}
     - name: Install all RPM/python packages needed to run packit-service worker.
       dnf:
         name:
@@ -22,7 +30,52 @@
           - python3-bugzilla # python-bugzilla (not bugzilla) on PyPI
           - python3-backoff # Bugzilla class
           #- python3-flask-restx # needs Fedora 32
+          - dnf-utils
+          - python3-pip
+          - make
+          # provides dnf builddep, required for packit dep installation from spec file
+          - dnf-plugins-core
         state: present
+    - name: Install dependencies for packit
+      block:
+        - name: Download script setupcfg2rpm.py
+          get_url:
+            url: https://raw.githubusercontent.com/packit-service/deployment/master/scripts/setupcfg2rpm.py
+            dest: ./setupcfg2rpm.py
+            mode: "0744"
+        - name: Download packit spec file
+          get_url:
+            url: https://raw.githubusercontent.com/packit-service/packit/{{ source_branch }}/packit.spec
+            dest: ./packit.spec
+        - name: Install packit RPM build dependencies from packit.spec
+          shell: dnf builddep packit.spec -y
+          args:
+            warn: no
+        - name: Install packit RPM runtime dependencies
+          shell: dnf install $(rpmspec -q --requires packit.spec | grep -v 'packit') -y
+          args:
+            warn: no
+          become: true
+        - name: Download packit setup.cfg
+          get_url:
+            url: https://raw.githubusercontent.com/packit-service/packit/{{ source_branch }}/setup.cfg
+            dest: ./packit_setup.cfg
+        - name: Install dependencies provided by setupcfg2rpm
+          shell: dnf install $(./setupcfg2rpm.py packit_setup.cfg)
+          become: true
+    - name: Install dependencies from setup.cfg as rpm packages for ogr
+      block:
+        # setupcfg2rpm.py was downloaded in previous block
+        - name: Download ogr setup.cfg
+          get_url:
+            # ogr has only master branch
+            url: https://raw.githubusercontent.com/packit-service/ogr/master/setup.cfg
+            dest: ./ogr_setup.cfg
+        - name: Install ogr dependencies provided by setupcfg2rpm
+          shell: dnf install $(./setupcfg2rpm.py ogr_setup.cfg)
+          args:
+            warn: no
+          become: true
     - name: Install pip deps
       pip:
         name:
@@ -30,3 +83,14 @@
           - sentry-sdk
           - flask-restx
         executable: pip3
+    # --no-deps: to fail instead of installing from PyPI when we forget to add some dependency to packit.spec
+    - name: pip install packit & ogr with --no-deps
+      pip:
+        name:
+          - git+https://github.com/packit-service/packit.git@{{ source_branch }}
+          # ogr has only master branch
+          - git+https://github.com/packit-service/ogr.git
+        executable: pip3
+        extra_args: --no-deps
+    - name: Chek if all pip packages have all dependencies installed
+      command: pip check

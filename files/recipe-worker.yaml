@@ -4,14 +4,6 @@
   vars:
     home_path: "{{ lookup('env', 'HOME') }}"
     packit_service_path: /src-packit-service
-    ansible_bender:
-      base_image: docker.io/usercont/packit
-      target_image:
-        name: docker.io/usercont/packit-service-worker
-        cmd: run_worker.sh
-      working_container:
-        volumes:
-          - "{{ playbook_dir }}:{{ packit_service_path }}:Z"
   tasks:
     - import_tasks: common.yaml
     - name: Create /sandcastle
