@@ -223,7 +223,7 @@ def test_get_projects_issues(client, clean_before_and_after, an_issue_model):
         )
     )
     response_dict = response.json
-    assert response_dict["issues"][0] == SampleValues.issue_id
+    assert response_dict[0] == SampleValues.issue_id
 
 
 def test_get_projects_releases(client, clean_before_and_after, release_model):

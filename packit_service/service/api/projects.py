@@ -119,9 +119,9 @@ class ProjectIssues(Resource):
         issues_list = GitProjectModel.get_project_issues(forge, namespace, repo_name)
         if not issues_list:
             return ([], HTTPStatus.OK)
-        result = {"issues": []}
+        result = []
         for issue in issues_list:
-            result["issues"].append(issue.issue_id)
+            result.append(issue.issue_id)
         resp = make_response(dumps(result))
         resp.headers["Content-Type"] = "application/json"
         resp.headers["Access-Control-Allow-Origin"] = "*"
