@@ -223,7 +223,7 @@ def test_get_projects_issues(client, clean_before_and_after, an_issue_model):
         )
     )
     response_dict = response.json
-    assert response_dict["issues"][0] == SampleValues.issue_id
+    assert response_dict[0] == SampleValues.issue_id
 
 
 def test_get_projects_releases(client, clean_before_and_after, release_model):
@@ -240,3 +240,20 @@ def test_get_projects_releases(client, clean_before_and_after, release_model):
     assert len(response_dict) == 1
     assert response_dict[0]["tag_name"] == SampleValues.tag_name
     assert response_dict[0]["commit_hash"] == SampleValues.commit_sha
+
+
+def test_get_projects_branches(
+    client, clean_before_and_after, a_copr_build_for_branch_push
+):
+    """Test Get Project's Releases"""
+    response = client.get(
+        url_for(
+            "api.projects_project_branches",
+            forge="github.com",
+            namespace="the-namespace",
+            repo_name="the-repo-name",
+        )
+    )
+    response_dict = response.json
+    assert len(response_dict) == 1
+    assert response_dict[0]["branch"] == SampleValues.branch

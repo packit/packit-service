@@ -119,9 +119,9 @@ class ProjectIssues(Resource):
         issues_list = GitProjectModel.get_project_issues(forge, namespace, repo_name)
         if not issues_list:
             return ([], HTTPStatus.OK)
-        result = {"issues": []}
+        result = []
         for issue in issues_list:
-            result["issues"].append(issue.issue_id)
+            result.append(issue.issue_id)
         resp = make_response(dumps(result))
         resp.headers["Content-Type"] = "application/json"
         resp.headers["Access-Control-Allow-Origin"] = "*"
@@ -148,6 +148,47 @@ class ProjectReleases(Resource):
                 "commit_hash": release.commit_hash,
             }
             result.append(release_info)
+        resp = make_response(dumps(result))
+        resp.headers["Content-Type"] = "application/json"
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        return resp
+
+
+@ns.route("/<forge>/<namespace>/<repo_name>/branches")
+@ns.param("forge", "Git Forge")
+@ns.param("namespace", "Namespace")
+@ns.param("repo_name", "Repo Name")
+class ProjectBranches(Resource):
+    @ns.response(HTTPStatus.OK, "OK, project branches handled by Packit Service follow")
+    def get(self, forge, namespace, repo_name):
+        """Project branches"""
+        branches = GitProjectModel.get_project_branches(forge, namespace, repo_name)
+        if not branches:
+            return ([], HTTPStatus.OK)
+        result = []
+        for branch in branches:
+            branch_info = {
+                "branch": branch.name,
+                "builds": [],
+                "tests": [],
+            }
+            for build in branch.get_copr_builds():
+                build_info = {
+                    "build_id": build.build_id,
+                    "chroot": build.target,
+                    "status": build.status,
+                    "web_url": build.web_url,
+                }
+                branch_info["builds"].append(build_info)
+            result.append(branch_info)
+            for test_run in branch.get_test_runs():
+                test_info = {
+                    "pipeline_id": test_run.pipeline_id,
+                    "chroot": test_run.target,
+                    "status": test_run.status,
+                    "web_url": test_run.web_url,
+                }
+                branch_info["tests"].append(test_info)
         resp = make_response(dumps(result))
         resp.headers["Content-Type"] = "application/json"
         resp.headers["Access-Control-Allow-Origin"] = "*"
