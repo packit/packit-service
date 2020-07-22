@@ -213,6 +213,24 @@ class GitProjectModel(Base):
             return issues
 
     @classmethod
+    def get_project_branches(
+        cls, forge: str, namespace: str, repo_name: str
+    ) -> Optional[Iterable["GitBranchModel"]]:
+        with get_sa_session() as session:
+            project = cls.__choose_project(
+                session=session, forge=forge, namespace=namespace, repo_name=repo_name
+            )
+            if not project:
+                return None
+            branches = (
+                session.query(GitBranchModel)
+                .filter_by(project_id=project.id)
+                .order_by(desc(GitBranchModel.id))
+                .all()
+            )
+            return branches
+
+    @classmethod
     def get_project_releases(
         cls, forge: str, namespace: str, repo_name: str
     ) -> Optional[Iterable["ProjectReleaseModel"]]:
@@ -280,7 +298,7 @@ class PullRequestModel(Base):
         ).copr_builds
 
     def get_test_runs(self):
-        return JobTriggerModel.get_or_create(
+        return JobTriggerModel.get(
             type=JobTriggerModelType.pull_request, trigger_id=self.id
         ).test_runs
 
@@ -365,6 +383,16 @@ class GitBranchModel(Base):
     def get_by_id(cls, id_: int) -> Optional["GitBranchModel"]:
         with get_sa_session() as session:
             return session.query(GitBranchModel).filter_by(id=id_).first()
+
+    def get_copr_builds(self):
+        return JobTriggerModel.get(
+            type=JobTriggerModelType.branch_push, trigger_id=self.id
+        ).copr_builds
+
+    def get_test_runs(self):
+        return JobTriggerModel.get(
+            type=JobTriggerModelType.branch_push, trigger_id=self.id
+        ).test_runs
 
     def __repr__(self):
         return f"GitBranchModel(name={self.name},  project={self.project})"
@@ -509,6 +537,17 @@ class JobTriggerModel(Base):
                 trigger.type = type
                 trigger.trigger_id = trigger_id
                 session.add(trigger)
+            return trigger
+
+    @classmethod
+    def get(cls, type: JobTriggerModelType, trigger_id: int) -> "JobTriggerModel":
+        """Get but do not create JobTriggerModel"""
+        with get_sa_session() as session:
+            trigger = (
+                session.query(JobTriggerModel)
+                .filter_by(type=type, trigger_id=trigger_id)
+                .first()
+            )
             return trigger
 
     def get_trigger_object(self) -> AbstractTriggerDbType:

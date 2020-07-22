@@ -521,6 +521,14 @@ def test_get_project_prs(clean_before_and_after, a_copr_build_for_pr):
     assert prs_c is None
 
 
+def test_get_project_branch(clean_before_and_after, a_copr_build_for_branch_push):
+    branches_list = GitProjectModel.get_project_branches(
+        "github.com", "the-namespace", "the-repo-name"
+    )
+    assert len(branches_list) == 1
+    assert branches_list[0].name == "build-branch"
+
+
 def test_get_project_issues(clean_before_and_after, an_issue_model):
     issues_list = GitProjectModel.get_project_issues(
         "github.com", "the-namespace", "the-repo-name"
