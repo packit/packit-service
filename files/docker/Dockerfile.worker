@@ -1,6 +1,6 @@
 # Celery worker which runs tasks (packit) from the web service
 
-FROM fedora:32
+FROM fedora:31
 
 ARG SOURCE_BRANCH
 
