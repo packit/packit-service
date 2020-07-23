@@ -225,7 +225,7 @@ class GitProjectModel(Base):
             branches = (
                 session.query(GitBranchModel)
                 .filter_by(project_id=project.id)
-                .order_by(desc(GitBranchModel.id))
+                .order_by(GitBranchModel.id)
                 .all()
             )
             return branches
@@ -298,7 +298,7 @@ class PullRequestModel(Base):
         ).copr_builds
 
     def get_test_runs(self):
-        return JobTriggerModel.get(
+        return JobTriggerModel.get_or_create(
             type=JobTriggerModelType.pull_request, trigger_id=self.id
         ).test_runs
 
@@ -385,12 +385,12 @@ class GitBranchModel(Base):
             return session.query(GitBranchModel).filter_by(id=id_).first()
 
     def get_copr_builds(self):
-        return JobTriggerModel.get(
+        return JobTriggerModel.get_or_create(
             type=JobTriggerModelType.branch_push, trigger_id=self.id
         ).copr_builds
 
     def get_test_runs(self):
-        return JobTriggerModel.get(
+        return JobTriggerModel.get_or_create(
             type=JobTriggerModelType.branch_push, trigger_id=self.id
         ).test_runs
 
@@ -537,17 +537,6 @@ class JobTriggerModel(Base):
                 trigger.type = type
                 trigger.trigger_id = trigger_id
                 session.add(trigger)
-            return trigger
-
-    @classmethod
-    def get(cls, type: JobTriggerModelType, trigger_id: int) -> "JobTriggerModel":
-        """Get but do not create JobTriggerModel"""
-        with get_sa_session() as session:
-            trigger = (
-                session.query(JobTriggerModel)
-                .filter_by(type=type, trigger_id=trigger_id)
-                .first()
-            )
             return trigger
 
     def get_trigger_object(self) -> AbstractTriggerDbType:
