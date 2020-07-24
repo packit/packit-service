@@ -1,6 +1,6 @@
 # Image for the web service (httpd), for celery worker see Dockerfile.worker
 
-FROM fedora:32
+FROM fedora:31
 
 ARG SOURCE_BRANCH
 

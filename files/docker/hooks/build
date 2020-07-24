@@ -1,3 +1,8 @@
 #!/bin/bash
 
+# setting cwd to build context location defined in Dcker Hub build configuration -> build rules
+# required because this script is executed in Dockerfile location instead of provided
+# build context location, which is root for $DOCKERFILE_PATH
+cd /src/${BUILD_CODE}/${BUILD_PATH}
+
 docker build -t $IMAGE_NAME -f $DOCKERFILE_PATH --build-arg SOURCE_BRANCH=$SOURCE_BRANCH .
