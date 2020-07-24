@@ -12,3 +12,5 @@
       with_items:
         - service
         - worker
+      environment:
+        SOURCE_BRANCH: "{{ zuul.branch }}"

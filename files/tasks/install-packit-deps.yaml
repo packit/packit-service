@@ -1,0 +1,26 @@
+# Install dependencies for packit
+- name: Download script setupcfg2rpm.py
+  get_url:
+    url: https://raw.githubusercontent.com/packit-service/deployment/master/scripts/setupcfg2rpm.py
+    dest: ./setupcfg2rpm.py
+    mode: "0744"
+- name: Download packit spec file
+  get_url:
+    url: https://raw.githubusercontent.com/packit-service/packit/{{ source_branch }}/packit.spec
+    dest: ./packit.spec
+- name: Install packit RPM build dependencies from packit.spec
+  shell: dnf builddep packit.spec -y
+  args:
+    warn: no
+- name: Install packit RPM runtime dependencies
+  shell: dnf install $(rpmspec -q --requires packit.spec | grep -v 'packit') -y
+  args:
+    warn: no
+  become: true
+- name: Download packit setup.cfg
+  get_url:
+    url: https://raw.githubusercontent.com/packit-service/packit/{{ source_branch }}/setup.cfg
+    dest: ./packit_setup.cfg
+- name: Install dependencies provided by setupcfg2rpm
+  shell: dnf install $(./setupcfg2rpm.py packit_setup.cfg)
+  become: true

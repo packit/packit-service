@@ -74,7 +74,7 @@ services:
       POSTGRESQL_PASSWORD: secret-password
       POSTGRESQL_DATABASE: packit
     volumes:
-      - ./packit_service:/src-packit-service/packit_service:ro,z
+      - ./packit_service:/src/packit_service:ro,z
       # worker should not require packit-service.yaml
       - ./secrets/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
       - ./secrets/dev/copr:/home/packit/.config/copr:ro,z

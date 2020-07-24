@@ -12,7 +12,7 @@ ENV LANG=en_US.UTF-8 \
 
 RUN dnf install -y ansible
 
-COPY files/install-deps.yaml /src/files/
+COPY files/ /src/files/
 
 RUN cd /src/ \
     && ansible-playbook -vv -c local -i localhost, files/install-deps.yaml \

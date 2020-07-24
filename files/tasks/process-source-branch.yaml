@@ -1,0 +1,17 @@
+# Check and if necessary adjust source_branch variable
+
+- name: Fail on empty source_branch variable
+  fail:
+    msg: Variable source_branch, which is set from env variable SOURCE_BRANCH is empty.
+  when: source_branch == ''
+# Docker Hub CI image builds are performed from non contributor's branches (eg. packit:fix_hook),
+#  but we need it to be master or stable
+- name: Change source branch to master if is not master/stable
+  set_fact:
+    source_branch: "master"
+  when:
+    - source_branch != 'stable'
+    - source_branch != 'master'
+- name: Check source_branch value
+  debug:
+    msg: source_branch is set to {{ source_branch }}

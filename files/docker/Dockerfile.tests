@@ -2,6 +2,8 @@
 
 FROM docker.io/usercont/packit-service-worker:dev
 
+ARG SOURCE_BRANCH
+
 ENV ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3 \
     ANSIBLE_STDOUT_CALLBACK=debug
 
@@ -11,9 +13,9 @@ RUN cd /src/ \
     && ansible-playbook -vv -c local -i localhost, files/install-deps.yaml
 
 RUN set -ex; mkdir -p /home/packit/.config \
-    && ln -s $PS_PATH/files/packit-service.yaml /home/packit/.config/packit-service.yaml \
+    && ln -s /src/files/packit-service.yaml /home/packit/.config/packit-service.yaml \
     && ansible-playbook -vv -c local -i localhost, ./files/recipe-tests.yaml
 
 # we are doing the same here as in worker Df so that we don't need to rerun the
 # playbook above for every code change: iterating fast <3
-COPY . $PS_PATH
+COPY . /src
