@@ -1,4 +1,4 @@
-# Image for the web service (httpd), for celery worker see Dockerfile.worker
+# Image for the web service (httpd), for celery worker see files/docker/Dockerfile.worker
 
 FROM fedora:31
 
