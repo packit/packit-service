@@ -63,7 +63,6 @@ def test_detailed_copr_build_info(client, clean_before_and_after, multiple_copr_
     assert response_dict["repo_namespace"] == SampleValues.repo_namespace
     assert response_dict["repo_name"] == SampleValues.repo_name
     assert response_dict["git_repo"] == SampleValues.project_url
-    assert response_dict["https_url"] == SampleValues.https_url
     assert response_dict["pr_id"] == SampleValues.pr_id
     assert len(response_dict["chroots"]) == 2
     assert len(list(response_dict["status_per_chroot"])) == 2

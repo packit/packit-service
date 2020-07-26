@@ -61,6 +61,7 @@ class CoprBuildsList(Resource):
                 "web_url": build_info.web_url,
                 "ref": build_info.commit_sha,
                 "pr_id": build_info.get_pr_id(),
+                "branch_name": build_info.get_branch_name(),
                 "repo_namespace": project_info.namespace,
                 "repo_name": project_info.repo_name,
             }
@@ -111,6 +112,7 @@ class InstallationItem(Resource):
                 build_dict["repo_name"] = project.repo_name
                 build_dict["git_repo"] = project.project_url
                 build_dict["pr_id"] = build.get_pr_id()
+                build_dict["branch_name"] = build.get_branch_name()
 
             # merge chroots into one
             for sbid_build in builds_list:

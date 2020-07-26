@@ -630,6 +630,12 @@ class CoprBuildModel(Base):
             return trigger_object.pr_id
         return None
 
+    def get_branch_name(self) -> Optional[str]:
+        trigger_object = self.job_trigger.get_trigger_object()
+        if isinstance(trigger_object, GitBranchModel):
+            return trigger_object.name
+        return None
+
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["CoprBuildModel"]:
         with get_sa_session() as session:
