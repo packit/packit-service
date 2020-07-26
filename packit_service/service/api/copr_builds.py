@@ -20,16 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from http import HTTPStatus
-from json import dumps
 from logging import getLogger
-
-from flask import make_response
 
 try:
     from flask_restx import Namespace, Resource
 except ModuleNotFoundError:
     from flask_restplus import Namespace, Resource
 
+from packit_service.service.api.utils import response_maker
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.models import CoprBuildModel, optional_time
 
@@ -73,12 +71,10 @@ class CoprBuildsList(Resource):
 
             result.append(build_dict)
 
-        resp = make_response(dumps(result), HTTPStatus.PARTIAL_CONTENT)
-        resp.headers["Content-Range"] = f"copr-builds {first + 1}-{last}/*"
-        resp.headers["Content-Type"] = "application/json"
-        resp.headers["Access-Control-Allow-Origin"] = "*"
-
-        return resp
+        content_range = f"copr-builds {first + 1}-{last}/*"
+        return response_maker(
+            result, content_range=content_range, status=HTTPStatus.PARTIAL_CONTENT,
+        )
 
 
 @ns.route("/<int:id>")
@@ -127,10 +123,7 @@ class InstallationItem(Resource):
                 # Get status per chroot as well
                 build_dict["status_per_chroot"][sbid_build.target] = sbid_build.status
 
-            build = make_response(dumps(build_dict))
-            build.headers["Content-Type"] = "application/json"
-            build.headers["Access-Control-Allow-Origin"] = "*"
-            return build if build else ("", HTTPStatus.NO_CONTENT)
+            return response_maker(build_dict)
 
         else:
-            return "", HTTPStatus.NO_CONTENT
+            return response_maker([])
