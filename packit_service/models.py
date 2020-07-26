@@ -177,6 +177,20 @@ class GitProjectModel(Base):
             return projects
 
     @classmethod
+    def get_namespace(cls, forge: str, namespace: str) -> Iterable["GitProjectModel"]:
+        """Return projects of given forge and namespace"""
+        with get_sa_session() as session:
+            projects = (
+                session.query(GitProjectModel).filter_by(namespace=namespace).all()
+            )
+            matched_projects = []
+            for project in projects:
+                forge_domain = urlparse(project.project_url).netloc
+                if forge == forge_domain:
+                    matched_projects.append(project)
+            return matched_projects
+
+    @classmethod
     def get_project(
         cls, forge: str, namespace: str, repo_name: str
     ) -> Optional["GitProjectModel"]:

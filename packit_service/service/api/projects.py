@@ -72,6 +72,31 @@ class ProjectInfo(Resource):
         return response_maker(project_info)
 
 
+@ns.route("/<forge>/<namespace>")
+@ns.param("forge", "Git Forge")
+@ns.param("namespace", "Namespace")
+class ProjectsNamespace(Resource):
+    @ns.response(HTTPStatus.OK, "Projects details follow")
+    def get(self, forge, namespace):
+        """List of projects of given forge and namespace"""
+        result = []
+        projects = GitProjectModel.get_namespace(forge, namespace)
+        if not projects:
+            return response_maker([])
+        for project in projects:
+            project_info = {
+                "namespace": project.namespace,
+                "repo_name": project.repo_name,
+                "project_url": project.project_url,
+                "prs_handled": len(project.pull_requests),
+                "branches_handled": len(project.branches),
+                "releases_handled": len(project.releases),
+                "issues_handled": len(project.issues),
+            }
+            result.append(project_info)
+        return response_maker(result)
+
+
 @ns.route("/<forge>/<namespace>/<repo_name>/prs")
 @ns.param("forge", "Git Forge")
 @ns.param("namespace", "Namespace")
