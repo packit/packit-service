@@ -177,6 +177,19 @@ class GitProjectModel(Base):
             return projects
 
     @classmethod
+    def get_project(
+        cls, forge: str, namespace: str, repo_name: str
+    ) -> Optional["GitProjectModel"]:
+        """Return one project which matches said criteria"""
+        with get_sa_session() as session:
+            project = cls.__choose_project(
+                session=session, forge=forge, namespace=namespace, repo_name=repo_name
+            )
+            if not project:
+                return None
+            return project
+
+    @classmethod
     def get_project_prs(
         cls, first: int, last: int, forge: str, namespace: str, repo_name: str
     ) -> Optional[Iterable["PullRequestModel"]]:

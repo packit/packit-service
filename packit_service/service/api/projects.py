@@ -49,6 +49,29 @@ class ProjectsList(Resource):
         )
 
 
+@ns.route("/<forge>/<namespace>/<repo_name>")
+@ns.param("forge", "Git Forge")
+@ns.param("namespace", "Namespace")
+@ns.param("repo_name", "Repo Name")
+class ProjectInfo(Resource):
+    @ns.response(HTTPStatus.OK, "Project details follow")
+    def get(self, forge, namespace, repo_name):
+        """Project Details"""
+        project = GitProjectModel.get_project(forge, namespace, repo_name)
+        if not project:
+            return response_maker([])
+        project_info = {
+            "namespace": project.namespace,
+            "repo_name": project.repo_name,
+            "project_url": project.project_url,
+            "prs_handled": len(project.pull_requests),
+            "branches_handled": len(project.branches),
+            "releases_handled": len(project.releases),
+            "issues_handled": len(project.issues),
+        }
+        return response_maker(project_info)
+
+
 @ns.route("/<forge>/<namespace>/<repo_name>/prs")
 @ns.param("forge", "Git Forge")
 @ns.param("namespace", "Namespace")
@@ -115,7 +138,7 @@ class ProjectIssues(Resource):
         """Project issues"""
         issues_list = GitProjectModel.get_project_issues(forge, namespace, repo_name)
         if not issues_list:
-            return ([], HTTPStatus.OK)
+            return response_maker([])
         result = []
         for issue in issues_list:
             result.append(issue.issue_id)
