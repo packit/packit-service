@@ -11,15 +11,15 @@ COV_REPORT ?= term-missing
 COLOR ?= yes
 
 service: files/install-deps.yaml files/recipe.yaml
-	$(CONTAINER_ENGINE) build --rm -t $(SERVICE_IMAGE) .
+	$(CONTAINER_ENGINE) build --rm -t $(SERVICE_IMAGE) -f files/docker/Dockerfile .
 
 worker: files/install-deps-worker.yaml files/recipe-worker.yaml
-	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE) -f Dockerfile.worker .
+	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE) -f files/docker/Dockerfile.worker .
 
 # This is for cases when you want to deploy into production and don't want to wait for dockerhub
 # Make sure you have latest docker.io/usercont/packit:prod prior to running this
 worker-prod: files/install-deps-worker.yaml files/recipe-worker.yaml
-	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE_PROD) -f Dockerfile.worker.prod .
+	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE_PROD) -f files/docker/Dockerfile.worker .
 
 worker-prod-push: worker-prod
 	$(CONTAINER_ENGINE) push $(WORKER_IMAGE_PROD)
@@ -30,7 +30,7 @@ check:
 
 # first run 'make worker'
 test_image: files/install-deps.yaml files/recipe-tests.yaml
-	$(CONTAINER_ENGINE) build --rm -t $(TEST_IMAGE) -f Dockerfile.tests .
+	$(CONTAINER_ENGINE) build --rm -t $(TEST_IMAGE) -f files/docker/Dockerfile.tests .
 
 check_in_container: test_image
 	@# don't use -ti here in CI, TTY is not allocated in zuul
