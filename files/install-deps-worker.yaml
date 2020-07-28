@@ -2,11 +2,23 @@
 - name: Install dependencies for packit-service worker.
   hosts: all
   vars:
-    # added default value to not break functionality during implementing
-    # https://github.com/packit-service/packit-service/pull/717
-    # have to be removed once implemented
-    source_branch: "{{ lookup('env', 'SOURCE_BRANCH') or 'master' }}"
+    source_branch: "{{ lookup('env', 'SOURCE_BRANCH') }}"
   tasks:
+    - name: Check source_branch value
+      debug:
+        msg: source_branch is set to {{ source_branch }}
+    - name: Fail on empty source_branch variable
+      fail:
+        msg: Variable source_branch, which is set from env variable SOURCE_BRANCH is empty.
+      when: source_branch == ''
+    # Docker Hub CI test is build from non master/stable branch (eg. packit:fix_hook)
+    # source_branch is changed to master in that case
+    - name: Change source branch to master if is not master/stable
+      set_fact:
+        source_branch: "master"
+      when:
+        - source_branch != 'stable'
+        - source_branch != 'master'
     - name: Check source_branch value
       debug:
         msg: source_branch is set to {{ source_branch }}
