@@ -1,6 +1,11 @@
 from enum import Enum
 
-FAQ_URL = "https://packit.dev/packit-as-a-service/#faq"
+DOCS_URL = "https://packit.dev/packit-as-a-service/"
+FAQ_URL = f"{DOCS_URL}#faq"
+FAQ_URL_HOW_TO_RETRIGGER = (
+    f"{DOCS_URL}#how-to-re-trigger-packit-service-actions-in-your-pull-request"
+)
+
 SANDCASTLE_WORK_DIR = "/sandcastle"
 SANDCASTLE_IMAGE = "docker.io/usercont/sandcastle"
 SANDCASTLE_DEFAULT_PROJECT = "myproject"
