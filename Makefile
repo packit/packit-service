@@ -9,17 +9,18 @@ AP ?= ansible-playbook -vv -c local -i localhost, -e ansible_python_interpreter=
 PATH_TO_SECRETS ?= $(CURDIR)/secrets/
 COV_REPORT ?= term-missing
 COLOR ?= yes
+SOURCE_BRANCH ?= $(git branch --show-current)
 
 service: files/install-deps.yaml files/recipe.yaml
-	$(CONTAINER_ENGINE) build --rm -t $(SERVICE_IMAGE) -f files/docker/Dockerfile .
+	$(CONTAINER_ENGINE) build --rm -t $(SERVICE_IMAGE) -f files/docker/Dockerfile --build-arg SOURCE_BRANCH=$SOURCE_BRANCH .
 
 worker: files/install-deps-worker.yaml files/recipe-worker.yaml
-	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE) -f files/docker/Dockerfile.worker .
+	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE) -f files/docker/Dockerfile.worker --build-arg SOURCE_BRANCH=$SOURCE_BRANCH .
 
 # This is for cases when you want to deploy into production and don't want to wait for dockerhub
 # Make sure you have latest docker.io/usercont/packit:prod prior to running this
 worker-prod: files/install-deps-worker.yaml files/recipe-worker.yaml
-	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE_PROD) -f files/docker/Dockerfile.worker .
+	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE_PROD) -f files/docker/Dockerfile.worker --build-arg SOURCE_BRANCH=$SOURCE_BRANCH .
 
 worker-prod-push: worker-prod
 	$(CONTAINER_ENGINE) push $(WORKER_IMAGE_PROD)

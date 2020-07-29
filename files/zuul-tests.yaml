@@ -4,6 +4,12 @@
   hosts: all
   tasks:
     - include_tasks: tasks/zuul-project-setup.yaml
+    # Passing branch via env variable SOURCE_BRANCH is required because playbooks
+    # install-deps* are used in 2 different scenarios:
+    # 1. Dockerfile processed via Docker Hub custom build hook
+    # 2. Zuul tests (this config)
+    # TODO: try to unify source of this variable
+    # eg. trigger build via hook instead of autobuild triggered by repo push action
     - name: Install podman
       dnf:
         name:
@@ -14,6 +20,8 @@
       command: "make worker"
       args:
         chdir: "{{ project_dir }}"
+      environment:
+        SOURCE_BRANCH: "{{ zuul.branch }}"
     - name: Run tests within a container
       command: "make check_in_container"
       args:
