@@ -22,6 +22,8 @@ MSG_RETRIGGER = (
     "into this pull request."
 )
 
+FILE_DOWNLOAD_FAILURE = "Failed to download file from URL"
+
 PERMISSIONS_ERROR_WRITE_OR_ADMIN = (
     "Only users with write or admin permissions to the repository "
     "can trigger Packit-as-a-Service"
@@ -34,6 +36,8 @@ COPR_API_FAIL_STATE = 2
 
 PG_COPR_BUILD_STATUS_FAILURE = "failure"
 PG_COPR_BUILD_STATUS_SUCCESS = "success"
+
+RETRY_LIMIT = 5
 
 WHITELIST_CONSTANTS = {
     "approved_automatically": "approved_automatically",

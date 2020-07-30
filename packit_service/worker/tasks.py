@@ -22,6 +22,7 @@
 import logging
 from typing import Optional
 
+from packit_service.constants import RETRY_LIMIT
 from packit_service.celerizer import celery_app
 from packit_service.service.events import (
     CoprBuildEvent,
@@ -242,12 +243,15 @@ def run_propose_update_comment_handler(
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.propose_downstream)
-def run_propose_downstream_handler(event: dict, package_config: dict, job_config: dict):
+@celery_app.task(bind=True, name=TaskName.propose_downstream, max_retries=RETRY_LIMIT)
+def run_propose_downstream_handler(
+    self, event: dict, package_config: dict, job_config: dict
+):
     handler = ProposeDownstreamHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         data=EventData.from_event_dict(event),
+        task=self,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
