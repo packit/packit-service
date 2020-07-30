@@ -165,7 +165,6 @@ class TestingFarmResults(Resource):
 
             result.append(result_dict)
 
-        content_range = f"test-results {first + 1}-{last}/*"
-        return response_maker(
-            result, content_range=content_range, status=HTTPStatus.PARTIAL_CONTENT,
-        )
+        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT,)
+        resp.headers["Content-Range"] = f"test-results {first + 1}-{last}/*"
+        return resp

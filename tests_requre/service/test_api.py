@@ -194,6 +194,40 @@ def test_get_projects_list(client, clean_before_and_after, a_copr_build_for_pr):
     assert response_dict[0]["prs_handled"] == 1
 
 
+def test_get_projects_list_namespace(
+    client, clean_before_and_after, multiple_copr_builds
+):
+    """Test Get Projects by Namespace"""
+    response = client.get(
+        url_for(
+            "api.projects_projects_namespace",
+            forge="github.com",
+            namespace="the-namespace",
+        )
+    )
+    response_dict = response.json
+    assert len(response_dict) == 1
+    assert response_dict[0]["namespace"] == SampleValues.repo_namespace
+    assert response_dict[0]["repo_name"] == SampleValues.repo_name
+
+
+def test_get_project_info(client, clean_before_and_after, a_copr_build_for_pr):
+    """Test Get a single project's info"""
+    response = client.get(
+        url_for(
+            "api.projects_project_info",
+            forge="github.com",
+            namespace="the-namespace",
+            repo_name="the-repo-name",
+        )
+    )
+    project = response.json
+    assert project["namespace"] == SampleValues.repo_namespace
+    assert project["repo_name"] == SampleValues.repo_name
+    assert project["project_url"] == SampleValues.project_url
+    assert project["prs_handled"] == 1
+
+
 def test_get_projects_prs(client, clean_before_and_after, a_copr_build_for_pr):
     """Test Get Project's Pull Requests"""
     response = client.get(

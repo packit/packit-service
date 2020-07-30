@@ -43,10 +43,9 @@ class ProjectsList(Resource):
             }
             result.append(project_info)
 
-        content_range = f"git-projects {first + 1}-{last}/*"
-        return response_maker(
-            result, content_range=content_range, status=HTTPStatus.PARTIAL_CONTENT,
-        )
+        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT,)
+        resp.headers["Content-Range"] = f"git-projects {first + 1}-{last}/*"
+        return resp
 
 
 @ns.route("/<forge>/<namespace>/<repo_name>")
@@ -59,7 +58,10 @@ class ProjectInfo(Resource):
         """Project Details"""
         project = GitProjectModel.get_project(forge, namespace, repo_name)
         if not project:
-            return response_maker([])
+            return response_maker(
+                {"error": "No info about project stored in DB"},
+                status=HTTPStatus.NOT_FOUND,
+            )
         project_info = {
             "namespace": project.namespace,
             "repo_name": project.repo_name,
@@ -147,10 +149,9 @@ class ProjectsPRs(Resource):
 
             result.append(pr_info)
 
-        content_range = f"git-project-prs {first + 1}-{last}/*"
-        return response_maker(
-            result, content_range=content_range, status=HTTPStatus.PARTIAL_CONTENT,
-        )
+        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT,)
+        resp.headers["Content-Range"] = f"git-project-prs {first + 1}-{last}/*"
+        return resp
 
 
 @ns.route("/<forge>/<namespace>/<repo_name>/issues")

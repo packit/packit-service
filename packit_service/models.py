@@ -142,7 +142,7 @@ class GitProjectModel(Base):
         # This is a temp measure to identify forge until we start storing forge in GitProjectModel
         # and label previous data as well
         for project in projects:
-            forge_domain = urlparse(project.project_url).netloc
+            forge_domain = urlparse(project.project_url).hostname
             if forge == forge_domain:
                 return project
         return None
@@ -185,7 +185,7 @@ class GitProjectModel(Base):
             )
             matched_projects = []
             for project in projects:
-                forge_domain = urlparse(project.project_url).netloc
+                forge_domain = urlparse(project.project_url).hostname
                 if forge == forge_domain:
                     matched_projects.append(project)
             return matched_projects
@@ -199,8 +199,6 @@ class GitProjectModel(Base):
             project = cls.__choose_project(
                 session=session, forge=forge, namespace=namespace, repo_name=repo_name
             )
-            if not project:
-                return None
             return project
 
     @classmethod

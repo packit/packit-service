@@ -107,6 +107,14 @@ def test_copr_build_get_pr_id(
     assert not copr_builds_with_different_triggers[2].get_pr_id()
 
 
+def test_copr_build_get_branch(
+    clean_before_and_after, copr_builds_with_different_triggers
+):
+    assert not copr_builds_with_different_triggers[0].get_branch_name()
+    assert copr_builds_with_different_triggers[1].get_branch_name() == "build-branch"
+    assert not copr_builds_with_different_triggers[2].get_branch_name()
+
+
 def test_get_merged_chroots(clean_before_and_after, too_many_copr_builds):
     # fetch 10 merged groups of builds
     builds_list = list(CoprBuildModel.get_merged_chroots(10, 20))
@@ -502,6 +510,21 @@ def test_get_projects(clean_before_and_after, a_copr_build_for_pr):
     assert projects[0].namespace == "the-namespace"
     assert projects[0].repo_name == "the-repo-name"
     assert projects[0].project_url == "https://github.com/the-namespace/the-repo-name"
+
+
+def test_get_project(clean_before_and_after, a_copr_build_for_pr):
+    project = GitProjectModel.get_project(
+        "github.com", "the-namespace", "the-repo-name"
+    )
+    assert project.namespace == "the-namespace"
+    assert project.repo_name == "the-repo-name"
+    assert project.project_url == "https://github.com/the-namespace/the-repo-name"
+
+
+def test_get_namespace(clean_before_and_after, multiple_copr_builds):
+    projects = GitProjectModel.get_namespace("github.com", "the-namespace")
+    assert projects[0].namespace == "the-namespace"
+    assert projects[0].repo_name == "the-repo-name"
 
 
 def test_get_project_prs(clean_before_and_after, a_copr_build_for_pr):
