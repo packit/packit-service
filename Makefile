@@ -9,7 +9,7 @@ AP ?= ansible-playbook -vv -c local -i localhost, -e ansible_python_interpreter=
 PATH_TO_SECRETS ?= $(CURDIR)/secrets/
 COV_REPORT ?= term-missing
 COLOR ?= yes
-SOURCE_BRANCH ?=
+SOURCE_BRANCH ?= $(shell git branch --show-current)
 
 service: files/install-deps.yaml files/recipe.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(SERVICE_IMAGE) -f files/docker/Dockerfile --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
