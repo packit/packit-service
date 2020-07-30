@@ -4,24 +4,7 @@
   vars:
     source_branch: "{{ lookup('env', 'SOURCE_BRANCH') }}"
   tasks:
-    - name: Check source_branch value
-      debug:
-        msg: source_branch is set to {{ source_branch }}
-    - name: Fail on empty source_branch variable
-      fail:
-        msg: Variable source_branch, which is set from env variable SOURCE_BRANCH is empty.
-      when: source_branch == ''
-    # Docker Hub CI test is build from non master/stable branch (eg. packit:fix_hook)
-    # source_branch is changed to master in that case
-    - name: Change source branch to master if is not master/stable
-      set_fact:
-        source_branch: "master"
-      when:
-        - source_branch != 'stable'
-        - source_branch != 'master'
-    - name: Check source_branch value
-      debug:
-        msg: source_branch is set to {{ source_branch }}
+    - import_tasks: tasks/process-source-branch.yaml
     - name: Install all RPM/python packages needed to run packit-service worker.
       dnf:
         name:
@@ -48,46 +31,8 @@
           # provides dnf builddep, required for packit dep installation from spec file
           - dnf-plugins-core
         state: present
-    - name: Install dependencies for packit
-      block:
-        - name: Download script setupcfg2rpm.py
-          get_url:
-            url: https://raw.githubusercontent.com/packit-service/deployment/master/scripts/setupcfg2rpm.py
-            dest: ./setupcfg2rpm.py
-            mode: "0744"
-        - name: Download packit spec file
-          get_url:
-            url: https://raw.githubusercontent.com/packit-service/packit/{{ source_branch }}/packit.spec
-            dest: ./packit.spec
-        - name: Install packit RPM build dependencies from packit.spec
-          shell: dnf builddep packit.spec -y
-          args:
-            warn: no
-        - name: Install packit RPM runtime dependencies
-          shell: dnf install $(rpmspec -q --requires packit.spec | grep -v 'packit') -y
-          args:
-            warn: no
-          become: true
-        - name: Download packit setup.cfg
-          get_url:
-            url: https://raw.githubusercontent.com/packit-service/packit/{{ source_branch }}/setup.cfg
-            dest: ./packit_setup.cfg
-        - name: Install dependencies provided by setupcfg2rpm
-          shell: dnf install $(./setupcfg2rpm.py packit_setup.cfg)
-          become: true
-    - name: Install dependencies from setup.cfg as rpm packages for ogr
-      block:
-        # setupcfg2rpm.py was downloaded in previous block
-        - name: Download ogr setup.cfg
-          get_url:
-            # ogr has only master branch
-            url: https://raw.githubusercontent.com/packit-service/ogr/master/setup.cfg
-            dest: ./ogr_setup.cfg
-        - name: Install ogr dependencies provided by setupcfg2rpm
-          shell: dnf install $(./setupcfg2rpm.py ogr_setup.cfg)
-          args:
-            warn: no
-          become: true
+    - import_tasks: tasks/install-packit-deps.yaml
+    - import_tasks: tasks/install-ogr-deps.yaml
     - name: Install pip deps
       pip:
         name:

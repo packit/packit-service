@@ -20,7 +20,7 @@ objects:
         - name: packit-tests
           image: packit-service-tests:latest
           imagePullPolicy: Never # IfNotPresent
-          workingDir: /src-packit-service
+          workingDir: /src
           volumeMounts:
             - mountPath: /tmp/test_data
               name: test-data-pv

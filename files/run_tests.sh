@@ -2,7 +2,7 @@
 
 set -x
 
-source /src-packit-service/files/setup_env_in_openshift.sh
+source /src/files/setup_env_in_openshift.sh
 
 id
 

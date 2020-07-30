@@ -1,7 +1,10 @@
 ---
 - name: Install dependencies for packit-service.
   hosts: all
+  vars:
+    source_branch: "{{ lookup('env', 'SOURCE_BRANCH') }}"
   tasks:
+    - import_tasks: tasks/process-source-branch.yaml
     - name: Install all RPM/python packages needed to run packit-service.
       dnf:
         name:
@@ -30,13 +33,27 @@
           #- python3-flask-restx # Needs Fedora 32
           - python3-flexmock # because of the hack during the alembic upgrade
           # (see d90948124e46_add_tables_for_triggers_koji_and_tests.py )
+          - dnf-plugins-core
         state: present
+    - import_tasks: tasks/install-ogr-deps.yaml
+    - import_tasks: tasks/install-packit-deps.yaml
     - name: Install pip deps
       pip:
         name:
           # temporary workaround for sake of marhsmallow
-          - git+https://github.com/packit-service/packit.git
           - persistentdict # still needed by one Alembic migration script
           - sentry-sdk[flask]
           - flask-restx
         executable: pip3
+
+    # --no-deps: to fail instead of installing from PyPI when we forget to add some dependency to packit.spec
+    - name: pip install packit & ogr with --no-deps
+      pip:
+        name:
+          - git+https://github.com/packit-service/packit.git@{{ source_branch }}
+          # ogr has only master branch
+          - git+https://github.com/packit-service/ogr.git
+        executable: pip3
+        extra_args: --no-deps
+    - name: Chek if all pip packages have all dependencies installed
+      command: pip check

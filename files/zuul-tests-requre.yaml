@@ -28,3 +28,5 @@
       args:
         chdir: "{{ project_dir }}"
       become: true
+      environment:
+        SOURCE_BRANCH: "{{ zuul.branch }}"

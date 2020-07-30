@@ -334,7 +334,7 @@ to store and replay data for tests.
 
 - If you got:
   ```
-  PermissionError: [Errno 13] Permission denied: '/src-packit-service/tests_requre/test_data/test_fedpkg'
+  PermissionError: [Errno 13] Permission denied: '/src/tests_requre/test_data/test_fedpkg'
   ```
   You have to create test data directory `mkdir -p tests_requre/test_data`. This directory is part of git repo, so it should not be deleted.
 - If you have troubles with requre data regeneration

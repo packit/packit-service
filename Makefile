@@ -9,18 +9,18 @@ AP ?= ansible-playbook -vv -c local -i localhost, -e ansible_python_interpreter=
 PATH_TO_SECRETS ?= $(CURDIR)/secrets/
 COV_REPORT ?= term-missing
 COLOR ?= yes
-SOURCE_BRANCH ?= $(git branch --show-current)
+SOURCE_BRANCH ?=
 
 service: files/install-deps.yaml files/recipe.yaml
-	$(CONTAINER_ENGINE) build --rm -t $(SERVICE_IMAGE) -f files/docker/Dockerfile --build-arg SOURCE_BRANCH=$SOURCE_BRANCH .
+	$(CONTAINER_ENGINE) build --rm -t $(SERVICE_IMAGE) -f files/docker/Dockerfile --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
 
 worker: files/install-deps-worker.yaml files/recipe-worker.yaml
-	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE) -f files/docker/Dockerfile.worker --build-arg SOURCE_BRANCH=$SOURCE_BRANCH .
+	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE) -f files/docker/Dockerfile.worker --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
 
 # This is for cases when you want to deploy into production and don't want to wait for dockerhub
 # Make sure you have latest docker.io/usercont/packit:prod prior to running this
 worker-prod: files/install-deps-worker.yaml files/recipe-worker.yaml
-	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE_PROD) -f files/docker/Dockerfile.worker --build-arg SOURCE_BRANCH=$SOURCE_BRANCH .
+	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE_PROD) -f files/docker/Dockerfile.worker --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
 
 worker-prod-push: worker-prod
 	$(CONTAINER_ENGINE) push $(WORKER_IMAGE_PROD)
@@ -31,16 +31,17 @@ check:
 
 # first run 'make worker'
 test_image: files/install-deps.yaml files/recipe-tests.yaml
-	$(CONTAINER_ENGINE) build --rm -t $(TEST_IMAGE) -f files/docker/Dockerfile.tests .
+	$(CONTAINER_ENGINE) build --rm -t $(TEST_IMAGE) -f files/docker/Dockerfile.tests --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
 
 check_in_container: test_image
 	@# don't use -ti here in CI, TTY is not allocated in zuul
+	echo $(SOURCE_BRANCH)
 	$(CONTAINER_ENGINE) run --rm \
 		--env COV_REPORT \
 		--env TEST_TARGET \
 		--env COLOR \
-		-v $(CURDIR):/src-packit-service \
-		-w /src-packit-service \
+		-v $(CURDIR):/src \
+		-w /src \
 		--security-opt label=disable \
 		-v $(CURDIR)/files/packit-service.yaml:/root/.config/packit-service.yaml \
 		$(TEST_IMAGE) make check "TEST_TARGET=$(TEST_TARGET)"
@@ -57,14 +58,14 @@ check_in_container: test_image
 check-in-container-tomas:
 	@# don't use -ti here in CI, TTY is not allocated in zuul
 	$(CONTAINER_ENGINE) run --rm \
-		-v $(CURDIR):/src-packit-service \
+		-v $(CURDIR):/src \
 		-v $(CURDIR)/packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z \
 		-v $(CURDIR)/secrets/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z \
 		-v $(CURDIR)/secrets/dev/fedora.keytab:/secrets/fedora.keytab:ro,z \
 		-v $(CURDIR)/secrets/dev/private-key.pem:/secrets/private-key.pem:ro,z \
 		-v $(CURDIR)/secrets/dev/fullchain.pem:/secrets/fullchain.pem:ro,z \
 		-v $(CURDIR)/secrets/dev/privkey.pem:/secrets/privkey.pem:ro,z \
-		-w /src-packit-service \
+		-w /src \
 		--security-opt label=disable \
 		-v $(CURDIR)/files/packit-service.yaml:/root/.config/packit-service.yaml \
 		-v $(CURDIR)/tests_requre/openshift_integration/test_data/:/tmp/test_data/ \

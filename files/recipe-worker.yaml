@@ -3,7 +3,7 @@
   hosts: all
   vars:
     home_path: "{{ lookup('env', 'HOME') }}"
-    packit_service_path: /src-packit-service
+    packit_service_path: /src
   tasks:
     - import_tasks: common.yaml
     - name: Create /sandcastle
