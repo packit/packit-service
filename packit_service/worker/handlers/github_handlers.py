@@ -38,7 +38,10 @@ from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 
 from packit_service import sentry_integration
-from packit_service.constants import PERMISSIONS_ERROR_WRITE_OR_ADMIN
+from packit_service.constants import (
+    PERMISSIONS_ERROR_WRITE_OR_ADMIN,
+    FAQ_URL_HOW_TO_RETRIGGER,
+)
 from packit_service.models import (
     InstallationModel,
     AbstractTriggerDbType,
@@ -273,6 +276,7 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
                 self.copr_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=CommitStatus.failure,
+                    url=FAQ_URL_HOW_TO_RETRIGGER,
                 )
                 return TaskResults(
                     success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
