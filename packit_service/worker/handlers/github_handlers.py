@@ -26,6 +26,8 @@ This file defines classes for job handlers specific for Github hooks
 import logging
 from typing import Optional, Callable, Set
 
+from celery.app.task import Task
+
 from ogr.abstract import GitProject, CommitStatus
 from packit.api import PackitAPI
 from packit.config import (
@@ -41,6 +43,8 @@ from packit_service import sentry_integration
 from packit_service.constants import (
     PERMISSIONS_ERROR_WRITE_OR_ADMIN,
     FAQ_URL_HOW_TO_RETRIGGER,
+    FILE_DOWNLOAD_FAILURE,
+    RETRY_LIMIT,
 )
 from packit_service.models import (
     InstallationModel,
@@ -141,6 +145,18 @@ class ProposeDownstreamHandler(JobHandler):
     triggers = [TheJobTriggerType.release]
     task_name = TaskName.propose_downstream
 
+    def __init__(
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
+        task: Task,
+    ):
+        super().__init__(
+            package_config=package_config, job_config=job_config, data=data,
+        )
+        self.task = task
+
     def run(self) -> TaskResults:
         """
         Sync the upstream release to dist-git as a pull request.
@@ -162,6 +178,16 @@ class ProposeDownstreamHandler(JobHandler):
                     dist_git_branch=branch, version=self.data.tag_name
                 )
             except Exception as ex:
+                # the archive has not been uploaded to PyPI yet
+                if FILE_DOWNLOAD_FAILURE in str(ex):
+                    # retry for the archive to become available
+                    logger.info(f"We were not able to download the archive: {ex}")
+                    # when the task hits max_retries, it raises MaxRetriesExceededError
+                    # and the error handling code would be never executed
+                    retries = self.task.request.retries
+                    if retries < RETRY_LIMIT:
+                        logger.info(f"Retrying for the {retries + 1}. time...")
+                        self.task.retry(exc=ex, countdown=15 * 2 ** retries)
                 sentry_integration.send_to_sentry(ex)
                 errors[branch] = str(ex)
 
