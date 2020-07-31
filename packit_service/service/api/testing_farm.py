@@ -22,15 +22,15 @@
 
 import logging
 from http import HTTPStatus
-from json import dumps
 
-from flask import request, make_response
+from flask import request
 
 try:
     from flask_restx import Namespace, Resource, fields
 except ModuleNotFoundError:
     from flask_restplus import Namespace, Resource, fields
 
+from packit_service.service.api.utils import response_maker
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
 from packit_service.service.api.errors import ValidationFailed
@@ -165,9 +165,6 @@ class TestingFarmResults(Resource):
 
             result.append(result_dict)
 
-        resp = make_response(dumps(result), HTTPStatus.PARTIAL_CONTENT)
+        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT,)
         resp.headers["Content-Range"] = f"test-results {first + 1}-{last}/*"
-        resp.headers["Content-Type"] = "application/json"
-        resp.headers["Access-Control-Allow-Origin"] = "*"
-
         return resp

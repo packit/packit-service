@@ -142,7 +142,7 @@ class GitProjectModel(Base):
         # This is a temp measure to identify forge until we start storing forge in GitProjectModel
         # and label previous data as well
         for project in projects:
-            forge_domain = urlparse(project.project_url).netloc
+            forge_domain = urlparse(project.project_url).hostname
             if forge == forge_domain:
                 return project
         return None
@@ -175,6 +175,31 @@ class GitProjectModel(Base):
                 GitProjectModel.namespace
             )[first:last]
             return projects
+
+    @classmethod
+    def get_namespace(cls, forge: str, namespace: str) -> Iterable["GitProjectModel"]:
+        """Return projects of given forge and namespace"""
+        with get_sa_session() as session:
+            projects = (
+                session.query(GitProjectModel).filter_by(namespace=namespace).all()
+            )
+            matched_projects = []
+            for project in projects:
+                forge_domain = urlparse(project.project_url).hostname
+                if forge == forge_domain:
+                    matched_projects.append(project)
+            return matched_projects
+
+    @classmethod
+    def get_project(
+        cls, forge: str, namespace: str, repo_name: str
+    ) -> Optional["GitProjectModel"]:
+        """Return one project which matches said criteria"""
+        with get_sa_session() as session:
+            project = cls.__choose_project(
+                session=session, forge=forge, namespace=namespace, repo_name=repo_name
+            )
+            return project
 
     @classmethod
     def get_project_prs(
@@ -615,6 +640,12 @@ class CoprBuildModel(Base):
         trigger_object = self.job_trigger.get_trigger_object()
         if isinstance(trigger_object, PullRequestModel):
             return trigger_object.pr_id
+        return None
+
+    def get_branch_name(self) -> Optional[str]:
+        trigger_object = self.job_trigger.get_trigger_object()
+        if isinstance(trigger_object, GitBranchModel):
+            return trigger_object.name
         return None
 
     @classmethod

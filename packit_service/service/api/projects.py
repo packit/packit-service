@@ -1,13 +1,12 @@
 from http import HTTPStatus
 from logging import getLogger
-from flask import make_response
-from json import dumps
 
 try:
     from flask_restx import Namespace, Resource
 except ModuleNotFoundError:
     from flask_restplus import Namespace, Resource
 
+from packit_service.service.api.utils import response_maker
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.models import GitProjectModel
 
@@ -31,7 +30,7 @@ class ProjectsList(Resource):
 
         projects_list = GitProjectModel.get_projects(first, last)
         if not projects_list:
-            return ([], HTTPStatus.OK)
+            return response_maker([])
         for project in projects_list:
             project_info = {
                 "namespace": project.namespace,
@@ -44,11 +43,60 @@ class ProjectsList(Resource):
             }
             result.append(project_info)
 
-        resp = make_response(dumps(result), HTTPStatus.PARTIAL_CONTENT)
+        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT,)
         resp.headers["Content-Range"] = f"git-projects {first + 1}-{last}/*"
-        resp.headers["Content-Type"] = "application/json"
-        resp.headers["Access-Control-Allow-Origin"] = "*"
         return resp
+
+
+@ns.route("/<forge>/<namespace>/<repo_name>")
+@ns.param("forge", "Git Forge")
+@ns.param("namespace", "Namespace")
+@ns.param("repo_name", "Repo Name")
+class ProjectInfo(Resource):
+    @ns.response(HTTPStatus.OK, "Project details follow")
+    def get(self, forge, namespace, repo_name):
+        """Project Details"""
+        project = GitProjectModel.get_project(forge, namespace, repo_name)
+        if not project:
+            return response_maker(
+                {"error": "No info about project stored in DB"},
+                status=HTTPStatus.NOT_FOUND,
+            )
+        project_info = {
+            "namespace": project.namespace,
+            "repo_name": project.repo_name,
+            "project_url": project.project_url,
+            "prs_handled": len(project.pull_requests),
+            "branches_handled": len(project.branches),
+            "releases_handled": len(project.releases),
+            "issues_handled": len(project.issues),
+        }
+        return response_maker(project_info)
+
+
+@ns.route("/<forge>/<namespace>")
+@ns.param("forge", "Git Forge")
+@ns.param("namespace", "Namespace")
+class ProjectsNamespace(Resource):
+    @ns.response(HTTPStatus.OK, "Projects details follow")
+    def get(self, forge, namespace):
+        """List of projects of given forge and namespace"""
+        result = []
+        projects = GitProjectModel.get_namespace(forge, namespace)
+        if not projects:
+            return response_maker([])
+        for project in projects:
+            project_info = {
+                "namespace": project.namespace,
+                "repo_name": project.repo_name,
+                "project_url": project.project_url,
+                "prs_handled": len(project.pull_requests),
+                "branches_handled": len(project.branches),
+                "releases_handled": len(project.releases),
+                "issues_handled": len(project.issues),
+            }
+            result.append(project_info)
+        return response_maker(result)
 
 
 @ns.route("/<forge>/<namespace>/<repo_name>/prs")
@@ -71,7 +119,7 @@ class ProjectsPRs(Resource):
             first, last, forge, namespace, repo_name
         )
         if not pr_list:
-            return ([], HTTPStatus.OK)
+            return response_maker([])
         for pr in pr_list:
             pr_info = {
                 "pr_id": pr.pr_id,
@@ -101,10 +149,8 @@ class ProjectsPRs(Resource):
 
             result.append(pr_info)
 
-        resp = make_response(dumps(result), HTTPStatus.PARTIAL_CONTENT)
+        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT,)
         resp.headers["Content-Range"] = f"git-project-prs {first + 1}-{last}/*"
-        resp.headers["Content-Type"] = "application/json"
-        resp.headers["Access-Control-Allow-Origin"] = "*"
         return resp
 
 
@@ -118,14 +164,11 @@ class ProjectIssues(Resource):
         """Project issues"""
         issues_list = GitProjectModel.get_project_issues(forge, namespace, repo_name)
         if not issues_list:
-            return ([], HTTPStatus.OK)
+            return response_maker([])
         result = []
         for issue in issues_list:
             result.append(issue.issue_id)
-        resp = make_response(dumps(result))
-        resp.headers["Content-Type"] = "application/json"
-        resp.headers["Access-Control-Allow-Origin"] = "*"
-        return resp
+        return response_maker(result)
 
 
 @ns.route("/<forge>/<namespace>/<repo_name>/releases")
@@ -140,7 +183,7 @@ class ProjectReleases(Resource):
             forge, namespace, repo_name
         )
         if not releases_list:
-            return ([], HTTPStatus.OK)
+            return response_maker([])
         result = []
         for release in releases_list:
             release_info = {
@@ -148,10 +191,7 @@ class ProjectReleases(Resource):
                 "commit_hash": release.commit_hash,
             }
             result.append(release_info)
-        resp = make_response(dumps(result))
-        resp.headers["Content-Type"] = "application/json"
-        resp.headers["Access-Control-Allow-Origin"] = "*"
-        return resp
+        return response_maker(result)
 
 
 @ns.route("/<forge>/<namespace>/<repo_name>/branches")
@@ -164,7 +204,7 @@ class ProjectBranches(Resource):
         """Project branches"""
         branches = GitProjectModel.get_project_branches(forge, namespace, repo_name)
         if not branches:
-            return ([], HTTPStatus.OK)
+            return response_maker([])
         result = []
         for branch in branches:
             branch_info = {
@@ -189,7 +229,4 @@ class ProjectBranches(Resource):
                     "web_url": test_run.web_url,
                 }
                 branch_info["tests"].append(test_info)
-        resp = make_response(dumps(result))
-        resp.headers["Content-Type"] = "application/json"
-        resp.headers["Access-Control-Allow-Origin"] = "*"
-        return resp
+        return response_maker(result)
