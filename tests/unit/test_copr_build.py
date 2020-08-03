@@ -30,7 +30,7 @@ from packit.api import PackitAPI
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
 from packit.copr_helper import CoprHelper
-from packit.exceptions import FailedCreateSRPM
+from packit.exceptions import FailedCreateSRPM, PackitCoprSettingsException
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuildModel, SRPMBuildModel
@@ -159,7 +159,7 @@ def test_copr_build_check_names(github_pr_event):
         preserve_project=False,
         list_on_homepage=False,
         additional_repos=[],
-        update_additional_values=False,
+        request_admin_if_needed=True,
     ).and_return(None)
 
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -417,6 +417,81 @@ def test_copr_build_fails_in_packit(github_pr_event):
     assert not helper.run_copr_build()["success"]
 
 
+def test_copr_build_fails_to_update_copr_project(github_pr_event):
+    # status is set for each build-target (4x):
+    #  - Building SRPM ...
+    #  - Build failed, check latest comment for details.
+    helper = build_helper(event=github_pr_event)
+    templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
+    flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
+        "https://test.url"
+    )
+    for v in ["29", "30", "31", "rawhide"]:
+        flexmock(GitProject).should_receive("set_commit_status").with_args(
+            "528b803be6f93e19ca4130bf4976f2800a3004c4",
+            CommitStatus.pending,
+            "",
+            "Building SRPM ...",
+            templ.format(ver=v),
+            trim=True,
+        ).and_return().once()
+    for v in ["29", "30", "31", "rawhide"]:
+        flexmock(GitProject).should_receive("set_commit_status").with_args(
+            "528b803be6f93e19ca4130bf4976f2800a3004c4",
+            CommitStatus.error,
+            "",
+            "Submit of the build failed: Copr project update failed.",
+            templ.format(ver=v),
+            trim=True,
+        ).and_return().once()
+    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        SRPMBuildModel(success=True, id=2)
+    )
+    flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
+        CoprBuildModel(id=1)
+    )
+
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+    flexmock(GitProject).should_receive("pr_comment").with_args(
+        pr_id=342,
+        body="Based on your Packit configuration the settings of the "
+        "nobody/the-example-namespace-the-example-repo-342-stg "
+        "Copr project would need to be updated as follows:\n"
+        "\n"
+        "| field | old value | new value |\n"
+        "| ----- | --------- | --------- |\n"
+        "| chroots | ['f30', 'f31'] | ['f31', 'f32'] |\n"
+        "| description | old | new |\n"
+        "\n"
+        "Packit was unable to update the settings above "
+        "as it is missing `admin` permissions on the "
+        "nobody/the-example-namespace-the-example-repo-342-stg Copr project.\n"
+        "\n"
+        "To fix this you can do one of the following:\n"
+        "\n"
+        "- Grant Packit `admin` permissions on the "
+        "nobody/the-example-namespace-the-example-repo-342-stg Copr project.\n"
+        "- Change the above Copr project settings manually to match the Packit configuration.\n"
+        "- Update the Packit configuration to match the Copr project settings.\n"
+        "\n"
+        "Please re-trigger the build, once the issue above is fixed.\n",
+    ).and_return().once()
+
+    flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
+    # copr build
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_raise(
+        PackitCoprSettingsException,
+        "Copr project update failed.",
+        fields_to_change={
+            "chroots": (["f30", "f31"], ["f31", "f32"]),
+            "description": ("old", "new"),
+        },
+    )
+
+    assert not helper.run_copr_build()["success"]
+
+
 def test_copr_build_no_targets(github_pr_event):
     # status is set for each build-target (fedora-stable => 2x):
     #  - Building SRPM ...
@@ -504,7 +579,7 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
         preserve_project=False,
         list_on_homepage=False,
         additional_repos=[],
-        update_additional_values=False,
+        request_admin_if_needed=True,
     ).and_return(None)
 
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(

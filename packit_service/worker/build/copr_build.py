@@ -26,13 +26,15 @@ from ogr.abstract import GitProject, CommitStatus
 from packit.config import JobType, JobConfig
 from packit.config.aliases import get_build_targets
 from packit.config.package_config import PackageConfig
-from packit.exceptions import PackitCoprException
-
+from packit.exceptions import PackitCoprException, PackitCoprSettingsException
 from packit_service import sentry_integration
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import MSG_RETRIGGER
-from packit_service.models import CoprBuildModel
+from packit_service.models import (
+    CoprBuildModel,
+    AbstractTriggerDbType,
+)
 from packit_service.service.events import EventData
 from packit_service.service.urls import (
     get_srpm_log_url_from_flask,
@@ -56,7 +58,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         package_config: PackageConfig,
         project: GitProject,
         metadata: EventData,
-        db_trigger,
+        db_trigger: AbstractTriggerDbType,
         job_config: JobConfig,
     ):
         super().__init__(
@@ -232,17 +234,51 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 "Copr owner not set. Use Copr config file or `--owner` when calling packit CLI."
             )
 
-        self.api.copr_helper.create_copr_project_if_not_exists(
-            project=self.job_project,
-            chroots=list(self.build_targets),
-            owner=owner,
-            description=None,
-            instructions=None,
-            list_on_homepage=self.list_on_homepage,
-            preserve_project=self.preserve_project,
-            additional_repos=self.additional_repos,
-            update_additional_values=(owner == "packit"),
-        )
+        try:
+            self.api.copr_helper.create_copr_project_if_not_exists(
+                project=self.job_project,
+                chroots=list(self.build_targets),
+                owner=owner,
+                description=None,
+                instructions=None,
+                list_on_homepage=self.list_on_homepage,
+                preserve_project=self.preserve_project,
+                additional_repos=self.additional_repos,
+                request_admin_if_needed=True,
+            )
+        except PackitCoprSettingsException as ex:
+            if self.metadata.pr_id:
+
+                table = (
+                    "| field | old value | new value |\n"
+                    "| ----- | --------- | --------- |\n"
+                )
+                for field, (old, new) in ex.fields_to_change.items():
+                    table += f"| {field} | {old} | {new} |\n"
+
+                msg = (
+                    "Based on your Packit configuration the settings "
+                    f"of the {owner}/{self.job_project} "
+                    "Copr project would need to be updated as follows:\n"
+                    "\n"
+                    f"{table}"
+                    "\n"
+                    "Packit was unable to update the settings above as it is missing `admin` "
+                    f"permissions on the {owner}/{self.job_project} Copr project.\n"
+                    "\n"
+                    "To fix this you can do one of the following:\n"
+                    "\n"
+                    f"- Grant Packit `admin` permissions on the {owner}/{self.job_project} "
+                    "Copr project.\n"
+                    "- Change the above Copr project settings manually "
+                    "to match the Packit configuration.\n"
+                    "- Update the Packit configuration to match the Copr project settings.\n"
+                    "\n"
+                    "Please re-trigger the build, once the issue above is fixed.\n"
+                )
+                self.project.pr_comment(pr_id=self.metadata.pr_id, body=msg)
+            raise ex
+
         logger.debug(
             f"owner={owner}, project={self.job_project}, path={self.srpm_path}"
         )
