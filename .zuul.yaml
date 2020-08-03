@@ -1,7 +1,6 @@
 ---
 # Entrypoint for Zuul
 - project:
-    name: packit-service/packit-service
     check:
       jobs:
         - pre-commit
@@ -18,7 +17,7 @@
     description: Deploy packit-service in a cluster
     # this will clone the deployment repo to a predictable path
     required-projects:
-      - github.com/packit-service/deployment
+      - github.com/packit/deployment
     pre-run:
       - files/install-openshift.yaml
       - files/packit-service-image.yaml
