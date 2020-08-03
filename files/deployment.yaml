@@ -3,7 +3,7 @@
 - name: Deploy dev version of packit-service into zuul.
   hosts: all
   vars:
-    deployment_dir: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/packit-service/deployment'].src_dir }}"
+    deployment_dir: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/packit/deployment'].src_dir }}"
     as_root: true # needs to run as root in zuul
   tasks:
     - name: clone deployment repo when not running in zuul
@@ -12,7 +12,7 @@
         - set_fact: as_root=false
         - name: clone deployment repository (templates are there)
           git:
-            repo: "https://github.com/packit-service/deployment.git"
+            repo: "https://github.com/packit/deployment.git"
             dest: "{{ deployment_dir }}"
             clone: yes
       when: zuul is not defined
@@ -101,7 +101,7 @@
     - name: Create dev.yml
       copy:
         content: |
-          # this file is described here: https://github.com/packit-service/deployment/blob/master/vars/template.yml
+          # this file is described here: https://github.com/packit/deployment/blob/master/vars/template.yml
           project: myproject
           host: https://127.0.0.1:8443
           api_key: {{ kubeconfig_token.stdout }}
