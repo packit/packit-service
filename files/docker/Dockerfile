@@ -3,6 +3,11 @@
 FROM fedora:31
 
 ARG SOURCE_BRANCH
+RUN  if [[ -z $SOURCE_BRANCH ]]; then \
+echo -e "\nMissing SOURCE_BRANCH build argument! Please add \
+\"--build-arg SOURCE_BRANCH=<val>\" to the build command to specify it!\n\
+This is the branch used when installing other Packit projects (e.g. ogr, packit).\n" && exit 1;\
+fi
 
 ENV LANG=en_US.UTF-8 \
     ANSIBLE_PYTHON_INTERPRETER=/usr/bin/python3 \
