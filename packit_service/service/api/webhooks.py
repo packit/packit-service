@@ -20,9 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import hmac
+import jwt
 from hashlib import sha1
 from http import HTTPStatus
 from logging import getLogger
+import json
 
 from flask import request
 from prometheus_client import Counter
@@ -34,6 +36,7 @@ except ModuleNotFoundError:
 
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
+from packit_service.models import ProjectAuthenticationIssueModel
 from packit_service.service.api.errors import ValidationFailed
 
 logger = getLogger("packit_service")
@@ -206,16 +209,57 @@ class GitlabWebhook(Resource):
 
         return "Webhook accepted. We thank you, Gitlab.", HTTPStatus.ACCEPTED
 
-    @staticmethod
-    def validate_token():
+    def create_confidential_issue_with_token(self):
+        project_data = request.json["project"]
+
+        namespace, repo_name = project_data["path_with_namespace"].split("/")
+        http_url = project_data["git_http_url"]
+
+        project_authentication_issue = ProjectAuthenticationIssueModel.get_project(
+            namespace=namespace, repo_name=repo_name, project_url=http_url
+        )
+
+        if not project_authentication_issue.issue_created:
+            token = jwt.encode(
+                {"namespace": namespace, "repo_name": repo_name},
+                config.gitlab_token_secret,
+                algorithm="HS256",
+            )
+
+            project = config.get_project(url=http_url)
+            packit_user = project.service.user.get_username()
+
+            project.create_issue(
+                title="Packit-Service Authentication",
+                body=f"To configure Packit-Service with `{repo_name}` you need to\n"
+                f"configure the webhook settings. Head to {http_url}/hooks and add\n"
+                f"the Secret Token `{token}` to authenticate requests coming to Packit.\n\n"
+                f"Packit needs rights to set commit status to merge requests, Please grant\n"
+                f"[{packit_user}](https://gitlab.com/{packit_user}) `admin` permissions\n"
+                f"on the {namespace}/{repo_name} project. You can add the rights by clicking\n"
+                f"[here]({http_url}/-/project_members).",
+                private=True,
+            )
+
+            logger.info("Confidential issue created successfully.")
+
+            ProjectAuthenticationIssueModel.create(
+                namespace=namespace,
+                repo_name=repo_name,
+                project_url=http_url,
+                issue_created=True,
+            )
+
+    def validate_token(self):
         """
         https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#secret-token
         """
         if "X-Gitlab-Token" not in request.headers:
             if config.validate_webhooks:
                 msg = "X-Gitlab-Token not in request.headers"
-                logger.warning(msg)
-                raise ValidationFailed(msg)
+                logger.info(msg)
+                self.create_confidential_issue_with_token()
+                return
             else:
                 # don't validate signatures when testing locally
                 logger.debug("Ain't validating token.")
@@ -223,11 +267,40 @@ class GitlabWebhook(Resource):
 
         token = request.headers["X-Gitlab-Token"]
 
-        # Find a better solution
-        if token not in config.gitlab_webhook_tokens:
-            raise ValidationFailed("Payload token validation failed.")
+        if token in config.gitlab_webhook_tokens:
+            logger.debug("Deprecation Warning: Old Gitlab tokens used.")
+            return
 
-        logger.debug("Payload token is OK.")
+        gitlab_token_secret = config.gitlab_token_secret
+        if not gitlab_token_secret:
+            msg = "'gitlab_token_secret' not specified in the config."
+            logger.error(msg)
+            raise ValidationFailed(msg)
+
+        try:
+            token_decoded = jwt.decode(
+                token, config.gitlab_token_secret, algorithms=["HS256"]
+            )
+        except jwt.exceptions.InvalidSignatureError:
+            msg_failed_signature = "Payload token does not match the project."
+            logger.warning(msg_failed_signature)
+            raise ValidationFailed(msg_failed_signature)
+        except jwt.exceptions.DecodeError:
+            msg_failed_error = "Payload token has invalid signature."
+            logger.warning(msg_failed_error)
+            raise ValidationFailed(msg_failed_error)
+
+        project_data = json.loads(request.data)["project"]
+        namespace, repo_name = project_data["path_with_namespace"].split("/")
+        token_namespace = token_decoded["namespace"]
+        token_repo_name = token_decoded["repo_name"]
+
+        if (token_namespace, token_repo_name) == (namespace, repo_name):
+            logger.debug("Payload signature is OK.")
+        else:
+            msg_failed_validation = "Signature of the payload token is not valid."
+            logger.warning(msg_failed_validation)
+            raise ValidationFailed(msg_failed_validation)
 
     @staticmethod
     def interested():

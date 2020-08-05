@@ -66,6 +66,7 @@ class ServiceConfig(Config):
         bugzilla_api_key: str = "",
         pr_accepted_labels: List[str] = None,
         gitlab_webhook_tokens: List[str] = None,
+        gitlab_token_secret: str = "",
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -91,7 +92,11 @@ class ServiceConfig(Config):
         self.server_name: str = ""
 
         # Makeshift for now to authenticate webhooks coming from gitlab instances
+        # Old way of authenticating
         self.gitlab_webhook_tokens: Set[str] = set(gitlab_webhook_tokens or [])
+
+        # Gitlab token secret to decode JWT tokens
+        self.gitlab_token_secret: str = gitlab_token_secret
 
     def __repr__(self):
         def hide(token: str) -> str:
@@ -109,6 +114,7 @@ class ServiceConfig(Config):
             f"bugzilla_url='{self.bugzilla_url}', "
             f"bugzilla_api_key='{hide(self.bugzilla_api_key)}', "
             f"gitlab_webhook_tokens='{self.gitlab_webhook_tokens}',"
+            f"gitlab_token_secret='{hide(self.gitlab_token_secret)}',"
             f"server_name='{self.server_name}')"
         )
 

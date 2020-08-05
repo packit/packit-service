@@ -31,6 +31,8 @@ from packit_service.service.api.errors import ValidationFailed
 def mock_config():
     config = flexmock(ServiceConfig)
     config.webhook_secret = "testing-secret"
+    config.gitlab_token_secret = "gitlab-token-secret"
+    config.gitlab_webhook_tokens = []
     return config
 
 
@@ -62,3 +64,38 @@ def test_validate_signature(mock_config, digest, is_good):
                 webhooks.GithubWebhook.validate_signature()
         else:
             webhooks.GithubWebhook.validate_signature()
+
+
+@pytest.mark.parametrize(
+    "token, is_good",
+    [
+        (
+            "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lc3BhY2UiOiJuYW1lc3BhY2UiLC"
+            "JyZXBvX25hbWUiOiJyZXBvIn0.RyA-LyyWKoi7FqblsFH7jkiiH4ZdFWyoLYPxFhThWwQ",
+            True,
+        ),
+        ("guyirhgrehjguyrhg", False),
+        (None, False),
+    ],
+)
+def test_validate_token(mock_config, token, is_good):
+    payload = b'{"project": {"path_with_namespace": "namespace/repo"}}'
+    headers = {"X-Gitlab-Token": f"{token}"}
+
+    # flexmock config before import as it fails on looking for config
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
+        flexmock(ServiceConfig)
+    )
+    from packit_service.service.api import webhooks
+
+    webhooks.config = mock_config
+
+    temp = webhooks.GitlabWebhook()
+    with Flask(__name__).test_request_context():
+        request._cached_data = request.data = payload
+        request.headers = headers
+        if not is_good:
+            with pytest.raises(ValidationFailed):
+                webhooks.GitlabWebhook.validate_token(temp)
+        else:
+            webhooks.GitlabWebhook.validate_token(temp)
