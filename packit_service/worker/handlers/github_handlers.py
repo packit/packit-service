@@ -179,7 +179,12 @@ class ProposeDownstreamHandler(JobHandler):
             working_dir=self.service_config.command_handler_work_dir,
         )
 
-        self.api = PackitAPI(self.service_config, self.job_config, self.local_project)
+        self.api = PackitAPI(
+            self.service_config,
+            self.job_config,
+            self.local_project,
+            stage=self.service_config.use_stage(),
+        )
 
         errors = {}
         default_dg_branch = self.api.dg.local_project.git_project.default_branch
@@ -439,6 +444,7 @@ class TestingFarmHandler(JobHandler):
             PullRequestCommentGithubEvent.__name__,
             MergeRequestCommentGitlabEvent.__name__,
             PullRequestCommentPagureEvent.__name__,
+
         ):
             logger.debug(f"Test job config: {testing_farm_helper.job_tests}")
             return testing_farm_helper.run_testing_farm_on_all()
