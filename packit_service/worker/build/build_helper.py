@@ -360,7 +360,7 @@ class BaseBuildJobHelper:
                 "\nPlease join the freenode IRC channel #packit for the latest info.\n"
             )
 
-        self._srpm_model = SRPMBuildModel.create(logs=srpm_logs, success=srpm_success)
+        self._srpm_model = SRPMBuildModel.create(logs=srpm_logs, success=srpm_success, trigger_model=self.db_trigger,)
 
     def _report(
         self,
