@@ -67,7 +67,7 @@ github_webhook_calls = Counter(
 
 @ns.route("/github")
 class GithubWebhook(Resource):
-    @ns.response(HTTPStatus.OK, "Webhook accepted, returning reply")
+    @ns.response(HTTPStatus.OK.value, "Webhook accepted, returning reply")
     @ns.response(HTTPStatus.ACCEPTED, "Webhook accepted, request is being processed")
     @ns.response(HTTPStatus.BAD_REQUEST, "Bad request data")
     @ns.response(HTTPStatus.UNAUTHORIZED, "X-Hub-Signature validation failed")
@@ -170,7 +170,7 @@ class GithubWebhook(Resource):
 
 @ns.route("/gitlab")
 class GitlabWebhook(Resource):
-    @ns.response(HTTPStatus.OK, "Webhook accepted, returning reply")
+    @ns.response(HTTPStatus.OK.value, "Webhook accepted, returning reply")
     @ns.response(HTTPStatus.ACCEPTED, "Webhook accepted, request is being processed")
     @ns.response(HTTPStatus.BAD_REQUEST, "Bad request data")
     @ns.response(HTTPStatus.UNAUTHORIZED, "X-Gitlab-Token validation failed")

@@ -20,8 +20,8 @@ ns = Namespace(
 @ns.route("")
 class ProjectsList(Resource):
     @ns.expect(pagination_arguments)
-    @ns.response(HTTPStatus.PARTIAL_CONTENT, "Projects list follows")
-    @ns.response(HTTPStatus.OK, "OK")
+    @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "Projects list follows")
+    @ns.response(HTTPStatus.OK.value, "OK")
     def get(self):
         """List all GitProjects"""
 
@@ -43,7 +43,7 @@ class ProjectsList(Resource):
             }
             result.append(project_info)
 
-        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT,)
+        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT.value,)
         resp.headers["Content-Range"] = f"git-projects {first + 1}-{last}/*"
         return resp
 
@@ -53,7 +53,7 @@ class ProjectsList(Resource):
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
 class ProjectInfo(Resource):
-    @ns.response(HTTPStatus.OK, "Project details follow")
+    @ns.response(HTTPStatus.OK.value, "Project details follow")
     def get(self, forge, namespace, repo_name):
         """Project Details"""
         project = GitProjectModel.get_project(forge, namespace, repo_name)
@@ -78,7 +78,7 @@ class ProjectInfo(Resource):
 @ns.param("forge", "Git Forge")
 @ns.param("namespace", "Namespace")
 class ProjectsNamespace(Resource):
-    @ns.response(HTTPStatus.OK, "Projects details follow")
+    @ns.response(HTTPStatus.OK.value, "Projects details follow")
     def get(self, forge, namespace):
         """List of projects of given forge and namespace"""
         result = []
@@ -108,7 +108,7 @@ class ProjectsPRs(Resource):
     @ns.response(
         HTTPStatus.PARTIAL_CONTENT, "Project PRs handled by Packit Service follow"
     )
-    @ns.response(HTTPStatus.OK, "OK")
+    @ns.response(HTTPStatus.OK.value, "OK")
     def get(self, forge, namespace, repo_name):
         """List PRs"""
 
@@ -149,7 +149,7 @@ class ProjectsPRs(Resource):
 
             result.append(pr_info)
 
-        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT,)
+        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT.value,)
         resp.headers["Content-Range"] = f"git-project-prs {first + 1}-{last}/*"
         return resp
 
@@ -159,7 +159,9 @@ class ProjectsPRs(Resource):
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
 class ProjectIssues(Resource):
-    @ns.response(HTTPStatus.OK, "OK, project issues handled by Packit Service follow")
+    @ns.response(
+        HTTPStatus.OK.value, "OK, project issues handled by Packit Service follow"
+    )
     def get(self, forge, namespace, repo_name):
         """Project issues"""
         issues_list = GitProjectModel.get_project_issues(forge, namespace, repo_name)
@@ -176,7 +178,9 @@ class ProjectIssues(Resource):
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
 class ProjectReleases(Resource):
-    @ns.response(HTTPStatus.OK, "OK, project releases handled by Packit Service follow")
+    @ns.response(
+        HTTPStatus.OK.value, "OK, project releases handled by Packit Service follow"
+    )
     def get(self, forge, namespace, repo_name):
         """Project releases"""
         releases_list = GitProjectModel.get_project_releases(
@@ -199,7 +203,9 @@ class ProjectReleases(Resource):
 @ns.param("namespace", "Namespace")
 @ns.param("repo_name", "Repo Name")
 class ProjectBranches(Resource):
-    @ns.response(HTTPStatus.OK, "OK, project branches handled by Packit Service follow")
+    @ns.response(
+        HTTPStatus.OK.value, "OK, project branches handled by Packit Service follow"
+    )
     def get(self, forge, namespace, repo_name):
         """Project branches"""
         branches = GitProjectModel.get_project_branches(forge, namespace, repo_name)

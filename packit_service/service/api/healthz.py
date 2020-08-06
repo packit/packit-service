@@ -34,12 +34,12 @@ ns = Namespace("healthz", description="Health checks")
 
 @ns.route("")
 class HealthCheck(Resource):
-    @ns.response(HTTPStatus.OK, "Healthy")
+    @ns.response(HTTPStatus.OK.value, "Healthy")
     def get(self):
         """Health check"""
         return "We are healthy!"
 
-    @ns.response(HTTPStatus.OK, "Healthy")
+    @ns.response(HTTPStatus.OK.value, "Healthy")
     def head(self):
         """Health check (no body)"""
         # HEAD is identical to GET except that it MUST NOT return a message-body in the response
