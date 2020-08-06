@@ -1,6 +1,6 @@
 # Image for the web service (httpd), for celery worker see files/docker/Dockerfile.worker
 
-FROM fedora:31
+FROM docker.io/usercont/base
 
 ARG SOURCE_BRANCH
 RUN  if [[ -z $SOURCE_BRANCH ]]; then \
@@ -14,8 +14,6 @@ ENV LANG=en_US.UTF-8 \
     ANSIBLE_STDOUT_CALLBACK=debug \
     USER=packit \
     HOME=/home/packit
-
-RUN dnf install -y ansible
 
 COPY files/ /src/files/
 
