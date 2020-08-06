@@ -65,7 +65,7 @@ class KojiBuildsList(Resource):
 class KojiBuildItem(Resource):
     @koji_builds_ns.response(HTTPStatus.OK, "OK, koji build details follow")
     @koji_builds_ns.response(
-        HTTPStatus.NO_CONTENT, "Koji build identifier not in db/hash"
+        HTTPStatus.NO_CONTENT.value, "Koji build identifier not in db/hash"
     )
     def get(self, id):
         """A specific koji build details. From koji_build hash, filled by worker."""
@@ -80,7 +80,7 @@ class KojiBuildItem(Resource):
             build = make_response(dumps(build_dict))
             build.headers["Content-Type"] = "application/json"
             build.headers["Access-Control-Allow-Origin"] = "*"
-            return build if build else ("", HTTPStatus.NO_CONTENT)
+            return build if build else ("", HTTPStatus.NO_CONTENT.value)
 
         else:
-            return "", HTTPStatus.NO_CONTENT
+            return "", HTTPStatus.NO_CONTENT.value

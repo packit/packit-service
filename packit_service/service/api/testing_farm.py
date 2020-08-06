@@ -139,7 +139,7 @@ class TestingFarmResults(Resource):
         raise ValidationFailed(msg)
 
     @ns.expect(pagination_arguments)
-    @ns.response(HTTPStatus.PARTIAL_CONTENT, "Testing Farm Results follow")
+    @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "Testing Farm Results follow")
     def get(self):
         """ List all Testing Farm  results. """
 
@@ -165,6 +165,6 @@ class TestingFarmResults(Resource):
 
             result.append(result_dict)
 
-        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT,)
+        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT.value,)
         resp.headers["Content-Range"] = f"test-results {first + 1}-{last}/*"
         return resp

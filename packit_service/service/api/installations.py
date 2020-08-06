@@ -36,7 +36,7 @@ ns = Namespace("installations", description="Github App installations")
 
 @ns.route("")
 class InstallationsList(Resource):
-    @ns.response(HTTPStatus.OK, "OK, installations list follows")
+    @ns.response(HTTPStatus.OK.value, "OK, installations list follows")
     def get(self):
         """List all Github App installations"""
         return [installation.to_dict() for installation in InstallationModel.get_all()]
@@ -45,9 +45,13 @@ class InstallationsList(Resource):
 @ns.route("/<int:id>")
 @ns.param("id", "Installation identifier")
 class InstallationItem(Resource):
-    @ns.response(HTTPStatus.OK, "OK, installation details follow")
-    @ns.response(HTTPStatus.NO_CONTENT, "identifier not in whitelist")
+    @ns.response(HTTPStatus.OK.value, "OK, installation details follow")
+    @ns.response(HTTPStatus.NO_CONTENT.value, "identifier not in whitelist")
     def get(self, id):
         """A specific installation details"""
         installation = InstallationModel.get_by_id(id)
-        return installation.to_dict() if installation else ("", HTTPStatus.NO_CONTENT)
+        return (
+            installation.to_dict()
+            if installation
+            else ("", HTTPStatus.NO_CONTENT.value)
+        )

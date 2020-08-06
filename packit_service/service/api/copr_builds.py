@@ -40,7 +40,7 @@ ns = Namespace("copr-builds", description="COPR builds")
 @ns.route("")
 class CoprBuildsList(Resource):
     @ns.expect(pagination_arguments)
-    @ns.response(HTTPStatus.PARTIAL_CONTENT, "Copr builds list follows")
+    @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "Copr builds list follows")
     def get(self):
         """ List all Copr builds. """
 
@@ -72,7 +72,7 @@ class CoprBuildsList(Resource):
 
             result.append(build_dict)
 
-        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT,)
+        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT.value,)
         resp.headers["Content-Range"] = f"copr-builds {first + 1}-{last}/*"
         return resp
 
@@ -80,15 +80,15 @@ class CoprBuildsList(Resource):
 @ns.route("/<int:id>")
 @ns.param("id", "Copr build identifier")
 class InstallationItem(Resource):
-    @ns.response(HTTPStatus.OK, "OK, copr build details follow")
-    @ns.response(HTTPStatus.NO_CONTENT, "Copr build identifier not in db/hash")
+    @ns.response(HTTPStatus.OK.value, "OK, copr build details follow")
+    @ns.response(HTTPStatus.NO_CONTENT.value, "Copr build identifier not in db/hash")
     def get(self, id):
         """A specific copr build details. From copr_build hash, filled by worker."""
         builds_list = CoprBuildModel.get_all_by_build_id(str(id))
         if not bool(builds_list.first()):
             return response_maker(
                 {"error": "No info about build stored in DB"},
-                status=HTTPStatus.NOT_FOUND,
+                status=HTTPStatus.NOT_FOUND.value,
             )
 
         build = builds_list[0]
