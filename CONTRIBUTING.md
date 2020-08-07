@@ -90,6 +90,34 @@ When you are contributing to changelog, please follow these suggestions:
   trying to convince the person to use the project and that the changelog
   should help with that.
 
+### Building images locally
+
+For building images SOURCE_BRANCH build arg is required. It allows select which branch should be
+used during automated build and test process, based on deployment stage it was executed from.
+
+Docker file build arg SOURCE_BRANCH is set to:
+
+- SOURCE_BRANCH env variable, which is available in custom build process([docs](https://docs.docker
+  .com/docker-hub/builds/advanced/))
+- zuul.branch ansible variable, which is provided in zuul-ci environment. ([docs](- [scripts](scripts/) - devops scripts used in multiple repositories
+  ))
+
+When executing manually it is required to provide:
+
+- variable SOURCE_BRANCH for make targets:
+
+e.g.
+`SOURCE_BRANCH=master`
+
+- arg `--build-arg SOURCE_BRANCH=value` when using docker(-compose) build
+
+e.g.
+`docker build --build-arg SOURCE_BRANCH=stable`
+`docker-compose build --build-arg SOURCE_BRANCH=stable`
+
+If SOURCE_BRANCH is empty build will fail.
+If SOURCE_BRANCH is not empty and is not master or stable than master value will be used.
+
 ### Running packit-service locally
 
 Since packit-service is already a fairly complex system, it's not trivial to
