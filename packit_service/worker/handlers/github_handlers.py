@@ -105,6 +105,9 @@ class GithubAppInstallationHandler(JobHandler):
         self.account_type = installation_event.account_type
         self.account_login = installation_event.account_login
         self.sender_login = installation_event.sender_login
+        self._project = self.service_config.get_project(
+            url="https://github.com/packit/notifications"
+        )
 
     def run(self) -> TaskResults:
         """
