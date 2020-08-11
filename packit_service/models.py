@@ -947,13 +947,15 @@ class SRPMBuildModel(Base):
             return session.query(SRPMBuildModel).filter_by(id=id_).first()
 
     def get_project(self) -> Optional[GitProjectModel]:
+        if not self.job_trigger_id:
+            return None
         trigger_object = self.job_trigger.get_trigger_object()
         if not trigger_object:
             return None
         return trigger_object.project
 
     def __repr__(self):
-        return f"SRPMBuildModel(id={self.id})"
+        return f"SRPMBuildModel(id={self.id}, job_trigger={self.job_trigger})"
 
 
 class WhitelistStatus(str, enum.Enum):
