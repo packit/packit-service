@@ -354,7 +354,7 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
     pr1_trigger = JobTriggerModel.get_or_create(
         type=JobTriggerModelType.pull_request, trigger_id=pr1.id
     )
-    srpm_build = SRPMBuildModel.create("asd\nqwe\n", success=True)
+    srpm_build = SRPMBuildModel.create("asd\nqwe\n", success=True, trigger_model=pr1)
     copr_build = CoprBuildModel.get_or_create(
         build_id="123456",
         commit_sha="687abc76d67d",
@@ -378,7 +378,9 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
 
     assert copr_build in pr1_trigger.copr_builds
     assert koji_build in pr1_trigger.koji_builds
+    assert srpm_build in pr1_trigger.srpm_builds
 
+    assert srpm_build.job_trigger.get_trigger_object() == pr1
     assert copr_build.job_trigger.get_trigger_object() == pr1
     assert koji_build.job_trigger.get_trigger_object() == pr1
 
@@ -495,6 +497,13 @@ def test_tmt_test_get_by_pipeline_id_release(clean_before_and_after, release_mod
     b = TFTTestRunModel.get_by_pipeline_id(test_run_model.pipeline_id)
     assert b
     assert b.job_trigger.get_trigger_object() == release_model
+
+
+def test_project_property_for_srpm_build(srpm_build_model):
+    project = srpm_build_model.get_project()
+    assert isinstance(project, GitProjectModel)
+    assert project.namespace == "the-namespace"
+    assert project.repo_name == "the-repo-name"
 
 
 def test_project_property_for_copr_build(a_copr_build_for_pr):

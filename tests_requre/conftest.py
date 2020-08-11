@@ -263,8 +263,10 @@ def branch_trigger_model(branch_model):
 
 
 @pytest.fixture()
-def srpm_build_model():
-    yield SRPMBuildModel.create(SampleValues.srpm_logs, success=True)
+def srpm_build_model(pr_model):
+    yield SRPMBuildModel.create(
+        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+    )
 
 
 @pytest.fixture()

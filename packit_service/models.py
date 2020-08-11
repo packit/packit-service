@@ -544,6 +544,7 @@ class JobTriggerModel(Base):
     type = Column(Enum(JobTriggerModelType))
     trigger_id = Column(Integer)
     copr_builds = relationship("CoprBuildModel", back_populates="job_trigger")
+    srpm_builds = relationship("SRPMBuildModel", back_populates="job_trigger")
     koji_builds = relationship("KojiBuildModel", back_populates="job_trigger")
     test_runs = relationship("TFTTestRunModel", back_populates="job_trigger")
 
@@ -920,15 +921,23 @@ class SRPMBuildModel(Base):
     # our logs we want to show to the user
     logs = Column(Text)
     success = Column(Boolean)
+    job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
+    job_trigger = relationship("JobTriggerModel", back_populates="srpm_builds")
     copr_builds = relationship("CoprBuildModel", back_populates="srpm_build")
     koji_builds = relationship("KojiBuildModel", back_populates="srpm_build")
 
     @classmethod
-    def create(cls, logs: str, success: bool) -> "SRPMBuildModel":
+    def create(
+        cls, logs: str, success: bool, trigger_model: AbstractTriggerDbType,
+    ) -> "SRPMBuildModel":
+        job_trigger = JobTriggerModel.get_or_create(
+            type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id,
+        )
         with get_sa_session() as session:
             srpm_build = cls()
             srpm_build.logs = logs
             srpm_build.success = success
+            srpm_build.job_trigger = job_trigger
             session.add(srpm_build)
             return srpm_build
 
@@ -937,8 +946,16 @@ class SRPMBuildModel(Base):
         with get_sa_session() as session:
             return session.query(SRPMBuildModel).filter_by(id=id_).first()
 
+    def get_project(self) -> Optional[GitProjectModel]:
+        if not self.job_trigger_id:
+            return None
+        trigger_object = self.job_trigger.get_trigger_object()
+        if not trigger_object:
+            return None
+        return trigger_object.project
+
     def __repr__(self):
-        return f"SRPMBuildModel(id={self.id})"
+        return f"SRPMBuildModel(id={self.id}, job_trigger={self.job_trigger})"
 
 
 class WhitelistStatus(str, enum.Enum):
