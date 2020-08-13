@@ -235,14 +235,15 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
 
         try:
+            overwrite_booleans = owner == "packit"
             self.api.copr_helper.create_copr_project_if_not_exists(
                 project=self.job_project,
                 chroots=list(self.build_targets),
                 owner=owner,
                 description=None,
                 instructions=None,
-                list_on_homepage=self.list_on_homepage,
-                preserve_project=self.preserve_project,
+                list_on_homepage=self.list_on_homepage if overwrite_booleans else None,
+                preserve_project=self.preserve_project if overwrite_booleans else None,
                 additional_repos=self.additional_repos,
                 request_admin_if_needed=True,
             )
