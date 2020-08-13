@@ -139,6 +139,18 @@ def test_detailed_koji_build_info_for_release(
     assert response_dict["release"] == SampleValues.tag_name
 
 
+#  Test SRPM Builds
+def test_srpm_builds_list(client, clean_before_and_after, a_copr_build_for_pr):
+    response = client.get(url_for("api.srpm-builds_srpm_builds_list"))
+    response_dict = response.json
+    assert response_dict[0]["success"] is True
+    assert type(response_dict[0]["srpm_build_id"]) is int
+    assert response_dict[0]["log_url"] is not None
+    assert response_dict[0]["repo_namespace"] == SampleValues.repo_namespace
+    assert response_dict[0]["repo_name"] == SampleValues.repo_name
+    assert response_dict[0]["project_url"] == SampleValues.project_url
+
+
 def test_whitelist_all(client, clean_before_and_after, new_whitelist_entry):
     """Test Whitelist API (all)"""
     response = client.get(url_for("api.whitelist_white_list"))
@@ -243,6 +255,7 @@ def test_get_projects_prs(client, clean_before_and_after, a_copr_build_for_pr):
     assert response_dict[0]["pr_id"] is not None
     assert response_dict[0]["builds"][0]["build_id"] == SampleValues.build_id
     assert response_dict[0]["builds"][0]["status"] == "pending"
+    assert response_dict[0]["srpm_builds"][0]["success"] is True
 
 
 def test_get_projects_issues(client, clean_before_and_after, an_issue_model):

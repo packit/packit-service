@@ -322,6 +322,11 @@ class PullRequestModel(Base):
             type=JobTriggerModelType.pull_request, trigger_id=self.id
         ).copr_builds
 
+    def get_srpm_builds(self):
+        return JobTriggerModel.get_or_create(
+            type=JobTriggerModelType.pull_request, trigger_id=self.id
+        ).srpm_builds
+
     def get_test_runs(self):
         return JobTriggerModel.get_or_create(
             type=JobTriggerModelType.pull_request, trigger_id=self.id
@@ -413,6 +418,11 @@ class GitBranchModel(Base):
         return JobTriggerModel.get_or_create(
             type=JobTriggerModelType.branch_push, trigger_id=self.id
         ).copr_builds
+
+    def get_srpm_builds(self):
+        return JobTriggerModel.get_or_create(
+            type=JobTriggerModelType.branch_push, trigger_id=self.id
+        ).srpm_builds
 
     def get_test_runs(self):
         return JobTriggerModel.get_or_create(
@@ -945,6 +955,13 @@ class SRPMBuildModel(Base):
     def get_by_id(cls, id_: int,) -> Optional["SRPMBuildModel"]:
         with get_sa_session() as session:
             return session.query(SRPMBuildModel).filter_by(id=id_).first()
+
+    @classmethod
+    def get(cls, first: int, last: int) -> Optional[Iterable["SRPMBuildModel"]]:
+        with get_sa_session() as session:
+            return session.query(SRPMBuildModel).order_by(desc(SRPMBuildModel.id))[
+                first:last
+            ]
 
     def get_project(self) -> Optional[GitProjectModel]:
         if not self.job_trigger_id:

@@ -9,6 +9,7 @@ except ModuleNotFoundError:
 from packit_service.service.api.utils import response_maker
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.models import GitProjectModel
+from flask import url_for
 
 logger = getLogger("packit_service")
 
@@ -124,10 +125,13 @@ class ProjectsPRs(Resource):
             pr_info = {
                 "pr_id": pr.pr_id,
                 "builds": [],
+                "srpm_builds": [],
                 "tests": [],
             }
             copr_builds = []
             test_runs = []
+            srpm_builds = []
+
             for build in pr.get_copr_builds():
                 build_info = {
                     "build_id": build.build_id,
@@ -137,6 +141,18 @@ class ProjectsPRs(Resource):
                 }
                 copr_builds.append(build_info)
             pr_info["builds"] = copr_builds
+
+            for build in pr.get_srpm_builds():
+                build_info = {
+                    "srpm_build_id": build.id,
+                    "success": build.success,
+                    "log_url": url_for(
+                        "builds.get_srpm_build_logs_by_id", id_=build.id, _external=True
+                    ),
+                }
+                srpm_builds.append(build_info)
+            pr_info["srpm_builds"] = srpm_builds
+
             for test_run in pr.get_test_runs():
                 test_info = {
                     "pipeline_id": test_run.pipeline_id,
@@ -216,8 +232,10 @@ class ProjectBranches(Resource):
             branch_info = {
                 "branch": branch.name,
                 "builds": [],
+                "srpm_builds": [],
                 "tests": [],
             }
+
             for build in branch.get_copr_builds():
                 build_info = {
                     "build_id": build.build_id,
@@ -226,7 +244,17 @@ class ProjectBranches(Resource):
                     "web_url": build.web_url,
                 }
                 branch_info["builds"].append(build_info)
-            result.append(branch_info)
+
+            for build in branch.get_srpm_builds():
+                build_info = {
+                    "srpm_build_id": build.id,
+                    "success": build.success,
+                    "log_url": url_for(
+                        "builds.get_srpm_build_logs_by_id", id_=build.id, _external=True
+                    ),
+                }
+                branch_info["srpm_builds"].append(build_info)
+
             for test_run in branch.get_test_runs():
                 test_info = {
                     "pipeline_id": test_run.pipeline_id,
@@ -235,4 +263,6 @@ class ProjectBranches(Resource):
                     "web_url": test_run.web_url,
                 }
                 branch_info["tests"].append(test_info)
+            result.append(branch_info)
+
         return response_maker(result)
