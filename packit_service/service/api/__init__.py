@@ -29,6 +29,7 @@ except ModuleNotFoundError:
     from flask_restplus import Api
 
 from packit_service.service.api.copr_builds import ns as copr_builds_ns
+from packit_service.service.api.srpm_builds import ns as srpm_builds_ns
 from packit_service.service.api.projects import ns as projects_ns
 from packit_service.service.api.healthz import ns as healthz_ns
 from packit_service.service.api.installations import ns as installations_ns
@@ -53,3 +54,4 @@ api.add_namespace(testing_farm_ns)
 api.add_namespace(webhooks_ns)
 api.add_namespace(whitelist_ns)
 api.add_namespace(koji_builds_ns)
+api.add_namespace(srpm_builds_ns)
