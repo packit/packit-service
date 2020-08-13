@@ -125,7 +125,7 @@ class GitProjectModel(Base):
     issues = relationship("IssueModel", back_populates="project")
 
     # Git URL of the repo
-    # Example: https://github.com/packit-service/hello-world.git
+    # Example: https://github.com/packit/hello-world.git
     https_url = Column(String)
     project_url = Column(String)
 
@@ -675,7 +675,7 @@ class CoprBuildModel(Base):
     ) -> Optional[Iterable["CoprBuildModel"]]:
         """Returns a list of unique build ids with merged status, chroots
         Details:
-        https://github.com/packit-service/packit-service/pull/674#discussion_r439819852
+        https://github.com/packit/packit-service/pull/674#discussion_r439819852
         """
         with get_sa_session() as session:
             builds = (

@@ -9,10 +9,10 @@ By contributing to this project you agree to the Developer Certificate of Origin
 
 ## Reporting Bugs
 
-Before creating a bug report, please check a [list of known issues](https://github.com/packit-service/packit-service/issues) to see
+Before creating a bug report, please check a [list of known issues](https://github.com/packit/packit-service/issues) to see
 if the problem has already been reported (or fixed in a master branch).
 
-If you're unable to find an open issue addressing the problem, [open a new one](https://github.com/packit-service/packit-service/issues/new).
+If you're unable to find an open issue addressing the problem, [open a new one](https://github.com/packit/packit-service/issues/new).
 Be sure to include a **descriptive title and a clear description**. Ideally, please provide:
 
 - version of packit-service and packit you are using (`pip3 freeze | grep packit`)
@@ -259,7 +259,7 @@ packit=# select * from git_projects;
 
 # Testing
 
-Tests are stored in [tests/](/tests) directory and tests using [requre](https://github.com/packit-service/requre) are stored in [tests_requre/](/tests_requre).
+Tests are stored in [tests/](/tests) directory and tests using [requre](https://github.com/packit/requre) are stored in [tests_requre/](/tests_requre).
 
 ## Test categories
 
@@ -283,7 +283,7 @@ We have multiple test categories within packit-service:
 - A checkout of packit-service is built as a container image and deployed to
   openshift as a job while the root process is pytest.
 - With these, we are making sure that tools we use run well inside [the non-standard OpenShift environment](.https://developers.redhat.com/blog/2016/10/21/understanding-openshift-security-context-constraints/)
-- [requre](https://github.com/packit-service/requre) and/or
+- [requre](https://github.com/packit/requre) and/or
   [flexmock](https://flexmock.readthedocs.io/en/latest/) is suppose to be
   used to handle remote interactions and secrets so we don't touch production
   systems while running tests in CI
@@ -293,7 +293,7 @@ We have multiple test categories within packit-service:
 - These tests run against a real deployment of packit-service.
 - It's expected to send real inputs inside the service and get actual results
   (observable in GitHub, COPR, Fedora infra etc.)
-- [requre](https://github.com/packit-service/requre) is used to record the
+- [requre](https://github.com/packit/requre) is used to record the
   remote interactions which are then replayed in CI.
 
 ## Running tests locally
@@ -313,7 +313,7 @@ TEST_TARGET=tests/unit make check_in_container
 
 ## Openshift tests using requre
 
-This testsuite uses [requre project](https://github.com/packit-service/requre) project to
+This testsuite uses [requre project](https://github.com/packit/requre) project to
 to store and replay data for tests.
 
 ### General requirements
@@ -392,7 +392,7 @@ make service
 make worker
 ```
 
-Generate and deploy fake secrets (you need to have [deployment repository](https://github.com/packit-service/deployment) cloned):
+Generate and deploy fake secrets (you need to have [deployment repository](https://github.com/packit/deployment) cloned):
 
 **Note: We highly recommend to clone deployment repository to a temporary location since the command below will overwrite secrets stored in deployment/secrets/dev**
 

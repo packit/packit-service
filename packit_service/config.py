@@ -194,7 +194,7 @@ class PackageConfigGetter:
                     pr_id, f"Failed to load packit config file:\n```\n{str(ex)}\n```"
                 )
             else:
-                # TODO: filter when https://github.com/packit-service/ogr/issues/308 fixed
+                # TODO: filter when https://github.com/packit/ogr/issues/308 fixed
                 issues = project.get_issue_list()
                 if "Invalid packit config" not in [x.title for x in issues]:
                     # TODO: store in DB
@@ -203,7 +203,7 @@ class PackageConfigGetter:
                         "For more info, please check out the documentation: "
                         "http://packit.dev/packit-as-a-service/ or contact us - "
                         "[Packit team]"
-                        "(https://github.com/orgs/packit-service/teams/the-packit-team)"
+                        "(https://github.com/orgs/packit/teams/the-packit-team)"
                     )
 
                     i = project.create_issue(

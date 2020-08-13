@@ -178,7 +178,7 @@ def test_testing_farm_response(
     flexmock(TFResultsHandler).should_receive("service_config").and_return(config)
     flexmock(TFResultsEvent).should_receive("db_trigger").and_return(None)
     config.should_receive("get_project").with_args(
-        url="https://github.com/packit-service/ogr"
+        url="https://github.com/packit/ogr"
     ).and_return()
     event_dict = TFResultsEvent(
         pipeline_id="id",
@@ -192,7 +192,7 @@ def test_testing_farm_response(
         repo_namespace=flexmock(),
         repo_name=flexmock(),
         git_ref=flexmock(),
-        project_url="https://github.com/packit-service/ogr",
+        project_url="https://github.com/packit/ogr",
         commit_sha=flexmock(),
     ).get_dict()
     test_farm_handler = TFResultsHandler(
@@ -251,7 +251,7 @@ def test_testing_farm_response(
             "packit",
             "packit-service",
             "feb41e5",
-            "https://github.com/packit-service/packit",
+            "https://github.com/packit/packit",
             "master",
             "me",
             "cool-project",
