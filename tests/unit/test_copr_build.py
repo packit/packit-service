@@ -532,6 +532,7 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
         "| chroots | ['f30', 'f31'] | ['f31', 'f32'] |\n"
         "| description | old | new |\n"
         "\n"
+        "\n"
         "Packit was unable to update the settings above "
         "as it is missing `admin` permissions on the "
         "nobody/the-example-namespace-the-example-repo-342-stg Copr project.\n"
@@ -539,8 +540,13 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
         "To fix this you can do one of the following:\n"
         "\n"
         "- Grant Packit `admin` permissions on the "
-        "nobody/the-example-namespace-the-example-repo-342-stg Copr project.\n"
-        "- Change the above Copr project settings manually to match the Packit configuration.\n"
+        "nobody/the-example-namespace-the-example-repo-342-stg Copr project on the "
+        "[permissions page](https://copr.fedorainfracloud.org/"
+        "coprs/nobody/the-example-namespace-the-example-repo-342-stg/permissions/).\n"
+        "- Change the above Copr project settings manually on the "
+        "[settings page](https://copr.fedorainfracloud.org/"
+        "coprs/nobody/the-example-namespace-the-example-repo-342-stg/edit/) "
+        "to match the Packit configuration.\n"
         "- Update the Packit configuration to match the Copr project settings.\n"
         "\n"
         "Please re-trigger the build, once the issue above is fixed.\n",
@@ -548,6 +554,22 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
 
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
     # copr build
+    flexmock(CoprHelper).should_receive("get_copr_settings_url").with_args(
+        "nobody",
+        "the-example-namespace-the-example-repo-342-stg",
+        section="permissions",
+    ).and_return(
+        "https://copr.fedorainfracloud.org/"
+        "coprs/nobody/the-example-namespace-the-example-repo-342-stg/permissions/"
+    ).once()
+
+    flexmock(CoprHelper).should_receive("get_copr_settings_url").with_args(
+        "nobody", "the-example-namespace-the-example-repo-342-stg",
+    ).and_return(
+        "https://copr.fedorainfracloud.org/"
+        "coprs/nobody/the-example-namespace-the-example-repo-342-stg/edit/"
+    ).once()
+
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_raise(
         PackitCoprSettingsException,
         "Copr project update failed.",

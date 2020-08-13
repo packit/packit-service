@@ -259,6 +259,29 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 for field, (old, new) in ex.fields_to_change.items():
                     table += f"| {field} | {old} | {new} |\n"
 
+                boolean_note = ""
+                if "unlisted_on_hp" in ex.fields_to_change:
+                    boolean_note += (
+                        "The `unlisted_on_hp` field is represented as `list_on_homepage`"
+                        " in the packit config."
+                        "By default we create projects with `list_on_homepage: False`.\n"
+                    )
+
+                if "delete_after_days" in ex.fields_to_change:
+                    boolean_note += (
+                        "The `delete_after_days` field is represented as `preserve_project`"
+                        " in the packit config (`True` is `-1` and `False` is `60`)."
+                        "By default we create projects with `preserve: True` "
+                        "which means `delete_after_days=60`.\n"
+                    )
+
+                permissions_url = self.api.copr_helper.get_copr_settings_url(
+                    owner, self.job_project, section="permissions"
+                )
+                settings_url = self.api.copr_helper.get_copr_settings_url(
+                    owner, self.job_project
+                )
+
                 msg = (
                     "Based on your Packit configuration the settings "
                     f"of the {owner}/{self.job_project} "
@@ -266,14 +289,17 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     "\n"
                     f"{table}"
                     "\n"
+                    f"{boolean_note}"
+                    "\n"
                     "Packit was unable to update the settings above as it is missing `admin` "
                     f"permissions on the {owner}/{self.job_project} Copr project.\n"
                     "\n"
                     "To fix this you can do one of the following:\n"
                     "\n"
                     f"- Grant Packit `admin` permissions on the {owner}/{self.job_project} "
-                    "Copr project.\n"
+                    f"Copr project on the [permissions page]({permissions_url}).\n"
                     "- Change the above Copr project settings manually "
+                    f"on the [settings page]({settings_url}) "
                     "to match the Packit configuration.\n"
                     "- Update the Packit configuration to match the Copr project settings.\n"
                     "\n"
