@@ -22,6 +22,8 @@
 import logging
 from typing import Optional, Tuple, Set, List
 
+from copr.v3 import CoprRequestException
+
 from ogr.abstract import GitProject, CommitStatus
 from packit.config import JobType, JobConfig
 from packit.config.aliases import get_build_targets
@@ -284,7 +286,31 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             f"owner={owner}, project={self.job_project}, path={self.srpm_path}"
         )
 
-        build = self.api.copr_helper.copr_client.build_proxy.create_from_file(
-            ownername=owner, projectname=self.job_project, path=self.srpm_path
-        )
+        try:
+            build = self.api.copr_helper.copr_client.build_proxy.create_from_file(
+                ownername=owner, projectname=self.job_project, path=self.srpm_path
+            )
+        except CoprRequestException as ex:
+            if "You don't have permissions to build in this copr." in str(ex):
+                self.api.copr_helper.copr_client.project_proxy.request_permissions(
+                    ownername=owner,
+                    projectname=self.job_project,
+                    permissions={"builder": True},
+                )
+                if self.metadata.pr_id:
+                    permissions_url = self.api.copr_helper.get_copr_settings_url(
+                        owner, self.job_project, section="permissions"
+                    )
+                    self.project.pr_comment(
+                        pr_id=self.metadata.pr_id,
+                        body="We have requested the `builder` permissions "
+                        f"for the {owner}/{self.job_project} Copr project.\n"
+                        "\n"
+                        "Please confirm the request on the "
+                        f"[{owner}/{self.job_project} Copr project permissions page]"
+                        f"({permissions_url})"
+                        " and re-trigger the build.",
+                    )
+            raise ex
+
         return build.id, self.api.copr_helper.copr_web_build_url(build)
