@@ -57,7 +57,7 @@ payload_artifact = ns.model(
             required=True, example="08bfc38f15082bdf9ba964c3bbd04878666d1d56"
         ),
         "git-url": fields.Url(
-            required=True, example="https://github.com/packit-service/hello-world"
+            required=True, example="https://github.com/packit/hello-world"
         ),
         "repo-name": fields.String(required=True, example="hello-world"),
         "repo-namespace": fields.String(required=True, example="packit-service"),

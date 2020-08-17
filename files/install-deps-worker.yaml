@@ -36,7 +36,7 @@
     - name: Install pip deps
       pip:
         name:
-          - git+https://github.com/packit-service/sandcastle.git
+          - git+https://github.com/packit/sandcastle.git
           - sentry-sdk
           - flask-restx
         executable: pip3
@@ -44,9 +44,9 @@
     - name: pip install packit & ogr with --no-deps
       pip:
         name:
-          - git+https://github.com/packit-service/packit.git@{{ source_branch }}
+          - git+https://github.com/packit/packit.git@{{ source_branch }}
           # ogr has only master branch
-          - git+https://github.com/packit-service/ogr.git
+          - git+https://github.com/packit/ogr.git
         executable: pip3
         extra_args: --no-deps
     - name: Chek if all pip packages have all dependencies installed

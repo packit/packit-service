@@ -39,7 +39,7 @@ def test_dist_git_push_release_handle(github_release_webhook):
         repo="hello-world",
         get_files=lambda ref, filter_regex: [],
         get_sha_from_tag=lambda tag_name: "123456",
-        get_web_url=lambda: "https://github.com/packit-service/hello-world",
+        get_web_url=lambda: "https://github.com/packit/hello-world",
         is_private=lambda: False,
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -83,7 +83,7 @@ def test_dist_git_push_release_handle_multiple_branches(
         repo="hello-world",
         get_files=lambda ref, filter_regex: [],
         get_sha_from_tag=lambda tag_name: "123456",
-        get_web_url=lambda: "https://github.com/packit-service/hello-world",
+        get_web_url=lambda: "https://github.com/packit/hello-world",
         is_private=lambda: False,
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
@@ -131,7 +131,7 @@ def test_dist_git_push_release_handle_one_failed(
             repo="hello-world",
             get_files=lambda ref, filter_regex: [],
             get_sha_from_tag=lambda tag_name: "123456",
-            get_web_url=lambda: "https://github.com/packit-service/hello-world",
+            get_web_url=lambda: "https://github.com/packit/hello-world",
             is_private=lambda: False,
         )
         .should_receive("create_issue")
@@ -192,7 +192,7 @@ def test_dist_git_push_release_handle_all_failed(
             repo="hello-world",
             get_files=lambda ref, filter_regex: [],
             get_sha_from_tag=lambda tag_name: "123456",
-            get_web_url=lambda: "https://github.com/packit-service/hello-world",
+            get_web_url=lambda: "https://github.com/packit/hello-world",
             is_private=lambda: False,
         )
         .should_receive("create_issue")
@@ -249,7 +249,7 @@ def test_retry_propose_downstream_task(github_release_webhook):
         repo="hello-world",
         get_files=lambda ref, filter_regex: [],
         get_sha_from_tag=lambda tag_name: "123456",
-        get_web_url=lambda: "https://github.com/packit-service/hello-world",
+        get_web_url=lambda: "https://github.com/packit/hello-world",
         is_private=lambda: False,
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
