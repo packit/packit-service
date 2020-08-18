@@ -186,17 +186,21 @@ Options:
 
 ### Database
 
-We are using two databases right now: redis (task scheduler for celery) and postgres (persistent data store).
+We use PostgreSQL as a persistent data store.
 
-Take a look at [alembic](https://alembic.sqlalchemy.org/en/latest/cookbook.html#building-uptodate), the project which handles migrations and schema versioning for sqlalchemy.
+Take a look at [alembic](https://alembic.sqlalchemy.org/en/latest/cookbook.html#building-uptodate),
+the project which handles migrations and schema versioning for SQLAlchemy.
 
 To generate a migration script for your recent change you can do:
 
 ```
-$ docker-compose up packit-service
-$ docker exec -ti packit-service bash -c 'cd /src/; alembic revision -m "My change" --autogenerate'
-$ docker cp packit-service:/src/alembic/versions/123456789abc_my_change.py .
+$ docker-compose up service
+$ docker exec -ti service bash -c 'cd /src/; alembic revision -m "My change" --autogenerate'
+$ docker cp service:/src/alembic/versions/123456789abc_my_change.py .
 ```
+
+The `alembic upgrade head` is run in [run_httpd.sh](files/run_httpd.sh)
+during (packit-)service pod/container start.
 
 #### How to check what's inside postgres?
 
