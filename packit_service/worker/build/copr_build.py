@@ -317,7 +317,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 ownername=owner, projectname=self.job_project, path=self.srpm_path
             )
         except CoprRequestException as ex:
-            if "You don't have permissions to build in this copr." in str(ex):
+            if "You don't have permissions to build in this copr." in str(
+                ex
+            ) or "is not allowed to build in the copr" in str(ex):
                 self.api.copr_helper.copr_client.project_proxy.request_permissions(
                     ownername=owner,
                     projectname=self.job_project,
