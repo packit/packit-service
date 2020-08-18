@@ -115,6 +115,74 @@ def test_copr_build_check_names(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
+        metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="packit"),
+        db_trigger=trigger,
+    )
+    # we need to make sure that pr_id is set
+    # so we can check it out and add it to spec's release field
+    assert helper.metadata.pr_id
+
+    flexmock(copr_build).should_receive(
+        "get_copr_build_info_url_from_flask"
+    ).and_return("https://test.url")
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=CommitStatus.pending,
+        description="Building SRPM ...",
+        check_name="packit-stg/rpm-build-bright-future-x86_64",
+        url="",
+    ).and_return()
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=CommitStatus.pending,
+        description="Starting RPM build...",
+        check_name="packit-stg/rpm-build-bright-future-x86_64",
+        url="https://test.url",
+    ).and_return()
+
+    flexmock(GitProject).should_receive("set_commit_status").and_return().never()
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        SRPMBuildModel(success=True)
+    )
+    flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
+        CoprBuildModel(id=1)
+    )
+    flexmock(PullRequestGithubEvent).should_receive("db_trigger").and_return(flexmock())
+
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+
+    # copr build
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").with_args(
+        project="the-example-namespace-the-example-repo-342-stg",
+        chroots=["bright-future-x86_64"],
+        owner="packit",
+        description=None,
+        instructions=None,
+        preserve_project=False,
+        list_on_homepage=False,
+        additional_repos=[],
+        request_admin_if_needed=True,
+    ).and_return(None)
+
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        flexmock(
+            config={"copr_url": "https://copr.fedorainfracloud.org/"},
+            build_proxy=flexmock()
+            .should_receive("create_from_file")
+            .and_return(
+                flexmock(id=2, projectname="the-project-name", ownername="packit")
+            )
+            .mock(),
+        )
+    )
+
+    flexmock(Celery).should_receive("send_task").once()
+    assert helper.run_copr_build()["success"]
+
+
+def test_copr_build_check_names_custom_owner(github_pr_event):
+    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    helper = build_helper(
+        event=github_pr_event,
         metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="nobody"),
         db_trigger=trigger,
     )
@@ -156,8 +224,8 @@ def test_copr_build_check_names(github_pr_event):
         owner="nobody",
         description=None,
         instructions=None,
-        preserve_project=False,
-        list_on_homepage=False,
+        preserve_project=None,
+        list_on_homepage=None,
         additional_repos=[],
         request_admin_if_needed=True,
     ).and_return(None)
@@ -168,7 +236,7 @@ def test_copr_build_check_names(github_pr_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+                flexmock(id=2, projectname="the-project-name", ownername="nobody")
             )
             .mock(),
         )
@@ -464,6 +532,7 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
         "| chroots | ['f30', 'f31'] | ['f31', 'f32'] |\n"
         "| description | old | new |\n"
         "\n"
+        "\n"
         "Packit was unable to update the settings above "
         "as it is missing `admin` permissions on the "
         "nobody/the-example-namespace-the-example-repo-342-stg Copr project.\n"
@@ -471,8 +540,13 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
         "To fix this you can do one of the following:\n"
         "\n"
         "- Grant Packit `admin` permissions on the "
-        "nobody/the-example-namespace-the-example-repo-342-stg Copr project.\n"
-        "- Change the above Copr project settings manually to match the Packit configuration.\n"
+        "nobody/the-example-namespace-the-example-repo-342-stg Copr project on the "
+        "[permissions page](https://copr.fedorainfracloud.org/"
+        "coprs/nobody/the-example-namespace-the-example-repo-342-stg/permissions/).\n"
+        "- Change the above Copr project settings manually on the "
+        "[settings page](https://copr.fedorainfracloud.org/"
+        "coprs/nobody/the-example-namespace-the-example-repo-342-stg/edit/) "
+        "to match the Packit configuration.\n"
         "- Update the Packit configuration to match the Copr project settings.\n"
         "\n"
         "Please re-trigger the build, once the issue above is fixed.\n",
@@ -480,6 +554,22 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
 
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
     # copr build
+    flexmock(CoprHelper).should_receive("get_copr_settings_url").with_args(
+        "nobody",
+        "the-example-namespace-the-example-repo-342-stg",
+        section="permissions",
+    ).and_return(
+        "https://copr.fedorainfracloud.org/"
+        "coprs/nobody/the-example-namespace-the-example-repo-342-stg/permissions/"
+    ).once()
+
+    flexmock(CoprHelper).should_receive("get_copr_settings_url").with_args(
+        "nobody", "the-example-namespace-the-example-repo-342-stg",
+    ).and_return(
+        "https://copr.fedorainfracloud.org/"
+        "coprs/nobody/the-example-namespace-the-example-repo-342-stg/edit/"
+    ).once()
+
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_raise(
         PackitCoprSettingsException,
         "Copr project update failed.",
@@ -576,8 +666,8 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
         owner="nobody",
         description=None,
         instructions=None,
-        preserve_project=False,
-        list_on_homepage=False,
+        preserve_project=None,
+        list_on_homepage=None,
         additional_repos=[],
         request_admin_if_needed=True,
     ).and_return(None)
@@ -588,7 +678,7 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+                flexmock(id=2, projectname="the-project-name", ownername="nobody")
             )
             .mock(),
         )

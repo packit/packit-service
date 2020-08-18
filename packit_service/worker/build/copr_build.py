@@ -22,6 +22,8 @@
 import logging
 from typing import Optional, Tuple, Set, List
 
+from copr.v3 import CoprRequestException
+
 from ogr.abstract import GitProject, CommitStatus
 from packit.config import JobType, JobConfig
 from packit.config.aliases import get_build_targets
@@ -235,14 +237,15 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
 
         try:
+            overwrite_booleans = owner == "packit"
             self.api.copr_helper.create_copr_project_if_not_exists(
                 project=self.job_project,
                 chroots=list(self.build_targets),
                 owner=owner,
                 description=None,
                 instructions=None,
-                list_on_homepage=self.list_on_homepage,
-                preserve_project=self.preserve_project,
+                list_on_homepage=self.list_on_homepage if overwrite_booleans else None,
+                preserve_project=self.preserve_project if overwrite_booleans else None,
                 additional_repos=self.additional_repos,
                 request_admin_if_needed=True,
             )
@@ -256,6 +259,29 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 for field, (old, new) in ex.fields_to_change.items():
                     table += f"| {field} | {old} | {new} |\n"
 
+                boolean_note = ""
+                if "unlisted_on_hp" in ex.fields_to_change:
+                    boolean_note += (
+                        "The `unlisted_on_hp` field is represented as `list_on_homepage`"
+                        " in the packit config."
+                        "By default we create projects with `list_on_homepage: False`.\n"
+                    )
+
+                if "delete_after_days" in ex.fields_to_change:
+                    boolean_note += (
+                        "The `delete_after_days` field is represented as `preserve_project`"
+                        " in the packit config (`True` is `-1` and `False` is `60`)."
+                        "By default we create projects with `preserve: True` "
+                        "which means `delete_after_days=60`.\n"
+                    )
+
+                permissions_url = self.api.copr_helper.get_copr_settings_url(
+                    owner, self.job_project, section="permissions"
+                )
+                settings_url = self.api.copr_helper.get_copr_settings_url(
+                    owner, self.job_project
+                )
+
                 msg = (
                     "Based on your Packit configuration the settings "
                     f"of the {owner}/{self.job_project} "
@@ -263,14 +289,17 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     "\n"
                     f"{table}"
                     "\n"
+                    f"{boolean_note}"
+                    "\n"
                     "Packit was unable to update the settings above as it is missing `admin` "
                     f"permissions on the {owner}/{self.job_project} Copr project.\n"
                     "\n"
                     "To fix this you can do one of the following:\n"
                     "\n"
                     f"- Grant Packit `admin` permissions on the {owner}/{self.job_project} "
-                    "Copr project.\n"
+                    f"Copr project on the [permissions page]({permissions_url}).\n"
                     "- Change the above Copr project settings manually "
+                    f"on the [settings page]({settings_url}) "
                     "to match the Packit configuration.\n"
                     "- Update the Packit configuration to match the Copr project settings.\n"
                     "\n"
@@ -283,7 +312,31 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             f"owner={owner}, project={self.job_project}, path={self.srpm_path}"
         )
 
-        build = self.api.copr_helper.copr_client.build_proxy.create_from_file(
-            ownername=owner, projectname=self.job_project, path=self.srpm_path
-        )
+        try:
+            build = self.api.copr_helper.copr_client.build_proxy.create_from_file(
+                ownername=owner, projectname=self.job_project, path=self.srpm_path
+            )
+        except CoprRequestException as ex:
+            if "You don't have permissions to build in this copr." in str(ex):
+                self.api.copr_helper.copr_client.project_proxy.request_permissions(
+                    ownername=owner,
+                    projectname=self.job_project,
+                    permissions={"builder": True},
+                )
+                if self.metadata.pr_id:
+                    permissions_url = self.api.copr_helper.get_copr_settings_url(
+                        owner, self.job_project, section="permissions"
+                    )
+                    self.project.pr_comment(
+                        pr_id=self.metadata.pr_id,
+                        body="We have requested the `builder` permissions "
+                        f"for the {owner}/{self.job_project} Copr project.\n"
+                        "\n"
+                        "Please confirm the request on the "
+                        f"[{owner}/{self.job_project} Copr project permissions page]"
+                        f"({permissions_url})"
+                        " and re-trigger the build.",
+                    )
+            raise ex
+
         return build.id, self.api.copr_helper.copr_web_build_url(build)
