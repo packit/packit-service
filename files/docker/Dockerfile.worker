@@ -1,6 +1,6 @@
 # Celery worker which runs tasks (packit) from the web service
 
-FROM fedora:31
+FROM docker.io/usercont/base
 
 ARG SOURCE_BRANCH
 RUN  if [[ -z $SOURCE_BRANCH ]]; then \
@@ -19,8 +19,7 @@ ENV LANG=en_US.UTF-8 \
 # Ansible doesn't like /tmp
 #COPY files/install-deps-worker.yaml /src/files/
 COPY files/ /src/files/
-RUN dnf install -y ansible \
-    && cd /src/ \
+RUN cd /src/ \
     && ansible-playbook -vv -c local -i localhost, files/install-deps-worker.yaml \
     && dnf clean all
 
