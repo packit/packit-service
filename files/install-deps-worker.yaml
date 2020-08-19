@@ -30,6 +30,8 @@
           - make
           # provides dnf builddep, required for packit dep installation from spec file
           - dnf-plugins-core
+          # oc rsync /sandcastle -> sandcastle pod
+          - rsync
         state: present
     - import_tasks: tasks/install-packit-deps.yaml
     - import_tasks: tasks/install-ogr-deps.yaml
