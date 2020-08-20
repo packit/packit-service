@@ -23,6 +23,7 @@
 import pytest
 from flexmock import flexmock
 
+from packit.actions import ActionName
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
 from packit_service.service.events import TheJobTriggerType
@@ -353,6 +354,26 @@ from packit_service.worker.jobs import (
             ],
             {GitHubIssueCommentProposeUpdateHandler},
             id="config=propose_downstream@trigger=issue_comment",
+        ),
+        pytest.param(
+            TheJobTriggerType.pull_request,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(targets=["fedora-rawhide-x86_64"]),
+                    actions={ActionName.post_upstream_clone: "ls /*"},
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(targets=["fedora-32-x86_64"]),
+                    actions={ActionName.post_upstream_clone: 'bash -c "ls /*"'},
+                ),
+            ],
+            {PullRequestCoprBuildHandler},
+            id="config=multiple_copr_builds_for_pr@trigger=pull_request",
         ),
     ],
 )
@@ -914,6 +935,44 @@ def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
                 )
             ],
             id="issue_comment_when_propose_downstream_defined",
+        ),
+        pytest.param(
+            PullRequestCoprBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.pull_request,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(targets=["fedora-rawhide-x86_64"]),
+                    actions={ActionName.post_upstream_clone: "ls /*"},
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(targets=["fedora-32-x86_64"]),
+                    actions={ActionName.post_upstream_clone: 'bash -c "ls /*"'},
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(targets=["fedora-rawhide-x86_64"]),
+                    actions={ActionName.post_upstream_clone: "ls /*"},
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(targets=["fedora-32-x86_64"]),
+                    actions={ActionName.post_upstream_clone: 'bash -c "ls /*"'},
+                ),
+            ],
+            id="multiple_copr_builds_for_pr",
         ),
     ],
 )
