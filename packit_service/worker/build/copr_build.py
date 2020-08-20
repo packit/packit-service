@@ -92,6 +92,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         if self.job_build and self.job_build.metadata.project:
             return self.job_build.metadata.project
 
+        if self.job_tests and self.job_tests.metadata.project:
+            return self.job_tests.metadata.project
+
         return self.default_project_name
 
     @property
@@ -101,6 +104,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         if self.job_build and self.job_build.metadata.owner:
             return self.job_build.metadata.owner
+
+        if self.job_tests and self.job_tests.metadata.owner:
+            return self.job_tests.metadata.owner
 
         return self.api.copr_helper.copr_client.config.get("username")
 

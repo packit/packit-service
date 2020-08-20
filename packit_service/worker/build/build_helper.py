@@ -156,7 +156,7 @@ class BaseBuildJobHelper:
         if not self.job_type_build:
             return None
         if not self._job_build:
-            for job in self.package_config.jobs:
+            for job in [self.job_config] + self.package_config.jobs:
                 if are_job_types_same(job.type, self.job_type_build) and (
                     (
                         self.db_trigger
@@ -190,7 +190,7 @@ class BaseBuildJobHelper:
             return None
 
         if not self._job_tests:
-            for job in self.package_config.jobs:
+            for job in [self.job_config] + self.package_config.jobs:
                 if are_job_types_same(job.type, self.job_type_test) and (
                     (
                         self.db_trigger

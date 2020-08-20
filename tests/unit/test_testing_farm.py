@@ -295,7 +295,14 @@ def test_trigger_payload(
     db_trigger = flexmock()
 
     job_helper = TFJobHelper(
-        config, package_config, project, metadata, db_trigger, flexmock()
+        service_config=config,
+        package_config=package_config,
+        project=project,
+        metadata=metadata,
+        db_trigger=db_trigger,
+        job_config=JobConfig(
+            type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+        ),
     )
     job_helper = flexmock(job_helper)
 
