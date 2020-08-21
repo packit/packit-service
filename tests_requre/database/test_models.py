@@ -38,6 +38,7 @@ from packit_service.models import (
     GitProjectModel,
     InstallationModel,
     BugzillaModel,
+    ProjectAuthenticationIssueModel,
 )
 from tests_requre.conftest import SampleValues
 
@@ -634,3 +635,17 @@ def test_bugzilla_get_by_id(clean_before_and_after, bugzilla_model):
     )
     assert bz.bug_id == bugzilla_model.bug_id == SampleValues.bug_id
     assert bz.bug_url == bugzilla_model.bug_url == SampleValues.bug_url
+
+
+def test_project_token_model(clean_before_and_after):
+    namespace = "the-namespace"
+    repo = "repo-name"
+    http_url = "https://gitlab.com/the-namespace/repo-name"
+
+    actual = ProjectAuthenticationIssueModel.create(
+        namespace=namespace, repo_name=repo, project_url=http_url, issue_created=True,
+    )
+    expected = ProjectAuthenticationIssueModel.get_project(
+        namespace=namespace, repo_name=repo, project_url=http_url,
+    )
+    assert actual.issue_created == expected.issue_created

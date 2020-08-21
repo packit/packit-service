@@ -34,6 +34,7 @@
           - python3-flexmock # because of the hack during the alembic upgrade
           # (see d90948124e46_add_tables_for_triggers_koji_and_tests.py )
           - dnf-plugins-core
+          - python-jwt
         state: present
     - import_tasks: tasks/install-ogr-deps.yaml
     - import_tasks: tasks/install-packit-deps.yaml

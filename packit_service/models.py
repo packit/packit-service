@@ -123,6 +123,9 @@ class GitProjectModel(Base):
     branches = relationship("GitBranchModel", back_populates="project")
     releases = relationship("ProjectReleaseModel", back_populates="project")
     issues = relationship("IssueModel", back_populates="project")
+    project_authentication_issue = relationship(
+        "ProjectAuthenticationIssueModel", back_populates="project"
+    )
 
     # Git URL of the repo
     # Example: https://github.com/packit/hello-world.git
@@ -1117,6 +1120,51 @@ class TFTTestRunModel(Base):
             return session.query(TFTTestRunModel).order_by(desc(TFTTestRunModel.id))[
                 first:last
             ]
+
+
+class ProjectAuthenticationIssueModel(Base):
+    __tablename__ = "project_authentication_issue"
+
+    id = Column(Integer, primary_key=True)
+    project = relationship(
+        "GitProjectModel", back_populates="project_authentication_issue"
+    )
+    # Check to know if we created a issue for the repo.
+    issue_created = Column(Boolean)
+    project_id = Column(Integer, ForeignKey("git_projects.id"))
+
+    @classmethod
+    def get_project(
+        cls, namespace: str, repo_name: str, project_url: str
+    ) -> Optional["ProjectAuthenticationIssueModel"]:
+        with get_sa_session() as session:
+            project = GitProjectModel.get_or_create(
+                namespace=namespace, repo_name=repo_name, project_url=project_url
+            )
+            return (
+                session.query(ProjectAuthenticationIssueModel)
+                .filter_by(project_id=project.id)
+                .first()
+            )
+
+    @classmethod
+    def create(
+        cls, namespace: str, repo_name: str, project_url: str, issue_created: bool
+    ) -> "ProjectAuthenticationIssueModel":
+        with get_sa_session() as session:
+            project = GitProjectModel.get_or_create(
+                namespace=namespace, repo_name=repo_name, project_url=project_url
+            )
+
+            project_authentication_issue = cls()
+            project_authentication_issue.issue_created = issue_created
+            project_authentication_issue.project_id = project.id
+            session.add(project_authentication_issue)
+
+            return project_authentication_issue
+
+    def __repr__(self):
+        return f"ProjectAuthenticationIssueModel(project={self.project}, token={self.token})"
 
 
 class InstallationModel(Base):

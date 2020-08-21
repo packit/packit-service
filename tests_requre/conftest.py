@@ -52,6 +52,7 @@ from packit_service.models import (
     TestingFarmResult,
     InstallationModel,
     BugzillaModel,
+    ProjectAuthenticationIssueModel,
 )
 from packit_service.service.events import InstallationEvent
 
@@ -152,6 +153,7 @@ def clean_db():
         session.query(ProjectReleaseModel).delete()
         session.query(PullRequestModel).delete()
         session.query(IssueModel).delete()
+        session.query(ProjectAuthenticationIssueModel).delete()
 
         session.query(GitProjectModel).delete()
 
