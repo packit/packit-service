@@ -507,6 +507,11 @@ def test_tmt_test_get_by_pipeline_id_release(clean_before_and_after, release_mod
     assert b.job_trigger.get_trigger_object() == release_model
 
 
+def test_pr_id_property_for_srpm_build(srpm_build_model):
+    project_pr = srpm_build_model.get_pr_id()
+    assert isinstance(project_pr, int)
+
+
 def test_project_property_for_srpm_build(srpm_build_model):
     project = srpm_build_model.get_project()
     assert isinstance(project, GitProjectModel)

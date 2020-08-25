@@ -50,17 +50,23 @@ class SRPMBuildsList(Resource):
 
         first, last = indices()
         for build in SRPMBuildModel.get(first, last):
-            project = build.get_project()
             build_dict = {
                 "srpm_build_id": build.id,
                 "success": build.success,
                 "log_url": url_for(
                     "builds.get_srpm_build_logs_by_id", id_=build.id, _external=True
                 ),
-                "repo_namespace": project.namespace,
-                "repo_name": project.repo_name,
-                "project_url": project.project_url,
             }
+            project = build.get_project()
+
+            # Its possible that jobtrigger isnt stored in db
+            if project:
+                build_dict["repo_namespace"] = project.namespace
+                build_dict["repo_name"] = project.repo_name
+                build_dict["project_url"] = project.project_url
+                build_dict["pr_id"] = build.get_pr_id()
+                build_dict["branch_name"] = build.get_branch_name()
+
             result.append(build_dict)
 
         resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT.value,)

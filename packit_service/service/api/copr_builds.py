@@ -64,6 +64,7 @@ class CoprBuildsList(Resource):
                 "branch_name": build_info.get_branch_name(),
                 "repo_namespace": project_info.namespace,
                 "repo_name": project_info.repo_name,
+                "project_url": project_info.project_url,
             }
 
             for count, chroot in enumerate(build.target):
