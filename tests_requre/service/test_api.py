@@ -6,8 +6,9 @@ from tests_requre.conftest import SampleValues
 # Check if the API is working
 def test_api_health(client):
     response = client.get(url_for("api.healthz_health_check"))
+    response_dict = response.json
     assert response.status_code == 200
-    assert response.data.decode() == '"We are healthy!"\n'
+    assert response_dict["status"] == "We are healthy!"
 
 
 #  Test Copr Builds
@@ -25,6 +26,7 @@ def test_copr_builds_list(client, clean_before_and_after, multiple_copr_builds):
     assert response_dict[1]["status_per_chroot"]["fedora-42-x86_64"] == "success"
     assert response_dict[1]["status_per_chroot"]["fedora-43-x86_64"] == "pending"
     assert response_dict[1]["build_submitted_time"] is not None
+    assert response_dict[1]["project_url"] == SampleValues.project_url
     assert len(response_dict) == 2  # three builds, but two unique build ids
 
 
@@ -149,6 +151,8 @@ def test_srpm_builds_list(client, clean_before_and_after, a_copr_build_for_pr):
     assert response_dict[0]["repo_namespace"] == SampleValues.repo_namespace
     assert response_dict[0]["repo_name"] == SampleValues.repo_name
     assert response_dict[0]["project_url"] == SampleValues.project_url
+    assert response_dict[0]["pr_id"] == SampleValues.pr_id
+    assert response_dict[0]["branch_name"] is None  # trigger was PR, not branch push
 
 
 def test_whitelist_all(client, clean_before_and_after, new_whitelist_entry):

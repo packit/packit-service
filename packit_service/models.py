@@ -974,6 +974,22 @@ class SRPMBuildModel(Base):
             return None
         return trigger_object.project
 
+    def get_pr_id(self) -> Optional[int]:
+        if not self.job_trigger_id:
+            return None
+        trigger_object = self.job_trigger.get_trigger_object()
+        if isinstance(trigger_object, PullRequestModel):
+            return trigger_object.pr_id
+        return None
+
+    def get_branch_name(self) -> Optional[str]:
+        if not self.job_trigger_id:
+            return None
+        trigger_object = self.job_trigger.get_trigger_object()
+        if isinstance(trigger_object, GitBranchModel):
+            return trigger_object.name
+        return None
+
     def __repr__(self):
         return f"SRPMBuildModel(id={self.id}, job_trigger={self.job_trigger})"
 
