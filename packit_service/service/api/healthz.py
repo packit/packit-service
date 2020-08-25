@@ -21,6 +21,7 @@
 # SOFTWARE.
 from http import HTTPStatus
 from logging import getLogger
+from packit_service.service.api.utils import response_maker
 
 try:
     from flask_restx import Namespace, Resource
@@ -37,7 +38,7 @@ class HealthCheck(Resource):
     @ns.response(HTTPStatus.OK.value, "Healthy")
     def get(self):
         """Health check"""
-        return "We are healthy!"
+        return response_maker({"status": "We are healthy!"},)
 
     @ns.response(HTTPStatus.OK.value, "Healthy")
     def head(self):
