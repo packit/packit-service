@@ -1158,7 +1158,7 @@ class TestCentOSEventParser:
         assert event_object.base_repo_name == "packit-hello-world"
         assert event_object.base_repo_owner == "packit"
         assert event_object.base_ref == "master"
-        assert event_object.labels == {"accepted"}
+        assert event_object.labels == ["accepted"]
         assert (
             event_object.project_url
             == "https://git.stg.centos.org/source-git/packit-hello-world"
@@ -1188,6 +1188,11 @@ class TestCentOSEventParser:
             "https://git.stg.centos.org/source-git/packit-hello-world"
         )
         assert event_object.package_config
+        # Check that get_dict() returns a JSON serializable object.
+        flexmock(PullRequestModel).should_receive("get_or_create").and_return(
+            flexmock(id=111)
+        )
+        json.dumps(event_object.get_dict())
 
     def test_parse_copr_build_event_start(
         self, copr_build_results_start, copr_build_centos_pr

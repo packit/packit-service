@@ -1004,7 +1004,7 @@ class CentosEventParser:
             base_ref=pr["branch"],
             commit_sha=pr["commit_stop"],
             project_url=f"https://{event['source']}/{pr['project']['url_path']}",
-            labels=set(event["tags"]),
+            labels=event["tags"],
         )
 
     @staticmethod
