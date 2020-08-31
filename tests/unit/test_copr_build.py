@@ -360,7 +360,11 @@ def test_copr_build_success_set_test_check(github_pr_event):
     )
     trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
-    helper = build_helper(jobs=[test_job], event=github_pr_event, db_trigger=trigger,)
+    helper = build_helper(
+        jobs=[test_job],
+        event=github_pr_event,
+        db_trigger=trigger,
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
     flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create").and_return(
@@ -413,7 +417,9 @@ def test_copr_build_for_branch(branch_push_event):
     trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     flexmock(AddBranchPushDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
-        jobs=[branch_build_job], event=branch_push_event, db_trigger=trigger,
+        jobs=[branch_build_job],
+        event=branch_push_event,
+        db_trigger=trigger,
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(SRPMBuildModel).should_receive("create").and_return(
@@ -470,7 +476,9 @@ def test_copr_build_for_release(release_event):
         "123456"
     )
     helper = build_helper(
-        jobs=[branch_build_job], event=release_event, db_trigger=trigger,
+        jobs=[branch_build_job],
+        event=release_event,
+        db_trigger=trigger,
     )
     flexmock(ReleaseEvent).should_receive("get_project").and_return(helper.project)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
@@ -664,7 +672,8 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
     ).once()
 
     flexmock(CoprHelper).should_receive("get_copr_settings_url").with_args(
-        "nobody", "the-example-namespace-the-example-repo-342-stg",
+        "nobody",
+        "the-example-namespace-the-example-repo-342-stg",
     ).and_return(
         "https://copr.fedorainfracloud.org/"
         "coprs/nobody/the-example-namespace-the-example-repo-342-stg/edit/"
@@ -855,7 +864,9 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
     trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release)
     flexmock(AddBranchPushDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
-        jobs=[branch_build_job], event=branch_push_event_gitlab, db_trigger=trigger,
+        jobs=[branch_build_job],
+        event=branch_push_event_gitlab,
+        db_trigger=trigger,
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(SRPMBuildModel).should_receive("create").and_return(

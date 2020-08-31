@@ -70,7 +70,9 @@ def configure_sentry(
         integrations.append(SqlalchemyIntegration())
 
     sentry_sdk.init(
-        secret_key, integrations=integrations, environment=getenv("DEPLOYMENT"),
+        secret_key,
+        integrations=integrations,
+        environment=getenv("DEPLOYMENT"),
     )
     with sentry_sdk.configure_scope() as scope:
         scope.set_tag("runner-type", runner_type)

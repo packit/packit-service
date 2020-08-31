@@ -63,7 +63,9 @@ def test_dist_git_push_release_handle(github_release_webhook):
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     results = run_propose_downstream_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
     assert first_dict_value(results["job"])["success"]
 
@@ -110,7 +112,9 @@ def test_dist_git_push_release_handle_multiple_branches(
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     results = run_propose_downstream_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
     assert first_dict_value(results["job"])["success"]
 
@@ -168,7 +172,9 @@ def test_dist_git_push_release_handle_one_failed(
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     results = run_propose_downstream_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
     assert not first_dict_value(results["job"])["success"]
 
@@ -232,7 +238,9 @@ def test_dist_git_push_release_handle_all_failed(
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     results = run_propose_downstream_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
     assert not first_dict_value(results["job"])["success"]
 
@@ -276,5 +284,7 @@ def test_retry_propose_downstream_task(github_release_webhook):
 
     with pytest.raises(Retry):
         run_propose_downstream_handler(
-            package_config=package_config, event=event_dict, job_config=job,
+            package_config=package_config,
+            event=event_dict,
+            job_config=job,
         )

@@ -88,10 +88,15 @@ class FedmsgHandler(JobHandler):
     topic: str
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, data=data,
+            package_config=package_config,
+            job_config=job_config,
+            data=data,
         )
         self._pagure_service = None
 
@@ -109,10 +114,15 @@ class NewDistGitCommitHandler(FedmsgHandler):
     task_name = TaskName.distgit_commit
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, data=data,
+            package_config=package_config,
+            job_config=job_config,
+            data=data,
         )
         self.branch = data.event_dict.get("branch")
 
@@ -155,7 +165,9 @@ class AbstractCoprBuildReportHandler(FedmsgHandler):
         copr_event: CoprBuildEvent,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, data=data,
+            package_config=package_config,
+            job_config=job_config,
+            data=data,
         )
         self.copr_event = copr_event
         self._build = None
@@ -372,7 +384,9 @@ class KojiBuildReportHandler(FedmsgHandler):
         koji_event: KojiBuildEvent,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, data=data,
+            package_config=package_config,
+            job_config=job_config,
+            data=data,
         )
         self.koji_event = koji_event
         self._db_trigger: Optional[AbstractTriggerDbType] = None

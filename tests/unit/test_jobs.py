@@ -64,7 +64,8 @@ from packit_service.worker.jobs import (
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 )
             ],
             {PullRequestCoprBuildHandler},
@@ -73,21 +74,36 @@ from packit_service.worker.jobs import (
         pytest.param(
             TheJobTriggerType.pull_request,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request,)],
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
             {PullRequestCoprBuildHandler},
             id="config=build@trigger=pull_request",
         ),
         pytest.param(
             TheJobTriggerType.push,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
-            [JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit,)],
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                )
+            ],
             {PushCoprBuildHandler},
             id="config=copr_build_on_push@trigger=push",
         ),
         pytest.param(
             TheJobTriggerType.commit,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
-            [JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit,)],
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                )
+            ],
             {PushCoprBuildHandler},
             id="config=copr_build_on_push@trigger=commit",
         ),
@@ -108,7 +124,8 @@ from packit_service.worker.jobs import (
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 )
             ],
             {CoprBuildStartHandler},
@@ -119,7 +136,8 @@ from packit_service.worker.jobs import (
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 )
             ],
             {CoprBuildEndHandler},
@@ -130,10 +148,12 @@ from packit_service.worker.jobs import (
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.release,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.release,
                 ),
             ],
             {PullRequestCoprBuildHandler},
@@ -144,10 +164,12 @@ from packit_service.worker.jobs import (
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.release,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.release,
                 ),
             ],
             {CoprBuildEndHandler},
@@ -156,28 +178,48 @@ from packit_service.worker.jobs import (
         pytest.param(
             TheJobTriggerType.pull_request,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request,)],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
             {PullRequestCoprBuildHandler},
             id="config=tests@trigger=pull_request",
         ),
         pytest.param(
             TheJobTriggerType.copr_start,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request,)],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
             {CoprBuildStartHandler},
             id="config=tests@trigger=copr_start",
         ),
         pytest.param(
             TheJobTriggerType.copr_end,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request,)],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
             {CoprBuildEndHandler},
             id="config=tests@trigger=copr_end",
         ),
         pytest.param(
             TheJobTriggerType.testing_farm_results,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request,)],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
             {TestingFarmResultsHandler},
             id="config=tests@trigger=testing_farm_results",
         ),
@@ -186,10 +228,12 @@ from packit_service.worker.jobs import (
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
             {TestingFarmResultsHandler},
@@ -200,10 +244,12 @@ from packit_service.worker.jobs import (
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
             {PullRequestCoprBuildHandler},
@@ -214,10 +260,12 @@ from packit_service.worker.jobs import (
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
             {CoprBuildStartHandler},
@@ -228,10 +276,12 @@ from packit_service.worker.jobs import (
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
                     type=JobType.propose_downstream,
@@ -262,7 +312,8 @@ from packit_service.worker.jobs import (
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
-                    type=JobType.production_build, trigger=JobConfigTriggerType.commit,
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.commit,
                 ),
             ],
             {PushGithubKojiBuildHandler},
@@ -273,7 +324,8 @@ from packit_service.worker.jobs import (
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
-                    type=JobType.production_build, trigger=JobConfigTriggerType.commit,
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.commit,
                 ),
             ],
             {PushGithubKojiBuildHandler},
@@ -284,7 +336,8 @@ from packit_service.worker.jobs import (
             flexmock(job_config_trigger_type=JobConfigTriggerType.release),
             [
                 JobConfig(
-                    type=JobType.production_build, trigger=JobConfigTriggerType.release,
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.release,
                 ),
             ],
             {ReleaseGithubKojiBuildHandler},
@@ -295,7 +348,8 @@ from packit_service.worker.jobs import (
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
                 JobConfig(
-                    type=JobType.production_build, trigger=JobConfigTriggerType.commit,
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.commit,
                 ),
                 JobConfig(
                     type=JobType.production_build,
@@ -322,7 +376,8 @@ from packit_service.worker.jobs import (
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
             set(),
@@ -337,7 +392,8 @@ from packit_service.worker.jobs import (
                     trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
             {KojiBuildReportHandler},
@@ -836,10 +892,12 @@ def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
                     trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.production_build, trigger=JobConfigTriggerType.release,
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.release,
                 ),
                 JobConfig(
-                    type=JobType.production_build, trigger=JobConfigTriggerType.commit,
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.commit,
                 ),
             ],
             [
@@ -864,15 +922,18 @@ def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
                     trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.production_build, trigger=JobConfigTriggerType.release,
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.release,
                 ),
                 JobConfig(
-                    type=JobType.production_build, trigger=JobConfigTriggerType.commit,
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.commit,
                 ),
             ],
             [
                 JobConfig(
-                    type=JobType.production_build, trigger=JobConfigTriggerType.release,
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.release,
                 )
             ],
             id="koji_results_for_release_when_multiple_triggers_defined",
@@ -891,15 +952,18 @@ def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
                     trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.production_build, trigger=JobConfigTriggerType.release,
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.release,
                 ),
                 JobConfig(
-                    type=JobType.production_build, trigger=JobConfigTriggerType.commit,
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.commit,
                 ),
             ],
             [
                 JobConfig(
-                    type=JobType.production_build, trigger=JobConfigTriggerType.commit,
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.commit,
                 )
             ],
             id="koji_results_for_commit_when_multiple_triggers_defined",
@@ -978,6 +1042,8 @@ def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
 )
 def test_get_config_for_handler_kls(handler_kls, event, jobs, result_job_config):
     job_config = get_config_for_handler_kls(
-        handler_kls=handler_kls, event=event, package_config=flexmock(jobs=jobs),
+        handler_kls=handler_kls,
+        event=event,
+        package_config=flexmock(jobs=jobs),
     )
     assert job_config == result_job_config

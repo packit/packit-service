@@ -65,7 +65,9 @@ class TestingFarmResultsHandler(JobHandler):
         message: str,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, data=data,
+            package_config=package_config,
+            job_config=job_config,
+            data=data,
         )
 
         self.tests = tests

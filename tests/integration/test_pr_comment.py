@@ -180,7 +180,9 @@ def test_pr_comment_copr_build_handler(
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     results = run_pr_comment_copr_build_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
     assert first_dict_value(results["job"])["success"]
 
@@ -206,7 +208,9 @@ def test_pr_comment_build_handler(
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     results = run_pr_comment_copr_build_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
     assert first_dict_value(results["job"])["success"]
 
@@ -267,7 +271,9 @@ def test_pr_embedded_command_handler(
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     results = run_pr_comment_copr_build_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
 
     assert first_dict_value(results["job"])["success"]

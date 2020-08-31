@@ -648,9 +648,14 @@ def test_project_token_model(clean_before_and_after):
     http_url = "https://gitlab.com/the-namespace/repo-name"
 
     actual = ProjectAuthenticationIssueModel.create(
-        namespace=namespace, repo_name=repo, project_url=http_url, issue_created=True,
+        namespace=namespace,
+        repo_name=repo,
+        project_url=http_url,
+        issue_created=True,
     )
     expected = ProjectAuthenticationIssueModel.get_project(
-        namespace=namespace, repo_name=repo, project_url=http_url,
+        namespace=namespace,
+        repo_name=repo,
+        project_url=http_url,
     )
     assert actual.issue_created == expected.issue_created

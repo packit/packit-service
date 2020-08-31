@@ -134,7 +134,8 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 )
             ],
             TheJobTriggerType.pull_request,
@@ -144,7 +145,12 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
             id="build_without_targets",
         ),
         pytest.param(
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request,)],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
             TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             STABLE_CHROOTS,
@@ -168,10 +174,12 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
             TheJobTriggerType.pull_request,
@@ -188,7 +196,8 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
                 ),
                 JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
             TheJobTriggerType.pull_request,
@@ -200,7 +209,8 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
                     type=JobType.tests,
@@ -217,7 +227,8 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
                     type=JobType.tests,
@@ -234,7 +245,8 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
                     type=JobType.tests,

@@ -72,15 +72,18 @@ def test_precheck(github_pr_event):
         package_config=PackageConfig(
             jobs=[
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
             ]
         ),
         job_config=JobConfig(
-            type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+            type=JobType.copr_build,
+            trigger=JobConfigTriggerType.pull_request,
         ),
         data=EventData.from_event_dict(github_pr_event.get_dict()),
     )
@@ -92,15 +95,18 @@ def test_precheck_skip_tests_when_build_defined(github_pr_event):
         package_config=PackageConfig(
             jobs=[
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
             ]
         ),
         job_config=JobConfig(
-            type=JobType.tests, trigger=JobConfigTriggerType.pull_request,
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.pull_request,
         ),
         data=EventData.from_event_dict(github_pr_event.get_dict()),
     )

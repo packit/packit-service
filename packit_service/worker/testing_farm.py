@@ -70,7 +70,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def _trigger_payload(self, pipeline_id: str, chroot: str) -> dict:
         """Produce payload that can be used to trigger tests in Testing
-           Farm using the Copr chroot given.
+        Farm using the Copr chroot given.
         """
         git_url = self.metadata.project_url
         if not git_url.endswith(".git"):
@@ -124,7 +124,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             msg = f"Target '{chroot}' not defined for tests but triggered."
             logger.error(msg)
             send_to_sentry(PackitConfigException(msg))
-            return TaskResults(success=False, details={"msg": msg},)
+            return TaskResults(
+                success=False,
+                details={"msg": msg},
+            )
 
         if chroot not in self.build_targets:
             self.report_missing_build_chroot(chroot)
@@ -166,7 +169,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             msg = "Failed to post request to testing farm API."
             logger.debug("Failed to post request to testing farm API.")
             self.report_status_to_test_for_chroot(
-                state=CommitStatus.failure, description=msg, chroot=chroot,
+                state=CommitStatus.failure,
+                description=msg,
+                chroot=chroot,
             )
             test_run_model.set_status(TestingFarmResult.error)
             return TaskResults(success=False, details={"msg": msg})
@@ -193,7 +198,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                     msg = f"Failed to submit tests: {req.reason}"
                     logger.error(msg)
                 self.report_status_to_test_for_chroot(
-                    state=CommitStatus.failure, description=msg, chroot=chroot,
+                    state=CommitStatus.failure,
+                    description=msg,
+                    chroot=chroot,
                 )
                 test_run_model.set_status(TestingFarmResult.error)
                 return TaskResults(success=False, details={"msg": msg})

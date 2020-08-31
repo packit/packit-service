@@ -153,7 +153,14 @@ def test_signed_fpca(whitelist, account_name, person_object, raises, signed_fpca
         ),
         (
             IssueCommentEvent(
-                IssueCommentAction.created, 0, "foo", "", "", "", "bar", "",
+                IssueCommentAction.created,
+                0,
+                "foo",
+                "",
+                "",
+                "",
+                "bar",
+                "",
             ),
             "issue_comment",
             False,
@@ -176,7 +183,14 @@ def test_signed_fpca(whitelist, account_name, person_object, raises, signed_fpca
         ),
         (
             IssueCommentEvent(
-                IssueCommentAction.created, 0, "", "", "", "", "lojzo", "",
+                IssueCommentAction.created,
+                0,
+                "",
+                "",
+                "",
+                "",
+                "lojzo",
+                "",
             ),
             "issue_comment",
             True,
@@ -285,7 +299,9 @@ def events(request) -> List[Tuple[AbstractGithubEvent, bool]]:
 
 # https://stackoverflow.com/questions/35413134/what-does-indirect-true-false-in-pytest-mark-parametrize-do-mean
 @pytest.mark.parametrize(
-    "events", ["release", "pr", "pr_comment", "issue_comment"], indirect=True,
+    "events",
+    ["release", "pr", "pr_comment", "issue_comment"],
+    indirect=True,
 )
 def test_check_and_report(
     whitelist: Whitelist, events: List[Tuple[AbstractGithubEvent, bool]]
@@ -308,7 +324,9 @@ def test_check_and_report(
         )
     ]
     flexmock(PullRequestGithubEvent).should_receive("get_package_config").and_return(
-        flexmock(jobs=job_configs,)
+        flexmock(
+            jobs=job_configs,
+        )
     )
 
     git_project = GithubProject("", GithubService(), "")

@@ -88,7 +88,11 @@ class StatusReporter:
             )
 
     def set_status(
-        self, state: CommitStatus, description: str, check_name: str, url: str = "",
+        self,
+        state: CommitStatus,
+        description: str,
+        check_name: str,
+        url: str = "",
     ):
         # Required because Pagure API doesn't accept empty url.
         if not url and isinstance(self.project, PagureProject):

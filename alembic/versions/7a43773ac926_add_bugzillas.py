@@ -24,7 +24,10 @@ def upgrade():
         sa.Column("bug_id", sa.Integer(), nullable=True),
         sa.Column("bug_url", sa.String(), nullable=True),
         sa.Column("pull_request_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["pull_request_id"], ["pull_requests.id"],),
+        sa.ForeignKeyConstraint(
+            ["pull_request_id"],
+            ["pull_requests.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_bugzillas_bug_id"), "bugzillas", ["bug_id"], unique=False)

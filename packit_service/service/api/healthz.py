@@ -38,7 +38,9 @@ class HealthCheck(Resource):
     @ns.response(HTTPStatus.OK.value, "Healthy")
     def get(self):
         """Health check"""
-        return response_maker({"status": "We are healthy!"},)
+        return response_maker(
+            {"status": "We are healthy!"},
+        )
 
     @ns.response(HTTPStatus.OK.value, "Healthy")
     def head(self):

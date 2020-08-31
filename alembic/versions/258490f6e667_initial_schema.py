@@ -28,7 +28,10 @@ def upgrade():
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column("pr_id", sa.Integer, index=True),
         sa.Column("project_id", sa.Integer, sa.ForeignKey("git_projects.id")),
-        sa.ForeignKeyConstraint(("project_id",), ["git_projects.id"],),
+        sa.ForeignKeyConstraint(
+            ("project_id",),
+            ["git_projects.id"],
+        ),
     )
     op.create_table(
         "srpm_builds",
@@ -40,9 +43,15 @@ def upgrade():
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column("build_id", sa.String, index=True),
         sa.Column("pr_id", sa.Integer, sa.ForeignKey("pull_requests.id")),
-        sa.ForeignKeyConstraint(("pr_id",), ["pull_requests.id"],),
+        sa.ForeignKeyConstraint(
+            ("pr_id",),
+            ["pull_requests.id"],
+        ),
         sa.Column("srpm_build_id", sa.Integer, sa.ForeignKey("srpm_builds.id")),
-        sa.ForeignKeyConstraint(("srpm_build_id",), ["srpm_builds.id"],),
+        sa.ForeignKeyConstraint(
+            ("srpm_build_id",),
+            ["srpm_builds.id"],
+        ),
         sa.Column("logs", sa.Text),
         sa.Column("commit_sha", sa.String),
         sa.Column("status", sa.String),

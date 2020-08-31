@@ -169,7 +169,8 @@ def test_testing_farm_response(
         flexmock(
             jobs=[
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request,
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
                 )
             ],
         )

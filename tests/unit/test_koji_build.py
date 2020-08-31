@@ -391,8 +391,14 @@ def test_get_koji_build_logs_url(id_, result):
 @pytest.mark.parametrize(
     "id_,result",
     [
-        (45270227, "https://koji.fedoraproject.org/koji/taskinfo?taskID=45270227",),
-        (45452270, "https://koji.fedoraproject.org/koji/taskinfo?taskID=45452270",),
+        (
+            45270227,
+            "https://koji.fedoraproject.org/koji/taskinfo?taskID=45270227",
+        ),
+        (
+            45452270,
+            "https://koji.fedoraproject.org/koji/taskinfo?taskID=45452270",
+        ),
     ],
 )
 def test_get_koji_rpm_build_web_url(id_, result):

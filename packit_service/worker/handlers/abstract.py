@@ -204,7 +204,10 @@ class JobHandler(Handler):
     task_name: TaskName
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
     ):
         # build helper needs package_config to resolve dependencies b/w tests and build jobs
         self.package_config = package_config

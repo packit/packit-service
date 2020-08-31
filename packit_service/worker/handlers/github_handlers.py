@@ -99,7 +99,9 @@ class GithubAppInstallationHandler(JobHandler):
         installation_event: InstallationEvent,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, data=data,
+            package_config=package_config,
+            job_config=job_config,
+            data=data,
         )
         self.installation_event = installation_event
         self.account_type = installation_event.account_type
@@ -156,7 +158,9 @@ class ProposeDownstreamHandler(JobHandler):
         task: Task,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, data=data,
+            package_config=package_config,
+            job_config=job_config,
+            data=data,
         )
         self.task = task
 
@@ -228,10 +232,15 @@ class AbstractCoprBuildHandler(JobHandler):
     type = JobType.copr_build
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, data=data,
+            package_config=package_config,
+            job_config=job_config,
+            data=data,
         )
 
         self._copr_build_helper: Optional[CoprBuildJobHelper] = None
@@ -253,9 +262,9 @@ class AbstractCoprBuildHandler(JobHandler):
         return self.copr_build_helper.run_copr_build()
 
     def pre_check(self) -> bool:
-        is_copr_build: Callable[
-            [JobConfig], bool
-        ] = lambda job: job.type == JobType.copr_build
+        is_copr_build: Callable[[JobConfig], bool] = (
+            lambda job: job.type == JobType.copr_build
+        )
 
         if self.job_config.type == JobType.tests and any(
             filter(is_copr_build, self.package_config.jobs)
@@ -363,10 +372,15 @@ class AbstractGithubKojiBuildHandler(JobHandler):
     type = JobType.production_build
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, data=data,
+            package_config=package_config,
+            job_config=job_config,
+            data=data,
         )
 
         if not (
@@ -404,9 +418,9 @@ class AbstractGithubKojiBuildHandler(JobHandler):
         return self.koji_build_helper.run_koji_build()
 
     def pre_check(self) -> bool:
-        is_copr_build: Callable[
-            [JobConfig], bool
-        ] = lambda job: job.type == JobType.copr_build
+        is_copr_build: Callable[[JobConfig], bool] = (
+            lambda job: job.type == JobType.copr_build
+        )
 
         if self.job_config.type == JobType.tests and any(
             filter(is_copr_build, self.package_config.jobs)
@@ -511,7 +525,9 @@ class GithubTestingFarmHandler(JobHandler):
         build_id: int,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, data=data,
+            package_config=package_config,
+            job_config=job_config,
+            data=data,
         )
         self.chroot = chroot
         self.build_id = build_id
