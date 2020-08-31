@@ -27,7 +27,7 @@ import copy
 import enum
 import logging
 from datetime import datetime, timezone
-from typing import Optional, List, Union, Dict, Set
+from typing import Optional, List, Union, Dict
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
@@ -1288,7 +1288,7 @@ class PullRequestLabelPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
         base_ref: Optional[str],
         commit_sha: str,
         project_url: str,
-        labels: Set[str],
+        labels: List[str],
     ):
         super().__init__(
             trigger=TheJobTriggerType.pr_label, project_url=project_url, pr_id=pr_id
