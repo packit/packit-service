@@ -23,7 +23,10 @@ def upgrade():
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("issue_created", sa.Boolean(), nullable=True),
         sa.Column("project_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["project_id"], ["git_projects.id"],),
+        sa.ForeignKeyConstraint(
+            ["project_id"],
+            ["git_projects.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     # ### end Alembic commands ###

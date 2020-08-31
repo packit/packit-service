@@ -395,21 +395,24 @@ class AbstractGithubEvent(AbstractForgeIndependentEvent):
         super().__init__(trigger, pr_id=pr_id)
         self.project_url: str = project_url
         self.git_ref: Optional[str] = None  # git ref that can be 'git checkout'-ed
-        self.identifier: Optional[str] = (
-            None  # will be shown to users -- e.g. in logs or in the copr-project name
-        )
+        self.identifier: Optional[
+            str
+        ] = None  # will be shown to users -- e.g. in logs or in the copr-project name
 
 
 class AbstractGitlabEvent(AbstractForgeIndependentEvent):
     def __init__(
-        self, trigger: TheJobTriggerType, project_url: str, pr_id: Optional[int] = None,
+        self,
+        trigger: TheJobTriggerType,
+        project_url: str,
+        pr_id: Optional[int] = None,
     ):
         super().__init__(trigger, pr_id=pr_id)
         self.project_url: str = project_url
         self.git_ref: Optional[str] = None
-        self.identifier: Optional[str] = (
-            None  # will be shown to users -- e.g. in logs or in the copr-project name
-        )
+        self.identifier: Optional[
+            str
+        ] = None  # will be shown to users -- e.g. in logs or in the copr-project name
 
 
 class ReleaseEvent(AddReleaseDbTrigger, AbstractGithubEvent):
@@ -425,7 +428,7 @@ class ReleaseEvent(AddReleaseDbTrigger, AbstractGithubEvent):
         self._commit_sha: Optional[str] = None
 
     @property
-    def commit_sha(self,) -> Optional[str]:  # type:ignore
+    def commit_sha(self) -> Optional[str]:  # type:ignore
         # mypy does not like properties
         if not self._commit_sha:
             self._commit_sha = self.project.get_sha_from_tag(tag_name=self.tag_name)
@@ -616,7 +619,7 @@ class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent
         self._commit_sha = commit_sha
 
     @property
-    def commit_sha(self,) -> Optional[str]:  # type:ignore
+    def commit_sha(self) -> Optional[str]:  # type:ignore
         # mypy does not like properties
         if not self._commit_sha:
             self._commit_sha = self.project.get_pr(pr_id=self.pr_id).head_commit
@@ -915,7 +918,7 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
         return self._pr_id
 
     @property
-    def commit_sha(self,) -> Optional[str]:  # type:ignore
+    def commit_sha(self) -> Optional[str]:  # type:ignore
         if not self.build_model:
             return None
 
@@ -1161,9 +1164,9 @@ class AbstractPagureEvent(AbstractForgeIndependentEvent):
         super().__init__(trigger, pr_id=pr_id)
         self.project_url: str = project_url
         self.git_ref: Optional[str] = None  # git ref that can be 'git checkout'-ed
-        self.identifier: Optional[str] = (
-            None  # will be shown to users -- e.g. in logs or in the copr-project name
-        )
+        self.identifier: Optional[
+            str
+        ] = None  # will be shown to users -- e.g. in logs or in the copr-project name
 
 
 class PushPagureEvent(AbstractPagureEvent):

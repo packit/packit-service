@@ -25,7 +25,9 @@ from flask import url_for
 from packit_service.service.app import packit_as_a_service as application
 
 
-def get_srpm_log_url_from_flask(id_: int = None,) -> str:
+def get_srpm_log_url_from_flask(
+    id_: int = None,
+) -> str:
     """
     provide absolute URL to p-s srpm build logs view meant to set in a commit status
     """
@@ -38,7 +40,9 @@ def get_srpm_log_url_from_flask(id_: int = None,) -> str:
         )
 
 
-def get_copr_build_info_url_from_flask(id_: int = None,) -> str:
+def get_copr_build_info_url_from_flask(
+    id_: int = None,
+) -> str:
     """
     provide absolute URL to p-s copr build logs view meant to set in a commit status
     """
@@ -50,7 +54,9 @@ def get_copr_build_info_url_from_flask(id_: int = None,) -> str:
         )
 
 
-def get_koji_build_info_url_from_flask(id_: int = None,) -> str:
+def get_koji_build_info_url_from_flask(
+    id_: int = None,
+) -> str:
     """
     provide absolute URL to p-s koji build logs view meant to set in a commit status
     """

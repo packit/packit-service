@@ -297,7 +297,8 @@ class SteveJobs:
         if pr_comment_error_msg:
             return {
                 event.trigger.value: TaskResults(
-                    success=True, details={"msg": pr_comment_error_msg},
+                    success=True,
+                    details={"msg": pr_comment_error_msg},
                 )
             }
 
@@ -345,7 +346,9 @@ class SteveJobs:
             handler_kls = PagurePullRequestCommentCoprBuildHandler
 
         jobs = get_config_for_handler_kls(
-            handler_kls=handler_kls, event=event, package_config=event.package_config,
+            handler_kls=handler_kls,
+            event=event,
+            package_config=event.package_config,
         )
         if user_login and user_login in self.service_config.admins:
             logger.info(f"{user_login} is admin, you shall pass.")
@@ -422,7 +425,8 @@ class SteveJobs:
         # Label/Tag added event handler is run even when the job is not configured in package
         elif event_object.trigger == TheJobTriggerType.pr_label:
             PagurePullRequestLabelHandler.get_signature(
-                event=event_object, job=None,
+                event=event_object,
+                job=None,
             ).apply_async()
         elif event_object.trigger in {
             TheJobTriggerType.issue_comment,

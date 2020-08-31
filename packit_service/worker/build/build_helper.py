@@ -361,7 +361,9 @@ class BaseBuildJobHelper:
             )
 
         self._srpm_model = SRPMBuildModel.create(
-            logs=srpm_logs, success=srpm_success, trigger_model=self.db_trigger,
+            logs=srpm_logs,
+            success=srpm_success,
+            trigger_model=self.db_trigger,
         )
 
     def _report(
@@ -376,7 +378,10 @@ class BaseBuildJobHelper:
         so we can extend it in subclasses easily.
         """
         self.status_reporter.report(
-            description=description, state=state, url=url, check_names=check_names,
+            description=description,
+            state=state,
+            url=url,
+            check_names=check_names,
         )
 
     def report_status_to_all(
@@ -409,7 +414,10 @@ class BaseBuildJobHelper:
         if self.job_build and chroot in self.build_targets:
             cs = self.get_build_check(chroot)
             self._report(
-                description=description, state=state, url=url, check_names=cs,
+                description=description,
+                state=state,
+                url=url,
+                check_names=cs,
             )
 
     def report_status_to_test_for_chroot(

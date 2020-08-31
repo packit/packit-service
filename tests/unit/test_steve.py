@@ -94,7 +94,9 @@ def test_process_message(event):
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     results = run_propose_downstream_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
     assert "propose_downstream" in next(iter(results["job"]))
     assert first_dict_value(results["job"])["success"]

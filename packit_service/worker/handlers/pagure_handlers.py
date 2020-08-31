@@ -53,10 +53,15 @@ class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
     task_name = TaskName.pagure_pr_comment_copr_build
 
     def __init__(
-        self, package_config: PackageConfig, job_config: JobConfig, data: EventData,
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        data: EventData,
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, data=data,
+            package_config=package_config,
+            job_config=job_config,
+            data=data,
         )
 
         # lazy property

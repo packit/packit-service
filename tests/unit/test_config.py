@@ -120,7 +120,11 @@ def test_parse_missing(service_config_missing):
 
 
 @pytest.mark.parametrize(
-    "sc", ((ServiceConfig.get_from_dict({"deployment": "stg"})), (ServiceConfig()),)
+    "sc",
+    (
+        (ServiceConfig.get_from_dict({"deployment": "stg"})),
+        (ServiceConfig()),
+    ),
 )
 def test_config_opts(sc):
     """ test that ServiceConfig knows all the options """

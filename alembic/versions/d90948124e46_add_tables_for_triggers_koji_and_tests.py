@@ -194,7 +194,10 @@ def upgrade():
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(), nullable=True),
         sa.Column("project_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["project_id"], ["git_projects.id"],),
+        sa.ForeignKeyConstraint(
+            ["project_id"],
+            ["git_projects.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -212,8 +215,14 @@ def upgrade():
         sa.Column("build_start_time", sa.DateTime(), nullable=True),
         sa.Column("build_finished_time", sa.DateTime(), nullable=True),
         sa.Column("data", sa.JSON(), nullable=True),
-        sa.ForeignKeyConstraint(["job_trigger_id"], ["build_triggers.id"],),
-        sa.ForeignKeyConstraint(["srpm_build_id"], ["srpm_builds.id"],),
+        sa.ForeignKeyConstraint(
+            ["job_trigger_id"],
+            ["build_triggers.id"],
+        ),
+        sa.ForeignKeyConstraint(
+            ["srpm_build_id"],
+            ["srpm_builds.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -224,7 +233,10 @@ def upgrade():
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("issue_id", sa.Integer(), nullable=True),
         sa.Column("project_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["project_id"], ["git_projects.id"],),
+        sa.ForeignKeyConstraint(
+            ["project_id"],
+            ["git_projects.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -236,7 +248,10 @@ def upgrade():
         sa.Column("tag_name", sa.String(), nullable=True),
         sa.Column("commit_hash", sa.String(), nullable=True),
         sa.Column("project_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["project_id"], ["git_projects.id"],),
+        sa.ForeignKeyConstraint(
+            ["project_id"],
+            ["git_projects.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -255,7 +270,10 @@ def upgrade():
         sa.Column("target", sa.String(), nullable=True),
         sa.Column("web_url", sa.String(), nullable=True),
         sa.Column("data", sa.JSON(), nullable=True),
-        sa.ForeignKeyConstraint(["job_trigger_id"], ["build_triggers.id"],),
+        sa.ForeignKeyConstraint(
+            ["job_trigger_id"],
+            ["build_triggers.id"],
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(

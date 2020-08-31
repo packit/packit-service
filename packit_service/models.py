@@ -476,7 +476,11 @@ class BugzillaModel(Base):
 
     @classmethod
     def get_by_pr(
-        cls, pr_id: int, namespace: str, repo_name: str, project_url: str,
+        cls,
+        pr_id: int,
+        namespace: str,
+        repo_name: str,
+        project_url: str,
     ) -> Optional["BugzillaModel"]:
         return cls.get_or_create(
             pr_id=pr_id,
@@ -540,7 +544,10 @@ class ProjectReleaseModel(Base):
 
 
 AbstractTriggerDbType = Union[
-    PullRequestModel, ProjectReleaseModel, GitBranchModel, IssueModel,
+    PullRequestModel,
+    ProjectReleaseModel,
+    GitBranchModel,
+    IssueModel,
 ]
 
 MODEL_FOR_TRIGGER: Dict[JobTriggerModelType, Type[AbstractTriggerDbType]] = {
@@ -941,10 +948,14 @@ class SRPMBuildModel(Base):
 
     @classmethod
     def create(
-        cls, logs: str, success: bool, trigger_model: AbstractTriggerDbType,
+        cls,
+        logs: str,
+        success: bool,
+        trigger_model: AbstractTriggerDbType,
     ) -> "SRPMBuildModel":
         job_trigger = JobTriggerModel.get_or_create(
-            type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id,
+            type=trigger_model.job_trigger_model_type,
+            trigger_id=trigger_model.id,
         )
         with get_sa_session() as session:
             srpm_build = cls()
@@ -955,7 +966,10 @@ class SRPMBuildModel(Base):
             return srpm_build
 
     @classmethod
-    def get_by_id(cls, id_: int,) -> Optional["SRPMBuildModel"]:
+    def get_by_id(
+        cls,
+        id_: int,
+    ) -> Optional["SRPMBuildModel"]:
         with get_sa_session() as session:
             return session.query(SRPMBuildModel).filter_by(id=id_).first()
 

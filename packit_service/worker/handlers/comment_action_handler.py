@@ -83,7 +83,9 @@ class CommentActionHandler(JobHandler):
         **kwargs
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, data=data,
+            package_config=package_config,
+            job_config=job_config,
+            data=data,
         )
 
     def run(self) -> TaskResults:

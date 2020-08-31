@@ -176,10 +176,18 @@ def copr_build_release():
 
 
 @pytest.mark.parametrize(
-    "pc_comment_pr_succ,pr_comment_called", ((True, True), (False, False),)
+    "pc_comment_pr_succ,pr_comment_called",
+    (
+        (True, True),
+        (False, False),
+    ),
 )
 def test_copr_build_end(
-    copr_build_end, pc_build_pr, copr_build_pr, pc_comment_pr_succ, pr_comment_called,
+    copr_build_end,
+    pc_build_pr,
+    copr_build_pr,
+    pc_comment_pr_succ,
+    pr_comment_called,
 ):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     pc_build_pr.jobs[0].notifications.pull_request.successful_build = pc_comment_pr_succ
@@ -215,7 +223,9 @@ def test_copr_build_end(
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     run_copr_build_end_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
 
 
@@ -256,7 +266,9 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     run_copr_build_end_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
 
 
@@ -296,7 +308,9 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     run_copr_build_end_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
 
 
@@ -412,7 +426,9 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     run_copr_build_end_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
 
     flexmock(GithubTestingFarmHandler).should_receive("db_trigger").and_return(
@@ -525,7 +541,9 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     run_copr_build_end_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
 
     flexmock(GithubTestingFarmHandler).should_receive("db_trigger").and_return(
@@ -640,7 +658,9 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     run_copr_build_end_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
 
     flexmock(GithubTestingFarmHandler).should_receive("db_trigger").and_return(
@@ -688,7 +708,9 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     run_copr_build_start_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
 
 
@@ -730,7 +752,9 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     run_copr_build_start_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
 
 
@@ -771,7 +795,9 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     run_copr_build_end_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
 
 
@@ -806,7 +832,9 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     results = run_koji_build_report_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
 
     assert first_dict_value(results["job"])["success"]
@@ -857,7 +885,9 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     results = run_koji_build_report_handler(
-        package_config=package_config, event=event_dict, job_config=job,
+        package_config=package_config,
+        event=event_dict,
+        job_config=job,
     )
 
     assert first_dict_value(results["job"])["success"]

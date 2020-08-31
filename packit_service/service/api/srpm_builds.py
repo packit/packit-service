@@ -69,6 +69,9 @@ class SRPMBuildsList(Resource):
 
             result.append(build_dict)
 
-        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT.value,)
+        resp = response_maker(
+            result,
+            status=HTTPStatus.PARTIAL_CONTENT.value,
+        )
         resp.headers["Content-Range"] = f"srpm-builds {first + 1}-{last}/*"
         return resp

@@ -44,7 +44,10 @@ class ProjectsList(Resource):
             }
             result.append(project_info)
 
-        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT.value,)
+        resp = response_maker(
+            result,
+            status=HTTPStatus.PARTIAL_CONTENT.value,
+        )
         resp.headers["Content-Range"] = f"git-projects {first + 1}-{last}/*"
         return resp
 
@@ -165,7 +168,10 @@ class ProjectsPRs(Resource):
 
             result.append(pr_info)
 
-        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT.value,)
+        resp = response_maker(
+            result,
+            status=HTTPStatus.PARTIAL_CONTENT.value,
+        )
         resp.headers["Content-Range"] = f"git-project-prs {first + 1}-{last}/*"
         return resp
 
