@@ -20,19 +20,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from http import HTTPStatus
-from json import dumps
 from logging import getLogger
-
-from flask import make_response
-from itertools import islice
 
 try:
     from flask_restx import Namespace, Resource
 except ModuleNotFoundError:
     from flask_restplus import Namespace, Resource
 
+from packit_service.service.api.utils import response_maker
 from packit_service.service.api.parsers import indices, pagination_arguments
-from packit_service.models import KojiBuildModel
+from packit_service.models import KojiBuildModel, optional_time
 
 logger = getLogger("packit_service")
 
@@ -47,16 +44,35 @@ class KojiBuildsList(Resource):
         """ List all Koji builds. """
 
         first, last = indices()
-        result = [
-            build.api_structure
-            for build in islice(KojiBuildModel.get_all(), first, last)
-        ]
+        result = []
 
-        resp = make_response(dumps(result), HTTPStatus.PARTIAL_CONTENT)
-        resp.headers["Content-Range"] = f"koji-builds {first + 1}-{last}/{len(result)}"
-        resp.headers["Content-Type"] = "application/json"
-        resp.headers["Access-Control-Allow-Origin"] = "*"
+        for build in KojiBuildModel.get_range(first, last):
+            build_dict = {
+                "build_id": build.build_id,
+                "status": build.status,
+                "build_submitted_time": optional_time(build.build_submitted_time),
+                "chroot": build.target,
+                "web_url": build.web_url,
+                # from old data, sometimes build_logs_url is same and sometimes different to web_url
+                "build_logs_url": build.build_logs_url,
+                "pr_id": build.get_pr_id(),
+                "branch_name": build.get_branch_name(),
+                "release": build.get_release_tag(),
+            }
 
+            project = build.get_project()
+            if project:
+                build_dict["project_url"] = project.project_url
+                build_dict["repo_namespace"] = project.namespace
+                build_dict["repo_name"] = project.repo_name
+
+            result.append(build_dict)
+
+        resp = response_maker(
+            result,
+            status=HTTPStatus.PARTIAL_CONTENT.value,
+        )
+        resp.headers["Content-Range"] = f"koji-builds {first + 1}-{last}/*"
         return resp
 
 
@@ -65,22 +81,42 @@ class KojiBuildsList(Resource):
 class KojiBuildItem(Resource):
     @koji_builds_ns.response(HTTPStatus.OK, "OK, koji build details follow")
     @koji_builds_ns.response(
-        HTTPStatus.NO_CONTENT.value, "Koji build identifier not in db/hash"
+        HTTPStatus.NOT_FOUND.value, "No info about build stored in DB"
     )
     def get(self, id):
         """A specific koji build details. From koji_build hash, filled by worker."""
         builds_list = KojiBuildModel.get_all_by_build_id(str(id))
-        if bool(builds_list.first()):
-            build = builds_list[0]
 
-            build_dict = build.api_structure.copy()
-            build_dict["srpm_logs"] = (
-                build.srpm_build.logs if build.srpm_build else None
+        if not builds_list.first():
+            return response_maker(
+                {"error": "No info about build stored in DB"},
+                status=HTTPStatus.NOT_FOUND.value,
             )
-            build = make_response(dumps(build_dict))
-            build.headers["Content-Type"] = "application/json"
-            build.headers["Access-Control-Allow-Origin"] = "*"
-            return build if build else ("", HTTPStatus.NO_CONTENT.value)
 
-        else:
-            return "", HTTPStatus.NO_CONTENT.value
+        build = builds_list[0]
+
+        build_dict = {
+            "build_id": build.build_id,
+            "status": build.status,
+            "build_start_time": optional_time(build.build_start_time),
+            "build_finished_time": optional_time(build.build_finished_time),
+            "build_submitted_time": optional_time(build.build_submitted_time),
+            "chroot": build.target,
+            "web_url": build.web_url,
+            # from old data, sometimes build_logs_url is same and sometimes different to web_url
+            "build_logs_url": build.build_logs_url,
+            "pr_id": build.get_pr_id(),
+            "branch_name": build.get_branch_name(),
+            "ref": build.commit_sha,
+            "release": build.get_release_tag(),
+        }
+
+        project = build.get_project()
+        if project:
+            build_dict["project_url"] = project.project_url
+            build_dict["repo_namespace"] = project.namespace
+            build_dict["repo_name"] = project.repo_name
+
+        build_dict["srpm_logs"] = build.srpm_build.logs if build.srpm_build else None
+
+        return response_maker(build_dict)

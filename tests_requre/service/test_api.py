@@ -52,7 +52,7 @@ def test_pagination(client, clean_before_and_after, too_many_copr_builds):
 # Test detailed build info
 def test_detailed_copr_build_info(client, clean_before_and_after, multiple_copr_builds):
     response = client.get(
-        url_for("api.copr-builds_installation_item", id=SampleValues.build_id)
+        url_for("api.copr-builds_copr_build_item", id=SampleValues.build_id)
     )
     response_dict = response.json
     assert response_dict["project"] == SampleValues.project
@@ -77,9 +77,9 @@ def test_koji_builds_list(client, clean_before_and_after, multiple_koji_builds):
     response = client.get(url_for("api.koji-builds_koji_builds_list"))
     response_dict = response.json
     assert len(response_dict) == 3
-    assert response_dict[0]["build_id"] == SampleValues.build_id
+    assert response_dict[0]["build_id"] == SampleValues.another_different_build_id
     assert response_dict[1]["build_id"] == SampleValues.different_build_id
-    assert response_dict[2]["build_id"] == SampleValues.another_different_build_id
+    assert response_dict[2]["build_id"] == SampleValues.build_id
 
     assert response_dict[1]["status"] == SampleValues.status_pending
     assert response_dict[1]["web_url"] == SampleValues.koji_web_url
@@ -89,8 +89,6 @@ def test_koji_builds_list(client, clean_before_and_after, multiple_koji_builds):
     assert response_dict[1]["pr_id"] == SampleValues.pr_id
 
     assert response_dict[1]["build_submitted_time"] is not None
-    assert "build_start_time" in response_dict[1]
-    assert "build_finished_time" in response_dict[1]
 
 
 def test_detailed_koji_build_info(client, clean_before_and_after, a_koji_build_for_pr):
@@ -128,7 +126,7 @@ def test_detailed_koji_build_info_for_branch_push(
         url_for("api.koji-builds_koji_build_item", id=SampleValues.build_id)
     )
     response_dict = response.json
-    assert response_dict["build_branch"] == SampleValues.branch
+    assert response_dict["branch_name"] == SampleValues.branch
 
 
 def test_detailed_koji_build_info_for_release(

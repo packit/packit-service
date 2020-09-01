@@ -29,7 +29,7 @@ import os
 from contextlib import contextmanager
 from urllib.parse import urlparse
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional, Union, Iterable, Dict, Type, Any
+from typing import TYPE_CHECKING, Optional, Union, Iterable, Dict, Type
 
 from sqlalchemy import (
     Column,
@@ -833,34 +833,23 @@ class KojiBuildModel(Base):
             self.build_submitted_time = build_submitted_time
             session.add(self)
 
-    @property
-    def api_structure(self) -> Dict[str, Any]:
-        base = {
-            "build_id": self.build_id,
-            "status": self.status,
-            "commit_sha": self.commit_sha,
-            "target": self.target,
-            "build_submitted_time": optional_time(self.build_submitted_time),
-            "build_start_time": optional_time(self.build_start_time),
-            "build_finished_time": optional_time(self.build_finished_time),
-            "web_url": self.web_url,
-            "build_logs_url": self.build_logs_url,
-        }
-        project = self.get_project()
-        if project:
-            base["project_url"] = project.project_url
-            base["repo_namespace"] = project.namespace
-            base["repo_name"] = project.repo_name
+    def get_pr_id(self) -> Optional[int]:
+        trigger_object = self.job_trigger.get_trigger_object()
+        if isinstance(trigger_object, PullRequestModel):
+            return trigger_object.pr_id
+        return None
 
-        trigger = self.job_trigger.get_trigger_object()
-        if isinstance(trigger, PullRequestModel):
-            base["pr_id"] = trigger.pr_id
-        elif isinstance(trigger, GitBranchModel):
-            base["build_branch"] = trigger.name
-        elif isinstance(trigger, ProjectReleaseModel):
-            base["release"] = trigger.tag_name
+    def get_branch_name(self) -> Optional[str]:
+        trigger_object = self.job_trigger.get_trigger_object()
+        if isinstance(trigger_object, GitBranchModel):
+            return trigger_object.name
+        return None
 
-        return base
+    def get_release_tag(self) -> Optional[int]:
+        trigger_object = self.job_trigger.get_trigger_object()
+        if isinstance(trigger_object, ProjectReleaseModel):
+            return trigger_object.tag_name
+        return None
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["KojiBuildModel"]:
@@ -871,6 +860,13 @@ class KojiBuildModel(Base):
     def get_all(cls) -> Optional[Iterable["KojiBuildModel"]]:
         with get_sa_session() as session:
             return session.query(KojiBuildModel).all()
+
+    @classmethod
+    def get_range(cls, first: int, last: int) -> Optional[Iterable["KojiBuildModel"]]:
+        with get_sa_session() as session:
+            return session.query(KojiBuildModel).order_by(desc(KojiBuildModel.id))[
+                first:last
+            ]
 
     # Returns all builds with that build_id, irrespective of target
     @classmethod

@@ -83,9 +83,9 @@ class CoprBuildsList(Resource):
 
 @ns.route("/<int:id>")
 @ns.param("id", "Copr build identifier")
-class InstallationItem(Resource):
+class CoprBuildItem(Resource):
     @ns.response(HTTPStatus.OK.value, "OK, copr build details follow")
-    @ns.response(HTTPStatus.NO_CONTENT.value, "Copr build identifier not in db/hash")
+    @ns.response(HTTPStatus.NOT_FOUND.value, "Copr build identifier not in db/hash")
     def get(self, id):
         """A specific copr build details. From copr_build hash, filled by worker."""
         builds_list = CoprBuildModel.get_all_by_build_id(str(id))
