@@ -151,6 +151,7 @@ def test_srpm_builds_list(client, clean_before_and_after, a_copr_build_for_pr):
     assert response_dict[0]["project_url"] == SampleValues.project_url
     assert response_dict[0]["pr_id"] == SampleValues.pr_id
     assert response_dict[0]["branch_name"] is None  # trigger was PR, not branch push
+    assert response_dict[0]["build_submitted_time"] is not None
 
 
 def test_whitelist_all(client, clean_before_and_after, new_whitelist_entry):

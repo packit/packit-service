@@ -941,6 +941,7 @@ class SRPMBuildModel(Base):
     job_trigger = relationship("JobTriggerModel", back_populates="srpm_builds")
     copr_builds = relationship("CoprBuildModel", back_populates="srpm_build")
     koji_builds = relationship("KojiBuildModel", back_populates="srpm_build")
+    build_submitted_time = Column(DateTime, default=datetime.utcnow)
 
     @classmethod
     def create(
