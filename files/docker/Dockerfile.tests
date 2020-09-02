@@ -1,6 +1,6 @@
 # For running tests locally, see check_in_container target in Makefile
 
-FROM docker.io/usercont/packit-service-worker:dev
+FROM docker.io/usercont/packit-service-worker:stg
 
 ARG SOURCE_BRANCH
 RUN  if [[ -z $SOURCE_BRANCH ]]; then \

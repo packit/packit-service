@@ -509,6 +509,13 @@ class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
         result["action"] = result["action"].value
         return result
 
+    def get_base_project(self) -> GitProject:
+        fork = self.project.service.get_project(
+            namespace=self.source_repo_namespace,
+            repo=self.source_repo_name,
+        )
+        return fork
+
 
 class PullRequestGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
     def __init__(
@@ -584,6 +591,13 @@ class MergeRequestCommentGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEven
         result = super().get_dict()
         result["action"] = result["action"].value
         return result
+
+    def get_base_project(self) -> GitProject:
+        fork = self.project.service.get_project(
+            namespace=self.source_repo_namespace,
+            repo=self.source_repo_name,
+        )
+        return fork
 
 
 class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
