@@ -24,7 +24,7 @@
     required-projects:
       - github.com/packit/deployment
     pre-run:
-      - files/install-openshift.yaml
+      - files/setup-openshift.yaml
       - files/packit-service-image.yaml
       - files/deployment.yaml
     extra-vars:

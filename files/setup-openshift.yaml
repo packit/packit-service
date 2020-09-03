@@ -1,15 +1,7 @@
 ---
-- name: Install dependencies for packit service.
+- name: Setup cluster
   hosts: all
   tasks:
-    - name: Install basic utilities which should be in environment.
-      dnf:
-        name:
-          - git
-          - rpmdevtools
-          # - podman
-        state: present
-      become: true
     - name: Create sandbox project
       command: oc new-project packit-dev-sandbox
       environment:
