@@ -29,7 +29,7 @@ except ModuleNotFoundError:
 
 from packit_service.service.api.utils import response_maker
 from packit_service.service.api.parsers import indices, pagination_arguments
-from packit_service.models import SRPMBuildModel
+from packit_service.models import SRPMBuildModel, optional_time
 
 # from packit_service.service.urls import get_srpm_log_url_from_flask
 from flask import url_for
@@ -56,6 +56,7 @@ class SRPMBuildsList(Resource):
                 "log_url": url_for(
                     "builds.get_srpm_build_logs_by_id", id_=build.id, _external=True
                 ),
+                "build_submitted_time": optional_time(build.build_submitted_time),
             }
             project = build.get_project()
 
