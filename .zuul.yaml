@@ -12,8 +12,7 @@
 
 - job:
     name: packit-service-cluster
-    parent: base
-    attempts: 1
+    parent: oc-cluster-up
     description: Deploy packit-service in a cluster
     # this will clone the deployment repo to a predictable path
     required-projects:
@@ -24,11 +23,6 @@
       - files/deployment.yaml
     extra-vars:
       with_testing: true
-      ansible_python_interpreter: /usr/bin/python3
-    nodeset:
-      nodes:
-        - name: test-node
-          label: cloud-fedora-30
 
 - job:
     name: packit-service-tests

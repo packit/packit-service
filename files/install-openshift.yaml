@@ -1,5 +1,4 @@
 ---
-# deploy an openshift cluster to the current env - e.g. in Zuul
 - name: Install dependencies for packit service.
   hosts: all
   tasks:
@@ -11,67 +10,11 @@
           # - podman
         state: present
       become: true
-    # Docs: https://docs.docker.com/install/linux/docker-ce/fedora/
-    - name: Setup Docker CE repo
-      get_url:
-        url: https://download.docker.com/linux/fedora/docker-ce.repo
-        dest: /etc/yum.repos.d/docker-ce.repo
-        mode: 0644
-      become: true
-    - name: Install Docker CE
-      dnf:
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-        state: present
-      become: true
-    - name: Put SELinux in permissive mode, logging actions that would be blocked.
-      selinux:
-        policy: targeted
-        state: permissive
-      become: true
-    - name: Make sure docker is running
-      systemd:
-        name: docker
-        state: started
-      become: true
-    - name: Create docker deamon config
-      file:
-        path: /etc/docker/daemon.json
-        state: touch
-      become: true
-    - name: Add OpenShift insecure registry into docker deamon config
-      copy:
-        content: |
-          {"insecure-registries" : [ "172.30.0.0/16" ]}
-        dest: /etc/docker/daemon.json
-      become: true
-    - name: Restart docker because config has changed
-      systemd:
-        state: restarted
-        daemon_reload: yes
-        name: docker
-      become: true
-    - name: Install OpenShift server
-      dnf:
-        name:
-          - origin
-        state: present
-      become: true
-    - name: Start Openshift cluster
-      command: oc cluster up --base-dir=/tmp --enable="-centos-imagestreams,-sample-templates,persistent-volumes,registry,router,-web-console"
-      environment:
-        PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
-        DOCKER_CONFIG: "/etc/docker/daemon.json"
-      become: true
-
     - name: Create sandbox project
       command: oc new-project packit-dev-sandbox
       environment:
         PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
       become: true
-
     - name: Switch back to myproject
       command: oc project myproject
       environment:
