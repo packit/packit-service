@@ -88,7 +88,6 @@ services:
     command: /usr/bin/run_httpd.sh
     depends_on:
       - redis
-      - fedora-messaging
       - postgres
     ports:
       - 8443:8443
@@ -116,6 +115,7 @@ services:
     depends_on:
       - redis
     environment:
+      DEPLOYMENT: dev
       FEDORA_MESSAGING_CONF: /home/packit/.config/fedora.toml
       REDIS_SERVICE_HOST: redis
     volumes:
@@ -129,6 +129,7 @@ services:
     depends_on:
       - redis
     environment:
+      DEPLOYMENT: dev
       LOG_LEVEL: DEBUG
       REDIS_SERVICE_HOST: redis
     volumes:

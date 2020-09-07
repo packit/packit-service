@@ -21,6 +21,7 @@
           - python3-psycopg2
           #- python3-celery # don't, the liveness probe doesn't work
           - python3-redis
+          - python3-boto3 # AWS SDK
           - python3-lazy-object-proxy
           - python3-bugzilla # python-bugzilla (not bugzilla) on PyPI
           - python3-backoff # Bugzilla class

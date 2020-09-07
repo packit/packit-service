@@ -40,6 +40,7 @@ check_in_container: test_image
 		--env COV_REPORT \
 		--env TEST_TARGET \
 		--env COLOR \
+		--env REDIS_SERVICE_HOST=redis \
 		-v $(CURDIR):/src \
 		-w /src \
 		--security-opt label=disable \

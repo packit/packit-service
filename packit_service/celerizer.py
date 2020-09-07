@@ -36,17 +36,27 @@ class Celerizer:
     @property
     def celery_app(self):
         if self._celery_app is None:
-            password = getenv("REDIS_PASSWORD", "")
-            host = getenv("REDIS_SERVICE_HOST", "redis")
-            port = getenv("REDIS_SERVICE_PORT", "6379")
-            db = getenv("REDIS_SERVICE_DB", "0")
-            redis_url = f"redis://:{password}@{host}:{port}/{db}"
+            bt_options = {}
+            if getenv("AWS_ACCESS_KEY_ID") and getenv("AWS_SECRET_ACCESS_KEY"):
+                broker_url = "sqs://"
+                if not getenv("QUEUE_NAME_PREFIX"):
+                    raise ValueError("QUEUE_NAME_PREFIX not set")
+                bt_options["queue_name_prefix"] = getenv("QUEUE_NAME_PREFIX")
+            elif getenv("REDIS_SERVICE_HOST"):
+                host = getenv("REDIS_SERVICE_HOST")
+                password = getenv("REDIS_PASSWORD", "")
+                port = getenv("REDIS_SERVICE_PORT", "6379")
+                db = getenv("REDIS_SERVICE_DB", "0")
+                broker_url = f"redis://:{password}@{host}:{port}/{db}"
+            else:
+                raise ValueError("Celery broker not configured")
 
             # https://docs.celeryproject.org/en/stable/userguide/configuration.html#database-url-examples
             postgres_url = f"db+{get_pg_url()}"
 
             # http://docs.celeryproject.org/en/latest/reference/celery.html#celery.Celery
-            self._celery_app = Celery(backend=postgres_url, broker=redis_url)
+            self._celery_app = Celery(backend=postgres_url, broker=broker_url)
+            self._celery_app.conf.broker_transport_options = bt_options
 
             days = int(getenv("CELERY_RESULT_EXPIRES", "30"))
             # https://docs.celeryproject.org/en/latest/userguide/configuration.html#result-expires

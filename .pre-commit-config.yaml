@@ -22,6 +22,9 @@ repos:
         exclude: zuul.d
       - id: detect-private-key
         exclude: tests/conftest.py
+      - id: detect-aws-credentials
+        args:
+          - --allow-missing-credentials
       - id: end-of-file-fixer
       - id: trailing-whitespace
   - repo: https://gitlab.com/pycqa/flake8

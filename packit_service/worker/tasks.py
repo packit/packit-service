@@ -76,6 +76,7 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("github").setLevel(logging.WARNING)
 logging.getLogger("kubernetes").setLevel(logging.WARNING)
+logging.getLogger("botocore").setLevel(logging.WARNING)
 # info is just enough
 logging.getLogger("ogr").setLevel(logging.INFO)
 # easier debugging
