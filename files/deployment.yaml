@@ -6,6 +6,17 @@
     deployment_dir: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/packit/deployment'].src_dir }}"
     as_root: true # needs to run as root in zuul
   tasks:
+    - name: Install packages for deployment
+      dnf:
+        name:
+          - git
+          - ansible
+          - python3-openshift
+          - make
+          - skopeo
+          # - podman
+      become: true
+
     - name: clone deployment repo when not running in zuul
       block:
         - set_fact: deployment_dir=/tmp/deployment
@@ -17,15 +28,6 @@
             clone: yes
       when: zuul is not defined
 
-    - name: Install packages for deployment
-      dnf:
-        name:
-          - ansible
-          - python3-openshift
-          - make
-          - skopeo
-          # - podman
-      become: true
     - name: get token
       command: oc whoami -t
       register: kubeconfig_token

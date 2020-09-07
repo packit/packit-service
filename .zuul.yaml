@@ -11,26 +11,6 @@
         - pre-commit
 
 - job:
-    name: packit-service-cluster
-    parent: base
-    attempts: 1
-    description: Deploy packit-service in a cluster
-    # this will clone the deployment repo to a predictable path
-    required-projects:
-      - github.com/packit/deployment
-    pre-run:
-      - files/install-openshift.yaml
-      - files/packit-service-image.yaml
-      - files/deployment.yaml
-    extra-vars:
-      with_testing: true
-      ansible_python_interpreter: /usr/bin/python3
-    nodeset:
-      nodes:
-        - name: test-node
-          label: cloud-fedora-30
-
-- job:
     name: packit-service-tests
     parent: base
     description: Run tests of packit-service
@@ -38,6 +18,15 @@
 
 - job:
     name: packit-service-tests-requre
-    parent: packit-service-cluster
-    description: Run tests with requre support
+    parent: oc-cluster-up
+    description: Run tests with requre support in a cluster
+    # this will clone the deployment repo to a predictable path
+    required-projects:
+      - github.com/packit/deployment
+    pre-run:
+      - files/setup-openshift.yaml
+      - files/packit-service-image.yaml
+      - files/deployment.yaml
+    extra-vars:
+      with_testing: true
     run: files/zuul-tests-requre.yaml
