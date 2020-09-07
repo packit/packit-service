@@ -43,7 +43,7 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
 
 
 @pytest.mark.parametrize(
-    "tests_result,tests_message,tests_tests,status_status,status_message",
+    "tests_result,tests_message,tests_tests,status_status,status_message,status_url",
     [
         pytest.param(
             TFResult.passed,
@@ -57,6 +57,7 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
             ],
             CommitStatus.success,
             "Installation passed",
+            "some url",
             id="only_instalation_passed",
         ),
         pytest.param(
@@ -71,6 +72,7 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
             ],
             CommitStatus.failure,
             "Installation failed",
+            "some url",
             id="only_instalation_failed",
         ),
         pytest.param(
@@ -85,6 +87,7 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
             ],
             CommitStatus.success,
             "some message",
+            "some url",
             id="only_instalation_not_provided_passed",
         ),
         pytest.param(
@@ -99,6 +102,7 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
             ],
             CommitStatus.failure,
             "some message",
+            "some url",
             id="only_instalation_not_provided_failed",
         ),
         pytest.param(
@@ -118,6 +122,7 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
             ],
             CommitStatus.success,
             "some message",
+            "some url",
             id="only_instalation_mutliple_results_passed",
         ),
         pytest.param(
@@ -137,6 +142,7 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
             ],
             CommitStatus.failure,
             "some message",
+            "some url",
             id="only_instalation_mutliple_results_failed",
         ),
         pytest.param(
@@ -156,12 +162,28 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
             ],
             CommitStatus.failure,
             "some message",
+            "some url",
             id="only_instalation_mutliple_results_failed_different",
+        ),
+        pytest.param(
+            TFResult.error,
+            "Command '['git', 'clone', 'https://github.com/psss/tmt.git' , 'source']'"
+            " failed with exit code 128",
+            [],
+            CommitStatus.error,
+            "Problem with Testing-Farm cluster",
+            "https://pagure.io/centos-infra/issue/85",
+            id="cluster_error",
         ),
     ],
 )
 def test_testing_farm_response(
-    tests_result, tests_message, tests_tests, status_status, status_message
+    tests_result,
+    tests_message,
+    tests_tests,
+    status_status,
+    status_message,
+    status_url,
 ):
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
@@ -210,7 +232,7 @@ def test_testing_farm_response(
     flexmock(StatusReporter).should_receive("report").with_args(
         state=status_status,
         description=status_message,
-        url="some url",
+        url=status_url,
         check_names="packit-stg/testing-farm-fedora-rawhide-x86_64",
     )
 

@@ -169,7 +169,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             msg = "Failed to post request to testing farm API."
             logger.debug("Failed to post request to testing farm API.")
             self.report_status_to_test_for_chroot(
-                state=CommitStatus.failure,
+                state=CommitStatus.error,
                 description=msg,
                 chroot=chroot,
             )
