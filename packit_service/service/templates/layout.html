@@ -10,9 +10,7 @@
       rel="shortcut icon"
       href="{{ url_for('static', filename='packit.png') }}"
     />
-    <title>
-      {% block title %}{% endblock %}
-    </title>
+    <title>{% block title %}{% endblock %}</title>
   </head>
   <body id="build-result-page">
     {% block content %}{% endblock %}
