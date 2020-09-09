@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 import logging
-from typing import Optional, Set
+from typing import Optional, List
 
 from ogr.abstract import CommitStatus, PullRequest
 from packit.config import JobType, JobConfig, PackageConfig
@@ -94,7 +94,7 @@ class PagurePullRequestLabelHandler(JobHandler):
         package_config: PackageConfig,
         job_config: JobConfig,
         data: EventData,
-        labels: Set[str],
+        labels: List[str],
         action: PullRequestLabelAction,
         base_repo_owner: str,
         base_repo_name: str,
@@ -103,7 +103,7 @@ class PagurePullRequestLabelHandler(JobHandler):
         super().__init__(
             package_config=package_config, job_config=job_config, data=data
         )
-        self.labels = labels
+        self.labels = set(labels)
         self.action = action
         self.base_repo_owner = base_repo_owner
         self.base_repo_name = base_repo_name
