@@ -106,14 +106,22 @@ class TestingFarmResultsHandler(JobHandler):
         if self.result == TestingFarmResult.passed:
             status = CommitStatus.success
             passed = True
-
+        elif self.result == TestingFarmResult.error:
+            status = CommitStatus.error
+            passed = False
         else:
             status = CommitStatus.failure
             passed = False
 
+        github_status_url = self.log_url
         if len(self.tests) == 1 and self.tests[0].name == "/install/copr-build":
             logger.debug("No-fmf scenario discovered.")
             short_msg = "Installation passed" if passed else "Installation failed"
+        elif self.message.startswith(
+            "Command '['git', 'clone'"
+        ) and self.message.endswith("failed with exit code 128"):
+            short_msg = "Problem with Testing-Farm cluster"
+            github_status_url = "https://pagure.io/centos-infra/issue/85"
         else:
             short_msg = self.message
 
@@ -123,7 +131,7 @@ class TestingFarmResultsHandler(JobHandler):
         status_reporter.report(
             state=status,
             description=short_msg,
-            url=self.log_url,
+            url=github_status_url,
             check_names=TestingFarmJobHelper.get_test_check(self.copr_chroot),
         )
 
