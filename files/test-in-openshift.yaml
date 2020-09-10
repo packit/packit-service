@@ -38,6 +38,11 @@ objects:
                     secretKeyRef:
                       key: database-password
                       name: postgres-secret
+                - name: POSTGRESQL_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-host
+                      name: postgres-secret
                 - name: POSTGRESQL_DATABASE
                   valueFrom:
                     secretKeyRef:

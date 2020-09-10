@@ -63,6 +63,7 @@ services:
       KRB5CCNAME: FILE:/tmp/krb5cc_packit
       POSTGRESQL_USER: packit
       POSTGRESQL_PASSWORD: secret-password
+      POSTGRESQL_HOST: postgres
       POSTGRESQL_DATABASE: packit
     volumes:
       - ./packit_service:/src/packit_service:ro,z
@@ -96,6 +97,7 @@ services:
       REDIS_SERVICE_HOST: redis
       POSTGRESQL_USER: packit
       POSTGRESQL_PASSWORD: secret-password
+      POSTGRESQL_HOST: postgres
       POSTGRESQL_DATABASE: packit
     volumes:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
