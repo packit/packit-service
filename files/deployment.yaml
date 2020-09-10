@@ -110,9 +110,8 @@
           # we don't need these services while testing p-s now
           with_fedmsg: false
           with_centosmsg: false
-          with_redis_commander: false
-          with_flower: false
           with_dashboard: false
+          with_pushgateway: false
           push_dev_images: true
         dest: "{{ deployment_dir }}/vars/dev.yml"
     - name: Actually deploy
