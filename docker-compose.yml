@@ -4,8 +4,6 @@ services:
   redis:
     image: registry.fedoraproject.org/f31/redis
     container_name: redis
-    environment:
-      REDIS_PASSWORD: redispasswd
     ports:
       - 6379:6379
     user: "123123"
@@ -17,7 +15,6 @@ services:
     environment:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      REDIS_PASSWORD: redispasswd
     ports:
       - 8081:8081
     depends_on:
@@ -33,14 +30,7 @@ services:
       - redis
     environment:
       FLOWER_DEBUG: "True"
-      CELERY_BROKER_URL: redis://:redispasswd@redis:6379/0
-      # TODO: Why these don't work, even when prefixed with additional CELERY_ as described in
-      # https://www.distributedpython.com/2018/10/13/flower-docker/
-      #CELERY_BROKER_TRANSPORT: redis
-      #CELERY_REDIS_PASSWORD: redispasswd
-      #CELERY_REDIS_HOST: redis
-      #CELERY_REDIS_PORT: 6379
-      #CELERY_REDIS_DB: 0
+      CELERY_BROKER_URL: redis://redis:6379/0
     user: "123123"
 
   postgres:
@@ -69,11 +59,11 @@ services:
     environment:
       DEPLOYMENT: dev
       REDIS_SERVICE_HOST: redis
-      REDIS_PASSWORD: redispasswd
       APP: packit_service.worker.tasks
       KRB5CCNAME: FILE:/tmp/krb5cc_packit
       POSTGRESQL_USER: packit
       POSTGRESQL_PASSWORD: secret-password
+      POSTGRESQL_HOST: postgres
       POSTGRESQL_DATABASE: packit
     volumes:
       - ./packit_service:/src/packit_service:ro,z
@@ -99,16 +89,15 @@ services:
     command: /usr/bin/run_httpd.sh
     depends_on:
       - redis
-      - fedora-messaging
       - postgres
     ports:
       - 8443:8443
     environment:
       DEPLOYMENT: dev
       REDIS_SERVICE_HOST: redis
-      REDIS_PASSWORD: redispasswd
       POSTGRESQL_USER: packit
       POSTGRESQL_PASSWORD: secret-password
+      POSTGRESQL_HOST: postgres
       POSTGRESQL_DATABASE: packit
     volumes:
       - ./packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z
@@ -125,10 +114,12 @@ services:
   fedora-messaging:
     container_name: fedora-messaging
     image: docker.io/usercont/packit-service-fedmsg:dev
+    depends_on:
+      - redis
     environment:
+      DEPLOYMENT: dev
       FEDORA_MESSAGING_CONF: /home/packit/.config/fedora.toml
       REDIS_SERVICE_HOST: redis
-      REDIS_PASSWORD: redispasswd
     volumes:
       # get it from secrets
       - ./secrets/dev/fedora.toml:/home/packit/.config/fedora.toml:ro,Z
@@ -140,9 +131,9 @@ services:
     depends_on:
       - redis
     environment:
+      DEPLOYMENT: dev
       LOG_LEVEL: DEBUG
       REDIS_SERVICE_HOST: redis
-      REDIS_PASSWORD: redispasswd
     volumes:
       - ./secrets/dev/centos-server-ca.cert:/secrets/centos-server-ca.cert:ro,Z
       - ./secrets/dev/centos.cert:/secrets/centos.cert:ro,Z
