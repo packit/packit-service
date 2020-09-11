@@ -62,7 +62,7 @@ def get_pg_url() -> str:
     """ create postgresql connection string """
     return (
         f"postgres+psycopg2://{os.getenv('POSTGRESQL_USER')}"
-        f":{os.getenv('POSTGRESQL_PASSWORD')}@{os.getenv('POSTGRES_SERVICE_HOST', 'postgres')}"
+        f":{os.getenv('POSTGRESQL_PASSWORD')}@{os.getenv('POSTGRESQL_HOST', 'postgres')}"
         f":{os.getenv('POSTGRESQL_PORT', '5432')}/{os.getenv('POSTGRESQL_DATABASE')}"
     )
 
