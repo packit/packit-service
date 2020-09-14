@@ -43,6 +43,9 @@ from packit_service.worker.handlers.github_handlers import (
     GitHubPullRequestCommentCoprBuildHandler,
     GitHubIssueCommentProposeUpdateHandler,
 )
+from packit_service.worker.handlers.pagure_handlers import (
+    PagurePullRequestCommentCoprBuildHandler,
+)
 from packit_service.worker.jobs import (
     get_handlers_for_event,
     get_config_for_handler_kls,
@@ -1037,6 +1040,18 @@ def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
                 ),
             ],
             id="multiple_copr_builds_for_pr",
+        ),
+        pytest.param(
+            PagurePullRequestCommentCoprBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.pull_request,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
+            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
+            id="pagure_pr_copr_build_comment_when_tests_defined",
         ),
     ],
 )
