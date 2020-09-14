@@ -127,7 +127,9 @@ class TestingFarmResultsHandler(JobHandler):
 
         if test_run_model:
             test_run_model.set_web_url(self.log_url)
-        status_reporter = StatusReporter(self.project, self.data.commit_sha)
+        status_reporter = StatusReporter(
+            project=self.project, commit_sha=self.data.commit_sha, pr_id=self.data.pr_id
+        )
         status_reporter.report(
             state=status,
             description=short_msg,
