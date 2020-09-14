@@ -34,7 +34,12 @@ from packit_service.service.events import (
 )
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.handlers import CommentActionHandler
-from packit_service.worker.handlers.abstract import use_for, JobHandler, TaskName
+from packit_service.worker.handlers.abstract import (
+    required_by,
+    use_for,
+    JobHandler,
+    TaskName,
+)
 from packit_service.worker.handlers.comment_action_handler import CommentAction
 from packit_service.worker.psbugzilla import Bugzilla
 from packit_service.worker.reporting import StatusReporter
@@ -45,6 +50,7 @@ logger = logging.getLogger(__name__)
 
 @use_for(JobType.build)
 @use_for(JobType.copr_build)
+@required_by(job_type=JobType.tests)
 class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
     """ Handler for PR comment `/packit copr-build` """
 
