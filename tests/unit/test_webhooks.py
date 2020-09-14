@@ -70,8 +70,9 @@ def test_validate_signature(mock_config, digest, is_good):
     "token, is_good",
     [
         (
-            "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lc3BhY2UiOiJuYW1lc3BhY2UiLC"
-            "JyZXBvX25hbWUiOiJyZXBvIn0.RyA-LyyWKoi7FqblsFH7jkiiH4ZdFWyoLYPxFhThWwQ",
+            "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9."
+            "eyJuYW1lc3BhY2UiOiJtdWx0aS9wYXJ0L25hbWVzcGFjZSIsInJlcG9fbmFtZSI6InJlcG8ifQ."
+            "r5-khuzdQJ3b15KZt3E1AqFXjtKfFn_Q1BBwkq04Mf8",
             True,
         ),
         ("guyirhgrehjguyrhg", False),
@@ -79,7 +80,10 @@ def test_validate_signature(mock_config, digest, is_good):
     ],
 )
 def test_validate_token(mock_config, token, is_good):
-    payload = b'{"project": {"path_with_namespace": "namespace/repo"}}'
+    payload = (
+        b'{"project": {"path_with_namespace": "multi/part/namespace/repo", '
+        b'"http_url": "https://gitlab.com/multi/part/namespace/repo.git"}}'
+    )
     headers = {"X-Gitlab-Token": f"{token}"}
 
     # flexmock config before import as it fails on looking for config

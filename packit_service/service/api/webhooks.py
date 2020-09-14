@@ -29,6 +29,8 @@ import json
 from flask import request
 from prometheus_client import Counter
 
+from ogr.parsing import parse_git_repo
+
 try:
     from flask_restx import Namespace, Resource, fields
 except ModuleNotFoundError:
@@ -212,16 +214,18 @@ class GitlabWebhook(Resource):
     def create_confidential_issue_with_token(self):
         project_data = request.json["project"]
 
-        namespace, repo_name = project_data["path_with_namespace"].split("/")
         http_url = project_data["git_http_url"]
+        parsed_url = parse_git_repo(potential_url=http_url)
 
         project_authentication_issue = ProjectAuthenticationIssueModel.get_project(
-            namespace=namespace, repo_name=repo_name, project_url=http_url
+            namespace=parsed_url.namespace,
+            repo_name=parsed_url.repo,
+            project_url=http_url,
         )
 
         if not project_authentication_issue:
             token = jwt.encode(
-                {"namespace": namespace, "repo_name": repo_name},
+                {"namespace": parsed_url.namespace, "repo_name": parsed_url.repo},
                 config.gitlab_token_secret,
                 algorithm="HS256",
             ).decode("utf-8")
@@ -231,12 +235,13 @@ class GitlabWebhook(Resource):
 
             project.create_issue(
                 title="Packit-Service Authentication",
-                body=f"To configure Packit-Service with `{repo_name}` you need to\n"
+                body=f"To configure Packit-Service with `{parsed_url.repo}` you need to\n"
                 f"configure the webhook settings. Head to {project.get_web_url()}/hooks and add\n"
                 f"the Secret Token `{token}` to authenticate requests coming to Packit.\n\n"
                 f"Packit needs rights to set commit status to merge requests, Please grant\n"
                 f"[{packit_user}](https://gitlab.com/{packit_user}) `admin` permissions\n"
-                f"on the {namespace}/{repo_name} project. You can add the rights by clicking\n"
+                f"on the {parsed_url.namespace}/{parsed_url.repo} project. "
+                f"You can add the rights by clicking\n"
                 f"[here]({project.get_web_url()}/-/project_members).",
                 private=True,
             )
@@ -244,8 +249,8 @@ class GitlabWebhook(Resource):
             logger.info("Confidential issue created successfully.")
 
             ProjectAuthenticationIssueModel.create(
-                namespace=namespace,
-                repo_name=repo_name,
+                namespace=parsed_url.namespace,
+                repo_name=parsed_url.repo,
                 project_url=http_url,
                 issue_created=True,
             )
@@ -291,11 +296,14 @@ class GitlabWebhook(Resource):
             raise ValidationFailed(msg_failed_error)
 
         project_data = json.loads(request.data)["project"]
-        namespace, repo_name = project_data["path_with_namespace"].split("/")
+        parsed_url = parse_git_repo(potential_url=project_data["http_url"])
         token_namespace = token_decoded["namespace"]
         token_repo_name = token_decoded["repo_name"]
 
-        if (token_namespace, token_repo_name) == (namespace, repo_name):
+        if (token_namespace, token_repo_name) == (
+            parsed_url.namespace,
+            parsed_url.repo,
+        ):
             logger.debug("Payload signature is OK.")
         else:
             msg_failed_validation = "Signature of the payload token is not valid."
