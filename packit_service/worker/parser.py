@@ -27,6 +27,7 @@ import logging
 from functools import partial
 from typing import Optional, Union, List, Dict
 
+from ogr.parsing import parse_git_repo
 from packit.utils import nested_get
 
 from packit_service.constants import KojiBuildState
@@ -206,29 +207,29 @@ class Parser:
             logger.warning("No object iid from the event.")
             return None
 
-        source_repo_path_with_namespace = nested_get(
-            event, "object_attributes", "source", "path_with_namespace"
-        )
-        if not source_repo_path_with_namespace:
-            logger.warning("No source path from the event.")
+        source_project_url = nested_get(event, "object_attributes", "source", "web_url")
+        if not source_project_url:
+            logger.warning("Source project url not found in the event.")
             return None
-        source_repo_namespace, source_repo_name = source_repo_path_with_namespace.split(
-            "/"
+        parsed_source_url = parse_git_repo(potential_url=source_project_url)
+        logger.info(
+            f"Source: "
+            f"repo={parsed_source_url.repo} "
+            f"namespace={parsed_source_url.namespace} "
+            f"url={source_project_url}."
         )
 
-        target_repo_path_with_namespace = nested_get(
-            event, "object_attributes", "target", "path_with_namespace"
-        )
-        if not target_repo_path_with_namespace:
-            logger.warning("No target path from the event.")
+        target_project_url = nested_get(event, "project", "web_url")
+        if not target_project_url:
+            logger.warning("Target project url not found in the event.")
             return None
-        target_repo_namespace, target_repo_name = target_repo_path_with_namespace.split(
-            "/"
+        parsed_target_url = parse_git_repo(potential_url=target_project_url)
+        logger.info(
+            f"Target: "
+            f"repo={parsed_target_url.repo} "
+            f"namespace={parsed_target_url.namespace} "
+            f"url={target_project_url}."
         )
-
-        logger.info(f"Target repo: {target_repo_path_with_namespace}.")
-
-        https_url = nested_get(event, "object_attributes", "target", "web_url")
 
         commit_sha = nested_get(event, "object_attributes", "last_commit", "id")
 
@@ -237,11 +238,11 @@ class Parser:
             username=username,
             object_id=object_id,
             object_iid=object_iid,
-            source_repo_name=source_repo_name,
-            source_repo_namespace=source_repo_namespace,
-            target_repo_namespace=target_repo_namespace,
-            target_repo_name=target_repo_name,
-            https_url=https_url,
+            source_repo_namespace=parsed_source_url.namespace,
+            source_repo_name=parsed_source_url.repo,
+            target_repo_namespace=parsed_target_url.namespace,
+            target_repo_name=parsed_target_url.repo,
+            project_url=target_project_url,
             commit_sha=commit_sha,
         )
 
@@ -343,20 +344,21 @@ class Parser:
             f"({number_of_commits} {'commit' if number_of_commits == 1 else 'commits'})"
         )
 
-        repo_path_with_namespace = nested_get(event, "project", "path_with_namespace")
-
-        if not repo_path_with_namespace:
-            logger.warning("No full name of the repository.")
+        project_url = nested_get(event, "project", "web_url")
+        if not project_url:
+            logger.warning("Target project url not found in the event.")
             return None
-        repo_namespace, repo_name = repo_path_with_namespace.split("/")
-
-        repo_url = nested_get(event, "project", "web_url")
-        if not repo_url:
-            logger.warning("No repo url info from event.")
+        parsed_url = parse_git_repo(potential_url=project_url)
+        logger.info(
+            f"Project: "
+            f"repo={parsed_url.repo} "
+            f"namespace={parsed_url.namespace} "
+            f"url={project_url}."
+        )
 
         return PushGitlabEvent(
-            repo_namespace=repo_namespace,
-            repo_name=repo_name,
+            repo_namespace=parsed_url.namespace,
+            repo_name=parsed_url.repo,
             git_ref=ref,
             project_url=project_url,
             commit_sha=head_commit,
@@ -485,28 +487,30 @@ class Parser:
             f"Gitlab issue ID: {issue_id} IID: {issue_iid} comment: {comment!r} {action!r} event."
         )
 
-        repo_path_with_namespace = nested_get(event, "project", "path_with_namespace")
-        if not repo_path_with_namespace:
-            logger.warning("No path from the event.")
+        project_url = nested_get(event, "project", "web_url")
+        if not project_url:
+            logger.warning("Target project url not found in the event.")
             return None
-        repo_namespace, repo_name = repo_path_with_namespace.split("/")
-
-        logger.info(f"Repo: {repo_path_with_namespace}.")
+        parsed_url = parse_git_repo(potential_url=project_url)
+        logger.info(
+            f"Project: "
+            f"repo={parsed_url.repo} "
+            f"namespace={parsed_url.namespace} "
+            f"url={project_url}."
+        )
 
         username = nested_get(event, "user", "username")
         if not username:
             logger.warning("No Gitlab username from event.")
             return None
 
-        https_url = event["project"]["web_url"]
-
         return IssueCommentGitlabEvent(
             action=GitlabEventAction[action],
             issue_id=issue_id,
             issue_iid=issue_iid,
-            repo_namespace=repo_namespace,
-            repo_name=repo_name,
-            https_url=https_url,
+            repo_namespace=parsed_url.namespace,
+            repo_name=parsed_url.repo,
+            project_url=project_url,
             username=username,
             comment=comment,
         )
@@ -544,27 +548,29 @@ class Parser:
             f"Gitlab MR id#{object_id} iid#{object_iid} comment: {comment!r} {action!r} event."
         )
 
-        source_repo_path_with_namespace = nested_get(
-            event, "merge_request", "source", "path_with_namespace"
-        )
-        if not source_repo_path_with_namespace:
-            logger.warning("No source path from the event.")
+        source_project_url = nested_get(event, "merge_request", "source", "web_url")
+        if not source_project_url:
+            logger.warning("Source project url not found in the event.")
             return None
-        source_repo_namespace, source_repo_name = source_repo_path_with_namespace.split(
-            "/"
+        parsed_source_url = parse_git_repo(potential_url=source_project_url)
+        logger.info(
+            f"Source: "
+            f"repo={parsed_source_url.repo} "
+            f"namespace={parsed_source_url.namespace} "
+            f"url={source_project_url}."
         )
 
-        target_repo_path_with_namespace = nested_get(
-            event, "merge_request", "target", "path_with_namespace"
-        )
-        if not target_repo_path_with_namespace:
-            logger.warning("No target path from the event.")
+        target_project_url = nested_get(event, "project", "web_url")
+        if not target_project_url:
+            logger.warning("Target project url not found in the event.")
             return None
-        target_repo_namespace, target_repo_name = target_repo_path_with_namespace.split(
-            "/"
+        parsed_target_url = parse_git_repo(potential_url=target_project_url)
+        logger.info(
+            f"Target: "
+            f"repo={parsed_target_url.repo} "
+            f"namespace={parsed_target_url.namespace} "
+            f"url={target_project_url}."
         )
-
-        logger.info(f"Target repo: {target_repo_path_with_namespace}.")
 
         username = nested_get(event, "user", "username")
         if not username:
@@ -576,16 +582,15 @@ class Parser:
             logger.warning("No commit_sha from the event.")
             return None
 
-        https_url = event["project"]["web_url"]
         return MergeRequestCommentGitlabEvent(
             action=GitlabEventAction[action],
             object_id=object_id,
             object_iid=object_iid,
-            source_repo_namespace=source_repo_namespace,
-            source_repo_name=source_repo_name,
-            target_repo_namespace=target_repo_namespace,
-            target_repo_name=target_repo_name,
-            https_url=https_url,
+            source_repo_namespace=parsed_source_url.namespace,
+            source_repo_name=parsed_source_url.repo,
+            target_repo_namespace=parsed_target_url.namespace,
+            target_repo_name=parsed_target_url.repo,
+            project_url=target_project_url,
             username=username,
             comment=comment,
             commit_sha=commit_sha,
