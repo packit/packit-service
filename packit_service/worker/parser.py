@@ -296,7 +296,7 @@ class Parser:
             base_ref=base_ref,
             target_repo_namespace=target_repo_namespace,
             target_repo_name=target_repo_name,
-            https_url=https_url,
+            project_url=https_url,
             commit_sha=commit_sha,
             user_login=user_login,
         )
@@ -358,7 +358,7 @@ class Parser:
             repo_namespace=repo_namespace,
             repo_name=repo_name,
             git_ref=ref,
-            project_url=repo_url,
+            project_url=project_url,
             commit_sha=head_commit,
         )
 

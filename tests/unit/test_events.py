@@ -249,7 +249,9 @@ class TestEvents:
         assert event_object.commit_sha == "1f6a716aa7a618a9ffe56970d77177d99d100022"
         assert event_object.target_repo_namespace == "testing-packit"
         assert event_object.target_repo_name == "hello-there"
-        assert event_object.https_url == "https://gitlab.com/testing-packit/hello-there"
+        assert (
+            event_object.project_url == "https://gitlab.com/testing-packit/hello-there"
+        )
 
         assert isinstance(event_object.project, GitlabProject)
         assert event_object.project.full_repo_name == "testing-packit/hello-there"
@@ -383,7 +385,9 @@ class TestEvents:
         assert event_object.source_repo_name == "hello-there"
         assert event_object.target_repo_namespace == "testing-packit"
         assert event_object.target_repo_name == "hello-there"
-        assert event_object.https_url == "https://gitlab.com/testing-packit/hello-there"
+        assert (
+            event_object.project_url == "https://gitlab.com/testing-packit/hello-there"
+        )
         assert event_object.user_login == "shreyaspapi"
         assert event_object.comment == "must be reopened"
         assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"

@@ -249,7 +249,7 @@ def events(request) -> List[Tuple[AbstractGithubEvent, bool]]:
                     base_repo_name="",
                     target_repo_namespace=namespace,
                     target_repo_name="",
-                    https_url="example-url",
+                    project_url="example-url",
                     commit_sha="",
                     user_login=login,
                     base_ref="",
