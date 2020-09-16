@@ -237,11 +237,15 @@ class GitlabWebhook(Resource):
                 title="Packit-Service Authentication",
                 body=f"To configure Packit-Service with `{parsed_url.repo}` you need to\n"
                 f"configure the webhook settings. Head to {project.get_web_url()}/hooks and add\n"
-                f"the Secret Token `{token}` to authenticate requests coming to Packit.\n\n"
-                f"Packit needs rights to set commit status to merge requests, Please grant\n"
-                f"[{packit_user}](https://gitlab.com/{packit_user}) `admin` permissions\n"
+                "the following Secret Token to authenticate requests coming to Packit:\n"
+                "```\n"
+                f"{token}\n"
+                "```\n"
+                "\n"
+                "Packit also needs rights to set commit status to merge requests. Please, grant\n"
+                f"[{packit_user}](https://gitlab.com/{packit_user}) user `Developer` permissions\n"
                 f"on the {parsed_url.namespace}/{parsed_url.repo} project. "
-                f"You can add the rights by clicking\n"
+                "You can add the rights by clicking\n"
                 f"[here]({project.get_web_url()}/-/project_members).",
                 private=True,
             )
