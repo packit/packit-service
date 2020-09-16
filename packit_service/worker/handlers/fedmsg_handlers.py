@@ -26,50 +26,46 @@ This file defines classes for job handlers specific for Fedmsg events
 
 import logging
 from datetime import datetime
-from typing import Type, Optional
+from typing import Optional, Type
 
 from celery import signature
 
 from ogr.abstract import CommitStatus
 from ogr.services.github import GithubProject
+from ogr.services.gitlab import GitlabProject
 from packit.api import PackitAPI
-from packit.config import (
-    JobType,
-    JobConfig,
-    JobConfigTriggerType,
-)
+from packit.config import JobConfig, JobConfigTriggerType, JobType
 from packit.config.package_config import PackageConfig
 from packit.distgit import DistGit
 from packit.local_project import LocalProject
 from packit.utils import get_namespace_and_repo_name
-
 from packit_service.constants import (
-    PG_COPR_BUILD_STATUS_FAILURE,
-    PG_COPR_BUILD_STATUS_SUCCESS,
     COPR_API_SUCC_STATE,
     KojiBuildState,
+    PG_COPR_BUILD_STATUS_FAILURE,
+    PG_COPR_BUILD_STATUS_SUCCESS,
 )
-from packit_service.models import CoprBuildModel, KojiBuildModel, AbstractTriggerDbType
+from packit_service.models import AbstractTriggerDbType, CoprBuildModel, KojiBuildModel
 from packit_service.service.events import (
-    TheJobTriggerType,
     CoprBuildEvent,
-    KojiBuildEvent,
     EventData,
+    KojiBuildEvent,
+    TheJobTriggerType,
 )
 from packit_service.service.urls import (
     get_copr_build_info_url_from_flask,
     get_koji_build_info_url_from_flask,
 )
+from packit_service.utils import dump_job_config, dump_package_config
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.handlers.abstract import (
     JobHandler,
-    use_for,
-    required_by,
     TaskName,
+    required_by,
+    use_for,
 )
 from packit_service.worker.result import TaskResults
-from packit_service.utils import dump_package_config, dump_job_config
 
 logger = logging.getLogger(__name__)
 
@@ -269,7 +265,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             build_job_helper.job_build
             and build_job_helper.job_build.trigger == JobConfigTriggerType.pull_request
             and self.copr_event.pr_id
-            and isinstance(self.project, GithubProject)
+            and isinstance(self.project, (GithubProject, GitlabProject))
             and not self.was_last_packit_comment_with_congratulation()
             and self.job_config.notifications.pull_request.successful_build
         ):
