@@ -244,19 +244,19 @@ class TestEvents:
         assert event_object.action == GitlabEventAction.opened
         assert event_object.object_id == 58759529
         assert event_object.identifier == "1"
-        assert event_object.source_repo_namespace == "testing-packit"
+        assert event_object.source_repo_namespace == "testing/packit"
         assert event_object.source_repo_name == "hello-there"
         assert event_object.commit_sha == "1f6a716aa7a618a9ffe56970d77177d99d100022"
-        assert event_object.target_repo_namespace == "testing-packit"
+        assert event_object.target_repo_namespace == "testing/packit"
         assert event_object.target_repo_name == "hello-there"
         assert (
-            event_object.project_url == "https://gitlab.com/testing-packit/hello-there"
+            event_object.project_url == "https://gitlab.com/testing/packit/hello-there"
         )
 
         assert isinstance(event_object.project, GitlabProject)
-        assert event_object.project.full_repo_name == "testing-packit/hello-there"
+        assert event_object.project.full_repo_name == "testing/packit/hello-there"
 
-        assert event_object.base_project.full_repo_name == "testing-packit/hello-there"
+        assert event_object.base_project.full_repo_name == "testing/packit/hello-there"
 
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
@@ -280,9 +280,9 @@ class TestEvents:
         assert event_object.identifier == "2"
 
         assert isinstance(event_object.project, GitlabProject)
-        assert event_object.project.full_repo_name == "testing-packit/hello-there"
+        assert event_object.project.full_repo_name == "testing/packit/hello-there"
 
-        assert event_object.base_project.full_repo_name == "testing-packit/hello-there"
+        assert event_object.base_project.full_repo_name == "testing/packit/hello-there"
 
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
@@ -381,22 +381,22 @@ class TestEvents:
         assert event_object.trigger == TheJobTriggerType.pr_comment
         assert event_object.action == GitlabEventAction.opened
         assert event_object.pr_id == 2
-        assert event_object.source_repo_namespace == "testing-packit"
+        assert event_object.source_repo_namespace == "testing/packit"
         assert event_object.source_repo_name == "hello-there"
-        assert event_object.target_repo_namespace == "testing-packit"
+        assert event_object.target_repo_namespace == "testing/packit"
         assert event_object.target_repo_name == "hello-there"
         assert (
-            event_object.project_url == "https://gitlab.com/testing-packit/hello-there"
+            event_object.project_url == "https://gitlab.com/testing/packit/hello-there"
         )
         assert event_object.user_login == "shreyaspapi"
         assert event_object.comment == "must be reopened"
         assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
 
         assert isinstance(event_object.project, GitlabProject)
-        assert event_object.project.full_repo_name == "testing-packit/hello-there"
+        assert event_object.project.full_repo_name == "testing/packit/hello-there"
 
         assert isinstance(event_object.project, GitlabProject)
-        assert event_object.base_project.full_repo_name == "testing-packit/hello-there"
+        assert event_object.base_project.full_repo_name == "testing/packit/hello-there"
 
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
@@ -500,17 +500,17 @@ class TestEvents:
         assert event_object.action == GitlabEventAction.opened
         assert event_object.issue_id == 35452477
         assert event_object.issue_iid == 1
-        assert event_object.repo_namespace == "testing-packit"
+        assert event_object.repo_namespace == "testing/packit"
         assert event_object.repo_name == "hello-there"
 
         assert (
-            event_object.project_url == "https://gitlab.com/testing-packit/hello-there"
+            event_object.project_url == "https://gitlab.com/testing/packit/hello-there"
         )
         assert event_object.user_login == "shreyaspapi"
         assert event_object.comment == "testing comment"
 
         assert isinstance(event_object.project, GitlabProject)
-        assert event_object.project.full_repo_name == "testing-packit/hello-there"
+        assert event_object.project.full_repo_name == "testing/packit/hello-there"
 
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
@@ -560,16 +560,16 @@ class TestEvents:
 
         assert isinstance(event_object, PushGitlabEvent)
         assert event_object.trigger == TheJobTriggerType.push
-        assert event_object.repo_namespace == "testing-packit"
+        assert event_object.repo_namespace == "testing/packit"
         assert event_object.repo_name == "hello-there"
         assert event_object.commit_sha == "cb2859505e101785097e082529dced35bbee0c8f"
         assert (
-            event_object.project_url == "https://gitlab.com/testing-packit/hello-there"
+            event_object.project_url == "https://gitlab.com/testing/packit/hello-there"
         )
         assert event_object.git_ref == "test2"
 
         assert isinstance(event_object.project, GitlabProject)
-        assert event_object.project.full_repo_name == "testing-packit/hello-there"
+        assert event_object.project.full_repo_name == "testing/packit/hello-there"
         assert not event_object.base_project
 
         flexmock(PackageConfigGetter).should_receive(

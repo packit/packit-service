@@ -12,19 +12,19 @@
     "id": 18032222,
     "name": "Hello there",
     "description": "Hehehehe",
-    "web_url": "https://gitlab.com/testing-packit/hello-there",
+    "web_url": "https://gitlab.com/testing/packit/hello-there",
     "avatar_url": null,
-    "git_ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
-    "git_http_url": "https://gitlab.com/testing-packit/hello-there.git",
+    "git_ssh_url": "git@gitlab.com:testing/packit/hello-there.git",
+    "git_http_url": "https://gitlab.com/testing/packit/hello-there.git",
     "namespace": "Testing packit",
     "visibility_level": 20,
-    "path_with_namespace": "testing-packit/hello-there",
+    "path_with_namespace": "testing/packit/hello-there",
     "default_branch": "master",
     "ci_config_path": null,
-    "homepage": "https://gitlab.com/testing-packit/hello-there",
-    "url": "git@gitlab.com:testing-packit/hello-there.git",
-    "ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
-    "http_url": "https://gitlab.com/testing-packit/hello-there.git"
+    "homepage": "https://gitlab.com/testing/packit/hello-there",
+    "url": "git@gitlab.com:testing/packit/hello-there.git",
+    "ssh_url": "git@gitlab.com:testing/packit/hello-there.git",
+    "http_url": "https://gitlab.com/testing/packit/hello-there.git"
   },
   "object_attributes": {
     "attachment": null,
@@ -50,13 +50,13 @@
     "updated_at": "2020-06-04 22:01:29 UTC",
     "updated_by_id": null,
     "description": "testing comment",
-    "url": "https://gitlab.com/testing-packit/hello-there/-/issues/1#note_355677158"
+    "url": "https://gitlab.com/testing/packit/hello-there/-/issues/1#note_355677158"
   },
   "repository": {
     "name": "Hello there",
-    "url": "git@gitlab.com:testing-packit/hello-there.git",
+    "url": "git@gitlab.com:testing/packit/hello-there.git",
     "description": "Hehehehe",
-    "homepage": "https://gitlab.com/testing-packit/hello-there"
+    "homepage": "https://gitlab.com/testing/packit/hello-there"
   },
   "issue": {
     "author_id": 5647360,
@@ -81,7 +81,7 @@
     "updated_at": "2020-06-04 22:01:29 UTC",
     "updated_by_id": null,
     "weight": null,
-    "url": "https://gitlab.com/testing-packit/hello-there/-/issues/1",
+    "url": "https://gitlab.com/testing/packit/hello-there/-/issues/1",
     "total_time_spent": 0,
     "human_total_time_spent": null,
     "human_time_estimate": null,

@@ -16,19 +16,19 @@
     "id": 18032222,
     "name": "Hello there",
     "description": "Hehehehe",
-    "web_url": "https://gitlab.com/testing-packit/hello-there",
+    "web_url": "https://gitlab.com/testing/packit/hello-there",
     "avatar_url": null,
-    "git_ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
-    "git_http_url": "https://gitlab.com/testing-packit/hello-there.git",
+    "git_ssh_url": "git@gitlab.com:testing/packit/hello-there.git",
+    "git_http_url": "https://gitlab.com/testing/packit/hello-there.git",
     "namespace": "Testing packit",
     "visibility_level": 20,
-    "path_with_namespace": "testing-packit/hello-there",
+    "path_with_namespace": "testing/packit/hello-there",
     "default_branch": "master",
     "ci_config_path": null,
-    "homepage": "https://gitlab.com/testing-packit/hello-there",
-    "url": "git@gitlab.com:testing-packit/hello-there.git",
-    "ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
-    "http_url": "https://gitlab.com/testing-packit/hello-there.git"
+    "homepage": "https://gitlab.com/testing/packit/hello-there",
+    "url": "git@gitlab.com:testing/packit/hello-there.git",
+    "ssh_url": "git@gitlab.com:testing/packit/hello-there.git",
+    "http_url": "https://gitlab.com/testing/packit/hello-there.git"
   },
   "commits": [
     {
@@ -36,7 +36,7 @@
       "message": "Update README.md",
       "title": "Update README.md",
       "timestamp": "2020-06-04T23:14:57+00:00",
-      "url": "https://gitlab.com/testing-packit/hello-there/-/commit/cb2859505e101785097e082529dced35bbee0c8f",
+      "url": "https://gitlab.com/testing/packit/hello-there/-/commit/cb2859505e101785097e082529dced35bbee0c8f",
       "author": {
         "name": "Shreyas Papinwar",
         "email": "spapinwar@gmail.com"
@@ -50,11 +50,11 @@
   "push_options": {},
   "repository": {
     "name": "Hello there",
-    "url": "git@gitlab.com:testing-packit/hello-there.git",
+    "url": "git@gitlab.com:testing/packit/hello-there.git",
     "description": "Hehehehe",
-    "homepage": "https://gitlab.com/testing-packit/hello-there",
-    "git_http_url": "https://gitlab.com/testing-packit/hello-there.git",
-    "git_ssh_url": "git@gitlab.com:testing-packit/hello-there.git",
+    "homepage": "https://gitlab.com/testing/packit/hello-there",
+    "git_http_url": "https://gitlab.com/testing/packit/hello-there.git",
+    "git_ssh_url": "git@gitlab.com:testing/packit/hello-there.git",
     "visibility_level": 20
   }
 }
