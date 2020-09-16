@@ -261,6 +261,23 @@ def test_get_projects_prs(client, clean_before_and_after, a_copr_build_for_pr):
     assert response_dict[0]["srpm_builds"][0]["success"] is True
 
 
+def test_get_projects_prs_koji(client, clean_before_and_after, a_koji_build_for_pr):
+    """Test Get Project's Pull Requests"""
+    response = client.get(
+        url_for(
+            "api.projects_projects_p_rs",
+            forge="github.com",
+            namespace="the-namespace",
+            repo_name="the-repo-name",
+        )
+    )
+    response_dict = response.json
+    assert len(response_dict) == 1
+    assert response_dict[0]["pr_id"] is not None
+    assert response_dict[0]["srpm_builds"][0]["success"] is True
+    assert response_dict[0]["koji_builds"][0]["status"] == "pending"
+
+
 def test_get_projects_issues(client, clean_before_and_after, an_issue_model):
     """Test Get Project's Issues"""
     response = client.get(

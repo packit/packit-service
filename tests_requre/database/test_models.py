@@ -618,6 +618,14 @@ def test_pr_get_copr_builds(
     assert not different_pr_model.get_copr_builds()
 
 
+def test_pr_get_koji_builds(
+    clean_before_and_after, a_koji_build_for_pr, different_pr_model
+):
+    pr_model = a_koji_build_for_pr.job_trigger.get_trigger_object()
+    assert a_koji_build_for_pr in pr_model.get_koji_builds()
+    assert not different_pr_model.get_koji_builds()
+
+
 def test_pr_get_srpm_builds(
     clean_before_and_after, a_copr_build_for_pr, srpm_build_model
 ):

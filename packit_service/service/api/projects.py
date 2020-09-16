@@ -128,10 +128,12 @@ class ProjectsPRs(Resource):
             pr_info = {
                 "pr_id": pr.pr_id,
                 "builds": [],
+                "koji_builds": [],
                 "srpm_builds": [],
                 "tests": [],
             }
             copr_builds = []
+            koji_builds = []
             test_runs = []
             srpm_builds = []
 
@@ -144,6 +146,16 @@ class ProjectsPRs(Resource):
                 }
                 copr_builds.append(build_info)
             pr_info["builds"] = copr_builds
+
+            for build in pr.get_koji_builds():
+                build_info = {
+                    "build_id": build.build_id,
+                    "chroot": build.target,
+                    "status": build.status,
+                    "web_url": build.web_url,
+                }
+                koji_builds.append(build_info)
+            pr_info["koji_builds"] = koji_builds
 
             for build in pr.get_srpm_builds():
                 build_info = {
@@ -238,6 +250,7 @@ class ProjectBranches(Resource):
             branch_info = {
                 "branch": branch.name,
                 "builds": [],
+                "koji_builds": [],
                 "srpm_builds": [],
                 "tests": [],
             }
@@ -250,6 +263,15 @@ class ProjectBranches(Resource):
                     "web_url": build.web_url,
                 }
                 branch_info["builds"].append(build_info)
+
+            for build in branch.get_koji_builds():
+                build_info = {
+                    "build_id": build.build_id,
+                    "chroot": build.target,
+                    "status": build.status,
+                    "web_url": build.web_url,
+                }
+                branch_info["koji_builds"].append(build_info)
 
             for build in branch.get_srpm_builds():
                 build_info = {

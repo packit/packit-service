@@ -325,6 +325,11 @@ class PullRequestModel(Base):
             type=JobTriggerModelType.pull_request, trigger_id=self.id
         ).copr_builds
 
+    def get_koji_builds(self):
+        return JobTriggerModel.get_or_create(
+            type=JobTriggerModelType.pull_request, trigger_id=self.id
+        ).koji_builds
+
     def get_srpm_builds(self):
         return JobTriggerModel.get_or_create(
             type=JobTriggerModelType.pull_request, trigger_id=self.id
@@ -421,6 +426,11 @@ class GitBranchModel(Base):
         return JobTriggerModel.get_or_create(
             type=JobTriggerModelType.branch_push, trigger_id=self.id
         ).copr_builds
+
+    def get_koji_builds(self):
+        return JobTriggerModel.get_or_create(
+            type=JobTriggerModelType.pull_request, trigger_id=self.id
+        ).koji_builds
 
     def get_srpm_builds(self):
         return JobTriggerModel.get_or_create(
