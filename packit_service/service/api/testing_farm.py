@@ -162,6 +162,7 @@ class TestingFarmResults(Resource):
             project = tf_result.get_project()
             result_dict["repo_namespace"] = project.namespace
             result_dict["repo_name"] = project.repo_name
+            result_dict["project_url"] = project.project_url
 
             result.append(result_dict)
 
