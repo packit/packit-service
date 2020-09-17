@@ -100,11 +100,13 @@ class StatusReporter:
 
         if isinstance(check_names, str):
             check_names = [check_names]
-        comment_msg = [
-            f"| [{check}]({url}) | {state.name.upper()} |" for check in check_names
-        ]
 
-        self.project.pr_comment(self.pr_id, "\n\n".join(comment_msg))
+        comment_table_rows = [
+            "| Job | Result |",
+            "| ------------- | ------------ |",
+        ] + [f"| [{check}]({url}) | {state.name.upper()} |" for check in check_names]
+
+        self.project.pr_comment(self.pr_id, "\n".join(comment_table_rows))
 
     def set_status(
         self,
