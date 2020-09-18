@@ -151,7 +151,8 @@ def test_report_status_by_comment(
     reporter = StatusReporter(project, commit_sha, pr_id)
 
     project.should_receive("pr_comment").with_args(
-        pr_id, f"| [{check_names}]({url}) | SUCCESS |"
+        pr_id,
+        f"| Job | Result |\n| ------------- | ------------ |\n| [{check_names}]({url}) | SUCCESS |",
     ).once()
 
     reporter.report_status_by_comment(state, url, check_names)
