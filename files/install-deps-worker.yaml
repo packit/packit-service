@@ -26,7 +26,7 @@
           - python3-lazy-object-proxy
           - python3-bugzilla # python-bugzilla (not bugzilla) on PyPI
           - python3-backoff # Bugzilla class
-          #- python3-flask-restx # needs Fedora 32
+          - python3-flask-restx
           - dnf-utils
           - python3-pip
           - make
@@ -40,10 +40,11 @@
     - name: Install pip deps
       pip:
         name:
-          - celery[redis,sqs] == 4.4.2
+          # Pin celery to version known to work to avoid surprises (like non working 4.4.4).
+          # Also https://github.com/packit/packit/issues/965
+          - celery[redis,sqs] == 4.4.7
           - git+https://github.com/packit/sandcastle.git
           - sentry-sdk
-          - flask-restx
         executable: pip3
     # --no-deps: to fail instead of installing from PyPI when we forget to add some dependency to packit.spec
     - name: pip install packit & ogr with --no-deps

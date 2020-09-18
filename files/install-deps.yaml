@@ -32,7 +32,7 @@
           - python3-boto3 # celery[sqs]
           - python3-pycurl # celery[sqs]
           - python3-lazy-object-proxy
-          #- python3-flask-restx # Needs Fedora 32
+          - python3-flask-restx
           - python3-flexmock # because of the hack during the alembic upgrade
           # (see d90948124e46_add_tables_for_triggers_koji_and_tests.py )
           - dnf-plugins-core
@@ -43,12 +43,12 @@
     - name: Install pip deps
       pip:
         name:
-          - celery[redis,sqs] == 4.4.2
+          # Pin celery to version known to work to avoid surprises (like non working 4.4.4).
+          # Also https://github.com/packit/packit/issues/965
+          - celery[redis,sqs] == 4.4.7
           - persistentdict # still needed by one Alembic migration script
           - sentry-sdk[flask]
-          - flask-restx
         executable: pip3
-
     # --no-deps: to fail instead of installing from PyPI when we forget to add some dependency to packit.spec
     - name: pip install packit & ogr with --no-deps
       pip:
