@@ -249,7 +249,7 @@ class Whitelist:
                             service_config=service_config,
                             package_config=event.get_package_config(),
                             project=project,
-                            metadata=EventData.from_event_dict((event.get_dict())),
+                            metadata=EventData.from_event_dict(event.get_dict()),
                             db_trigger=event.db_trigger,
                             job_config=job_config,
                         )
