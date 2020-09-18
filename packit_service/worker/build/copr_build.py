@@ -25,6 +25,8 @@ from typing import Optional, Tuple, Set, List
 from copr.v3 import CoprRequestException
 
 from ogr.abstract import GitProject, CommitStatus
+from ogr.parsing import parse_git_repo
+from ogr.services.github import GithubProject
 from packit.config import JobType, JobConfig
 from packit.config.aliases import get_build_targets
 from packit.config.package_config import PackageConfig
@@ -79,10 +81,21 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
     @property
     def default_project_name(self) -> str:
         """
-        Project name for copr -- add `-stg` suffix for the stg app.
+        Project name for copr.
+
+        * use hostname prefix for non-github service
+        * replace slash in namespace with dash
+        * add `-stg` suffix for the stg app
         """
+
+        service_hostname = parse_git_repo(self.project.service.instance_url).hostname
+        service_prefix = (
+            "" if isinstance(self.project, GithubProject) else f"{service_hostname}-"
+        )
+
+        namespace = self.project.namespace.replace("/", "-")
         stg = "-stg" if self.service_config.deployment == Deployment.stg else ""
-        return f"{self.project.namespace}-{self.project.repo}-{self.metadata.identifier}{stg}"
+        return f"{service_prefix}{namespace}-{self.project.repo}-{self.metadata.identifier}{stg}"
 
     @property
     def job_project(self) -> Optional[str]:

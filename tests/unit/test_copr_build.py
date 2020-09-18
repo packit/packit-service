@@ -101,8 +101,8 @@ def build_helper(
         job_config=selected_job or jobs[0],
         project=GitProject(
             repo="the-example-repo",
-            service=flexmock(),
-            namespace="the-example-namespace",
+            service=flexmock(instance_url="git.instance.io"),
+            namespace="the/example/namespace",
         ),
         metadata=flexmock(
             trigger=event.trigger,
@@ -160,7 +160,7 @@ def test_copr_build_check_names(github_pr_event):
 
     # copr build
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").with_args(
-        project="the-example-namespace-the-example-repo-342-stg",
+        project="git.instance.io-the-example-namespace-the-example-repo-342-stg",
         chroots=["bright-future-x86_64"],
         owner="packit",
         description=None,
@@ -255,7 +255,7 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
 
     # copr build
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").with_args(
-        project="the-example-namespace-the-example-repo-342-stg",
+        project="git.instance.io-the-example-namespace-the-example-repo-342-stg",
         chroots=["fedora-32-x86_64"],
         owner="nobody",
         description=None,
@@ -323,7 +323,7 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
 
     # copr build
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").with_args(
-        project="the-example-namespace-the-example-repo-342-stg",
+        project="git.instance.io-the-example-namespace-the-example-repo-342-stg",
         chroots=["bright-future-x86_64"],
         owner="nobody",
         description=None,
@@ -635,7 +635,7 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
     flexmock(GitProject).should_receive("pr_comment").with_args(
         pr_id=342,
         body="Based on your Packit configuration the settings of the "
-        "nobody/the-example-namespace-the-example-repo-342-stg "
+        "nobody/git.instance.io-the-example-namespace-the-example-repo-342-stg "
         "Copr project would need to be updated as follows:\n"
         "\n"
         "| field | old value | new value |\n"
@@ -646,17 +646,17 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
         "\n"
         "Packit was unable to update the settings above "
         "as it is missing `admin` permissions on the "
-        "nobody/the-example-namespace-the-example-repo-342-stg Copr project.\n"
+        "nobody/git.instance.io-the-example-namespace-the-example-repo-342-stg Copr project.\n"
         "\n"
         "To fix this you can do one of the following:\n"
         "\n"
         "- Grant Packit `admin` permissions on the "
-        "nobody/the-example-namespace-the-example-repo-342-stg Copr project on the "
-        "[permissions page](https://copr.fedorainfracloud.org/"
-        "coprs/nobody/the-example-namespace-the-example-repo-342-stg/permissions/).\n"
+        "nobody/git.instance.io-the-example-namespace-the-example-repo-342-stg Copr project on the "
+        "[permissions page](https://copr.fedorainfracloud.org/coprs/nobody/"
+        "git.instance.io-the-example-namespace-the-example-repo-342-stg/permissions/).\n"
         "- Change the above Copr project settings manually on the "
         "[settings page](https://copr.fedorainfracloud.org/"
-        "coprs/nobody/the-example-namespace-the-example-repo-342-stg/edit/) "
+        "coprs/nobody/git.instance.io-the-example-namespace-the-example-repo-342-stg/edit/) "
         "to match the Packit configuration.\n"
         "- Update the Packit configuration to match the Copr project settings.\n"
         "\n"
@@ -667,19 +667,19 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
     # copr build
     flexmock(CoprHelper).should_receive("get_copr_settings_url").with_args(
         "nobody",
-        "the-example-namespace-the-example-repo-342-stg",
+        "git.instance.io-the-example-namespace-the-example-repo-342-stg",
         section="permissions",
     ).and_return(
         "https://copr.fedorainfracloud.org/"
-        "coprs/nobody/the-example-namespace-the-example-repo-342-stg/permissions/"
+        "coprs/nobody/git.instance.io-the-example-namespace-the-example-repo-342-stg/permissions/"
     ).once()
 
     flexmock(CoprHelper).should_receive("get_copr_settings_url").with_args(
         "nobody",
-        "the-example-namespace-the-example-repo-342-stg",
+        "git.instance.io-the-example-namespace-the-example-repo-342-stg",
     ).and_return(
         "https://copr.fedorainfracloud.org/"
-        "coprs/nobody/the-example-namespace-the-example-repo-342-stg/edit/"
+        "coprs/nobody/git.instance.io-the-example-namespace-the-example-repo-342-stg/edit/"
     ).once()
 
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_raise(
@@ -773,7 +773,7 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
 
     # copr build
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").with_args(
-        project="the-example-namespace-the-example-repo-1-stg",
+        project="git.instance.io-the-example-namespace-the-example-repo-1-stg",
         chroots=["bright-future-x86_64"],
         owner="nobody",
         description=None,
