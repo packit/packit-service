@@ -40,6 +40,7 @@
     - name: Install pip deps
       pip:
         name:
+          - celery[redis,sqs] == 4.4.2
           - git+https://github.com/packit/sandcastle.git
           - sentry-sdk
           - flask-restx

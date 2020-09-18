@@ -43,7 +43,7 @@
     - name: Install pip deps
       pip:
         name:
-          # temporary workaround for sake of marhsmallow
+          - celery[redis,sqs] == 4.4.2
           - persistentdict # still needed by one Alembic migration script
           - sentry-sdk[flask]
           - flask-restx
