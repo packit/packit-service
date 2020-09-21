@@ -30,7 +30,7 @@
           #- python3-celery # don't, the liveness probe doesn't work
           - python3-redis # celery[redis]
           - python3-boto3 # celery[sqs]
-          - python3-pycurl # celery[sqs]
+          # - python3-pycurl # celery[sqs] see below task
           - python3-lazy-object-proxy
           #- python3-flask-restx # Needs Fedora 32
           - python3-flexmock # because of the hack during the alembic upgrade
@@ -38,6 +38,12 @@
           - dnf-plugins-core
           - python-jwt
         state: present
+    # https://github.com/packit/packit/issues/965
+    - name: Install pycurl build dependencies
+      dnf:
+        name:
+          - libcurl-devel
+          - openssl-devel
     - import_tasks: tasks/install-ogr-deps.yaml
     - import_tasks: tasks/install-packit-deps.yaml
     - name: Install pip deps

@@ -22,7 +22,7 @@
           #- python3-celery # don't, the liveness probe doesn't work
           - python3-redis # celery[redis]
           - python3-boto3 # celery[sqs]
-          - python3-pycurl # celery[sqs]
+          # - python3-pycurl # celery[sqs]  see below task
           - python3-lazy-object-proxy
           - python3-bugzilla # python-bugzilla (not bugzilla) on PyPI
           - python3-backoff # Bugzilla class
@@ -35,6 +35,14 @@
           # oc rsync /sandcastle -> sandcastle pod
           - rsync
         state: present
+    # https://github.com/packit/packit/issues/965
+    - name: Install pycurl build dependencies
+      dnf:
+        name:
+          - gcc
+          - libcurl-devel
+          - openssl-devel
+          - python3-devel
     - import_tasks: tasks/install-packit-deps.yaml
     - import_tasks: tasks/install-ogr-deps.yaml
     - name: Install pip deps
