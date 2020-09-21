@@ -30,7 +30,7 @@
           #- python3-celery # don't, the liveness probe doesn't work
           - python3-redis # celery[redis]
           - python3-boto3 # celery[sqs]
-          # - python3-pycurl # celery[sqs] see below task
+          - python3-pycurl # celery[sqs] see also below task
           - python3-lazy-object-proxy
           #- python3-flask-restx # Needs Fedora 32
           - python3-flexmock # because of the hack during the alembic upgrade
@@ -49,7 +49,7 @@
     - name: Install pip deps
       pip:
         name:
-          - celery[redis,sqs] == 4.4.2
+          - celery[redis,sqs] == 4.4.7
           - persistentdict # still needed by one Alembic migration script
           - sentry-sdk[flask]
           - flask-restx

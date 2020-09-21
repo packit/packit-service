@@ -22,7 +22,7 @@
           #- python3-celery # don't, the liveness probe doesn't work
           - python3-redis # celery[redis]
           - python3-boto3 # celery[sqs]
-          # - python3-pycurl # celery[sqs]  see below task
+          - python3-pycurl # celery[sqs]  see also below task
           - python3-lazy-object-proxy
           - python3-bugzilla # python-bugzilla (not bugzilla) on PyPI
           - python3-backoff # Bugzilla class
@@ -48,7 +48,7 @@
     - name: Install pip deps
       pip:
         name:
-          - celery[redis,sqs] == 4.4.2
+          - celery[redis,sqs] == 4.4.7
           - git+https://github.com/packit/sandcastle.git
           - sentry-sdk
           - flask-restx
