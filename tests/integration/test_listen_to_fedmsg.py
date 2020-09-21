@@ -403,7 +403,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         RequestResponse(
             status_code=200,
             ok=True,
-            content='{"url": "some-url"}'.encode(),
+            content=b'{"url": "some-url"}',
             json={"url": "some-url"},
         )
     )
@@ -503,7 +503,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         RequestResponse(
             status_code=400,
             ok=False,
-            content='{"message": "some error"}'.encode(),
+            content=b'{"message": "some error"}',
             json={"message": "some error"},
         )
     )
@@ -618,7 +618,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         RequestResponse(
             status_code=400,
             ok=False,
-            content="some text error".encode(),
+            content=b"some text error",
             reason="some text error",
             json=None,
         )
