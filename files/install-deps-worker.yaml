@@ -26,7 +26,7 @@
           - python3-lazy-object-proxy
           - python3-bugzilla # python-bugzilla (not bugzilla) on PyPI
           - python3-backoff # Bugzilla class
-          #- python3-flask-restx # needs Fedora 32
+          - python3-flask-restx
           - dnf-utils
           - python3-pip
           - make
@@ -42,7 +42,6 @@
         name:
           - git+https://github.com/packit/sandcastle.git
           - sentry-sdk
-          - flask-restx
         executable: pip3
     # --no-deps: to fail instead of installing from PyPI when we forget to add some dependency to packit.spec
     - name: pip install packit & ogr with --no-deps

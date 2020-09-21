@@ -32,7 +32,7 @@
           - python3-boto3 # celery[sqs]
           - python3-pycurl # celery[sqs]
           - python3-lazy-object-proxy
-          #- python3-flask-restx # Needs Fedora 32
+          - python3-flask-restx
           - python3-flexmock # because of the hack during the alembic upgrade
           # (see d90948124e46_add_tables_for_triggers_koji_and_tests.py )
           - dnf-plugins-core
@@ -45,7 +45,6 @@
         name:
           - persistentdict # still needed by one Alembic migration script
           - sentry-sdk[flask]
-          - flask-restx
         executable: pip3
 
     # --no-deps: to fail instead of installing from PyPI when we forget to add some dependency to packit.spec

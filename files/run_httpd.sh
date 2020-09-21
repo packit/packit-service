@@ -10,7 +10,7 @@ pushd /src
 n=0
 until [ $n -ge 7 ]
 do
-  alembic upgrade head && break
+  alembic-3 upgrade head && break
   n=$[$n+1]
   sleep 2
 done
