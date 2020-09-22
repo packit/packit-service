@@ -46,6 +46,7 @@ from packit_service.service.urls import (
 )
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.result import TaskResults
+from packit_service.worker.monitoring import Pushgateway
 
 logger = logging.getLogger(__name__)
 
@@ -198,6 +199,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         try:
             build_id, web_url = self.run_build()
+            Pushgateway().push_copr_build_created()
         except Exception as ex:
             sentry_integration.send_to_sentry(ex)
             # TODO: Where can we show more info about failure?
