@@ -54,6 +54,7 @@ from packit_service.worker.build.copr_build import (
 )
 from packit_service.worker.parser import Parser
 from packit_service.worker.reporting import StatusReporter
+from packit_service.worker.monitoring import Pushgateway
 from tests.spellbook import DATA_DIR
 
 
@@ -182,6 +183,7 @@ def test_copr_build_check_names(github_pr_event):
             .mock(),
         )
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -277,6 +279,7 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
             .mock(),
         )
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -345,6 +348,7 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
             .mock(),
         )
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -394,6 +398,7 @@ def test_copr_build_success_set_test_check(github_pr_event):
             .mock(),
         )
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -450,6 +455,7 @@ def test_copr_build_for_branch(branch_push_event):
             .mock(),
         )
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -509,6 +515,7 @@ def test_copr_build_for_release(release_event):
             .mock(),
         )
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -546,6 +553,7 @@ def test_copr_build_success(github_pr_event):
             .mock(),
         )
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -590,6 +598,7 @@ def test_copr_build_fails_in_packit(github_pr_event):
     flexmock(PackitAPI).should_receive("create_srpm").and_raise(
         FailedCreateSRPM, "some error"
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created").never()
 
     flexmock(CoprBuildJobHelper).should_receive("run_build").never()
 
@@ -691,6 +700,8 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
         },
     )
 
+    flexmock(Pushgateway).should_receive("push_copr_build_created").never()
+
     assert not helper.run_copr_build()["success"]
 
 
@@ -728,6 +739,7 @@ def test_copr_build_no_targets(github_pr_event):
             .mock(),
         )
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -795,6 +807,7 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
             .mock(),
         )
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
 
@@ -841,6 +854,7 @@ def test_copr_build_success_set_test_check_gitlab(gitlab_mr_event):
             .mock(),
         )
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -897,6 +911,7 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
             .mock(),
         )
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -936,6 +951,7 @@ def test_copr_build_success_gitlab(gitlab_mr_event):
             .mock(),
         )
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -980,6 +996,7 @@ def test_copr_build_fails_in_packit_gitlab(gitlab_mr_event):
     flexmock(PackitAPI).should_receive("create_srpm").and_raise(
         FailedCreateSRPM, "some error"
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created").never()
 
     flexmock(CoprBuildJobHelper).should_receive("run_build").never()
 
@@ -1029,6 +1046,7 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
             .mock(),
         )
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -1070,6 +1088,7 @@ def test_copr_build_no_targets_gitlab(gitlab_mr_event):
             .mock(),
         )
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
