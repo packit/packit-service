@@ -40,7 +40,6 @@ check_in_container: test_image
 		--env COV_REPORT \
 		--env TEST_TARGET \
 		--env COLOR \
-		--env REDIS_SERVICE_HOST=redis \
 		-v $(CURDIR):/src \
 		-w /src \
 		--security-opt label=disable \
@@ -71,7 +70,6 @@ check-in-container-tomas:
 		-v $(CURDIR)/files/packit-service.yaml:/root/.config/packit-service.yaml \
 		-v $(CURDIR)/tests_requre/openshift_integration/test_data/:/tmp/test_data/ \
 		--network packit-service_default \
-		-e REDIS_SERVICE_HOST=redis \
 		$(TEST_IMAGE) make check "TEST_TARGET=$(TEST_TARGET)"
 
 # deploy a pod with tests and run them
