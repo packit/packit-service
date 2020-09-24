@@ -34,7 +34,7 @@ from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
 from packit.config.package_config import PackageConfig
 from packit.local_project import LocalProject
-from packit_service.config import PackageConfigGetter
+from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.models import (
     CoprBuildModel,
@@ -315,6 +315,11 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
 
 
 def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
+    service_config = ServiceConfig()
+    service_config.testing_farm_trigger_url = TESTING_FARM_TRIGGER_URL
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
+        service_config
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("some-owner")
     flexmock(TestingFarmJobHelper).should_receive("job_project").and_return(
