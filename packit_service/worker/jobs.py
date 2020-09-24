@@ -404,8 +404,24 @@ class SteveJobs:
                 "Skipping private repository check!"
             )
         elif event_object.project.is_private():
-            logger.info("We do not interact with private repositories!")
-            return None
+            service_with_namespace = (
+                f"{event_object.project.service.hostname}/"
+                f"{event_object.project.namespace}"
+            )
+            if (
+                service_with_namespace
+                not in self.service_config.enabled_private_namespaces
+            ):
+                logger.info(
+                    f"We do not interact with private repositories by default. "
+                    f"Add `{service_with_namespace}` to the `enabled_private_namespaces` "
+                    f"in the service configuration."
+                )
+                return None
+            logger.debug(
+                f"Working in `{service_with_namespace}` namespace "
+                f"which is private but enabled via configuration."
+            )
 
         handler: Union[
             GithubAppInstallationHandler,
