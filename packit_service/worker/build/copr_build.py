@@ -173,6 +173,20 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         return get_build_targets(*self.configured_tests_targets, default=None)
 
+    @property
+    def available_chroots(self) -> Set[str]:
+        """
+        Returns set of available COPR targets.
+        """
+        return {
+            *filter(
+                lambda chroot: not chroot.startswith("_"),
+                self.api.copr_helper.get_copr_client()
+                .mock_chroot_proxy.get_list()
+                .keys(),
+            )
+        }
+
     def run_copr_build(self) -> TaskResults:
 
         if not (self.job_build or self.job_tests):
@@ -214,6 +228,15 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
 
         for chroot in self.build_targets:
+            if chroot not in self.available_chroots:
+                self.report_status_to_all_for_chroot(
+                    state=CommitStatus.error,
+                    description="Not supported target",
+                    url="#TODO",
+                    chroot=chroot,
+                )
+                continue
+
             copr_build = CoprBuildModel.get_or_create(
                 build_id=str(build_id),
                 commit_sha=self.metadata.commit_sha,
