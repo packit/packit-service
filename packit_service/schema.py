@@ -58,6 +58,7 @@ class ServiceConfigSchema(UserConfigSchema):
     server_name = fields.String()
     gitlab_webhook_tokens = fields.List(fields.String())
     gitlab_token_secret = fields.String()
+    enabled_private_namespaces = fields.List(fields.String())
 
     @post_load
     def make_instance(self, data, **kwargs):

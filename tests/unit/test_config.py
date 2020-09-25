@@ -64,6 +64,10 @@ def service_config_valid():
         "server_name": "hub.packit.org",
         "gitlab_webhook_tokens": ["token1", "token2", "token3", "aged"],
         "gitlab_token_secret": "jwt_secret",
+        "enabled_private_namespaces": [
+            "gitlab.com/private/namespace",
+            "github.com/other-private-namespace",
+        ],
     }
 
 
@@ -85,6 +89,10 @@ def test_parse_valid(service_config_valid):
     assert config.server_name == "hub.packit.org"
     assert config.gitlab_token_secret == "jwt_secret"
     assert config.gitlab_webhook_tokens == {"token1", "token2", "token3", "aged"}
+    assert config.enabled_private_namespaces == {
+        "gitlab.com/private/namespace",
+        "github.com/other-private-namespace",
+    }
 
 
 @pytest.fixture(scope="module")

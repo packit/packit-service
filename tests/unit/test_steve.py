@@ -43,23 +43,26 @@ from packit_service.worker.tasks import run_propose_downstream_handler
 from tests.spellbook import first_dict_value, get_parameters_from_results
 
 
+EVENT = {
+    "action": "published",
+    "release": {"tag_name": "1.2.3"},
+    "repository": {
+        "name": "bar",
+        "html_url": "https://github.com/the-namespace/the-repo",
+        "owner": {"login": "foo"},
+    },
+}
+
+
 @pytest.mark.parametrize(
-    "event",
+    "event,private,enabled_private_namespaces,success",
     (
-        (
-            {
-                "action": "published",
-                "release": {"tag_name": "1.2.3"},
-                "repository": {
-                    "name": "bar",
-                    "html_url": "https://github.com/foo/bar",
-                    "owner": {"login": "foo"},
-                },
-            }
-        ),
+        (EVENT, False, set(), True),
+        (EVENT, True, {"github.com/the-namespace"}, True),
+        (EVENT, True, set(), False),
     ),
 )
-def test_process_message(event):
+def test_process_message(event, private, enabled_private_namespaces, success):
     packit_yaml = {
         "specfile_path": "bar.spec",
         "synced_files": [],
@@ -70,26 +73,31 @@ def test_process_message(event):
     flexmock(
         GithubProject,
         get_file_content=lambda path, ref: dumps(packit_yaml),
-        full_repo_name="foo/bar",
+        full_repo_name="the-namespace/the-repo",
         get_files=lambda ref, filter_regex: [],
         get_sha_from_tag=lambda tag_name: "12345",
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
-        is_private=lambda: False,
+        is_private=lambda: private,
     )
+
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    config = ServiceConfig()
+    config = ServiceConfig(enabled_private_namespaces=enabled_private_namespaces)
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="master", version="1.2.3"
-    ).once()
+    ).times(1 if success else 0)
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=1)
     )
     flexmock(Whitelist, check_and_report=True)
-    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Signature).should_receive("apply_async").times(1 if success else 0)
 
     processing_results = SteveJobs().process_message(event)
+    if not success:
+        assert processing_results is None
+        return
+
     assert processing_results["details"]["event"]["trigger"] == "release"
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 

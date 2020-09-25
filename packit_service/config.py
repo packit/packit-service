@@ -22,7 +22,7 @@
 import enum
 import logging
 from pathlib import Path
-from typing import Set, Optional, List
+from typing import Set, Optional, List, Union
 
 from yaml import safe_load
 
@@ -66,6 +66,7 @@ class ServiceConfig(Config):
         bugzilla_api_key: str = "",
         pr_accepted_labels: List[str] = None,
         gitlab_webhook_tokens: List[str] = None,
+        enabled_private_namespaces: Union[Set[str], List[str]] = None,
         gitlab_token_secret: str = "",
         **kwargs,
     ):
@@ -98,6 +99,14 @@ class ServiceConfig(Config):
         # Gitlab token secret to decode JWT tokens
         self.gitlab_token_secret: str = gitlab_token_secret
 
+        # Explicit list of private namespaces we work with
+        # e.g.:
+        #  - github.com/other-private-namespace
+        #  - gitlab.com/private/namespace
+        self.enabled_private_namespaces: Set[str] = set(
+            enabled_private_namespaces or []
+        )
+
     def __repr__(self):
         def hide(token: str) -> str:
             return f"{token[:1]}***{token[-1:]}" if token else ""
@@ -115,6 +124,7 @@ class ServiceConfig(Config):
             f"bugzilla_api_key='{hide(self.bugzilla_api_key)}', "
             f"gitlab_webhook_tokens='{self.gitlab_webhook_tokens}',"
             f"gitlab_token_secret='{hide(self.gitlab_token_secret)}',"
+            f"enabled_private_namespaces='{self.enabled_private_namespaces}',"
             f"server_name='{self.server_name}')"
         )
 
