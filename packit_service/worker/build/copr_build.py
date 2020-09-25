@@ -259,8 +259,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
 
         if unprocessed_chroots:
-            unprocessed = "\n".join(unprocessed_chroots)
-            available = "\n".join(self.available_chroots)
+            unprocessed = "\n".join(sorted(unprocessed_chroots))
+            available = "\n".join(sorted(self.available_chroots))
             self.project.pr_comment(
                 pr_id=self.metadata.pr_id,
                 body="There are build targets that are not supported by COPR.\n"

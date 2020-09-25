@@ -258,8 +258,8 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
         "```\n</details>\n<details>\n"
         "<summary>Available build targets</summary>\n\n"
         "```\n"
-        "not-so-bright-future-x86_64\n"
         "even-brighter-one-aarch64\n"
+        "not-so-bright-future-x86_64\n"
         "```\n</details>",
     ).and_return()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
@@ -273,17 +273,9 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
     # copr build
-    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").with_args(
-        project="git.instance.io-the-example-namespace-the-example-repo-342-stg",
-        chroots=build_targets,
-        owner="packit",
-        description=None,
-        instructions=None,
-        preserve_project=False,
-        list_on_homepage=False,
-        additional_repos=[],
-        request_admin_if_needed=True,
-    ).and_return(None)
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
+        None
+    )
 
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         flexmock(
