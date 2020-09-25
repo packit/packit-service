@@ -197,14 +197,20 @@ def test_copr_build_check_names(github_pr_event):
     assert helper.run_copr_build()["success"]
 
 
-def test_copr_build_check_names_invalid_chroot(github_pr_event):
+def test_copr_build_check_names_invalid_chroots(github_pr_event):
+    build_targets = [
+        "bright-future-x86_64",
+        "even-brighter-one-aarch64",
+        "fedora-32-x86_64",
+    ]
+
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="packit"),
+        metadata=JobMetadataConfig(targets=build_targets, owner="packit"),
         db_trigger=trigger,
     )
     # we need to make sure that pr_id is set
@@ -217,20 +223,45 @@ def test_copr_build_check_names_invalid_chroot(github_pr_event):
     flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
         "https://test.url"
     )
+
+    for target in build_targets:
+        flexmock(StatusReporter).should_receive("set_status").with_args(
+            state=CommitStatus.pending,
+            description="Building SRPM ...",
+            check_name=f"packit-stg/rpm-build-{target}",
+            url="",
+        ).and_return()
+
+    for not_supported_target in ("bright-future-x86_64", "fedora-32-x86_64"):
+        flexmock(StatusReporter).should_receive("set_status").with_args(
+            state=CommitStatus.error,
+            description=f"Not supported target: {not_supported_target}",
+            check_name=f"packit-stg/rpm-build-{not_supported_target}",
+            url="https://test.url",
+        ).and_return()
+
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
-        description="Building SRPM ...",
-        check_name="packit-stg/rpm-build-bright-future-x86_64",
-        url="",
-    ).and_return()
-    flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.error,
-        description="Not supported target: bright-future-x86_64",
-        check_name="packit-stg/rpm-build-bright-future-x86_64",
+        description="Starting RPM build...",
+        check_name="packit-stg/rpm-build-even-brighter-one-aarch64",
         url="https://test.url",
     ).and_return()
 
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
+    flexmock(GitProject).should_receive("pr_comment").with_args(
+        pr_id=342,
+        body="There are build targets that are not supported by COPR.\n"
+        "<details>\n<summary>Unprocessed build targets</summary>\n\n"
+        "```\n"
+        "bright-future-x86_64\n"
+        "fedora-32-x86_64\n"
+        "```\n</details>\n<details>\n"
+        "<summary>Available build targets</summary>\n\n"
+        "```\n"
+        "not-so-bright-future-x86_64\n"
+        "even-brighter-one-aarch64\n"
+        "```\n</details>",
+    ).and_return()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
     )
@@ -244,7 +275,7 @@ def test_copr_build_check_names_invalid_chroot(github_pr_event):
     # copr build
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").with_args(
         project="git.instance.io-the-example-namespace-the-example-repo-342-stg",
-        chroots=["bright-future-x86_64"],
+        chroots=build_targets,
         owner="packit",
         description=None,
         instructions=None,
@@ -265,7 +296,14 @@ def test_copr_build_check_names_invalid_chroot(github_pr_event):
             .mock(),
             mock_chroot_proxy=flexmock()
             .should_receive("get_list")
-            .and_return({"not-so-bright-future-x86_64": "", "__proxy__": "something"})
+            .and_return(
+                {
+                    "__response__": 200,
+                    "not-so-bright-future-x86_64": "",
+                    "even-brighter-one-aarch64": "",
+                    "__proxy__": "something",
+                }
+            )
             .mock(),
         )
     )
@@ -674,7 +712,7 @@ def test_copr_build_success(github_pr_event):
             .mock(),
             mock_chroot_proxy=flexmock()
             .should_receive("get_list")
-            .and_return({target: '' for target in DEFAULT_TARGETS})
+            .and_return({target: "" for target in DEFAULT_TARGETS})
             .mock(),
         )
     )
@@ -864,7 +902,12 @@ def test_copr_build_no_targets(github_pr_event):
             .mock(),
             mock_chroot_proxy=flexmock()
             .should_receive("get_list")
-            .and_return({target: '' for target in get_build_targets("fedora-stable", default=None)})
+            .and_return(
+                {
+                    target: ""
+                    for target in get_build_targets("fedora-stable", default=None)
+                }
+            )
             .mock(),
         )
     )
@@ -1099,7 +1142,7 @@ def test_copr_build_success_gitlab(gitlab_mr_event):
             .mock(),
             mock_chroot_proxy=flexmock()
             .should_receive("get_list")
-            .and_return({target: '' for target in DEFAULT_TARGETS})
+            .and_return({target: "" for target in DEFAULT_TARGETS})
             .mock(),
         )
     )
@@ -1198,7 +1241,7 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
             .mock(),
             mock_chroot_proxy=flexmock()
             .should_receive("get_list")
-            .and_return({target: '' for target in DEFAULT_TARGETS})
+            .and_return({target: "" for target in DEFAULT_TARGETS})
             .mock(),
         )
     )
@@ -1244,7 +1287,12 @@ def test_copr_build_no_targets_gitlab(gitlab_mr_event):
             .mock(),
             mock_chroot_proxy=flexmock()
             .should_receive("get_list")
-            .and_return({target: '' for target in get_build_targets("fedora-stable", default=None)})
+            .and_return(
+                {
+                    target: ""
+                    for target in get_build_targets("fedora-stable", default=None)
+                }
+            )
             .mock(),
         )
     )

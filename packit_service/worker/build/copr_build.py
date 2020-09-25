@@ -227,6 +227,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 details={"msg": "Submit of the Copr build failed.", "error": str(ex)},
             )
 
+        unprocessed_chroots = []
         for chroot in self.build_targets:
             if chroot not in self.available_chroots:
                 self.report_status_to_all_for_chroot(
@@ -235,6 +236,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     url=get_srpm_log_url_from_flask(self.srpm_model.id),
                     chroot=chroot,
                 )
+                unprocessed_chroots.append(chroot)
                 continue
 
             copr_build = CoprBuildModel.get_or_create(
@@ -254,6 +256,18 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 description="Starting RPM build...",
                 url=url,
                 chroot=chroot,
+            )
+
+        if unprocessed_chroots:
+            unprocessed = "\n".join(unprocessed_chroots)
+            available = "\n".join(self.available_chroots)
+            self.project.pr_comment(
+                pr_id=self.metadata.pr_id,
+                body="There are build targets that are not supported by COPR.\n"
+                "<details>\n<summary>Unprocessed build targets</summary>\n\n"
+                f"```\n{unprocessed}\n```\n</details>\n"
+                "<details>\n<summary>Available build targets</summary>\n\n"
+                f"```\n{available}\n```\n</details>",
             )
 
         # release the hounds!
