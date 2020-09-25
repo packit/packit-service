@@ -231,8 +231,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             if chroot not in self.available_chroots:
                 self.report_status_to_all_for_chroot(
                     state=CommitStatus.error,
-                    description="Not supported target",
-                    url="#TODO",
+                    description=f"Not supported target: {chroot}",
+                    url=get_srpm_log_url_from_flask(self.srpm_model.id),
                     chroot=chroot,
                 )
                 continue
