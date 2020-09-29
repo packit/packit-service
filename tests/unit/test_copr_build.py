@@ -541,12 +541,7 @@ def test_copr_build_for_branch(branch_push_event):
         type=JobType.build,
         trigger=JobConfigTriggerType.commit,
         metadata=JobMetadataConfig(
-            targets=[
-                "fedora-29-x86_64",
-                "fedora-30-x86_64",
-                "fedora-31-x86_64",
-                "fedora-rawhide-x86_64",
-            ],
+            targets=DEFAULT_TARGETS,
             owner="nobody",
             dist_git_branches=["build-branch"],
         ),
@@ -584,14 +579,7 @@ def test_copr_build_for_branch(branch_push_event):
             .mock(),
             mock_chroot_proxy=flexmock()
             .should_receive("get_list")
-            .and_return(
-                {
-                    "fedora-29-x86_64": "",
-                    "fedora-30-x86_64": "",
-                    "fedora-31-x86_64": "",
-                    "fedora-rawhide-x86_64": "",
-                }
-            )
+            .and_return({target: "" for target in DEFAULT_TARGETS})
             .mock(),
         )
     )
@@ -609,12 +597,7 @@ def test_copr_build_for_release(release_event):
         type=JobType.build,
         trigger=JobConfigTriggerType.release,
         metadata=JobMetadataConfig(
-            targets=[
-                "fedora-29-x86_64",
-                "fedora-30-x86_64",
-                "fedora-31-x86_64",
-                "fedora-rawhide-x86_64",
-            ],
+            targets=DEFAULT_TARGETS,
             owner="nobody",
             dist_git_branches=["build-branch"],
         ),
@@ -655,14 +638,7 @@ def test_copr_build_for_release(release_event):
             .mock(),
             mock_chroot_proxy=flexmock()
             .should_receive("get_list")
-            .and_return(
-                {
-                    "fedora-29-x86_64": "",
-                    "fedora-30-x86_64": "",
-                    "fedora-31-x86_64": "",
-                    "fedora-rawhide-x86_64": "",
-                }
-            )
+            .and_return({target: "" for target in DEFAULT_TARGETS})
             .mock(),
         )
     )
@@ -1040,12 +1016,7 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
         type=JobType.build,
         trigger=JobConfigTriggerType.commit,
         metadata=JobMetadataConfig(
-            targets=[
-                "fedora-29-x86_64",
-                "fedora-30-x86_64",
-                "fedora-31-x86_64",
-                "fedora-rawhide-x86_64",
-            ],
+            targets=DEFAULT_TARGETS,
             owner="nobody",
             dist_git_branches=["build-branch"],
         ),
@@ -1083,14 +1054,7 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
             .mock(),
             mock_chroot_proxy=flexmock()
             .should_receive("get_list")
-            .and_return(
-                {
-                    "fedora-29-x86_64": "",
-                    "fedora-30-x86_64": "",
-                    "fedora-31-x86_64": "",
-                    "fedora-rawhide-x86_64": "",
-                }
-            )
+            .and_return({target: "" for target in DEFAULT_TARGETS})
             .mock(),
         )
     )
