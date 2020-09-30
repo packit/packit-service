@@ -135,7 +135,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 success=False,
                 details={
                     "msg": f"Target '{chroot}' not defined for build. "
-                    f"Cannot run tests without build."
+                    "Cannot run tests without build."
                 },
             )
 

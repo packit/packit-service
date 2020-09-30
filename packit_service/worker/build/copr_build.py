@@ -173,6 +173,20 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         return get_build_targets(*self.configured_tests_targets, default=None)
 
+    @property
+    def available_chroots(self) -> Set[str]:
+        """
+        Returns set of available COPR targets.
+        """
+        return {
+            *filter(
+                lambda chroot: not chroot.startswith("_"),
+                self.api.copr_helper.get_copr_client()
+                .mock_chroot_proxy.get_list()
+                .keys(),
+            )
+        }
+
     def run_copr_build(self) -> TaskResults:
 
         if not (self.job_build or self.job_tests):
@@ -213,7 +227,18 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 details={"msg": "Submit of the Copr build failed.", "error": str(ex)},
             )
 
+        unprocessed_chroots = []
         for chroot in self.build_targets:
+            if chroot not in self.available_chroots:
+                self.report_status_to_all_for_chroot(
+                    state=CommitStatus.error,
+                    description=f"Not supported target: {chroot}",
+                    url=get_srpm_log_url_from_flask(self.srpm_model.id),
+                    chroot=chroot,
+                )
+                unprocessed_chroots.append(chroot)
+                continue
+
             copr_build = CoprBuildModel.get_or_create(
                 build_id=str(build_id),
                 commit_sha=self.metadata.commit_sha,
@@ -231,6 +256,18 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 description="Starting RPM build...",
                 url=url,
                 chroot=chroot,
+            )
+
+        if unprocessed_chroots:
+            unprocessed = "\n".join(sorted(unprocessed_chroots))
+            available = "\n".join(sorted(self.available_chroots))
+            self.project.pr_comment(
+                pr_id=self.metadata.pr_id,
+                body="There are build targets that are not supported by COPR.\n"
+                "<details>\n<summary>Unprocessed build targets</summary>\n\n"
+                f"```\n{unprocessed}\n```\n</details>\n"
+                "<details>\n<summary>Available build targets</summary>\n\n"
+                f"```\n{available}\n```\n</details>",
             )
 
         # release the hounds!

@@ -29,6 +29,7 @@ from ogr.abstract import GitProject, CommitStatus
 from packit.actions import ActionName
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
+from packit.config.aliases import get_build_targets
 from packit.config.job_config import JobMetadataConfig
 from packit.copr_helper import CoprHelper
 from packit.exceptions import FailedCreateSRPM, PackitCoprSettingsException
@@ -58,6 +59,14 @@ from packit_service.worker.monitoring import Pushgateway
 from tests.spellbook import DATA_DIR
 
 
+DEFAULT_TARGETS = [
+    "fedora-29-x86_64",
+    "fedora-30-x86_64",
+    "fedora-31-x86_64",
+    "fedora-rawhide-x86_64",
+]
+
+
 @pytest.fixture(scope="module")
 def branch_push_event() -> PushGitHubEvent:
     file_content = (DATA_DIR / "webhooks" / "github" / "push_branch.json").read_text()
@@ -78,12 +87,7 @@ def build_helper(
 
     if not metadata:
         metadata = JobMetadataConfig(
-            targets=[
-                "fedora-29-x86_64",
-                "fedora-30-x86_64",
-                "fedora-31-x86_64",
-                "fedora-rawhide-x86_64",
-            ],
+            targets=DEFAULT_TARGETS,
             owner="nobody",
         )
 
@@ -181,8 +185,121 @@ def test_copr_build_check_names(github_pr_event):
                 flexmock(id=2, projectname="the-project-name", ownername="packit")
             )
             .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({"bright-future-x86_64": "", "__proxy__": "something"})
+            .mock(),
         )
     )
+    flexmock(Pushgateway).should_receive("push_copr_build_created")
+
+    flexmock(Celery).should_receive("send_task").once()
+    assert helper.run_copr_build()["success"]
+
+
+def test_copr_build_check_names_invalid_chroots(github_pr_event):
+    build_targets = [
+        "bright-future-x86_64",
+        "even-brighter-one-aarch64",
+        "fedora-32-x86_64",
+    ]
+
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    helper = build_helper(
+        event=github_pr_event,
+        metadata=JobMetadataConfig(targets=build_targets, owner="packit"),
+        db_trigger=trigger,
+    )
+    # we need to make sure that pr_id is set
+    # so we can check it out and add it to spec's release field
+    assert helper.metadata.pr_id
+
+    flexmock(copr_build).should_receive(
+        "get_copr_build_info_url_from_flask"
+    ).and_return("https://test.url")
+    flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
+        "https://test.url"
+    )
+
+    for target in build_targets:
+        flexmock(StatusReporter).should_receive("set_status").with_args(
+            state=CommitStatus.pending,
+            description="Building SRPM ...",
+            check_name=f"packit-stg/rpm-build-{target}",
+            url="",
+        ).and_return()
+
+    for not_supported_target in ("bright-future-x86_64", "fedora-32-x86_64"):
+        flexmock(StatusReporter).should_receive("set_status").with_args(
+            state=CommitStatus.error,
+            description=f"Not supported target: {not_supported_target}",
+            check_name=f"packit-stg/rpm-build-{not_supported_target}",
+            url="https://test.url",
+        ).and_return()
+
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=CommitStatus.pending,
+        description="Starting RPM build...",
+        check_name="packit-stg/rpm-build-even-brighter-one-aarch64",
+        url="https://test.url",
+    ).and_return()
+
+    flexmock(GitProject).should_receive("set_commit_status").and_return().never()
+    flexmock(GitProject).should_receive("pr_comment").with_args(
+        pr_id=342,
+        body="There are build targets that are not supported by COPR.\n"
+        "<details>\n<summary>Unprocessed build targets</summary>\n\n"
+        "```\n"
+        "bright-future-x86_64\n"
+        "fedora-32-x86_64\n"
+        "```\n</details>\n<details>\n"
+        "<summary>Available build targets</summary>\n\n"
+        "```\n"
+        "even-brighter-one-aarch64\n"
+        "not-so-bright-future-x86_64\n"
+        "```\n</details>",
+    ).and_return()
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        SRPMBuildModel(success=True)
+    )
+    flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
+        CoprBuildModel(id=1)
+    )
+    flexmock(PullRequestGithubEvent).should_receive("db_trigger").and_return(flexmock())
+
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+
+    # copr build
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
+        None
+    )
+
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        flexmock(
+            config={"copr_url": "https://copr.fedorainfracloud.org/"},
+            build_proxy=flexmock()
+            .should_receive("create_from_file")
+            .and_return(
+                flexmock(id=2, projectname="the-project-name", ownername="packit")
+            )
+            .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return(
+                {
+                    "__response__": 200,
+                    "not-so-bright-future-x86_64": "",
+                    "even-brighter-one-aarch64": "",
+                    "__proxy__": "something",
+                }
+            )
+            .mock(),
+        )
+    )
+
     flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
@@ -277,6 +394,10 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
                 flexmock(id=2, projectname="the-project-name", ownername="packit")
             )
             .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({"fedora-32-x86_64": "supported", "__to_be_ignored__": None})
+            .mock(),
         )
     )
     flexmock(Pushgateway).should_receive("push_copr_build_created")
@@ -346,6 +467,10 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
                 flexmock(id=2, projectname="the-project-name", ownername="nobody")
             )
             .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({"bright-future-x86_64": "", "bright-future-aarch64": ""})
+            .mock,
         )
     )
     flexmock(Pushgateway).should_receive("push_copr_build_created")
@@ -396,6 +521,10 @@ def test_copr_build_success_set_test_check(github_pr_event):
                 flexmock(id=2, projectname="the-project-name", ownername="the-owner")
             )
             .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({"bright-future-x86_64": "", "brightest-future-x86_64": ""})
+            .mock(),
         )
     )
     flexmock(Pushgateway).should_receive("push_copr_build_created")
@@ -412,12 +541,7 @@ def test_copr_build_for_branch(branch_push_event):
         type=JobType.build,
         trigger=JobConfigTriggerType.commit,
         metadata=JobMetadataConfig(
-            targets=[
-                "fedora-29-x86_64",
-                "fedora-30-x86_64",
-                "fedora-31-x86_64",
-                "fedora-rawhide-x86_64",
-            ],
+            targets=DEFAULT_TARGETS,
             owner="nobody",
             dist_git_branches=["build-branch"],
         ),
@@ -453,6 +577,10 @@ def test_copr_build_for_branch(branch_push_event):
                 flexmock(id=2, projectname="the-project-name", ownername="the-owner")
             )
             .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({target: "" for target in DEFAULT_TARGETS})
+            .mock(),
         )
     )
     flexmock(Pushgateway).should_receive("push_copr_build_created")
@@ -469,12 +597,7 @@ def test_copr_build_for_release(release_event):
         type=JobType.build,
         trigger=JobConfigTriggerType.release,
         metadata=JobMetadataConfig(
-            targets=[
-                "fedora-29-x86_64",
-                "fedora-30-x86_64",
-                "fedora-31-x86_64",
-                "fedora-rawhide-x86_64",
-            ],
+            targets=DEFAULT_TARGETS,
             owner="nobody",
             dist_git_branches=["build-branch"],
         ),
@@ -513,6 +636,10 @@ def test_copr_build_for_release(release_event):
                 flexmock(id=2, projectname="the-project-name", ownername="the-owner")
             )
             .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({target: "" for target in DEFAULT_TARGETS})
+            .mock(),
         )
     )
     flexmock(Pushgateway).should_receive("push_copr_build_created")
@@ -550,6 +677,10 @@ def test_copr_build_success(github_pr_event):
             .and_return(
                 flexmock(id=2, projectname="the-project-name", ownername="the-owner")
             )
+            .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({target: "" for target in DEFAULT_TARGETS})
             .mock(),
         )
     )
@@ -737,6 +868,15 @@ def test_copr_build_no_targets(github_pr_event):
                 flexmock(id=2, projectname="the-project-name", ownername="the-owner")
             )
             .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return(
+                {
+                    target: ""
+                    for target in get_build_targets("fedora-stable", default=None)
+                }
+            )
+            .mock(),
         )
     )
     flexmock(Pushgateway).should_receive("push_copr_build_created")
@@ -805,6 +945,10 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
                 flexmock(id=2, projectname="the-project-name", ownername="nobody")
             )
             .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({"bright-future-x86_64": ""})
+            .mock(),
         )
     )
     flexmock(Pushgateway).should_receive("push_copr_build_created")
@@ -852,6 +996,10 @@ def test_copr_build_success_set_test_check_gitlab(gitlab_mr_event):
                 flexmock(id=2, projectname="the-project-name", ownername="the-owner")
             )
             .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({"bright-future-x86_64": "", "brightest-future-x86_64": ""})
+            .mock(),
         )
     )
     flexmock(Pushgateway).should_receive("push_copr_build_created")
@@ -868,12 +1016,7 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
         type=JobType.build,
         trigger=JobConfigTriggerType.commit,
         metadata=JobMetadataConfig(
-            targets=[
-                "fedora-29-x86_64",
-                "fedora-30-x86_64",
-                "fedora-31-x86_64",
-                "fedora-rawhide-x86_64",
-            ],
+            targets=DEFAULT_TARGETS,
             owner="nobody",
             dist_git_branches=["build-branch"],
         ),
@@ -908,6 +1051,10 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
             .and_return(
                 flexmock(id=2, projectname="the-project-name", ownername="the-owner")
             )
+            .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({target: "" for target in DEFAULT_TARGETS})
             .mock(),
         )
     )
@@ -948,6 +1095,10 @@ def test_copr_build_success_gitlab(gitlab_mr_event):
             .and_return(
                 flexmock(id=2, projectname="the-project-name", ownername="the-owner")
             )
+            .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({target: "" for target in DEFAULT_TARGETS})
             .mock(),
         )
     )
@@ -1044,6 +1195,10 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
                 flexmock(id=2, projectname="the-project-name", ownername="the-owner")
             )
             .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({target: "" for target in DEFAULT_TARGETS})
+            .mock(),
         )
     )
     flexmock(Pushgateway).should_receive("push_copr_build_created")
@@ -1084,6 +1239,15 @@ def test_copr_build_no_targets_gitlab(gitlab_mr_event):
             .should_receive("create_from_file")
             .and_return(
                 flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+            )
+            .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return(
+                {
+                    target: ""
+                    for target in get_build_targets("fedora-stable", default=None)
+                }
             )
             .mock(),
         )

@@ -7,7 +7,7 @@ from typing import Union, Dict
 import click
 import ogr
 import requests
-from github import PullRequest
+from github.PullRequest import PullRequest
 
 
 class PRWebhookPayload:
