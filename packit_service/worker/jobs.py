@@ -28,6 +28,8 @@ from celery import group
 from typing import Any
 from typing import Optional, Dict, Union, Type, Set, List
 
+from packit.config.job_config import JobConfigTriggerType
+
 from packit.config import PackageConfig, JobConfig
 
 from packit_service.config import ServiceConfig
@@ -42,10 +44,7 @@ from packit_service.service.events import (
     MergeRequestCommentGitlabEvent,
     IssueCommentGitlabEvent,
 )
-from packit_service.trigger_mapping import (
-    is_trigger_matching_job_config,
-    are_job_types_same,
-)
+from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -102,7 +101,12 @@ def get_handlers_for_event(
     for job in package_config.jobs:
         if (
             event.db_trigger and event.db_trigger.job_config_trigger_type == job.trigger
-        ) or is_trigger_matching_job_config(trigger=event.trigger, job_config=job):
+        ) or (  # TODO: mapping issue -> job needs to be solved properly
+            (not event.db_trigger or not event.db_trigger.job_config_trigger_type)
+            and event.trigger
+            in {TheJobTriggerType.release, TheJobTriggerType.issue_comment}
+            and job.trigger == JobConfigTriggerType.release
+        ):
             for pos_handler in classes_for_trigger:
                 if job.type in MAP_HANDLER_TO_JOB_TYPES[pos_handler]:
                     handlers.add(pos_handler)
@@ -114,6 +118,9 @@ def get_handlers_for_event(
             for trigger in pos_handler.triggers:
                 if trigger == event.trigger:
                     handlers.add(pos_handler)
+
+    if not handlers:
+        logger.debug(f"We did not find any handler for a following event:\n{event}")
 
     return handlers
 
@@ -146,7 +153,12 @@ def get_config_for_handler_kls(
     for job in package_config.jobs:
         if (
             event.db_trigger and event.db_trigger.job_config_trigger_type == job.trigger
-        ) or is_trigger_matching_job_config(trigger=event.trigger, job_config=job):
+        ) or (  # TODO: mapping issue -> job_config needs to be solved properly
+            (not event.db_trigger or not event.db_trigger.job_config_trigger_type)
+            and event.trigger
+            in {TheJobTriggerType.release, TheJobTriggerType.issue_comment}
+            and job.trigger == JobConfigTriggerType.release
+        ):
             jobs_that_can_be_triggered.append(job)
 
     matching_job_types = MAP_HANDLER_TO_JOB_TYPES[handler_kls]
@@ -168,13 +180,13 @@ def get_config_for_handler_kls(
     for job in jobs_that_can_be_triggered:
         required_handlers = MAP_REQUIRED_JOB_TO_HANDLERS[job.type]
         if handler_kls in required_handlers:
-            for trigger in handler_kls.triggers:
-                if (
-                    (trigger == event.db_trigger.job_config_trigger_type)
-                    or is_trigger_matching_job_config(trigger=trigger, job_config=job)
-                    and job not in matching_jobs
-                ):
-                    matching_jobs.append(job)
+            if job not in matching_jobs:
+                matching_jobs.append(job)
+
+    if not matching_jobs:
+        logger.warning(
+            f"We did not find any config for {handler_kls} and a following event:\n{event}"
+        )
 
     return matching_jobs
 

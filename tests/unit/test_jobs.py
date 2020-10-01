@@ -434,6 +434,54 @@ from packit_service.worker.jobs import (
             {PullRequestCoprBuildHandler},
             id="config=multiple_copr_builds_for_pr@trigger=pull_request",
         ),
+        pytest.param(
+            TheJobTriggerType.pull_request,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            {PullRequestCoprBuildHandler},
+            id="config=test_for_pr&copr_build_for_commit@trigger=pull_request",
+        ),
+        pytest.param(
+            TheJobTriggerType.push,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            {PushCoprBuildHandler},
+            id="config=test_for_pr&copr_build_for_commit@trigger=push",
+        ),
+        pytest.param(
+            TheJobTriggerType.commit,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            {PushCoprBuildHandler},
+            id="config=test_for_pr&copr_build_for_commit@trigger=commit",
+        ),
     ],
 )
 def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
@@ -526,6 +574,57 @@ def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
         pytest.param(
             PullRequestCoprBuildHandler,
             flexmock(
+                trigger=TheJobTriggerType.pull_request,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.pull_request
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit),
+            ],
+            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
+            id="copr_build_for_pr_when_test_for_pr_and_build_for_commit_are_defined@pr",
+        ),
+        pytest.param(
+            PushCoprBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.commit,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.commit
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit),
+            ],
+            [JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit)],
+            id="copr_build_for_pr_when_test_for_pr_and_build_for_commit_are_defined&commit",
+        ),
+        pytest.param(
+            PushCoprBuildHandler,
+            flexmock(
+                trigger=TheJobTriggerType.push,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.commit
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit),
+            ],
+            [JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit)],
+            id="copr_build_for_pr_when_test_for_pr_and_build_for_commit_are_defined&push",
+        ),
+        pytest.param(
+            PullRequestCoprBuildHandler,
+            flexmock(
                 trigger=TheJobTriggerType.commit,
                 db_trigger=flexmock(
                     job_config_trigger_type=JobConfigTriggerType.commit
@@ -561,6 +660,27 @@ def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
             ],
             [JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit)],
             id="copr_build_for_commit_when_test_and_build_are_defined_for_pr_and_build_for_push",
+        ),
+        pytest.param(
+            CoprBuildEndHandler,
+            flexmock(
+                trigger=TheJobTriggerType.push,
+                db_trigger=flexmock(
+                    job_config_trigger_type=JobConfigTriggerType.commit
+                ),
+            ),
+            [
+                JobConfig(
+                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(
+                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
+                ),
+                JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit),
+            ],
+            [JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit)],
+            id="copr_build_for_commit_when_test_and_build_are_defined_for_pr_and_build_for_push"
+            "&end",
         ),
         pytest.param(
             PullRequestCoprBuildHandler,

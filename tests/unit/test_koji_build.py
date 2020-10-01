@@ -108,7 +108,9 @@ def build_helper(
 
 
 def test_koji_build_check_names(github_pr_event):
-    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
@@ -206,7 +208,9 @@ def test_koji_build_failed_kerberos(github_pr_event):
 
 
 def test_koji_build_target_not_supported(github_pr_event):
-    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
@@ -248,7 +252,9 @@ def test_koji_build_target_not_supported(github_pr_event):
 
 
 def test_koji_build_with_multiple_targets(github_pr_event):
-    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
@@ -290,7 +296,9 @@ def test_koji_build_with_multiple_targets(github_pr_event):
 
 
 def test_koji_build_failed(github_pr_event):
-    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
