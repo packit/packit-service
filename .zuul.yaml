@@ -18,14 +18,14 @@
 
 - job:
     name: packit-service-tests-requre
-    parent: oc-cluster-up
+    parent: base
     description: Run tests with requre support in a cluster
     # this will clone the deployment repo to a predictable path
     required-projects:
       - github.com/packit/deployment
     pre-run:
-      - files/setup-openshift.yaml
-      - files/packit-service-image.yaml
+      #- files/setup-openshift.yaml
+      #- files/packit-service-image.yaml
       - files/deployment.yaml
     extra-vars:
       with_testing: true

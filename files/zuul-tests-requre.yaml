@@ -23,10 +23,3 @@
     #    - fullchain.pem
     #    - fedora.keytab
     #    - sentry_key
-    - name: Run tests which are executed within openshift
-      command: make check-inside-openshift-zuul
-      args:
-        chdir: "{{ project_dir }}"
-      become: true
-      environment:
-        SOURCE_BRANCH: "{{ zuul.branch }}"
