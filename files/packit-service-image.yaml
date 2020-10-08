@@ -1,9 +1,10 @@
 ---
 - name: Build packit-service image form current src dir.
   hosts: all
+  vars:
+    # Zuul base job redefines project_dir
+    project_dir: "{{ playbook_dir }}/.."
   tasks:
-    - include_tasks: tasks/zuul-project-setup.yaml
-
     - name: Build service and worker images
       command: "make {{ item }}"
       args:
