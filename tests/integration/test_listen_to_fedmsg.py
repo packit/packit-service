@@ -215,8 +215,8 @@ def test_copr_build_end(
         check_names=CoprBuildJobHelper.get_build_check(copr_build_end["chroot"]),
     ).once()
 
-    # skip testing farm
-    flexmock(CoprBuildJobHelper).should_receive("job_tests").and_return(None)
+    # no test job defined => testing farm should be skipped
+    flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").times(0)
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(copr_build_end)
@@ -316,16 +316,17 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
 
 def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("some-owner")
-    flexmock(TestingFarmJobHelper).should_receive("job_project").and_return(
-        "foo-bar-123-stg"
-    )
+
     config = PackageConfig(
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                metadata=JobMetadataConfig(targets=["fedora-rawhide"]),
+                metadata=JobMetadataConfig(
+                    targets=["fedora-rawhide"],
+                    owner="some-owner",
+                    project="some-project",
+                ),
             ),
             JobConfig(
                 type=JobType.tests,
@@ -376,7 +377,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         "artifact": {
             "repo-name": "bar",
             "repo-namespace": "foo",
-            "copr-repo-name": "some-owner/foo-bar-123-stg",
+            "copr-repo-name": "some-owner/some-project",
             "copr-chroot": "fedora-rawhide-x86_64",
             "commit-sha": "0011223344",
             "git-url": "https://github.com/foo/bar.git",
@@ -446,16 +447,17 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
 
 def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("some-owner")
-    flexmock(TestingFarmJobHelper).should_receive("job_project").and_return(
-        "foo-bar-123-stg"
-    )
+
     config = PackageConfig(
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                metadata=JobMetadataConfig(targets=["fedora-rawhide"]),
+                metadata=JobMetadataConfig(
+                    targets=["fedora-rawhide"],
+                    owner="some-owner",
+                    project="some-project",
+                ),
             ),
             JobConfig(
                 type=JobType.tests,
@@ -561,16 +563,17 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
 
 def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("some-owner")
-    flexmock(TestingFarmJobHelper).should_receive("job_project").and_return(
-        "foo-bar-123-stg"
-    )
+
     config = PackageConfig(
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                metadata=JobMetadataConfig(targets=["fedora-rawhide"]),
+                metadata=JobMetadataConfig(
+                    targets=["fedora-rawhide"],
+                    owner="some-owner",
+                    project="some-project",
+                ),
             ),
             JobConfig(
                 type=JobType.tests,

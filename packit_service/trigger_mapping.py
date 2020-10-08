@@ -20,45 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Dict
-
-from deprecated import deprecated
-
-from packit.config import JobConfigTriggerType, JobConfig, JobType
-from packit_service.service.events import TheJobTriggerType
-
-MAP_JOB_TRIGGER_TO_JOB_CONFIG_TRIGGER_TYPE: Dict[
-    TheJobTriggerType, JobConfigTriggerType
-] = {
-    TheJobTriggerType.commit: JobConfigTriggerType.commit,
-    TheJobTriggerType.release: JobConfigTriggerType.release,
-    TheJobTriggerType.pull_request: JobConfigTriggerType.pull_request,
-    TheJobTriggerType.push: JobConfigTriggerType.commit,
-    TheJobTriggerType.pr_comment: JobConfigTriggerType.pull_request,
-    TheJobTriggerType.copr_start: JobConfigTriggerType.pull_request,
-    TheJobTriggerType.copr_end: JobConfigTriggerType.pull_request,
-    TheJobTriggerType.testing_farm_results: JobConfigTriggerType.pull_request,
-    TheJobTriggerType.issue_comment: JobConfigTriggerType.release,
-}
-
-
-@deprecated(
-    reason="Should be avoided since it is hardcoded. "
-    "We can use info from database instead for events without the real trigger "
-    "(e.g. copr/koji/tests results)."
-)
-def is_trigger_matching_job_config(
-    trigger: TheJobTriggerType, job_config: JobConfig
-) -> bool:
-    """
-    Check that the event trigger matches the one from config.
-
-    We can have multiple events for one config.
-    e.g. Both pr_comment and pull_request are compatible
-         with the pull_request config in the config
-    """
-    config_trigger = MAP_JOB_TRIGGER_TO_JOB_CONFIG_TRIGGER_TYPE.get(trigger)
-    return bool(config_trigger and job_config.trigger == config_trigger)
+from packit.config import JobType
 
 
 def are_job_types_same(first: JobType, second: JobType) -> bool:

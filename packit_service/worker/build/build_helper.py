@@ -38,10 +38,7 @@ from packit_service import sentry_integration
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.models import SRPMBuildModel
 from packit_service.service.events import EventData
-from packit_service.trigger_mapping import (
-    is_trigger_matching_job_config,
-    are_job_types_same,
-)
+from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.reporting import StatusReporter
 from sandcastle import SandcastleTimeoutReached
 
@@ -205,13 +202,8 @@ class BaseBuildJobHelper:
         if not self._job_build:
             for job in [self.job_config] + self.package_config.jobs:
                 if are_job_types_same(job.type, self.job_type_build) and (
-                    (
-                        self.db_trigger
-                        and self.db_trigger.job_config_trigger_type == job.trigger
-                    )
-                    or is_trigger_matching_job_config(
-                        trigger=self.metadata.trigger, job_config=job
-                    )
+                    self.db_trigger
+                    and self.db_trigger.job_config_trigger_type == job.trigger
                 ):
                     self._job_build = job
                     break
@@ -239,13 +231,8 @@ class BaseBuildJobHelper:
         if not self._job_tests:
             for job in [self.job_config] + self.package_config.jobs:
                 if are_job_types_same(job.type, self.job_type_test) and (
-                    (
-                        self.db_trigger
-                        and self.db_trigger.job_config_trigger_type == job.trigger
-                    )
-                    or is_trigger_matching_job_config(
-                        trigger=self.metadata.trigger, job_config=job
-                    )
+                    self.db_trigger
+                    and self.db_trigger.job_config_trigger_type == job.trigger
                 ):
                     self._job_tests = job
                     break
