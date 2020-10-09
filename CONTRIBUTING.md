@@ -223,7 +223,10 @@ We have multiple test categories within packit-service:
 You can run unit and integration tests locally in a container:
 
 ```
-make test_image && make check_in_container
+docker pull docker.io/usercont/base && \
+make worker && \
+make test_image && \
+make check_in_container
 ```
 
 To select a subset of the whole test suite, set `TEST_TARGET`. For example to

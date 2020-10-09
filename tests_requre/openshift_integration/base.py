@@ -6,6 +6,7 @@ from requre.constants import RELATIVE_TEST_DATA_DIRECTORY
 from requre.cassette import StorageMode
 from packit.config import RunCommandType
 from packit_service.worker.jobs import SteveJobs
+from glob import glob
 
 PROJECT_DIR = Path(__file__).parent.parent.parent
 DATA_DIR = PROJECT_DIR / "tests" / "data"
@@ -28,7 +29,6 @@ class PackitServiceTestCase(RequreTestCase):
                 / Path(self.cassette.storage_file).parent.name
             )
             os.makedirs(destdir, exist_ok=True)
-            copy(
-                self.cassette.storage_file,
-                destdir / Path(self.cassette.storage_file).name,
-            )
+            storage_file = Path(self.cassette.storage_file)
+            for filename in glob(f"{storage_file}*"):
+                copy(filename, destdir)
