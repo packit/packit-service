@@ -52,14 +52,12 @@
           with_items:
             - private-key.pem
             - privkey.pem
-            - dashboard-privkey.pem
             - centos-server-ca.cert
             - centos.cert
         - name: Generate dummy certs
           command: "openssl req -x509 -new -key {{ internal_secrets_path }}/{{ item.key }} -out {{ internal_secrets_path }}/{{ item.out }} -days 1 -subj '/CN=just.for.the.ci' -passin pass:somepassword -passout pass:anotherpassword -nodes"
           with_items:
             - { key: privkey.pem, out: fullchain.pem }
-            - { key: dashboard-privkey.pem, out: dashboard-fullchain.pem }
 
         - name: Generate /etc/ssh/ RSA host key
           command: "ssh-keygen -q -t rsa -f {{ internal_secrets_path }}/id_rsa -C '' -N ''"

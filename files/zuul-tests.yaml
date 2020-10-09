@@ -2,8 +2,10 @@
 # This playbook is running tests inside Zuul
 - name: Run packit-service tests
   hosts: all
+  vars:
+    # Zuul base job redefines project_dir
+    project_dir: "{{ playbook_dir }}/.."
   tasks:
-    - include_tasks: tasks/zuul-project-setup.yaml
     - name: Install podman
       dnf:
         name:

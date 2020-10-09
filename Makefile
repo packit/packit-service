@@ -1,3 +1,4 @@
+BASE_IMAGE ?= docker.io/usercont/base
 SERVICE_IMAGE ?= docker.io/usercont/packit-service:dev
 WORKER_IMAGE ?= docker.io/usercont/packit-service-worker:dev
 WORKER_IMAGE_PROD ?= docker.io/usercont/packit-service-worker:prod
@@ -12,9 +13,11 @@ COLOR ?= yes
 SOURCE_BRANCH ?= $(shell git branch --show-current)
 
 service: files/install-deps.yaml files/recipe.yaml
+	$(CONTAINER_ENGINE) pull $(BASE_IMAGE)
 	$(CONTAINER_ENGINE) build --rm -t $(SERVICE_IMAGE) -f files/docker/Dockerfile --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
 
 worker: files/install-deps-worker.yaml files/recipe-worker.yaml
+	$(CONTAINER_ENGINE) pull $(BASE_IMAGE)
 	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE) -f files/docker/Dockerfile.worker --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
 
 # This is for cases when you want to deploy into production and don't want to wait for dockerhub
@@ -29,8 +32,7 @@ check:
 	find . -name "*.pyc" -exec rm {} \;
 	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=$(COLOR) --verbose --showlocals --cov=packit_service --cov-report=$(COV_REPORT) $(TEST_TARGET)
 
-# first run 'make worker'
-test_image: files/install-deps.yaml files/recipe-tests.yaml
+test_image: worker files/install-deps.yaml files/recipe-tests.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(TEST_IMAGE) -f files/docker/Dockerfile.tests --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
 
 check_in_container: test_image
