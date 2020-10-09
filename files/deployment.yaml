@@ -111,6 +111,8 @@
           with_dashboard: false
           with_pushgateway: false
           push_dev_images: true
+          # we don't have tokman:dev
+          image_tokman: docker.io/usercont/tokman:stg
         dest: "{{ deployment_dir }}/vars/dev.yml"
     - name: Actually deploy
       command: make deploy
