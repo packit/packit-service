@@ -2,11 +2,18 @@ import pytest
 from flexmock import flexmock
 
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
-from packit.config.aliases import ALIASES
 from packit.config.job_config import JobMetadataConfig
 from packit_service.service.events import TheJobTriggerType
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
+
+# packit.config.aliases.get_aliases() return value example
+ALIASES = {
+    "fedora-development": ["fedora-33", "fedora-rawhide"],
+    "fedora-stable": ["fedora-31", "fedora-32"],
+    "fedora-all": ["fedora-31", "fedora-32", "fedora-33", "fedora-rawhide"],
+    "epel-all": ["epel-6", "epel-7", "epel-8"],
+}
 
 STABLE_VERSIONS = ALIASES["fedora-stable"]
 STABLE_CHROOTS = {f"{version}-x86_64" for version in STABLE_VERSIONS}
