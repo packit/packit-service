@@ -14,7 +14,6 @@
           - python3-openshift
           - make
           - skopeo
-          # - podman
       become: true
 
     - name: clone deployment repo when not running in zuul
@@ -28,75 +27,27 @@
             clone: yes
       when: zuul is not defined
 
+    - name: Generate secrets
+      command: make generate-local-secrets
+      environment:
+        DEPLOYMENT: dev
+        ANSIBLE_STDOUT_CALLBACK: debug
+      args:
+        chdir: "{{ deployment_dir }}"
+      become: "{{ as_root }}"
+      when: path_to_secrets is not defined
+
+    - name: symlink provided path_to_secrets to secrets/dev/
+      file:
+        state: link
+        src: "{{ path_to_secrets }}/dev"
+        dest: "{{ deployment_dir }}/secrets/dev"
+      when: path_to_secrets is defined
+
     - name: get token
       command: oc whoami -t
       register: kubeconfig_token
       become: "{{ as_root }}"
-
-    # path_to_secrets = this is what we get from the outside
-    # internal_secrets_path = this is what we'll use here
-    - set_fact: internal_secrets_path={{ deployment_dir }}/secrets/dev
-    - name: Create the directory secrets/
-      file:
-        path: "{{ deployment_dir }}/secrets/"
-        state: directory
-    - name: Prepare secrets
-      when: path_to_secrets is not defined
-      block:
-        - name: Create {{ internal_secrets_path }}
-          file:
-            path: "{{ internal_secrets_path }}"
-            state: directory
-        - name: Generate dummy keys
-          command: "openssl genrsa -out {{ internal_secrets_path }}/{{ item }} 4096"
-          with_items:
-            - private-key.pem
-            - privkey.pem
-            - centos-server-ca.cert
-            - centos.cert
-        - name: Generate dummy certs
-          command: "openssl req -x509 -new -key {{ internal_secrets_path }}/{{ item.key }} -out {{ internal_secrets_path }}/{{ item.out }} -days 1 -subj '/CN=just.for.the.ci' -passin pass:somepassword -passout pass:anotherpassword -nodes"
-          with_items:
-            - { key: privkey.pem, out: fullchain.pem }
-
-        - name: Generate /etc/ssh/ RSA host key
-          command: "ssh-keygen -q -t rsa -f {{ internal_secrets_path }}/id_rsa -C '' -N ''"
-          args:
-            creates: "{{ internal_secrets_path }}/id_rsa"
-        # Ansible 2.8+, does not work in Zuul (???)
-        #  - name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
-        #    openssh_keypair:
-        #      path: "{{ deployment_dir }}/secrets/dev/id_rsa"
-
-        - name: Create fedora.keytab
-          file:
-            path: "{{ internal_secrets_path }}/fedora.keytab"
-            state: touch
-
-        - name: Create sentry_key
-          file:
-            path: "{{ internal_secrets_path }}/sentry_key"
-            state: touch
-
-        - name: Copy the rest of the secrets from template
-          copy:
-            src: "{{ deployment_dir }}/secrets/template/{{ item }}"
-            dest: "{{ internal_secrets_path }}/{{ item }}"
-            remote_src: yes
-          with_items:
-            - packit-service.yaml
-            - copr
-            - ssh_config
-            - fedora.toml
-            - extra-vars.yml
-    # end of the block
-
-    - name: symlink secrets when provided
-      when: path_to_secrets is defined
-      file:
-        state: link
-        src: "{{ path_to_secrets }}/dev"
-        dest: "{{ internal_secrets_path }}"
 
     - name: Create dev.yml
       copy:
@@ -105,13 +56,19 @@
           project: myproject
           host: https://127.0.0.1:8443
           api_key: {{ kubeconfig_token.stdout }}
-          # we don't need these services while testing p-s now
+          validate_certs: no
+          # we don't need these services for testing p-s
+          with_tokman: false
+          with_beat: false
           with_fedmsg: false
           with_centosmsg: false
           with_dashboard: false
           with_pushgateway: false
           push_dev_images: true
+          # we don't have tokman:dev
+          image_tokman: docker.io/usercont/tokman:stg
         dest: "{{ deployment_dir }}/vars/dev.yml"
+
     - name: Actually deploy
       command: make deploy
       environment:

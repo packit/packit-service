@@ -23,9 +23,10 @@
     # this will clone the deployment repo to a predictable path
     required-projects:
       - github.com/packit/deployment
+    extra-vars:
+      with_testing: true
+      deployment: dev
     pre-run:
       - files/packit-service-image.yaml
       - files/deployment.yaml
-    extra-vars:
-      with_testing: true
     run: files/zuul-tests-requre.yaml
