@@ -6,26 +6,22 @@ X:
           target_path:
           - metadata:
               latency: 0
-            output: tests_requre.openshift_integration.test_fedpkg.FedPkg.test_fedpkg_clone.yaml.tmpxholg1bu_1.tar.xz
+            output: tests_requre.openshift_integration.test_fedpkg.FedPkg.test_fedpkg_clone.yaml.static_tmp_1_1.tar.xz
 _requre:
   DataTypes: 1
-  key_strategy: StorageKeysInspectFull
+  key_strategy: StorageKeysInspectSimple
   version_storage_file: 2
-unittest.case:
-  tests_requre.openshift_integration.test_fedpkg:
-    requre.helpers.files:
-      requre.objects:
-        requre.cassette:
-          packit.fedpkg:
-            clone:
-            - metadata:
-                latency: 2.356671094894409
-                module_call_list:
-                - unittest.case
-                - tests_requre.openshift_integration.test_fedpkg
-                - requre.helpers.files
-                - requre.objects
-                - requre.cassette
-                - packit.fedpkg
-                - clone
-              output: null
+packit.fedpkg:
+  clone:
+  - metadata:
+      latency: 1.7618751525878906
+      module_call_list:
+      - unittest.case
+      - requre.online_replacing
+      - tests_requre.openshift_integration.test_fedpkg
+      - requre.helpers.files
+      - requre.objects
+      - requre.cassette
+      - packit.fedpkg
+      - clone
+    output: null
