@@ -44,7 +44,7 @@
       pip:
         name:
           - persistentdict # still needed by one Alembic migration script
-          - sentry-sdk[flask]
+          - sentry-sdk[flask]==0.18.0
         executable: pip3
 
     # --no-deps: to fail instead of installing from PyPI when we forget to add some dependency to packit.spec
