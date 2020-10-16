@@ -22,6 +22,17 @@
 
 import json
 import unittest
+from requre.online_replacing import (
+    record_requests_for_all_methods,
+    apply_decorator_to_all_methods,
+    replace_module_match,
+)
+from requre.helpers.files import StoreFiles
+from requre.helpers.simple_object import Simple
+from requre.helpers.git.pushinfo import PushInfoStorageList
+from requre.helpers.tempfile import TempFile
+from requre.helpers.git.fetchinfo import FetchInfoStorageList
+from requre.helpers.git.repo import Repo
 
 from tests_requre.openshift_integration.base import PackitServiceTestCase, DATA_DIR
 
@@ -34,7 +45,7 @@ def pr_event():
 
 def pr_comment_event():
     return json.loads(
-        (DATA_DIR / "webhooks" / "github" / "pr_comment_copr_build.json").read_text()
+        (DATA_DIR / "webhooks" / "github" / "pr_comment.json").read_text()
     )
 
 
@@ -46,8 +57,58 @@ def pr_comment_event_not_collaborator():
     )
 
 
+@record_requests_for_all_methods()
+@apply_decorator_to_all_methods(
+    replace_module_match(
+        what="packit.utils.run_command_remote", decorate=Simple.decorator_plain()
+    )
+)
+@apply_decorator_to_all_methods(
+    replace_module_match(
+        what="packit.fedpkg.FedPKG.clone",
+        decorate=StoreFiles.where_arg_references(
+            key_position_params_dict={"target_path": 2}
+        ),
+    )
+)
+@apply_decorator_to_all_methods(
+    replace_module_match(
+        what="git.repo.base.Repo.clone_from",
+        decorate=StoreFiles.where_arg_references(
+            key_position_params_dict={"to_path": 2},
+            return_decorator=Repo.decorator_plain,
+        ),
+    )
+)
+@apply_decorator_to_all_methods(
+    replace_module_match(
+        what="git.remote.Remote.push", decorate=PushInfoStorageList.decorator_plain()
+    )
+)
+@apply_decorator_to_all_methods(
+    replace_module_match(
+        what="git.remote.Remote.fetch", decorate=FetchInfoStorageList.decorator_plain()
+    )
+)
+@apply_decorator_to_all_methods(
+    replace_module_match(
+        what="git.remote.Remote.pull", decorate=FetchInfoStorageList.decorator_plain()
+    )
+)
+@apply_decorator_to_all_methods(
+    replace_module_match(what="tempfile.mkdtemp", decorate=TempFile.mkdtemp())
+)
+@apply_decorator_to_all_methods(
+    replace_module_match(what="tempfile.mktemp", decorate=TempFile.mktemp())
+)
+# Be aware that decorator stores login and token to test_data, replace it by some value.
+# Default precommit hook doesn't do that for copr.v3.helpers, see README.md
+@apply_decorator_to_all_methods(
+    replace_module_match(
+        what="copr.v3.helpers.config_from_file", decorate=Simple.decorator_plain()
+    )
+)
 class Copr(PackitServiceTestCase):
-    @unittest.skipIf(True, "troubles with whitelisting")
     def test_submit_copr_build_pr_event(self):
         result = self.steve.process_message(pr_event())
         self.assertTrue(result)
@@ -56,14 +117,6 @@ class Copr(PackitServiceTestCase):
 
     @unittest.skipIf(True, "We can't obtain installation ID, I give up.")
     def test_submit_copr_build_pr_comment(self):
-        # flexmock(GithubIntegration).should_receive("get_installation").and_return(
-        #     Installation(requester=None, headers={}, attributes={}, completed=True)
-        # )
-        # flexmock(GithubIntegration).should_receive("get_access_token").and_return(
-        #     InstallationAuthorization(
-        #         requester=None, headers={}, attributes={}, completed=True
-        #     )
-        # )
         result = self.steve.process_message(pr_comment_event())
         self.assertTrue(result)
         self.assertIn("pull_request_action", result["jobs"])
