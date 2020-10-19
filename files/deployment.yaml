@@ -58,7 +58,7 @@
           api_key: {{ kubeconfig_token.stdout }}
           validate_certs: no
           # we don't need these services for testing p-s
-          with_tokman: false
+          with_tokman: true
           with_beat: false
           with_fedmsg: false
           with_centosmsg: false
