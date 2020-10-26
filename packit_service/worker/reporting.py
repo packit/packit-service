@@ -19,10 +19,13 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 import hashlib
 import logging
 from typing import Optional, Union
+
 import gitlab
+import github
 
 from ogr.abstract import GitProject, CommitStatus
 from ogr.services.pagure import PagureProject
@@ -108,6 +111,24 @@ class StatusReporter:
 
         self.project.pr_comment(self.pr_id, "\n".join(comment_table_rows))
 
+    def __add_commit_comment_with_status(
+        self, state: CommitStatus, description: str, check_name: str, url: str = ""
+    ):
+        body = (
+            "\n".join(
+                [
+                    f"- name: {check_name}",
+                    f"- state: {state.name}",
+                    f"- url: {url if url else 'not provided'}",
+                ]
+            )
+            + f"\n\n{description}"
+        )
+        self.project.commit_comment(
+            commit=self.commit_sha,
+            body=body,
+        )
+
     def set_status(
         self,
         state: CommitStatus,
@@ -125,10 +146,16 @@ class StatusReporter:
             self.project.set_commit_status(
                 self.commit_sha, state, url, description, check_name, trim=True
             )
-        except gitlab.exceptions.GitlabCreateError:
+        except gitlab.exceptions.GitlabCreateError as e:
             # Ignoring Gitlab 'enqueue' error
             # https://github.com/packit-service/packit-service/issues/741
-            pass
+            if e.response_code == 403:
+                # In case we don't have permissions to set status we post comment
+                self.__add_commit_comment_with_status(
+                    state, description, check_name, url
+                )
+        except github.GithubException:
+            self.__add_commit_comment_with_status(state, description, check_name, url)
 
         # Also set the status of the pull-request for forges which don't do
         # this automatically based on the flags on the last commit in the PR.
