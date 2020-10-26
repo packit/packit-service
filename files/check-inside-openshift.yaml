@@ -127,3 +127,19 @@
     # rsync works only on a running pod
     - name: get generated responses from the pod
       command: oc rsync pod/get-requre-data:{{ remote_data_dir }} {{ local_data_dir }}
+
+    - name: get the git config name in worker /src
+      command: oc exec packit-worker-0 -- bash -c "cd /src && git config --global user.name"
+      register: git_name
+
+    - name: get the git config email in worker /src
+      command: oc exec packit-worker-0 -- bash -c "cd /src && git config --global user.email"
+      register: git_email
+
+    - name: check the git config values
+      assert:
+        that:
+          - git_name.stdout == "Packit Service"
+          - git_email.stdout == "user-cont-team+packit-service@redhat.com"
+        msg:
+          - "Incorrect git config values: {{ git_name.stdout }} , {{ git_email.stdout }}"
