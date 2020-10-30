@@ -52,7 +52,7 @@ services:
         SOURCE_BRANCH: master
     image: docker.io/usercont/packit-service-worker:dev
     command: /usr/bin/run_worker.sh
-    tty: true
+    #tty: true
     depends_on:
       - redis
       - postgres
