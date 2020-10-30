@@ -29,7 +29,6 @@ from ogr.abstract import GitProject, CommitStatus
 from packit.actions import ActionName
 from packit.api import PackitAPI
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
-from packit.config.aliases import get_build_targets
 from packit.config.job_config import JobMetadataConfig
 from packit.copr_helper import CoprHelper
 from packit.exceptions import FailedCreateSRPM, PackitCoprSettingsException
@@ -866,6 +865,13 @@ def test_copr_build_no_targets(github_pr_event):
             job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
         ),
     )
+
+    flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
+        "https://test.url"
+    )
+    flexmock(copr_build).should_receive("get_build_targets").and_return(
+        {"fedora-32-x86_64", "fedora-31-x86_64"}
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
     flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create").and_return(
@@ -894,10 +900,7 @@ def test_copr_build_no_targets(github_pr_event):
             mock_chroot_proxy=flexmock()
             .should_receive("get_list")
             .and_return(
-                {
-                    target: ""
-                    for target in get_build_targets("fedora-stable", default=None)
-                }
+                {target: "" for target in {"fedora-32-x86_64", "fedora-31-x86_64"}}
             )
             .mock(),
         )
@@ -905,6 +908,7 @@ def test_copr_build_no_targets(github_pr_event):
     flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
+
     assert helper.run_copr_build()["success"]
 
 
@@ -1258,6 +1262,9 @@ def test_copr_build_no_targets_gitlab(gitlab_mr_event):
             job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
         ),
     )
+    flexmock(copr_build).should_receive("get_build_targets").and_return(
+        {"fedora-32-x86_64", "fedora-31-x86_64"}
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
     flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create").and_return(
@@ -1288,10 +1295,7 @@ def test_copr_build_no_targets_gitlab(gitlab_mr_event):
             mock_chroot_proxy=flexmock()
             .should_receive("get_list")
             .and_return(
-                {
-                    target: ""
-                    for target in get_build_targets("fedora-stable", default=None)
-                }
+                {target: "" for target in {"fedora-32-x86_64", "fedora-31-x86_64"}}
             )
             .mock(),
         )

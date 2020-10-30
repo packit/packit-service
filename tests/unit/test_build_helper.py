@@ -1,6 +1,7 @@
 import pytest
 from flexmock import flexmock
 
+import packit_service
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
 from packit_service.service.events import TheJobTriggerType
@@ -394,6 +395,10 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
         metadata=flexmock(trigger=trigger, pr_id=None),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
     )
+
+    flexmock(packit_service.worker.build.copr_build).should_receive(
+        "get_build_targets"
+    ).and_return(build_chroots).and_return(test_chroots)
 
     assert copr_build_handler.package_config.jobs
     assert [j.type for j in copr_build_handler.package_config.jobs]
