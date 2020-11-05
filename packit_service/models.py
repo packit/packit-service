@@ -44,6 +44,7 @@ from sqlalchemy import (
     create_engine,
     func,
     Boolean,
+    orm,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship, scoped_session
@@ -131,6 +132,11 @@ class GitProjectModel(Base):
     # Example: https://github.com/packit/hello-world.git
     https_url = Column(String)
     project_url = Column(String)
+    instance_url = Column(String, nullable=False)
+
+    @orm.reconstructor
+    def __init__(self):
+        self.instance_url = urlparse(self.project_url).hostname
 
     @classmethod
     def __choose_project(
