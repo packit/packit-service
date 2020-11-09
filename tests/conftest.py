@@ -199,3 +199,16 @@ def gitlab_mr_webhook():
 @pytest.fixture(scope="module")
 def gitlab_mr_event(gitlab_mr_webhook) -> MergeRequestGitlabEvent:
     return Parser.parse_mr_event(gitlab_mr_webhook)
+
+
+@pytest.fixture
+def cache_clear(request):
+    """
+    Fixture which cleans lru_cache of functions defined in module variable CACHE_CLEAR.
+    This allows reliable test results.
+
+    :return:
+    """
+
+    if getattr(request.module, "CACHE_CLEAR", None):
+        [f.cache_clear() for f in getattr(request.module, "CACHE_CLEAR")]

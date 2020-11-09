@@ -397,7 +397,7 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
     )
 
     flexmock(packit_service.worker.build.copr_build).should_receive(
-        "get_build_targets"
+        "get_valid_build_targets"
     ).and_return(build_chroots).and_return(test_chroots)
 
     assert copr_build_handler.package_config.jobs

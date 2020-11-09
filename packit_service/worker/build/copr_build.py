@@ -28,7 +28,7 @@ from ogr.abstract import GitProject, CommitStatus
 from ogr.parsing import parse_git_repo
 from ogr.services.github import GithubProject
 from packit.config import JobType, JobConfig
-from packit.config.aliases import get_build_targets
+from packit.config.aliases import get_valid_build_targets
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitCoprException, PackitCoprSettingsException
 from packit_service import sentry_integration
@@ -155,7 +155,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         1. If the job is not defined, use the test chroots.
         2. If the job is defined without targets, use "fedora-stable".
         """
-        return get_build_targets(*self.configured_build_targets, default=None)
+        return get_valid_build_targets(*self.configured_build_targets, default=None)
 
     @property
     def tests_targets(self) -> Set[str]:
@@ -171,7 +171,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         1. use the build_targets if the job si configured
         2. use "fedora-stable" alias otherwise
         """
-        return get_build_targets(*self.configured_tests_targets, default=None)
+        return get_valid_build_targets(*self.configured_tests_targets, default=None)
 
     @property
     def available_chroots(self) -> Set[str]:
