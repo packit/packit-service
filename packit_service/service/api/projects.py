@@ -1,15 +1,15 @@
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 from http import HTTPStatus
 from logging import getLogger
 
-try:
-    from flask_restx import Namespace, Resource
-except ModuleNotFoundError:
-    from flask_restplus import Namespace, Resource
-
-from packit_service.service.api.utils import response_maker
-from packit_service.service.api.parsers import indices, pagination_arguments
-from packit_service.models import GitProjectModel
 from flask import url_for
+from flask_restx import Namespace, Resource
+
+from packit_service.models import GitProjectModel
+from packit_service.service.api.parsers import indices, pagination_arguments
+from packit_service.service.api.utils import response_maker
 
 logger = getLogger("packit_service")
 
