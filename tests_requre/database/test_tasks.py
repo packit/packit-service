@@ -25,6 +25,7 @@ from copr.v3 import Client, BuildProxy, BuildChrootProxy
 from flexmock import flexmock
 from munch import Munch
 
+import packit_service
 from ogr.services.github import GithubProject
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
@@ -167,6 +168,16 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
     flexmock(GithubProject).should_receive("get_pr_comments").and_return([])
     flexmock(GithubProject).should_receive("pr_comment").and_return()
     flexmock(GithubProject).should_receive("set_commit_status").and_return().once()
+    flexmock(packit_service.worker.build.copr_build).should_receive(
+        "get_valid_build_targets"
+    ).and_return(
+        {
+            "fedora-33-x86_64",
+            "fedora-32-x86_64",
+            "fedora-31-x86_64",
+            "fedora-rawhide-x86_64",
+        }
+    )
 
     check_copr_build(BUILD_ID)
     assert packit_build_752.status == PG_COPR_BUILD_STATUS_SUCCESS

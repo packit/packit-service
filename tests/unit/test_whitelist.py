@@ -27,6 +27,7 @@ from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
 from flexmock import flexmock
 
+import packit_service
 from ogr.abstract import GitProject, GitService, CommitStatus
 from ogr.services.github import GithubProject, GithubService
 from packit.config import JobType, JobConfig, JobConfigTriggerType
@@ -351,6 +352,13 @@ def test_check_and_report(
                 url=FAQ_URL,
                 check_names=[EXPECTED_TESTING_FARM_CHECK_NAME],
             ).once()
+        flexmock(packit_service.worker.build.copr_build).should_receive(
+            "get_valid_build_targets"
+        ).and_return(
+            {
+                "fedora-rawhide-x86_64",
+            }
+        )
 
         # get_account returns the whitelist object if it exists
         # returns nothing if it isn't whitelisted

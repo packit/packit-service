@@ -27,6 +27,7 @@ import requests
 from celery.canvas import Signature
 from flexmock import flexmock
 
+import packit_service
 from ogr.abstract import CommitStatus
 from ogr.services.github import GithubProject
 from ogr.utils import RequestResponse
@@ -65,6 +66,22 @@ from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_resu
 CHROOT = "fedora-rawhide-x86_64"
 EXPECTED_BUILD_CHECK_NAME = f"packit-stg/rpm-build-{CHROOT}"
 EXPECTED_TESTING_FARM_CHECK_NAME = f"packit-stg/testing-farm-{CHROOT}"
+
+pytestmark = pytest.mark.usefixtures("mock_get_valid_build_targets")
+
+
+@pytest.fixture
+def mock_get_valid_build_targets():
+    flexmock(packit_service.worker.build.copr_build).should_receive(
+        "get_valid_build_targets"
+    ).and_return(
+        {
+            "fedora-33-x86_64",
+            "fedora-32-x86_64",
+            "fedora-31-x86_64",
+            "fedora-rawhide-x86_64",
+        }
+    )
 
 
 @pytest.fixture(scope="module")

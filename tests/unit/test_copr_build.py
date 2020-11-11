@@ -23,8 +23,11 @@ import json
 
 import pytest
 from celery import Celery
+from copr.v3 import Client
 from flexmock import flexmock
 
+import packit
+import packit_service
 from ogr.abstract import GitProject, CommitStatus
 from packit.actions import ActionName
 from packit.api import PackitAPI
@@ -64,6 +67,11 @@ DEFAULT_TARGETS = [
     "fedora-31-x86_64",
     "fedora-rawhide-x86_64",
 ]
+CACHE_CLEAR = [
+    packit.copr_helper.CoprHelper.get_available_chroots,
+]
+
+pytestmark = pytest.mark.usefixtures("cache_clear", "mock_get_aliases")
 
 
 @pytest.fixture(scope="module")
@@ -175,7 +183,7 @@ def test_copr_build_check_names(github_pr_event):
         request_admin_if_needed=True,
     ).and_return(None)
 
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+    flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
             config={"copr_url": "https://copr.fedorainfracloud.org/"},
             build_proxy=flexmock()
@@ -202,7 +210,8 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
         "even-brighter-one-aarch64",
         "fedora-32-x86_64",
     ]
-
+    # packit.config.aliases.get_aliases.cache_clear()
+    # packit.copr_helper.CoprHelper.get_available_chroots.cache_clear()
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
@@ -276,7 +285,7 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
         None
     )
 
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+    flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
             config={"copr_url": "https://copr.fedorainfracloud.org/"},
             build_proxy=flexmock()
@@ -384,7 +393,7 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
         request_admin_if_needed=True,
     ).and_return(None)
 
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+    flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
             config={"copr_url": "https://copr.fedorainfracloud.org/"},
             build_proxy=flexmock()
@@ -459,7 +468,7 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
         request_admin_if_needed=True,
     ).and_return(None)
 
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+    flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
             config={"copr_url": "https://copr.fedorainfracloud.org/"},
             build_proxy=flexmock()
@@ -515,7 +524,7 @@ def test_copr_build_success_set_test_check(github_pr_event):
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
         None
     )
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+    flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
             config={"copr_url": "https://copr.fedorainfracloud.org/"},
             build_proxy=flexmock()
@@ -571,7 +580,7 @@ def test_copr_build_for_branch(branch_push_event):
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
         None
     )
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+    flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
             config={"copr_url": "https://copr.fedorainfracloud.org/"},
             build_proxy=flexmock()
@@ -630,7 +639,7 @@ def test_copr_build_for_release(release_event):
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
         None
     )
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+    flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
             config={"copr_url": "https://copr.fedorainfracloud.org/"},
             build_proxy=flexmock()
@@ -677,7 +686,7 @@ def test_copr_build_success(github_pr_event):
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
         None
     )
-    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+    flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
             config={"copr_url": "https://copr.fedorainfracloud.org/"},
             build_proxy=flexmock()
@@ -708,11 +717,15 @@ def test_copr_build_fails_in_packit(github_pr_event):
             job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
         ),
     )
+
+    flexmock(packit_service.worker.build.copr_build).should_receive(
+        "get_valid_build_targets"
+    ).and_return({"fedora-31-x86_64", "fedora-rawhide-x86_64"})
     templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
     flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
         "https://test.url"
     )
-    for v in ["29", "30", "31", "rawhide"]:
+    for v in ["31", "rawhide"]:
         flexmock(GitProject).should_receive("set_commit_status").with_args(
             "528b803be6f93e19ca4130bf4976f2800a3004c4",
             CommitStatus.pending,
@@ -721,7 +734,7 @@ def test_copr_build_fails_in_packit(github_pr_event):
             templ.format(ver=v),
             trim=True,
         ).and_return().once()
-    for v in ["29", "30", "31", "rawhide"]:
+    for v in ["31", "rawhide"]:
         flexmock(GitProject).should_receive("set_commit_status").with_args(
             "528b803be6f93e19ca4130bf4976f2800a3004c4",
             CommitStatus.failure,
@@ -763,7 +776,10 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
     flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
         "https://test.url"
     )
-    for v in ["29", "30", "31", "rawhide"]:
+    flexmock(packit_service.worker.build.copr_build).should_receive(
+        "get_valid_build_targets"
+    ).and_return({"fedora-31-x86_64", "fedora-rawhide-x86_64"})
+    for v in ["31", "rawhide"]:
         flexmock(GitProject).should_receive("set_commit_status").with_args(
             "528b803be6f93e19ca4130bf4976f2800a3004c4",
             CommitStatus.pending,
@@ -772,7 +788,7 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
             templ.format(ver=v),
             trim=True,
         ).and_return().once()
-    for v in ["29", "30", "31", "rawhide"]:
+    for v in ["31", "rawhide"]:
         flexmock(GitProject).should_receive("set_commit_status").with_args(
             "528b803be6f93e19ca4130bf4976f2800a3004c4",
             CommitStatus.error,
@@ -869,7 +885,7 @@ def test_copr_build_no_targets(github_pr_event):
     flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
         "https://test.url"
     )
-    flexmock(copr_build).should_receive("get_build_targets").and_return(
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
         {"fedora-32-x86_64", "fedora-31-x86_64"}
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
@@ -952,6 +968,10 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
 
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
+    flexmock(packit_service.worker.build.copr_build).should_receive(
+        "get_valid_build_targets"
+    ).and_return(["bright-future-x86_64"])
+
     # copr build
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").with_args(
         project="git.instance.io-the-example-namespace-the-example-repo-1-stg",
@@ -998,6 +1018,9 @@ def test_copr_build_success_set_test_check_gitlab(gitlab_mr_event):
             owner="nobody", targets=["bright-future-x86_64", "brightest-future-x86_64"]
         ),
     )
+    flexmock(packit_service.worker.build.copr_build).should_receive(
+        "get_valid_build_targets"
+    ).and_return(["bright-future-x86_64", "brightest-future-x86_64"])
     trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request)
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(jobs=[test_job], event=gitlab_mr_event, db_trigger=trigger)
@@ -1087,6 +1110,10 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
             .mock(),
         )
     )
+    flexmock(packit_service.worker.build.copr_build).should_receive(
+        "get_valid_build_targets"
+    ).and_return(DEFAULT_TARGETS)
+
     flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
@@ -1137,6 +1164,9 @@ def test_copr_build_success_gitlab(gitlab_mr_event):
         )
     )
     flexmock(Pushgateway).should_receive("push_copr_build_created")
+    flexmock(packit_service.worker.build.copr_build).should_receive(
+        "get_valid_build_targets"
+    ).and_return(DEFAULT_TARGETS)
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
@@ -1156,7 +1186,10 @@ def test_copr_build_fails_in_packit_gitlab(gitlab_mr_event):
     flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
         "https://test.url"
     )
-    for v in ["29", "30", "31", "rawhide"]:
+    flexmock(packit_service.worker.build.copr_build).should_receive(
+        "get_valid_build_targets"
+    ).and_return({"fedora-31-x86_64", "fedora-rawhide-x86_64"})
+    for v in ["31", "rawhide"]:
         flexmock(GitProject).should_receive("set_commit_status").with_args(
             "1f6a716aa7a618a9ffe56970d77177d99d100022",
             CommitStatus.pending,
@@ -1165,7 +1198,7 @@ def test_copr_build_fails_in_packit_gitlab(gitlab_mr_event):
             templ.format(ver=v),
             trim=True,
         ).and_return().once()
-    for v in ["29", "30", "31", "rawhide"]:
+    for v in ["31", "rawhide"]:
         flexmock(GitProject).should_receive("set_commit_status").with_args(
             "1f6a716aa7a618a9ffe56970d77177d99d100022",
             CommitStatus.failure,
@@ -1245,6 +1278,19 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
             .mock(),
         )
     )
+    flexmock(packit_service.worker.build.copr_build).should_receive(
+        "get_valid_build_targets"
+    ).and_return(
+        {
+            "fedora-33-x86_64",
+            "fedora-32-x86_64",
+            "fedora-31-x86_64",
+            "fedora-rawhide-x86_64",
+        }
+    )
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        flexmock(success=True, id=42)
+    )
     flexmock(Pushgateway).should_receive("push_copr_build_created")
 
     flexmock(Celery).should_receive("send_task").once()
@@ -1262,7 +1308,7 @@ def test_copr_build_no_targets_gitlab(gitlab_mr_event):
             job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
         ),
     )
-    flexmock(copr_build).should_receive("get_build_targets").and_return(
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
         {"fedora-32-x86_64", "fedora-31-x86_64"}
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
