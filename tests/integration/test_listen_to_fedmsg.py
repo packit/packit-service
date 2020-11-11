@@ -1,33 +1,12 @@
-# MIT License
-#
-# Copyright (c) 2018-2019 Red Hat, Inc.
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 import json
-import uuid
 
 import pytest
 import requests
 from celery.canvas import Signature
 from flexmock import flexmock
-
-import packit_service
 from ogr.abstract import CommitStatus
 from ogr.services.github import GithubProject
 from ogr.utils import RequestResponse
@@ -35,8 +14,9 @@ from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
 from packit.config.package_config import PackageConfig
 from packit.local_project import LocalProject
+
+import packit_service
 from packit_service.config import PackageConfigGetter, ServiceConfig
-from packit_service.constants import TESTING_FARM_API_URL
 from packit_service.models import (
     CoprBuildModel,
     TestingFarmResult,
@@ -53,13 +33,13 @@ from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.handlers import CoprBuildEndHandler, TestingFarmHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.reporting import StatusReporter
-from packit_service.worker.testing_farm import TestingFarmJobHelper
 from packit_service.worker.tasks import (
     run_koji_build_report_handler,
     run_copr_build_end_handler,
     run_copr_build_start_handler,
     run_testing_farm_handler,
 )
+from packit_service.worker.testing_farm import TestingFarmJobHelper
 from tests.conftest import copr_build_model
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
@@ -344,17 +324,15 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
     )
 
 
-@pytest.mark.skip(reason="Testing farm currently disabled")
 def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
-    service_config = ServiceConfig()
-    service_config.testing_farm_api_url = TESTING_FARM_API_URL
+    tft_api_url = "https://api.dev.testing-farm.io/v0.1/"
+    service_config = ServiceConfig(
+        testing_farm_api_url=tft_api_url, testing_farm_secret="secret token"
+    )
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
         service_config
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(GithubProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock())
-    )
 
     config = PackageConfig(
         jobs=[
@@ -409,46 +387,44 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
     ).once()
 
-    pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
-    flexmock(uuid).should_receive("uuid4").and_return(uuid.UUID(pipeline_id))
-    payload: dict = {
-        "pipeline": {"id": pipeline_id},
-        "api": {"token": ""},
-        "response-url": "https://stg.packit.dev/api/testing-farm/results",
-        "artifact": {
-            "repo-name": "bar",
-            "repo-namespace": "foo",
-            "copr-repo-name": "some-owner/some-project",
-            "copr-chroot": "fedora-rawhide-x86_64",
-            "commit-sha": "0011223344",
-            "git-url": "https://github.com/foo/bar.git",
-            "git-ref": "0011223344",
+    payload = {
+        "api_key": "secret token",
+        "test": {
+            "fmf": {
+                "url": "https://github.com/foo/bar",
+                "ref": "0011223344",
+            },
+        },
+        "environments": [
+            {
+                "arch": "x86_64",
+                "os": {"compose": "Fedora-Rawhide"},
+                "artifacts": [
+                    {
+                        "id": "1044215:fedora-rawhide-x86_64",
+                        "type": "fedora-copr-build",
+                    }
+                ],
+            }
+        ],
+        "notification": {
+            "webhook": {"url": "https://stg.packit.dev/api/testing-farm/results"}
         },
     }
 
-    tft_test_run_model = flexmock()
-    tft_test_run_model.should_receive("set_status").with_args(
-        TestingFarmResult.running
-    ).and_return().once()
-    flexmock(TFTTestRunModel).should_receive("create").with_args(
-        pipeline_id=pipeline_id,
-        commit_sha="0011223344",
-        status=TestingFarmResult.new,
-        target="fedora-rawhide-x86_64",
-        trigger_model=copr_build_pr.job_trigger.get_trigger_object(),
-        web_url=None,
-    ).and_return(tft_test_run_model)
+    flexmock(TestingFarmJobHelper).should_receive("get_compose_arch").with_args(
+        "fedora-rawhide-x86_64"
+    ).and_return("Fedora-Rawhide", "x86_64")
 
+    pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
     flexmock(TestingFarmJobHelper).should_receive(
         "send_testing_farm_request"
-    ).with_args(
-        url=f"{TESTING_FARM_API_URL}trigger", method="POST", data=payload
-    ).and_return(
+    ).with_args(url=f"{tft_api_url}requests", method="POST", data=payload).and_return(
         RequestResponse(
             status_code=200,
             ok=True,
-            content=b'{"url": "some-url"}',
-            json={"url": "some-url"},
+            content=json.dumps({"id": pipeline_id}).encode(),
+            json={"id": pipeline_id},
         )
     )
 
@@ -458,10 +434,21 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
     ).once()
+
+    tft_test_run_model = flexmock()
+    flexmock(TFTTestRunModel).should_receive("create").with_args(
+        pipeline_id=pipeline_id,
+        commit_sha="0011223344",
+        status=TestingFarmResult.new,
+        target="fedora-rawhide-x86_64",
+        trigger_model=copr_build_pr.job_trigger.get_trigger_object(),
+        web_url=None,
+    ).and_return(tft_test_run_model)
+
     flexmock(StatusReporter).should_receive("report").with_args(
         state=CommitStatus.pending,
-        description="Tests are running ...",
-        url="some-url",
+        description="Tests have been submitted ...",
+        url=f"{tft_api_url}requests/{pipeline_id}",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
     ).once()
     flexmock(Signature).should_receive("apply_async").twice()
@@ -486,11 +473,10 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         event=event_dict,
         job_config=job_config,
         chroot="fedora-rawhide-x86_64",
-        build_id=flexmock(),
+        build_id=1044215,
     )
 
 
-@pytest.mark.skip(reason="Testing farm currently disabled")
 def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
@@ -574,20 +560,6 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         url="",
     ).once()
 
-    tft_test_run_model = flexmock()
-    tft_test_run_model.should_receive("set_status").with_args(
-        TestingFarmResult.error
-    ).and_return().once()
-    pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
-    flexmock(uuid).should_receive("uuid4").and_return(uuid.UUID(pipeline_id))
-    flexmock(TFTTestRunModel).should_receive("create").with_args(
-        pipeline_id=pipeline_id,
-        commit_sha="0011223344",
-        status=TestingFarmResult.new,
-        target="fedora-rawhide-x86_64",
-        trigger_model=copr_build_pr.job_trigger.get_trigger_object(),
-        web_url=None,
-    ).and_return(tft_test_run_model)
     flexmock(Signature).should_receive("apply_async").twice()
 
     processing_results = SteveJobs().process_message(copr_build_end)
@@ -614,7 +586,6 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     )
 
 
-@pytest.mark.skip(reason="Testing farm currently disabled")
 def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
@@ -700,20 +671,6 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         url="",
     ).once()
 
-    tft_test_run_model = flexmock()
-    tft_test_run_model.should_receive("set_status").with_args(
-        TestingFarmResult.error
-    ).and_return().once()
-    pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
-    flexmock(uuid).should_receive("uuid4").and_return(uuid.UUID(pipeline_id))
-    flexmock(TFTTestRunModel).should_receive("create").with_args(
-        pipeline_id=pipeline_id,
-        commit_sha="0011223344",
-        status=TestingFarmResult.new,
-        target="fedora-rawhide-x86_64",
-        trigger_model=copr_build_pr.job_trigger.get_trigger_object(),
-        web_url=None,
-    ).and_return(tft_test_run_model)
     flexmock(Signature).should_receive("apply_async").twice()
 
     processing_results = SteveJobs().process_message(copr_build_end)
