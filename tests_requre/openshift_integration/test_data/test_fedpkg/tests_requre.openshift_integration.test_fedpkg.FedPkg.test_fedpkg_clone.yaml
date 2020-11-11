@@ -14,7 +14,7 @@ _requre:
 packit.fedpkg:
   clone:
   - metadata:
-      latency: 1.7618751525878906
+      latency: 2.3432672023773193
       module_call_list:
       - unittest.case
       - requre.online_replacing
