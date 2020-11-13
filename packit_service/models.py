@@ -44,7 +44,6 @@ from sqlalchemy import (
     create_engine,
     func,
     Boolean,
-    orm,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship, scoped_session
@@ -134,8 +133,8 @@ class GitProjectModel(Base):
     project_url = Column(String)
     instance_url = Column(String, nullable=False)
 
-    @orm.reconstructor
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.instance_url = urlparse(self.project_url).hostname
 
     @classmethod
@@ -170,10 +169,9 @@ class GitProjectModel(Base):
             )
 
             if not project:
-                project = cls()
-                project.repo_name = repo_name
-                project.namespace = namespace
-                project.project_url = project_url
+                project = cls(
+                    repo_name=repo_name, namespace=namespace, project_url=project_url
+                )
                 session.add(project)
             return project
 
