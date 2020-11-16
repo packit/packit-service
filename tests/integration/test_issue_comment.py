@@ -109,7 +109,7 @@ def test_issue_comment_propose_update_handler(
     )
     flexmock(
         GithubProject,
-        get_files=lambda ref, filter_regex: [],
+        get_files=lambda ref, filter_regex, recursive: [],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
         is_private=lambda: False,
     )
