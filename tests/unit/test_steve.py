@@ -74,7 +74,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         GithubProject,
         get_file_content=lambda path, ref: dumps(packit_yaml),
         full_repo_name="the-namespace/the-repo",
-        get_files=lambda ref, filter_regex: [],
+        get_files=lambda ref, filter_regex, recursive: [],
         get_sha_from_tag=lambda tag_name: "12345",
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
         is_private=lambda: private,

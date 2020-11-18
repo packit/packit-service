@@ -251,6 +251,39 @@ def test_get_package_config_from_repo(
         assert j.upstream_package_name == config.upstream_package_name
 
 
+def test_get_package_config_from_repo_recursively():
+    gp = flexmock(GitProject)
+    gp.should_receive("full_repo_name").and_return("a/b")
+    gp.should_receive("get_file_content").with_args(
+        path=".packit.yaml", ref=None
+    ).and_return(
+        "---\n"
+        "synced_files:\n"
+        "  - fedora/packit.spec\n"
+        "  - src: .packit.yaml\n"
+        "    dest: .packit2.yaml"
+    )
+    gp.should_receive("get_files").and_return(["fedora/packit.spec"]).once()
+    config = PackageConfigGetter.get_package_config_from_repo(
+        project=GitProject(repo="", service=GitService(), namespace=""),
+    )
+    assert isinstance(config, PackageConfig)
+    assert config.specfile_path == "fedora/packit.spec"
+    assert set(config.get_all_files_to_sync().files_to_sync) == set(
+        SyncFilesConfig(
+            files_to_sync=[
+                SyncFilesItem(src="fedora/packit.spec", dest="fedora/packit.spec"),
+                SyncFilesItem(src=".packit.yaml", dest=".packit2.yaml"),
+            ]
+        ).files_to_sync
+    )
+    assert config.create_pr
+    for j in config.jobs:
+        assert j.specfile_path == "fedora/packit.spec"
+        assert j.downstream_package_name == config.downstream_package_name
+        assert j.upstream_package_name == config.upstream_package_name
+
+
 def test_get_package_config_from_repo_alternative_config_name():
     gp = flexmock(GitProject)
     gp.should_receive("full_repo_name").and_return("a/b")
