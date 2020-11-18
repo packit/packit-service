@@ -131,6 +131,11 @@ class GitProjectModel(Base):
     # Example: https://github.com/packit/hello-world.git
     https_url = Column(String)
     project_url = Column(String)
+    instance_url = Column(String, nullable=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.instance_url = urlparse(self.project_url).hostname
 
     @classmethod
     def __choose_project(
@@ -164,10 +169,9 @@ class GitProjectModel(Base):
             )
 
             if not project:
-                project = cls()
-                project.repo_name = repo_name
-                project.namespace = namespace
-                project.project_url = project_url
+                project = cls(
+                    repo_name=repo_name, namespace=namespace, project_url=project_url
+                )
                 session.add(project)
             return project
 
