@@ -108,7 +108,7 @@ def koji_build_scratch_end():
 
 @pytest.fixture(scope="module")
 def pc_build_pr():
-    pc = PackageConfig(
+    return PackageConfig(
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
@@ -117,12 +117,11 @@ def pc_build_pr():
             )
         ]
     )
-    return pc
 
 
 @pytest.fixture(scope="module")
 def pc_koji_build_pr():
-    pc = PackageConfig(
+    return PackageConfig(
         jobs=[
             JobConfig(
                 type=JobType.production_build,
@@ -131,7 +130,6 @@ def pc_koji_build_pr():
             )
         ]
     )
-    return pc
 
 
 @pytest.fixture(scope="module")
@@ -444,7 +442,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(TestingFarmJobHelper).should_receive(
         "send_testing_farm_request"
     ).with_args(
-        f"{TESTING_FARM_API_URL}trigger", "POST", {}, json.dumps(payload)
+        url=f"{TESTING_FARM_API_URL}trigger", method="POST", data=payload
     ).and_return(
         RequestResponse(
             status_code=200,

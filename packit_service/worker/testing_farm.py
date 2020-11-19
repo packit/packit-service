@@ -1,7 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-import json
 import logging
 import uuid
 
@@ -45,7 +44,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         adapter = requests.adapters.HTTPAdapter(max_retries=5)
         self.insecure = False
         self.session.mount("https://", adapter)
-        self.header: dict = {"Content-Type": "application/json"}
 
     def _trigger_payload(self, pipeline_id: str, chroot: str) -> dict:
         """Produce payload that can be used to trigger tests in Testing
@@ -152,10 +150,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         logger.debug(f"Payload: {payload}")
 
         req = self.send_testing_farm_request(
-            f"{self.service_config.testing_farm_api_url}trigger",
-            "POST",
-            {},
-            json.dumps(payload),
+            url=f"{self.service_config.testing_farm_api_url}trigger",
+            method="POST",
+            data=payload,
         )
         logger.debug(f"Request sent: {req}")
         if not req:
@@ -222,15 +219,18 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return response
 
     def get_raw_request(
-        self, url, method="GET", params=None, data=None, header=None
+        self,
+        url,
+        method="GET",
+        params=None,
+        data=None,
     ) -> RequestResponse:
 
         response = self.session.request(
             method=method,
             url=url,
             params=params,
-            headers=header or self.header,
-            data=data,
+            json=data,
             verify=not self.insecure,
         )
 
