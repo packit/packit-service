@@ -36,7 +36,7 @@ from packit.config.job_config import JobMetadataConfig
 from packit.config.package_config import PackageConfig
 from packit.local_project import LocalProject
 from packit_service.config import PackageConfigGetter, ServiceConfig
-from packit_service.constants import TESTING_FARM_TRIGGER_URL
+from packit_service.constants import TESTING_FARM_API_URL
 from packit_service.models import (
     CoprBuildModel,
     TestingFarmResult,
@@ -349,7 +349,7 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
 @pytest.mark.skip(reason="Testing farm currently disabled")
 def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     service_config = ServiceConfig()
-    service_config.testing_farm_trigger_url = TESTING_FARM_TRIGGER_URL
+    service_config.testing_farm_api_url = TESTING_FARM_API_URL
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
         service_config
     )
@@ -443,7 +443,9 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
 
     flexmock(TestingFarmJobHelper).should_receive(
         "send_testing_farm_request"
-    ).with_args(TESTING_FARM_TRIGGER_URL, "POST", {}, json.dumps(payload)).and_return(
+    ).with_args(
+        f"{TESTING_FARM_API_URL}trigger", "POST", {}, json.dumps(payload)
+    ).and_return(
         RequestResponse(
             status_code=200,
             ok=True,

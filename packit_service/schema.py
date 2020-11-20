@@ -48,7 +48,7 @@ class ServiceConfigSchema(UserConfigSchema):
     deployment = DeploymentField(required=True)
     webhook_secret = fields.String()
     testing_farm_secret = fields.String()
-    testing_farm_trigger_url = fields.String()
+    testing_farm_api_url = fields.String()
     fas_password = fields.String(default="")
     validate_webhooks = fields.Bool(default=False)
     bugzilla_url = fields.String(default="")

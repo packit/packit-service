@@ -14,9 +14,7 @@ SANDCASTLE_PVC = "SANDCASTLE_PVC"
 
 CONFIG_FILE_NAME = "packit-service.yaml"
 
-TESTING_FARM_TRIGGER_URL = (
-    "https://scheduler-testing-farm.apps.ci.centos.org/v0/trigger"
-)
+TESTING_FARM_API_URL = "https://api.dev.testing-farm.io/v0.1/"
 
 MSG_RETRIGGER = (
     "You can retrigger the {job} by adding a comment (`/packit {command}`) "

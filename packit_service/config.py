@@ -40,7 +40,7 @@ from packit_service.constants import (
     SANDCASTLE_IMAGE,
     SANDCASTLE_PVC,
     SANDCASTLE_WORK_DIR,
-    TESTING_FARM_TRIGGER_URL,
+    TESTING_FARM_API_URL,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ class ServiceConfig(Config):
         deployment: Deployment = Deployment.stg,
         webhook_secret: str = "",
         testing_farm_secret: str = "",
-        testing_farm_trigger_url: str = "",
+        testing_farm_api_url: str = "",
         validate_webhooks: bool = True,
         admins: list = None,
         fas_password: Optional[str] = "",
@@ -77,7 +77,7 @@ class ServiceConfig(Config):
         self.deployment = deployment
         self.webhook_secret = webhook_secret
         self.testing_farm_secret = testing_farm_secret
-        self.testing_farm_trigger_url = testing_farm_trigger_url
+        self.testing_farm_api_url = testing_farm_api_url
         self.validate_webhooks = validate_webhooks
 
         # fas.fedoraproject.org needs password to authenticate
@@ -120,7 +120,7 @@ class ServiceConfig(Config):
             f"deployment='{self.deployment}', "
             f"webhook_secret='{hide(self.webhook_secret)}', "
             f"testing_farm_secret='{hide(self.testing_farm_secret)}', "
-            f"testing_farm_trigger_url='{self.testing_farm_trigger_url}', "
+            f"testing_farm_api_url='{self.testing_farm_api_url}', "
             f"validate_webhooks='{self.validate_webhooks}', "
             f"admins='{self.admins}', "
             f"fas_password='{hide(self.fas_password)}', "
@@ -159,8 +159,8 @@ class ServiceConfig(Config):
             "command_handler_k8s_namespace", SANDCASTLE_DEFAULT_PROJECT
         )
 
-        config.testing_farm_trigger_url = raw_dict.get(
-            "testing_farm_trigger_url", TESTING_FARM_TRIGGER_URL
+        config.testing_farm_api_url = raw_dict.get(
+            "testing_farm_api_url", TESTING_FARM_API_URL
         )
 
         logger.debug(f"Loaded config: {config}")

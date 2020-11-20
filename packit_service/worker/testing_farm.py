@@ -152,7 +152,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         logger.debug(f"Payload: {payload}")
 
         req = self.send_testing_farm_request(
-            self.service_config.testing_farm_trigger_url,
+            f"{self.service_config.testing_farm_api_url}trigger",
             "POST",
             {},
             json.dumps(payload),
