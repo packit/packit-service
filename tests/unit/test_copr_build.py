@@ -806,36 +806,41 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
     )
 
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
-    flexmock(GitProject).should_receive("pr_comment").with_args(
-        pr_id=342,
-        body="Based on your Packit configuration the settings of the "
-        "nobody/git.instance.io-the-example-namespace-the-example-repo-342-stg "
-        "Copr project would need to be updated as follows:\n"
-        "\n"
-        "| field | old value | new value |\n"
-        "| ----- | --------- | --------- |\n"
-        "| chroots | ['f30', 'f31'] | ['f31', 'f32'] |\n"
-        "| description | old | new |\n"
-        "\n"
-        "\n"
-        "Packit was unable to update the settings above "
-        "as it is missing `admin` permissions on the "
-        "nobody/git.instance.io-the-example-namespace-the-example-repo-342-stg Copr project.\n"
-        "\n"
-        "To fix this you can do one of the following:\n"
-        "\n"
-        "- Grant Packit `admin` permissions on the "
-        "nobody/git.instance.io-the-example-namespace-the-example-repo-342-stg Copr project on the "
-        "[permissions page](https://copr.fedorainfracloud.org/coprs/nobody/"
-        "git.instance.io-the-example-namespace-the-example-repo-342-stg/permissions/).\n"
-        "- Change the above Copr project settings manually on the "
-        "[settings page](https://copr.fedorainfracloud.org/"
-        "coprs/nobody/git.instance.io-the-example-namespace-the-example-repo-342-stg/edit/) "
-        "to match the Packit configuration.\n"
-        "- Update the Packit configuration to match the Copr project settings.\n"
-        "\n"
-        "Please re-trigger the build, once the issue above is fixed.\n",
-    ).and_return().once()
+    flexmock(GitProject).should_receive("get_pr").with_args(pr_id=342).and_return(
+        flexmock()
+        .should_receive("comment")
+        .with_args(
+            body="Based on your Packit configuration the settings of the "
+            "nobody/git.instance.io-the-example-namespace-the-example-repo-342-stg "
+            "Copr project would need to be updated as follows:\n"
+            "\n"
+            "| field | old value | new value |\n"
+            "| ----- | --------- | --------- |\n"
+            "| chroots | ['f30', 'f31'] | ['f31', 'f32'] |\n"
+            "| description | old | new |\n"
+            "\n"
+            "\n"
+            "Packit was unable to update the settings above "
+            "as it is missing `admin` permissions on the "
+            "nobody/git.instance.io-the-example-namespace-the-example-repo-342-stg Copr project.\n"
+            "\n"
+            "To fix this you can do one of the following:\n"
+            "\n"
+            "- Grant Packit `admin` permissions on the "
+            "nobody/git.instance.io-the-example-namespace-the-example-repo-342-stg "
+            "Copr project on the [permissions page](https://copr.fedorainfracloud.org/coprs/nobody/"
+            "git.instance.io-the-example-namespace-the-example-repo-342-stg/permissions/).\n"
+            "- Change the above Copr project settings manually on the "
+            "[settings page](https://copr.fedorainfracloud.org/"
+            "coprs/nobody/git.instance.io-the-example-namespace-the-example-repo-342-stg/edit/) "
+            "to match the Packit configuration.\n"
+            "- Update the Packit configuration to match the Copr project settings.\n"
+            "\n"
+            "Please re-trigger the build, once the issue above is fixed.\n",
+        )
+        .and_return()
+        .mock()
+    ).and_return()
 
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
     # copr build
@@ -1246,7 +1251,9 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
     flexmock(BaseBuildJobHelper).should_receive("is_reporting_allowed").and_return(
         False
     )
-    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(comment=flexmock().should_receive("comment").and_return().mock())
+    )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
     )

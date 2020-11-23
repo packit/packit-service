@@ -224,9 +224,15 @@ def test_report_status_by_comment(
 ):
     reporter = StatusReporter(project, commit_sha, pr_id)
 
-    project.should_receive("pr_comment").with_args(
-        pr_id,
-        f"| Job | Result |\n| ------------- | ------------ |\n| [{check_names}]({url}) | SUCCESS |",
+    project.should_receive("get_pr").with_args(pr_id=pr_id).and_return(
+        flexmock()
+        .should_receive("comment")
+        .with_args(
+            body="| Job | Result |\n"
+            "| ------------- | ------------ |\n"
+            f"| [{check_names}]({url}) | SUCCESS |",
+        )
+        .mock()
     ).once()
 
     reporter.report_status_by_comment(state, url, check_names)

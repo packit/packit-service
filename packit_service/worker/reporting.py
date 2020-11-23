@@ -109,7 +109,7 @@ class StatusReporter:
             "| ------------- | ------------ |",
         ] + [f"| [{check}]({url}) | {state.name.upper()} |" for check in check_names]
 
-        self.project.pr_comment(self.pr_id, "\n".join(comment_table_rows))
+        self.comment("\n".join(comment_table_rows))
 
     def __add_commit_comment_with_status(
         self, state: CommitStatus, description: str, check_name: str, url: str = ""
@@ -163,3 +163,9 @@ class StatusReporter:
 
     def get_statuses(self):
         self.project.get_commit_statuses(commit=self.commit_sha)
+
+    def comment(self, body: str):
+        if self.pr_id:
+            self.project.get_pr(pr_id=self.pr_id).comment(body=body)
+        else:
+            self.project.commit_comment(commit=self.commit_sha, body=body)

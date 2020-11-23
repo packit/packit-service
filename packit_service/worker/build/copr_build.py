@@ -261,8 +261,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         if unprocessed_chroots:
             unprocessed = "\n".join(sorted(unprocessed_chroots))
             available = "\n".join(sorted(self.available_chroots))
-            self.project.pr_comment(
-                pr_id=self.metadata.pr_id,
+            self.status_reporter.comment(
                 body="There are build targets that are not supported by COPR.\n"
                 "<details>\n<summary>Unprocessed build targets</summary>\n\n"
                 f"```\n{unprocessed}\n```\n</details>\n"
@@ -308,62 +307,61 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 request_admin_if_needed=True,
             )
         except PackitCoprSettingsException as ex:
-            if self.metadata.pr_id:
+            # notify user first, PR if exists, commit comment otherwise
+            table = (
+                "| field | old value | new value |\n"
+                "| ----- | --------- | --------- |\n"
+            )
+            for field, (old, new) in ex.fields_to_change.items():
+                table += f"| {field} | {old} | {new} |\n"
 
-                table = (
-                    "| field | old value | new value |\n"
-                    "| ----- | --------- | --------- |\n"
-                )
-                for field, (old, new) in ex.fields_to_change.items():
-                    table += f"| {field} | {old} | {new} |\n"
-
-                boolean_note = ""
-                if "unlisted_on_hp" in ex.fields_to_change:
-                    boolean_note += (
-                        "The `unlisted_on_hp` field is represented as `list_on_homepage`"
-                        " in the packit config."
-                        "By default we create projects with `list_on_homepage: False`.\n"
-                    )
-
-                if "delete_after_days" in ex.fields_to_change:
-                    boolean_note += (
-                        "The `delete_after_days` field is represented as `preserve_project`"
-                        " in the packit config (`True` is `-1` and `False` is `60`)."
-                        "By default we create projects with `preserve: True` "
-                        "which means `delete_after_days=60`.\n"
-                    )
-
-                permissions_url = self.api.copr_helper.get_copr_settings_url(
-                    owner, self.job_project, section="permissions"
-                )
-                settings_url = self.api.copr_helper.get_copr_settings_url(
-                    owner, self.job_project
+            boolean_note = ""
+            if "unlisted_on_hp" in ex.fields_to_change:
+                boolean_note += (
+                    "The `unlisted_on_hp` field is represented as `list_on_homepage`"
+                    " in the packit config."
+                    "By default we create projects with `list_on_homepage: False`.\n"
                 )
 
-                msg = (
-                    "Based on your Packit configuration the settings "
-                    f"of the {owner}/{self.job_project} "
-                    "Copr project would need to be updated as follows:\n"
-                    "\n"
-                    f"{table}"
-                    "\n"
-                    f"{boolean_note}"
-                    "\n"
-                    "Packit was unable to update the settings above as it is missing `admin` "
-                    f"permissions on the {owner}/{self.job_project} Copr project.\n"
-                    "\n"
-                    "To fix this you can do one of the following:\n"
-                    "\n"
-                    f"- Grant Packit `admin` permissions on the {owner}/{self.job_project} "
-                    f"Copr project on the [permissions page]({permissions_url}).\n"
-                    "- Change the above Copr project settings manually "
-                    f"on the [settings page]({settings_url}) "
-                    "to match the Packit configuration.\n"
-                    "- Update the Packit configuration to match the Copr project settings.\n"
-                    "\n"
-                    "Please re-trigger the build, once the issue above is fixed.\n"
+            if "delete_after_days" in ex.fields_to_change:
+                boolean_note += (
+                    "The `delete_after_days` field is represented as `preserve_project`"
+                    " in the packit config (`True` is `-1` and `False` is `60`)."
+                    "By default we create projects with `preserve: True` "
+                    "which means `delete_after_days=60`.\n"
                 )
-                self.project.pr_comment(pr_id=self.metadata.pr_id, body=msg)
+
+            permissions_url = self.api.copr_helper.get_copr_settings_url(
+                owner, self.job_project, section="permissions"
+            )
+            settings_url = self.api.copr_helper.get_copr_settings_url(
+                owner, self.job_project
+            )
+
+            msg = (
+                "Based on your Packit configuration the settings "
+                f"of the {owner}/{self.job_project} "
+                "Copr project would need to be updated as follows:\n"
+                "\n"
+                f"{table}"
+                "\n"
+                f"{boolean_note}"
+                "\n"
+                "Packit was unable to update the settings above as it is missing `admin` "
+                f"permissions on the {owner}/{self.job_project} Copr project.\n"
+                "\n"
+                "To fix this you can do one of the following:\n"
+                "\n"
+                f"- Grant Packit `admin` permissions on the {owner}/{self.job_project} "
+                f"Copr project on the [permissions page]({permissions_url}).\n"
+                "- Change the above Copr project settings manually "
+                f"on the [settings page]({settings_url}) "
+                "to match the Packit configuration.\n"
+                "- Update the Packit configuration to match the Copr project settings.\n"
+                "\n"
+                "Please re-trigger the build, once the issue above is fixed.\n"
+            )
+            self.status_reporter.comment(body=msg)
             raise ex
 
         logger.debug(
@@ -383,20 +381,20 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     projectname=self.job_project,
                     permissions={"builder": True},
                 )
-                if self.metadata.pr_id:
-                    permissions_url = self.api.copr_helper.get_copr_settings_url(
-                        owner, self.job_project, section="permissions"
-                    )
-                    self.project.pr_comment(
-                        pr_id=self.metadata.pr_id,
-                        body="We have requested the `builder` permissions "
-                        f"for the {owner}/{self.job_project} Copr project.\n"
-                        "\n"
-                        "Please confirm the request on the "
-                        f"[{owner}/{self.job_project} Copr project permissions page]"
-                        f"({permissions_url})"
-                        " and re-trigger the build.",
-                    )
+
+                # notify user, PR if exists, commit comment otherwise
+                permissions_url = self.api.copr_helper.get_copr_settings_url(
+                    owner, self.job_project, section="permissions"
+                )
+                self.status_reporter.comment(
+                    body="We have requested the `builder` permissions "
+                    f"for the {owner}/{self.job_project} Copr project.\n"
+                    "\n"
+                    "Please confirm the request on the "
+                    f"[{owner}/{self.job_project} Copr project permissions page]"
+                    f"({permissions_url})"
+                    " and re-trigger the build.",
+                )
             raise ex
 
         return build.id, self.api.copr_helper.copr_web_build_url(build)
