@@ -198,17 +198,25 @@ def test_commit_comment_instead_of_status(
 
 
 @pytest.mark.parametrize(
-    ("project,commit_sha," "pr_id,pr_object," "state,description,check_names,url,"),
+    "project,commit_sha,pr_id,state,check_names,url,result",
     [
-        pytest.param(
+        (
             flexmock(),
             "7654321",
             "11",
-            flexmock(),
             CommitStatus.success,
-            "We made it!",
             "packit/pr-rpm-build",
             "https://api.packit.dev/build/111/logs",
+            "SUCCESS",
+        ),
+        (
+            flexmock(),
+            "deadbeef",
+            None,
+            CommitStatus.failure,
+            "packit/branch-build",
+            "https://api.packit.dev/build/111/logs",
+            "FAILURE",
         ),
     ],
 )
@@ -216,23 +224,29 @@ def test_report_status_by_comment(
     project,
     commit_sha,
     pr_id,
-    pr_object,
     state,
-    description,
     check_names,
     url,
+    result,
 ):
     reporter = StatusReporter(project, commit_sha, pr_id)
 
-    project.should_receive("get_pr").with_args(pr_id=pr_id).and_return(
-        flexmock()
-        .should_receive("comment")
-        .with_args(
-            body="| Job | Result |\n"
-            "| ------------- | ------------ |\n"
-            f"| [{check_names}]({url}) | SUCCESS |",
+    comment_body = "\n".join(
+        (
+            "| Job | Result |",
+            "| ------------- | ------------ |",
+            f"| [{check_names}]({url}) | {result} |",
         )
-        .mock()
-    ).once()
+    )
+
+    if pr_id:
+        project.should_receive("get_pr").with_args(pr_id=pr_id).and_return(
+            flexmock().should_receive("comment").with_args(body=comment_body).mock()
+        ).once()
+    else:
+        project.should_receive("commit_comment").with_args(
+            commit=commit_sha,
+            body=comment_body,
+        ).once()
 
     reporter.report_status_by_comment(state, url, check_names)

@@ -601,6 +601,63 @@ def test_copr_build_for_branch(branch_push_event):
     assert helper.run_copr_build()["success"]
 
 
+def test_copr_build_for_branch_failed(branch_push_event):
+    # status is set for each build-target (4x):
+    #  - Building SRPM ...
+    #  - Starting RPM build...
+    branch_build_job = JobConfig(
+        type=JobType.build,
+        trigger=JobConfigTriggerType.commit,
+        metadata=JobMetadataConfig(
+            targets=DEFAULT_TARGETS,
+            owner="nobody",
+            dist_git_branches=["build-branch"],
+        ),
+    )
+    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.commit, id=123)
+    flexmock(AddBranchPushDbTrigger).should_receive("db_trigger").and_return(trigger)
+    helper = build_helper(
+        jobs=[branch_build_job],
+        event=branch_push_event,
+        db_trigger=trigger,
+    )
+    flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
+    flexmock(GitProject).should_receive("commit_comment").and_return(flexmock())
+    flexmock(SRPMBuildModel).should_receive("create").and_return(
+        SRPMBuildModel(success=False, id=2)
+    )
+    flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
+        CoprBuildModel(id=1)
+    )
+    flexmock(PushGitHubEvent).should_receive("db_trigger").and_raise(flexmock())
+
+    flexmock(PackitAPI).should_receive("create_srpm").and_raise(
+        FailedCreateSRPM, "some error"
+    )
+
+    flexmock(Client).should_receive("create_from_config_file").and_return(
+        flexmock(
+            config={"copr_url": "https://copr.fedorainfracloud.org/"},
+            build_proxy=flexmock()
+            .should_receive("create_from_file")
+            .and_return(
+                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+            )
+            .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({target: "" for target in DEFAULT_TARGETS})
+            .mock(),
+        )
+    )
+
+    flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
+    flexmock(Pushgateway).should_receive("push_copr_build_created").never()
+    flexmock(CoprBuildJobHelper).should_receive("run_build").never()
+
+    assert not helper.run_copr_build()["success"]
+
+
 def test_copr_build_for_release(release_event):
     # status is set for each build-target (4x):
     #  - Building SRPM ...
