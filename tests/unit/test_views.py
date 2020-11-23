@@ -43,7 +43,7 @@ def _setup_app_context_for_test():
 
 def test_get_logs(client):
     chroot = "foo-1-x86_64"
-    state = "pending"
+    state = "success"
     build_id = 2
 
     project = GitProjectModel()
@@ -54,15 +54,20 @@ def test_get_logs(client):
     pr.pr_id = 234
     pr.project = project
 
+    srpm = SRPMBuildModel()
+
     c = CoprBuildModel()
     c.target = chroot
     c.build_id = str(build_id)
     c.srpm_build_id = 11
     c.status = state
+    c.srpm_build = srpm
     c.web_url = (
         "https://copr.fedorainfracloud.org/coprs/john-foo-bar/john-foo-bar/build/2/"
     )
     c.build_logs_url = "https://localhost:5000/build/2/foo-1-x86_64/logs"
+    c.owner = "packit"
+    c.project_name = "example_project"
 
     flexmock(CoprBuildModel).should_receive("get_by_id").and_return(c)
     flexmock(CoprBuildModel).should_receive("get_project").and_return(project)
@@ -79,6 +84,8 @@ def test_get_logs(client):
     assert c.web_url in resp
     assert c.build_logs_url in resp
     assert c.target in resp
+    assert "Status: success" in resp
+    assert "You can install" in resp
 
 
 def test_get_srpm_logs(client):
