@@ -264,13 +264,15 @@ class AbstractCoprBuildHandler(JobHandler):
     def pre_check(self) -> bool:
         is_copr_build: Callable[[JobConfig], bool] = (
             lambda job: job.type == JobType.copr_build
+            and job.trigger == self.job_config.trigger
         )
 
         if self.job_config.type == JobType.tests and any(
             filter(is_copr_build, self.package_config.jobs)
         ):
             logger.info(
-                "Skipping build for testing. The COPR build is defined in the config."
+                "Skipping build for testing. The COPR build is defined "
+                "in the config with the same trigger."
             )
             return False
         return True
