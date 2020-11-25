@@ -163,7 +163,10 @@ def test_copr_build_check_names(github_pr_event):
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
-        SRPMBuildModel(success=True)
+        flexmock(success=True)
+        .should_receive("set_url")
+        .with_args("https://some.host/my.srpm")
+        .mock()
     )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -191,7 +194,12 @@ def test_copr_build_check_names(github_pr_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="packit")
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="packit",
+                    source_package=flexmock(url="https://some.host/my.srpm"),
+                )
             )
             .mock(),
             mock_chroot_proxy=flexmock()
@@ -276,7 +284,10 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
         "```\n</details>",
     ).and_return()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
-        SRPMBuildModel(success=True)
+        flexmock(success=True)
+        .should_receive("set_url")
+        .with_args("https://some.host/my.srpm")
+        .mock()
     )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -296,7 +307,12 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="packit")
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="packit",
+                    source_package=flexmock(url="https://some.host/my.srpm"),
+                )
             )
             .mock(),
             mock_chroot_proxy=flexmock()
@@ -379,7 +395,10 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
-        SRPMBuildModel(success=True)
+        flexmock(success=True)
+        .should_receive("set_url")
+        .with_args("https://some.host/my.srpm")
+        .mock()
     )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -407,7 +426,12 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="packit")
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="packit",
+                    source_package=flexmock(url="https://some.host/my.srpm"),
+                )
             )
             .mock(),
             mock_chroot_proxy=flexmock()
@@ -457,7 +481,10 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
-        SRPMBuildModel(success=True)
+        flexmock(success=True)
+        .should_receive("set_url")
+        .with_args("https://some.host/my.srpm")
+        .mock()
     )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -485,7 +512,12 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="nobody")
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="nobody",
+                    source_package=flexmock(url="https://some.host/my.srpm"),
+                )
             )
             .mock(),
             mock_chroot_proxy=flexmock()
@@ -525,7 +557,10 @@ def test_copr_build_success_set_test_check(github_pr_event):
         flexmock(source_project=flexmock())
     )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
-        SRPMBuildModel(success=True)
+        flexmock(success=True)
+        .should_receive("set_url")
+        .with_args("https://some.host/my.srpm")
+        .mock()
     )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -543,7 +578,12 @@ def test_copr_build_success_set_test_check(github_pr_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="the-owner",
+                    source_package=flexmock(url="https://some.host/my.srpm"),
+                )
             )
             .mock(),
             mock_chroot_proxy=flexmock()
@@ -583,7 +623,10 @@ def test_copr_build_for_branch(branch_push_event):
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(SRPMBuildModel).should_receive("create").and_return(
-        SRPMBuildModel(success=True)
+        flexmock(success=True)
+        .should_receive("set_url")
+        .with_args("https://some.host/my.srpm")
+        .mock()
     )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -602,7 +645,12 @@ def test_copr_build_for_branch(branch_push_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="the-owner",
+                    source_package=flexmock(url="https://some.host/my.srpm"),
+                )
             )
             .mock(),
             mock_chroot_proxy=flexmock()
@@ -706,7 +754,10 @@ def test_copr_build_for_release(release_event):
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(SRPMBuildModel).should_receive("create").and_return(
-        SRPMBuildModel(success=True)
+        flexmock(success=True)
+        .should_receive("set_url")
+        .with_args("https://some.host/my.srpm")
+        .mock()
     )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -724,7 +775,12 @@ def test_copr_build_for_release(release_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="the-owner",
+                    source_package=flexmock(url="https://some.host/my.srpm"),
+                )
             )
             .mock(),
             mock_chroot_proxy=flexmock()
@@ -754,7 +810,10 @@ def test_copr_build_success(github_pr_event):
         flexmock(source_project=flexmock())
     )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
-        SRPMBuildModel(success=True)
+        flexmock(success=True)
+        .should_receive("set_url")
+        .with_args("https://some.host/my.srpm")
+        .mock()
     )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -773,7 +832,12 @@ def test_copr_build_success(github_pr_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="the-owner",
+                    source_package=flexmock(url="https://some.host/my.srpm"),
+                )
             )
             .mock(),
             mock_chroot_proxy=flexmock()
@@ -981,7 +1045,10 @@ def test_copr_build_no_targets(github_pr_event):
         flexmock(source_project=flexmock())
     )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
-        SRPMBuildModel(success=True)
+        flexmock(success=True)
+        .should_receive("set_url")
+        .with_args("https://some.host/my.srpm")
+        .mock()
     )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -1000,7 +1067,12 @@ def test_copr_build_no_targets(github_pr_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="the-owner",
+                    source_package=flexmock(url="https://some.host/my.srpm"),
+                )
             )
             .mock(),
             mock_chroot_proxy=flexmock()
@@ -1050,7 +1122,10 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
-        SRPMBuildModel(success=True)
+        flexmock(success=True)
+        .should_receive("set_url")
+        .with_args("https://some.host/my.srpm")
+        .mock()
     )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -1084,7 +1159,12 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="nobody")
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="nobody",
+                    source_package=flexmock(url="https://some.host/my.srpm"),
+                )
             )
             .mock(),
             mock_chroot_proxy=flexmock()
@@ -1122,7 +1202,10 @@ def test_copr_build_success_set_test_check_gitlab(gitlab_mr_event):
         flexmock(source_project=flexmock())
     )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
-        SRPMBuildModel(success=True)
+        flexmock(success=True)
+        .should_receive("set_url")
+        .with_args("https://some.host/my.srpm")
+        .mock()
     )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -1140,7 +1223,12 @@ def test_copr_build_success_set_test_check_gitlab(gitlab_mr_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="the-owner",
+                    source_package=flexmock(url="https://some.host/my.srpm"),
+                )
             )
             .mock(),
             mock_chroot_proxy=flexmock()
@@ -1180,7 +1268,10 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(SRPMBuildModel).should_receive("create").and_return(
-        SRPMBuildModel(success=True)
+        flexmock(success=True)
+        .should_receive("set_url")
+        .with_args("https://some.host/my.srpm")
+        .mock()
     )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -1199,7 +1290,12 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="the-owner",
+                    source_package=flexmock(url="https://some.host/my.srpm"),
+                )
             )
             .mock(),
             mock_chroot_proxy=flexmock()
@@ -1233,7 +1329,10 @@ def test_copr_build_success_gitlab(gitlab_mr_event):
         flexmock(source_project=flexmock())
     )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
-        SRPMBuildModel(success=True)
+        flexmock(success=True)
+        .should_receive("set_url")
+        .with_args("https://some.host/my.srpm")
+        .mock()
     )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -1254,7 +1353,12 @@ def test_copr_build_success_gitlab(gitlab_mr_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="the-owner",
+                    source_package=flexmock(url="https://some.host/my.srpm"),
+                )
             )
             .mock(),
             mock_chroot_proxy=flexmock()
@@ -1355,7 +1459,10 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
         )
     )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
-        SRPMBuildModel(success=True)
+        flexmock(success=True, id=42)
+        .should_receive("set_url")
+        .with_args("https://some.host/my.srpm")
+        .mock()
     )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -1376,7 +1483,12 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="the-owner",
+                    source_package=flexmock(url="https://some.host/my.srpm"),
+                )
             )
             .mock(),
             mock_chroot_proxy=flexmock()
@@ -1394,9 +1506,6 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
             "fedora-31-x86_64",
             "fedora-rawhide-x86_64",
         }
-    )
-    flexmock(SRPMBuildModel).should_receive("create").and_return(
-        flexmock(success=True, id=42)
     )
     flexmock(Pushgateway).should_receive("push_copr_build_created")
 
@@ -1423,7 +1532,10 @@ def test_copr_build_no_targets_gitlab(gitlab_mr_event):
         flexmock(source_project=flexmock())
     )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
-        SRPMBuildModel(success=True)
+        flexmock(success=True)
+        .should_receive("set_url")
+        .with_args("https://some.host/my.srpm")
+        .mock()
     )
     flexmock(CoprBuildModel).should_receive("get_or_create").and_return(
         CoprBuildModel(id=1)
@@ -1444,7 +1556,12 @@ def test_copr_build_no_targets_gitlab(gitlab_mr_event):
             build_proxy=flexmock()
             .should_receive("create_from_file")
             .and_return(
-                flexmock(id=2, projectname="the-project-name", ownername="the-owner")
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="the-owner",
+                    source_package=flexmock(url="https://some.host/my.srpm"),
+                )
             )
             .mock(),
             mock_chroot_proxy=flexmock()

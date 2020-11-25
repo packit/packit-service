@@ -942,6 +942,7 @@ class SRPMBuildModel(Base):
     copr_builds = relationship("CoprBuildModel", back_populates="srpm_build")
     koji_builds = relationship("KojiBuildModel", back_populates="srpm_build")
     build_submitted_time = Column(DateTime, default=datetime.utcnow)
+    url = Column(Text)
 
     @classmethod
     def create(
@@ -1000,6 +1001,11 @@ class SRPMBuildModel(Base):
         if isinstance(trigger_object, GitBranchModel):
             return trigger_object.name
         return None
+
+    def set_url(self, url: str) -> None:
+        with get_sa_session() as session:
+            self.url = url
+            session.add(self)
 
     def __repr__(self):
         return f"SRPMBuildModel(id={self.id}, job_trigger={self.job_trigger})"

@@ -371,6 +371,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             build = self.api.copr_helper.copr_client.build_proxy.create_from_file(
                 ownername=owner, projectname=self.job_project, path=self.srpm_path
             )
+            self.srpm_model.set_url(build.source_package.url)
         except CoprRequestException as ex:
             if "You don't have permissions to build in this copr." in str(
                 ex
