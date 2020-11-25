@@ -1,0 +1,15 @@
+---
+- name: Check packit-service deployment
+  hosts: all
+  vars:
+    deployment_dir: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/packit/deployment'].src_dir }}"
+    as_root: true # needs to run as root in zuul
+  tasks:
+    - name: Check deployment
+      command: make check
+      environment:
+        DEPLOYMENT: dev
+        ANSIBLE_STDOUT_CALLBACK: debug
+      args:
+        chdir: "{{ deployment_dir }}"
+      become: "{{ as_root }}"

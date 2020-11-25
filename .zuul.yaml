@@ -29,4 +29,6 @@
     pre-run:
       - files/packit-service-image.yaml
       - files/deployment.yaml
+      # having the check as separate job would be nicer, but waste of resources
+      - files/deployment-check.yaml
     run: files/zuul-tests-requre.yaml
