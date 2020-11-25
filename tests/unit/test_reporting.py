@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import github
+import gitlab
 import pytest
 from flexmock import flexmock
 
@@ -124,17 +126,97 @@ def test_set_status(
 
 
 @pytest.mark.parametrize(
-    ("project,commit_sha," "pr_id,pr_object," "state,description,check_names,url,"),
+    (
+        "project,commit_sha,"
+        "pr_id,has_pr_id,pr_object,"
+        "state,description,check_name,url,"
+        "exception_mock"
+    ),
     [
         pytest.param(
             flexmock(),
             "7654321",
             "11",
+            True,
             flexmock(),
             CommitStatus.success,
             "We made it!",
             "packit/pr-rpm-build",
             "https://api.packit.dev/build/111/logs",
+            (github.GithubException, (None, None), dict()),
+            id="GitHub PR",
+        ),
+        pytest.param(
+            flexmock(),
+            "7654321",
+            None,
+            False,
+            flexmock(),
+            CommitStatus.failure,
+            "We made it!",
+            "packit/branch-rpm-build",
+            "https://api.packit.dev/build/112/logs",
+            (gitlab.exceptions.GitlabCreateError, (), {"response_code": 403}),
+            id="branch push",
+        ),
+    ],
+)
+def test_commit_comment_instead_of_status(
+    project,
+    commit_sha,
+    pr_id,
+    has_pr_id,
+    pr_object,
+    state,
+    description,
+    check_name,
+    url,
+    exception_mock,
+):
+    reporter = StatusReporter(project, commit_sha, pr_id)
+
+    exception, exception_args, exception_kwargs = exception_mock
+    project.should_receive("set_commit_status").with_args(
+        commit_sha, state, url, description, check_name, trim=True
+    ).and_raise(exception, *exception_args, **exception_kwargs).once()
+    project.should_receive("commit_comment").with_args(
+        commit=commit_sha,
+        body="\n".join(
+            [
+                f"- name: {check_name}",
+                f"- state: {state.name}",
+                f"- url: {url if url else 'not provided'}",
+            ]
+        )
+        + f"\n\n{description}",
+    )
+
+    if has_pr_id:
+        project.should_receive("get_pr").with_args(pr_id).once().and_return(pr_object)
+
+    reporter.set_status(state, description, check_name, url)
+
+
+@pytest.mark.parametrize(
+    "project,commit_sha,pr_id,state,check_names,url,result",
+    [
+        (
+            flexmock(),
+            "7654321",
+            "11",
+            CommitStatus.success,
+            "packit/pr-rpm-build",
+            "https://api.packit.dev/build/111/logs",
+            "SUCCESS",
+        ),
+        (
+            flexmock(),
+            "deadbeef",
+            None,
+            CommitStatus.failure,
+            "packit/branch-build",
+            "https://api.packit.dev/build/111/logs",
+            "FAILURE",
         ),
     ],
 )
@@ -142,17 +224,29 @@ def test_report_status_by_comment(
     project,
     commit_sha,
     pr_id,
-    pr_object,
     state,
-    description,
     check_names,
     url,
+    result,
 ):
     reporter = StatusReporter(project, commit_sha, pr_id)
 
-    project.should_receive("pr_comment").with_args(
-        pr_id,
-        f"| Job | Result |\n| ------------- | ------------ |\n| [{check_names}]({url}) | SUCCESS |",
-    ).once()
+    comment_body = "\n".join(
+        (
+            "| Job | Result |",
+            "| ------------- | ------------ |",
+            f"| [{check_names}]({url}) | {result} |",
+        )
+    )
+
+    if pr_id:
+        project.should_receive("get_pr").with_args(pr_id=pr_id).and_return(
+            flexmock().should_receive("comment").with_args(body=comment_body).mock()
+        ).once()
+    else:
+        project.should_receive("commit_comment").with_args(
+            commit=commit_sha,
+            body=comment_body,
+        ).once()
 
     reporter.report_status_by_comment(state, url, check_names)
