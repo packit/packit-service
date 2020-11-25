@@ -111,3 +111,26 @@ def test_precheck_skip_tests_when_build_defined(github_pr_event):
         data=EventData.from_event_dict(github_pr_event.get_dict()),
     )
     assert not copr_build_handler.pre_check()
+
+
+def test_precheck_tests_and_build_with_different_trigger(github_pr_event):
+    copr_build_handler = AbstractCoprBuildHandler(
+        package_config=PackageConfig(
+            jobs=[
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ]
+        ),
+        job_config=JobConfig(
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.pull_request,
+        ),
+        data=EventData.from_event_dict(github_pr_event.get_dict()),
+    )
+    assert copr_build_handler.pre_check()
