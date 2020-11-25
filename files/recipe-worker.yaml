@@ -5,7 +5,7 @@
     home_path: "{{ lookup('env', 'HOME') }}"
     packit_service_path: /src
   tasks:
-    - import_tasks: common.yaml
+    - import_tasks: tasks/common.yaml
     - name: Create /sandcastle
       # working dir for the upstream git which is mapped to the sandbox pod
       file:
