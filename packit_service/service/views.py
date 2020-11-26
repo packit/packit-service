@@ -27,7 +27,6 @@ from typing import Union
 
 from flask import Blueprint, render_template, redirect, url_for
 
-from packit_service import models
 from packit_service.log_versions import log_service_versions
 from packit_service.models import (
     CoprBuildModel,
@@ -37,6 +36,7 @@ from packit_service.models import (
     ProjectReleaseModel,
     KojiBuildModel,
 )
+from packit_service.utils import pretty_time
 
 builds_blueprint = Blueprint("builds", __name__)
 
@@ -71,9 +71,11 @@ def _get_build_info(
         title_identifier=title_identifier,
         build_description=build_description,
         build=build,
-        build_submitted_time=models.optional_time(
-            build.build_submitted_time, fmt="%Y-%m-%d %H:%M:%S UTC"
-        ),
+        build_submitted_time=pretty_time(build.build_submitted_time),
+        srpm_submitted_time=pretty_time(build.srpm_build.build_submitted_time),
+        owner=build.owner if isinstance(build, CoprBuildModel) else None,
+        project_name=build.project_name if isinstance(build, CoprBuildModel) else None,
+        is_pr=isinstance(trigger, PullRequestModel),
     )
 
 
