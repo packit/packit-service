@@ -271,6 +271,11 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         ):
             msg = (
                 f"Congratulations! One of the builds has completed. :champagne:\n\n"
+                ":warning: Please note that our current plans include removal of these "
+                "comments in the near future (at least 2 weeks after including this "
+                "disclaimer), if you have serious concerns regarding their removal "
+                "or would like to continue receiving them please reach out to us. "
+                ":warning:\n\n"
                 "You can install the built RPMs by following these steps:\n\n"
                 "* `sudo yum install -y dnf-plugins-core` on RHEL 8\n"
                 "* `sudo dnf install -y dnf-plugins-core` on Fedora\n"
