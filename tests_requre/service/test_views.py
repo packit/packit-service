@@ -9,11 +9,21 @@ def test_get_build_logs_for_build_pr(clean_before_and_after, a_copr_build_for_pr
     response = _get_build_info(a_copr_build_for_pr, build_description="COPR build")
     assert "We can't find any info" not in response
     assert "Builds for the-namespace/the-repo-name: PR #342" in response
-    assert "2020-05-19 16:17:14 UTC" in response
     assert a_copr_build_for_pr.status in response
     assert a_copr_build_for_pr.target in response
     assert str(a_copr_build_for_pr.srpm_build_id) in response
     assert a_copr_build_for_pr.build_logs_url in response
+    assert f"Status: {a_copr_build_for_pr.status}" in response
+    assert "For more info see" in response
+    assert "You can install the built RPMs by following these steps" not in response
+
+    a_copr_build_for_pr.status = SampleValues.status_success
+    response = _get_build_info(a_copr_build_for_pr, build_description="COPR build")
+    assert "You can install the built RPMs by following these steps" in response
+    assert (
+        "Please note that the RPMs should be used only in a testing environment."
+        in response
+    )
 
 
 def test_get_build_logs_for_build_branch_push(
@@ -28,6 +38,19 @@ def test_get_build_logs_for_build_branch_push(
     assert a_copr_build_for_branch_push.target in response
     assert str(a_copr_build_for_branch_push.srpm_build_id) in response
     assert a_copr_build_for_branch_push.build_logs_url in response
+    assert f"Status: {a_copr_build_for_branch_push.status}" in response
+    assert "For more info see" in response
+    assert "You can install the built RPMs by following these steps" not in response
+
+    a_copr_build_for_branch_push.status = SampleValues.status_success
+    response = _get_build_info(
+        a_copr_build_for_branch_push, build_description="COPR build"
+    )
+    assert "You can install the built RPMs by following these steps" in response
+    assert (
+        "Please note that the RPMs should be used only in a testing environment."
+        not in response
+    )
 
 
 def test_get_build_logs_for_build_release(
@@ -40,6 +63,17 @@ def test_get_build_logs_for_build_release(
     assert a_copr_build_for_release.target in response
     assert str(a_copr_build_for_release.srpm_build_id) in response
     assert a_copr_build_for_release.build_logs_url in response
+    assert f"Status: {a_copr_build_for_release.status}" in response
+    assert "For more info see" in response
+    assert "You can install the built RPMs by following these steps" not in response
+
+    a_copr_build_for_release.status = SampleValues.status_success
+    response = _get_build_info(a_copr_build_for_release, build_description="COPR build")
+    assert "You can install the built RPMs by following these steps" in response
+    assert (
+        "Please note that the RPMs should be used only in a testing environment."
+        not in response
+    )
 
 
 def test_srpm_logs_view(client, clean_before_and_after, srpm_build_model):
@@ -67,6 +101,9 @@ def test_copr_build_info_view(client, clean_before_and_after, multiple_copr_buil
     assert build.target in response
     assert str(build.srpm_build_id) in response
     assert build.build_logs_url in response
+    assert f"Status: {build.status}" in response
+    assert "For more info see" in response
+    assert "just now" in response
 
 
 def test_koji_build_info_view(client, clean_before_and_after, a_koji_build_for_pr):
@@ -80,3 +117,11 @@ def test_koji_build_info_view(client, clean_before_and_after, a_koji_build_for_p
     assert a_koji_build_for_pr.target in response
     assert str(a_koji_build_for_pr.srpm_build_id) in response
     assert a_koji_build_for_pr.build_logs_url in response
+    assert f"Status: {a_koji_build_for_pr.status}" in response
+    assert "For more info see" in response
+    assert "You can install the built RPMs by following these steps" not in response
+
+    a_koji_build_for_pr.status = SampleValues.status_success
+    response = _get_build_info(a_koji_build_for_pr, build_description="COPR build")
+    # no installation instructions for koji build
+    assert "You can install the built RPMs by following these steps" not in response
