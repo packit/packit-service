@@ -44,6 +44,7 @@ from packit_service.constants import (
     PERMISSIONS_ERROR_WRITE_OR_ADMIN,
     FAQ_URL_HOW_TO_RETRIGGER,
     FILE_DOWNLOAD_FAILURE,
+    MSG_RETRIGGER,
     RETRY_LIMIT,
 )
 from packit_service.models import (
@@ -211,8 +212,7 @@ class ProposeDownstreamHandler(JobHandler):
                 f"| dist-git branch | error |\n"
                 f"| --------------- | ----- |\n"
                 f"{branch_errors}\n\n"
-                "You can re-trigger the update by adding `/packit propose-update`"
-                " to the issue comment.\n"
+                f"{MSG_RETRIGGER.format(job='update', command='propose-update', place='issue')}\n"
             )
 
             self.project.create_issue(

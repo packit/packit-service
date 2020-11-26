@@ -67,7 +67,9 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             db_trigger=db_trigger,
             job_config=job_config,
         )
-        self.msg_retrigger: str = MSG_RETRIGGER.format(build="production-build")
+        self.msg_retrigger: str = MSG_RETRIGGER.format(
+            job="build", command="production-build", place="pull request"
+        )
 
         # Lazy properties
         self._supported_koji_targets = None
