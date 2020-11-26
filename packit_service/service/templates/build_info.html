@@ -11,7 +11,10 @@
   <a
     href="{{ url_for('builds.get_srpm_build_logs_by_id', id_=build.srpm_build_id) }}"
   >
-    SRPM build
+    SRPM build {% if build.srpm_build.url %} (<a
+      href="{{ build.srpm_build.url }}"
+      >Download SRPM</a
+    >){% endif %}
   </a>
   started {{srpm_submitted_time}}
 </p>
