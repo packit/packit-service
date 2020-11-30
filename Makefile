@@ -86,3 +86,6 @@ check-inside-openshift: service worker test_image
 
 check-inside-openshift-zuul: test_image
 	ANSIBLE_STDOUT_CALLBACK=debug $(AP) files/check-inside-openshift.yaml
+
+requre-purge-files:
+	pre-commit run requre-purge --all-files --verbose --hook-stage manual
