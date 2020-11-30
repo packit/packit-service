@@ -208,8 +208,8 @@ def test_dist_git_push_release_handle_all_failed(
             "| dist-git branch | error |\n"
             "| --------------- | ----- |\n"
             f"{table_content}\n\n"
-            "You can re-trigger the update by adding `/packit propose-update`"
-            " to the issue comment.\n",
+            "You can retrigger the update by adding a comment (`/packit propose-update`)"
+            " into this issue.\n",
         )
         .once()
         .mock()

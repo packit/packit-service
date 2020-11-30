@@ -893,7 +893,7 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
             "to match the Packit configuration.\n"
             "- Update the Packit configuration to match the Copr project settings.\n"
             "\n"
-            "Please re-trigger the build, once the issue above is fixed.\n",
+            "Please retrigger the build, once the issue above is fixed.\n",
         )
         .and_return()
         .mock()

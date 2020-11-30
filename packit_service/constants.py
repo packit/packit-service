@@ -19,8 +19,8 @@ TESTING_FARM_TRIGGER_URL = (
 )
 
 MSG_RETRIGGER = (
-    "You can re-trigger build by adding a comment (`/packit {build}`) "
-    "into this pull request."
+    "You can retrigger the {job} by adding a comment (`/packit {command}`) "
+    "into this {place}."
 )
 
 FILE_DOWNLOAD_FAILURE = "Failed to download file from URL"

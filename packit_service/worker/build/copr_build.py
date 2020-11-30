@@ -76,7 +76,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         )
 
         self.msg_retrigger: str = MSG_RETRIGGER.format(
-            build="copr-build" if self.job_build else "build"
+            job="build",
+            command="copr-build" if self.job_build else "build",
+            place="pull request",
         )
 
     @property
@@ -359,7 +361,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 "to match the Packit configuration.\n"
                 "- Update the Packit configuration to match the Copr project settings.\n"
                 "\n"
-                "Please re-trigger the build, once the issue above is fixed.\n"
+                "Please retrigger the build, once the issue above is fixed.\n"
             )
             self.status_reporter.comment(body=msg)
             raise ex
@@ -393,7 +395,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     "Please confirm the request on the "
                     f"[{owner}/{self.job_project} Copr project permissions page]"
                     f"({permissions_url})"
-                    " and re-trigger the build.",
+                    " and retrigger the build.",
                 )
             raise ex
 
