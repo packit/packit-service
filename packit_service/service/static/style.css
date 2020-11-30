@@ -2,7 +2,11 @@
   font-family: sans-serif;
 }
 
-pre {
+pre,
+code,
+kbd,
+var,
+samp {
   font-family: monospace;
 }
 
