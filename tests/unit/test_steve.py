@@ -85,7 +85,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="master", version="1.2.3"
+        dist_git_branch="master", tag="1.2.3"
     ).times(1 if success else 0)
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=1)

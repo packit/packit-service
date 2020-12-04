@@ -182,9 +182,7 @@ class ProposeDownstreamHandler(JobHandler):
             *self.job_config.metadata.dist_git_branches, default="master"
         ):
             try:
-                self.api.sync_release(
-                    dist_git_branch=branch, version=self.data.tag_name
-                )
+                self.api.sync_release(dist_git_branch=branch, tag=self.data.tag_name)
             except Exception as ex:
                 # the archive has not been uploaded to PyPI yet
                 if FILE_DOWNLOAD_FAILURE in str(ex):
@@ -671,7 +669,7 @@ class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
             )
             try:
                 new_pr = api.sync_release(
-                    dist_git_branch=branch, version=self.data.tag_name, create_pr=True
+                    dist_git_branch=branch, tag=self.data.tag_name, create_pr=True
                 )
                 msg = f"Packit-as-a-Service proposed [a new update]({new_pr.url}) {msg}"
                 self.project.issue_comment(self.db_trigger.issue_id, msg)

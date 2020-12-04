@@ -50,7 +50,7 @@ def test_dist_git_push_release_handle(github_release_webhook):
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     # it would make sense to make LocalProject offline
     flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="master", version="0.3.0"
+        dist_git_branch="master", tag="0.3.0"
     ).once()
 
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
@@ -97,7 +97,7 @@ def test_dist_git_push_release_handle_multiple_branches(
     # it would make sense to make LocalProject offline
     for branch in fedora_branches:
         flexmock(PackitAPI).should_receive("sync_release").with_args(
-            dist_git_branch=branch, version="0.3.0"
+            dist_git_branch=branch, tag="0.3.0"
         ).once()
 
     flexmock(FedPKG).should_receive("clone").and_return(None)
@@ -153,7 +153,7 @@ def test_dist_git_push_release_handle_one_failed(
         sync_release = (
             flexmock(PackitAPI)
             .should_receive("sync_release")
-            .with_args(dist_git_branch=branch, version="0.3.0")
+            .with_args(dist_git_branch=branch, tag="0.3.0")
             .once()
         )
         if i == 1:
@@ -274,7 +274,7 @@ def test_retry_propose_downstream_task(github_release_webhook):
     flexmock(Signature).should_receive("apply_async").once()
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="master", version="0.3.0"
+        dist_git_branch="master", tag="0.3.0"
     ).and_raise(RebaseHelperError, "Failed to download file from URL example.com")
     flexmock(Task).should_receive("retry").once().and_raise(Retry)
 
