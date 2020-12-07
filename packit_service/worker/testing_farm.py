@@ -2,11 +2,12 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Tuple
+from typing import Tuple, Dict, Any
 
 import requests
 from ogr.abstract import CommitStatus, GitProject
 from ogr.utils import RequestResponse
+from packit.config import JobType, JobConfigTriggerType
 from packit.config.job_config import JobConfig
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitConfigException
@@ -44,13 +45,25 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         adapter = requests.adapters.HTTPAdapter(max_retries=5)
         self.insecure = False
         self.session.mount("https://", adapter)
-        self.tft_api_url: str = self.service_config.testing_farm_api_url
-        if not self.tft_api_url.endswith("/"):
-            self.tft_api_url += "/"
+        self._tft_api_url: str = ""
+
+    @property
+    def tft_api_url(self) -> str:
+        if not self._tft_api_url:
+            self._tft_api_url = self.service_config.testing_farm_api_url
+            if not self._tft_api_url.endswith("/"):
+                self._tft_api_url += "/"
+        return self._tft_api_url
 
     def _payload(self, build_id: int, chroot: str) -> dict:
         """
         Testing Farm API: https://testing-farm.gitlab.io/api/
+
+        Currently we use the same secret to authenticate both,
+        packit service (when sending request to testing farm)
+        and testing farm (when sending notification to packit service's webhook).
+        We might later use a different secret for those use cases.
+
         """
         compose, arch = self.get_compose_arch(chroot)
         return {
@@ -74,11 +87,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 }
             ],
             "notification": {
-                "webhook":
-                    {
-                        "url": f"{self.api_url}/testing-farm/results",
-                    }
-            }
+                "webhook": {
+                    "url": f"{self.api_url}/testing-farm/results",
+                    "token": self.service_config.testing_farm_secret,
+                },
+            },
         }
 
     def get_compose_arch(self, chroot) -> Tuple[str, str]:
@@ -86,7 +99,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         compose, arch = chroot.rsplit("-", 1)
         compose = compose.title()
 
-        response = self.send_testing_farm_request(f"{self.tft_api_url}composes")
+        response = self.send_testing_farm_request(endpoint="composes")
         if response.status_code == 200:
             # {'composes': [{'name': 'Fedora-33'}, {'name': 'Fedora-Rawhide'}]}
             composes = [c["name"] for c in response.json()["composes"]]
@@ -161,10 +174,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         logger.info("Sending testing farm request...")
         payload = self._payload(build_id, chroot)
-        url = f"{self.tft_api_url}requests"
-        logger.debug(f"POSTing {payload} to {url}")
+        endpoint = "requests"
+        logger.debug(f"POSTing {payload} to {self.tft_api_url}{endpoint}")
         req = self.send_testing_farm_request(
-            url=url,
+            endpoint=endpoint,
             method="POST",
             data=payload,
         )
@@ -221,9 +234,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return TaskResults(success=True, details={})
 
     def send_testing_farm_request(
-        self, url: str, method: str = None, params: dict = None, data=None
-    ):
+        self, endpoint: str, method: str = None, params: dict = None, data=None
+    ) -> RequestResponse:
         method = method or "GET"
+        url = f"{self.tft_api_url}{endpoint}"
         try:
             response = self.get_raw_request(
                 method=method, url=url, params=params, data=data
@@ -262,3 +276,34 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             json=json_output,
             reason=response.reason,
         )
+
+    @classmethod
+    def get_request_details(cls, request_id: str) -> Dict[str, Any]:
+        """Testing Farm sends only request/pipeline id in a notification.
+        We need to get more details ourselves."""
+        self = cls(
+            service_config=ServiceConfig.get_service_config(),
+            package_config=PackageConfig(),
+            project=None,
+            metadata=None,
+            db_trigger=None,
+            job_config=JobConfig(
+                # dummy values to be able to construct the object
+                type=JobType.tests,
+                trigger=JobConfigTriggerType.pull_request,
+            ),
+        )
+
+        response = self.send_testing_farm_request(
+            endpoint=f"requests/{request_id}", method="GET"
+        )
+        if not response or response.status_code != 200:
+            msg = f"Failed to get request/pipeline {request_id} details from TF. {response.reason}"
+            logger.error(msg)
+            return {}
+
+        details = response.json()
+        details["url"] = f"{self.tft_api_url}requests/{request_id}"
+        # logger.debug(f"Request/pipeline {request_id} details: {details}")
+
+        return details

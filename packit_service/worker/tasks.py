@@ -24,6 +24,7 @@ from typing import List, Optional
 
 from packit_service.celerizer import celery_app
 from packit_service.constants import RETRY_LIMIT
+from packit_service.models import TestingFarmResult
 from packit_service.service.events import (
     AbstractCoprBuildEvent,
     EventData,
@@ -31,7 +32,6 @@ from packit_service.service.events import (
     KojiBuildEvent,
     PullRequestLabelAction,
     TestResult,
-    TestingFarmResult,
 )
 from packit_service.utils import load_job_config, load_package_config
 from packit_service.worker.build.babysit import check_copr_build

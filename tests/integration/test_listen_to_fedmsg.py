@@ -333,6 +333,9 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         service_config
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
 
     config = PackageConfig(
         jobs=[
@@ -408,7 +411,10 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
             }
         ],
         "notification": {
-            "webhook": {"url": "https://stg.packit.dev/api/testing-farm/results"}
+            "webhook": {
+                "url": "https://stg.packit.dev/api/testing-farm/results",
+                "token": "secret token",
+            }
         },
     }
 
@@ -419,7 +425,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
     flexmock(TestingFarmJobHelper).should_receive(
         "send_testing_farm_request"
-    ).with_args(url=f"{tft_api_url}requests", method="POST", data=payload).and_return(
+    ).with_args(endpoint="requests", method="POST", data=payload).and_return(
         RequestResponse(
             status_code=200,
             ok=True,

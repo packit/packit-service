@@ -1328,46 +1328,19 @@ def pr_comment_event_dict_packit_test(pr_comment_event_dict_packit_build):
 
 
 @pytest.fixture()
-def tf_result_dict_pr():
+def tf_notification():
     return {
-        "artifact": {
-            "commit-sha": "687abc76d67d",
-            "copr-chroot": "fedora-31-x86_64",
-            "copr-repo-name": "packit/the-namespace-the-repo-name-79-stg",
-            "git-ref": "687abc76d67d",
-            "git-url": "https://github.com/packit-service/hello-world.git",
-            "repo-name": "the-repo-name",
-            "repo-namespace": "the-namespace",
-        },
-        "environment": {"image": "Fedora-Cloud-Base-31-20200403.0.x86_64.qcow2"},
-        "message": "All tests passed",
-        "pipeline": {"id": "123456"},
-        "result": "passed",
-        "tests": [{"name": "/ci/test/build/smoke", "result": "passed"}],
-        "token": "XXXXXXXXXXXXXXXXXXXXXXXXXX",
-        "url": "https://console-testing-farm.apps.ci.centos.org/pipeline/123456",
+        "request_id": SampleValues.pipeline_id,
+        "source": "testing-farm",
     }
 
 
 @pytest.fixture()
-def tf_result_dict_branch_push():
+def tf_result():
     return {
-        "artifact": {
-            "commit-sha": "687abc76d67d",
-            "copr-chroot": "fedora-30-x86_64",
-            "copr-repo-name": "packit/the-namespace-the-repo-name-build-branch-stg",
-            "git-ref": "687abc76d67d",
-            "git-url": "https://github.com/the-namespace/the-repo-name.git",
-            "repo-name": "the-repo-name",
-            "repo-namespace": "the-namespace",
-        },
-        "environment": {"image": "Fedora-Cloud-Base-30-20200401.0.x86_64.qcow2"},
-        "message": "All tests passed",
-        "pipeline": {"id": "123456"},
-        "result": "passed",
-        "tests": [{"name": "/ci/test/build/smoke", "result": "passed"}],
-        "token": "XXXXXXXXXXXXXXXXXXXXXXXXXX",
-        "url": "https://console-testing-farm.apps.ci.centos.org/" "pipeline/123456",
+        "id": SampleValues.pipeline_id,
+        "test": {"fmf": {"ref": SampleValues.different_commit_sha}},
+        "result": {"overall": "passed"},
     }
 
 

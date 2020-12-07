@@ -444,4 +444,6 @@ class TestingFarmHandler(JobHandler):
             return testing_farm_helper.run_testing_farm_on_all()
 
         logger.info(f"Running testing farm for {self.build_id}:{self.chroot}.")
-        return testing_farm_helper.run_testing_farm(build_id=self.build_id, chroot=self.chroot)
+        return testing_farm_helper.run_testing_farm(
+            build_id=self.build_id, chroot=self.chroot
+        )

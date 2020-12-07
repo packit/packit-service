@@ -20,46 +20,13 @@ config = ServiceConfig.get_service_config()
 
 ns = Namespace("testing-farm", description="Testing Farm")
 
-payload_artifact = ns.model(
-    "Testing Farm results artifact",
-    {
-        "commit-sha": fields.String(
-            required=True, example="08bfc38f15082bdf9ba964c3bbd04878666d1d56"
-        ),
-        "copr-chroot": fields.String(required=True, example="fedora-30-x86_64"),
-        "copr-repo-name": fields.String(
-            required=True, example="packit/packit-service-hello-world-14"
-        ),
-        "git-ref": fields.String(
-            required=True, example="08bfc38f15082bdf9ba964c3bbd04878666d1d56"
-        ),
-        "git-url": fields.Url(
-            required=True, example="https://github.com/packit/hello-world"
-        ),
-        "repo-name": fields.String(required=True, example="hello-world"),
-        "repo-namespace": fields.String(required=True, example="packit-service"),
-    },
-)
-payload_pipeline = ns.model(
-    "Testing Farm results pipeline",
-    {
-        "id": fields.String(
-            required=True, example="614d240a-1e27-4758-ad6a-ed3d34281924"
-        )
-    },
-)
 payload = ns.model(
-    "Testing Farm results",
+    "Testing Farm notification",
     {
-        "artifact": fields.Nested(payload_artifact),
-        "message": fields.String(required=True, example="Command 'git' not found"),
-        "pipeline": fields.Nested(payload_pipeline),
-        "result": fields.String(required=True, example="error"),
-        "token": fields.String(required=True, example="HERE-IS-A-VALID-TOKEN"),
-        "url": fields.Url(
-            required=True,
-            example="https://console-testing-farm.apps.ci.centos.org/pipeline/<ID>",
+        "request_id": fields.String(
+            required=True, example="614d240a-1e27-4758-ad6a-ed3d34281924"
         ),
+        "token": fields.String(required=True, example="HERE-IS-A-VALID-TOKEN"),
     },
 )
 
@@ -86,6 +53,9 @@ class TestingFarmResults(Resource):
             logger.info(f"/testing-farm/results {exc}")
             return str(exc), HTTPStatus.UNAUTHORIZED
 
+        # There's only one key in the msg,
+        # so make sure we don't confuse this with something else
+        msg["source"] = "testing-farm"
         celery_app.send_task(
             name="task.steve_jobs.process_message", kwargs={"event": msg}
         )
@@ -96,6 +66,12 @@ class TestingFarmResults(Resource):
     def validate_testing_farm_request():
         """
         Validate testing farm token received in request with the one in packit-service.yaml
+
+        Currently we use the same secret to authenticate both,
+        packit service (when sending request to testing farm)
+        and testing farm (when sending notification to packit service's webhook).
+        We might later use a different secret for those use cases.
+
         :raises ValidationFailed
         """
         if not config.testing_farm_secret:
@@ -105,7 +81,7 @@ class TestingFarmResults(Resource):
 
         token = request.json.get("token")
         if not token:
-            msg = "The request doesn't contain any token"
+            msg = "The notification doesn't contain any token"
             logger.info(msg)
             raise ValidationFailed(msg)
         if token == config.testing_farm_secret:

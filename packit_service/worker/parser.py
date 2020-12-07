@@ -25,11 +25,14 @@ Parser is transforming github JSONs into `events` objects
 """
 import logging
 from functools import partial
-from typing import Dict, List, Optional, Type, Union
+from typing import Dict, Optional, Type, Union, List
 
+import xmltodict
 from ogr.parsing import parse_git_repo
 from packit.utils import nested_get
+
 from packit_service.constants import KojiBuildState
+from packit_service.models import TestingFarmResult
 from packit_service.service.events import (
     AbstractPagureEvent,
     CoprBuildEndEvent,
@@ -56,11 +59,13 @@ from packit_service.service.events import (
     PushGitlabEvent,
     PushPagureEvent,
     ReleaseEvent,
-    TestResult,
-    TestingFarmResult,
     TestingFarmResultsEvent,
+    TestResult,
 )
-from packit_service.worker.handlers import NewDistGitCommitHandler
+from packit_service.worker.handlers import (
+    NewDistGitCommitHandler,
+)
+from packit_service.worker.testing_farm import TestingFarmJobHelper
 
 logger = logging.getLogger(__name__)
 
@@ -722,52 +727,80 @@ class Parser:
         )
 
     @staticmethod
-    def parse_testing_farm_results_event(event) -> Optional[TestingFarmResultsEvent]:
-        """ this corresponds to testing farm results event """
-        pipeline_id: str = nested_get(event, "pipeline", "id")
-        if not pipeline_id:
-            return None
-
-        result: TestingFarmResult = TestingFarmResult(event.get("result"))
-        environment: str = nested_get(event, "environment", "image")
-        message: str = event.get("message")
-        log_url: str = event.get("url")
-        copr_repo_name: str = nested_get(event, "artifact", "copr-repo-name")
-        copr_chroot: str = nested_get(event, "artifact", "copr-chroot")
-        repo_name: str = nested_get(event, "artifact", "repo-name")
-        repo_namespace: str = nested_get(event, "artifact", "repo-namespace")
-        ref: str = nested_get(event, "artifact", "git-ref")
-        https_url: str = nested_get(event, "artifact", "git-url")
-        commit_sha: str = nested_get(event, "artifact", "commit-sha")
-        tests: List[TestResult] = [
+    def _parse_tf_result_xunit(xunit: Optional[str]) -> List[TestResult]:
+        """ Parse event["result"]["xunit"] to get tests results """
+        if not xunit:
+            return []
+        xunit_dict = xmltodict.parse(xunit)
+        return [
             TestResult(
-                name=raw_test["name"],
-                result=TestingFarmResult(raw_test["result"]),
-                log_url=raw_test.get("log"),
+                name=testcase["@name"],
+                result=TestingFarmResult(testcase["@result"]),
+                log_url=nested_get(testcase, "logs", "log", 1, "@href", default=""),
             )
-            for raw_test in event.get("tests", [])
+            for testcase in nested_get(
+                xunit_dict, "testsuites", "testsuite", "testcase", default=[]
+            )
         ]
 
-        logger.info(f"Results from Testing farm event. Pipeline ID: {pipeline_id}")
+    @staticmethod
+    def parse_testing_farm_results_event(
+        event: dict,
+    ) -> Optional[TestingFarmResultsEvent]:
+        """ this corresponds to testing farm results event """
+        logger.debug(f"parse_testing_farm_results_event: {event}")
+        if event.get("source") != "testing-farm" or not event.get("request_id"):
+            return None
+
+        request_id: str = event["request_id"]
+        logger.info(f"Testing farm notification event. Request ID: {request_id}")
+
+        # Testing Farm sends only request/pipeline id in a notification.
+        # We need to get more details ourselves.
+        # It'd be much better to do this in TestingFarmResultsHandler.run(),
+        # but all the code along the way to get there expects we already know the details.
+        # TODO: Get missing info from db instead of querying TF
+        event = TestingFarmJobHelper.get_request_details(request_id)
+        if not event:
+            # Something's wrong with TF, raise exception so that we can re-try later.
+            raise Exception(f"Failed to get {request_id} details from TF.")
+
+        result: TestingFarmResult = TestingFarmResult(
+            nested_get(event, "result", "overall")
+        )
+        summary: str = nested_get(event, "result", "summary")
+        log_url: str = event.get("url")
+        env: dict = nested_get(event, "environments_requested", 0, default={})
+        compose: str = nested_get(env, "os", "compose")
+        artifact: dict = nested_get(env, "artifacts", 0, default={})
+        a_type: str = artifact.get("type")
+        if a_type == "fedora-copr-build":
+            copr_build_id: str = artifact["id"].split(":")[0]
+            copr_chroot: str = artifact["id"].split(":")[1]
+        else:
+            logger.error(f"{a_type} != fedora-copr-build")
+            copr_build_id = copr_chroot = ""
+        tests: List[TestResult] = Parser._parse_tf_result_xunit(
+            nested_get(event, "result", "xunit")
+        )
+        ref: str = nested_get(event, "test", "fmf", "ref")
+        project_url: str = nested_get(event, "test", "fmf", "url")
         logger.debug(
-            f"environment: {environment}, message: {message}, "
-            f"log_url: {log_url}, artifact: {event.get('artifact')}"
+            f"project_url: {project_url}, ref: {ref}, result: {result}, "
+            f"summary: {summary!r}, copr-build: {artifact.get('id')}"
         )
 
         return TestingFarmResultsEvent(
-            pipeline_id=pipeline_id,
+            pipeline_id=request_id,
             result=result,
-            environment=environment,
-            message=message,
+            compose=compose,
+            summary=summary,
             log_url=log_url,
-            copr_repo_name=copr_repo_name,
+            copr_build_id=copr_build_id,
             copr_chroot=copr_chroot,
             tests=tests,
-            repo_namespace=repo_namespace,
-            repo_name=repo_name,
-            git_ref=ref,
-            project_url=https_url,
-            commit_sha=commit_sha,
+            commit_sha=ref,
+            project_url=project_url,
         )
 
     @staticmethod

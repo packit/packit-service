@@ -58,6 +58,9 @@ class ServiceConfig(Config):
 
         self.deployment = deployment
         self.webhook_secret = webhook_secret
+        # Common secret to authenticate both, packit service (when sending request to testing farm)
+        # and testing farm (when sending notification to packit service's webhook).
+        # We might later use different secrets for those two use cases.
         self.testing_farm_secret = testing_farm_secret
         self.testing_farm_api_url = testing_farm_api_url
         self.validate_webhooks = validate_webhooks
