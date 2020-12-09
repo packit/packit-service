@@ -242,11 +242,10 @@ class BaseBuildJobHelper:
     def status_reporter(self) -> StatusReporter:
         if not self._status_reporter:
             self._status_reporter = StatusReporter(
-                project=self.base_project
-                if isinstance(self.project, GitlabProject) and self.is_reporting_allowed
-                else self.project,
+                project=self.project,
                 commit_sha=self.metadata.commit_sha,
                 pr_id=self.metadata.pr_id,
+                base_project=self.base_project,
             )
         return self._status_reporter
 

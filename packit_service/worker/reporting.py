@@ -28,6 +28,7 @@ import gitlab
 import github
 
 from ogr.abstract import GitProject, CommitStatus
+from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
 
 logger = logging.getLogger(__name__)
@@ -35,14 +36,29 @@ logger = logging.getLogger(__name__)
 
 class StatusReporter:
     def __init__(
-        self, project: GitProject, commit_sha: str, pr_id: Optional[int] = None
+        self,
+        project: GitProject,
+        commit_sha: str,
+        pr_id: Optional[int] = None,
+        base_project: Optional[GitProject] = None,
     ):
         logger.debug(
             f"Status reporter will report for {project}, commit={commit_sha}, pr={pr_id}"
         )
         self.project = project
+        self.base_project = base_project
         self.commit_sha = commit_sha
         self.pr_id = pr_id
+
+    @property
+    def project_with_commit(self) -> GitProject:
+        """
+        Returns GitProject from which we can set commit status.
+        """
+        if isinstance(self.project, GitlabProject):
+            return self.base_project
+
+        return self.project
 
     def report(
         self,
@@ -143,14 +159,18 @@ class StatusReporter:
         logger.debug(f"Setting status for check '{check_name}': {description}")
 
         try:
-            self.project.set_commit_status(
+            self.project_with_commit.set_commit_status(
                 self.commit_sha, state, url, description, check_name, trim=True
             )
         except gitlab.exceptions.GitlabCreateError as e:
             # Ignoring Gitlab 'enqueue' error
             # https://github.com/packit-service/packit-service/issues/741
             if e.response_code == 403:
-                # In case we don't have permissions to set status we post comment
+                # 403: No permissions to set status, falling back to comment
+                logger.error(
+                    f"Failed to set status for {self.commit_sha}, commenting on"
+                    f" commit as a fallback: {str(e)}"
+                )
                 self.__add_commit_comment_with_status(
                     state, description, check_name, url
                 )
@@ -162,7 +182,7 @@ class StatusReporter:
         self.__set_pull_request_status(check_name, description, url, state)
 
     def get_statuses(self):
-        self.project.get_commit_statuses(commit=self.commit_sha)
+        self.project_with_commit.get_commit_statuses(commit=self.commit_sha)
 
     def comment(self, body: str):
         if self.pr_id:

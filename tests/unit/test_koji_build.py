@@ -136,6 +136,9 @@ def test_koji_build_check_names(github_pr_event):
         url=koji_build_url,
     ).and_return()
 
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(id=1, success=True)
@@ -186,6 +189,9 @@ def test_koji_build_failed_kerberos(github_pr_event):
         url=get_srpm_log_url_from_flask(1),
     ).and_return()
 
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(id=1, success=True)
@@ -237,6 +243,9 @@ def test_koji_build_target_not_supported(github_pr_event):
         url=get_srpm_log_url_from_flask(1),
     ).and_return()
 
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(id=1, success=True)
@@ -273,6 +282,9 @@ def test_koji_build_with_multiple_targets(github_pr_event):
     # 2x SRPM + 2x RPM
     flexmock(StatusReporter).should_receive("set_status").and_return().times(4)
 
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(id=1, success=True)
@@ -329,6 +341,9 @@ def test_koji_build_failed(github_pr_event):
         url=srpm_build_url,
     ).and_return()
 
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(id=2, success=True)
@@ -372,6 +387,9 @@ def test_koji_build_failed_srpm(github_pr_event):
         url=srpm_build_url,
     ).and_return()
 
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(PackitAPI).should_receive("create_srpm").and_raise(Exception, "some error")
     flexmock(SRPMBuildModel).should_receive("create").and_return(
@@ -402,6 +420,9 @@ def test_koji_build_non_scratch(github_pr_event):
         url=KOJI_PRODUCTION_BUILDS_ISSUE,
     ).and_return()
 
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(KojiBuildModel).should_receive("get_or_create").never()
 

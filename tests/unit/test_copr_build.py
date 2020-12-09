@@ -159,6 +159,9 @@ def test_copr_build_check_names(github_pr_event):
         url="https://test.url",
     ).and_return()
 
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
@@ -255,6 +258,9 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
         url="https://test.url",
     ).and_return()
 
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(GitProject).should_receive("pr_comment").with_args(
         pr_id=342,
@@ -369,6 +375,9 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
         url="https://test.url",
     ).and_return().once()
 
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
@@ -444,6 +453,9 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
         url="https://test.url",
     ).and_return()
 
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
@@ -510,7 +522,9 @@ def test_copr_build_success_set_test_check(github_pr_event):
         db_trigger=trigger,
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
-    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
     )
@@ -564,6 +578,9 @@ def test_copr_build_for_branch(branch_push_event):
         jobs=[branch_build_job],
         event=branch_push_event,
         db_trigger=trigger,
+    )
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(SRPMBuildModel).should_receive("create").and_return(
@@ -620,6 +637,9 @@ def test_copr_build_for_branch_failed(branch_push_event):
         jobs=[branch_build_job],
         event=branch_push_event,
         db_trigger=trigger,
+    )
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(GitProject).should_receive("commit_comment").and_return(flexmock())
@@ -682,6 +702,9 @@ def test_copr_build_for_release(release_event):
         db_trigger=trigger,
     )
     flexmock(ReleaseEvent).should_receive("get_project").and_return(helper.project)
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
@@ -728,7 +751,9 @@ def test_copr_build_success(github_pr_event):
         ),
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
-    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
     )
@@ -800,7 +825,9 @@ def test_copr_build_fails_in_packit(github_pr_event):
             templ.format(ver=v),
             trim=True,
         ).and_return().once()
-    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=False, id=2)
     )
@@ -854,7 +881,6 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
             templ.format(ver=v),
             trim=True,
         ).and_return().once()
-    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True, id=2)
     )
@@ -863,8 +889,9 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
     )
 
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+    flexmock(GitProject).should_receive("get_pr").with_args(342).and_return(flexmock())
     flexmock(GitProject).should_receive("get_pr").with_args(pr_id=342).and_return(
-        flexmock()
+        flexmock(source_project=flexmock())
         .should_receive("comment")
         .with_args(
             body="Based on your Packit configuration the settings of the "
@@ -897,7 +924,7 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
         )
         .and_return()
         .mock()
-    ).and_return()
+    )
 
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
     # copr build
@@ -951,7 +978,9 @@ def test_copr_build_no_targets(github_pr_event):
         {"fedora-32-x86_64", "fedora-31-x86_64"}
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
-    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
     )
@@ -1017,6 +1046,9 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
         url="https://test.url",
     ).and_return()
 
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
@@ -1087,7 +1119,9 @@ def test_copr_build_success_set_test_check_gitlab(gitlab_mr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(jobs=[test_job], event=gitlab_mr_event, db_trigger=trigger)
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
-    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
     )
@@ -1142,6 +1176,9 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
         event=branch_push_event_gitlab,
         db_trigger=trigger,
     )
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
@@ -1193,7 +1230,9 @@ def test_copr_build_success_gitlab(gitlab_mr_event):
         ),
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(8)
-    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
     )
@@ -1269,7 +1308,9 @@ def test_copr_build_fails_in_packit_gitlab(gitlab_mr_event):
             templ.format(ver=v),
             trim=True,
         ).and_return().once()
-    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=False, id=2)
     )
@@ -1309,7 +1350,10 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
         False
     )
     flexmock(GitProject).should_receive("get_pr").and_return(
-        flexmock(comment=flexmock().should_receive("comment").and_return().mock())
+        flexmock(
+            comment=flexmock().should_receive("comment").and_return().mock(),
+            source_project=flexmock(),
+        )
     )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
@@ -1376,7 +1420,9 @@ def test_copr_build_no_targets_gitlab(gitlab_mr_event):
         {"fedora-32-x86_64", "fedora-31-x86_64"}
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().times(4)
-    flexmock(GitProject).should_receive("get_pr").and_return(flexmock())
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(SRPMBuildModel).should_receive("create").and_return(
         SRPMBuildModel(success=True)
     )
