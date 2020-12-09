@@ -316,6 +316,7 @@ def test_check_and_report(
         pr_comment=lambda *args, **kwargs: None,
         set_commit_status=lambda *args, **kwargs: None,
         issue_comment=lambda *args, **kwargs: None,
+        get_pr=lambda *args, **kwargs: flexmock(source_project=flexmock()),
     )
     job_configs = [
         JobConfig(

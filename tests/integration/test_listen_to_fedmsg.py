@@ -207,6 +207,9 @@ def test_copr_build_end(
     pr_comment_called,
 ):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     pc_build_pr.jobs[0].notifications.pull_request.successful_build = pc_comment_pr_succ
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
@@ -248,6 +251,9 @@ def test_copr_build_end(
 
 def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_push):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_push
     )
@@ -291,6 +297,9 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
 
 def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_release):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_release
     )
@@ -333,6 +342,9 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
 
 def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
 
     config = PackageConfig(
         jobs=[
@@ -464,6 +476,9 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
 
 def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
 
     config = PackageConfig(
         jobs=[
@@ -580,6 +595,9 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
 
 def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
 
     config = PackageConfig(
         jobs=[
@@ -698,6 +716,9 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
 
 def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
@@ -736,6 +757,9 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
 
 def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(pc_tests)
     flexmock(TestingFarmJobHelper).should_receive("get_build_check").and_return(
         EXPECTED_BUILD_CHECK_NAME
@@ -780,6 +804,9 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
 
 def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
     flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
