@@ -245,7 +245,6 @@ class BaseBuildJobHelper:
                 project=self.project,
                 commit_sha=self.metadata.commit_sha,
                 pr_id=self.metadata.pr_id,
-                base_project=self.base_project,
             )
         return self._status_reporter
 

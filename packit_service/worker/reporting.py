@@ -40,13 +40,12 @@ class StatusReporter:
         project: GitProject,
         commit_sha: str,
         pr_id: Optional[int] = None,
-        base_project: Optional[GitProject] = None,
     ):
         logger.debug(
             f"Status reporter will report for {project}, commit={commit_sha}, pr={pr_id}"
         )
         self.project = project
-        self.base_project = base_project
+        self._project_with_commit = None
         self.commit_sha = commit_sha
         self.pr_id = pr_id
 
@@ -55,10 +54,14 @@ class StatusReporter:
         """
         Returns GitProject from which we can set commit status.
         """
-        if isinstance(self.project, GitlabProject):
-            return self.base_project
+        if self._project_with_commit is None:
+            self._project_with_commit = (
+                self.project.get_pr(self.pr_id).source_project
+                if isinstance(self.project, GitlabProject) and self.pr_id is not None
+                else self.project
+            )
 
-        return self.project
+        return self._project_with_commit
 
     def report(
         self,
@@ -165,8 +168,9 @@ class StatusReporter:
         except gitlab.exceptions.GitlabCreateError as e:
             # Ignoring Gitlab 'enqueue' error
             # https://github.com/packit-service/packit-service/issues/741
-            if e.response_code == 403:
+            if e.response_code != 400:
                 # 403: No permissions to set status, falling back to comment
+                # 404: Commit has not been found, e.g. used target project on GitLab
                 logger.error(
                     f"Failed to set status for {self.commit_sha}, commenting on"
                     f" commit as a fallback: {str(e)}"
