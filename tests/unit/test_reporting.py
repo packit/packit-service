@@ -26,13 +26,14 @@ import pytest
 from flexmock import flexmock
 
 from ogr.abstract import CommitStatus
+from ogr.services.gitlab import GitlabProject
 from packit_service.worker.reporting import StatusReporter
 
 
 @pytest.mark.parametrize(
     (
         "project,commit_sha,"
-        "pr_id,has_pr_id,pr_object,"
+        "pr_id,pr_object,"
         "state,description,check_name,url,"
         "needs_pr_flags,uid"
     ),
@@ -41,7 +42,6 @@ from packit_service.worker.reporting import StatusReporter
             flexmock(),
             "7654321",
             "11",
-            True,
             flexmock(),
             CommitStatus.success,
             "We made it!",
@@ -55,7 +55,6 @@ from packit_service.worker.reporting import StatusReporter
             flexmock(),
             "7654321",
             None,
-            False,
             flexmock(),
             CommitStatus.failure,
             "We made it!",
@@ -69,7 +68,6 @@ from packit_service.worker.reporting import StatusReporter
             flexmock(),
             "7654321",
             None,
-            False,
             flexmock(head_commit="1234567"),
             CommitStatus.pending,
             "We made it!",
@@ -83,7 +81,6 @@ from packit_service.worker.reporting import StatusReporter
             flexmock(),
             "7654321",
             None,
-            False,
             flexmock(head_commit="7654321"),
             CommitStatus.error,
             "We made it!",
@@ -99,7 +96,6 @@ def test_set_status(
     project,
     commit_sha,
     pr_id,
-    has_pr_id,
     pr_object,
     state,
     description,
@@ -114,12 +110,62 @@ def test_set_status(
         commit_sha, state, url, description, check_name, trim=True
     ).once()
 
-    if has_pr_id:
+    if pr_id is not None:
         project.should_receive("get_pr").with_args(pr_id).once().and_return(pr_object)
 
     if needs_pr_flags:
         pr_object.should_receive("set_flag").with_args(
             check_name, description, url, state, uid
+        )
+
+    reporter.set_status(state, description, check_name, url)
+
+
+@pytest.mark.parametrize(
+    ("commit_sha,pr_id,pr_object," "state,description,check_name,url,"),
+    [
+        pytest.param(
+            "7654321",
+            None,
+            None,
+            CommitStatus.success,
+            "We made it!",
+            "packit/pr-rpm-build",
+            "https://api.packit.dev/build/111/logs",
+            id="Gitlab branch",
+        ),
+        pytest.param(
+            "7654321",
+            1,
+            flexmock(source_project=flexmock()),
+            CommitStatus.success,
+            "We made it!",
+            "packit/pr-rpm-build",
+            "https://api.packit.dev/build/111/logs",
+            id="Gitlab PR",
+        ),
+    ],
+)
+def test_set_status_gitlab(
+    commit_sha,
+    pr_id,
+    pr_object,
+    state,
+    description,
+    check_name,
+    url,
+):
+    project = GitlabProject(None, None, None)
+    reporter = StatusReporter(project, commit_sha, pr_id)
+    act_upon = flexmock(pr_object.source_project) if pr_id else flexmock(GitlabProject)
+
+    act_upon.should_receive("set_commit_status").with_args(
+        commit_sha, state, url, description, check_name, trim=True
+    ).once()
+
+    if pr_id is not None:
+        flexmock(GitlabProject).should_receive("get_pr").with_args(pr_id).and_return(
+            pr_object
         )
 
     reporter.set_status(state, description, check_name, url)
