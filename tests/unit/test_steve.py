@@ -23,7 +23,7 @@
 """
 Let's test that Steve's as awesome as we think he is.
 """
-from json import dumps
+from json import dumps, load
 
 import pytest
 from celery.canvas import Signature
@@ -40,7 +40,7 @@ from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
 from packit_service.worker.tasks import run_propose_downstream_handler
-from tests.spellbook import first_dict_value, get_parameters_from_results
+from tests.spellbook import first_dict_value, get_parameters_from_results, DATA_DIR
 
 
 EVENT = {
@@ -108,3 +108,20 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     )
     assert "propose_downstream" in next(iter(results["job"]))
     assert first_dict_value(results["job"])["success"]
+
+
+@pytest.fixture()
+def github_push():
+    with open(DATA_DIR / "webhooks" / "github" / "push.json") as outfile:
+        return load(outfile)
+
+
+def test_ignore_delete_branch(github_push):
+    flexmock(
+        GithubProject,
+        is_private=lambda: False,
+    )
+    processing_results = SteveJobs().process_message(github_push)
+
+    assert processing_results["push"]["success"]
+    assert "deleting a branch" in processing_results["push"]["details"]["msg"]
