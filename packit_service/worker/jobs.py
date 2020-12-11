@@ -43,6 +43,9 @@ from packit_service.service.events import (
     PullRequestCommentPagureEvent,
     MergeRequestCommentGitlabEvent,
     IssueCommentGitlabEvent,
+    PushGitHubEvent,
+    PushGitlabEvent,
+    PushPagureEvent,
 )
 from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.handlers import (
@@ -212,6 +215,14 @@ class SteveJobs:
         """
 
         processing_results = {}
+
+        if isinstance(
+            event, (PushGitHubEvent, PushGitlabEvent, PushPagureEvent)
+        ) and event.commit_sha.startswith("0000000"):
+            processing_results[event.trigger.value] = TaskResults(
+                success=True, details={"msg": "Triggered by deleting a branch"}
+            )
+            return processing_results
 
         if not event.package_config:
             # this happens when service receives events for repos which don't have packit config
