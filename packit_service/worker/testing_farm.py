@@ -26,12 +26,12 @@ import logging
 import uuid
 
 import requests
-from ogr.abstract import GitProject, CommitStatus
+
+from ogr.abstract import CommitStatus, GitProject
 from ogr.utils import RequestResponse
 from packit.config.job_config import JobConfig
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitConfigException
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import TESTING_FARM_TRIGGER_URL
 from packit_service.models import TFTTestRunModel, TestingFarmResult

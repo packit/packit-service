@@ -24,21 +24,15 @@
 This file defines classes for job handlers specific for Testing farm
 """
 import logging
-from typing import Optional, List
+from typing import List, Optional
 
 from ogr.abstract import CommitStatus
-from packit.config import JobType, JobConfig
+from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
-
-from packit_service.models import TFTTestRunModel, AbstractTriggerDbType
-from packit_service.service.events import (
-    TestingFarmResult,
-    TheJobTriggerType,
-    EventData,
-    TestResult,
-)
+from packit_service.models import AbstractTriggerDbType, TFTTestRunModel
+from packit_service.service.events import EventData, TestResult, TestingFarmResult
 from packit_service.worker.handlers import JobHandler
-from packit_service.worker.handlers.abstract import use_for, TaskName
+from packit_service.worker.handlers.abstract import configured_as
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
@@ -46,12 +40,8 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper
 logger = logging.getLogger(__name__)
 
 
-@use_for(job_type=JobType.tests)
+@configured_as(job_type=JobType.tests)
 class TestingFarmResultsHandler(JobHandler):
-    type = JobType.report_test_results
-    triggers = [TheJobTriggerType.testing_farm_results]
-    task_name = TaskName.testing_farm_results
-
     def __init__(
         self,
         package_config: PackageConfig,

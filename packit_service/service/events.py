@@ -27,34 +27,30 @@ import copy
 import enum
 import logging
 from datetime import datetime, timezone
-from typing import Optional, List, Union, Dict
+from typing import Dict, List, Optional, Union
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
 from packit.config import PackageConfig, get_package_config_from_repo
-
-from packit_service.config import (
-    ServiceConfig,
-    PackageConfigGetter,
-)
+from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import KojiBuildState
 from packit_service.constants import WHITELIST_CONSTANTS
 from packit_service.models import (
-    CoprBuildModel,
     AbstractTriggerDbType,
+    CoprBuildModel,
+    GitBranchModel,
     JobTriggerModelType,
-    TestingFarmResult,
-    TFTTestRunModel,
-    PullRequestModel,
     KojiBuildModel,
     ProjectReleaseModel,
-    GitBranchModel,
+    PullRequestModel,
+    TFTTestRunModel,
+    TestingFarmResult,
 )
 from packit_service.service.db_triggers import (
-    AddReleaseDbTrigger,
-    AddPullRequestDbTrigger,
     AddBranchPushDbTrigger,
     AddIssueDbTrigger,
+    AddPullRequestDbTrigger,
+    AddReleaseDbTrigger,
 )
 
 logger = logging.getLogger(__name__)
@@ -100,21 +96,6 @@ class WhitelistStatus(enum.Enum):
     approved_manually = WHITELIST_CONSTANTS["approved_manually"]
 
 
-class TheJobTriggerType(str, enum.Enum):
-    release = "release"
-    pull_request = "pull_request"
-    push = "push"
-    commit = "commit"
-    installation = "installation"
-    testing_farm_results = "testing_farm_results"
-    koji_results = "koji_results"
-    pr_comment = "pr_comment"
-    pr_label = "pr_label"
-    issue_comment = "issue_comment"
-    copr_start = "copr_start"
-    copr_end = "copr_end"
-
-
 class TestResult(dict):
     def __init__(self, name: str, result: TestingFarmResult, log_url: str):
         dict.__init__(self, name=name, result=result, log_url=log_url)
@@ -150,7 +131,6 @@ class EventData:
     def __init__(
         self,
         event_type: str,
-        trigger: TheJobTriggerType,
         user_login: str,
         trigger_id: int,
         project_url: str,
@@ -162,7 +142,6 @@ class EventData:
         event_dict: Optional[dict],
     ):
         self.event_type = event_type
-        self.trigger = trigger
         self.user_login = user_login
         self.trigger_id = trigger_id
         self.project_url = project_url
@@ -176,7 +155,6 @@ class EventData:
     @classmethod
     def from_event_dict(cls, event: dict):
         event_type = event.get("event_type")
-        trigger = TheJobTriggerType(event.get("trigger"))
         user_login = event.get("user_login")
         trigger_id = event.get("trigger_id")
         project_url = event.get("project_url")
@@ -189,7 +167,6 @@ class EventData:
 
         return EventData(
             event_type=event_type,
-            trigger=trigger,
             user_login=user_login,
             trigger_id=trigger_id,
             project_url=project_url,
@@ -201,18 +178,71 @@ class EventData:
             event_dict=event,
         )
 
+    @property
+    def project(self):
+        if not self._project:
+            self._project = self.get_project()
+        return self._project
+
+    @property
+    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        # TODO, do a better job
+        # Probably, try to recreate original classes.
+        if self.event_type in {
+            PullRequestGithubEvent.__name__,
+            PullRequestPagureEvent.__name__,
+            MergeRequestGitlabEvent.__name__,
+        }:
+            return PullRequestModel.get_or_create(
+                pr_id=self.pr_id,
+                namespace=self.project.namespace,
+                repo_name=self.project.repo,
+                project_url=self.project_url,
+            )
+        elif self.event_type in {
+            PushGitHubEvent.__name__,
+            PushGitlabEvent.__name__,
+            PushPagureEvent.__name__,
+        }:
+            return GitBranchModel.get_or_create(
+                branch_name=self.git_ref,
+                namespace=self.project.namespace,
+                repo_name=self.project.repo,
+                project_url=self.project_url,
+            )
+
+        elif self.event_type in {
+            ReleaseEvent.__name__,
+        }:
+            return ProjectReleaseModel.get_or_create(
+                tag_name=self.tag_name,
+                namespace=self.project.namespace,
+                repo_name=self.project.repo,
+                project_url=self.project_url,
+                commit_hash=self.commit_sha,
+            )
+
+        logger.warning(
+            "We don't know, what to search in the database for this event data."
+        )
+        return None
+
     def get_dict(self) -> dict:
         d = self.__dict__
         d = copy.deepcopy(d)
         d["trigger"] = d["trigger"].value
         return d
 
+    def get_project(self) -> Optional[GitProject]:
+        if not self.project_url:
+            return None
+        return ServiceConfig.get_service_config().get_project(
+            url=self.project_url or self.db_trigger.project.project_url
+        )
+
 
 class Event:
-    def __init__(
-        self, trigger: TheJobTriggerType, created_at: Union[int, float, str] = None
-    ):
-        self.trigger: TheJobTriggerType = trigger
+    def __init__(self, created_at: Union[int, float, str] = None):
         self.created_at: datetime
         if created_at:
             if isinstance(created_at, (int, float)):
@@ -295,12 +325,11 @@ class AbstractForgeIndependentEvent(Event):
 
     def __init__(
         self,
-        trigger: TheJobTriggerType,
         created_at: Union[int, float, str] = None,
         project_url=None,
         pr_id: Optional[int] = None,
     ):
-        super().__init__(trigger, created_at)
+        super().__init__(created_at)
         self.project_url = project_url
         self._pr_id = pr_id
 
@@ -389,10 +418,8 @@ class AbstractForgeIndependentEvent(Event):
 
 
 class AbstractGithubEvent(AbstractForgeIndependentEvent):
-    def __init__(
-        self, trigger: TheJobTriggerType, project_url: str, pr_id: Optional[int] = None
-    ):
-        super().__init__(trigger, pr_id=pr_id)
+    def __init__(self, project_url: str, pr_id: Optional[int] = None):
+        super().__init__(pr_id=pr_id)
         self.project_url: str = project_url
         self.git_ref: Optional[str] = None  # git ref that can be 'git checkout'-ed
         self.identifier: Optional[
@@ -403,11 +430,10 @@ class AbstractGithubEvent(AbstractForgeIndependentEvent):
 class AbstractGitlabEvent(AbstractForgeIndependentEvent):
     def __init__(
         self,
-        trigger: TheJobTriggerType,
         project_url: str,
         pr_id: Optional[int] = None,
     ):
-        super().__init__(trigger, pr_id=pr_id)
+        super().__init__(pr_id=pr_id)
         self.project_url: str = project_url
         self.git_ref: Optional[str] = None
         self.identifier: Optional[
@@ -419,7 +445,7 @@ class ReleaseEvent(AddReleaseDbTrigger, AbstractGithubEvent):
     def __init__(
         self, repo_namespace: str, repo_name: str, tag_name: str, project_url: str
     ):
-        super().__init__(trigger=TheJobTriggerType.release, project_url=project_url)
+        super().__init__(project_url=project_url)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.tag_name = tag_name
@@ -449,7 +475,7 @@ class PushGitHubEvent(AddBranchPushDbTrigger, AbstractGithubEvent):
         project_url: str,
         commit_sha: str,
     ):
-        super().__init__(trigger=TheJobTriggerType.push, project_url=project_url)
+        super().__init__(project_url=project_url)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.git_ref = git_ref
@@ -466,7 +492,7 @@ class PushGitlabEvent(AddBranchPushDbTrigger, AbstractGitlabEvent):
         project_url: str,
         commit_sha: str,
     ):
-        super().__init__(trigger=TheJobTriggerType.push, project_url=project_url)
+        super().__init__(project_url=project_url)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.git_ref = git_ref
@@ -489,7 +515,6 @@ class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
         commit_sha: str,
     ):
         super().__init__(
-            trigger=TheJobTriggerType.pull_request,
             project_url=project_url,
             pr_id=object_iid,
         )
@@ -531,9 +556,7 @@ class PullRequestGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         commit_sha: str,
         user_login: str,
     ):
-        super().__init__(
-            trigger=TheJobTriggerType.pull_request, project_url=project_url, pr_id=pr_id
-        )
+        super().__init__(project_url=project_url, pr_id=pr_id)
         self.action = action
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
@@ -570,7 +593,6 @@ class MergeRequestCommentGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEven
         commit_sha: str,
     ):
         super().__init__(
-            trigger=TheJobTriggerType.pr_comment,
             project_url=project_url,
             pr_id=object_iid,
         )
@@ -615,9 +637,7 @@ class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent
         comment: str,
         commit_sha: Optional[str] = None,
     ):
-        super().__init__(
-            trigger=TheJobTriggerType.pr_comment, project_url=project_url, pr_id=pr_id
-        )
+        super().__init__(project_url=project_url, pr_id=pr_id)
         self.action = action
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
@@ -661,9 +681,7 @@ class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
         username: str,
         comment: str,
     ):
-        super().__init__(
-            trigger=TheJobTriggerType.issue_comment, project_url=project_url
-        )
+        super().__init__(project_url=project_url)
         self.action = action
         self.issue_id = issue_id
         self.issue_iid = issue_iid
@@ -696,9 +714,7 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
             str
         ] = "master",  # default is master when working with issues
     ):
-        super().__init__(
-            trigger=TheJobTriggerType.issue_comment, project_url=project_url
-        )
+        super().__init__(project_url=project_url)
         self.action = action
         self.issue_id = issue_id
         self.repo_namespace = repo_namespace
@@ -742,7 +758,7 @@ class InstallationEvent(Event):
         sender_login: str,
         status: WhitelistStatus = WhitelistStatus.waiting,
     ):
-        super().__init__(TheJobTriggerType.installation, created_at)
+        super().__init__(created_at)
         self.installation_id = installation_id
         # account == namespace (user/organization) into which the app has been installed
         self.account_login = account_login
@@ -798,7 +814,7 @@ class DistGitEvent(AbstractForgeIndependentEvent):
         msg_id: str,
         project_url: str,
     ):
-        super().__init__(trigger=TheJobTriggerType.commit)
+        super().__init__()
         self.topic = FedmsgTopic(topic)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
@@ -844,9 +860,7 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
         project_url: str,
         commit_sha: str,
     ):
-        super().__init__(
-            trigger=TheJobTriggerType.testing_farm_results, project_url=project_url
-        )
+        super().__init__(project_url=project_url)
         self.pipeline_id = pipeline_id
         self.result = result
         self.environment = environment
@@ -911,7 +925,7 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
         start_time: Optional[Union[int, float, str]] = None,
         completion_time: Optional[Union[int, float, str]] = None,
     ):
-        super().__init__(trigger=TheJobTriggerType.koji_results)
+        super().__init__()
         self.build_id = build_id
         self.state = state
         self.old_state = old_state
@@ -1058,14 +1072,7 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
         self.base_repo_name = trigger_db.project.repo_name
         self.base_repo_namespace = trigger_db.project.namespace
         git_ref = self.commit_sha  # ref should be name of the branch, not a hash
-
         self.topic = FedmsgTopic(topic)
-        if self.topic == FedmsgTopic.copr_build_started:
-            trigger = TheJobTriggerType.copr_start
-        elif self.topic == FedmsgTopic.copr_build_finished:
-            trigger = TheJobTriggerType.copr_end
-        else:
-            raise ValueError(f"Unknown topic for CoprEvent: '{self.topic}'")
 
         trigger_type = build.job_trigger.type
         trigger_db = build.job_trigger.get_trigger_object()
@@ -1080,9 +1087,7 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
             pr_id = None
             self.identifier = trigger_db.name
 
-        super().__init__(
-            trigger=trigger, project_url=trigger_db.project.project_url, pr_id=pr_id
-        )
+        super().__init__(project_url=trigger_db.project.project_url, pr_id=pr_id)
 
         self.git_ref = git_ref
         self.build_id = build_id
@@ -1174,10 +1179,8 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
 
 
 class AbstractPagureEvent(AbstractForgeIndependentEvent):
-    def __init__(
-        self, trigger: TheJobTriggerType, project_url: str, pr_id: Optional[int] = None
-    ):
-        super().__init__(trigger, pr_id=pr_id)
+    def __init__(self, project_url: str, pr_id: Optional[int] = None):
+        super().__init__(pr_id=pr_id)
         self.project_url: str = project_url
         self.git_ref: Optional[str] = None  # git ref that can be 'git checkout'-ed
         self.identifier: Optional[
@@ -1194,7 +1197,7 @@ class PushPagureEvent(AbstractPagureEvent):
         project_url: str,
         commit_sha: str,
     ):
-        super().__init__(trigger=TheJobTriggerType.push, project_url=project_url)
+        super().__init__(project_url=project_url)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.git_ref = git_ref
@@ -1217,9 +1220,7 @@ class PullRequestCommentPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent
         comment: str,
         commit_sha: str = "",
     ):
-        super().__init__(
-            trigger=TheJobTriggerType.pr_comment, project_url=project_url, pr_id=pr_id
-        )
+        super().__init__(project_url=project_url, pr_id=pr_id)
         self.action = action
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
@@ -1262,9 +1263,7 @@ class PullRequestPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
         commit_sha: str,
         user_login: str,
     ):
-        super().__init__(
-            trigger=TheJobTriggerType.pull_request, project_url=project_url, pr_id=pr_id
-        )
+        super().__init__(project_url=project_url, pr_id=pr_id)
         self.action = action
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
@@ -1306,9 +1305,7 @@ class PullRequestLabelPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
         project_url: str,
         labels: List[str],
     ):
-        super().__init__(
-            trigger=TheJobTriggerType.pr_label, project_url=project_url, pr_id=pr_id
-        )
+        super().__init__(project_url=project_url, pr_id=pr_id)
         self.action = action
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name

@@ -24,12 +24,12 @@ import logging
 from copr.v3 import Client as CoprClient
 
 from packit_service.constants import (
-    COPR_SUCC_STATE,
-    COPR_API_SUCC_STATE,
     COPR_API_FAIL_STATE,
+    COPR_API_SUCC_STATE,
+    COPR_SUCC_STATE,
 )
 from packit_service.models import CoprBuildModel
-from packit_service.service.events import CoprBuildEvent, FedmsgTopic, EventData
+from packit_service.service.events import CoprBuildEvent, EventData, FedmsgTopic
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.jobs import get_config_for_handler_kls
 

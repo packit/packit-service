@@ -38,18 +38,7 @@ from packit_service.worker.handlers.fedmsg_handlers import (
 )
 from packit_service.worker.handlers.github_handlers import (
     GithubAppInstallationHandler,
-    ReleaseCoprBuildHandler,
-    PullRequestCoprBuildHandler,
-    PushCoprBuildHandler,
-    GitHubIssueCommentProposeUpdateHandler,
-    GitHubPullRequestCommentCoprBuildHandler,
-    GitHubPullRequestCommentTestingFarmHandler,
     ProposeDownstreamHandler,
-    GithubTestingFarmHandler,
-)
-
-from packit_service.worker.handlers.pagure_handlers import (
-    PagurePullRequestCommentCoprBuildHandler,
 )
 from packit_service.worker.handlers.testing_farm_handlers import (
     TestingFarmResultsHandler,
@@ -61,17 +50,9 @@ __all__ = [
     CoprBuildStartHandler.__name__,
     FedmsgHandler.__name__,
     GithubAppInstallationHandler.__name__,
-    ReleaseCoprBuildHandler.__name__,
-    PullRequestCoprBuildHandler.__name__,
-    PushCoprBuildHandler.__name__,
-    GitHubIssueCommentProposeUpdateHandler.__name__,
-    GitHubPullRequestCommentCoprBuildHandler.__name__,
-    GitHubPullRequestCommentTestingFarmHandler.__name__,
     ProposeDownstreamHandler.__name__,
-    GithubTestingFarmHandler.__name__,
     Handler.__name__,
     JobHandler.__name__,
     NewDistGitCommitHandler.__name__,
     TestingFarmResultsHandler.__name__,
-    PagurePullRequestCommentCoprBuildHandler.__name__,
 ]

@@ -22,20 +22,20 @@
 import logging
 from io import StringIO
 from pathlib import Path
-from typing import Union, List, Optional, Tuple, Set
+from typing import List, Optional, Set, Tuple, Union
 
 from kubernetes.client.rest import ApiException
 
-from ogr.abstract import GitProject, CommitStatus
-from ogr.services.gitlab import GitlabProject
+from ogr.abstract import CommitStatus, GitProject
 from ogr.exceptions import GitlabAPIException
+from ogr.services.gitlab import GitlabProject
 from packit.api import PackitAPI
-from packit.config import JobType, JobConfig
+from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
 from packit.local_project import LocalProject
 from packit.utils import PackitFormatter
 from packit_service import sentry_integration
-from packit_service.config import ServiceConfig, Deployment
+from packit_service.config import Deployment, ServiceConfig
 from packit_service.models import SRPMBuildModel
 from packit_service.service.events import EventData
 from packit_service.trigger_mapping import are_job_types_same

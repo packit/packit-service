@@ -25,39 +25,38 @@ Parser is transforming github JSONs into `events` objects
 """
 import logging
 from functools import partial
-from typing import Optional, Union, List, Dict
+from typing import Dict, List, Optional, Union
 
 from ogr.parsing import parse_git_repo
 from packit.utils import nested_get
-
 from packit_service.constants import KojiBuildState
 from packit_service.service.events import (
-    PullRequestGithubEvent,
-    PullRequestCommentGithubEvent,
-    InstallationEvent,
-    ReleaseEvent,
-    DistGitEvent,
-    PullRequestAction,
-    TestingFarmResultsEvent,
-    TestingFarmResult,
-    TestResult,
-    PullRequestCommentAction,
-    IssueCommentEvent,
-    IssueCommentAction,
-    CoprBuildEvent,
-    PushGitHubEvent,
-    PullRequestPagureEvent,
-    PullRequestCommentPagureEvent,
-    PushPagureEvent,
-    MergeRequestGitlabEvent,
-    GitlabEventAction,
     AbstractPagureEvent,
-    PullRequestLabelPagureEvent,
-    PullRequestLabelAction,
+    CoprBuildEvent,
+    DistGitEvent,
+    GitlabEventAction,
+    InstallationEvent,
+    IssueCommentAction,
+    IssueCommentEvent,
+    IssueCommentGitlabEvent,
     KojiBuildEvent,
     MergeRequestCommentGitlabEvent,
-    IssueCommentGitlabEvent,
+    MergeRequestGitlabEvent,
+    PullRequestAction,
+    PullRequestCommentAction,
+    PullRequestCommentGithubEvent,
+    PullRequestCommentPagureEvent,
+    PullRequestGithubEvent,
+    PullRequestLabelAction,
+    PullRequestLabelPagureEvent,
+    PullRequestPagureEvent,
+    PushGitHubEvent,
     PushGitlabEvent,
+    PushPagureEvent,
+    ReleaseEvent,
+    TestResult,
+    TestingFarmResult,
+    TestingFarmResultsEvent,
 )
 from packit_service.worker.handlers import NewDistGitCommitHandler
 

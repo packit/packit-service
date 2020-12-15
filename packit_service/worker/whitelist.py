@@ -19,38 +19,37 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
-from typing import Optional, Any, List, Iterable
+from typing import Any, Iterable, List, Optional
 
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
-from ogr.abstract import GitProject, CommitStatus
+
+from ogr.abstract import CommitStatus, GitProject
 from packit.config.job_config import JobConfig
 from packit.exceptions import PackitException
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import FAQ_URL
 from packit_service.models import WhitelistModel
 from packit_service.service.events import (
-    PullRequestGithubEvent,
-    PullRequestCommentGithubEvent,
-    IssueCommentEvent,
-    ReleaseEvent,
-    WhitelistStatus,
-    InstallationEvent,
     CoprBuildEvent,
-    TestingFarmResultsEvent,
     DistGitEvent,
-    PushGitHubEvent,
-    TheJobTriggerType,
-    PushPagureEvent,
-    PullRequestPagureEvent,
-    PullRequestCommentPagureEvent,
-    KojiBuildEvent,
     EventData,
-    MergeRequestCommentGitlabEvent,
+    InstallationEvent,
+    IssueCommentEvent,
     IssueCommentGitlabEvent,
+    KojiBuildEvent,
+    MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
+    PullRequestCommentGithubEvent,
+    PullRequestCommentPagureEvent,
+    PullRequestGithubEvent,
+    PullRequestPagureEvent,
+    PushGitHubEvent,
     PushGitlabEvent,
+    PushPagureEvent,
+    ReleaseEvent,
+    TestingFarmResultsEvent,
+    WhitelistStatus,
 )
 from packit_service.worker.build import CoprBuildJobHelper
 
@@ -241,7 +240,8 @@ class Whitelist:
             if not (self.is_approved(account_name) or self.is_approved(namespace)):
                 msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
                 logger.error(msg)
-                if event.trigger == TheJobTriggerType.pr_comment:
+                if False:
+                    # TODO: add support for commenting.
                     project.pr_comment(event.pr_id, msg)
                 else:
                     for job_config in job_configs:

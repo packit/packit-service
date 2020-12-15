@@ -20,33 +20,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
-from typing import Optional, Tuple, Set, List
+from typing import List, Optional, Set, Tuple
 
 from copr.v3 import CoprRequestException
 
-from ogr.abstract import GitProject, CommitStatus
+from ogr.abstract import CommitStatus, GitProject
 from ogr.parsing import parse_git_repo
 from ogr.services.github import GithubProject
-from packit.config import JobType, JobConfig
+from packit.config import JobConfig, JobType
 from packit.config.aliases import get_valid_build_targets
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitCoprException, PackitCoprSettingsException
 from packit_service import sentry_integration
 from packit_service.celerizer import celery_app
-from packit_service.config import ServiceConfig, Deployment
+from packit_service.config import Deployment, ServiceConfig
 from packit_service.constants import MSG_RETRIGGER
-from packit_service.models import (
-    CoprBuildModel,
-    AbstractTriggerDbType,
-)
+from packit_service.models import AbstractTriggerDbType, CoprBuildModel
 from packit_service.service.events import EventData
 from packit_service.service.urls import (
-    get_srpm_log_url_from_flask,
     get_copr_build_info_url_from_flask,
+    get_srpm_log_url_from_flask,
 )
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
-from packit_service.worker.result import TaskResults
 from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 

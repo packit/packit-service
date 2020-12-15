@@ -30,10 +30,9 @@ from typing import Dict, Type
 
 from packit.config import JobConfig
 from packit.config.package_config import PackageConfig
-
+from packit_service.service.events import EventData
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.result import TaskResults
-from packit_service.service.events import EventData
 
 logger = logging.getLogger(__name__)
 

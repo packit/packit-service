@@ -126,7 +126,6 @@ class TestingFarmResults(Resource):
         # results have nothing other than ref in common, so it doesnt make sense to
         # merge them like copr builds
         for tf_result in TFTTestRunModel.get_range(first, last):
-
             result_dict = {
                 "pipeline_id": tf_result.pipeline_id,
                 "ref": tf_result.commit_sha,
