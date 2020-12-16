@@ -67,6 +67,7 @@ from packit_service.worker.handlers import (
 from packit_service.worker.handlers.abstract import (
     TaskName,
     configured_as,
+    run_for_comment,
 )
 from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
@@ -134,6 +135,7 @@ class GithubAppInstallationHandler(JobHandler):
 
 
 @configured_as(job_type=JobType.propose_downstream)
+@run_for_comment(command="propose-downstream")
 class ProposeDownstreamHandler(JobHandler):
     task_name = TaskName.propose_downstream
 
@@ -214,6 +216,8 @@ class ProposeDownstreamHandler(JobHandler):
 
 @configured_as(job_type=JobType.copr_build)
 @configured_as(job_type=JobType.build)
+@run_for_comment(command="build")
+@run_for_comment(command="copr-build")
 class CoprBuildHandler(JobHandler):
     task_name = TaskName.copr_build
 
@@ -283,6 +287,7 @@ class CoprBuildHandler(JobHandler):
 
 
 @configured_as(job_type=JobType.production_build)
+@run_for_comment(command="production-build")
 class KojiBuildHandler(JobHandler):
     task_name = TaskName.koji_build
 
@@ -360,6 +365,7 @@ class KojiBuildHandler(JobHandler):
 
 
 @configured_as(job_type=JobType.tests)
+@run_for_comment(command="test")
 class TestingFarmHandler(JobHandler):
     """
     This class intentionally does not have a @add_to_mapping decorator as its

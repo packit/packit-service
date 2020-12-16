@@ -35,6 +35,11 @@ from packit_service.log_versions import log_job_versions
 from packit_service.service.events import (
     Event,
     InstallationEvent,
+    IssueCommentEvent,
+    IssueCommentGitlabEvent,
+    MergeRequestCommentGitlabEvent,
+    PullRequestCommentGithubEvent,
+    PullRequestCommentPagureEvent,
     PullRequestLabelPagureEvent,
     PushGitHubEvent,
     PushGitlabEvent,
@@ -49,6 +54,7 @@ from packit_service.worker.handlers import (
 )
 from packit_service.worker.handlers.abstract import (
     JobHandler,
+    MAP_COMMENT_TO_HANDLER,
     MAP_JOB_TYPE_TO_HANDLER,
 )
 from packit_service.worker.handlers.pagure_handlers import PagurePullRequestLabelHandler
@@ -84,15 +90,63 @@ def get_handlers_for_event(
         if job.trigger == event.db_trigger.job_config_trigger_type:
             jobs_matching_trigger.add(job)
 
+    if isinstance(
+        event,
+        (
+            PullRequestCommentGithubEvent,
+            PullRequestCommentPagureEvent,
+            IssueCommentEvent,
+            MergeRequestCommentGitlabEvent,
+            IssueCommentGitlabEvent,
+        ),
+    ):
+        handlers_triggered_by_comment = get_handlers_for_comment(event.comment)
+    else:
+        handlers_triggered_by_comment = None
+
     matching_handlers: Set[Type["JobHandler"]] = set()
     for job in jobs_matching_trigger:
         for handler in MAP_JOB_TYPE_TO_HANDLER[job.type]:
-            matching_handlers.add(handler)
+            if (
+                handlers_triggered_by_comment
+                and handler in handlers_triggered_by_comment
+            ):
+                matching_handlers.add(handler)
 
     if not matching_handlers:
         logger.debug(f"We did not find any handler for a following event:\n{event}")
 
     return matching_handlers
+
+
+def packit_commands_from_comment(comment: str) -> List[str]:
+    comment_parts = comment.strip()
+
+    if not comment_parts:
+        logger.debug("Empty comment, nothing to do.")
+        return []
+
+    cmd_start_index = comment.find(REQUESTED_PULL_REQUEST_COMMENT)
+    (packit_mark, *packit_command) = comment[cmd_start_index:].split(maxsplit=3)
+    # packit_command[0] has the first cmd and [1] has the second, if needed.
+
+    if packit_mark != REQUESTED_PULL_REQUEST_COMMENT:
+        logger.debug(f"comment '{comment}' is not handled by packit-service.")
+        return []
+
+    if not packit_command:
+        logger.debug(f"comment '{comment}' does not contain a packit-service command.")
+        return []
+
+    return packit_command
+
+
+def get_handlers_for_comment(comment: str) -> Set[Type[JobHandler]]:
+    commands = packit_commands_from_comment(comment)
+    if not commands:
+        return set()
+
+    return MAP_COMMENT_TO_HANDLER.get(commands[0])
 
 
 def get_config_for_handler_kls(
@@ -181,6 +235,8 @@ class SteveJobs:
 
         job_configs = []
         for handler_kls in handler_classes:
+            # TODO: merge to to get_handlers_for_event so
+            # so we don't need to go through the similar process twice.
             job_configs = get_config_for_handler_kls(
                 handler_kls=handler_kls,
                 event=event,

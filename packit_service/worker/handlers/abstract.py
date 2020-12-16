@@ -52,6 +52,7 @@ from packit_service.worker.result import TaskResults
 logger = logging.getLogger(__name__)
 
 MAP_JOB_TYPE_TO_HANDLER: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(set)
+MAP_COMMENT_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
 
 
 def configured_as(job_type: JobType):
@@ -62,6 +63,20 @@ def configured_as(job_type: JobType):
 
     def _add_to_mapping(kls: Type["JobHandler"]):
         MAP_JOB_TYPE_TO_HANDLER[job_type].add(kls)
+        return kls
+
+    return _add_to_mapping
+
+
+def run_for_comment(command: str):
+    """
+    [class decorator]
+    Specify a command for which we want to use run handler.
+    e.g. for `/packit command` we need to add `command`
+    """
+
+    def _add_to_mapping(kls: Type["JobHandler"]):
+        MAP_COMMENT_TO_HANDLER[command].add(kls)
         return kls
 
     return _add_to_mapping
