@@ -255,11 +255,15 @@ to store and replay data for tests.
   newgrp docker
   ```
 
-- Install and run local openshift cluster:
+- Install and run local openshift cluster with `oc cluster up`:
+
   ```bash
   sudo dnf install origin-clients python3-openshift
   oc cluster up --base-dir=/tmp/openshift_cluster
   ```
+
+- If you want to use `minishift` instead of `oc cluster up`,
+  check [this](https://github.com/packit/deployment#minishift).
 
 #### Data regeneration
 
