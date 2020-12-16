@@ -25,14 +25,16 @@ Parser is transforming github JSONs into `events` objects
 """
 import logging
 from functools import partial
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Type, Union
 
 from ogr.parsing import parse_git_repo
 from packit.utils import nested_get
 from packit_service.constants import KojiBuildState
 from packit_service.service.events import (
     AbstractPagureEvent,
-    CoprBuildEvent,
+    CoprBuildEndEvent,
+    AbstractCoprBuildEvent,
+    CoprBuildStartEvent,
     DistGitEvent,
     GitlabEventAction,
     InstallationEvent,
@@ -81,7 +83,7 @@ class Parser:
             TestingFarmResultsEvent,
             PullRequestCommentGithubEvent,
             IssueCommentEvent,
-            CoprBuildEvent,
+            AbstractCoprBuildEvent,
             PushGitHubEvent,
             MergeRequestGitlabEvent,
             KojiBuildEvent,
@@ -110,7 +112,7 @@ class Parser:
                 PullRequestCommentGithubEvent,
                 IssueCommentEvent,
                 KojiBuildEvent,
-                CoprBuildEvent,
+                AbstractCoprBuildEvent,
                 PushGitHubEvent,
                 MergeRequestGitlabEvent,
                 MergeRequestCommentGitlabEvent,
@@ -812,13 +814,17 @@ class Parser:
         )
 
     @staticmethod
-    def parse_copr_event(event) -> Optional[CoprBuildEvent]:
+    def parse_copr_event(event) -> Optional[AbstractCoprBuildEvent]:
         """ this corresponds to copr build event e.g:"""
         topic = event.get("topic")
-        if topic not in {
-            "org.fedoraproject.prod.copr.build.start",
-            "org.fedoraproject.prod.copr.build.end",
-        }:
+
+        copr_build_cls: Type["AbstractCoprBuildEvent"]
+        if topic == "org.fedoraproject.prod.copr.build.start":
+            copr_build_cls = CoprBuildStartEvent
+        elif topic == "org.fedoraproject.prod.copr.build.end":
+            copr_build_cls = CoprBuildEndEvent
+        else:
+            # Topic not supported.
             return None
 
         logger.info(f"Copr event; {event.get('what')}")
@@ -831,7 +837,7 @@ class Parser:
         pkg = event.get("pkg")
         timestamp = event.get("timestamp")
 
-        return CoprBuildEvent.from_build_id(
+        return copr_build_cls.from_build_id(
             topic, build_id, chroot, status, owner, project_name, pkg, timestamp
         )
 

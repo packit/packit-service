@@ -57,6 +57,7 @@ from packit_service.worker.handlers.abstract import (
     MAP_COMMENT_TO_HANDLER,
     MAP_JOB_TYPE_TO_HANDLER,
     MAP_REQUIRED_JOB_TYPE_TO_HANDLER,
+    SUPPORTED_EVENTS_FOR_HANDLER,
 )
 from packit_service.worker.handlers.pagure_handlers import PagurePullRequestLabelHandler
 from packit_service.worker.parser import CentosEventParser, Parser
@@ -86,10 +87,13 @@ def get_handlers_for_event(
     :return: set of handler instances that we need to run for given event and user configuration
     """
 
-    jobs_matching_trigger = set()
+    jobs_matching_trigger = []
     for job in package_config.jobs:
-        if job.trigger == event.db_trigger.job_config_trigger_type:
-            jobs_matching_trigger.add(job)
+        if (
+            job.trigger == event.db_trigger.job_config_trigger_type
+            and job not in jobs_matching_trigger
+        ):
+            jobs_matching_trigger.append(job)
 
     if isinstance(
         event,
@@ -109,16 +113,18 @@ def get_handlers_for_event(
     for job in jobs_matching_trigger:
         for handler in (
             MAP_JOB_TYPE_TO_HANDLER[job.type]
-            & MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job.type]
+            | MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job.type]
         ):
-            if (
-                handlers_triggered_by_comment
-                and handler in handlers_triggered_by_comment
+            if isinstance(event, tuple(SUPPORTED_EVENTS_FOR_HANDLER[handler])) and (
+                not handlers_triggered_by_comment
+                or handler in handlers_triggered_by_comment
             ):
                 matching_handlers.add(handler)
 
     if not matching_handlers:
-        logger.debug(f"We did not find any handler for a following event:\n{event}")
+        logger.debug(
+            f"We did not find any handler for a following event:\n{event.__class__}"
+        )
 
     return matching_handlers
 

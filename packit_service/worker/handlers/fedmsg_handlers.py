@@ -47,7 +47,10 @@ from packit_service.constants import (
 )
 from packit_service.models import AbstractTriggerDbType, CoprBuildModel, KojiBuildModel
 from packit_service.service.events import (
-    CoprBuildEvent,
+    CoprBuildEndEvent,
+    AbstractCoprBuildEvent,
+    CoprBuildStartEvent,
+    DistGitEvent,
     EventData,
     KojiBuildEvent,
 )
@@ -62,6 +65,7 @@ from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,
     configured_as,
+    reacts_to,
     required_for,
 )
 from packit_service.worker.result import TaskResults
@@ -101,6 +105,7 @@ class FedmsgHandler(JobHandler):
 
 @add_topic
 @configured_as(job_type=JobType.sync_from_downstream)
+@reacts_to(event=DistGitEvent)
 class NewDistGitCommitHandler(FedmsgHandler):
     """Sync new changes to upstream after a new git push in the dist-git."""
 
@@ -156,7 +161,7 @@ class AbstractCoprBuildReportHandler(FedmsgHandler):
         package_config: PackageConfig,
         job_config: JobConfig,
         data: EventData,
-        copr_event: CoprBuildEvent,
+        copr_event: AbstractCoprBuildEvent,
     ):
         super().__init__(
             package_config=package_config,
@@ -186,6 +191,7 @@ class AbstractCoprBuildReportHandler(FedmsgHandler):
 @configured_as(job_type=JobType.copr_build)
 @configured_as(job_type=JobType.build)
 @required_for(job_type=JobType.tests)
+@reacts_to(event=CoprBuildEndEvent)
 class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
     task_name = TaskName.copr_build_end
@@ -320,6 +326,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
 @configured_as(job_type=JobType.copr_build)
 @configured_as(job_type=JobType.build)
 @required_for(job_type=JobType.tests)
+@reacts_to(event=CoprBuildStartEvent)
 class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.start"
     task_name = TaskName.copr_build_start
@@ -368,6 +375,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
 
 @add_topic
 @configured_as(job_type=JobType.production_build)
+@reacts_to(event=KojiBuildEvent)
 class KojiBuildReportHandler(FedmsgHandler):
     topic = "org.fedoraproject.prod.buildsys.task.state.change"
     task_name = TaskName.koji_build_report

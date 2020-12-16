@@ -26,8 +26,17 @@ from typing import List, Optional
 from ogr.abstract import CommitStatus, PullRequest
 from packit.config import JobConfig, JobType, PackageConfig
 from packit_service.models import BugzillaModel
-from packit_service.service.events import EventData, PullRequestLabelAction
-from packit_service.worker.handlers.abstract import JobHandler, TaskName, configured_as
+from packit_service.service.events import (
+    EventData,
+    PullRequestLabelAction,
+    PullRequestLabelPagureEvent,
+)
+from packit_service.worker.handlers.abstract import (
+    JobHandler,
+    TaskName,
+    configured_as,
+    reacts_to,
+)
 from packit_service.worker.psbugzilla import Bugzilla
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import TaskResults
@@ -36,6 +45,7 @@ logger = logging.getLogger(__name__)
 
 
 @configured_as(job_type=JobType.create_bugzilla)
+@reacts_to(event=PullRequestLabelPagureEvent)
 class PagurePullRequestLabelHandler(JobHandler):
     task_name = TaskName.pagure_pr_label
 

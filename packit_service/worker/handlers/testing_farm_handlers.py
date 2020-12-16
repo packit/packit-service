@@ -30,9 +30,14 @@ from ogr.abstract import CommitStatus
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
 from packit_service.models import AbstractTriggerDbType, TFTTestRunModel
-from packit_service.service.events import EventData, TestResult, TestingFarmResult
+from packit_service.service.events import (
+    EventData,
+    TestResult,
+    TestingFarmResult,
+    TestingFarmResultsEvent,
+)
 from packit_service.worker.handlers import JobHandler
-from packit_service.worker.handlers.abstract import configured_as
+from packit_service.worker.handlers.abstract import configured_as, reacts_to
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
@@ -41,6 +46,7 @@ logger = logging.getLogger(__name__)
 
 
 @configured_as(job_type=JobType.tests)
+@reacts_to(event=TestingFarmResultsEvent)
 class TestingFarmResultsHandler(JobHandler):
     def __init__(
         self,

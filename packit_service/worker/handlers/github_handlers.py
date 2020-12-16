@@ -22,6 +22,7 @@
 
 """
 This file defines classes for job handlers specific for Github hooks
+TODO: The build and test handlers are independent and should be moved away.
 """
 import logging
 from typing import Callable, Optional
@@ -54,9 +55,11 @@ from packit_service.models import (
 from packit_service.service.events import (
     EventData,
     InstallationEvent,
+    IssueCommentEvent,
     MergeRequestGitlabEvent,
     PullRequestGithubEvent,
     PushGitHubEvent,
+    PushGitlabEvent,
     ReleaseEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
@@ -67,6 +70,7 @@ from packit_service.worker.handlers import (
 from packit_service.worker.handlers.abstract import (
     TaskName,
     configured_as,
+    reacts_to,
     required_for,
     run_for_comment,
 )
@@ -137,6 +141,8 @@ class GithubAppInstallationHandler(JobHandler):
 
 @configured_as(job_type=JobType.propose_downstream)
 @run_for_comment(command="propose-downstream")
+@reacts_to(event=ReleaseEvent)
+@reacts_to(event=IssueCommentEvent)
 class ProposeDownstreamHandler(JobHandler):
     task_name = TaskName.propose_downstream
 
@@ -220,6 +226,11 @@ class ProposeDownstreamHandler(JobHandler):
 @required_for(job_type=JobType.tests)
 @run_for_comment(command="build")
 @run_for_comment(command="copr-build")
+@reacts_to(ReleaseEvent)
+@reacts_to(PullRequestGithubEvent)
+@reacts_to(PushGitHubEvent)
+@reacts_to(PushGitlabEvent)
+@reacts_to(MergeRequestGitlabEvent)
 class CoprBuildHandler(JobHandler):
     task_name = TaskName.copr_build
 
@@ -290,6 +301,9 @@ class CoprBuildHandler(JobHandler):
 
 @configured_as(job_type=JobType.production_build)
 @run_for_comment(command="production-build")
+@reacts_to(event=ReleaseEvent)
+@reacts_to(event=PullRequestGithubEvent)
+@reacts_to(event=PushGitHubEvent)
 class KojiBuildHandler(JobHandler):
     task_name = TaskName.koji_build
 
@@ -371,6 +385,8 @@ class TestingFarmHandler(JobHandler):
     """
     This class intentionally does not have a @configured_as decorator as its
     trigger is finished copr build.
+
+    TODO: We can react directly to the finished Copr build.
     """
 
     task_name = TaskName.testing_farm

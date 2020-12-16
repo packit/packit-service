@@ -344,7 +344,8 @@ class IssueModel(Base):
     issue_id = Column(Integer, index=True)
     project_id = Column(Integer, ForeignKey("git_projects.id"))
     project = relationship("GitProjectModel", back_populates="issues")
-    job_config_trigger_type = None
+    # TODO: Fix this hardcoding! This is only to make propose-downstream work!
+    job_config_trigger_type = JobConfigTriggerType.release
     job_trigger_model_type = JobTriggerModelType.issue
 
     @classmethod

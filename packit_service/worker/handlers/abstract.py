@@ -55,6 +55,9 @@ MAP_JOB_TYPE_TO_HANDLER: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(se
 MAP_REQUIRED_JOB_TYPE_TO_HANDLER: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(
     set
 )
+SUPPORTED_EVENTS_FOR_HANDLER: Dict[
+    Type["JobHandler"], Set[Type["Event"]]
+] = defaultdict(set)
 MAP_COMMENT_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
 
 
@@ -84,10 +87,23 @@ def required_for(job_type: JobType):
     return _add_to_mapping
 
 
+def reacts_to(event: Type["Event"]):
+    """
+    [class decorator]
+    Specify a job type for which we want to use this handler.
+    """
+
+    def _add_to_mapping(kls: Type["JobHandler"]):
+        SUPPORTED_EVENTS_FOR_HANDLER[kls].add(event)
+        return kls
+
+    return _add_to_mapping
+
+
 def run_for_comment(command: str):
     """
     [class decorator]
-    Specify a command for which we want to use run handler.
+    Specify a command for which we want to run a handler.
     e.g. for `/packit command` we need to add `command`
     """
 

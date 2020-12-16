@@ -29,7 +29,7 @@ from packit_service.constants import (
     COPR_SUCC_STATE,
 )
 from packit_service.models import CoprBuildModel
-from packit_service.service.events import CoprBuildEvent, EventData, FedmsgTopic
+from packit_service.service.events import AbstractCoprBuildEvent, EventData, FedmsgTopic
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.jobs import get_config_for_handler_kls
 
@@ -68,7 +68,7 @@ def check_copr_build(build_id: int) -> bool:
             )
             continue
         chroot_build = copr_client.build_chroot_proxy.get(build_id, build.target)
-        event = CoprBuildEvent(
+        event = AbstractCoprBuildEvent(
             topic=FedmsgTopic.copr_build_finished.value,
             build_id=build_id,
             build=build,

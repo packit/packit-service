@@ -1052,7 +1052,7 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
         return f"https://koji.fedoraproject.org/koji/taskinfo?taskID={self.rpm_build_task_id}"
 
 
-class CoprBuildEvent(AbstractForgeIndependentEvent):
+class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):
     build: Optional[CoprBuildModel]
 
     def __init__(
@@ -1128,19 +1128,20 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
         project_name: str,
         pkg: str,
         timestamp,
-    ) -> Optional["CoprBuildEvent"]:
+    ) -> Optional["AbstractCoprBuildEvent"]:
         """ Return cls instance or None if build_id not in CoprBuildDB"""
         build = CoprBuildModel.get_by_build_id(str(build_id), chroot)
         if not build:
             logger.warning(f"Build id {build_id} not in CoprBuildDB.")
             return None
+
         return cls(
             topic, build_id, build, chroot, status, owner, project_name, pkg, timestamp
         )
 
     @classmethod
     def from_event_dict(cls, event: dict):
-        return CoprBuildEvent.from_build_id(
+        return AbstractCoprBuildEvent.from_build_id(
             topic=event.get("topic"),
             build_id=event.get("build_id"),
             chroot=event.get("chroot"),
@@ -1176,6 +1177,14 @@ class CoprBuildEvent(AbstractForgeIndependentEvent):
             f"{self.project_name}/{self.chroot}/"
             f"{self.build_id:08d}-{self.pkg}/builder-live.log.gz"
         )
+
+
+class CoprBuildStartEvent(AbstractCoprBuildEvent):
+    pass
+
+
+class CoprBuildEndEvent(AbstractCoprBuildEvent):
+    pass
 
 
 class AbstractPagureEvent(AbstractForgeIndependentEvent):

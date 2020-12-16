@@ -31,7 +31,7 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import FAQ_URL
 from packit_service.models import WhitelistModel
 from packit_service.service.events import (
-    CoprBuildEvent,
+    AbstractCoprBuildEvent,
     DistGitEvent,
     EventData,
     InstallationEvent,
@@ -222,7 +222,7 @@ class Whitelist:
         if isinstance(
             event,
             (
-                CoprBuildEvent,
+                AbstractCoprBuildEvent,
                 TestingFarmResultsEvent,
                 DistGitEvent,
                 InstallationEvent,

@@ -25,7 +25,7 @@ from typing import Optional
 from packit_service.celerizer import celery_app
 from packit_service.constants import RETRY_LIMIT
 from packit_service.service.events import (
-    CoprBuildEvent,
+    AbstractCoprBuildEvent,
     EventData,
     InstallationEvent,
     KojiBuildEvent,
@@ -107,7 +107,7 @@ def run_copr_build_start_handler(event: dict, package_config: dict, job_config: 
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         data=EventData.from_event_dict(event),
-        copr_event=CoprBuildEvent.from_event_dict(event),
+        copr_event=AbstractCoprBuildEvent.from_event_dict(event),
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -118,7 +118,7 @@ def run_copr_build_end_handler(event: dict, package_config: dict, job_config: di
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         data=EventData.from_event_dict(event),
-        copr_event=CoprBuildEvent.from_event_dict(event),
+        copr_event=AbstractCoprBuildEvent.from_event_dict(event),
     )
     return get_handlers_task_results(handler.run_job(), event)
 
