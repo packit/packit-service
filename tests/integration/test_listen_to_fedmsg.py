@@ -44,7 +44,7 @@ from packit_service.models import (
     JobTriggerModelType,
     KojiBuildModel,
 )
-from packit_service.service.events import CoprBuildEvent, KojiBuildEvent
+from packit_service.service.events import AbstractCoprBuildEvent, KojiBuildEvent
 from packit_service.service.urls import (
     get_copr_build_info_url_from_flask,
     get_koji_build_info_url_from_flask,
@@ -211,7 +211,7 @@ def test_copr_build_end(
         flexmock(source_project=flexmock())
     )
     pc_build_pr.jobs[0].notifications.pull_request.successful_build = pc_comment_pr_succ
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
     flexmock(CoprBuildEndHandler).should_receive(
@@ -254,7 +254,7 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_push
     )
     flexmock(CoprBuildEndHandler).should_receive(
@@ -300,7 +300,7 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_release
     )
     flexmock(CoprBuildEndHandler).should_receive(
@@ -365,7 +365,9 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         ]
     )
 
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(config)
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
+        config
+    )
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(config)
@@ -499,7 +501,9 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         ]
     )
 
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(config)
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
+        config
+    )
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(config)
@@ -618,7 +622,9 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         ]
     )
 
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(config)
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
+        config
+    )
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(config)
@@ -719,7 +725,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
     flexmock(CoprBuildJobHelper).should_receive("get_build_check").and_return(
@@ -760,7 +766,9 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(pc_tests)
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
+        pc_tests
+    )
     flexmock(TestingFarmJobHelper).should_receive("get_build_check").and_return(
         EXPECTED_BUILD_CHECK_NAME
     )
@@ -807,7 +815,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
     flexmock(CoprBuildJobHelper).should_receive("get_build_check").and_return(

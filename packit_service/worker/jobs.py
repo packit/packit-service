@@ -116,7 +116,7 @@ def get_handlers_for_event(
             | MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job.type]
         ):
             if isinstance(event, tuple(SUPPORTED_EVENTS_FOR_HANDLER[handler])) and (
-                not handlers_triggered_by_comment
+                handlers_triggered_by_comment is None
                 or handler in handlers_triggered_by_comment
             ):
                 matching_handlers.add(handler)
@@ -181,10 +181,10 @@ def get_config_for_handler_kls(
     :return: list of JobConfigs relevant to the given handler and event
              preserving the order in the config
     """
-    jobs_matching_trigger = set()
+    jobs_matching_trigger: List[JobConfig] = []
     for job in package_config.jobs:
         if job.trigger == event.db_trigger.job_config_trigger_type:
-            jobs_matching_trigger.add(job)
+            jobs_matching_trigger.append(job)
 
     matching_jobs: List[JobConfig] = []
     for job in jobs_matching_trigger:
@@ -199,7 +199,8 @@ def get_config_for_handler_kls(
 
     if not matching_jobs:
         logger.warning(
-            f"We did not find any config for {handler_kls} and a following event:\n{event}"
+            f"We did not find any config for {handler_kls} and a following event:\n"
+            f"{event.__class__}"
         )
 
     return matching_jobs

@@ -56,7 +56,10 @@ from packit_service.service.events import (
     EventData,
     InstallationEvent,
     IssueCommentEvent,
+    MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
+    PullRequestCommentGithubEvent,
+    PullRequestCommentPagureEvent,
     PullRequestGithubEvent,
     PushGitHubEvent,
     PushGitlabEvent,
@@ -231,6 +234,9 @@ class ProposeDownstreamHandler(JobHandler):
 @reacts_to(PushGitHubEvent)
 @reacts_to(PushGitlabEvent)
 @reacts_to(MergeRequestGitlabEvent)
+@reacts_to(PullRequestCommentGithubEvent)
+@reacts_to(MergeRequestCommentGitlabEvent)
+@reacts_to(PullRequestCommentPagureEvent)
 class CoprBuildHandler(JobHandler):
     task_name = TaskName.copr_build
 
@@ -301,9 +307,14 @@ class CoprBuildHandler(JobHandler):
 
 @configured_as(job_type=JobType.production_build)
 @run_for_comment(command="production-build")
-@reacts_to(event=ReleaseEvent)
-@reacts_to(event=PullRequestGithubEvent)
-@reacts_to(event=PushGitHubEvent)
+@reacts_to(ReleaseEvent)
+@reacts_to(PullRequestGithubEvent)
+@reacts_to(PushGitHubEvent)
+@reacts_to(PushGitlabEvent)
+@reacts_to(MergeRequestGitlabEvent)
+@reacts_to(PullRequestCommentGithubEvent)
+@reacts_to(MergeRequestCommentGitlabEvent)
+@reacts_to(PullRequestCommentPagureEvent)
 class KojiBuildHandler(JobHandler):
     task_name = TaskName.koji_build
 
@@ -381,11 +392,13 @@ class KojiBuildHandler(JobHandler):
 
 
 @run_for_comment(command="test")
+@reacts_to(PullRequestCommentGithubEvent)
+@reacts_to(MergeRequestCommentGitlabEvent)
+@reacts_to(PullRequestCommentPagureEvent)
+@configured_as(job_type=JobType.tests)
 class TestingFarmHandler(JobHandler):
     """
-    This class intentionally does not have a @configured_as decorator as its
-    trigger is finished copr build.
-
+    The automatic matching is now used only for /packit test
     TODO: We can react directly to the finished Copr build.
     """
 

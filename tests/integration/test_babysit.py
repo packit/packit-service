@@ -24,7 +24,7 @@ from flexmock import flexmock
 
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit_service.models import CoprBuildModel, JobTriggerModelType
-from packit_service.service.events import CoprBuildEvent
+from packit_service.service.events import AbstractCoprBuildEvent
 from packit_service.worker.build.babysit import check_copr_build
 from packit_service.worker.handlers import CoprBuildEndHandler
 
@@ -118,7 +118,7 @@ def test_check_copr_build_updated():
             .mock(),
         )
     )
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         PackageConfig(
             jobs=[
                 JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request)

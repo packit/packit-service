@@ -58,7 +58,7 @@ from packit_service.service.events import (
     PullRequestCommentAction,
     IssueCommentEvent,
     IssueCommentAction,
-    CoprBuildEvent,
+    AbstractCoprBuildEvent,
     FedmsgTopic,
     DistGitEvent,
     TestResult,
@@ -772,7 +772,7 @@ class TestEvents:
 
         event_object = Parser.parse_event(copr_build_results_start)
 
-        assert isinstance(event_object, CoprBuildEvent)
+        assert isinstance(event_object, AbstractCoprBuildEvent)
         assert event_object.topic == FedmsgTopic.copr_build_started
         assert event_object.build_id == 1044215
         assert event_object.chroot == "fedora-rawhide-x86_64"
@@ -813,7 +813,7 @@ class TestEvents:
 
         event_object = Parser.parse_event(copr_build_results_end)
 
-        assert isinstance(event_object, CoprBuildEvent)
+        assert isinstance(event_object, AbstractCoprBuildEvent)
         assert event_object.topic == FedmsgTopic.copr_build_finished
         assert event_object.build_id == 1044215
         assert event_object.chroot == "fedora-rawhide-x86_64"
@@ -1214,7 +1214,7 @@ class TestCentOSEventParser:
 
         event_object = Parser.parse_event(copr_build_results_start)
 
-        assert isinstance(event_object, CoprBuildEvent)
+        assert isinstance(event_object, AbstractCoprBuildEvent)
         assert event_object.topic == FedmsgTopic.copr_build_started
         assert event_object.build_id == 1044215
         assert event_object.chroot == "fedora-rawhide-x86_64"
@@ -1266,7 +1266,7 @@ class TestCentOSEventParser:
 
         event_object = Parser.parse_event(copr_build_results_end)
 
-        assert isinstance(event_object, CoprBuildEvent)
+        assert isinstance(event_object, AbstractCoprBuildEvent)
         assert event_object.topic == FedmsgTopic.copr_build_finished
         assert event_object.build_id == 1044215
         assert event_object.chroot == "fedora-rawhide-x86_64"

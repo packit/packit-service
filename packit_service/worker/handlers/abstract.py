@@ -90,7 +90,8 @@ def required_for(job_type: JobType):
 def reacts_to(event: Type["Event"]):
     """
     [class decorator]
-    Specify a job type for which we want to use this handler.
+    Specify an eventr for which we want to use this handler.
+    Matching is done via isinstance so you can you some abstract class as well.
     """
 
     def _add_to_mapping(kls: Type["JobHandler"]):
