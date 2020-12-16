@@ -67,6 +67,7 @@ from packit_service.worker.handlers import (
 from packit_service.worker.handlers.abstract import (
     TaskName,
     configured_as,
+    required_for,
     run_for_comment,
 )
 from packit_service.worker.result import TaskResults
@@ -216,6 +217,7 @@ class ProposeDownstreamHandler(JobHandler):
 
 @configured_as(job_type=JobType.copr_build)
 @configured_as(job_type=JobType.build)
+@required_for(job_type=JobType.tests)
 @run_for_comment(command="build")
 @run_for_comment(command="copr-build")
 class CoprBuildHandler(JobHandler):
@@ -364,11 +366,10 @@ class KojiBuildHandler(JobHandler):
         return True
 
 
-@configured_as(job_type=JobType.tests)
 @run_for_comment(command="test")
 class TestingFarmHandler(JobHandler):
     """
-    This class intentionally does not have a @add_to_mapping decorator as its
+    This class intentionally does not have a @configured_as decorator as its
     trigger is finished copr build.
     """
 
@@ -399,7 +400,7 @@ class TestingFarmHandler(JobHandler):
         return self._db_trigger
 
     def run(self) -> TaskResults:
-        # TODO: once we turn hanadlers into respective celery tasks, we should iterate
+        # TODO: once we turn handlers into respective celery tasks, we should iterate
         #       here over *all* matching jobs and do them all, not just the first one
         testing_farm_helper = TestingFarmJobHelper(
             service_config=self.service_config,

@@ -62,6 +62,7 @@ from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,
     configured_as,
+    required_for,
 )
 from packit_service.worker.result import TaskResults
 
@@ -184,6 +185,7 @@ class AbstractCoprBuildReportHandler(FedmsgHandler):
 @add_topic
 @configured_as(job_type=JobType.copr_build)
 @configured_as(job_type=JobType.build)
+@required_for(job_type=JobType.tests)
 class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
     task_name = TaskName.copr_build_end
@@ -317,6 +319,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
 @add_topic
 @configured_as(job_type=JobType.copr_build)
 @configured_as(job_type=JobType.build)
+@required_for(job_type=JobType.tests)
 class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.start"
     task_name = TaskName.copr_build_start

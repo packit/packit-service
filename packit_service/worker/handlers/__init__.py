@@ -29,7 +29,6 @@
 
 
 from packit_service.worker.handlers.abstract import Handler, JobHandler
-from packit_service.worker.handlers.comment_action_handler import CommentActionHandler
 from packit_service.worker.handlers.fedmsg_handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -45,7 +44,6 @@ from packit_service.worker.handlers.testing_farm_handlers import (
 )
 
 __all__ = [
-    CommentActionHandler.__name__,
     CoprBuildEndHandler.__name__,
     CoprBuildStartHandler.__name__,
     FedmsgHandler.__name__,

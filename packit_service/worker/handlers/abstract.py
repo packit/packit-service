@@ -52,6 +52,9 @@ from packit_service.worker.result import TaskResults
 logger = logging.getLogger(__name__)
 
 MAP_JOB_TYPE_TO_HANDLER: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(set)
+MAP_REQUIRED_JOB_TYPE_TO_HANDLER: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(
+    set
+)
 MAP_COMMENT_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
 
 
@@ -63,6 +66,19 @@ def configured_as(job_type: JobType):
 
     def _add_to_mapping(kls: Type["JobHandler"]):
         MAP_JOB_TYPE_TO_HANDLER[job_type].add(kls)
+        return kls
+
+    return _add_to_mapping
+
+
+def required_for(job_type: JobType):
+    """
+    [class decorator]
+    Specify a job type for which we want to use this handler.
+    """
+
+    def _add_to_mapping(kls: Type["JobHandler"]):
+        MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job_type].add(kls)
         return kls
 
     return _add_to_mapping

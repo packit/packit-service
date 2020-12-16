@@ -56,6 +56,7 @@ from packit_service.worker.handlers.abstract import (
     JobHandler,
     MAP_COMMENT_TO_HANDLER,
     MAP_JOB_TYPE_TO_HANDLER,
+    MAP_REQUIRED_JOB_TYPE_TO_HANDLER,
 )
 from packit_service.worker.handlers.pagure_handlers import PagurePullRequestLabelHandler
 from packit_service.worker.parser import CentosEventParser, Parser
@@ -106,7 +107,10 @@ def get_handlers_for_event(
 
     matching_handlers: Set[Type["JobHandler"]] = set()
     for job in jobs_matching_trigger:
-        for handler in MAP_JOB_TYPE_TO_HANDLER[job.type]:
+        for handler in (
+            MAP_JOB_TYPE_TO_HANDLER[job.type]
+            & MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job.type]
+        ):
             if (
                 handlers_triggered_by_comment
                 and handler in handlers_triggered_by_comment
@@ -180,6 +184,12 @@ def get_config_for_handler_kls(
     for job in jobs_matching_trigger:
         if handler_kls in MAP_JOB_TYPE_TO_HANDLER[job.type]:
             matching_jobs.append(job)
+
+    if not matching_jobs:
+        logger.debug("No config found, let's see the jobs that requires this handler.")
+        for job in jobs_matching_trigger:
+            if handler_kls in MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job.type]:
+                matching_jobs.append(job)
 
     if not matching_jobs:
         logger.warning(
