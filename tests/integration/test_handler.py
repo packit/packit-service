@@ -24,11 +24,12 @@ import os
 import pytest
 from flexmock import flexmock
 from packit.config import JobConfig, JobType, JobConfigTriggerType, PackageConfig
+from packit.config.job_config import JobMetadataConfig
 
 from packit_service.config import ServiceConfig
-from packit_service.service.events import TheJobTriggerType, EventData
+from packit_service.service.events import EventData
 from packit_service.worker.handlers import JobHandler
-from packit_service.worker.handlers.github_handlers import AbstractCoprBuildHandler
+from packit_service.worker.handlers.github_handlers import CoprBuildHandler
 
 
 @pytest.fixture()
@@ -52,13 +53,11 @@ def test_handler_cleanup(tmp_path, trick_p_s_with_k8s):
     pc = flexmock(PackageConfig)
     c.command_handler_work_dir = tmp_path
     jc = JobConfig(
-        type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request, metadata={}
+        type=JobType.copr_build,
+        trigger=JobConfigTriggerType.pull_request,
+        metadata=JobMetadataConfig(),
     )
-    j = JobHandler(
-        package_config=pc,
-        job_config=jc,
-        data=flexmock(trigger=TheJobTriggerType.pull_request),
-    )
+    j = JobHandler(package_config=pc, job_config=jc, data=flexmock())
 
     flexmock(j).should_receive("service_config").and_return(c)
 
@@ -68,7 +67,7 @@ def test_handler_cleanup(tmp_path, trick_p_s_with_k8s):
 
 
 def test_precheck(github_pr_event):
-    copr_build_handler = AbstractCoprBuildHandler(
+    copr_build_handler = CoprBuildHandler(
         package_config=PackageConfig(
             jobs=[
                 JobConfig(
@@ -91,7 +90,7 @@ def test_precheck(github_pr_event):
 
 
 def test_precheck_skip_tests_when_build_defined(github_pr_event):
-    copr_build_handler = AbstractCoprBuildHandler(
+    copr_build_handler = CoprBuildHandler(
         package_config=PackageConfig(
             jobs=[
                 JobConfig(
@@ -114,7 +113,7 @@ def test_precheck_skip_tests_when_build_defined(github_pr_event):
 
 
 def test_precheck_tests_and_build_with_different_trigger(github_pr_event):
-    copr_build_handler = AbstractCoprBuildHandler(
+    copr_build_handler = CoprBuildHandler(
         package_config=PackageConfig(
             jobs=[
                 JobConfig(

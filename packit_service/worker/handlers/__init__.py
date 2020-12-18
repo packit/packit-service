@@ -38,6 +38,8 @@ from packit_service.worker.handlers.fedmsg_handlers import (
 from packit_service.worker.handlers.github_handlers import (
     GithubAppInstallationHandler,
     ProposeDownstreamHandler,
+    TestingFarmHandler,
+    CoprBuildHandler,
 )
 from packit_service.worker.handlers.testing_farm_handlers import (
     TestingFarmResultsHandler,
@@ -53,4 +55,6 @@ __all__ = [
     JobHandler.__name__,
     NewDistGitCommitHandler.__name__,
     TestingFarmResultsHandler.__name__,
+    CoprBuildHandler.__name__,
+    TestingFarmHandler.__name__,
 ]

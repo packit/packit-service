@@ -50,7 +50,7 @@ from packit_service.service.urls import (
     get_koji_build_info_url_from_flask,
 )
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
-from packit_service.worker.handlers import CoprBuildEndHandler, GithubTestingFarmHandler
+from packit_service.worker.handlers import CoprBuildEndHandler, TestingFarmHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.testing_farm import TestingFarmJobHelper
@@ -463,7 +463,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         job_config=job,
     )
 
-    flexmock(GithubTestingFarmHandler).should_receive("db_trigger").and_return(
+    flexmock(TestingFarmHandler).should_receive("db_trigger").and_return(
         copr_build_pr.job_trigger.get_trigger_object()
     )
 
@@ -584,7 +584,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         job_config=job,
     )
 
-    flexmock(GithubTestingFarmHandler).should_receive("db_trigger").and_return(
+    flexmock(TestingFarmHandler).should_receive("db_trigger").and_return(
         copr_build_pr.job_trigger.get_trigger_object()
     )
 
@@ -707,7 +707,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         job_config=job,
     )
 
-    flexmock(GithubTestingFarmHandler).should_receive("db_trigger").and_return(
+    flexmock(TestingFarmHandler).should_receive("db_trigger").and_return(
         copr_build_pr.job_trigger.get_trigger_object()
     )
 

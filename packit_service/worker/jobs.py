@@ -129,7 +129,7 @@ def get_handlers_for_event(
     return matching_handlers
 
 
-def packit_commands_from_comment(comment: str) -> List[str]:
+def get_packit_commands_from_comment(comment: str) -> List[str]:
     comment_parts = comment.strip()
 
     if not comment_parts:
@@ -137,6 +137,11 @@ def packit_commands_from_comment(comment: str) -> List[str]:
         return []
 
     cmd_start_index = comment.find(REQUESTED_PULL_REQUEST_COMMENT)
+
+    if cmd_start_index == -1:
+        logger.debug(f"comment '{comment}' is not handled by packit-service.")
+        return []
+
     (packit_mark, *packit_command) = comment[cmd_start_index:].split(maxsplit=3)
     # packit_command[0] has the first cmd and [1] has the second, if needed.
 
@@ -152,7 +157,7 @@ def packit_commands_from_comment(comment: str) -> List[str]:
 
 
 def get_handlers_for_comment(comment: str) -> Set[Type[JobHandler]]:
-    commands = packit_commands_from_comment(comment)
+    commands = get_packit_commands_from_comment(comment)
     if not commands:
         return set()
 

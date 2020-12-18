@@ -59,7 +59,6 @@ def test_dist_git_push_release_handle(github_release_webhook):
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
-    assert processing_results["details"]["event"]["trigger"] == "release"
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     results = run_propose_downstream_handler(
@@ -108,7 +107,6 @@ def test_dist_git_push_release_handle_multiple_branches(
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
-    assert processing_results["details"]["event"]["trigger"] == "release"
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     results = run_propose_downstream_handler(
@@ -168,7 +166,6 @@ def test_dist_git_push_release_handle_one_failed(
 
     flexmock(Signature).should_receive("apply_async").once()
     processing_results = SteveJobs().process_message(github_release_webhook)
-    assert processing_results["details"]["event"]["trigger"] == "release"
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     results = run_propose_downstream_handler(
@@ -234,7 +231,6 @@ def test_dist_git_push_release_handle_all_failed(
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
-    assert processing_results["details"]["event"]["trigger"] == "release"
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     results = run_propose_downstream_handler(
@@ -279,7 +275,6 @@ def test_retry_propose_downstream_task(github_release_webhook):
     flexmock(Task).should_receive("retry").once().and_raise(Retry)
 
     processing_results = SteveJobs().process_message(github_release_webhook)
-    assert processing_results["details"]["event"]["trigger"] == "release"
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     with pytest.raises(Retry):

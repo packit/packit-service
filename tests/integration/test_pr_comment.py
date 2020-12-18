@@ -35,10 +35,10 @@ from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import PullRequestModel
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
-from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.jobs import SteveJobs, get_packit_commands_from_comment
 from packit_service.worker.result import TaskResults
+from packit_service.worker.tasks import run_copr_build_handler
 from packit_service.worker.whitelist import Whitelist
-from packit_service.worker.tasks import run_pr_comment_copr_build_handler
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
@@ -179,7 +179,7 @@ def test_pr_comment_copr_build_handler(
     processing_results = SteveJobs().process_message(pr_copr_build_comment_event)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
-    results = run_pr_comment_copr_build_handler(
+    results = run_copr_build_handler(
         package_config=package_config,
         event=event_dict,
         job_config=job,
@@ -207,7 +207,7 @@ def test_pr_comment_build_handler(
     processing_results = SteveJobs().process_message(pr_build_comment_event)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
-    results = run_pr_comment_copr_build_handler(
+    results = run_copr_build_handler(
         package_config=package_config,
         event=event_dict,
         job_config=job,
@@ -230,10 +230,8 @@ def test_pr_comment_build_handler(
     ),
 )
 def test_pr_comment_invalid(comment):
-    s = SteveJobs()
-    command, err_msg = s.find_packit_command(comment)
-    assert len(command) == 0
-    assert err_msg
+    commands = get_packit_commands_from_comment(comment)
+    assert len(commands) == 0
 
 
 @pytest.mark.parametrize(
@@ -270,7 +268,7 @@ def test_pr_embedded_command_handler(
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
-    results = run_pr_comment_copr_build_handler(
+    results = run_copr_build_handler(
         package_config=package_config,
         event=event_dict,
         job_config=job,

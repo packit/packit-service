@@ -96,7 +96,6 @@ def build_helper(
         job_config=pkg_conf.jobs[0],
         project=GitProject(repo=flexmock(), service=flexmock(), namespace=flexmock()),
         metadata=flexmock(
-            trigger=event.trigger,
             pr_id=event.pr_id,
             git_ref=event.git_ref,
             commit_sha=event.commit_sha,

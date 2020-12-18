@@ -230,7 +230,6 @@ class EventData:
     def get_dict(self) -> dict:
         d = self.__dict__
         d = copy.deepcopy(d)
-        d["trigger"] = d["trigger"].value
         return d
 
     def get_project(self) -> Optional[GitProject]:
@@ -273,7 +272,6 @@ class Event:
         d = copy.deepcopy(d)
         # whole dict have to be JSON serializable because of redis
         d["event_type"] = self.__class__.__name__
-        d["trigger"] = d["trigger"].value
         d["trigger_id"] = self.db_trigger.id if self.db_trigger else None
         d["created_at"] = int(d["created_at"].timestamp())
         d["project_url"] = d.get("project_url") or (

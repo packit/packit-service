@@ -98,7 +98,6 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         assert processing_results is None
         return
 
-    assert processing_results["details"]["event"]["trigger"] == "release"
     event_dict, package_config, job = get_parameters_from_results(processing_results)
 
     results = run_propose_downstream_handler(
