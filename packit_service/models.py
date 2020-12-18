@@ -138,24 +138,6 @@ class GitProjectModel(Base):
         self.instance_url = urlparse(self.project_url).hostname
 
     @classmethod
-    def __choose_project(
-        cls, session, forge, namespace, repo_name
-    ) -> "GitProjectModel":
-        """Returns a project (GitProjectModel) given session, forge, namespace and repo_name"""
-        projects = (
-            session.query(GitProjectModel)
-            .filter_by(namespace=namespace, repo_name=repo_name)
-            .all()
-        )
-        # This is a temp measure to identify forge until we start storing forge in GitProjectModel
-        # and label previous data as well
-        for project in projects:
-            forge_domain = urlparse(project.project_url).hostname
-            if forge == forge_domain:
-                return project
-        return None
-
-    @classmethod
     def get_or_create(
         cls, namespace: str, repo_name: str, project_url: str
     ) -> "GitProjectModel":
@@ -203,8 +185,10 @@ class GitProjectModel(Base):
     ) -> Optional["GitProjectModel"]:
         """Return one project which matches said criteria"""
         with get_sa_session() as session:
-            project = cls.__choose_project(
-                session=session, forge=forge, namespace=namespace, repo_name=repo_name
+            project = (
+                session.query(cls)
+                .filter_by(instance_url=forge, namespace=namespace, repo_name=repo_name)
+                .one_or_none()
             )
             return project
 
@@ -213,17 +197,17 @@ class GitProjectModel(Base):
         cls, first: int, last: int, forge: str, namespace: str, repo_name: str
     ) -> Optional[Iterable["PullRequestModel"]]:
         with get_sa_session() as session:
-            project = cls.__choose_project(
-                session=session, forge=forge, namespace=namespace, repo_name=repo_name
-            )
-            if not project:
-                return None
             pull_requests = (
                 session.query(PullRequestModel)
-                .filter_by(project_id=project.id)
+                .join(GitProjectModel)
+                .filter(
+                    PullRequestModel.project_id == GitProjectModel.id,
+                    GitProjectModel.instance_url == forge,
+                    GitProjectModel.namespace == namespace,
+                    GitProjectModel.repo_name == repo_name,
+                )
                 .order_by(desc(PullRequestModel.pr_id))[first:last]
             )
-
             return pull_requests
 
     @classmethod
@@ -231,15 +215,15 @@ class GitProjectModel(Base):
         cls, forge: str, namespace: str, repo_name: str
     ) -> Optional[Iterable["IssueModel"]]:
         with get_sa_session() as session:
-            project = cls.__choose_project(
-                session=session, forge=forge, namespace=namespace, repo_name=repo_name
-            )
-            if not project:
-                return None
             issues = (
                 session.query(IssueModel)
-                .filter_by(project_id=project.id)
-                .order_by(desc(IssueModel.issue_id))
+                .join(GitProjectModel)
+                .filter(
+                    IssueModel.project_id == GitProjectModel.id,
+                    GitProjectModel.instance_url == forge,
+                    GitProjectModel.namespace == namespace,
+                    GitProjectModel.repo_name == repo_name,
+                )
                 .all()
             )
             return issues
@@ -248,16 +232,17 @@ class GitProjectModel(Base):
     def get_project_branches(
         cls, forge: str, namespace: str, repo_name: str
     ) -> Optional[Iterable["GitBranchModel"]]:
+
         with get_sa_session() as session:
-            project = cls.__choose_project(
-                session=session, forge=forge, namespace=namespace, repo_name=repo_name
-            )
-            if not project:
-                return None
             branches = (
                 session.query(GitBranchModel)
-                .filter_by(project_id=project.id)
-                .order_by(GitBranchModel.id)
+                .join(GitProjectModel)
+                .filter(
+                    GitBranchModel.project_id == GitProjectModel.id,
+                    GitProjectModel.instance_url == forge,
+                    GitProjectModel.namespace == namespace,
+                    GitProjectModel.repo_name == repo_name,
+                )
                 .all()
             )
             return branches
@@ -267,15 +252,15 @@ class GitProjectModel(Base):
         cls, forge: str, namespace: str, repo_name: str
     ) -> Optional[Iterable["ProjectReleaseModel"]]:
         with get_sa_session() as session:
-            project = cls.__choose_project(
-                session=session, forge=forge, namespace=namespace, repo_name=repo_name
-            )
-            if not project:
-                return None
             releases = (
                 session.query(ProjectReleaseModel)
-                .filter_by(project_id=project.id)
-                .order_by(desc(ProjectReleaseModel.tag_name))
+                .join(GitProjectModel)
+                .filter(
+                    ProjectReleaseModel.project_id == GitProjectModel.id,
+                    GitProjectModel.instance_url == forge,
+                    GitProjectModel.namespace == namespace,
+                    GitProjectModel.repo_name == repo_name,
+                )
                 .all()
             )
             return releases
