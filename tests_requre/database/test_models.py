@@ -559,11 +559,11 @@ def test_get_project_prs(clean_before_and_after, a_copr_build_for_pr):
     prs_b = GitProjectModel.get_project_prs(
         0, 10, "gitlab.com", "the-namespace", "the-repo-name"
     )
-    assert prs_b is None
+    assert prs_b == []
     prs_c = GitProjectModel.get_project_prs(
         0, 10, "github", "the-namespace", "the-repo-name"
     )
-    assert prs_c is None
+    assert prs_c == []
 
 
 def test_get_project_branch(clean_before_and_after, a_copr_build_for_branch_push):
