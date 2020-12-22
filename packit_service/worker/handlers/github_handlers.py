@@ -143,7 +143,7 @@ class GithubAppInstallationHandler(JobHandler):
 
 
 @configured_as(job_type=JobType.propose_downstream)
-@run_for_comment(command="propose-downstream")
+@run_for_comment(command="propose-update")
 @reacts_to(event=ReleaseEvent)
 @reacts_to(event=IssueCommentEvent)
 class ProposeDownstreamHandler(JobHandler):
