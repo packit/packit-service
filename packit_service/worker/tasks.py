@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
-from typing import Optional
+from typing import List
 
 from packit_service.celerizer import celery_app
 from packit_service.constants import RETRY_LIMIT
@@ -56,6 +56,7 @@ from packit_service.worker.handlers.testing_farm_handlers import (
     TestingFarmResultsHandler,
 )
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ logging.getLogger("sandcastle").setLevel(logging.DEBUG)
 @celery_app.task(name="task.steve_jobs.process_message", bind=True)
 def process_message(
     self, event: dict, topic: str = None, source: str = None
-) -> Optional[dict]:
+) -> List[TaskResults]:
     """
     Base celery task for processing messages.
 

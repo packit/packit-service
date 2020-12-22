@@ -21,15 +21,16 @@
 # SOFTWARE.
 
 import json
+from typing import List
 
 import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
+
 from ogr.services.github import GithubProject
 from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import PullRequestModel
@@ -122,12 +123,15 @@ def pr_wrong_packit_comment_event():
 )
 def mock_pr_comment_functionality(request):
     packit_yaml = (
-        "{'specfile_path': '', 'synced_files': [], 'jobs': " + str(request.param) + "}"
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
+        + str(request.param)
+        + "}"
     )
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
         get_file_content=lambda path, ref: packit_yaml,
+        get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
         get_pr=lambda pr_id: flexmock(head_commit="12345"),
     )
@@ -147,8 +151,8 @@ def mock_pr_comment_functionality(request):
     flexmock(Whitelist, check_and_report=True)
 
 
-def one_job_finished_with_msg(results: dict, msg: str):
-    for value in results.values():
+def one_job_finished_with_msg(results: List[TaskResults], msg: str):
+    for value in results:
         assert value["success"]
         if value["details"]["msg"] == msg:
             break
@@ -177,12 +181,14 @@ def test_pr_comment_copr_build_handler(
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_copr_build_comment_event)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     results = run_copr_build_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
     assert first_dict_value(results["job"])["success"]
 
@@ -205,12 +211,14 @@ def test_pr_comment_build_handler(
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_build_comment_event)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     results = run_copr_build_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
     assert first_dict_value(results["job"])["success"]
 
@@ -266,12 +274,14 @@ def test_pr_embedded_command_handler(
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     results = run_copr_build_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
 
     assert first_dict_value(results["job"])["success"]
@@ -281,27 +291,27 @@ def test_pr_comment_empty_handler(
     mock_pr_comment_functionality, pr_empty_comment_event
 ):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
 
     results = SteveJobs().process_message(pr_empty_comment_event)
-    msg = "comment '' is empty."
-    one_job_finished_with_msg(results, msg)
+    assert results == []
 
 
 def test_pr_comment_packit_only_handler(
     mock_pr_comment_functionality, pr_packit_only_comment_event
 ):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
 
     results = SteveJobs().process_message(pr_packit_only_comment_event)
-    msg = "comment '/packit' does not contain a packit-service command."
-    one_job_finished_with_msg(results, msg)
+    assert results == []
 
 
 def test_pr_comment_wrong_packit_command_handler(
     mock_pr_comment_functionality, pr_wrong_packit_comment_event
 ):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
 
     results = SteveJobs().process_message(pr_wrong_packit_comment_event)
-    msg = "comment '/packit foobar' does not contain a valid packit-service command."
-    one_job_finished_with_msg(results, msg)
+    assert results == []

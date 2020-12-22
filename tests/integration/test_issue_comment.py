@@ -121,12 +121,14 @@ def test_issue_comment_propose_update_handler(
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(issue_comment_propose_update_event)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     results = run_propose_downstream_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
 
     assert first_dict_value(results["job"])["success"]

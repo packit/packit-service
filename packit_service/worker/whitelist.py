@@ -240,8 +240,15 @@ class Whitelist:
             if not (self.is_approved(account_name) or self.is_approved(namespace)):
                 msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
                 logger.error(msg)
-                if False:
-                    # TODO: add support for commenting.
+                if isinstance(
+                    event,
+                    (
+                        PullRequestCommentPagureEvent,
+                        MergeRequestCommentGitlabEvent,
+                        PullRequestCommentGithubEvent,
+                        IssueCommentGitlabEvent,
+                    ),
+                ):
                     project.pr_comment(event.pr_id, msg)
                 else:
                     for job_config in job_configs:

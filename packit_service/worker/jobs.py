@@ -25,7 +25,7 @@ We love you, Steve Jobs.
 """
 import logging
 from typing import Any
-from typing import Dict, List, Optional, Set, Type, Union
+from typing import List, Set, Type, Union
 
 from celery import group
 
@@ -45,7 +45,6 @@ from packit_service.service.events import (
     PushGitlabEvent,
     PushPagureEvent,
 )
-from packit_service.utils import dump_job_config, dump_package_config
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -161,7 +160,10 @@ def get_handlers_for_comment(comment: str) -> Set[Type[JobHandler]]:
     if not commands:
         return set()
 
-    return MAP_COMMENT_TO_HANDLER.get(commands[0])
+    handlers = MAP_COMMENT_TO_HANDLER[commands[0]]
+    if not handlers:
+        logger.debug(f"Command {commands[0]} not supported by packit.")
+    return handlers
 
 
 def get_config_for_handler_kls(
@@ -226,34 +228,65 @@ class SteveJobs:
             self._service_config = ServiceConfig.get_service_config()
         return self._service_config
 
-    def process_jobs(self, event: Event) -> Dict[str, TaskResults]:
+    def process_jobs(self, event: Event) -> List[TaskResults]:
         """
         Create a Celery task for a job handler (if trigger matches) for every job defined in config.
         """
 
-        processing_results = {}
-
         if isinstance(
             event, (PushGitHubEvent, PushGitlabEvent, PushPagureEvent)
         ) and event.commit_sha.startswith("0000000"):
-            processing_results[str(event)] = TaskResults(
-                success=True, details={"msg": "Triggered by deleting a branch"}
-            )
-            return processing_results
+            return [
+                TaskResults.create_from(
+                    success=True,
+                    msg="Triggered by deleting a branch",
+                    job_config=None,
+                    event=event,
+                )
+            ]
 
         if not event.package_config:
             # this happens when service receives events for repos which don't have packit config
             # success=True - it's not an error that people don't have packit.yaml in their repo
-            processing_results[str(event)] = TaskResults(
-                success=True, details={"msg": "No packit config in repo"}
-            )
-            return processing_results
+            return [
+                TaskResults.create_from(
+                    success=True,
+                    msg="No packit config found in the repository.",
+                    job_config=None,
+                    event=event,
+                )
+            ]
+
+        if isinstance(
+            event,
+            (
+                PullRequestCommentGithubEvent,
+                PullRequestCommentPagureEvent,
+                IssueCommentEvent,
+                MergeRequestCommentGitlabEvent,
+                IssueCommentGitlabEvent,
+            ),
+        ):
+            if not event.project.can_merge_pr(event.user_login):
+                logger.debug(
+                    f"User {event.user_login} not allowed to trigger packit via comments."
+                )
+                return [
+                    TaskResults.create_from(
+                        success=True,
+                        msg=f"User {event.user_login} not allowed to trigger packit via comments.",
+                        job_config=None,
+                        event=event,
+                    )
+                ]
 
         handler_classes = get_handlers_for_event(event, event.package_config)
 
         if not handler_classes:
-            logger.warning(f"There is no handler for {event} event.")
-            return processing_results
+            logger.debug(
+                f"There is no handler for {event} event suitable for the configuration."
+            )
+            return []
 
         job_configs = []
         for handler_kls in handler_classes:
@@ -276,9 +309,15 @@ class SteveJobs:
                 service_config=self.service_config,
                 job_configs=job_configs,
             ):
+                processing_results = []
                 for job_config in job_configs:
-                    processing_results[job_config.type.value] = TaskResults(
-                        success=False, details={"msg": "Account is not whitelisted!"}
+                    processing_results.append(
+                        TaskResults.create_from(
+                            success=False,
+                            msg="Account is not whitelisted!",
+                            job_config=job_config,
+                            event=event,
+                        )
                     )
                 return processing_results
 
@@ -289,11 +328,22 @@ class SteveJobs:
             ]
             # https://docs.celeryproject.org/en/stable/userguide/canvas.html#groups
             group(signatures).apply_async()
-        return get_processing_results(event=event, jobs=job_configs)
+
+        processing_results = []
+        for job_config in job_configs:
+            processing_results.append(
+                TaskResults.create_from(
+                    success=True,
+                    msg="Job created.",
+                    job_config=job_config,
+                    event=event,
+                )
+            )
+        return processing_results
 
     def process_message(
         self, event: dict, topic: str = None, source: str = None
-    ) -> Optional[dict]:
+    ) -> List[TaskResults]:
         """
         Entrypoint for message processing.
 
@@ -312,7 +362,7 @@ class SteveJobs:
 
             if topic not in topics:
                 logger.debug(f"{topic} not in {topics}")
-                return None
+                return []
 
         event_object: Any
         if source == "centosmsg":
@@ -321,7 +371,7 @@ class SteveJobs:
             event_object = Parser.parse_event(event)
 
         if not (event_object and event_object.pre_check()):
-            return None
+            return []
 
         # CoprBuildEvent.get_project returns None when the build id is not known
         if not event_object.project:
@@ -343,7 +393,7 @@ class SteveJobs:
                     f"Add `{service_with_namespace}` to the `enabled_private_namespaces` "
                     f"in the service configuration."
                 )
-                return None
+                return []
             logger.debug(
                 f"Working in `{service_with_namespace}` namespace "
                 f"which is private but enabled via configuration."
@@ -374,17 +424,4 @@ class SteveJobs:
             # Processing the jobs from the config.
             processing_results = self.process_jobs(event_object)
 
-        return processing_results or get_processing_results(event=event_object, jobs=[])
-
-
-def get_processing_results(
-    event: Event, jobs: List[JobConfig], success: bool = True
-) -> TaskResults:
-    return TaskResults(
-        success=success,
-        details={
-            "event": event.get_dict(),
-            "package_config": dump_package_config(event.package_config),
-            "matching_jobs": [dump_job_config(job) for job in jobs],
-        },
-    )
+        return processing_results
