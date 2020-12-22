@@ -39,6 +39,7 @@ from packit_service.models import (
     AbstractTriggerDbType,
     CoprBuildModel,
     GitBranchModel,
+    IssueModel,
     JobTriggerModelType,
     KojiBuildModel,
     ProjectReleaseModel,
@@ -140,6 +141,7 @@ class EventData:
         commit_sha: Optional[str],
         identifier: Optional[str],
         event_dict: Optional[dict],
+        issue_id: Optional[int],
     ):
         self.event_type = event_type
         self.user_login = user_login
@@ -151,6 +153,11 @@ class EventData:
         self.commit_sha = commit_sha
         self.identifier = identifier
         self.event_dict = event_dict
+        self.issue_id = issue_id
+
+        # lazy attributes
+        self._project = None
+        self._db_trigger: Optional[AbstractTriggerDbType] = None
 
     @classmethod
     def from_event_dict(cls, event: dict):
@@ -164,6 +171,7 @@ class EventData:
         pr_id = event.get("_pr_id") or event.get("pr_id")
         commit_sha = event.get("commit_sha")
         identifier = event.get("identifier")
+        issue_id = event.get("issue_id")
 
         return EventData(
             event_type=event_type,
@@ -176,6 +184,7 @@ class EventData:
             commit_sha=commit_sha,
             identifier=identifier,
             event_dict=event,
+            issue_id=issue_id,
         )
 
     @property
@@ -186,46 +195,59 @@ class EventData:
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        # TODO, do a better job
-        # Probably, try to recreate original classes.
-        if self.event_type in {
-            PullRequestGithubEvent.__name__,
-            PullRequestPagureEvent.__name__,
-            MergeRequestGitlabEvent.__name__,
-        }:
-            return PullRequestModel.get_or_create(
-                pr_id=self.pr_id,
-                namespace=self.project.namespace,
-                repo_name=self.project.repo,
-                project_url=self.project_url,
-            )
-        elif self.event_type in {
-            PushGitHubEvent.__name__,
-            PushGitlabEvent.__name__,
-            PushPagureEvent.__name__,
-        }:
-            return GitBranchModel.get_or_create(
-                branch_name=self.git_ref,
-                namespace=self.project.namespace,
-                repo_name=self.project.repo,
-                project_url=self.project_url,
-            )
+        if not self._db_trigger:
 
-        elif self.event_type in {
-            ReleaseEvent.__name__,
-        }:
-            return ProjectReleaseModel.get_or_create(
-                tag_name=self.tag_name,
-                namespace=self.project.namespace,
-                repo_name=self.project.repo,
-                project_url=self.project_url,
-                commit_hash=self.commit_sha,
-            )
+            # TODO, do a better job
+            # Probably, try to recreate original classes.
+            if self.event_type in {
+                PullRequestGithubEvent.__name__,
+                PullRequestPagureEvent.__name__,
+                MergeRequestGitlabEvent.__name__,
+                PullRequestCommentGithubEvent.__name__,
+                MergeRequestCommentGitlabEvent.__name__,
+                PullRequestCommentPagureEvent.__name__,
+            }:
+                self._db_trigger = PullRequestModel.get_or_create(
+                    pr_id=self.pr_id,
+                    namespace=self.project.namespace,
+                    repo_name=self.project.repo,
+                    project_url=self.project_url,
+                )
+            elif self.event_type in {
+                PushGitHubEvent.__name__,
+                PushGitlabEvent.__name__,
+                PushPagureEvent.__name__,
+            }:
+                self._db_trigger = GitBranchModel.get_or_create(
+                    branch_name=self.git_ref,
+                    namespace=self.project.namespace,
+                    repo_name=self.project.repo,
+                    project_url=self.project_url,
+                )
 
-        logger.warning(
-            "We don't know, what to search in the database for this event data."
-        )
-        return None
+            elif self.event_type in {
+                ReleaseEvent.__name__,
+            }:
+                self._db_trigger = ProjectReleaseModel.get_or_create(
+                    tag_name=self.tag_name,
+                    namespace=self.project.namespace,
+                    repo_name=self.project.repo,
+                    project_url=self.project_url,
+                    commit_hash=self.commit_sha,
+                )
+            elif self.event_type in {IssueCommentEvent.__name__}:
+                self._db_trigger = IssueModel.get_or_create(
+                    issue_id=self.issue_id,
+                    namespace=self.project.namespace,
+                    repo_name=self.project.repo,
+                    project_url=self.project_url,
+                )
+            else:
+                logger.warning(
+                    "We don't know, what to search in the database for this event data."
+                )
+
+        return self._db_trigger
 
     def get_dict(self) -> dict:
         d = self.__dict__
@@ -739,6 +761,7 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
         result = super().get_dict()
         result["action"] = result["action"].value
         result["tag_name"] = self.tag_name
+        result["issue_id"] = self.issue_id
         return result
 
 

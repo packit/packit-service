@@ -25,7 +25,7 @@ This file defines classes for job handlers specific for Github hooks
 TODO: The build and test handlers are independent and should be moved away.
 """
 import logging
-from typing import Callable, Optional
+from typing import Optional
 
 from celery.app.task import Task
 
@@ -63,6 +63,7 @@ from packit_service.service.events import (
     PullRequestGithubEvent,
     PushGitHubEvent,
     PushGitlabEvent,
+    PushPagureEvent,
     ReleaseEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
@@ -268,7 +269,6 @@ class CoprBuildHandler(JobHandler):
         return self._copr_build_helper
 
     def run(self) -> TaskResults:
-
         if self.data.event_type in (
             PullRequestGithubEvent.__name__,
             MergeRequestGitlabEvent.__name__,
@@ -289,19 +289,18 @@ class CoprBuildHandler(JobHandler):
         return self.copr_build_helper.run_copr_build()
 
     def pre_check(self) -> bool:
-        is_copr_build: Callable[[JobConfig], bool] = (
-            lambda job: job.type == JobType.copr_build
-            and job.trigger == self.job_config.trigger
-        )
-
-        if self.job_config.type == JobType.tests and any(
-            filter(is_copr_build, self.package_config.jobs)
+        if self.data.event_type in (
+            PushGitHubEvent.__name__,
+            PushGitlabEvent.__name__,
+            PushPagureEvent.__name__,
         ):
-            logger.info(
-                "Skipping build for testing. The COPR build is defined "
-                "in the config with the same trigger."
-            )
-            return False
+            configured_branch = self.copr_build_helper.job_build_branch
+            if self.data.git_ref != configured_branch:
+                logger.info(
+                    f"Skipping build on '{self.data.git_ref}'. "
+                    f"Push configured only for '{configured_branch}'."
+                )
+                return False
         return True
 
 
@@ -377,17 +376,18 @@ class KojiBuildHandler(JobHandler):
         return self.koji_build_helper.run_koji_build()
 
     def pre_check(self) -> bool:
-        is_copr_build: Callable[[JobConfig], bool] = (
-            lambda job: job.type == JobType.copr_build
-        )
-
-        if self.job_config.type == JobType.tests and any(
-            filter(is_copr_build, self.package_config.jobs)
+        if self.data.event_type in (
+            PushGitHubEvent.__name__,
+            PushGitlabEvent.__name__,
+            PushPagureEvent.__name__,
         ):
-            logger.info(
-                "Skipping build for testing. The COPR build is defined in the config."
-            )
-            return False
+            configured_branch = self.koji_build_helper.job_build_branch
+            if self.data.git_ref != configured_branch:
+                logger.info(
+                    f"Skipping build on '{self.data.git_ref}'. "
+                    f"Push configured only for '{configured_branch}'."
+                )
+                return False
         return True
 
 

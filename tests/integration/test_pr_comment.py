@@ -163,6 +163,14 @@ def one_job_finished_with_msg(results: List[TaskResults], msg: str):
 def test_pr_comment_copr_build_handler(
     mock_pr_comment_functionality, pr_copr_build_comment_event
 ):
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(
+        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     ).once()
@@ -196,6 +204,14 @@ def test_pr_comment_copr_build_handler(
 def test_pr_comment_build_handler(
     mock_pr_comment_functionality, pr_build_comment_event
 ):
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(
+        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     )
@@ -258,6 +274,14 @@ def test_pr_comment_invalid(comment):
 def test_pr_embedded_command_handler(
     mock_pr_comment_functionality, pr_embedded_command_comment_event, comments_list
 ):
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(
+        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
     pr_embedded_command_comment_event["comment"]["body"] = comments_list
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})

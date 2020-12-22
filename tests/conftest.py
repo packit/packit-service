@@ -32,6 +32,7 @@ from packit_service.config import ServiceConfig
 from packit_service.models import JobTriggerModelType
 from packit_service.service.events import (
     PullRequestGithubEvent,
+    PushGitHubEvent,
     ReleaseEvent,
     MergeRequestGitlabEvent,
 )
@@ -186,8 +187,19 @@ def github_pr_webhook():
 
 
 @pytest.fixture(scope="module")
+def github_push_webhook():
+    with open(DATA_DIR / "webhooks" / "github" / "push_branch.json") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture(scope="module")
 def github_pr_event(github_pr_webhook) -> PullRequestGithubEvent:
     return Parser.parse_pr_event(github_pr_webhook)
+
+
+@pytest.fixture(scope="module")
+def github_push_event(github_push_webhook) -> PushGitHubEvent:
+    return Parser.parse_push_event(github_push_webhook)
 
 
 @pytest.fixture(scope="module")
