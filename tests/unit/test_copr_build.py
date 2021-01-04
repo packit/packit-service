@@ -117,7 +117,6 @@ def build_helper(
             namespace="the/example/namespace",
         ),
         metadata=flexmock(
-            trigger=event.trigger,
             pr_id=event.pr_id,
             git_ref=event.git_ref,
             commit_sha=event.commit_sha,

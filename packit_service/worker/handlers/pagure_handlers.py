@@ -21,26 +21,22 @@
 # SOFTWARE.
 
 import logging
-from typing import Optional, List
+from typing import List, Optional
 
 from ogr.abstract import CommitStatus, PullRequest
-from packit.config import JobType, JobConfig, PackageConfig
-
+from packit.config import JobConfig, JobType, PackageConfig
 from packit_service.models import BugzillaModel
 from packit_service.service.events import (
-    TheJobTriggerType,
-    PullRequestLabelAction,
     EventData,
+    PullRequestLabelAction,
+    PullRequestLabelPagureEvent,
 )
-from packit_service.worker.build import CoprBuildJobHelper
-from packit_service.worker.handlers import CommentActionHandler
 from packit_service.worker.handlers.abstract import (
-    required_by,
-    use_for,
     JobHandler,
     TaskName,
+    configured_as,
+    reacts_to,
 )
-from packit_service.worker.handlers.comment_action_handler import CommentAction
 from packit_service.worker.psbugzilla import Bugzilla
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import TaskResults
@@ -48,51 +44,9 @@ from packit_service.worker.result import TaskResults
 logger = logging.getLogger(__name__)
 
 
-@use_for(JobType.build)
-@use_for(JobType.copr_build)
-@required_by(job_type=JobType.tests)
-class PagurePullRequestCommentCoprBuildHandler(CommentActionHandler):
-    """ Handler for PR comment `/packit copr-build` """
-
-    type = CommentAction.copr_build
-    triggers = [TheJobTriggerType.pr_comment]
-    task_name = TaskName.pagure_pr_comment_copr_build
-
-    def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        data: EventData,
-    ):
-        super().__init__(
-            package_config=package_config,
-            job_config=job_config,
-            data=data,
-        )
-
-        # lazy property
-        self._copr_build_helper: Optional[CoprBuildJobHelper] = None
-
-    @property
-    def copr_build_helper(self) -> CoprBuildJobHelper:
-        if not self._copr_build_helper:
-            self._copr_build_helper = CoprBuildJobHelper(
-                service_config=self.service_config,
-                package_config=self.package_config,
-                project=self.project,
-                metadata=self.data,
-                db_trigger=self.db_trigger,
-                job_config=self.job_config,
-            )
-        return self._copr_build_helper
-
-    def run(self) -> TaskResults:
-        return self.copr_build_helper.run_copr_build()
-
-
+@configured_as(job_type=JobType.create_bugzilla)
+@reacts_to(event=PullRequestLabelPagureEvent)
 class PagurePullRequestLabelHandler(JobHandler):
-    type = JobType.create_bugzilla
-    triggers = [TheJobTriggerType.pr_label]
     task_name = TaskName.pagure_pr_label
 
     def __init__(

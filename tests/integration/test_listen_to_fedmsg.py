@@ -44,13 +44,13 @@ from packit_service.models import (
     JobTriggerModelType,
     KojiBuildModel,
 )
-from packit_service.service.events import CoprBuildEvent, KojiBuildEvent
+from packit_service.service.events import AbstractCoprBuildEvent, KojiBuildEvent
 from packit_service.service.urls import (
     get_copr_build_info_url_from_flask,
     get_koji_build_info_url_from_flask,
 )
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
-from packit_service.worker.handlers import CoprBuildEndHandler, GithubTestingFarmHandler
+from packit_service.worker.handlers import CoprBuildEndHandler, TestingFarmHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.testing_farm import TestingFarmJobHelper
@@ -211,7 +211,7 @@ def test_copr_build_end(
         flexmock(source_project=flexmock())
     )
     pc_build_pr.jobs[0].notifications.pull_request.successful_build = pc_comment_pr_succ
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
     flexmock(CoprBuildEndHandler).should_receive(
@@ -240,12 +240,14 @@ def test_copr_build_end(
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     run_copr_build_end_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
 
 
@@ -254,7 +256,7 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_push
     )
     flexmock(CoprBuildEndHandler).should_receive(
@@ -286,12 +288,14 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     run_copr_build_end_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
 
 
@@ -300,7 +304,7 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_release
     )
     flexmock(CoprBuildEndHandler).should_receive(
@@ -331,12 +335,14 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     run_copr_build_end_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
 
 
@@ -365,7 +371,9 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         ]
     )
 
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(config)
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
+        config
+    )
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(config)
@@ -453,22 +461,24 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(Signature).should_receive("apply_async").twice()
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     run_copr_build_end_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
 
-    flexmock(GithubTestingFarmHandler).should_receive("db_trigger").and_return(
+    flexmock(TestingFarmHandler).should_receive("db_trigger").and_return(
         copr_build_pr.job_trigger.get_trigger_object()
     )
 
     run_testing_farm_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
         chroot="fedora-rawhide-x86_64",
         build_id=flexmock(),
     )
@@ -499,7 +509,9 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         ]
     )
 
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(config)
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
+        config
+    )
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(config)
@@ -572,22 +584,24 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     flexmock(Signature).should_receive("apply_async").twice()
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     run_copr_build_end_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
 
-    flexmock(GithubTestingFarmHandler).should_receive("db_trigger").and_return(
+    flexmock(TestingFarmHandler).should_receive("db_trigger").and_return(
         copr_build_pr.job_trigger.get_trigger_object()
     )
 
     run_testing_farm_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
         chroot="fedora-rawhide-x86_64",
         build_id=flexmock(),
     )
@@ -618,7 +632,9 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         ]
     )
 
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(config)
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
+        config
+    )
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(config)
@@ -693,22 +709,24 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     flexmock(Signature).should_receive("apply_async").twice()
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     run_copr_build_end_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
 
-    flexmock(GithubTestingFarmHandler).should_receive("db_trigger").and_return(
+    flexmock(TestingFarmHandler).should_receive("db_trigger").and_return(
         copr_build_pr.job_trigger.get_trigger_object()
     )
 
     run_testing_farm_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
         chroot="fedora-rawhide-x86_64",
         build_id=flexmock(),
     )
@@ -719,7 +737,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
     flexmock(CoprBuildJobHelper).should_receive("get_build_check").and_return(
@@ -746,12 +764,14 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(copr_build_start)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     run_copr_build_start_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
 
 
@@ -760,7 +780,9 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(pc_tests)
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
+        pc_tests
+    )
     flexmock(TestingFarmJobHelper).should_receive("get_build_check").and_return(
         EXPECTED_BUILD_CHECK_NAME
     )
@@ -793,12 +815,14 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(copr_build_start)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     run_copr_build_start_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
 
 
@@ -807,7 +831,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
     flexmock(CoprBuildJobHelper).should_receive("get_build_check").and_return(
@@ -839,12 +863,14 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(copr_build_end)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     run_copr_build_end_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
 
 
@@ -876,12 +902,14 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(koji_build_scratch_start)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     results = run_koji_build_report_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
 
     assert first_dict_value(results["job"])["success"]
@@ -895,9 +923,11 @@ def test_koji_build_start_build_not_found(koji_build_scratch_start):
 
     processing_results = SteveJobs().process_message(koji_build_scratch_start)
 
+    assert len(processing_results) == 1
+    assert processing_results[0]["success"]
     assert (
-        "No packit config in repo"
-        == processing_results["koji_results"]["details"]["msg"]
+        "No packit config found in the repository."
+        == processing_results[0]["details"]["msg"]
     )
 
 
@@ -929,12 +959,14 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(koji_build_scratch_end)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     results = run_koji_build_report_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
 
     assert first_dict_value(results["job"])["success"]

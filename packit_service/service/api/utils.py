@@ -1,6 +1,7 @@
-from flask import make_response
 from http import HTTPStatus
 from json import dumps
+
+from flask import make_response
 
 
 def response_maker(result, status=HTTPStatus.OK.value):

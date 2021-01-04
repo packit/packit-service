@@ -22,24 +22,24 @@
 import enum
 import logging
 from pathlib import Path
-from typing import Set, Optional, List, Union
+from typing import List, Optional, Set, Union
 
 from yaml import safe_load
 
 from ogr.abstract import GitProject
 from packit.config import (
-    RunCommandType,
     Config,
-    get_package_config_from_repo,
     PackageConfig,
+    RunCommandType,
+    get_package_config_from_repo,
 )
-from packit.exceptions import PackitException, PackitConfigException
+from packit.exceptions import PackitConfigException, PackitException
 from packit_service.constants import (
-    SANDCASTLE_WORK_DIR,
-    SANDCASTLE_PVC,
-    SANDCASTLE_IMAGE,
-    SANDCASTLE_DEFAULT_PROJECT,
     CONFIG_FILE_NAME,
+    SANDCASTLE_DEFAULT_PROJECT,
+    SANDCASTLE_IMAGE,
+    SANDCASTLE_PVC,
+    SANDCASTLE_WORK_DIR,
 )
 
 logger = logging.getLogger(__name__)

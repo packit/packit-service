@@ -4,7 +4,6 @@ from flexmock import flexmock
 import packit_service
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
-from packit_service.service.events import TheJobTriggerType
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 
@@ -24,7 +23,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
 
 
 @pytest.mark.parametrize(
-    "jobs,trigger,job_config_trigger_type,build_chroots,test_chroots",
+    "jobs,job_config_trigger_type,build_chroots,test_chroots",
     [
         pytest.param(
             [
@@ -34,7 +33,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
                 )
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             STABLE_CHROOTS,
             set(),
@@ -48,7 +46,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
                 )
             ],
-            TheJobTriggerType.pr_comment,
             JobConfigTriggerType.pull_request,
             STABLE_CHROOTS,
             set(),
@@ -62,7 +59,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
                 )
             ],
-            TheJobTriggerType.release,
             JobConfigTriggerType.release,
             STABLE_CHROOTS,
             set(),
@@ -76,7 +72,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
                 )
             ],
-            TheJobTriggerType.push,
             JobConfigTriggerType.commit,
             STABLE_CHROOTS,
             set(),
@@ -95,7 +90,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     metadata=JobMetadataConfig(targets=["different", "os", "target"]),
                 ),
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             STABLE_CHROOTS,
             set(),
@@ -114,7 +108,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     metadata=JobMetadataConfig(targets=["different", "os", "target"]),
                 ),
             ],
-            TheJobTriggerType.pr_comment,
             JobConfigTriggerType.pull_request,
             STABLE_CHROOTS,
             set(),
@@ -133,7 +126,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
                 ),
             ],
-            TheJobTriggerType.push,
             JobConfigTriggerType.commit,
             STABLE_CHROOTS,
             set(),
@@ -146,7 +138,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     trigger=JobConfigTriggerType.pull_request,
                 )
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             STABLE_CHROOTS,
             set(),
@@ -159,7 +150,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     trigger=JobConfigTriggerType.pull_request,
                 )
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             STABLE_CHROOTS,
             STABLE_CHROOTS,
@@ -173,7 +163,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
                 )
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             STABLE_CHROOTS,
             STABLE_CHROOTS,
@@ -190,7 +179,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             STABLE_CHROOTS,
             STABLE_CHROOTS,
@@ -208,7 +196,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             STABLE_CHROOTS,
             STABLE_CHROOTS,
@@ -226,7 +213,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
                 ),
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             STABLE_CHROOTS,
             STABLE_CHROOTS,
@@ -244,7 +230,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     metadata=JobMetadataConfig(targets=list(ONE_CHROOT_SET)),
                 ),
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             ONE_CHROOT_SET,
             ONE_CHROOT_SET,
@@ -265,7 +250,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     trigger=JobConfigTriggerType.commit,
                 ),
             ],
-            TheJobTriggerType.push,
             JobConfigTriggerType.commit,
             STABLE_CHROOTS,
             set(),
@@ -286,7 +270,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     trigger=JobConfigTriggerType.commit,
                 ),
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             STABLE_CHROOTS,
             STABLE_CHROOTS,
@@ -304,7 +287,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     trigger=JobConfigTriggerType.commit,
                 ),
             ],
-            TheJobTriggerType.push,
             JobConfigTriggerType.commit,
             STABLE_CHROOTS,
             STABLE_CHROOTS,
@@ -322,7 +304,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 ),
                 JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.commit),
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             STABLE_CHROOTS,
             set(),
@@ -346,7 +327,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     type=JobType.tests, trigger=JobConfigTriggerType.pull_request
                 ),
             ],
-            TheJobTriggerType.push,
             JobConfigTriggerType.commit,
             STABLE_CHROOTS,
             set(),
@@ -364,7 +344,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     metadata=JobMetadataConfig(targets=list(ONE_CHROOT_SET)),
                 ),
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             ONE_CHROOT_SET,
             ONE_CHROOT_SET,
@@ -378,7 +357,6 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
                 )
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             STABLE_CHROOTS,
             set(),
@@ -386,13 +364,13 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
         ),
     ],
 )
-def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chroots):
+def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
     copr_build_handler = CoprBuildJobHelper(
         service_config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],  # BuildHelper looks at all jobs in the end
         project=flexmock(),
-        metadata=flexmock(trigger=trigger, pr_id=None),
+        metadata=flexmock(pr_id=None),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
     )
 
@@ -408,7 +386,7 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
 
 
 @pytest.mark.parametrize(
-    "jobs,init_job,trigger,job_config_trigger_type,result_job_build,result_job_tests",
+    "jobs,init_job,job_config_trigger_type,result_job_build,result_job_tests",
     [
         pytest.param(
             [
@@ -421,7 +399,6 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
             ),
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.copr_build,
@@ -441,7 +418,6 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
                 type=JobType.build,
                 trigger=JobConfigTriggerType.pull_request,
             ),
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.build,
@@ -461,7 +437,6 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
             ),
-            TheJobTriggerType.pr_comment,
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.copr_build,
@@ -481,7 +456,6 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.release,
             ),
-            TheJobTriggerType.release,
             JobConfigTriggerType.release,
             JobConfig(
                 type=JobType.copr_build,
@@ -501,7 +475,6 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.commit,
             ),
-            TheJobTriggerType.push,
             JobConfigTriggerType.commit,
             JobConfig(
                 type=JobType.copr_build,
@@ -525,7 +498,6 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
             ),
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.copr_build,
@@ -549,7 +521,6 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
             ),
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.copr_build,
@@ -573,7 +544,6 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.commit,
             ),
-            TheJobTriggerType.push,
             JobConfigTriggerType.commit,
             JobConfig(
                 type=JobType.copr_build,
@@ -593,7 +563,6 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
             ),
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             None,
             JobConfig(
@@ -617,7 +586,6 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
             ),
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.copr_build,
@@ -644,7 +612,6 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
                 type=JobType.build,
                 trigger=JobConfigTriggerType.pull_request,
             ),
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.build,
@@ -675,7 +642,6 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
             ),
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.copr_build,
@@ -706,7 +672,6 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.commit,
             ),
-            TheJobTriggerType.push,
             JobConfigTriggerType.commit,
             JobConfig(
                 type=JobType.copr_build,
@@ -738,7 +703,6 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.release,
             ),
-            TheJobTriggerType.release,
             JobConfigTriggerType.release,
             JobConfig(
                 type=JobType.copr_build,
@@ -752,7 +716,6 @@ def test_targets(jobs, trigger, job_config_trigger_type, build_chroots, test_chr
 def test_build_handler_job_and_test_properties(
     jobs,
     init_job,
-    trigger,
     job_config_trigger_type,
     result_job_build,
     result_job_tests,
@@ -762,7 +725,7 @@ def test_build_handler_job_and_test_properties(
         package_config=PackageConfig(jobs=jobs),
         job_config=init_job,
         project=flexmock(),
-        metadata=flexmock(trigger=trigger, pr_id=None),
+        metadata=flexmock(pr_id=None),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
     )
 
@@ -774,7 +737,7 @@ def test_build_handler_job_and_test_properties(
 
 
 @pytest.mark.parametrize(
-    "jobs,trigger,job_config_trigger_type,job_owner,job_project",
+    "jobs,job_config_trigger_type,job_owner,job_project",
     [
         pytest.param(
             [
@@ -784,7 +747,6 @@ def test_build_handler_job_and_test_properties(
                     metadata=JobMetadataConfig(),
                 )
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             "nobody",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
@@ -798,7 +760,6 @@ def test_build_handler_job_and_test_properties(
                     metadata=JobMetadataConfig(owner="custom-owner"),
                 )
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             "custom-owner",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
@@ -812,7 +773,6 @@ def test_build_handler_job_and_test_properties(
                     metadata=JobMetadataConfig(project="custom-project"),
                 )
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             "nobody",
             "custom-project",
@@ -828,7 +788,6 @@ def test_build_handler_job_and_test_properties(
                     ),
                 )
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             "custom-owner",
             "custom-project",
@@ -844,7 +803,6 @@ def test_build_handler_job_and_test_properties(
                     ),
                 )
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             "custom-owner",
             "custom-project",
@@ -858,7 +816,6 @@ def test_build_handler_job_and_test_properties(
                     metadata=JobMetadataConfig(),
                 )
             ],
-            TheJobTriggerType.commit,
             JobConfigTriggerType.commit,
             "nobody",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
@@ -879,7 +836,6 @@ def test_build_handler_job_and_test_properties(
                     metadata=JobMetadataConfig(owner="pr-owner", project="pr-project"),
                 ),
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             "pr-owner",
             "pr-project",
@@ -898,7 +854,6 @@ def test_build_handler_job_and_test_properties(
                     metadata=JobMetadataConfig(),
                 ),
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             "nobody",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
@@ -919,7 +874,6 @@ def test_build_handler_job_and_test_properties(
                     metadata=JobMetadataConfig(),
                 ),
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             "custom-owner",
             "custom-project",
@@ -940,7 +894,6 @@ def test_build_handler_job_and_test_properties(
                     ),
                 ),
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             "custom-owner",
             "custom-project",
@@ -966,7 +919,6 @@ def test_build_handler_job_and_test_properties(
                     ),
                 ),
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             "pr-owner",
             "pr-project",
@@ -992,7 +944,6 @@ def test_build_handler_job_and_test_properties(
                     ),
                 ),
             ],
-            TheJobTriggerType.commit,
             JobConfigTriggerType.commit,
             "commit-owner",
             "commit-project",
@@ -1001,7 +952,7 @@ def test_build_handler_job_and_test_properties(
     ],
 )
 def test_copr_project_and_namespace(
-    jobs, trigger, job_config_trigger_type, job_owner, job_project
+    jobs, job_config_trigger_type, job_owner, job_project
 ):
     copr_build_handler = CoprBuildJobHelper(
         service_config=flexmock(deployment="stg"),
@@ -1012,9 +963,7 @@ def test_copr_project_and_namespace(
             repo="the-example-repo",
             service=flexmock(instance_url="https://git.instance.io"),
         ),
-        metadata=flexmock(
-            trigger=trigger, pr_id=None, identifier="the-event-identifier"
-        ),
+        metadata=flexmock(pr_id=None, identifier="the-event-identifier"),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
     )
     copr_build_handler._api = flexmock(
@@ -1026,7 +975,7 @@ def test_copr_project_and_namespace(
 
 
 @pytest.mark.parametrize(
-    "jobs,trigger,job_config_trigger_type,build_targets,koji_targets",
+    "jobs,job_config_trigger_type,build_targets,koji_targets",
     [
         pytest.param(
             [
@@ -1036,7 +985,6 @@ def test_copr_project_and_namespace(
                     metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
                 )
             ],
-            TheJobTriggerType.pull_request,
             JobConfigTriggerType.pull_request,
             set(STABLE_VERSIONS),
             STABLE_KOJI_TARGETS,
@@ -1052,7 +1000,6 @@ def test_copr_project_and_namespace(
                     ),
                 )
             ],
-            TheJobTriggerType.push,
             JobConfigTriggerType.commit,
             set(STABLE_VERSIONS),
             STABLE_KOJI_TARGETS,
@@ -1068,7 +1015,6 @@ def test_copr_project_and_namespace(
                     ),
                 )
             ],
-            TheJobTriggerType.release,
             JobConfigTriggerType.release,
             set(STABLE_VERSIONS),
             STABLE_KOJI_TARGETS,
@@ -1077,15 +1023,15 @@ def test_copr_project_and_namespace(
     ],
 )
 def test_targets_for_koji_build(
-    jobs, trigger, job_config_trigger_type, build_targets, koji_targets
+    jobs, job_config_trigger_type, build_targets, koji_targets
 ):
-    pr_id = 41 if trigger == TheJobTriggerType.pull_request else None
+    pr_id = 41 if job_config_trigger_type == JobConfigTriggerType.pull_request else None
     koji_build_handler = KojiBuildJobHelper(
         service_config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],
         project=flexmock(),
-        metadata=flexmock(trigger=trigger, pr_id=pr_id),
+        metadata=flexmock(pr_id=pr_id),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
     )
 

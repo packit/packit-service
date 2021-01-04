@@ -27,28 +27,28 @@ import enum
 import logging
 import os
 from contextlib import contextmanager
-from urllib.parse import urlparse
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional, Union, Iterable, Dict, Type
+from typing import Dict, Iterable, Optional, TYPE_CHECKING, Type, Union
+from urllib.parse import urlparse
 
 from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    DateTime,
-    ForeignKey,
-    Text,
-    Enum,
-    desc,
-    JSON,
-    create_engine,
-    func,
     Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    JSON,
+    String,
+    Text,
+    create_engine,
+    desc,
+    func,
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session, relationship, scoped_session
-from sqlalchemy.types import ARRAY
 from sqlalchemy.dialects.postgresql import array as psql_array
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session, relationship, scoped_session, sessionmaker
+from sqlalchemy.types import ARRAY
 
 from packit.config import JobConfigTriggerType
 from packit_service.constants import WHITELIST_CONSTANTS
@@ -344,7 +344,8 @@ class IssueModel(Base):
     issue_id = Column(Integer, index=True)
     project_id = Column(Integer, ForeignKey("git_projects.id"))
     project = relationship("GitProjectModel", back_populates="issues")
-    job_config_trigger_type = None
+    # TODO: Fix this hardcoding! This is only to make propose-downstream work!
+    job_config_trigger_type = JobConfigTriggerType.release
     job_trigger_model_type = JobTriggerModelType.issue
 
     @classmethod

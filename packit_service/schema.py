@@ -21,10 +21,10 @@
 # SOFTWARE.
 import typing
 
-from marshmallow import fields, post_load, ValidationError
-from packit.schema import UserConfigSchema
+from marshmallow import ValidationError, fields, post_load
 
-from packit_service.config import ServiceConfig, Deployment
+from packit.schema import UserConfigSchema
+from packit_service.config import Deployment, ServiceConfig
 
 
 class DeploymentField(fields.Field):
@@ -38,7 +38,6 @@ class DeploymentField(fields.Field):
         data: typing.Optional[typing.Mapping[str, typing.Any]],
         **kwargs,
     ) -> Deployment:
-
         if not isinstance(value, str):
             raise ValidationError("Invalid data provided. str required")
 

@@ -25,14 +25,14 @@ from os import getenv
 
 from flask import Flask
 from lazy_object_proxy import Proxy
-from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from prometheus_client import make_wsgi_app as prometheus_app
-from packit.utils import set_logging
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
+from packit.utils import set_logging
 from packit_service.config import ServiceConfig
+from packit_service.log_versions import log_service_versions
 from packit_service.sentry_integration import configure_sentry
 from packit_service.service.api import blueprint
-from packit_service.log_versions import log_service_versions
 from packit_service.service.views import builds_blueprint
 
 set_logging(logger_name="packit_service", level=logging.DEBUG)

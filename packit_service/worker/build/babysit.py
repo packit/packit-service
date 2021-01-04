@@ -24,12 +24,12 @@ import logging
 from copr.v3 import Client as CoprClient
 
 from packit_service.constants import (
-    COPR_SUCC_STATE,
-    COPR_API_SUCC_STATE,
     COPR_API_FAIL_STATE,
+    COPR_API_SUCC_STATE,
+    COPR_SUCC_STATE,
 )
 from packit_service.models import CoprBuildModel
-from packit_service.service.events import CoprBuildEvent, FedmsgTopic, EventData
+from packit_service.service.events import AbstractCoprBuildEvent, EventData, FedmsgTopic
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.jobs import get_config_for_handler_kls
 
@@ -68,7 +68,7 @@ def check_copr_build(build_id: int) -> bool:
             )
             continue
         chroot_build = copr_client.build_chroot_proxy.get(build_id, build.target)
-        event = CoprBuildEvent(
+        event = AbstractCoprBuildEvent(
             topic=FedmsgTopic.copr_build_finished.value,
             build_id=build_id,
             build=build,

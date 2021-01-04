@@ -35,7 +35,7 @@ from packit_service.models import (
     SRPMBuildModel,
     PullRequestModel,
 )
-from packit_service.service.events import CoprBuildEvent
+from packit_service.service.events import AbstractCoprBuildEvent
 from packit_service.worker.build.babysit import check_copr_build
 
 BUILD_ID = 1300329
@@ -96,7 +96,7 @@ def packit_build_752():
 
 def test_check_copr_build(clean_before_and_after, packit_build_752):
     flexmock(Client).should_receive("create_from_config_file").and_return(Client(None))
-    flexmock(CoprBuildEvent).should_receive("get_package_config").and_return(
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         PackageConfig(
             jobs=[
                 JobConfig(

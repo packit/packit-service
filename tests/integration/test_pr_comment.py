@@ -21,24 +21,25 @@
 # SOFTWARE.
 
 import json
+from typing import List
 
 import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
+
 from ogr.services.github import GithubProject
 from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import PullRequestModel
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
-from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.jobs import SteveJobs, get_packit_commands_from_comment
 from packit_service.worker.result import TaskResults
+from packit_service.worker.tasks import run_copr_build_handler
 from packit_service.worker.whitelist import Whitelist
-from packit_service.worker.tasks import run_pr_comment_copr_build_handler
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
@@ -122,12 +123,15 @@ def pr_wrong_packit_comment_event():
 )
 def mock_pr_comment_functionality(request):
     packit_yaml = (
-        "{'specfile_path': '', 'synced_files': [], 'jobs': " + str(request.param) + "}"
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
+        + str(request.param)
+        + "}"
     )
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
         get_file_content=lambda path, ref: packit_yaml,
+        get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
         get_pr=lambda pr_id: flexmock(head_commit="12345"),
     )
@@ -147,8 +151,8 @@ def mock_pr_comment_functionality(request):
     flexmock(Whitelist, check_and_report=True)
 
 
-def one_job_finished_with_msg(results: dict, msg: str):
-    for value in results.values():
+def one_job_finished_with_msg(results: List[TaskResults], msg: str):
+    for value in results:
         assert value["success"]
         if value["details"]["msg"] == msg:
             break
@@ -159,6 +163,14 @@ def one_job_finished_with_msg(results: dict, msg: str):
 def test_pr_comment_copr_build_handler(
     mock_pr_comment_functionality, pr_copr_build_comment_event
 ):
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(
+        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     ).once()
@@ -177,12 +189,14 @@ def test_pr_comment_copr_build_handler(
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_copr_build_comment_event)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
-    results = run_pr_comment_copr_build_handler(
+    results = run_copr_build_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
     assert first_dict_value(results["job"])["success"]
 
@@ -190,6 +204,14 @@ def test_pr_comment_copr_build_handler(
 def test_pr_comment_build_handler(
     mock_pr_comment_functionality, pr_build_comment_event
 ):
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(
+        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     )
@@ -205,12 +227,14 @@ def test_pr_comment_build_handler(
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_build_comment_event)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
-    results = run_pr_comment_copr_build_handler(
+    results = run_copr_build_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
     assert first_dict_value(results["job"])["success"]
 
@@ -230,10 +254,8 @@ def test_pr_comment_build_handler(
     ),
 )
 def test_pr_comment_invalid(comment):
-    s = SteveJobs()
-    command, err_msg = s.find_packit_command(comment)
-    assert len(command) == 0
-    assert err_msg
+    commands = get_packit_commands_from_comment(comment)
+    assert len(commands) == 0
 
 
 @pytest.mark.parametrize(
@@ -252,6 +274,14 @@ def test_pr_comment_invalid(comment):
 def test_pr_embedded_command_handler(
     mock_pr_comment_functionality, pr_embedded_command_comment_event, comments_list
 ):
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(
+        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
     pr_embedded_command_comment_event["comment"]["body"] = comments_list
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
@@ -268,12 +298,14 @@ def test_pr_embedded_command_handler(
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
-    results = run_pr_comment_copr_build_handler(
+    results = run_copr_build_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
 
     assert first_dict_value(results["job"])["success"]
@@ -283,27 +315,27 @@ def test_pr_comment_empty_handler(
     mock_pr_comment_functionality, pr_empty_comment_event
 ):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
 
     results = SteveJobs().process_message(pr_empty_comment_event)
-    msg = "comment '' is empty."
-    one_job_finished_with_msg(results, msg)
+    assert results == []
 
 
 def test_pr_comment_packit_only_handler(
     mock_pr_comment_functionality, pr_packit_only_comment_event
 ):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
 
     results = SteveJobs().process_message(pr_packit_only_comment_event)
-    msg = "comment '/packit' does not contain a packit-service command."
-    one_job_finished_with_msg(results, msg)
+    assert results == []
 
 
 def test_pr_comment_wrong_packit_command_handler(
     mock_pr_comment_functionality, pr_wrong_packit_comment_event
 ):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
 
     results = SteveJobs().process_message(pr_wrong_packit_comment_event)
-    msg = "comment '/packit foobar' does not contain a valid packit-service command."
-    one_job_finished_with_msg(results, msg)
+    assert results == []

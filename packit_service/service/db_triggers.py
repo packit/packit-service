@@ -28,10 +28,10 @@ from typing import Optional
 from ogr.abstract import GitProject
 from packit_service.models import (
     AbstractTriggerDbType,
-    ProjectReleaseModel,
-    PullRequestModel,
     GitBranchModel,
     IssueModel,
+    ProjectReleaseModel,
+    PullRequestModel,
 )
 
 

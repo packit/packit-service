@@ -22,13 +22,14 @@
 
 """
 This file defines classes for job handlers specific for Github hooks
+TODO: The build and test handlers are independent and should be moved away.
 """
 import logging
-from typing import Optional, Callable, Set
+from typing import Optional
 
 from celery.app.task import Task
 
-from ogr.abstract import GitProject, CommitStatus
+from ogr.abstract import CommitStatus, GitProject
 from packit.api import PackitAPI
 from packit.config import (
     JobConfig,
@@ -38,45 +39,44 @@ from packit.config.aliases import get_branches
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject
-
 from packit_service import sentry_integration
 from packit_service.constants import (
-    PERMISSIONS_ERROR_WRITE_OR_ADMIN,
     FAQ_URL_HOW_TO_RETRIGGER,
     FILE_DOWNLOAD_FAILURE,
     MSG_RETRIGGER,
+    PERMISSIONS_ERROR_WRITE_OR_ADMIN,
     RETRY_LIMIT,
 )
 from packit_service.models import (
-    InstallationModel,
     AbstractTriggerDbType,
     CoprBuildModel,
+    InstallationModel,
 )
 from packit_service.service.events import (
-    TheJobTriggerType,
-    ReleaseEvent,
-    PullRequestGithubEvent,
-    PullRequestPagureEvent,
-    PushGitHubEvent,
-    PushPagureEvent,
-    MergeRequestGitlabEvent,
-    PushGitlabEvent,
-    PullRequestCommentGithubEvent,
-    MergeRequestCommentGitlabEvent,
-    InstallationEvent,
     EventData,
+    InstallationEvent,
+    IssueCommentEvent,
+    MergeRequestCommentGitlabEvent,
+    MergeRequestGitlabEvent,
+    PullRequestCommentGithubEvent,
+    PullRequestCommentPagureEvent,
+    PullRequestGithubEvent,
+    PushGitHubEvent,
+    PushGitlabEvent,
+    PushPagureEvent,
+    ReleaseEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.handlers import (
-    CommentActionHandler,
     JobHandler,
 )
-from packit_service.worker.handlers.abstract import required_by, use_for, TaskName
-from packit_service.worker.handlers.comment_action_handler import (
-    add_to_comment_action_mapping,
-    add_to_comment_action_mapping_with_name,
-    CommentAction,
+from packit_service.worker.handlers.abstract import (
+    TaskName,
+    configured_as,
+    reacts_to,
+    required_for,
+    run_for_comment,
 )
 from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
@@ -86,8 +86,6 @@ logger = logging.getLogger(__name__)
 
 
 class GithubAppInstallationHandler(JobHandler):
-    type = JobType.add_to_whitelist
-    triggers = [TheJobTriggerType.installation]
     task_name = TaskName.installation
 
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
@@ -145,10 +143,11 @@ class GithubAppInstallationHandler(JobHandler):
         return TaskResults(success=True, details={"msg": msg})
 
 
-@use_for(job_type=JobType.propose_downstream)
+@configured_as(job_type=JobType.propose_downstream)
+@run_for_comment(command="propose-update")
+@reacts_to(event=ReleaseEvent)
+@reacts_to(event=IssueCommentEvent)
 class ProposeDownstreamHandler(JobHandler):
-    type = JobType.propose_downstream
-    triggers = [TheJobTriggerType.release]
     task_name = TaskName.propose_downstream
 
     def __init__(
@@ -226,8 +225,21 @@ class ProposeDownstreamHandler(JobHandler):
         return TaskResults(success=True, details={})
 
 
-class AbstractCoprBuildHandler(JobHandler):
-    type = JobType.copr_build
+@configured_as(job_type=JobType.copr_build)
+@configured_as(job_type=JobType.build)
+@required_for(job_type=JobType.tests)
+@run_for_comment(command="build")
+@run_for_comment(command="copr-build")
+@reacts_to(ReleaseEvent)
+@reacts_to(PullRequestGithubEvent)
+@reacts_to(PushGitHubEvent)
+@reacts_to(PushGitlabEvent)
+@reacts_to(MergeRequestGitlabEvent)
+@reacts_to(PullRequestCommentGithubEvent)
+@reacts_to(MergeRequestCommentGitlabEvent)
+@reacts_to(PullRequestCommentPagureEvent)
+class CoprBuildHandler(JobHandler):
+    task_name = TaskName.copr_build
 
     def __init__(
         self,
@@ -251,56 +263,10 @@ class AbstractCoprBuildHandler(JobHandler):
                 package_config=self.package_config,
                 project=self.project,
                 metadata=self.data,
-                db_trigger=self.db_trigger,
+                db_trigger=self.data.db_trigger,
                 job_config=self.job_config,
             )
         return self._copr_build_helper
-
-    def run(self) -> TaskResults:
-        return self.copr_build_helper.run_copr_build()
-
-    def pre_check(self) -> bool:
-        is_copr_build: Callable[[JobConfig], bool] = (
-            lambda job: job.type == JobType.copr_build
-            and job.trigger == self.job_config.trigger
-        )
-
-        if self.job_config.type == JobType.tests and any(
-            filter(is_copr_build, self.package_config.jobs)
-        ):
-            logger.info(
-                "Skipping build for testing. The COPR build is defined "
-                "in the config with the same trigger."
-            )
-            return False
-        return True
-
-
-@use_for(job_type=JobType.copr_build)
-@use_for(job_type=JobType.build)
-@required_by(job_type=JobType.tests)
-class ReleaseCoprBuildHandler(AbstractCoprBuildHandler):
-    triggers = [
-        TheJobTriggerType.release,
-    ]
-    task_name = TaskName.release_copr_build
-
-    def pre_check(self) -> bool:
-        return (
-            self.data.event_type == ReleaseEvent.__name__
-            and self.data.trigger == TheJobTriggerType.release
-            and super().pre_check()
-        )
-
-
-@use_for(job_type=JobType.copr_build)
-@use_for(job_type=JobType.build)
-@required_by(job_type=JobType.tests)
-class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
-    triggers = [
-        TheJobTriggerType.pull_request,
-    ]
-    task_name = TaskName.pr_copr_build
 
     def run(self) -> TaskResults:
         if self.data.event_type in (
@@ -319,57 +285,37 @@ class PullRequestCoprBuildHandler(AbstractCoprBuildHandler):
                 return TaskResults(
                     success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
                 )
-        return super().run()
+
+        return self.copr_build_helper.run_copr_build()
 
     def pre_check(self) -> bool:
-        return (
-            self.data.event_type
-            in (
-                PullRequestGithubEvent.__name__,
-                PullRequestPagureEvent.__name__,
-                MergeRequestGitlabEvent.__name__,
-            )
-            and self.data.trigger == TheJobTriggerType.pull_request
-            and super().pre_check()
-        )
-
-
-@use_for(job_type=JobType.copr_build)
-@use_for(job_type=JobType.build)
-@required_by(job_type=JobType.tests)
-class PushCoprBuildHandler(AbstractCoprBuildHandler):
-    triggers = [
-        TheJobTriggerType.push,
-        TheJobTriggerType.commit,
-    ]
-    task_name = TaskName.push_copr_build
-
-    def pre_check(self) -> bool:
-        valid = (
-            self.data.event_type
-            in (
-                PushGitHubEvent.__name__,
-                PushPagureEvent.__name__,
-                PushGitlabEvent.__name__,
-            )
-            and self.data.trigger == TheJobTriggerType.push
-            and super().pre_check()
-        )
-        if not valid:
-            return False
-
-        configured_branch = self.copr_build_helper.job_build_branch
-        if self.data.git_ref != configured_branch:
-            logger.info(
-                f"Skipping build on '{self.data.git_ref}'. "
-                f"Push configured only for '{configured_branch}'."
-            )
-            return False
+        if self.data.event_type in (
+            PushGitHubEvent.__name__,
+            PushGitlabEvent.__name__,
+            PushPagureEvent.__name__,
+        ):
+            configured_branch = self.copr_build_helper.job_build_branch
+            if self.data.git_ref != configured_branch:
+                logger.info(
+                    f"Skipping build on '{self.data.git_ref}'. "
+                    f"Push configured only for '{configured_branch}'."
+                )
+                return False
         return True
 
 
-class AbstractGithubKojiBuildHandler(JobHandler):
-    type = JobType.production_build
+@configured_as(job_type=JobType.production_build)
+@run_for_comment(command="production-build")
+@reacts_to(ReleaseEvent)
+@reacts_to(PullRequestGithubEvent)
+@reacts_to(PushGitHubEvent)
+@reacts_to(PushGitlabEvent)
+@reacts_to(MergeRequestGitlabEvent)
+@reacts_to(PullRequestCommentGithubEvent)
+@reacts_to(MergeRequestCommentGitlabEvent)
+@reacts_to(PullRequestCommentPagureEvent)
+class KojiBuildHandler(JobHandler):
+    task_name = TaskName.koji_build
 
     def __init__(
         self,
@@ -409,50 +355,10 @@ class AbstractGithubKojiBuildHandler(JobHandler):
                 package_config=self.package_config,
                 project=self.project,
                 metadata=self.data,
-                db_trigger=self.db_trigger,
+                db_trigger=self.data.db_trigger,
                 job_config=self.job_config,
             )
         return self._koji_build_helper
-
-    def run(self) -> TaskResults:
-        return self.koji_build_helper.run_koji_build()
-
-    def pre_check(self) -> bool:
-        is_copr_build: Callable[[JobConfig], bool] = (
-            lambda job: job.type == JobType.copr_build
-        )
-
-        if self.job_config.type == JobType.tests and any(
-            filter(is_copr_build, self.package_config.jobs)
-        ):
-            logger.info(
-                "Skipping build for testing. The COPR build is defined in the config."
-            )
-            return False
-        return True
-
-
-@use_for(job_type=JobType.production_build)
-class ReleaseGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
-    triggers = [
-        TheJobTriggerType.release,
-    ]
-    task_name = TaskName.release_koji_build
-
-    def pre_check(self) -> bool:
-        return (
-            super().pre_check()
-            and self.data.event_type == ReleaseEvent.__name__
-            and self.data.trigger == TheJobTriggerType.release
-        )
-
-
-@use_for(job_type=JobType.production_build)
-class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
-    triggers = [
-        TheJobTriggerType.pull_request,
-    ]
-    task_name = TaskName.pr_koji_build
 
     def run(self) -> TaskResults:
         if self.data.event_type == PullRequestGithubEvent.__name__:
@@ -467,54 +373,36 @@ class PullRequestGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
                 return TaskResults(
                     success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
                 )
-        return super().run()
+        return self.koji_build_helper.run_koji_build()
 
     def pre_check(self) -> bool:
-        return (
-            super().pre_check()
-            and self.data.event_type == PullRequestGithubEvent.__name__
-            and self.data.trigger == TheJobTriggerType.pull_request
-        )
-
-
-@use_for(job_type=JobType.production_build)
-class PushGithubKojiBuildHandler(AbstractGithubKojiBuildHandler):
-    triggers = [
-        TheJobTriggerType.push,
-        TheJobTriggerType.commit,
-    ]
-    task_name = TaskName.push_koji_build
-
-    def pre_check(self) -> bool:
-        valid = (
-            super().pre_check()
-            and self.data.event_type == PushGitHubEvent.__name__
-            and self.data.trigger == TheJobTriggerType.push
-        )
-        if not valid:
-            return False
-
-        configured_branch = self.koji_build_helper.job_build_branch
-        if self.data.git_ref != configured_branch:
-            logger.info(
-                f"Skipping build on '{self.data.git_ref}'. "
-                f"Push configured only for '{configured_branch}'."
-            )
-            return False
+        if self.data.event_type in (
+            PushGitHubEvent.__name__,
+            PushGitlabEvent.__name__,
+            PushPagureEvent.__name__,
+        ):
+            configured_branch = self.koji_build_helper.job_build_branch
+            if self.data.git_ref != configured_branch:
+                logger.info(
+                    f"Skipping build on '{self.data.git_ref}'. "
+                    f"Push configured only for '{configured_branch}'."
+                )
+                return False
         return True
 
 
-class GithubTestingFarmHandler(JobHandler):
+@run_for_comment(command="test")
+@reacts_to(PullRequestCommentGithubEvent)
+@reacts_to(MergeRequestCommentGitlabEvent)
+@reacts_to(PullRequestCommentPagureEvent)
+@configured_as(job_type=JobType.tests)
+class TestingFarmHandler(JobHandler):
     """
-    This class intentionally does not have a @add_to_mapping decorator as its
-    trigger is finished copr build.
+    The automatic matching is now used only for /packit test
+    TODO: We can react directly to the finished Copr build.
     """
 
-    triggers = [
-        TheJobTriggerType.pull_request,
-        TheJobTriggerType.release,
-        TheJobTriggerType.commit,
-    ]
+    task_name = TaskName.testing_farm
 
     def __init__(
         self,
@@ -541,7 +429,7 @@ class GithubTestingFarmHandler(JobHandler):
         return self._db_trigger
 
     def run(self) -> TaskResults:
-        # TODO: once we turn hanadlers into respective celery tasks, we should iterate
+        # TODO: once we turn handlers into respective celery tasks, we should iterate
         #       here over *all* matching jobs and do them all, not just the first one
         testing_farm_helper = TestingFarmJobHelper(
             service_config=self.service_config,
@@ -553,175 +441,3 @@ class GithubTestingFarmHandler(JobHandler):
         )
         logger.info("Running testing farm.")
         return testing_farm_helper.run_testing_farm(chroot=self.chroot)
-
-
-@add_to_comment_action_mapping
-@add_to_comment_action_mapping_with_name(name=CommentAction.build)
-@use_for(JobType.build)
-@use_for(JobType.copr_build)
-@required_by(JobType.tests)
-class GitHubPullRequestCommentCoprBuildHandler(CommentActionHandler):
-    """ Handler for PR comment `/packit copr-build` """
-
-    type = CommentAction.copr_build
-    triggers = [TheJobTriggerType.pr_comment]
-    task_name = TaskName.pr_comment_copr_build
-
-    def run(self) -> TaskResults:
-        user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
-        if not (
-            user_can_merge_pr or self.data.user_login in self.service_config.admins
-        ):
-            self.project.pr_comment(
-                self.db_trigger.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
-            )
-            return TaskResults(
-                success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
-            )
-
-        cbh = CoprBuildJobHelper(
-            service_config=self.service_config,
-            package_config=self.package_config,
-            project=self.project,
-            metadata=self.data,
-            db_trigger=self.db_trigger,
-            job_config=self.job_config,
-        )
-        handler_results = cbh.run_copr_build()
-
-        return handler_results
-
-    def pre_check(self) -> bool:
-        return (
-            self.data.event_type
-            in (
-                (
-                    PullRequestCommentGithubEvent.__name__,
-                    MergeRequestCommentGitlabEvent.__name__,
-                )
-            )
-            and self.data.trigger == TheJobTriggerType.pr_comment
-            and super().pre_check()
-        )
-
-
-@add_to_comment_action_mapping
-@use_for(JobType.propose_downstream)
-class GitHubIssueCommentProposeUpdateHandler(CommentActionHandler):
-    """ Handler for issue comment `/packit propose-update` """
-
-    type = CommentAction.propose_update
-    triggers = [TheJobTriggerType.issue_comment]
-    task_name = TaskName.propose_update_comment
-
-    @property
-    def dist_git_branches_to_sync(self) -> Set[str]:
-        """
-        Get the dist-git branches to sync to with the aliases expansion.
-
-        :return: list of dist-git branches
-        """
-        configured_branches = set()
-        configured_branches.update(self.job_config.metadata.dist_git_branches)
-
-        if configured_branches:
-            return get_branches(*configured_branches)
-        return set()
-
-    def run(self) -> TaskResults:
-        local_project = LocalProject(
-            git_project=self.project,
-            working_dir=self.service_config.command_handler_work_dir,
-        )
-
-        api = PackitAPI(
-            config=self.service_config,
-            # job_config and package_config are the same for PackitAPI
-            # and we want to use job_config since people can override things in there
-            package_config=self.job_config,
-            upstream_local_project=local_project,
-        )
-
-        user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
-        if not (
-            user_can_merge_pr or self.data.user_login in self.service_config.admins
-        ):
-            self.project.issue_comment(
-                self.db_trigger.issue_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
-            )
-            return TaskResults(
-                success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
-            )
-
-        if not self.data.tag_name:
-            msg = (
-                "There was an error while proposing a new update for the Fedora package: "
-                "no upstream release found."
-            )
-            self.project.issue_comment(self.db_trigger.issue_id, msg)
-            return TaskResults(success=False, details={"msg": "Propose update failed"})
-
-        sync_failed = False
-        for branch in self.dist_git_branches_to_sync:
-            msg = (
-                f"for the Fedora package `{self.job_config.downstream_package_name}`"
-                f"with the tag `{self.data.tag_name}` in the `{branch}` branch.\n"
-            )
-            try:
-                new_pr = api.sync_release(
-                    dist_git_branch=branch, tag=self.data.tag_name, create_pr=True
-                )
-                msg = f"Packit-as-a-Service proposed [a new update]({new_pr.url}) {msg}"
-                self.project.issue_comment(self.db_trigger.issue_id, msg)
-            except PackitException as ex:
-                msg = f"There was an error while proposing a new update {msg} Traceback is: `{ex}`"
-                self.project.issue_comment(self.db_trigger.issue_id, msg)
-                logger.error(f"Error while running a build: {ex}")
-                sync_failed = True
-        if sync_failed:
-            return TaskResults(success=False, details={"msg": "Propose update failed"})
-
-        # Close issue if propose-update was successful in all branches
-        self.project.issue_close(self.db_trigger.issue_id)
-
-        return TaskResults(success=True, details={})
-
-
-@add_to_comment_action_mapping
-@use_for(JobType.tests)
-class GitHubPullRequestCommentTestingFarmHandler(CommentActionHandler):
-    """ Issue handler for comment `/packit test` """
-
-    type = CommentAction.test
-    triggers = [TheJobTriggerType.pr_comment]
-    task_name = TaskName.testing_farm_comment
-
-    def run(self) -> TaskResults:
-        testing_farm_helper = TestingFarmJobHelper(
-            service_config=self.service_config,
-            package_config=self.package_config,
-            project=self.project,
-            metadata=self.data,
-            db_trigger=self.db_trigger,
-            job_config=self.job_config,
-        )
-        user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
-        if not (
-            user_can_merge_pr or self.data.user_login in self.service_config.admins
-        ):
-            self.project.pr_comment(
-                self.db_trigger.pr_id, PERMISSIONS_ERROR_WRITE_OR_ADMIN
-            )
-            return TaskResults(
-                success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
-            )
-
-        handler_results = TaskResults(success=True, details={})
-
-        logger.debug(f"Test job config: {testing_farm_helper.job_tests}")
-        if testing_farm_helper.job_tests:
-            testing_farm_helper.run_testing_farm_on_all()
-        else:
-            logger.debug("Testing farm not in the job config.")
-
-        return handler_results

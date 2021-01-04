@@ -19,423 +19,583 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from typing import Type
 
 import pytest
 from flexmock import flexmock
 
-from packit.actions import ActionName
-from packit.config import JobConfig, JobType, JobConfigTriggerType
+from packit.config import JobConfig, JobConfigTriggerType, JobType
 from packit.config.job_config import JobMetadataConfig
-from packit_service.service.events import TheJobTriggerType
+from packit_service.service.events import (
+    CoprBuildEndEvent,
+    CoprBuildStartEvent,
+    IssueCommentEvent,
+    KojiBuildEvent,
+    MergeRequestCommentGitlabEvent,
+    MergeRequestGitlabEvent,
+    PullRequestCommentGithubEvent,
+    PullRequestCommentPagureEvent,
+    PullRequestGithubEvent,
+    PushGitHubEvent,
+    PushGitlabEvent,
+    ReleaseEvent,
+    TestingFarmResultsEvent,
+)
 from packit_service.worker.handlers import (
-    PullRequestCoprBuildHandler,
-    ProposeDownstreamHandler,
-    CoprBuildStartHandler,
     CoprBuildEndHandler,
+    CoprBuildStartHandler,
+    JobHandler,
     TestingFarmResultsHandler,
 )
 from packit_service.worker.handlers.fedmsg_handlers import KojiBuildReportHandler
 from packit_service.worker.handlers.github_handlers import (
-    PullRequestGithubKojiBuildHandler,
-    PushGithubKojiBuildHandler,
-    PushCoprBuildHandler,
-    ReleaseGithubKojiBuildHandler,
-    GitHubPullRequestCommentCoprBuildHandler,
-    GitHubIssueCommentProposeUpdateHandler,
-)
-from packit_service.worker.handlers.pagure_handlers import (
-    PagurePullRequestCommentCoprBuildHandler,
+    CoprBuildHandler,
+    KojiBuildHandler,
+    ProposeDownstreamHandler,
+    TestingFarmHandler,
 )
 from packit_service.worker.jobs import (
-    get_handlers_for_event,
     get_config_for_handler_kls,
+    get_handlers_for_event,
 )
 
 
 @pytest.mark.parametrize(
-    "trigger,db_trigger,jobs,result",
+    "event_cls,db_trigger,jobs,result",
     [
+        # Single job defined:
         pytest.param(
-            TheJobTriggerType.pull_request,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [],
-            set(),
-            id="nothing_configured",
-        ),
-        pytest.param(
-            TheJobTriggerType.pull_request,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                )
-            ],
-            {PullRequestCoprBuildHandler},
-            id="config=copr_build@trigger=pull_request",
-        ),
-        pytest.param(
-            TheJobTriggerType.pull_request,
+            PullRequestGithubEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                )
+                ),
             ],
-            {PullRequestCoprBuildHandler},
-            id="config=build@trigger=pull_request",
+            {CoprBuildHandler},
+            id="config=build_for_pr&pull_request&PullRequestGithubEvent",
         ),
         pytest.param(
-            TheJobTriggerType.push,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=copr_build_for_pr&pull_request&PullRequestGithubEvent",
+        ),
+        pytest.param(
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=test_for_pr&pull_request&PullRequestGithubEvent",
+        ),
+        # Not matching event:
+        pytest.param(
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                )
-            ],
-            {PushCoprBuildHandler},
-            id="config=copr_build_on_push@trigger=push",
-        ),
-        pytest.param(
-            TheJobTriggerType.commit,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.commit,
-                )
-            ],
-            {PushCoprBuildHandler},
-            id="config=copr_build_on_push@trigger=commit",
-        ),
-        pytest.param(
-            TheJobTriggerType.release,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
-            [
-                JobConfig(
-                    type=JobType.propose_downstream,
-                    trigger=JobConfigTriggerType.release,
-                )
-            ],
-            {ProposeDownstreamHandler},
-            id="propose_downstream",
-        ),
-        pytest.param(
-            TheJobTriggerType.copr_start,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                )
-            ],
-            {CoprBuildStartHandler},
-            id="config=copr_build@trigger=copr_start",
-        ),
-        pytest.param(
-            TheJobTriggerType.copr_end,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                )
-            ],
-            {CoprBuildEndHandler},
-            id="config=copr_build@trigger=copr_end",
-        ),
-        pytest.param(
-            TheJobTriggerType.pull_request,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.release,
-                ),
-            ],
-            {PullRequestCoprBuildHandler},
-            id="config=copr_build_on_pull_request_and_release@trigger=pull_request",
-        ),
-        pytest.param(
-            TheJobTriggerType.copr_end,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.release,
-                ),
-            ],
-            {CoprBuildEndHandler},
-            id="config=copr_build_on_pull_request_and_release@trigger=copr_end",
-        ),
-        pytest.param(
-            TheJobTriggerType.pull_request,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                )
-            ],
-            {PullRequestCoprBuildHandler},
-            id="config=tests@trigger=pull_request",
-        ),
-        pytest.param(
-            TheJobTriggerType.copr_start,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                )
-            ],
-            {CoprBuildStartHandler},
-            id="config=tests@trigger=copr_start",
-        ),
-        pytest.param(
-            TheJobTriggerType.copr_end,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                )
-            ],
-            {CoprBuildEndHandler},
-            id="config=tests@trigger=copr_end",
-        ),
-        pytest.param(
-            TheJobTriggerType.testing_farm_results,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                )
-            ],
-            {TestingFarmResultsHandler},
-            id="config=tests@trigger=testing_farm_results",
-        ),
-        pytest.param(
-            TheJobTriggerType.testing_farm_results,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-            ],
-            {TestingFarmResultsHandler},
-            id="config=tests_and_copr_build@trigger=testing_farm_results",
-        ),
-        pytest.param(
-            TheJobTriggerType.pull_request,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-            ],
-            {PullRequestCoprBuildHandler},
-            id="config=tests_and_copr_build@trigger=pull_request",
-        ),
-        pytest.param(
-            TheJobTriggerType.copr_start,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-            ],
-            {CoprBuildStartHandler},
-            id="config=tests_and_copr_build@trigger=copr_start",
-        ),
-        pytest.param(
-            TheJobTriggerType.copr_start,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-                JobConfig(
-                    type=JobType.propose_downstream,
-                    trigger=JobConfigTriggerType.release,
-                ),
-                JobConfig(
-                    type=JobType.sync_from_downstream,
-                    trigger=JobConfigTriggerType.commit,
-                ),
-            ],
-            {CoprBuildStartHandler},
-            id="config=tests_and_copr_build_and_propose_and_sync@trigger=copr_start",
-        ),
-        pytest.param(
-            TheJobTriggerType.pull_request,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-            ],
-            {PullRequestGithubKojiBuildHandler},
-            id="config=production_build@trigger=pull_request",
-        ),
-        pytest.param(
-            TheJobTriggerType.push,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.commit,
-                ),
-            ],
-            {PushGithubKojiBuildHandler},
-            id="config=production_build@trigger=push",
-        ),
-        pytest.param(
-            TheJobTriggerType.commit,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.commit,
-                ),
-            ],
-            {PushGithubKojiBuildHandler},
-            id="config=production_build@trigger=commit",
-        ),
-        pytest.param(
-            TheJobTriggerType.release,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.release,
-                ),
-            ],
-            {ReleaseGithubKojiBuildHandler},
-            id="config=production_build@trigger=release",
-        ),
-        pytest.param(
-            TheJobTriggerType.push,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.commit,
-                ),
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-            ],
-            {PushGithubKojiBuildHandler},
-            id="config=production_build_on_pull_request_and_commit@trigger=commit",
-        ),
-        pytest.param(
-            TheJobTriggerType.koji_results,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-            ],
-            {KojiBuildReportHandler},
-            id="config=production_build@trigger=koji_results",
-        ),
-        pytest.param(
-            TheJobTriggerType.koji_results,
-            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
             set(),
-            id="config=copr_build@trigger=koji_results",
+            id="config=build_for_commit&pull_request&PullRequestGithubEvent",
+        ),
+        # Matching events:
+        pytest.param(
+            MergeRequestGitlabEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=build_for_pr&pull_request&MergeRequestGitlabEvent",
         ),
         pytest.param(
-            TheJobTriggerType.koji_results,
+            PushGitHubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=build_for_push&commit&PushGitHubEvent",
+        ),
+        pytest.param(
+            PushGitlabEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=build_for_push&commit&PushGitlabEvent",
+        ),
+        pytest.param(
+            ReleaseEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=build_for_release&release&ReleaseEvent",
+        ),
+        # Copr results for build:
+        pytest.param(
+            CoprBuildStartEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {CoprBuildStartHandler},
+            id="config=build_for_pr&pull_request&CoprBuildStartEvent",
+        ),
+        pytest.param(
+            CoprBuildEndEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {CoprBuildEndHandler},
+            id="config=build_for_pr&pull_request&CoprBuildEndEvent",
+        ),
+        # Copr results for test:
+        pytest.param(
+            CoprBuildStartEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {CoprBuildStartHandler},
+            id="config=build_for_pr&pull_request&CoprBuildStartEvent",
+        ),
+        pytest.param(
+            CoprBuildEndEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {CoprBuildEndHandler},
+            id="config=test_for_pr&pull_request&CoprBuildEndEvent",
+        ),
+        # Test results:
+        pytest.param(
+            TestingFarmResultsEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {TestingFarmResultsHandler},
+            id="config=test_for_pr&pull_request&TestingFarmResultsEvent",
+        ),
+        # Koji:
+        pytest.param(
+            PullRequestGithubEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
                 ),
+            ],
+            {KojiBuildHandler},
+            id="config=production_build_for_pr&pull_request&PullRequestGithubEvent",
+        ),
+        pytest.param(
+            MergeRequestGitlabEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
                 JobConfig(
-                    type=JobType.copr_build,
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {KojiBuildHandler},
+            id="config=production_build_for_pr&pull_request&MergeRequestGitlabEvent",
+        ),
+        pytest.param(
+            PushGitHubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            {KojiBuildHandler},
+            id="config=production_build_for_commit&commit&PushGitHubEvent",
+        ),
+        pytest.param(
+            PushGitlabEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            {KojiBuildHandler},
+            id="config=production_build_for_commit&commit&PushGitlabEvent",
+        ),
+        pytest.param(
+            ReleaseEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            {KojiBuildHandler},
+            id="config=production_build_for_release&commit&ReleaseEvent",
+        ),
+        pytest.param(
+            KojiBuildEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
             {KojiBuildReportHandler},
-            id="config=production_build_and_copr_build@trigger=koji_results",
+            id="config=production_build_for_pr&pull_request&KojiBuildEvent",
         ),
+        # Build and test:
         pytest.param(
-            TheJobTriggerType.issue_comment,
-            flexmock(job_config_trigger_type=None),
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
-                    type=JobType.propose_downstream,
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=build_for_pr+test_for_pr&pull_request&PullRequestGithubEvent",
+        ),
+        pytest.param(
+            CoprBuildStartEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {CoprBuildStartHandler},
+            id="config=build_for_pr+test_for_pr&pull_request&CoprBuildStartEvent",
+        ),
+        pytest.param(
+            CoprBuildEndEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {CoprBuildEndHandler},
+            id="config=build_for_pr+test_for_pr&pull_request&CoprBuildEndEvent",
+        ),
+        pytest.param(
+            TestingFarmResultsEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {TestingFarmResultsHandler},
+            id="config=build_for_pr+test_for_pr&pull_request&TestingFarmResultsEvent",
+        ),
+        # Multiple triggers for copr-build:
+        pytest.param(
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.build,
                     trigger=JobConfigTriggerType.release,
                 ),
             ],
-            {GitHubIssueCommentProposeUpdateHandler},
-            id="config=propose_downstream@trigger=issue_comment",
+            {CoprBuildHandler},
+            id="config=build_for_pr+build_for_commit+build_for_release"
+            "&pull_request&PullRequestGithubEvent",
         ),
         pytest.param(
-            TheJobTriggerType.pull_request,
+            PushGitHubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=build_for_pr+build_for_commit+build_for_release&commit&PushGitHubEvent",
+        ),
+        pytest.param(
+            ReleaseEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=build_for_pr+build_for_commit+build_for_release&release&ReleaseEvent",
+        ),
+        # No matching job for multiple triggers:
+        pytest.param(
+            ReleaseEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            set(),
+            id="config=build_for_pr+build_for_commit&release&ReleaseEvent",
+        ),
+        # multiple events for build but test only for push:
+        pytest.param(
+            PullRequestGithubEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
-                    type=JobType.copr_build,
+                    type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=["fedora-rawhide-x86_64"]),
-                    actions={ActionName.post_upstream_clone: "ls /*"},
                 ),
                 JobConfig(
-                    type=JobType.copr_build,
+                    type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=["fedora-32-x86_64"]),
-                    actions={ActionName.post_upstream_clone: 'bash -c "ls /*"'},
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
                 ),
             ],
-            {PullRequestCoprBuildHandler},
-            id="config=multiple_copr_builds_for_pr@trigger=pull_request",
+            {CoprBuildHandler},
+            id="config=build_for_pr+test_for_pr+build_for_commit+build_for_release"
+            "&pull_request&PullRequestGithubEvent",
         ),
         pytest.param(
-            TheJobTriggerType.pull_request,
+            PushGitHubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=build_for_pr+test_for_pr+build_for_commit+build_for_release"
+            "&commit&PushGitHubEvent",
+        ),
+        pytest.param(
+            CoprBuildStartEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            {CoprBuildStartHandler},
+            id="config=build_for_pr+test_for_pr+build_for_commit+build_for_release"
+            "&pull_request&CoprBuildStartEvent",
+        ),
+        pytest.param(
+            CoprBuildEndEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            {CoprBuildEndHandler},
+            id="config=build_for_pr+test_for_pr+build_for_commit+build_for_release"
+            "&pull_request&CoprBuildEndEvent",
+        ),
+        pytest.param(
+            TestingFarmResultsEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            {TestingFarmResultsHandler},
+            id="config=build_for_pr+test_for_pr+build_for_commit+build_for_release"
+            "&pull_request&TestingFarmResultsEvent",
+        ),
+        pytest.param(
+            TestingFarmResultsEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            set(),
+            id="config=build_for_pr+test_for_pr+build_for_commit+build_for_release"
+            "&commit&TestingFarmResultsEvent",
+        ),
+        # build for commit and release, test only for push:
+        pytest.param(
+            PullRequestGithubEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -443,15 +603,41 @@ from packit_service.worker.jobs import (
                     trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.copr_build,
+                    type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
                 ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                ),
             ],
-            {PullRequestCoprBuildHandler},
-            id="config=test_for_pr&copr_build_for_commit@trigger=pull_request",
+            {CoprBuildHandler},
+            id="config=test_for_pr+build_for_commit+build_for_release"
+            "&pull_request&PullRequestGithubEvent",
         ),
         pytest.param(
-            TheJobTriggerType.push,
+            PushGitHubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=test_for_pr+build_for_commit+build_for_release"
+            "&commit&PushGitHubEvent",
+        ),
+        pytest.param(
+            CoprBuildStartEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -459,15 +645,20 @@ from packit_service.worker.jobs import (
                     trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.copr_build,
+                    type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
                 ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                ),
             ],
-            {PushCoprBuildHandler},
-            id="config=test_for_pr&copr_build_for_commit@trigger=push",
+            {CoprBuildStartHandler},
+            id="config=test_for_pr+build_for_commit+build_for_release"
+            "&pull_request&CoprBuildStartEvent",
         ),
         pytest.param(
-            TheJobTriggerType.commit,
+            CoprBuildEndEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -475,19 +666,131 @@ from packit_service.worker.jobs import (
                     trigger=JobConfigTriggerType.pull_request,
                 ),
                 JobConfig(
-                    type=JobType.copr_build,
+                    type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
                 ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                ),
             ],
-            {PushCoprBuildHandler},
-            id="config=test_for_pr&copr_build_for_commit@trigger=commit",
+            {CoprBuildEndHandler},
+            id="config=test_for_pr+build_for_commit+build_for_release"
+            "&pull_request&CoprBuildEndEvent",
+        ),
+        pytest.param(
+            TestingFarmResultsEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            {TestingFarmResultsHandler},
+            id="config=test_for_pr+build_for_commit+build_for_release"
+            "&pull_request&TestingFarmResultsEvent",
+        ),
+        pytest.param(
+            TestingFarmResultsEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            set(),
+            id="config=test_for_pr+build_for_commit+build_for_release"
+            "&commit&TestingFarmResultsEvent",
+        ),
+        # copr and koji build combination
+        pytest.param(
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {CoprBuildHandler, KojiBuildHandler},
+            id="config=build_for_pr+production_build_for_pr"
+            "&pull_request&PullRequestGithubEvent",
+        ),
+        pytest.param(
+            CoprBuildStartEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {CoprBuildStartHandler},
+            id="config=build_for_pr+production_build_for_pr"
+            "&pull_request&CoprBuildStartEvent",
+        ),
+        pytest.param(
+            KojiBuildEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {KojiBuildReportHandler},
+            id="config=build_for_pr+production_build_for_pr"
+            "&pull_request&KojiBuildEvent",
         ),
     ],
 )
-def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
+def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
+    # We are using isinstance for matching event to handlers
+    # and flexmock can't do this for us so we need a subclass to test it.
+    # (And real event classes have a lot of __init__ arguments.)
+    class Event(event_cls):
+        def __init__(self):
+            pass
+
+        @property
+        def db_trigger(self):
+            return db_trigger
+
+    event = Event()
+
     event_handlers = set(
         get_handlers_for_event(
-            event=flexmock(trigger=trigger, db_trigger=db_trigger),
+            event=event,
             package_config=flexmock(jobs=jobs),
         )
     )
@@ -495,687 +798,917 @@ def test_get_handlers_for_event(trigger, db_trigger, jobs, result):
 
 
 @pytest.mark.parametrize(
-    "handler_kls,event,jobs,result_job_config",
+    "event_cls,comment, db_trigger,jobs,result",
     [
         pytest.param(
-            PullRequestCoprBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.pull_request,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
+            PullRequestCommentGithubEvent,
+            "",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                )
-            ],
-            [
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                )
-            ],
-            id="copr_build_for_pr",
-        ),
-        pytest.param(
-            PullRequestCoprBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.pull_request,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
-            id="copr_build_for_pr_when_test_defined",
-        ),
-        pytest.param(
-            PullRequestCoprBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.pull_request,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                ),
-            ],
-            [
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                )
-            ],
-            id="copr_build_for_pr_when_test_and_build_defined",
-        ),
-        pytest.param(
-            PullRequestCoprBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.pull_request,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.release
-                ),
-            ],
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
-            id="copr_build_for_pr_when_test_for_pr_and_build_for_release_are_defined",
-        ),
-        pytest.param(
-            PullRequestCoprBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.pull_request,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit),
-            ],
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
-            id="copr_build_for_pr_when_test_for_pr_and_build_for_commit_are_defined@pr",
-        ),
-        pytest.param(
-            PushCoprBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.commit,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.commit
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit),
-            ],
-            [JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit)],
-            id="copr_build_for_pr_when_test_for_pr_and_build_for_commit_are_defined&commit",
-        ),
-        pytest.param(
-            PushCoprBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.push,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.commit
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit),
-            ],
-            [JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit)],
-            id="copr_build_for_pr_when_test_for_pr_and_build_for_commit_are_defined&push",
-        ),
-        pytest.param(
-            PullRequestCoprBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.commit,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.commit
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                ),
-            ],
-            [],
-            id="copr_build_for_commit_when_test_and_build_are_defined_for_pr",
-        ),
-        pytest.param(
-            PullRequestCoprBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.commit,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.commit
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit),
-            ],
-            [JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit)],
-            id="copr_build_for_commit_when_test_and_build_are_defined_for_pr_and_build_for_push",
-        ),
-        pytest.param(
-            CoprBuildEndHandler,
-            flexmock(
-                trigger=TheJobTriggerType.push,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.commit
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit),
-            ],
-            [JobConfig(type=JobType.copr_build, trigger=JobConfigTriggerType.commit)],
-            id="copr_build_for_commit_when_test_and_build_are_defined_for_pr_and_build_for_push"
-            "&end",
-        ),
-        pytest.param(
-            PullRequestCoprBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.commit,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.commit
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(branch="a"),
-                ),
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(branch="b"),
-                ),
-            ],
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(branch="a"),
-                ),
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(branch="b"),
-                ),
-            ],
-            id="copr_build_for_commit_when_test_and_build_are_defined_for_pr_and_build_for_push"
-            "@more_branches",
-        ),
-        pytest.param(
-            PullRequestCoprBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.pull_request,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.propose_downstream,
-                    trigger=JobConfigTriggerType.release,
-                ),
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(
-                    type=JobType.production_build,
+                    type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
-            [
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                )
-            ],
-            id="copr_build_for_pr_when_test_build_and_koji_build_defined",
+            set(),
+            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            "&empty_comment",
         ),
         pytest.param(
-            PullRequestCoprBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.pull_request,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
+            PullRequestCommentGithubEvent,
+            "/packit build",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
-                    type=JobType.propose_downstream,
-                    trigger=JobConfigTriggerType.release,
-                ),
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(
-                    type=JobType.build, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(
-                    type=JobType.production_build,
+                    type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
-            [
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(
-                    type=JobType.build, trigger=JobConfigTriggerType.pull_request
-                ),
-            ],
-            id="copr_build_for_pr_multiple_defs",
+            {CoprBuildHandler},
+            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            "&packit_build",
         ),
         pytest.param(
-            PullRequestGithubKojiBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.pull_request,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                )
-            ],
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                )
-            ],
-            id="koji_build_for_pr",
-        ),
-        pytest.param(
-            PullRequestGithubKojiBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.commit,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.commit
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(branch="some-branch"),
-                ),
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-            ],
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(branch="some-branch"),
-                ),
-            ],
-            id="koji_build_for_commit_when_pr_and_branch_configured",
-        ),
-        pytest.param(
-            ProposeDownstreamHandler,
-            flexmock(
-                trigger=TheJobTriggerType.release,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.release
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.propose_downstream,
-                    trigger=JobConfigTriggerType.release,
-                )
-            ],
-            [
-                JobConfig(
-                    type=JobType.propose_downstream,
-                    trigger=JobConfigTriggerType.release,
-                )
-            ],
-            id="propose_downstream",
-        ),
-        pytest.param(
-            ProposeDownstreamHandler,
-            flexmock(
-                trigger=TheJobTriggerType.release,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.release
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.propose_downstream,
-                    trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(targets=["a"]),
-                ),
-                JobConfig(
-                    type=JobType.propose_downstream,
-                    trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(targets=["b"]),
-                ),
-            ],
-            [
-                JobConfig(
-                    type=JobType.propose_downstream,
-                    trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(targets=["a"]),
-                ),
-                JobConfig(
-                    type=JobType.propose_downstream,
-                    trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(targets=["b"]),
-                ),
-            ],
-            id="propose_downstream_multiple",
-        ),
-        pytest.param(
-            CoprBuildEndHandler,
-            flexmock(
-                trigger=TheJobTriggerType.pull_request,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                )
-            ],
-            [
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                )
-            ],
-            id="copr_build_end",
-        ),
-        pytest.param(
-            CoprBuildEndHandler,
-            flexmock(
-                trigger=TheJobTriggerType.pull_request,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
-            [JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request)],
-            [JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request)],
-            id="copr_build_end_with_build_alias",
-        ),
-        pytest.param(
-            KojiBuildReportHandler,
-            flexmock(
-                trigger=TheJobTriggerType.koji_results,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                )
-            ],
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                )
-            ],
-            id="koji_results",
-        ),
-        pytest.param(
-            KojiBuildReportHandler,
-            flexmock(
-                trigger=TheJobTriggerType.koji_results,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                )
-            ],
-            [],
-            id="koji_results_when_copr_build_defined",
-        ),
-        pytest.param(
-            KojiBuildReportHandler,
-            flexmock(
-                trigger=TheJobTriggerType.koji_results,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
-            [],
-            id="koji_results_when_test_defined",
-        ),
-        pytest.param(
-            KojiBuildReportHandler,
-            flexmock(
-                trigger=TheJobTriggerType.koji_results,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(
-                    type=JobType.copr_build, trigger=JobConfigTriggerType.pull_request
-                ),
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-            ],
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                )
-            ],
-            id="koji_results_when_test_and_copr_build_defined",
-        ),
-        pytest.param(
-            KojiBuildReportHandler,
-            flexmock(
-                trigger=TheJobTriggerType.koji_results,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.release,
-                ),
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.commit,
-                ),
-            ],
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                )
-            ],
-            id="koji_results_when_multiple_triggers_defined",
-        ),
-        pytest.param(
-            KojiBuildReportHandler,
-            flexmock(
-                trigger=TheJobTriggerType.koji_results,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.release
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.release,
-                ),
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.commit,
-                ),
-            ],
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.release,
-                )
-            ],
-            id="koji_results_for_release_when_multiple_triggers_defined",
-        ),
-        pytest.param(
-            KojiBuildReportHandler,
-            flexmock(
-                trigger=TheJobTriggerType.koji_results,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.commit
-                ),
-            ),
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.release,
-                ),
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.commit,
-                ),
-            ],
-            [
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.commit,
-                )
-            ],
-            id="koji_results_for_commit_when_multiple_triggers_defined",
-        ),
-        pytest.param(
-            GitHubPullRequestCommentCoprBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.pr_comment,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
-            id="pr_comment_when_test_defined",
-        ),
-        pytest.param(
-            ProposeDownstreamHandler,
-            flexmock(
-                trigger=TheJobTriggerType.release,
-                db_trigger=flexmock(job_config_trigger_type=None),
-            ),
-            [
-                JobConfig(
-                    type=JobType.propose_downstream,
-                    trigger=JobConfigTriggerType.release,
-                )
-            ],
-            [
-                JobConfig(
-                    type=JobType.propose_downstream,
-                    trigger=JobConfigTriggerType.release,
-                )
-            ],
-            id="issue_comment_when_propose_downstream_defined",
-        ),
-        pytest.param(
-            PullRequestCoprBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.pull_request,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
-                ),
-            ),
+            PullRequestCommentGithubEvent,
+            "/packit build",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=["fedora-rawhide-x86_64"]),
-                    actions={ActionName.post_upstream_clone: "ls /*"},
-                ),
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=["fedora-32-x86_64"]),
-                    actions={ActionName.post_upstream_clone: 'bash -c "ls /*"'},
                 ),
             ],
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=["fedora-rawhide-x86_64"]),
-                    actions={ActionName.post_upstream_clone: "ls /*"},
-                ),
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=["fedora-32-x86_64"]),
-                    actions={ActionName.post_upstream_clone: 'bash -c "ls /*"'},
-                ),
-            ],
-            id="multiple_copr_builds_for_pr",
+            {CoprBuildHandler},
+            id="config=copr_build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            "&packit_build",
         ),
         pytest.param(
-            PagurePullRequestCommentCoprBuildHandler,
-            flexmock(
-                trigger=TheJobTriggerType.pull_request,
-                db_trigger=flexmock(
-                    job_config_trigger_type=JobConfigTriggerType.pull_request
+            PullRequestCommentGithubEvent,
+            "/packit copr-build",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
                 ),
-            ),
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
-            id="pagure_pr_copr_build_comment_when_tests_defined",
+            ],
+            {CoprBuildHandler},
+            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            "&packit_copr-build",
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            "/packit build",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=test_for_pr&pull_request&PullRequestCommentGithubEvent"
+            "&packit_build",
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            "/packit test",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {TestingFarmHandler},
+            id="config=test_for_pr&pull_request&PullRequestCommentGithubEvent"
+            "&packit_test",
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            "/packit production-build",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {KojiBuildHandler},
+            id="config=production_build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            "&packit_production-build",
         ),
     ],
 )
-def test_get_config_for_handler_kls(handler_kls, event, jobs, result_job_config):
+def test_get_handlers_for_comment_event(event_cls, comment, db_trigger, jobs, result):
+    # We are using isinstance for matching event to handlers
+    # and flexmock can't do this for us so we need a subclass to test it.
+    # (And real event classes have a lot of __init__ arguments.)
+    class Event(event_cls):
+        def __init__(self):
+            self.comment = comment
+
+        @property
+        def db_trigger(self):
+            return db_trigger
+
+    event = Event()
+
+    event_handlers = set(
+        get_handlers_for_event(
+            event=event,
+            package_config=flexmock(jobs=jobs),
+        )
+    )
+    assert event_handlers == result
+
+
+@pytest.mark.parametrize(
+    "handler_kls,event_cls,db_trigger,jobs,result_job_config",
+    [
+        # Basic copr build:
+        pytest.param(
+            CoprBuildHandler,
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            [JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request)],
+            id="build_for_pr&CoprBuildHandler&PullRequestGithubEvent",
+        ),
+        pytest.param(
+            CoprBuildStartHandler,
+            CoprBuildStartEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            [JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request)],
+            id="build_for_pr&CoprBuildStartHandler&CoprBuildStartEvent",
+        ),
+        pytest.param(
+            CoprBuildEndHandler,
+            CoprBuildEndEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            [JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request)],
+            id="build_for_pr&CoprBuildEndHandler&CoprBuildEndEvent",
+        ),
+        # Test only for pr:
+        pytest.param(
+            CoprBuildHandler,
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
+            id="tests_for_pr&CoprBuildHandler&PullRequestGithubEvent",
+        ),
+        # Both test and build for pr:
+        pytest.param(
+            CoprBuildHandler,
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            [JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request)],
+            id="build_for_pr+tests_for_pr&CoprBuildHandler&PullRequestGithubEvent",
+        ),
+        pytest.param(
+            CoprBuildHandler,
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                # Reverse order:
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            [JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request)],
+            id="test_for_pr+build_for_pr&CoprBuildHandler&PullRequestGithubEvent",
+        ),
+        # Multiple builds for pr:
+        pytest.param(
+            CoprBuildHandler,
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+            ],
+            id="build_for_pr_twice&CoprBuildHandler&PullRequestGithubEvent",
+        ),
+        # Multiple triggers for build:
+        pytest.param(
+            CoprBuildHandler,
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+            ],
+            id="build_for_pr+build_for_commit+build_for_release"
+            "&CoprBuildHandler&PullRequestGithubEvent",
+        ),
+        pytest.param(
+            CoprBuildHandler,
+            PushGitHubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+            ],
+            id="build_for_pr+build_for_commit+build_for_release"
+            "&CoprBuildHandler&PushGitHubEvent",
+        ),
+        pytest.param(
+            CoprBuildHandler,
+            ReleaseEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            id="build_for_pr+build_for_commit+build_for_release"
+            "&CoprBuildHandler&ReleaseEvent",
+        ),
+        # Build for commit and release, test for pr
+        pytest.param(
+            CoprBuildHandler,
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+            ],
+            id="tests_for_pr+build_for_commit+build_for_release"
+            "&CoprBuildHandler&PullRequestGithubEvent",
+        ),
+        pytest.param(
+            CoprBuildHandler,
+            PushGitHubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+            ],
+            id="tests_for_pr+build_for_commit+build_for_release"
+            "&CoprBuildHandler&PushGitHubEvent",
+        ),
+        pytest.param(
+            CoprBuildHandler,
+            ReleaseEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            id="tests_for_pr+build_for_commit+build_for_release"
+            "&CoprBuildHandler&ReleaseEvent",
+        ),
+        pytest.param(
+            CoprBuildStartHandler,
+            CoprBuildStartEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+            ],
+            id="tests_for_pr+build_for_commit+build_for_release"
+            "&CoprBuildStartHandler&CoprBuildStartEvent",
+        ),
+        pytest.param(
+            CoprBuildEndHandler,
+            CoprBuildEndEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+            ],
+            id="tests_for_pr+build_for_commit+build_for_release"
+            "&CoprBuildEndHandler&CoprBuildEndEvent",
+        ),
+        pytest.param(
+            TestingFarmResultsHandler,
+            TestingFarmResultsEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+            ],
+            id="tests_for_pr+build_for_commit+build_for_release"
+            "&TestingFarmResultsHandler&TestingFarmResultsEvent",
+        ),
+        # Build for pr, commit and release, test for pr
+        pytest.param(
+            CoprBuildHandler,
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project0"),
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project0"),
+                ),
+            ],
+            id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"
+            "&CoprBuildHandler&PullRequestGithubEvent",
+        ),
+        pytest.param(
+            CoprBuildHandler,
+            PushGitHubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project0"),
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+            ],
+            id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"
+            "&CoprBuildHandler&PushGitHubEvent",
+        ),
+        pytest.param(
+            CoprBuildHandler,
+            ReleaseEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project0"),
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"
+            "&CoprBuildHandler&ReleaseEvent",
+        ),
+        pytest.param(
+            CoprBuildStartHandler,
+            CoprBuildStartEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project0"),
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project0"),
+                ),
+            ],
+            id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"
+            "&CoprBuildStartHandler&CoprBuildStartEvent",
+        ),
+        pytest.param(
+            CoprBuildEndHandler,
+            CoprBuildEndEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project0"),
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project0"),
+                ),
+            ],
+            id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"
+            "&CoprBuildEndHandler&CoprBuildEndEvent",
+        ),
+        pytest.param(
+            TestingFarmResultsHandler,
+            TestingFarmResultsEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project0"),
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                    metadata=JobMetadataConfig(project="project2"),
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(project="project3"),
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(project="project1"),
+                ),
+            ],
+            id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"
+            "&TestingFarmResultsHandler&TestingFarmResultsEvent",
+        ),
+        # copr build and koji build:
+        pytest.param(
+            CoprBuildHandler,
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            [JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request)],
+            id="build_for_pr+production_build_for_pr&CoprBuildHandler&PullRequestGithubEvent",
+        ),
+        pytest.param(
+            KojiBuildHandler,
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            id="build_for_pr+production_build_for_pr&KojiBuildHandler&PullRequestGithubEvent",
+        ),
+        pytest.param(
+            KojiBuildReportHandler,
+            KojiBuildEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            id="build_for_pr+production_build_for_pr&KojiBuildReportHandler&KojiBuildEvent",
+        ),
+        # comments:
+        pytest.param(
+            CoprBuildHandler,
+            PullRequestCommentGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            [JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request)],
+            id="build_for_pr&CoprBuildHandler&PullRequestCommentGithubEvent",
+        ),
+        pytest.param(
+            CoprBuildHandler,
+            MergeRequestCommentGitlabEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            [JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request)],
+            id="build_for_pr&CoprBuildHandler&MergeRequestCommentGitlabEvent",
+        ),
+        pytest.param(
+            CoprBuildHandler,
+            PullRequestCommentPagureEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            [JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request)],
+            id="build_for_pr&CoprBuildHandler&PullRequestCommentPagureEvent",
+        ),
+        # Build comment for test defined:
+        pytest.param(
+            CoprBuildHandler,
+            PullRequestCommentGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
+            id="tests_for_pr&CoprBuildHandler&PullRequestCommentGithubEvent",
+        ),
+        # Testing farm on comment:
+        pytest.param(
+            TestingFarmHandler,
+            PullRequestCommentGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
+            id="tests_for_pr&TestingFarmHandler&PullRequestCommentGithubEvent",
+        ),
+        # Propose update retrigger:
+        pytest.param(
+            ProposeDownstreamHandler,
+            IssueCommentEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            [
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                )
+            ],
+            [
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                )
+            ],
+            id="propose_downstream_for_release&TestingFarmHandler&PullRequestCommentGithubEvent",
+        ),
+    ],
+)
+def test_get_config_for_handler_kls(
+    handler_kls: Type[JobHandler], event_cls, db_trigger, jobs, result_job_config
+):
+    class Event(event_cls):  # type: ignore
+        def __init__(self):
+            pass
+
+        @property
+        def db_trigger(self):
+            return db_trigger
+
+    event = Event()
+
     job_config = get_config_for_handler_kls(
         handler_kls=handler_kls,
         event=event,

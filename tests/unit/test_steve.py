@@ -37,6 +37,7 @@ from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.service.db_triggers import AddReleaseDbTrigger
+from packit_service.service.events import PushGitHubEvent
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
 from packit_service.worker.tasks import run_propose_downstream_handler
@@ -95,16 +96,17 @@ def test_process_message(event, private, enabled_private_namespaces, success):
 
     processing_results = SteveJobs().process_message(event)
     if not success:
-        assert processing_results is None
+        assert processing_results == []
         return
 
-    assert processing_results["details"]["event"]["trigger"] == "release"
-    event_dict, package_config, job = get_parameters_from_results(processing_results)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
 
     results = run_propose_downstream_handler(
         package_config=package_config,
         event=event_dict,
-        job_config=job,
+        job_config=job_config,
     )
     assert "propose_downstream" in next(iter(results["job"]))
     assert first_dict_value(results["job"])["success"]
@@ -121,7 +123,11 @@ def test_ignore_delete_branch(github_push):
         GithubProject,
         is_private=lambda: False,
     )
+    # Only because of the JobResults.
+    flexmock(PushGitHubEvent).should_receive("package_config").and_return(None)
+
     processing_results = SteveJobs().process_message(github_push)
 
-    assert processing_results["push"]["success"]
-    assert "deleting a branch" in processing_results["push"]["details"]["msg"]
+    assert len(processing_results) == 1
+    assert processing_results[0]["success"]
+    assert "deleting a branch" in processing_results[0]["details"]["msg"]

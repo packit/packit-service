@@ -25,16 +25,16 @@ Flask views for packit-service
 """
 from typing import Union
 
-from flask import Blueprint, render_template, redirect, url_for
+from flask import Blueprint, redirect, render_template, url_for
 
 from packit_service.log_versions import log_service_versions
 from packit_service.models import (
     CoprBuildModel,
-    SRPMBuildModel,
-    PullRequestModel,
     GitBranchModel,
-    ProjectReleaseModel,
     KojiBuildModel,
+    ProjectReleaseModel,
+    PullRequestModel,
+    SRPMBuildModel,
 )
 from packit_service.utils import pretty_time
 

@@ -24,10 +24,10 @@ import hashlib
 import logging
 from typing import Optional, Union
 
-import gitlab
 import github
+import gitlab
 
-from ogr.abstract import GitProject, CommitStatus
+from ogr.abstract import CommitStatus, GitProject
 from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
 

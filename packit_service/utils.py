@@ -24,8 +24,7 @@ from datetime import datetime
 from typing import Optional
 
 from packit.config import JobConfig, PackageConfig
-
-from packit.schema import PackageConfigSchema, JobConfigSchema
+from packit.schema import JobConfigSchema, PackageConfigSchema
 
 logger = logging.getLogger(__name__)
 

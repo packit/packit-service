@@ -30,7 +30,7 @@ from collections import defaultdict
 from datetime import datetime
 from os import getenv
 from pathlib import Path
-from typing import Dict, Optional, Type, List, Set
+from typing import Dict, Optional, Set, Type
 
 from celery import signature
 from celery.canvas import Signature
@@ -40,56 +40,76 @@ from packit.api import PackitAPI
 from packit.config import JobConfig, JobType, PackageConfig
 from packit.constants import DATETIME_FORMAT
 from packit.local_project import LocalProject
-
 from packit_service.config import ServiceConfig
 from packit_service.models import (
     AbstractTriggerDbType,
-    PullRequestModel,
-    IssueModel,
-    ProjectReleaseModel,
-    GitBranchModel,
 )
 from packit_service.sentry_integration import push_scope_to_sentry
-from packit_service.service.events import TheJobTriggerType, EventData, Event
+from packit_service.service.events import Event, EventData
+from packit_service.utils import dump_job_config, dump_package_config
 from packit_service.worker.result import TaskResults
-from packit_service.utils import dump_package_config, dump_job_config
 
 logger = logging.getLogger(__name__)
 
-MAP_REQUIRED_JOB_TO_HANDLERS: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(set)
-
-MAP_EVENT_TRIGGER_TO_HANDLERS: Dict[
-    TheJobTriggerType, Set[Type["JobHandler"]]
+MAP_JOB_TYPE_TO_HANDLER: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(set)
+MAP_REQUIRED_JOB_TYPE_TO_HANDLER: Dict[JobType, Set[Type["JobHandler"]]] = defaultdict(
+    set
+)
+SUPPORTED_EVENTS_FOR_HANDLER: Dict[
+    Type["JobHandler"], Set[Type["Event"]]
 ] = defaultdict(set)
-
-MAP_HANDLER_TO_JOB_TYPES: Dict[Type["Handler"], Set[JobType]] = defaultdict(set)
-
-
-def required_by(job_type: JobType):
-    """
-    [class decorator]
-    Set when you need to run for some job even if this one is not configured.
-
-    (e.g. we want to run build for test even if only the test is defined)
-    """
-
-    def _add_to_mapping(kls: Type["JobHandler"]):
-        MAP_REQUIRED_JOB_TO_HANDLERS[job_type].add(kls)
-        return kls
-
-    return _add_to_mapping
+MAP_COMMENT_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
 
 
-def use_for(job_type: JobType):
+def configured_as(job_type: JobType):
     """
     [class decorator]
     Specify a job type for which we want to use this handler.
     """
 
     def _add_to_mapping(kls: Type["JobHandler"]):
-        for trigger in kls.triggers:
-            MAP_EVENT_TRIGGER_TO_HANDLERS[trigger].add(kls)
-        MAP_HANDLER_TO_JOB_TYPES[kls].add(job_type)
+        MAP_JOB_TYPE_TO_HANDLER[job_type].add(kls)
+        return kls
+
+    return _add_to_mapping
+
+
+def required_for(job_type: JobType):
+    """
+    [class decorator]
+    Specify a job type for which we want to use this handler.
+    """
+
+    def _add_to_mapping(kls: Type["JobHandler"]):
+        MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job_type].add(kls)
+        return kls
+
+    return _add_to_mapping
+
+
+def reacts_to(event: Type["Event"]):
+    """
+    [class decorator]
+    Specify an eventr for which we want to use this handler.
+    Matching is done via isinstance so you can you some abstract class as well.
+    """
+
+    def _add_to_mapping(kls: Type["JobHandler"]):
+        SUPPORTED_EVENTS_FOR_HANDLER[kls].add(event)
+        return kls
+
+    return _add_to_mapping
+
+
+def run_for_comment(command: str):
+    """
+    [class decorator]
+    Specify a command for which we want to run a handler.
+    e.g. for `/packit command` we need to add `command`
+    """
+
+    def _add_to_mapping(kls: Type["JobHandler"]):
+        MAP_COMMENT_TO_HANDLER[command].add(kls)
         return kls
 
     return _add_to_mapping
@@ -98,27 +118,19 @@ def use_for(job_type: JobType):
 class TaskName(str, enum.Enum):
     copr_build_start = "task.run_copr_build_start_handler"
     copr_build_end = "task.run_copr_build_end_handler"
-    release_copr_build = "task.run_release_copr_build_handler"
-    pr_copr_build = "task.run_pr_copr_build_handler"
-    pr_comment_copr_build = "task.run_pr_comment_copr_build_handler"
-    push_copr_build = "task.run_push_copr_build_handler"
+    copr_build = "task.run_copr_build_handler"
     installation = "task.run_installation_handler"
     testing_farm = "task.run_testing_farm_handler"
-    testing_farm_comment = "task.run_testing_farm_comment_handler"
     testing_farm_results = "task.run_testing_farm_results_handler"
     propose_update_comment = "task.run_propose_update_comment_handler"
     propose_downstream = "task.run_propose_downstream_handler"
-    release_koji_build = "task.run_release_koji_build_handler"
-    pr_koji_build = "task.run_pr_koji_build_handler"
-    push_koji_build = "task.run_push_koji_build_handler"
+    koji_build = "task.run_koji_build_handler"
     distgit_commit = "task.run_distgit_commit_handler"
-    pagure_pr_comment_copr_build = "task.run_pagure_pr_comment_copr_build_handler"
     pagure_pr_label = "task.run_pagure_pr_label_handler"
     koji_build_report = "task.run_koji_build_report_handler"
 
 
 class Handler:
-    triggers: List[TheJobTriggerType]
     api: Optional[PackitAPI] = None
     local_project: Optional[LocalProject] = None
     _service_config: Optional[ServiceConfig] = None
@@ -199,8 +211,6 @@ class Handler:
 class JobHandler(Handler):
     """ Generic interface to handle different type of inputs """
 
-    type: JobType
-    triggers: List[TheJobTriggerType]
     task_name: TaskName
 
     def __init__(
@@ -220,27 +230,16 @@ class JobHandler(Handler):
         self._clean_workplace()
 
     @property
-    def db_trigger(self):
-        if not self._db_trigger and self.data.trigger_id is not None:
-            if self.data.trigger in (
-                TheJobTriggerType.pull_request,
-                TheJobTriggerType.pr_comment,
-                TheJobTriggerType.pr_label,
-            ):
-                self._db_trigger = PullRequestModel.get_by_id(self.data.trigger_id)
-            elif self.data.trigger == TheJobTriggerType.issue_comment:
-                self._db_trigger = IssueModel.get_by_id(self.data.trigger_id)
-            elif self.data.trigger == TheJobTriggerType.release:
-                self._db_trigger = ProjectReleaseModel.get_by_id(self.data.trigger_id)
-            elif self.data.trigger == TheJobTriggerType.push:
-                self._db_trigger = GitBranchModel.get_by_id(self.data.trigger_id)
-        return self._db_trigger
-
-    @property
     def project(self) -> Optional[GitProject]:
         if not self._project and self.data.project_url:
             self._project = self.service_config.get_project(url=self.data.project_url)
         return self._project
+
+    @classmethod
+    def get_all_subclasses(cls) -> Set[Type["JobHandler"]]:
+        return set(cls.__subclasses__()).union(
+            [s for c in cls.__subclasses__() for s in c.get_all_subclasses()]
+        )
 
     def run_job(self):
         """

@@ -21,25 +21,24 @@
 # SOFTWARE.
 import logging
 from re import search
-from typing import Optional, Tuple, Dict, Set
+from typing import Dict, Optional, Set, Tuple
 
 from ogr.abstract import CommitStatus, GitProject
-from packit.config import JobType, JobConfig
-from packit.config.aliases import get_koji_targets, get_all_koji_targets
+from packit.config import JobConfig, JobType
+from packit.config.aliases import get_all_koji_targets, get_koji_targets
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitCommandFailedError
-
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
-from packit_service.constants import MSG_RETRIGGER, KOJI_PRODUCTION_BUILDS_ISSUE
+from packit_service.constants import KOJI_PRODUCTION_BUILDS_ISSUE, MSG_RETRIGGER
 from packit_service.models import KojiBuildModel
+from packit_service.service.events import EventData
 from packit_service.service.urls import (
-    get_srpm_log_url_from_flask,
     get_koji_build_info_url_from_flask,
+    get_srpm_log_url_from_flask,
 )
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.result import TaskResults
-from packit_service.service.events import EventData
 
 logger = logging.getLogger(__name__)
 
