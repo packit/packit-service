@@ -46,9 +46,9 @@ from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_resu
 
 
 @pytest.fixture(scope="module")
-def issue_comment_propose_update_event():
+def issue_comment_propose_downstream_event():
     return json.loads(
-        (DATA_DIR / "webhooks" / "github" / "issue_propose_update.json").read_text()
+        (DATA_DIR / "webhooks" / "github" / "issue_propose_downstream.json").read_text()
     )
 
 
@@ -91,8 +91,8 @@ def mock_issue_comment_functionality():
     flexmock(Whitelist, check_and_report=True)
 
 
-def test_issue_comment_propose_update_handler(
-    mock_issue_comment_functionality, issue_comment_propose_update_event
+def test_issue_comment_propose_downstream_handler(
+    mock_issue_comment_functionality, issue_comment_propose_downstream_event
 ):
     flexmock(PackitAPI).should_receive("sync_release").and_return(
         PullRequest(
@@ -120,7 +120,9 @@ def test_issue_comment_propose_update_handler(
     )
     flexmock(Signature).should_receive("apply_async").once()
 
-    processing_results = SteveJobs().process_message(issue_comment_propose_update_event)
+    processing_results = SteveJobs().process_message(
+        issue_comment_propose_downstream_event
+    )
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
