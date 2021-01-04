@@ -43,7 +43,7 @@
     - name: Install pip deps
       pip:
         name:
-          - git+https://github.com/packit/sandcastle.git
+          - git+https://github.com/packit/sandcastle.git@{{ source_branch }}
           - sentry-sdk
         executable: pip3
     # --no-deps: to fail instead of installing from PyPI when we forget to add some dependency to packit.spec
@@ -55,5 +55,5 @@
           - git+https://github.com/packit/ogr.git
         executable: pip3
         extra_args: --no-deps
-    - name: Chek if all pip packages have all dependencies installed
+    - name: Check if all pip packages have all dependencies installed
       command: pip check
