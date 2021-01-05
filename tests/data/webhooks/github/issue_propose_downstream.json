@@ -10,7 +10,7 @@
     "id": 489618683,
     "node_id": "MDU6SXNzdWU0ODk2MTg2ODM=",
     "number": 512,
-    "title": "[DO-NOT-MERGE] testing /packit propose-update",
+    "title": "[DO-NOT-MERGE] testing /packit propose-downstream",
     "user": {
       "login": "phracek",
       "id": 3416672,
@@ -73,7 +73,7 @@
     "created_at": "2019-09-05T09:44:31Z",
     "updated_at": "2019-09-05T09:44:31Z",
     "author_association": "CONTRIBUTOR",
-    "body": "/packit propose-update"
+    "body": "/packit propose-downstream"
   },
   "repository": {
     "id": 156365951,

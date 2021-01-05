@@ -99,9 +99,9 @@ class TestEvents:
             return json.load(outfile)
 
     @pytest.fixture()
-    def github_issue_comment_propose_update(self):
+    def github_issue_comment_propose_downstream(self):
         with open(
-            DATA_DIR / "webhooks" / "github" / "issue_propose_update.json"
+            DATA_DIR / "webhooks" / "github" / "issue_propose_downstream.json"
         ) as outfile:
             return json.load(outfile)
 
@@ -446,8 +446,8 @@ class TestEvents:
 
         assert event_object.package_config
 
-    def test_parse_issue_comment(self, github_issue_comment_propose_update):
-        event_object = Parser.parse_event(github_issue_comment_propose_update)
+    def test_parse_issue_comment(self, github_issue_comment_propose_downstream):
+        event_object = Parser.parse_event(github_issue_comment_propose_downstream)
 
         assert isinstance(event_object, IssueCommentEvent)
         assert event_object.action == IssueCommentAction.created
@@ -461,7 +461,7 @@ class TestEvents:
         assert event_object.base_ref == "master"
         assert event_object.project_url == "https://github.com/packit-service/packit"
         assert event_object.user_login == "phracek"
-        assert event_object.comment == "/packit propose-update"
+        assert event_object.comment == "/packit propose-downstream"
 
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit-service/packit"

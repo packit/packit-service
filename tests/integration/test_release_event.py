@@ -206,12 +206,12 @@ def test_dist_git_push_release_handle_all_failed(
         )
         .should_receive("create_issue")
         .with_args(
-            title="[packit] Propose update failed for release 0.3.0",
+            title="[packit] Propose downstream failed for release 0.3.0",
             body="Packit failed on creating pull-requests in dist-git:\n\n"
             "| dist-git branch | error |\n"
             "| --------------- | ----- |\n"
             f"{table_content}\n\n"
-            "You can retrigger the update by adding a comment (`/packit propose-update`)"
+            "You can retrigger the update by adding a comment (`/packit propose-downstream`)"
             " into this issue.\n",
         )
         .once()

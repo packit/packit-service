@@ -28,7 +28,6 @@ import logging
 from typing import Optional
 
 from celery.app.task import Task
-
 from ogr.abstract import CommitStatus, GitProject
 from packit.api import PackitAPI
 from packit.config import (
@@ -39,6 +38,7 @@ from packit.config.aliases import get_branches
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject
+
 from packit_service import sentry_integration
 from packit_service.constants import (
     FAQ_URL_HOW_TO_RETRIGGER,
@@ -144,7 +144,8 @@ class GithubAppInstallationHandler(JobHandler):
 
 
 @configured_as(job_type=JobType.propose_downstream)
-@run_for_comment(command="propose-update")
+@run_for_comment(command="propose-downstream")
+@run_for_comment(command="propose-update")  # deprecated
 @reacts_to(event=ReleaseEvent)
 @reacts_to(event=IssueCommentEvent)
 class ProposeDownstreamHandler(JobHandler):
@@ -204,22 +205,25 @@ class ProposeDownstreamHandler(JobHandler):
                 err_without_new_lines = err.replace("\n", " ")
                 branch_errors += f"| `{branch}` | `{err_without_new_lines}` |\n"
 
+            msg_retrigger = MSG_RETRIGGER.format(
+                job="update", command="propose-downstream", place="issue"
+            )
             body_msg = (
                 f"Packit failed on creating pull-requests in dist-git:\n\n"
                 f"| dist-git branch | error |\n"
                 f"| --------------- | ----- |\n"
                 f"{branch_errors}\n\n"
-                f"{MSG_RETRIGGER.format(job='update', command='propose-update', place='issue')}\n"
+                f"{msg_retrigger}\n"
             )
 
             self.project.create_issue(
-                title=f"[packit] Propose update failed for release {self.data.tag_name}",
+                title=f"[packit] Propose downstream failed for release {self.data.tag_name}",
                 body=body_msg,
             )
 
             return TaskResults(
                 success=False,
-                details={"msg": "Propose update failed.", "errors": errors},
+                details={"msg": "Propose downstream failed.", "errors": errors},
             )
 
         return TaskResults(success=True, details={})
