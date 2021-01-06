@@ -64,7 +64,27 @@ MAP_COMMENT_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
 def configured_as(job_type: JobType):
     """
     [class decorator]
-    Specify a job type for which we want to use this handler.
+    Specify a job_type which we want to use this handler for.
+    In other words, what job-config in the configuration file
+    is compatible with this handler.
+
+    Example:
+    ```
+    @configured_as(job_type=JobType.propose_downstream)
+    class ProposeDownstreamHandler(JobHandler):
+    ```
+
+    Multiple handlers can match one job_type.
+    (e.g. CoprBuildHandler and CoprBuildEndHandler both uses copr_build)
+    The handler needs to match the event type by using @reacts_to decorator.
+
+    Multiple decorators can be applied.
+    E.g. CoprBuildHandler uses both copr_build and build:
+    ```
+    @configured_as(job_type=JobType.copr_build)
+    @configured_as(job_type=JobType.build)
+    class CoprBuildHandler(JobHandler):
+    ```
     """
 
     def _add_to_mapping(kls: Type["JobHandler"]):
@@ -77,7 +97,25 @@ def configured_as(job_type: JobType):
 def required_for(job_type: JobType):
     """
     [class decorator]
-    Specify a job type for which we want to use this handler.
+    Specify a job_type for which this handler is the prerequisite.
+    E.g. for test, we need to run build first.
+
+    If there is a matching job_type defined by @configured_as,
+    we don't use the decorated handler with the job-config using this job_type.
+    If there is none, we use the job-config with this job_type.
+
+    Example:
+        - When there is a build and test defined, we run build only once
+          with the build job-config.
+        - When there is only test defined,
+          we run build with the test job-configuration.
+
+    ```
+    @configured_as(job_type=JobType.copr_build)
+    @configured_as(job_type=JobType.build)
+    @required_for(job_type=JobType.tests)
+    class CoprBuildHandler(JobHandler):
+    ```
     """
 
     def _add_to_mapping(kls: Type["JobHandler"]):
@@ -90,8 +128,18 @@ def required_for(job_type: JobType):
 def reacts_to(event: Type["Event"]):
     """
     [class decorator]
-    Specify an eventr for which we want to use this handler.
-    Matching is done via isinstance so you can you some abstract class as well.
+    Specify an event for which we want to use this handler.
+    Matching is done via isinstance so you can use some abstract class as well.
+
+    Multiple decorators are allowed.
+
+    Example:
+    ```
+    @reacts_to(ReleaseEvent)
+    @reacts_to(PullRequestGithubEvent)
+    @reacts_to(PushGitHubEvent)
+    class CoprBuildHandler(JobHandler):
+    ```
     """
 
     def _add_to_mapping(kls: Type["JobHandler"]):
@@ -106,6 +154,21 @@ def run_for_comment(command: str):
     [class decorator]
     Specify a command for which we want to run a handler.
     e.g. for `/packit command` we need to add `command`
+
+    Multiple decorators are allowed.
+
+    Don't forget to specify valid comment events
+    using @reacts_to decorator.
+
+    Example:
+    ```
+    @configured_as(job_type=JobType.propose_downstream)
+    @run_for_comment(command="propose-downstream")
+    @run_for_comment(command="propose-update")
+    @reacts_to(event=ReleaseEvent)
+    @reacts_to(event=IssueCommentEvent)
+    class ProposeDownstreamHandler(JobHandler):
+    ```
     """
 
     def _add_to_mapping(kls: Type["JobHandler"]):
