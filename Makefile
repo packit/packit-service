@@ -1,7 +1,7 @@
 BASE_IMAGE ?= docker.io/usercont/base
 SERVICE_IMAGE ?= docker.io/usercont/packit-service:dev
-WORKER_IMAGE ?= docker.io/usercont/packit-service-worker:dev
-WORKER_IMAGE_PROD ?= docker.io/usercont/packit-service-worker:prod
+WORKER_IMAGE ?= docker.io/usercont/packit-worker:dev
+WORKER_IMAGE_PROD ?= docker.io/usercont/packit-worker:prod
 TEST_IMAGE ?= packit-service-tests
 TEST_TARGET ?= ./tests/unit ./tests/integration/
 CONTAINER_ENGINE ?= $(shell command -v podman 2> /dev/null || echo docker)

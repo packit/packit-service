@@ -50,7 +50,7 @@ services:
       dockerfile: files/docker/Dockerfile.worker
       args:
         SOURCE_BRANCH: master
-    image: docker.io/usercont/packit-service-worker:dev
+    image: docker.io/usercont/packit-worker:dev
     command: /usr/bin/run_worker.sh
     #tty: true
     depends_on:
