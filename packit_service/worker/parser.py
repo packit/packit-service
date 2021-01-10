@@ -321,6 +321,11 @@ class Parser:
 
         if not (raw_ref and commits and before and pusher):
             return None
+        elif event.get("after").startswith("0000000"):
+            logger.info(
+                f"GitLab push event on '{raw_ref}' by {pusher} to delete branch"
+            )
+            return None
 
         number_of_commits = event.get("total_commits_count")
 
@@ -382,6 +387,11 @@ class Parser:
         )
 
         if not (raw_ref and head_commit and before and pusher):
+            return None
+        elif event.get("deleted"):
+            logger.info(
+                f"GitHub push event on '{raw_ref}' by {pusher} to delete branch"
+            )
             return None
 
         number_of_commits = event.get("size")

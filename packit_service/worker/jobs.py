@@ -41,9 +41,6 @@ from packit_service.service.events import (
     PullRequestCommentGithubEvent,
     PullRequestCommentPagureEvent,
     PullRequestLabelPagureEvent,
-    PushGitHubEvent,
-    PushGitlabEvent,
-    PushPagureEvent,
 )
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
@@ -232,18 +229,6 @@ class SteveJobs:
         """
         Create a Celery task for a job handler (if trigger matches) for every job defined in config.
         """
-
-        if isinstance(
-            event, (PushGitHubEvent, PushGitlabEvent, PushPagureEvent)
-        ) and event.commit_sha.startswith("0000000"):
-            return [
-                TaskResults.create_from(
-                    success=True,
-                    msg="Triggered by deleting a branch",
-                    job_config=None,
-                    event=event,
-                )
-            ]
 
         if not event.package_config:
             # this happens when service receives events for repos which don't have packit config

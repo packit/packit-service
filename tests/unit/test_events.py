@@ -517,18 +517,20 @@ class TestEvents:
         ).once()
         assert event_object.package_config
 
-    def test_parse_github_push(self, github_push):
-        event_object = Parser.parse_event(github_push)
+    def test_parse_github_push(self, github_push_branch):
+        event_object = Parser.parse_event(github_push_branch)
 
         assert isinstance(event_object, PushGitHubEvent)
-        assert event_object.repo_namespace == "some-user"
-        assert event_object.repo_name == "some-repo"
-        assert event_object.commit_sha == "0000000000000000000000000000000000000000"
-        assert event_object.project_url == "https://github.com/some-user/some-repo"
-        assert event_object.git_ref == "simple-tag"
+        assert event_object.repo_namespace == "packit-service"
+        assert event_object.repo_name == "hello-world"
+        assert event_object.commit_sha == "04885ff850b0fa0e206cd09db73565703d48f99b"
+        assert (
+            event_object.project_url == "https://github.com/packit-service/hello-world"
+        )
+        assert event_object.git_ref == "build-branch"
 
         assert isinstance(event_object.project, GithubProject)
-        assert event_object.project.full_repo_name == "some-user/some-repo"
+        assert event_object.project.full_repo_name == "packit-service/hello-world"
         assert not event_object.base_project
 
         flexmock(PackageConfigGetter).should_receive(
@@ -537,7 +539,7 @@ class TestEvents:
             base_project=event_object.base_project,
             project=event_object.project,
             pr_id=None,
-            reference="0000000000000000000000000000000000000000",
+            reference="04885ff850b0fa0e206cd09db73565703d48f99b",
             fail_when_missing=False,
             spec_file_path=None,
         ).and_return(
