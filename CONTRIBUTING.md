@@ -356,7 +356,7 @@ and two projects are created:
 Using project "myproject".
 ```
 
-Both images `packit-service` and `packit-service-worker` are built from source of current PR and deployed into the Openshift cluster using:
+Both images `packit-service` and `packit-worker` are built from source of current PR and deployed into the Openshift cluster using:
 
 ```
 $ DEPLOYMENT=dev make deploy
