@@ -30,8 +30,9 @@ e.g.
 - arg `--build-arg SOURCE_BRANCH=value` when using docker(-compose) build
 
 e.g.
-`docker build --build-arg SOURCE_BRANCH=stable`
-`docker-compose build --build-arg SOURCE_BRANCH=stable`
+
+    docker build --build-arg SOURCE_BRANCH=stable
+    docker-compose build --build-arg SOURCE_BRANCH=stable
 
 If SOURCE_BRANCH is empty build will fail.
 If SOURCE_BRANCH is not empty and is not master or stable than master value will be used.
@@ -63,26 +64,20 @@ server_name: "dev.packit.dev:8443"
 
 and `/etc/hosts` (replace `172.18.0.5` with actual IP address from `packit-service` logs):
 
-```
-172.18.0.5  dev.packit.dev
-```
+    172.18.0.5  dev.packit.dev
 
 With these you should be able to make requests:
 
-```
-$ curl -k --head https://dev.packit.dev:8443/api/
-HTTP/1.1 200 OK
-Date: Fri, 10 Apr 2020 10:12:42 GMT
-Server: Apache/2.4.43 (Fedora) OpenSSL/1.1.1d mod_wsgi/4.6.6 Python/3.7
-Content-Length: 3851
-Content-Type: text/html; charset=utf-8
-```
+    $ curl -k --head https://dev.packit.dev:8443/api/
+    HTTP/1.1 200 OK
+    Date: Fri, 10 Apr 2020 10:12:42 GMT
+    Server: Apache/2.4.43 (Fedora) OpenSSL/1.1.1d mod_wsgi/4.6.6 Python/3.7
+    Content-Length: 3851
+    Content-Type: text/html; charset=utf-8
 
 Proof:
 
-```
-packit-service           | 172.18.0.1 - - [10/Apr/2020:10:22:35 +0000] "HEAD /api/ HTTP/1.1" 200 -
-```
+    packit-service           | 172.18.0.1 - - [10/Apr/2020:10:22:35 +0000] "HEAD /api/ HTTP/1.1" 200 -
 
 ## Generating GitHub webhooks
 
@@ -91,16 +86,14 @@ It is able to create a minimal json with the webhook payload and send it to
 p-s instance of your choice (the default is `dev.packit.dev:8443`).
 Pull request changes are only supported right now. For more info:
 
-```
-$ python3 files/scripts/webhook.py --help
-Usage: webhook.py [OPTIONS] <NAMESPACE/PROJECT>
+    $ python3 files/scripts/webhook.py --help
+    Usage: webhook.py [OPTIONS] <NAMESPACE/PROJECT>
 
-Options:
-  --hostname TEXT      Hostname of packit-service where we should connect.
-  --github-token TEXT  GitHub token so we can reach the api.
-  --pr INTEGER         ID of the pull request.
-  --help               Show this message and exit.
-```
+    Options:
+    --hostname TEXT      Hostname of packit-service where we should connect.
+    --github-token TEXT  GitHub token so we can reach the api.
+    --pr INTEGER         ID of the pull request.
+    --help               Show this message and exit.
 
 ## Database
 
@@ -111,11 +104,9 @@ the project which handles migrations and schema versioning for SQLAlchemy.
 
 To generate a migration script for your recent change you can do:
 
-```
-$ docker-compose up service
-$ docker exec -ti service bash -c 'cd /src/; alembic revision -m "My change" --autogenerate'
-$ docker cp service:/src/alembic/versions/123456789abc_my_change.py .
-```
+    $ docker-compose up service
+    $ docker exec -ti service bash -c 'cd /src/; alembic revision -m "My change" --autogenerate'
+    $ docker cp service:/src/alembic/versions/123456789abc_my_change.py .
 
 The `alembic upgrade head` is run in [run_httpd.sh](files/run_httpd.sh)
 during (packit-)service pod/container start.
@@ -124,60 +115,46 @@ during (packit-)service pod/container start.
 
 Get shell inside the container (or pod). E.g. with docker-compose:
 
-```
-$ docker-compose exec -ti postgres bash
-bash-4.2$
-```
+    $ docker-compose exec -ti postgres bash
+    bash-4.2$
 
 Invoke psql interactive shell:
 
-```
-bash-4.2$ psql
-psql (10.6)
-Type "help" for help.
+    bash-4.2$ psql
+    psql (10.6)
+    Type "help" for help.
 
-postgres=#
-```
+    postgres=#
 
 Connect to packit database:
 
-```
-postgres=# \connect packit
-You are now connected to database "packit" as user "postgres".
-packit=#
-```
+    postgres=# \connect packit
+    You are now connected to database "packit" as user "postgres".
+    packit=#
 
 Get help
 
-```
-packit=# \?
-```
+    packit=# \?
 
 or
 
-```
-packit=# \h
-```
+    packit=# \h
 
 List tables
 
-```
-packit=# \dt
-             List of relations
- Schema |      Name       | Type  | Owner
---------+-----------------+-------+--------
- public | alembic_version | table | packit
- public | git_projects    | table | packit
-```
+    packit=# \dt
+                List of relations
+    Schema |      Name       | Type  | Owner
+    --------+-----------------+-------+--------
+    public | alembic_version | table | packit
+    public | git_projects    | table | packit
 
 Look inside a table
 
-```
-packit=# select * from git_projects;
- id | namespace | repo_name
-----+-----------+-----------
-(0 rows)
-```
+    packit=# select * from git_projects;
+    id | namespace | repo_name
+    ----+-----------+-----------
+    (0 rows)
 
 ## Testing
 
@@ -222,19 +199,15 @@ We have multiple test categories within packit-service:
 
 You can run unit and integration tests locally in a container:
 
-```
-docker pull docker.io/usercont/base && \
-make worker && \
-make test_image && \
-make check_in_container
-```
+    docker pull docker.io/usercont/base && \
+    make worker && \
+    make test_image && \
+    make check_in_container
 
 To select a subset of the whole test suite, set `TEST_TARGET`. For example to
 run only the unit tests use:
 
-```
-TEST_TARGET=tests/unit make check_in_container
-```
+    TEST_TARGET=tests/unit make check_in_container
 
 ### Openshift tests using requre
 
@@ -310,57 +283,43 @@ If you want to simulate Zuul environment locally you can do so in the following 
 
 Delete all secrets from OpenShift cluster. This will ensure that no real secrets are used.
 
-```bash
-oc delete secrets --all
-```
+    oc delete secrets --all
 
 Re-build the images:
 
-```
-make service
-make worker
-```
+    make service
+    make worker
 
 Generate and deploy fake secrets (you need to have [deployment repository](https://github.com/packit/deployment) cloned):
 
 **Note: We highly recommend to clone deployment repository to a temporary location since the command below will overwrite secrets stored in deployment/secrets/dev**
 
-```bash
-ansible-playbook --extra-vars="deployment_dir=<PATH_TO_LOCAL_DEPLOYMENT_DIR>" files/deployment.yaml
-```
+    ansible-playbook --extra-vars="deployment_dir=<PATH_TO_LOCAL_DEPLOYMENT_DIR>" files/deployment.yaml
 
 Verify that everything will work also inside zuul. Use the command:
 
-```bash
-make check-inside-openshift-zuul
-```
+    make check-inside-openshift-zuul
 
 ### Running tests in CI
 
 For running E2E tests in CI, an instance of OpenShift cluster is deployed and setup in following way:
 
-```
-The server is accessible via web console at:
-https://127.0.0.1:8443/console
-You are logged in as:
-User:     developer
-Password: <any value>
-```
+    The server is accessible via web console at:
+    https://127.0.0.1:8443/console
+    You are logged in as:
+    User:     developer
+    Password: <any value>
 
 and two projects are created:
 
-```
-* myproject
-  packit-dev-sandbox
+    * myproject
+    packit-dev-sandbox
 
-Using project "myproject".
-```
+    Using project "myproject".
 
 Both images `packit-service` and `packit-worker` are built from source of current PR and deployed into the Openshift cluster using:
 
-```
-$ DEPLOYMENT=dev make deploy
-```
+    DEPLOYMENT=dev make deploy
 
 **Note: All secrets for PR testing are fake(randomly generated), so it is not possible to communicate with real services (e.g github or copr) for PR testing.**
 
