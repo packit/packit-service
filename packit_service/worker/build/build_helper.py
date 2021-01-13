@@ -212,12 +212,12 @@ class BaseBuildJobHelper:
     @property
     def job_build_branch(self) -> Optional[str]:
         """
-        Branch used for the build job or "master".
+        Branch used for the build job or project's default branch.
         """
         if self.job_build and self.job_build.metadata.branch:
             return self.job_build.metadata.branch
 
-        return "master"
+        return self.project.default_branch
 
     @property
     def job_tests(self) -> Optional[JobConfig]:

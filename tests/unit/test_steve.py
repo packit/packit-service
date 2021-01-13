@@ -29,19 +29,19 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
-
 from ogr.services.github import GithubProject
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
+from packit.distgit import DistGit
 from packit.local_project import LocalProject
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.worker.jobs import SteveJobs
-from packit_service.worker.whitelist import Whitelist
 from packit_service.worker.tasks import run_propose_downstream_handler
+from packit_service.worker.whitelist import Whitelist
 from tests.spellbook import first_dict_value, get_parameters_from_results, DATA_DIR
-
 
 EVENT = {
     "action": "published",
@@ -68,9 +68,8 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         "synced_files": [],
         "jobs": [{"trigger": "release", "job": "propose_downstream"}],
     }
-
     flexmock(Github, get_repo=lambda full_name_or_id: None)
-    flexmock(
+    gh_project = flexmock(
         GithubProject,
         get_file_content=lambda path, ref: dumps(packit_yaml),
         full_repo_name="the-namespace/the-repo",
@@ -79,14 +78,20 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
         is_private=lambda: private,
     )
+    gh_project.default_branch = "main"
 
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp.git_project = gh_project
+    flexmock(DistGit).should_receive("local_project").and_return(lp)
+
     config = ServiceConfig(enabled_private_namespaces=enabled_private_namespaces)
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
+
     flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="master", tag="1.2.3"
+        dist_git_branch="main", tag="1.2.3"
     ).times(1 if success else 0)
+
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=1)
     )
