@@ -37,7 +37,6 @@ from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.service.db_triggers import AddReleaseDbTrigger
-from packit_service.service.events import PushGitHubEvent
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.whitelist import Whitelist
 from packit_service.worker.tasks import run_propose_downstream_handler
@@ -123,11 +122,7 @@ def test_ignore_delete_branch(github_push):
         GithubProject,
         is_private=lambda: False,
     )
-    # Only because of the JobResults.
-    flexmock(PushGitHubEvent).should_receive("package_config").and_return(None)
 
     processing_results = SteveJobs().process_message(github_push)
 
-    assert len(processing_results) == 1
-    assert processing_results[0]["success"]
-    assert "deleting a branch" in processing_results[0]["details"]["msg"]
+    assert processing_results == []

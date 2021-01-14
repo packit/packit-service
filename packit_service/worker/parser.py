@@ -102,83 +102,30 @@ class Parser:
             logger.warning("No event to process!")
             return None
 
-        response: Optional[
-            Union[
-                PullRequestGithubEvent,
-                InstallationEvent,
-                ReleaseEvent,
-                DistGitEvent,
-                TestingFarmResultsEvent,
-                PullRequestCommentGithubEvent,
-                IssueCommentEvent,
-                KojiBuildEvent,
-                AbstractCoprBuildEvent,
-                PushGitHubEvent,
-                MergeRequestGitlabEvent,
-                MergeRequestCommentGitlabEvent,
-                IssueCommentGitlabEvent,
-                PushGitlabEvent,
-            ]
-        ] = Parser.parse_pr_event(event)
-        if response:
-            return response
+        for response in map(
+            lambda parser: parser(event),
+            (
+                Parser.parse_pr_event,
+                Parser.parse_pull_request_comment_event,
+                Parser.parse_issue_comment_event,
+                Parser.parse_release_event,
+                Parser.parse_push_event,
+                Parser.parse_installation_event,
+                Parser.parse_distgit_event,
+                Parser.parse_testing_farm_results_event,
+                Parser.parse_copr_event,
+                Parser.parse_mr_event,
+                Parser.parse_koji_event,
+                Parser.parse_merge_request_comment_event,
+                Parser.parse_gitlab_issue_comment_event,
+                Parser.parse_gitlab_push_event,
+            ),
+        ):
+            if response:
+                return response
 
-        response = Parser.parse_pull_request_comment_event(event)
-        if response:
-            return response
-
-        response = Parser.parse_issue_comment_event(event)
-        if response:
-            return response
-
-        response = Parser.parse_release_event(event)
-        if response:
-            return response
-
-        response = Parser.parse_push_event(event)
-        if response:
-            return response
-
-        response = Parser.parse_installation_event(event)
-        if response:
-            return response
-
-        response = Parser.parse_distgit_event(event)
-        if response:
-            return response
-
-        response = Parser.parse_testing_farm_results_event(event)
-        if response:
-            return response
-
-        response = Parser.parse_copr_event(event)
-        if response:
-            return response
-
-        response = Parser.parse_mr_event(event)
-        if response:
-            return response
-
-        response = Parser.parse_koji_event(event)
-        if response:
-            return response
-
-        response = Parser.parse_merge_request_comment_event(event)
-        if response:
-            return response
-
-        response = Parser.parse_gitlab_issue_comment_event(event)
-        if response:
-            return response
-
-        response = Parser.parse_gitlab_push_event(event)
-        if response:
-            return response
-
-        if not response:
-            logger.debug("We don't process this event.")
-
-        return response
+        logger.debug("We don't process this event.")
+        return None
 
     @staticmethod
     def parse_mr_event(event) -> Optional[MergeRequestGitlabEvent]:
@@ -321,6 +268,11 @@ class Parser:
 
         if not (raw_ref and commits and before and pusher):
             return None
+        elif event.get("after").startswith("0000000"):
+            logger.info(
+                f"GitLab push event on '{raw_ref}' by {pusher} to delete branch"
+            )
+            return None
 
         number_of_commits = event.get("total_commits_count")
 
@@ -382,6 +334,11 @@ class Parser:
         )
 
         if not (raw_ref and head_commit and before and pusher):
+            return None
+        elif event.get("deleted"):
+            logger.info(
+                f"GitHub push event on '{raw_ref}' by {pusher} to delete branch"
+            )
             return None
 
         number_of_commits = event.get("size")
