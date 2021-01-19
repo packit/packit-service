@@ -413,8 +413,8 @@ class TestingFarmHandler(JobHandler):
         package_config: PackageConfig,
         job_config: JobConfig,
         data: EventData,
-        chroot: str,
-        build_id: int,
+        chroot: Optional[str] = None,
+        build_id: Optional[int] = None,
     ):
         super().__init__(
             package_config=package_config,
@@ -428,8 +428,13 @@ class TestingFarmHandler(JobHandler):
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         if not self._db_trigger:
-            build = CoprBuildModel.get_by_id(self.build_id)
-            self._db_trigger = build.job_trigger.get_trigger_object()
+            # copr build end
+            if self.build_id:
+                build = CoprBuildModel.get_by_id(self.build_id)
+                self._db_trigger = build.job_trigger.get_trigger_object()
+            # '/packit test' comment
+            else:
+                self._db_trigger = self.data.db_trigger
         return self._db_trigger
 
     def run(self) -> TaskResults:
@@ -443,5 +448,14 @@ class TestingFarmHandler(JobHandler):
             db_trigger=self.db_trigger,
             job_config=self.job_config,
         )
-        logger.info("Running testing farm.")
+
+        if self.data.event_type in (
+            PullRequestCommentGithubEvent.__name__,
+            MergeRequestCommentGitlabEvent.__name__,
+            PullRequestCommentPagureEvent.__name__,
+        ):
+            logger.debug(f"Test job config: {testing_farm_helper.job_tests}")
+            return testing_farm_helper.run_testing_farm_on_all()
+
+        logger.info(f"Running testing farm for {self.chroot}.")
         return testing_farm_helper.run_testing_farm(chroot=self.chroot)
