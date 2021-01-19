@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
-from typing import List
+from typing import List, Optional
 
 from packit_service.celerizer import celery_app
 from packit_service.constants import RETRY_LIMIT
@@ -147,7 +147,11 @@ def run_installation_handler(event: dict, package_config: dict, job_config: dict
 
 @celery_app.task(name=TaskName.testing_farm)
 def run_testing_farm_handler(
-    event: dict, package_config: dict, job_config: dict, chroot: str, build_id: int
+    event: dict,
+    package_config: dict,
+    job_config: dict,
+    chroot: Optional[str] = None,
+    build_id: Optional[int] = None,
 ):
     handler = TestingFarmHandler(
         package_config=load_package_config(package_config),
