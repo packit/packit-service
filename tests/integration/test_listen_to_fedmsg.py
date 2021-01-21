@@ -346,6 +346,7 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
     )
 
 
+@pytest.mark.skip(reason="Testing farm currently disabled")
 def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
@@ -484,6 +485,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     )
 
 
+@pytest.mark.skip(reason="Testing farm currently disabled")
 def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
@@ -607,6 +609,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     )
 
 
+@pytest.mark.skip(reason="Testing farm currently disabled")
 def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(

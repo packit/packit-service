@@ -118,6 +118,17 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
     def run_testing_farm(self, chroot: str) -> TaskResults:
+        # inform users about temporarily disabled testing farm
+        self.report_status_to_test_for_chroot(
+            state=CommitStatus.success,
+            description="Testing farm is temporarily disabled.",
+            chroot=chroot,
+            url="https://github.com/packit/packit-service/issues/803",
+        )
+
+        # do not send the request to the testing farm API
+        return TaskResults(success=True, details={})
+
         if chroot not in self.tests_targets:
             # Leaving here just to be sure that we will discover this situation if it occurs.
             # Currently not possible to trigger this situation.
