@@ -28,6 +28,7 @@ import logging
 from typing import Optional
 
 from celery.app.task import Task
+
 from ogr.abstract import CommitStatus, GitProject
 from packit.api import PackitAPI
 from packit.config import (
@@ -36,9 +37,7 @@ from packit.config import (
 )
 from packit.config.aliases import get_branches
 from packit.config.package_config import PackageConfig
-from packit.exceptions import PackitException
 from packit.local_project import LocalProject
-
 from packit_service import sentry_integration
 from packit_service.constants import (
     FAQ_URL_HOW_TO_RETRIGGER,
@@ -332,20 +331,6 @@ class KojiBuildHandler(JobHandler):
             job_config=job_config,
             data=data,
         )
-
-        if not (
-            self.data.event_type
-            in (
-                PullRequestGithubEvent.__name__,
-                PushGitHubEvent.__name__,
-                ReleaseEvent.__name__,
-            )
-        ):
-            raise PackitException(
-                "Unknown event, only "
-                "PullRequestEvent, ReleaseEvent, and PushGitHubEvent "
-                "are accepted."
-            )
 
         # lazy property
         self._koji_build_helper: Optional[KojiBuildJobHelper] = None
