@@ -178,6 +178,8 @@ class StatusReporter:
                 self.__add_commit_comment_with_status(
                     state, description, check_name, url
                 )
+            if e.response_code not in {400, 403, 404}:
+                raise
         except github.GithubException:
             self.__add_commit_comment_with_status(state, description, check_name, url)
 
