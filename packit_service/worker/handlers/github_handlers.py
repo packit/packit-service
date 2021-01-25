@@ -177,8 +177,9 @@ class ProposeDownstreamHandler(JobHandler):
         self.api = PackitAPI(self.service_config, self.job_config, self.local_project)
 
         errors = {}
+        default_dg_branch = self.api.dg.local_project.git_project.default_branch
         for branch in get_branches(
-            *self.job_config.metadata.dist_git_branches, default="master"
+            *self.job_config.metadata.dist_git_branches, default=default_dg_branch
         ):
             try:
                 self.api.sync_release(dist_git_branch=branch, tag=self.data.tag_name)

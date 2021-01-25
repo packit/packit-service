@@ -150,7 +150,7 @@ class NewDistGitCommitHandler(FedmsgHandler):
             # we use branch on purpose so we get the latest thing
             # TODO: check if rev is HEAD on {branch}, warn then?
             dist_git_branch=self.branch,
-            upstream_branch="master",  # TODO: this should be configurable
+            upstream_branch=None,  # repo's default branch
         )
         return TaskResults(success=True, details={})
 

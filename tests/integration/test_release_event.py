@@ -4,6 +4,7 @@ from celery.canvas import Signature
 from celery.exceptions import Retry
 from flexmock import flexmock
 from github import Github
+from packit.distgit import DistGit
 from rebasehelper.exceptions import RebaseHelperError
 
 from packit.api import PackitAPI
@@ -41,8 +42,12 @@ def test_dist_git_push_release_handle(github_release_webhook):
         get_sha_from_tag=lambda tag_name: "123456",
         get_web_url=lambda: "https://github.com/packit/hello-world",
         is_private=lambda: False,
+        default_branch="main",
     )
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp.git_project = project
+    flexmock(DistGit).should_receive("local_project").and_return(lp)
+
     flexmock(Whitelist, check_and_report=True)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
@@ -50,7 +55,7 @@ def test_dist_git_push_release_handle(github_release_webhook):
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     # it would make sense to make LocalProject offline
     flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="master", tag="0.3.0"
+        dist_git_branch="main", tag="0.3.0"
     ).once()
 
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
@@ -88,6 +93,7 @@ def test_dist_git_push_release_handle_multiple_branches(
         get_sha_from_tag=lambda tag_name: "123456",
         get_web_url=lambda: "https://github.com/packit/hello-world",
         is_private=lambda: False,
+        default_branch="main",
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Whitelist, check_and_report=True)
@@ -139,6 +145,7 @@ def test_dist_git_push_release_handle_one_failed(
             get_sha_from_tag=lambda tag_name: "123456",
             get_web_url=lambda: "https://github.com/packit/hello-world",
             is_private=lambda: False,
+            default_branch="main",
         )
         .should_receive("create_issue")
         .once()
@@ -203,6 +210,7 @@ def test_dist_git_push_release_handle_all_failed(
             get_sha_from_tag=lambda tag_name: "123456",
             get_web_url=lambda: "https://github.com/packit/hello-world",
             is_private=lambda: False,
+            default_branch="main",
         )
         .should_receive("create_issue")
         .with_args(
@@ -217,7 +225,10 @@ def test_dist_git_push_release_handle_all_failed(
         .once()
         .mock()
     )
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp.git_project = project
+    flexmock(DistGit).should_receive("local_project").and_return(lp)
+
     flexmock(Whitelist, check_and_report=True)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
@@ -263,8 +274,13 @@ def test_retry_propose_downstream_task(github_release_webhook):
         get_sha_from_tag=lambda tag_name: "123456",
         get_web_url=lambda: "https://github.com/packit/hello-world",
         is_private=lambda: False,
+        default_branch="main",
     )
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+
+    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp.git_project = project
+    flexmock(DistGit).should_receive("local_project").and_return(lp)
+
     flexmock(Whitelist, check_and_report=True)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
@@ -278,7 +294,7 @@ def test_retry_propose_downstream_task(github_release_webhook):
     flexmock(Signature).should_receive("apply_async").once()
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="master", tag="0.3.0"
+        dist_git_branch="main", tag="0.3.0"
     ).and_raise(RebaseHelperError, "Failed to download file from URL example.com")
     flexmock(Task).should_receive("retry").once().and_raise(Retry)
 
