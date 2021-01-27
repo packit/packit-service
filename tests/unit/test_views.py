@@ -55,6 +55,7 @@ def test_get_logs(client):
     pr.project = project
 
     srpm = SRPMBuildModel()
+    srpm.url = "https://some.random.copr.subdomain.org/my_srpm.srpm"
 
     c = CoprBuildModel()
     c.target = chroot
@@ -86,6 +87,9 @@ def test_get_logs(client):
     assert c.target in resp
     assert "Status: success" in resp
     assert "You can install" in resp
+
+    assert "Download SRPM" in resp
+    assert srpm.url in resp
 
 
 def test_get_srpm_logs(client):
