@@ -23,8 +23,9 @@ import logging
 from typing import List, Optional
 
 from packit_service.celerizer import celery_app
-from packit_service.constants import RETRY_LIMIT
+
 from packit_service.models import TestingFarmResult
+from packit_service.constants import RETRY_LIMIT, RETRY_BACKOFF, EXCEPTIONS
 from packit_service.service.events import (
     AbstractCoprBuildEvent,
     EventData,
@@ -102,7 +103,12 @@ def babysit_copr_build(self, build_id: int):
 
 
 # tasks for running the handlers
-@celery_app.task(name=TaskName.copr_build_start)
+@celery_app.task(
+    name=TaskName.copr_build_start,
+    autoretry_for=EXCEPTIONS,
+    retry_backoff=RETRY_BACKOFF,
+    retry_kwargs={"max_retries": RETRY_LIMIT},
+)
 def run_copr_build_start_handler(event: dict, package_config: dict, job_config: dict):
     handler = CoprBuildStartHandler(
         package_config=load_package_config(package_config),
@@ -113,7 +119,12 @@ def run_copr_build_start_handler(event: dict, package_config: dict, job_config: 
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.copr_build_end)
+@celery_app.task(
+    name=TaskName.copr_build_end,
+    autoretry_for=EXCEPTIONS,
+    retry_backoff=RETRY_BACKOFF,
+    retry_kwargs={"max_retries": RETRY_LIMIT},
+)
 def run_copr_build_end_handler(event: dict, package_config: dict, job_config: dict):
     handler = CoprBuildEndHandler(
         package_config=load_package_config(package_config),
@@ -124,7 +135,12 @@ def run_copr_build_end_handler(event: dict, package_config: dict, job_config: di
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.copr_build)
+@celery_app.task(
+    name=TaskName.copr_build,
+    autoretry_for=EXCEPTIONS,
+    retry_backoff=RETRY_BACKOFF,
+    retry_kwargs={"max_retries": RETRY_LIMIT},
+)
 def run_copr_build_handler(event: dict, package_config: dict, job_config: dict):
     handler = CoprBuildHandler(
         package_config=load_package_config(package_config),
@@ -134,7 +150,12 @@ def run_copr_build_handler(event: dict, package_config: dict, job_config: dict):
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.installation)
+@celery_app.task(
+    name=TaskName.installation,
+    autoretry_for=EXCEPTIONS,
+    retry_backoff=RETRY_BACKOFF,
+    retry_kwargs={"max_retries": RETRY_LIMIT},
+)
 def run_installation_handler(event: dict, package_config: dict, job_config: dict):
     handler = GithubAppInstallationHandler(
         package_config=None,
@@ -145,7 +166,12 @@ def run_installation_handler(event: dict, package_config: dict, job_config: dict
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.testing_farm)
+@celery_app.task(
+    name=TaskName.testing_farm,
+    autoretry_for=EXCEPTIONS,
+    retry_backoff=RETRY_BACKOFF,
+    retry_kwargs={"max_retries": RETRY_LIMIT},
+)
 def run_testing_farm_handler(
     event: dict,
     package_config: dict,
@@ -163,7 +189,12 @@ def run_testing_farm_handler(
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.testing_farm_results)
+@celery_app.task(
+    name=TaskName.testing_farm_results,
+    autoretry_for=EXCEPTIONS,
+    retry_backoff=RETRY_BACKOFF,
+    retry_kwargs={"max_retries": RETRY_LIMIT},
+)
 def run_testing_farm_results_handler(
     event: dict, package_config: dict, job_config: dict
 ):
@@ -181,7 +212,13 @@ def run_testing_farm_results_handler(
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(bind=True, name=TaskName.propose_downstream, max_retries=RETRY_LIMIT)
+@celery_app.task(
+    bind=True,
+    name=TaskName.propose_downstream,
+    autoretry_for=EXCEPTIONS,
+    retry_backoff=RETRY_BACKOFF,
+    retry_kwargs={"max_retries": RETRY_LIMIT},
+)
 def run_propose_downstream_handler(
     self, event: dict, package_config: dict, job_config: dict
 ):
@@ -194,7 +231,12 @@ def run_propose_downstream_handler(
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.koji_build)
+@celery_app.task(
+    name=TaskName.koji_build,
+    autoretry_for=EXCEPTIONS,
+    retry_backoff=RETRY_BACKOFF,
+    retry_kwargs={"max_retries": RETRY_LIMIT},
+)
 def run_koji_build_handler(event: dict, package_config: dict, job_config: dict):
     handler = KojiBuildHandler(
         package_config=load_package_config(package_config),
@@ -204,7 +246,12 @@ def run_koji_build_handler(event: dict, package_config: dict, job_config: dict):
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.distgit_commit)
+@celery_app.task(
+    name=TaskName.distgit_commit,
+    autoretry_for=EXCEPTIONS,
+    retry_backoff=RETRY_BACKOFF,
+    retry_kwargs={"max_retries": RETRY_LIMIT},
+)
 def run_distgit_commit_handler(event: dict, package_config: dict, job_config: dict):
     handler = NewDistGitCommitHandler(
         package_config=load_package_config(package_config),
@@ -214,7 +261,12 @@ def run_distgit_commit_handler(event: dict, package_config: dict, job_config: di
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.pagure_pr_label)
+@celery_app.task(
+    name=TaskName.pagure_pr_label,
+    autoretry_for=EXCEPTIONS,
+    retry_backoff=RETRY_BACKOFF,
+    retry_kwargs={"max_retries": RETRY_LIMIT},
+)
 def run_pagure_pr_label_handler(event: dict, package_config: dict, job_config: dict):
     handler = PagurePullRequestLabelHandler(
         package_config=load_package_config(package_config),
@@ -229,7 +281,12 @@ def run_pagure_pr_label_handler(event: dict, package_config: dict, job_config: d
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.koji_build_report)
+@celery_app.task(
+    name=TaskName.koji_build_report,
+    autoretry_for=EXCEPTIONS,
+    retry_backoff=RETRY_BACKOFF,
+    retry_kwargs={"max_retries": RETRY_LIMIT},
+)
 def run_koji_build_report_handler(event: dict, package_config: dict, job_config: dict):
     handler = KojiBuildReportHandler(
         package_config=load_package_config(package_config),
