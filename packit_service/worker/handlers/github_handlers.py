@@ -193,7 +193,17 @@ class ProposeDownstreamHandler(JobHandler):
                     retries = self.task.request.retries
                     if retries < RETRY_LIMIT:
                         logger.info(f"Retrying for the {retries + 1}. time...")
-                        self.task.retry(exc=ex, countdown=15 * 2 ** retries)
+                        # throw=False so that exception is not raised and task
+                        # is not retried also automatically
+                        self.task.retry(
+                            exc=ex, countdown=15 * 2 ** retries, throw=False
+                        )
+                        return TaskResults(
+                            success=False,
+                            details={
+                                "msg": "Task was retried, we were not able to download the archive."
+                            },
+                        )
                 sentry_integration.send_to_sentry(ex)
                 errors[branch] = str(ex)
 

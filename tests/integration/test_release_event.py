@@ -1,7 +1,6 @@
 import pytest
-from celery.app.task import Task
+from celery.app.task import Task, Context
 from celery.canvas import Signature
-from celery.exceptions import Retry
 from flexmock import flexmock
 from github import Github
 from packit.distgit import DistGit
@@ -295,17 +294,69 @@ def test_retry_propose_downstream_task(github_release_webhook):
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main", tag="0.3.0"
-    ).and_raise(RebaseHelperError, "Failed to download file from URL example.com")
-    flexmock(Task).should_receive("retry").once().and_raise(Retry)
+    ).and_raise(
+        RebaseHelperError, "Failed to download file from URL example.com"
+    ).once()
+    flexmock(Task).should_receive("retry").once().and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
 
-    with pytest.raises(Retry):
-        run_propose_downstream_handler(
-            package_config=package_config,
-            event=event_dict,
-            job_config=job_config,
-        )
+    results = run_propose_downstream_handler(event_dict, package_config, job_config)
+
+    assert not first_dict_value(results["job"])["success"]
+    assert "not able to download" in first_dict_value(results["job"])["details"]["msg"]
+
+
+def test_dont_retry_propose_downstream_task(github_release_webhook):
+    packit_yaml = (
+        "{'specfile_path': 'hello-world.spec', 'synced_files': []"
+        ", jobs: [{trigger: release, job: propose_downstream, metadata: {targets:[]}}]}"
+    )
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+    project = flexmock(
+        get_file_content=lambda path, ref: packit_yaml,
+        full_repo_name="packit-service/hello-world",
+        repo="hello-world",
+        get_files=lambda ref, filter_regex: [],
+        get_sha_from_tag=lambda tag_name: "123456",
+        get_web_url=lambda: "https://github.com/packit/hello-world",
+        is_private=lambda: False,
+        default_branch="main",
+    )
+
+    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp.git_project = project
+    flexmock(DistGit).should_receive("local_project").and_return(lp)
+
+    flexmock(Whitelist, check_and_report=True)
+    config = ServiceConfig()
+    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
+    config.get_project = lambda url: project
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
+    # it would make sense to make LocalProject offline
+
+    flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
+        flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
+    )
+    flexmock(Signature).should_receive("apply_async").once()
+
+    flexmock(PackitAPI).should_receive("sync_release").with_args(
+        dist_git_branch="main", tag="0.3.0"
+    ).and_raise(
+        RebaseHelperError, "Failed to download file from URL example.com"
+    ).once()
+    flexmock(Context, retries=2)
+    flexmock(Task).should_receive("retry").never()
+    flexmock(project).should_receive("create_issue").once()
+
+    processing_results = SteveJobs().process_message(github_release_webhook)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+
+    results = run_propose_downstream_handler(event_dict, package_config, job_config)
+
+    assert not first_dict_value(results["job"])["success"]
