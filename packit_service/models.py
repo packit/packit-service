@@ -1,24 +1,5 @@
-# MIT License
-#
-# Copyright (c) 2018-2019 Red Hat, Inc.
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
 
 """
 Data layer on top of PSQL using sqlalch
@@ -31,6 +12,7 @@ from datetime import datetime
 from typing import Dict, Iterable, Optional, TYPE_CHECKING, Type, Union
 from urllib.parse import urlparse
 
+from packit.config import JobConfigTriggerType
 from sqlalchemy import (
     Boolean,
     Column,
@@ -50,7 +32,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship, scoped_session, sessionmaker
 from sqlalchemy.types import ARRAY
 
-from packit.config import JobConfigTriggerType
 from packit_service.constants import WHITELIST_CONSTANTS
 
 logger = logging.getLogger(__name__)
@@ -734,6 +715,21 @@ class CoprBuildModel(Base):
             return query.first()
 
     @classmethod
+    def get_all_by_owner_and_project(
+        cls, owner: str, project_name: str
+    ) -> Optional[Iterable["CoprBuildModel"]]:
+        """
+        All owner/project_name builds sorted from latest to oldest
+        """
+        with get_sa_session() as session:
+            query = (
+                session.query(CoprBuildModel)
+                .filter_by(owner=owner, project_name=project_name)
+                .order_by(CoprBuildModel.build_id.desc())
+            )
+            return query.all()
+
+    @classmethod
     def get_or_create(
         cls,
         build_id: str,
@@ -1073,10 +1069,13 @@ class WhitelistModel(Base):
 
 class TestingFarmResult(str, enum.Enum):
     new = "new"
+    queued = "queued"
+    running = "running"
     passed = "passed"
     failed = "failed"
+    skipped = "skipped"
     error = "error"
-    running = "running"
+    unknown = "unknown"
 
 
 class TFTTestRunModel(Base):

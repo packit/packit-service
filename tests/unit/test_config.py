@@ -30,6 +30,7 @@ from packit.config import PackageConfig, SyncFilesConfig
 from packit.exceptions import PackitConfigException
 from packit.sync import SyncFilesItem
 from packit_service.config import ServiceConfig, Deployment, PackageConfigGetter
+from packit_service.constants import TESTING_FARM_API_URL
 
 
 @pytest.fixture(scope="module")
@@ -81,6 +82,7 @@ def test_parse_valid(service_config_valid):
     assert config.webhook_secret == "secret"
     assert config.validate_webhooks
     assert config.testing_farm_secret == "granko"
+    assert config.testing_farm_api_url == TESTING_FARM_API_URL
     assert config.bugzilla_url == "https://ladybug-zilla"
     assert config.bugzilla_api_key == "ratamahatta"
     assert config.pr_accepted_labels == {"good-enough", "will-maintain-this"}
@@ -93,6 +95,14 @@ def test_parse_valid(service_config_valid):
         "gitlab.com/private/namespace",
         "github.com/other-private-namespace",
     }
+
+
+def test_parse_optional_values(service_config_valid):
+    """When optional values are set, they are correctly parsed"""
+    config = ServiceConfig.get_from_dict(
+        {**service_config_valid, "testing_farm_api_url": "https://other.url"}
+    )
+    assert config.testing_farm_api_url == "https://other.url"
 
 
 @pytest.fixture(scope="module")

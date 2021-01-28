@@ -1,24 +1,5 @@
-# MIT License
-#
-# Copyright (c) 2018-2019 Red Hat, Inc.
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
 
 """
 This file defines classes for job handlers specific for Testing farm
@@ -29,6 +10,7 @@ from typing import List, Optional
 from ogr.abstract import CommitStatus
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
+
 from packit_service.models import AbstractTriggerDbType, TFTTestRunModel
 from packit_service.service.events import (
     EventData,
@@ -85,9 +67,8 @@ class TestingFarmResultsHandler(JobHandler):
         return self._db_trigger
 
     def run(self) -> TaskResults:
-
-        logger.debug(f"Received testing-farm result:\n{self.result}")
-        logger.debug(f"Received testing-farm test results:\n{self.tests}")
+        logger.debug(f"Testing farm {self.pipeline_id} result:\n{self.result}")
+        logger.debug(f"Testing farm test results:\n{self.tests}")
 
         test_run_model = TFTTestRunModel.get_by_pipeline_id(
             pipeline_id=self.pipeline_id
@@ -101,27 +82,14 @@ class TestingFarmResultsHandler(JobHandler):
         if test_run_model:
             test_run_model.set_status(self.result)
 
-        if self.result == TestingFarmResult.passed:
+        if self.result == TestingFarmResult.running:
+            status = CommitStatus.running
+        elif self.result == TestingFarmResult.passed:
             status = CommitStatus.success
-            passed = True
         elif self.result == TestingFarmResult.error:
             status = CommitStatus.error
-            passed = False
         else:
             status = CommitStatus.failure
-            passed = False
-
-        github_status_url = self.log_url
-        if len(self.tests) == 1 and self.tests[0].name == "/install/copr-build":
-            logger.debug("No-fmf scenario discovered.")
-            short_msg = "Installation passed" if passed else "Installation failed"
-        elif self.message.startswith(
-            "Command '['git', 'clone'"
-        ) and self.message.endswith("failed with exit code 128"):
-            short_msg = "Problem with Testing-Farm cluster"
-            github_status_url = "https://pagure.io/centos-infra/issue/85"
-        else:
-            short_msg = self.message
 
         if test_run_model:
             test_run_model.set_web_url(self.log_url)
@@ -130,8 +98,8 @@ class TestingFarmResultsHandler(JobHandler):
         )
         status_reporter.report(
             state=status,
-            description=short_msg,
-            url=github_status_url,
+            description=self.message,
+            url=self.log_url,
             check_names=TestingFarmJobHelper.get_test_check(self.copr_chroot),
         )
 

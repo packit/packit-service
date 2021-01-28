@@ -1,31 +1,46 @@
 {
-  "pipeline": {
-    "id": "43e310b6-c1f1-4d3e-a95c-6c1eca235296"
-  },
-  "environment": {
-    "image": "Fedora-Cloud-Base-29-1.2.x86_64.qcow2"
-  },
-  "artifact": {
-    "repo-name": "hello-world",
-    "repo-namespace": "packit-service",
-    "copr-repo-name": "packit/packit-service-hello-world-10-stg",
-    "copr-chroot": "fedora-29-x86_64",
-    "commit-sha": "46597d9b66a1927b50376f73bdb1ec1a5757c330",
-    "git-url": "https://github.com/packit-service/hello-world",
-    "git-ref": "pull/10/head"
-  },
-  "result": "passed",
-  "message": "Error or info message to display",
-  "tests": [
-    {
-      "name": "test1",
-      "result": "failed",
-      "log": "https://somewhere.com/43e310b6/artifacts/test1.log"
+  "id": "129bd474-e4d3-49e0-9dec-d994a99feebc",
+  "user_id": "0cfc00a8-94d7-4408-babc-4d0bc43821ea",
+  "test": {
+    "fmf": {
+      "name": "/",
+      "path": ".",
+      "ref": "e7e3c8b688403048e7aefa64c19b79e89fe764df",
+      "url": "https://github.com/packit/packit"
     },
+    "script": null,
+    "sti": null
+  },
+  "state": "complete",
+  "environments_requested": [
     {
-      "name": "test2",
-      "result": "passed",
-      "log": "https://somewhere.com/43e310b6/artifacts/test2.log"
+      "arch": "x86_64",
+      "artifacts": [
+        {
+          "id": "1810530:fedora-32-x86_64",
+          "packages": null,
+          "type": "fedora-copr-build"
+        }
+      ],
+      "os": {
+        "compose": "Fedora-32"
+      },
+      "pool": null,
+      "variables": null
     }
-  ]
+  ],
+  "notes": [
+    {
+      "level": "info",
+      "message": "tf-tmt/dispatch-1607361761-784bbdd4"
+    }
+  ],
+  "result": {
+    "overall": "passed",
+    "summary": null,
+    "xunit": "<testsuites overall-result=\"passed\"><properties/><testsuite overall-result=\"passed\" tests=\"4\"><properties><property name=\"baseosci.overall-result\" value=\"PASSED\"/></properties><testcase name=\"/script-00\" result=\"passed\"><properties><property name=\"baseosci.arch\" value=\"x86_64\"/><property name=\"baseosci.connectable_host\" value=\"172.31.17.192\"/><property name=\"baseosci.distro\" value=\"Fedora-32\"/><property name=\"baseosci.status\" value=\"Complete\"/><property name=\"baseosci.testcase.source.url\" value=\"\"/><property name=\"baseosci.variant\" value=\"\"/></properties><logs><log href=\"http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-fullCbeHbS/ci/test/build/full/execute/data/script-00\" name=\"log_dir\"/><log href=\"http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-fullCbeHbS/ci/test/build/full/execute/data/script-00/out.log\" name=\"testout.log\"/></logs><testing-environment name=\"requested\"><property name=\"arch\" value=\"x86_64\"/><property name=\"compose\" value=\"Fedora-32\"/><property name=\"snapshots\" value=\"False\"/></testing-environment><testing-environment name=\"provisioned\"><property name=\"arch\" value=\"x86_64\"/><property name=\"compose\" value=\"Fedora-32\"/><property name=\"snapshots\" value=\"False\"/></testing-environment></testcase><testcase name=\"/script-00\" result=\"passed\"><properties><property name=\"baseosci.arch\" value=\"x86_64\"/><property name=\"baseosci.connectable_host\" value=\"172.31.18.244\"/><property name=\"baseosci.distro\" value=\"Fedora-32\"/><property name=\"baseosci.status\" value=\"Complete\"/><property name=\"baseosci.testcase.source.url\" value=\"\"/><property name=\"baseosci.variant\" value=\"\"/></properties><logs><log href=\"http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-session-recordingMT55GL/ci/test/build/session-recording/execute/data/script-00\" name=\"log_dir\"/><log href=\"http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-session-recordingMT55GL/ci/test/build/session-recording/execute/data/script-00/out.log\" name=\"testout.log\"/></logs><testing-environment name=\"requested\"><property name=\"arch\" value=\"x86_64\"/><property name=\"compose\" value=\"Fedora-32\"/><property name=\"snapshots\" value=\"False\"/></testing-environment><testing-environment name=\"provisioned\"><property name=\"arch\" value=\"x86_64\"/><property name=\"compose\" value=\"Fedora-32\"/><property name=\"snapshots\" value=\"False\"/></testing-environment></testcase><testcase name=\"/script-00\" result=\"passed\"><properties><property name=\"baseosci.arch\" value=\"x86_64\"/><property name=\"baseosci.connectable_host\" value=\"172.31.28.48\"/><property name=\"baseosci.distro\" value=\"Fedora-32\"/><property name=\"baseosci.status\" value=\"Complete\"/><property name=\"baseosci.testcase.source.url\" value=\"\"/><property name=\"baseosci.variant\" value=\"\"/></properties><logs><log href=\"http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-00\" name=\"log_dir\"/><log href=\"http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-00/out.log\" name=\"testout.log\"/></logs><testing-environment name=\"requested\"><property name=\"arch\" value=\"x86_64\"/><property name=\"compose\" value=\"Fedora-32\"/><property name=\"snapshots\" value=\"False\"/></testing-environment><testing-environment name=\"provisioned\"><property name=\"arch\" value=\"x86_64\"/><property name=\"compose\" value=\"Fedora-32\"/><property name=\"snapshots\" value=\"False\"/></testing-environment></testcase><testcase name=\"/script-01\" result=\"passed\"><properties><property name=\"baseosci.arch\" value=\"x86_64\"/><property name=\"baseosci.connectable_host\" value=\"172.31.28.48\"/><property name=\"baseosci.distro\" value=\"Fedora-32\"/><property name=\"baseosci.status\" value=\"Complete\"/><property name=\"baseosci.testcase.source.url\" value=\"\"/><property name=\"baseosci.variant\" value=\"\"/></properties><logs><log href=\"http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-01\" name=\"log_dir\"/><log href=\"http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-01/out.log\" name=\"testout.log\"/></logs><testing-environment name=\"requested\"><property name=\"arch\" value=\"x86_64\"/><property name=\"compose\" value=\"Fedora-32\"/><property name=\"snapshots\" value=\"False\"/></testing-environment><testing-environment name=\"provisioned\"><property name=\"arch\" value=\"x86_64\"/><property name=\"compose\" value=\"Fedora-32\"/><property name=\"snapshots\" value=\"False\"/></testing-environment></testcase><testcase name=\"/script-02\" result=\"passed\"><properties><property name=\"baseosci.arch\" value=\"x86_64\"/><property name=\"baseosci.connectable_host\" value=\"172.31.28.48\"/><property name=\"baseosci.distro\" value=\"Fedora-32\"/><property name=\"baseosci.status\" value=\"Complete\"/><property name=\"baseosci.testcase.source.url\" value=\"\"/><property name=\"baseosci.variant\" value=\"\"/></properties><logs><log href=\"http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-02\" name=\"log_dir\"/><log href=\"http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-02/out.log\" name=\"testout.log\"/></logs><testing-environment name=\"requested\"><property name=\"arch\" value=\"x86_64\"/><property name=\"compose\" value=\"Fedora-32\"/><property name=\"snapshots\" value=\"False\"/></testing-environment><testing-environment name=\"provisioned\"><property name=\"arch\" value=\"x86_64\"/><property name=\"compose\" value=\"Fedora-32\"/><property name=\"snapshots\" value=\"False\"/></testing-environment></testcase><testcase name=\"/script-03\" result=\"passed\"><properties><property name=\"baseosci.arch\" value=\"x86_64\"/><property name=\"baseosci.connectable_host\" value=\"172.31.28.48\"/><property name=\"baseosci.distro\" value=\"Fedora-32\"/><property name=\"baseosci.status\" value=\"Complete\"/><property name=\"baseosci.testcase.source.url\" value=\"\"/><property name=\"baseosci.variant\" value=\"\"/></properties><logs><log href=\"http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-03\" name=\"log_dir\"/><log href=\"http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-03/out.log\" name=\"testout.log\"/></logs><testing-environment name=\"requested\"><property name=\"arch\" value=\"x86_64\"/><property name=\"compose\" value=\"Fedora-32\"/><property name=\"snapshots\" value=\"False\"/></testing-environment><testing-environment name=\"provisioned\"><property name=\"arch\" value=\"x86_64\"/><property name=\"compose\" value=\"Fedora-32\"/><property name=\"snapshots\" value=\"False\"/></testing-environment></testcase></testsuite></testsuites>"
+  },
+  "run": null,
+  "created": "2020-12-07 17:22:36.061250",
+  "updated": "2020-12-07 17:22:36.061262"
 }

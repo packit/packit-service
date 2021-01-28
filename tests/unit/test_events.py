@@ -1,24 +1,6 @@
-# MIT License
-#
-# Copyright (c) 2018-2019 Red Hat, Inc.
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 
 """
 Tests for events parsing
@@ -41,9 +23,10 @@ from packit_service.config import (
 from packit_service.constants import KojiBuildState
 from packit_service.models import (
     CoprBuildModel,
-    TFTTestRunModel,
     PullRequestModel,
     KojiBuildModel,
+    TestingFarmResult,
+    TFTTestRunModel,
 )
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.service.events import (
@@ -53,7 +36,6 @@ from packit_service.service.events import (
     PullRequestGithubEvent,
     PullRequestAction,
     TestingFarmResultsEvent,
-    TestingFarmResult,
     PullRequestCommentGithubEvent,
     PullRequestCommentAction,
     IssueCommentEvent,
@@ -61,7 +43,6 @@ from packit_service.service.events import (
     AbstractCoprBuildEvent,
     FedmsgTopic,
     DistGitEvent,
-    TestResult,
     PushGitHubEvent,
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
@@ -75,6 +56,7 @@ from packit_service.service.events import (
     EventData,
 )
 from packit_service.worker.parser import Parser, CentosEventParser
+from packit_service.worker.testing_farm import TestingFarmJobHelper
 from tests.conftest import copr_build_model
 from tests.spellbook import DATA_DIR
 
@@ -102,6 +84,13 @@ class TestEvents:
     def github_issue_comment_propose_downstream(self):
         with open(
             DATA_DIR / "webhooks" / "github" / "issue_propose_downstream.json"
+        ) as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def testing_farm_notification(self):
+        with open(
+            DATA_DIR / "webhooks" / "testing_farm" / "notification.json"
         ) as outfile:
             return json.load(outfile)
 
@@ -636,71 +625,25 @@ class TestEvents:
 
         assert event_object.package_config
 
-    def test_parse_testing_farm_results(self, testing_farm_results):
-        flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
-            flexmock(
-                job_trigger=flexmock()
-                .should_receive("get_trigger_object")
-                .and_return(PullRequestModel(pr_id=10))
-                .once()
-                .mock()
-            )
-        )
-
-        event_object = Parser.parse_event(testing_farm_results)
+    def test_parse_testing_farm_notification(
+        self, testing_farm_notification, testing_farm_results
+    ):
+        request_id = "129bd474-e4d3-49e0-9dec-d994a99feebc"
+        flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
+            request_id
+        ).and_return(testing_farm_results)
+        event_object = Parser.parse_event(testing_farm_notification)
 
         assert isinstance(event_object, TestingFarmResultsEvent)
-        assert event_object.pipeline_id == "43e310b6-c1f1-4d3e-a95c-6c1eca235296"
+        assert event_object.pipeline_id == request_id
         assert event_object.result == TestingFarmResult.passed
-        assert event_object.repo_namespace == "packit-service"
-        assert event_object.repo_name == "hello-world"
-        assert event_object.git_ref == "pull/10/head"
-        assert (
-            event_object.project_url == "https://github.com/packit-service/hello-world"
-        )
-        assert event_object.commit_sha == "46597d9b66a1927b50376f73bdb1ec1a5757c330"
-        assert event_object.message == "Error or info message to display"
-        assert event_object.environment == "Fedora-Cloud-Base-29-1.2.x86_64.qcow2"
-        assert event_object.copr_repo_name == "packit/packit-service-hello-world-10-stg"
-        assert event_object.copr_chroot == "fedora-29-x86_64"
+        assert event_object.project_url == "https://github.com/packit/packit"
+        assert event_object.commit_sha == "e7e3c8b688403048e7aefa64c19b79e89fe764df"
+        assert not event_object.summary
+        assert event_object.compose == "Fedora-32"
+        assert event_object.copr_build_id == "1810530"
+        assert event_object.copr_chroot == "fedora-32-x86_64"
         assert event_object.tests
-        assert {
-            TestResult(
-                name="test1",
-                result=TestingFarmResult.failed,
-                log_url="https://somewhere.com/43e310b6/artifacts/test1.log",
-            ),
-            TestResult(
-                name="test2",
-                result=TestingFarmResult.passed,
-                log_url="https://somewhere.com/43e310b6/artifacts/test2.log",
-            ),
-        } == set(event_object.tests)
-
-        assert event_object.db_trigger
-
-        assert isinstance(event_object.project, GithubProject)
-        assert event_object.project.full_repo_name == "packit-service/hello-world"
-        assert (
-            not event_object.base_project  # With Github app, we cannot work with fork repo
-        )
-
-        flexmock(PackageConfigGetter).should_receive(
-            "get_package_config_from_repo"
-        ).with_args(
-            base_project=None,
-            project=event_object.project,
-            pr_id=10,
-            reference="46597d9b66a1927b50376f73bdb1ec1a5757c330",
-            fail_when_missing=False,
-            spec_file_path=None,
-        ).and_return(
-            flexmock()
-        ).once()
-
-        assert event_object.package_config
-
-    def test_parse_testing_farm_results_error(self, testing_farm_results_error):
         flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
             flexmock(
                 job_trigger=flexmock()
@@ -710,45 +653,41 @@ class TestEvents:
                 .mock()
             )
         )
+        assert event_object.db_trigger
+        assert isinstance(event_object.project, GithubProject)
+        assert event_object.project.full_repo_name == "packit/packit"
 
-        event_object = Parser.parse_event(testing_farm_results_error)
+    def test_parse_testing_farm_notification_error(
+        self, testing_farm_notification, testing_farm_results_error
+    ):
+        request_id = "129bd474-e4d3-49e0-9dec-d994a99feebc"
+        flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
+            request_id
+        ).and_return(testing_farm_results_error)
+        event_object = Parser.parse_event(testing_farm_notification)
 
         assert isinstance(event_object, TestingFarmResultsEvent)
-        assert event_object.pipeline_id == "43e310b6-c1f1-4d3e-a95c-6c1eca235296"
-        assert event_object.result == TestingFarmResult.failed
-        assert event_object.repo_namespace == "packit-service"
-        assert event_object.repo_name == "hello-world"
-        assert event_object.git_ref == "pull/10/head"
-        assert (
-            event_object.project_url == "https://github.com/packit-service/hello-world"
+        assert event_object.pipeline_id == request_id
+        assert event_object.result == TestingFarmResult.error
+        assert event_object.project_url == "https://github.com/packit/packit"
+        assert event_object.commit_sha == "e7e3c8b688403048e7aefa64c19b79e89fe764df"
+        assert event_object.summary == "something went wrong"
+        assert event_object.compose == "Fedora-32"
+        assert event_object.copr_build_id == "1810530"
+        assert event_object.copr_chroot == "fedora-32-x86_64"
+        assert event_object.tests
+        flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
+            flexmock(
+                job_trigger=flexmock()
+                .should_receive("get_trigger_object")
+                .and_return(PullRequestModel(pr_id=10))
+                .once()
+                .mock()
+            )
         )
-        assert event_object.commit_sha == "46597d9b66a1927b50376f73bdb1ec1a5757c330"
-        assert event_object.message == "Bad error"
-        assert event_object.environment == "Fedora-Cloud-Base-29-1.2.x86_64.qcow2"
-        assert event_object.copr_repo_name == "packit/packit-service-hello-world-10-stg"
-        assert event_object.copr_chroot == "fedora-29-x86_64"
-        assert event_object.tests == []
-
+        assert event_object.db_trigger
         assert isinstance(event_object.project, GithubProject)
-        assert event_object.project.full_repo_name == "packit-service/hello-world"
-        assert (
-            not event_object.base_project  # With Github app, we cannot work with fork repo
-        )
-
-        flexmock(PackageConfigGetter).should_receive(
-            "get_package_config_from_repo"
-        ).with_args(
-            base_project=None,
-            project=event_object.project,
-            pr_id=10,
-            reference="46597d9b66a1927b50376f73bdb1ec1a5757c330",
-            fail_when_missing=False,
-            spec_file_path=None,
-        ).and_return(
-            flexmock()
-        ).once()
-
-        assert event_object.package_config
+        assert event_object.project.full_repo_name == "packit/packit"
 
     def test_parse_copr_build_event_start(
         self, copr_build_results_start, copr_build_pr
@@ -936,15 +875,18 @@ class TestEvents:
         assert event_object.project.namespace == "packit-service"
         assert event_object.project.repo == "hello-world"
 
-    def test_get_project_testing_farm_results(self, testing_farm_results, mock_config):
-        event_object = Parser.parse_event(testing_farm_results)
+    def test_get_project_testing_farm_notification(
+        self, testing_farm_notification, testing_farm_results, mock_config
+    ):
+        request_id = "129bd474-e4d3-49e0-9dec-d994a99feebc"
+        flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
+            request_id
+        ).and_return(testing_farm_results)
+        event_object = Parser.parse_event(testing_farm_notification)
 
         assert isinstance(event_object, TestingFarmResultsEvent)
-
-        assert isinstance(event_object.project, GithubProject)
-        assert isinstance(event_object.project.service, GithubService)
-        assert event_object.project.namespace == "packit-service"
-        assert event_object.project.repo == "hello-world"
+        assert isinstance(event_object.pipeline_id, str)
+        assert event_object.pipeline_id == request_id
 
     def test_distgit_commit(self, distgit_commit):
         event_object = Parser.parse_event(distgit_commit)
@@ -957,17 +899,14 @@ class TestEvents:
         assert event_object.branch == "master"
         assert event_object.msg_id == "2019-49c02775-6d37-40a9-b108-879e3511c49a"
 
-    def test_json_testing_farm_result(self, testing_farm_results):
-        event_object = Parser.parse_event(testing_farm_results)
-
-        assert json.dumps(event_object.tests)
-        assert json.dumps(event_object.result)
-
-    def test_json_testing_farm_result_error(self, testing_farm_results_error):
-        event_object = Parser.parse_event(testing_farm_results_error)
-
-        assert json.dumps(event_object.tests)
-        assert json.dumps(event_object.result)
+    def test_json_testing_farm_notification(
+        self, testing_farm_notification, testing_farm_results
+    ):
+        flexmock(TestingFarmJobHelper).should_receive("get_request_details").and_return(
+            testing_farm_results
+        )
+        event_object = Parser.parse_event(testing_farm_notification)
+        assert json.dumps(event_object.pipeline_id)
 
 
 class TestCentOSEventParser:

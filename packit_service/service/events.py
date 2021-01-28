@@ -292,7 +292,7 @@ class Event:
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         d = default_dict or self.__dict__
         d = copy.deepcopy(d)
-        # whole dict have to be JSON serializable because of redis
+        # whole dict has to be JSON serializable because of redis
         d["event_type"] = self.__class__.__name__
         d["trigger_id"] = self.db_trigger.id if self.db_trigger else None
         d["created_at"] = int(d["created_at"].timestamp())
@@ -869,32 +869,25 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
         self,
         pipeline_id: str,
         result: TestingFarmResult,
-        environment: str,
-        message: str,
+        compose: str,
+        summary: str,
         log_url: str,
-        copr_repo_name: str,
+        copr_build_id: str,
         copr_chroot: str,
         tests: List[TestResult],
-        repo_namespace: str,
-        repo_name: str,
-        git_ref: str,
-        project_url: str,
         commit_sha: str,
+        project_url: str,
     ):
         super().__init__(project_url=project_url)
         self.pipeline_id = pipeline_id
         self.result = result
-        self.environment = environment
-        self.message = message
+        self.compose = compose
+        self.summary = summary
         self.log_url = log_url
-        self.copr_repo_name = copr_repo_name
+        self.copr_build_id = copr_build_id
         self.copr_chroot = copr_chroot
         self.tests = tests
-        self.repo_name = repo_name
-        self.repo_namespace = repo_namespace
-        self.git_ref: str = git_ref
         self.commit_sha: str = commit_sha
-        self.identifier = git_ref
 
         # Lazy properties
         self._pr_id: Optional[int] = None

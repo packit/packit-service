@@ -1,34 +1,16 @@
-# MIT License
-#
-# Copyright (c) 2018-2019 Red Hat, Inc.
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 import pytest
 from flexmock import flexmock
-
 from ogr.abstract import CommitStatus
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.local_project import LocalProject
+
 from packit_service.config import PackageConfigGetter
 from packit_service.models import TFTTestRunModel
 
-# These names are definately not nice, still they help with making classes
+# These names are definitely not nice, still they help with making classes
 # whose names start with Testing* or Test* to become invisible for pytest,
 # and so stop the test discovery warnings.
 from packit_service.service.events import (
@@ -39,7 +21,9 @@ from packit_service.service.events import (
 )
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.reporting import StatusReporter
-from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelper
+from packit_service.worker.testing_farm import (
+    TestingFarmJobHelper as TFJobHelper,
+)
 
 
 @pytest.mark.parametrize(
@@ -50,36 +34,6 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
             "some message",
             [
                 TResult(
-                    name="/install/copr-build",
-                    result=TFResult.passed,
-                    log_url="some specific url",
-                )
-            ],
-            CommitStatus.success,
-            "Installation passed",
-            "some url",
-            id="only_instalation_passed",
-        ),
-        pytest.param(
-            TFResult.failed,
-            "some message",
-            [
-                TResult(
-                    name="/install/copr-build",
-                    result=TFResult.failed,
-                    log_url="some specific url",
-                )
-            ],
-            CommitStatus.failure,
-            "Installation failed",
-            "some url",
-            id="only_instalation_failed",
-        ),
-        pytest.param(
-            TFResult.passed,
-            "some message",
-            [
-                TResult(
                     name="/something/different",
                     result=TFResult.passed,
                     log_url="some specific url",
@@ -88,7 +42,7 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
             CommitStatus.success,
             "some message",
             "some url",
-            id="only_instalation_not_provided_passed",
+            id="only_installation_not_provided_passed",
         ),
         pytest.param(
             TFResult.failed,
@@ -103,7 +57,7 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
             CommitStatus.failure,
             "some message",
             "some url",
-            id="only_instalation_not_provided_failed",
+            id="only_installation_not_provided_failed",
         ),
         pytest.param(
             TFResult.passed,
@@ -123,7 +77,7 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
             CommitStatus.success,
             "some message",
             "some url",
-            id="only_instalation_mutliple_results_passed",
+            id="only_installation_multiple_results_passed",
         ),
         pytest.param(
             TFResult.failed,
@@ -143,7 +97,7 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
             CommitStatus.failure,
             "some message",
             "some url",
-            id="only_instalation_mutliple_results_failed",
+            id="only_installation_multiple_results_failed",
         ),
         pytest.param(
             TFResult.failed,
@@ -163,17 +117,7 @@ from packit_service.worker.testing_farm import TestingFarmJobHelper as TFJobHelp
             CommitStatus.failure,
             "some message",
             "some url",
-            id="only_instalation_mutliple_results_failed_different",
-        ),
-        pytest.param(
-            TFResult.error,
-            "Command '['git', 'clone', 'https://github.com/psss/tmt.git' , 'source']'"
-            " failed with exit code 128",
-            [],
-            CommitStatus.error,
-            "Problem with Testing-Farm cluster",
-            "https://pagure.io/centos-infra/issue/85",
-            id="cluster_error",
+            id="only_installation_multiple_results_failed_different",
         ),
     ],
 )
@@ -206,17 +150,14 @@ def test_testing_farm_response(
     event_dict = TFResultsEvent(
         pipeline_id="id",
         result=tests_result,
-        environment=flexmock(),
-        message=tests_message,
+        compose=flexmock(),
+        summary=tests_message,
         log_url="some url",
-        copr_repo_name=flexmock(),
+        copr_build_id=flexmock(),
         copr_chroot="fedora-rawhide-x86_64",
         tests=tests_tests,
-        repo_namespace=flexmock(),
-        repo_name=flexmock(),
-        git_ref=flexmock(),
-        project_url="https://github.com/packit/ogr",
         commit_sha=flexmock(),
+        project_url="https://github.com/packit/ogr",
     ).get_dict()
     test_farm_handler = TFResultsHandler(
         package_config=flexmock(),
@@ -254,7 +195,40 @@ def test_testing_farm_response(
 
 
 @pytest.mark.parametrize(
+    "chroot,compose,arch",
+    [
+        ("fedora-33-x86_64", "Fedora-33", "x86_64"),
+        ("centos-stream-x86_64", "Centos-Stream", "x86_64"),
+    ],
+)
+def test_get_compose_arch(chroot, compose, arch):
+    job_helper = TFJobHelper(
+        service_config=flexmock(
+            testing_farm_api_url="xyz",
+        ),
+        package_config=flexmock(jobs=[]),
+        project=flexmock(),
+        metadata=flexmock(),
+        db_trigger=flexmock(),
+        job_config=JobConfig(
+            type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+        ),
+    )
+    job_helper = flexmock(job_helper)
+
+    response = flexmock(
+        status_code=200, json=lambda: {"composes": [{"name": "Fedora-33"}]}
+    )
+    job_helper.should_receive("send_testing_farm_request").and_return(response)
+
+    compose_, arch_ = job_helper.get_compose_arch(chroot)
+    assert compose_ == compose
+    assert arch_ == arch
+
+
+@pytest.mark.parametrize(
     (
+        "tf_api,"
         "tf_token,"
         "ps_deployment,"
         "repo,"
@@ -264,11 +238,14 @@ def test_testing_farm_response(
         "git_ref,"
         "copr_owner,"
         "copr_project,"
-        "pipeline_id,"
-        "chroot"
+        "build_id,"
+        "chroot,"
+        "compose,"
+        "arch"
     ),
     [
         (
+            "https://api.dev.testing-farm.io/v0.1/",
             "very-secret",
             "test",
             "packit",
@@ -278,12 +255,15 @@ def test_testing_farm_response(
             "master",
             "me",
             "cool-project",
-            "9daccabb-4bfa-4f2d-b7cb-96471dbff607",
+            "123456",
             "centos-stream-x86_64",
+            "Fedora-Rawhide",
+            "x86_64",
         ),
     ],
 )
-def test_trigger_payload(
+def test_payload(
+    tf_api,
     tf_token,
     ps_deployment,
     repo,
@@ -293,11 +273,14 @@ def test_trigger_payload(
     git_ref,
     copr_owner,
     copr_project,
-    pipeline_id,
+    build_id,
     chroot,
+    compose,
+    arch,
 ):
     # Soo many things are happening in a single constructor!!!!
     config = flexmock(
+        testing_farm_api_url=tf_api,
         testing_farm_secret=tf_token,
         deployment=ps_deployment,
         command_handler_work_dir="/tmp",
@@ -331,17 +314,39 @@ def test_trigger_payload(
 
     job_helper.should_receive("job_owner").and_return(copr_owner)
     job_helper.should_receive("job_project").and_return(copr_project)
-    payload = job_helper._trigger_payload(pipeline_id, chroot)
+    job_helper.should_receive("get_compose_arch").and_return(compose, arch)
+    payload = job_helper._payload(build_id, chroot)
 
-    assert payload["pipeline"]["id"] == pipeline_id
-    assert payload["api"]["token"] == tf_token
-    assert "packit.dev/api" in payload["response-url"]
-    assert payload["artifact"] == {
-        "repo-name": repo,
-        "repo-namespace": namespace,
-        "copr-repo-name": f"{copr_owner}/{copr_project}",
-        "copr-chroot": chroot,
-        "commit-sha": commit_sha,
-        "git-url": f"{project_url}.git",
-        "git-ref": git_ref,
+    assert payload["api_key"] == tf_token
+    assert payload["test"]["fmf"] == {
+        "url": project_url,
+        "ref": commit_sha,
     }
+    assert payload["environments"] == [
+        {
+            "arch": arch,
+            "os": {"compose": compose},
+            "artifacts": [{"id": f"{build_id}:{chroot}", "type": "fedora-copr-build"}],
+        }
+    ]
+    assert payload["notification"]["webhook"]["url"].endswith("/testing-farm/results")
+
+
+def test_get_request_details():
+    request_id = "123abc"
+    request = {
+        "id": request_id,
+        "environments_requested": [
+            {"arch": "x86_64", "os": {"compose": "Fedora-Rawhide"}}
+        ],
+        "result": {"overall": "passed", "summary": "all ok"},
+    }
+    request_response = flexmock(status_code=200)
+    request_response.should_receive("json").and_return(request)
+    flexmock(
+        TFJobHelper,
+        send_testing_farm_request=request_response,
+        job_build=None,
+    )
+    details = TFJobHelper.get_request_details(request_id)
+    assert details == request

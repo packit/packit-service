@@ -1,0 +1,127 @@
+<?xml version="1.0" ?>
+<testsuites overall-result="passed">
+	<properties/>
+	<testsuite overall-result="passed" tests="4">
+		<properties>
+			<property name="baseosci.overall-result" value="PASSED"/>
+		</properties>
+		<testcase name="/script-00" result="passed">
+			<properties>
+				<property name="baseosci.arch" value="x86_64"/>
+				<property name="baseosci.distro" value="Fedora-32"/>
+				<property name="baseosci.status" value="Complete"/>
+			</properties>
+			<logs>
+				<log href="http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-fullCbeHbS/ci/test/build/full/execute/data/script-00" name="log_dir"/>
+				<log href="http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-fullCbeHbS/ci/test/build/full/execute/data/script-00/out.log" name="testout.log"/>
+			</logs>
+			<testing-environment name="requested">
+				<property name="arch" value="x86_64"/>
+				<property name="compose" value="Fedora-32"/>
+			</testing-environment>
+			<testing-environment name="provisioned">
+				<property name="arch" value="x86_64"/>
+				<property name="compose" value="Fedora-32"/>
+			</testing-environment>
+		</testcase>
+		<testcase name="/script-00" result="passed">
+			<properties>
+				<property name="baseosci.arch" value="x86_64"/>
+				<property name="baseosci.distro" value="Fedora-32"/>
+				<property name="baseosci.status" value="Complete"/>
+			</properties>
+			<logs>
+				<log href="http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-session-recordingMT55GL/ci/test/build/session-recording/execute/data/script-00" name="log_dir"/>
+				<log href="http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-session-recordingMT55GL/ci/test/build/session-recording/execute/data/script-00/out.log" name="testout.log"/>
+			</logs>
+			<testing-environment name="requested">
+				<property name="arch" value="x86_64"/>
+				<property name="compose" value="Fedora-32"/>
+			</testing-environment>
+			<testing-environment name="provisioned">
+				<property name="arch" value="x86_64"/>
+				<property name="compose" value="Fedora-32"/>
+			</testing-environment>
+		</testcase>
+		<testcase name="/script-00" result="passed">
+			<properties>
+				<property name="baseosci.arch" value="x86_64"/>
+				<property name="baseosci.distro" value="Fedora-32"/>
+				<property name="baseosci.status" value="Complete"/>
+			</properties>
+			<logs>
+				<log href="http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-00" name="log_dir"/>
+				<log href="http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-00/out.log" name="testout.log"/>
+			</logs>
+			<testing-environment name="requested">
+				<property name="arch" value="x86_64"/>
+				<property name="compose" value="Fedora-32"/>
+				<property name="snapshots" value="False"/>
+			</testing-environment>
+			<testing-environment name="provisioned">
+				<property name="arch" value="x86_64"/>
+				<property name="compose" value="Fedora-32"/>
+			</testing-environment>
+		</testcase>
+		<testcase name="/script-01" result="passed">
+			<properties>
+				<property name="baseosci.arch" value="x86_64"/>
+				<property name="baseosci.connectable_host" value="172.31.28.48"/>
+				<property name="baseosci.distro" value="Fedora-32"/>
+				<property name="baseosci.status" value="Complete"/>
+			</properties>
+			<logs>
+				<log href="http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-01" name="log_dir"/>
+				<log href="http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-01/out.log" name="testout.log"/>
+			</logs>
+			<testing-environment name="requested">
+				<property name="arch" value="x86_64"/>
+				<property name="compose" value="Fedora-32"/>
+				<property name="snapshots" value="False"/>
+			</testing-environment>
+			<testing-environment name="provisioned">
+				<property name="arch" value="x86_64"/>
+				<property name="compose" value="Fedora-32"/>
+			</testing-environment>
+		</testcase>
+		<testcase name="/script-02" result="passed">
+			<properties>
+				<property name="baseosci.arch" value="x86_64"/>
+				<property name="baseosci.connectable_host" value="172.31.28.48"/>
+				<property name="baseosci.distro" value="Fedora-32"/>
+				<property name="baseosci.status" value="Complete"/>
+			</properties>
+			<logs>
+				<log href="http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-02" name="log_dir"/>
+				<log href="http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-02/out.log" name="testout.log"/>
+			</logs>
+			<testing-environment name="requested">
+				<property name="arch" value="x86_64"/>
+				<property name="compose" value="Fedora-32"/>
+			</testing-environment>
+			<testing-environment name="provisioned">
+				<property name="arch" value="x86_64"/>
+				<property name="compose" value="Fedora-32"/>
+			</testing-environment>
+		</testcase>
+		<testcase name="/script-03" result="passed">
+			<properties>
+				<property name="baseosci.arch" value="x86_64"/>
+				<property name="baseosci.distro" value="Fedora-32"/>
+				<property name="baseosci.status" value="Complete"/>
+			</properties>
+			<logs>
+				<log href="http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-03" name="log_dir"/>
+				<log href="http://artifacts.dev.testing-farm.io/129bd474-e4d3-49e0-9dec-d994a99feebc/work-smokevPCRWz/ci/test/build/smoke/execute/data/script-03/out.log" name="testout.log"/>
+			</logs>
+			<testing-environment name="requested">
+				<property name="arch" value="x86_64"/>
+				<property name="compose" value="Fedora-32"/>
+			</testing-environment>
+			<testing-environment name="provisioned">
+				<property name="arch" value="x86_64"/>
+				<property name="compose" value="Fedora-32"/>
+			</testing-environment>
+		</testcase>
+	</testsuite>
+</testsuites>

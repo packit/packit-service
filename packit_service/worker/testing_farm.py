@@ -1,40 +1,19 @@
-# MIT License
-#
-# Copyright (c) 2018-2019 Red Hat, Inc.
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-
-import json
 import logging
-import uuid
+from typing import Tuple, Dict, Any
 
 import requests
-
 from ogr.abstract import CommitStatus, GitProject
 from ogr.utils import RequestResponse
+from packit.config import JobType, JobConfigTriggerType
 from packit.config.job_config import JobConfig
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitConfigException
+
 from packit_service.config import ServiceConfig
-from packit_service.constants import TESTING_FARM_TRIGGER_URL
-from packit_service.models import TFTTestRunModel, TestingFarmResult
+from packit_service.models import CoprBuildModel, TFTTestRunModel, TestingFarmResult
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.events import EventData
 from packit_service.worker.build import CoprBuildJobHelper
@@ -66,32 +45,68 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         adapter = requests.adapters.HTTPAdapter(max_retries=5)
         self.insecure = False
         self.session.mount("https://", adapter)
-        self.header: dict = {"Content-Type": "application/json"}
+        self._tft_api_url: str = ""
 
-    def _trigger_payload(self, pipeline_id: str, chroot: str) -> dict:
-        """Produce payload that can be used to trigger tests in Testing
-        Farm using the Copr chroot given.
+    @property
+    def tft_api_url(self) -> str:
+        if not self._tft_api_url:
+            self._tft_api_url = self.service_config.testing_farm_api_url
+            if not self._tft_api_url.endswith("/"):
+                self._tft_api_url += "/"
+        return self._tft_api_url
+
+    def _payload(self, build_id: int, chroot: str) -> dict:
         """
-        git_url = self.metadata.project_url
-        if not git_url.endswith(".git"):
-            git_url = f"{git_url}.git"
+        Testing Farm API: https://testing-farm.gitlab.io/api/
 
+        Currently we use the same secret to authenticate both,
+        packit service (when sending request to testing farm)
+        and testing farm (when sending notification to packit service's webhook).
+        We might later use a different secret for those use cases.
+
+        """
+        compose, arch = self.get_compose_arch(chroot)
         return {
-            "pipeline": {"id": pipeline_id},
-            "api": {"token": self.service_config.testing_farm_secret},
-            "response-url": f"{self.api_url}/testing-farm/results",
-            "artifact": {
-                "repo-name": self.project.repo,
-                "repo-namespace": self.project.namespace,
-                "copr-repo-name": f"{self.job_owner}/{self.job_project}",
-                "copr-chroot": chroot,
-                "commit-sha": self.metadata.commit_sha,
-                "git-url": git_url,
-                "git-ref": self.metadata.git_ref
-                if self.metadata.git_ref
-                else self.metadata.commit_sha,
+            "api_key": self.service_config.testing_farm_secret,
+            "test": {
+                "fmf": {
+                    "url": self.metadata.project_url,
+                    "ref": self.metadata.commit_sha,
+                },
+            },
+            "environments": [
+                {
+                    "arch": arch,
+                    "os": {"compose": compose},
+                    "artifacts": [
+                        {
+                            "id": f"{build_id}:{chroot}",
+                            "type": "fedora-copr-build",
+                        }
+                    ],
+                }
+            ],
+            "notification": {
+                "webhook": {
+                    "url": f"{self.api_url}/testing-farm/results",
+                    "token": self.service_config.testing_farm_secret,
+                },
             },
         }
+
+    def get_compose_arch(self, chroot) -> Tuple[str, str]:
+        # fedora-33-x86_64 -> Fedora-33, x86_64
+        compose, arch = chroot.rsplit("-", 1)
+        compose = compose.title()
+
+        response = self.send_testing_farm_request(endpoint="composes")
+        if response.status_code == 200:
+            # {'composes': [{'name': 'Fedora-33'}, {'name': 'Fedora-Rawhide'}]}
+            composes = [c["name"] for c in response.json()["composes"]]
+            if compose not in composes:
+                logger.error(f"Can't map {compose} (from {chroot}) to {composes}")
+
+        return compose, arch
 
     def report_missing_build_chroot(self, chroot: str):
         self.report_status_to_test_for_chroot(
@@ -101,9 +116,21 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
     def run_testing_farm_on_all(self):
+        copr_builds = CoprBuildModel.get_all_by_owner_and_project(
+            owner=self.job_owner, project_name=self.job_project
+        )
+        if not copr_builds:
+            return TaskResults(
+                success=False,
+                details={
+                    "msg": f"No copr builds for {self.job_owner}/{self.job_project}"
+                },
+            )
+        latest_copr_build_id = int(list(copr_builds)[0].build_id)
+
         failed = {}
         for chroot in self.tests_targets:
-            result = self.run_testing_farm(chroot)
+            result = self.run_testing_farm(build_id=latest_copr_build_id, chroot=chroot)
             if not result["success"]:
                 failed[chroot] = result.get("details")
 
@@ -117,18 +144,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             ),
         )
 
-    def run_testing_farm(self, chroot: str) -> TaskResults:
-        # inform users about temporarily disabled testing farm
-        self.report_status_to_test_for_chroot(
-            state=CommitStatus.success,
-            description="Testing farm is temporarily disabled.",
-            chroot=chroot,
-            url="https://github.com/packit/packit-service/issues/803",
-        )
-
-        # do not send the request to the testing farm API
-        return TaskResults(success=True, details={})
-
+    def run_testing_farm(self, build_id: int, chroot: str) -> TaskResults:
         if chroot not in self.tests_targets:
             # Leaving here just to be sure that we will discover this situation if it occurs.
             # Currently not possible to trigger this situation.
@@ -156,26 +172,17 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             chroot=chroot,
         )
 
-        pipeline_id = str(uuid.uuid4())
-        logger.debug(f"Pipeline id: {pipeline_id}")
-
-        test_run_model = TFTTestRunModel.create(
-            pipeline_id=pipeline_id,
-            commit_sha=self.metadata.commit_sha,
-            status=TestingFarmResult.new,
-            target=chroot,
-            web_url=None,
-            trigger_model=self.db_trigger,
-        )
-
-        logger.debug("Sending testing farm request...")
-        payload = self._trigger_payload(pipeline_id, chroot)
-        logger.debug(f"Payload: {payload}")
-
+        logger.info("Sending testing farm request...")
+        payload = self._payload(build_id, chroot)
+        endpoint = "requests"
+        logger.debug(f"POSTing {payload} to {self.tft_api_url}{endpoint}")
         req = self.send_testing_farm_request(
-            TESTING_FARM_TRIGGER_URL, "POST", {}, json.dumps(payload)
+            endpoint=endpoint,
+            method="POST",
+            data=payload,
         )
         logger.debug(f"Request sent: {req}")
+
         if not req:
             msg = "Failed to post request to testing farm API."
             logger.debug("Failed to post request to testing farm API.")
@@ -184,52 +191,53 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 description=msg,
                 chroot=chroot,
             )
-            test_run_model.set_status(TestingFarmResult.error)
             return TaskResults(success=False, details={"msg": msg})
-        else:
-            logger.debug(
-                f"Submitted to testing farm with return code: {req.status_code}"
-            )
 
-            """
-            Response:
-            {
-                "id": "9fa3cbd1-83f2-4326-a118-aad59f5",
-                "success": true,
-                "url": "https://console-testing-farm.apps.ci.centos.org/pipeline/<id>"
-            }
-            """
-
-            # success set check on pending
-            if req.status_code != 200:
-                # something went wrong
-                if req.json() and "message" in req.json():
-                    msg = req.json()["message"]
-                else:
-                    msg = f"Failed to submit tests: {req.reason}"
-                    logger.error(msg)
-                self.report_status_to_test_for_chroot(
-                    state=CommitStatus.failure,
-                    description=msg,
-                    chroot=chroot,
-                )
-                test_run_model.set_status(TestingFarmResult.error)
-                return TaskResults(success=False, details={"msg": msg})
-
-            test_run_model.set_status(TestingFarmResult.running)
+        # success set check on pending
+        if req.status_code != 200:
+            # something went wrong
+            if req.json() and "message" in req.json():
+                msg = req.json()["message"]
+            else:
+                msg = f"Failed to submit tests: {req.reason}"
+                logger.error(msg)
             self.report_status_to_test_for_chroot(
-                state=CommitStatus.pending,
-                description="Tests are running ...",
-                url=req.json()["url"],
+                state=CommitStatus.failure,
+                description=msg,
                 chroot=chroot,
             )
+            return TaskResults(success=False, details={"msg": msg})
+
+        # Response: {"id": "9fa3cbd1-83f2-4326-a118-aad59f5", ...}
+
+        pipeline_id = req.json()["id"]
+        logger.debug(
+            f"Submitted ({req.status_code}) to testing farm as request {pipeline_id}"
+        )
+
+        TFTTestRunModel.create(
+            pipeline_id=pipeline_id,
+            commit_sha=self.metadata.commit_sha,
+            status=TestingFarmResult.new,
+            target=chroot,
+            web_url=None,
+            trigger_model=self.db_trigger,
+        )
+
+        self.report_status_to_test_for_chroot(
+            state=CommitStatus.pending,
+            description="Tests have been submitted ...",
+            url=f"{self.tft_api_url}requests/{pipeline_id}",
+            chroot=chroot,
+        )
 
         return TaskResults(success=True, details={})
 
     def send_testing_farm_request(
-        self, url: str, method: str = None, params: dict = None, data=None
-    ):
+        self, endpoint: str, method: str = None, params: dict = None, data=None
+    ) -> RequestResponse:
         method = method or "GET"
+        url = f"{self.tft_api_url}{endpoint}"
         try:
             response = self.get_raw_request(
                 method=method, url=url, params=params, data=data
@@ -240,23 +248,26 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return response
 
     def get_raw_request(
-        self, url, method="GET", params=None, data=None, header=None
+        self,
+        url,
+        method="GET",
+        params=None,
+        data=None,
     ) -> RequestResponse:
 
         response = self.session.request(
             method=method,
             url=url,
             params=params,
-            headers=header or self.header,
-            data=data,
+            json=data,
             verify=not self.insecure,
         )
 
-        json_output = None
         try:
             json_output = response.json()
         except ValueError:
             logger.debug(response.text)
+            json_output = None
 
         return RequestResponse(
             status_code=response.status_code,
@@ -265,3 +276,34 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             json=json_output,
             reason=response.reason,
         )
+
+    @classmethod
+    def get_request_details(cls, request_id: str) -> Dict[str, Any]:
+        """Testing Farm sends only request/pipeline id in a notification.
+        We need to get more details ourselves."""
+        self = cls(
+            service_config=ServiceConfig.get_service_config(),
+            package_config=PackageConfig(),
+            project=None,
+            metadata=None,
+            db_trigger=None,
+            job_config=JobConfig(
+                # dummy values to be able to construct the object
+                type=JobType.tests,
+                trigger=JobConfigTriggerType.pull_request,
+            ),
+        )
+
+        response = self.send_testing_farm_request(
+            endpoint=f"requests/{request_id}", method="GET"
+        )
+        if not response or response.status_code != 200:
+            msg = f"Failed to get request/pipeline {request_id} details from TF. {response.reason}"
+            logger.error(msg)
+            return {}
+
+        details = response.json()
+        details["url"] = f"{self.tft_api_url}requests/{request_id}"
+        # logger.debug(f"Request/pipeline {request_id} details: {details}")
+
+        return details

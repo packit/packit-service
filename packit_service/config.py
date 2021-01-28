@@ -1,24 +1,6 @@
-# MIT License
-#
-# Copyright (c) 2018-2019 Red Hat, Inc.
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 import enum
 import logging
 from pathlib import Path
@@ -40,6 +22,7 @@ from packit_service.constants import (
     SANDCASTLE_IMAGE,
     SANDCASTLE_PVC,
     SANDCASTLE_WORK_DIR,
+    TESTING_FARM_API_URL,
 )
 
 logger = logging.getLogger(__name__)
@@ -59,6 +42,7 @@ class ServiceConfig(Config):
         deployment: Deployment = Deployment.stg,
         webhook_secret: str = "",
         testing_farm_secret: str = "",
+        testing_farm_api_url: str = "",
         validate_webhooks: bool = True,
         admins: list = None,
         fas_password: Optional[str] = "",
@@ -74,7 +58,11 @@ class ServiceConfig(Config):
 
         self.deployment = deployment
         self.webhook_secret = webhook_secret
+        # Common secret to authenticate both, packit service (when sending request to testing farm)
+        # and testing farm (when sending notification to packit service's webhook).
+        # We might later use different secrets for those two use cases.
         self.testing_farm_secret = testing_farm_secret
+        self.testing_farm_api_url = testing_farm_api_url
         self.validate_webhooks = validate_webhooks
 
         # fas.fedoraproject.org needs password to authenticate
@@ -117,6 +105,7 @@ class ServiceConfig(Config):
             f"deployment='{self.deployment}', "
             f"webhook_secret='{hide(self.webhook_secret)}', "
             f"testing_farm_secret='{hide(self.testing_farm_secret)}', "
+            f"testing_farm_api_url='{self.testing_farm_api_url}', "
             f"validate_webhooks='{self.validate_webhooks}', "
             f"admins='{self.admins}', "
             f"fas_password='{hide(self.fas_password)}', "
@@ -153,6 +142,10 @@ class ServiceConfig(Config):
         # default project for oc cluster up
         config.command_handler_k8s_namespace = raw_dict.get(
             "command_handler_k8s_namespace", SANDCASTLE_DEFAULT_PROJECT
+        )
+
+        config.testing_farm_api_url = raw_dict.get(
+            "testing_farm_api_url", TESTING_FARM_API_URL
         )
 
         logger.debug(f"Loaded config: {config}")
