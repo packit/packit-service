@@ -42,7 +42,6 @@ from packit.local_project import LocalProject
 from packit_service import sentry_integration
 from packit_service.constants import (
     DEFAULT_RETRY_LIMIT,
-    FAQ_URL_HOW_TO_RETRIGGER,
     FILE_DOWNLOAD_FAILURE,
     MSG_RETRIGGER,
     PERMISSIONS_ERROR_WRITE_OR_ADMIN,
@@ -284,23 +283,6 @@ class CoprBuildHandler(JobHandler):
         return self._copr_build_helper
 
     def run(self) -> TaskResults:
-        if self.data.event_type in (
-            PullRequestGithubEvent.__name__,
-            MergeRequestGitlabEvent.__name__,
-        ):
-            user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
-            if not (
-                user_can_merge_pr or self.data.user_login in self.service_config.admins
-            ):
-                self.copr_build_helper.report_status_to_all(
-                    description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
-                    state=CommitStatus.failure,
-                    url=FAQ_URL_HOW_TO_RETRIGGER,
-                )
-                return TaskResults(
-                    success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
-                )
-
         return self.copr_build_helper.run_copr_build()
 
     def pre_check(self) -> bool:
