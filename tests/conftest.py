@@ -126,7 +126,7 @@ def copr_build_model(
         web_url="https://some-url",
         target="some-target",
         status="some-status",
-        srpm_build=flexmock(logs="asdsdf"),
+        srpm_build=flexmock(logs="asdsdf", url=None),
         job_trigger=trigger_model,
     )
 

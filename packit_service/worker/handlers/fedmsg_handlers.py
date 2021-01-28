@@ -212,6 +212,16 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         # if there is no comment from p-s
         return False
 
+    def set_srpm_url(self, build_job_helper: CoprBuildJobHelper) -> None:
+        if self.build.srpm_build.url is not None:
+            # URL has been already set
+            return
+
+        srpm_url = build_job_helper.get_build(
+            self.copr_event.build_id
+        ).source_package.get("url")
+        self.build.srpm_build.set_url(srpm_url)
+
     def run(self):
         build_job_helper = CoprBuildJobHelper(
             service_config=self.service_config,
@@ -250,6 +260,8 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             else None
         )
         self.build.set_end_time(end_time)
+        self.set_srpm_url(build_job_helper)
+
         url = get_copr_build_info_url_from_flask(self.build.id)
 
         # https://pagure.io/copr/copr/blob/master/f/common/copr_common/enums.py#_42
