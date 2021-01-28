@@ -39,8 +39,6 @@ PG_COPR_BUILD_STATUS_SUCCESS = "success"
 RETRY_LIMIT = 2
 # retry in 3s, 6s
 RETRY_BACKOFF = 3
-# retry on any error
-EXCEPTIONS = (Exception,)
 
 WHITELIST_CONSTANTS = {
     "approved_automatically": "approved_automatically",
