@@ -198,7 +198,6 @@ def test_copr_build_check_names(github_pr_event):
                     id=2,
                     projectname="the-project-name",
                     ownername="packit",
-                    source_package={"url": "https://some.host/my.srpm"},
                 )
             )
             .mock(),
@@ -311,7 +310,6 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
                     id=2,
                     projectname="the-project-name",
                     ownername="packit",
-                    source_package={"url": "https://some.host/my.srpm"},
                 )
             )
             .mock(),
@@ -430,7 +428,6 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
                     id=2,
                     projectname="the-project-name",
                     ownername="packit",
-                    source_package={"url": "https://some.host/my.srpm"},
                 )
             )
             .mock(),
@@ -516,7 +513,6 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
                     id=2,
                     projectname="the-project-name",
                     ownername="nobody",
-                    source_package={"url": "https://some.host/my.srpm"},
                 )
             )
             .mock(),
@@ -582,7 +578,6 @@ def test_copr_build_success_set_test_check(github_pr_event):
                     id=2,
                     projectname="the-project-name",
                     ownername="the-owner",
-                    source_package={"url": "https://some.host/my.srpm"},
                 )
             )
             .mock(),
@@ -649,7 +644,6 @@ def test_copr_build_for_branch(branch_push_event):
                     id=2,
                     projectname="the-project-name",
                     ownername="the-owner",
-                    source_package={"url": "https://some.host/my.srpm"},
                 )
             )
             .mock(),
@@ -779,7 +773,6 @@ def test_copr_build_for_release(release_event):
                     id=2,
                     projectname="the-project-name",
                     ownername="the-owner",
-                    source_package={"url": "https://some.host/my.srpm"},
                 )
             )
             .mock(),
@@ -836,7 +829,6 @@ def test_copr_build_success(github_pr_event):
                     id=2,
                     projectname="the-project-name",
                     ownername="the-owner",
-                    source_package={"url": "https://some.host/my.srpm"},
                 )
             )
             .mock(),
@@ -1071,7 +1063,6 @@ def test_copr_build_no_targets(github_pr_event):
                     id=2,
                     projectname="the-project-name",
                     ownername="the-owner",
-                    source_package={"url": "https://some.host/my.srpm"},
                 )
             )
             .mock(),
@@ -1163,7 +1154,6 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
                     id=2,
                     projectname="the-project-name",
                     ownername="nobody",
-                    source_package={"url": "https://some.host/my.srpm"},
                 )
             )
             .mock(),
@@ -1227,7 +1217,6 @@ def test_copr_build_success_set_test_check_gitlab(gitlab_mr_event):
                     id=2,
                     projectname="the-project-name",
                     ownername="the-owner",
-                    source_package={"url": "https://some.host/my.srpm"},
                 )
             )
             .mock(),
@@ -1294,7 +1283,6 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
                     id=2,
                     projectname="the-project-name",
                     ownername="the-owner",
-                    source_package={"url": "https://some.host/my.srpm"},
                 )
             )
             .mock(),
@@ -1357,7 +1345,6 @@ def test_copr_build_success_gitlab(gitlab_mr_event):
                     id=2,
                     projectname="the-project-name",
                     ownername="the-owner",
-                    source_package={"url": "https://some.host/my.srpm"},
                 )
             )
             .mock(),
@@ -1487,7 +1474,6 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
                     id=2,
                     projectname="the-project-name",
                     ownername="the-owner",
-                    source_package={"url": "https://some.host/my.srpm"},
                 )
             )
             .mock(),
@@ -1560,7 +1546,6 @@ def test_copr_build_no_targets_gitlab(gitlab_mr_event):
                     id=2,
                     projectname="the-project-name",
                     ownername="the-owner",
-                    source_package={"url": "https://some.host/my.srpm"},
                 )
             )
             .mock(),

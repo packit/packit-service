@@ -85,6 +85,8 @@ def check_copr_build(build_id: int) -> bool:
             ),  # this seems to be the SRPM name
             timestamp=chroot_build.ended_on,
         )
+        if build.srpm_build.url is None:
+            build.srpm_build.set_url(build_copr.source_package.get("url"))
 
         job_configs = get_config_for_handler_kls(
             handler_kls=CoprBuildEndHandler,

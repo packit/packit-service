@@ -95,6 +95,10 @@ def test_check_copr_build_updated():
                     )
                 )
                 .mock(),
+                srpm_build=flexmock(url=None)
+                .should_receive("set_url")
+                .with_args("https://some.host/my.srpm")
+                .mock(),
             )
         ]
     )
@@ -107,7 +111,10 @@ def test_check_copr_build_updated():
                 flexmock(
                     ended_on=True,
                     state="completed",
-                    source_package={"name": "source_package_name"},
+                    source_package={
+                        "name": "source_package_name",
+                        "url": "https://some.host/my.srpm",
+                    },
                 )
             )
             .mock(),
