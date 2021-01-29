@@ -79,7 +79,7 @@ from packit_service.worker.handlers.abstract import (
 )
 from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
-from packit_service.worker.whitelist import Whitelist
+from packit_service.worker.allowlist import Allowlist
 
 logger = logging.getLogger(__name__)
 
@@ -112,17 +112,17 @@ class GithubAppInstallationHandler(JobHandler):
     def run(self) -> TaskResults:
         """
         Discover information about organization/user which wants to install packit on his repository
-        Try to whitelist automatically if mapping from github username to FAS account can prove that
+        Try to allowlist automatically if mapping from github username to FAS account can prove that
         user is a packager.
         :return: TaskResults
         """
         InstallationModel.create(event=self.installation_event)
-        # try to add user to whitelist
-        whitelist = Whitelist(
+        # try to add user to allowlist
+        allowlist = Allowlist(
             fas_user=self.service_config.fas_user,
             fas_password=self.service_config.fas_password,
         )
-        if not whitelist.add_account(self.account_login, self.sender_login):
+        if not allowlist.add_account(self.account_login, self.sender_login):
             # Create an issue in our repository, so we are notified when someone install the app
             self.project.create_issue(
                 title=f"{self.account_type} {self.account_login} needs to be approved.",
@@ -136,7 +136,7 @@ class GithubAppInstallationHandler(JobHandler):
             )
             msg = f"{self.account_type} {self.account_login} needs to be approved manually!"
         else:
-            msg = f"{self.account_type} {self.account_login} whitelisted!"
+            msg = f"{self.account_type} {self.account_login} allowlisted!"
 
         logger.info(msg)
         return TaskResults(success=True, details={"msg": msg})

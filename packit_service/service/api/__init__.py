@@ -12,7 +12,7 @@ from packit_service.service.api.projects import ns as projects_ns
 from packit_service.service.api.srpm_builds import ns as srpm_builds_ns
 from packit_service.service.api.testing_farm import ns as testing_farm_ns
 from packit_service.service.api.webhooks import ns as webhooks_ns
-from packit_service.service.api.whitelist import ns as whitelist_ns
+from packit_service.service.api.allowlist import ns as allowlist_ns
 
 # https://flask-restplus.readthedocs.io/en/stable/scaling.html
 blueprint = Blueprint("api", __name__, url_prefix="/api")
@@ -29,6 +29,6 @@ api.add_namespace(healthz_ns)
 api.add_namespace(installations_ns)
 api.add_namespace(testing_farm_ns)
 api.add_namespace(webhooks_ns)
-api.add_namespace(whitelist_ns)
+api.add_namespace(allowlist_ns)
 api.add_namespace(koji_builds_ns)
 api.add_namespace(srpm_builds_ns)

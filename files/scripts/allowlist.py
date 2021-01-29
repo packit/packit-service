@@ -1,5 +1,5 @@
 import click
-from packit_service.worker.whitelist import Whitelist
+from packit_service.worker.allowlist import Allowlist
 
 """
 This is cli script to approve user manually after he installed github_app to repository
@@ -15,24 +15,24 @@ def cli():
 @click.argument("account_name", type=str)
 def approve(account_name):
     """
-    Approve user who is waiting on whitelist.
+    Approve user who is waiting on allowlist.
 
     :param account_name: github namespace
     :return:
     """
-    Whitelist().approve_account(account_name)
+    Allowlist().approve_account(account_name)
 
 
 @click.command("remove")
 @click.argument("account_name", type=str)
 def remove(account_name):
     """
-    Remove account from whitelist
+    Remove account from allowlist
 
     :param account_name: github namespace
     :return:
     """
-    Whitelist().remove_account(account_name)
+    Allowlist().remove_account(account_name)
 
 
 @click.command("waiting")
@@ -40,7 +40,7 @@ def waiting():
     """
     Show accounts waiting for approval.
     """
-    print(f"Accounts waiting for approval: {', '.join(Whitelist().accounts_waiting())}")
+    print(f"Accounts waiting for approval: {', '.join(Allowlist().accounts_waiting())}")
 
 
 cli.add_command(waiting)

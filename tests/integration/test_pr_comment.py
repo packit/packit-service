@@ -45,7 +45,7 @@ from packit_service.worker.tasks import (
     run_testing_farm_handler,
 )
 from packit_service.worker.testing_farm import TestingFarmJobHelper
-from packit_service.worker.whitelist import Whitelist
+from packit_service.worker.allowlist import Allowlist
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
@@ -163,7 +163,7 @@ def mock_pr_comment_functionality(request):
         trigger
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Whitelist, check_and_report=True)
+    flexmock(Allowlist, check_and_report=True)
 
 
 def one_job_finished_with_msg(results: List[TaskResults], msg: str):
@@ -275,7 +275,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
         trigger
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Whitelist, check_and_report=True)
+    flexmock(Allowlist, check_and_report=True)
 
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -434,7 +434,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
         trigger
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Whitelist, check_and_report=True)
+    flexmock(Allowlist, check_and_report=True)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
         namespace="packit-service",

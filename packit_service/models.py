@@ -32,7 +32,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship, scoped_session, sessionmaker
 from sqlalchemy.types import ARRAY
 
-from packit_service.constants import WHITELIST_CONSTANTS
+from packit_service.constants import ALLOWLIST_CONSTANTS
 
 logger = logging.getLogger(__name__)
 # SQLAlchemy session, get it with `get_sa_session`
@@ -1007,17 +1007,17 @@ class SRPMBuildModel(Base):
         return f"SRPMBuildModel(id={self.id}, job_trigger={self.job_trigger})"
 
 
-class WhitelistStatus(str, enum.Enum):
-    approved_automatically = WHITELIST_CONSTANTS["approved_automatically"]
-    waiting = WHITELIST_CONSTANTS["waiting"]
-    approved_manually = WHITELIST_CONSTANTS["approved_manually"]
+class AllowlistStatus(str, enum.Enum):
+    approved_automatically = ALLOWLIST_CONSTANTS["approved_automatically"]
+    waiting = ALLOWLIST_CONSTANTS["waiting"]
+    approved_manually = ALLOWLIST_CONSTANTS["approved_manually"]
 
 
-class WhitelistModel(Base):
-    __tablename__ = "whitelist"
+class AllowlistModel(Base):
+    __tablename__ = "allowlist"
     id = Column(Integer, primary_key=True)
     account_name = Column(String, index=True)
-    status = Column(Enum(WhitelistStatus))
+    status = Column(Enum(AllowlistStatus))
 
     # add new account or change status if it already exists
     @classmethod
@@ -1032,10 +1032,10 @@ class WhitelistModel(Base):
             return account
 
     @classmethod
-    def get_account(cls, account_name: str) -> Optional["WhitelistModel"]:
+    def get_account(cls, account_name: str) -> Optional["AllowlistModel"]:
         with get_sa_session() as session:
             return (
-                session.query(WhitelistModel)
+                session.query(AllowlistModel)
                 .filter_by(account_name=account_name)
                 .first()
             )
@@ -1043,28 +1043,28 @@ class WhitelistModel(Base):
     @classmethod
     def get_accounts_by_status(
         cls, status: str
-    ) -> Optional[Iterable["WhitelistModel"]]:
+    ) -> Optional[Iterable["AllowlistModel"]]:
         with get_sa_session() as session:
-            return session.query(WhitelistModel).filter_by(status=status)
+            return session.query(AllowlistModel).filter_by(status=status)
 
     @classmethod
-    def remove_account(cls, account_name: str) -> Optional["WhitelistModel"]:
+    def remove_account(cls, account_name: str) -> Optional["AllowlistModel"]:
         with get_sa_session() as session:
-            account = session.query(WhitelistModel).filter_by(account_name=account_name)
+            account = session.query(AllowlistModel).filter_by(account_name=account_name)
             if account:
                 account.delete()
             return account
 
     @classmethod
-    def get_all(cls) -> Optional[Iterable["WhitelistModel"]]:
+    def get_all(cls) -> Optional[Iterable["AllowlistModel"]]:
         with get_sa_session() as session:
-            return session.query(WhitelistModel).all()
+            return session.query(AllowlistModel).all()
 
     def to_dict(self) -> dict:
         return {"account": self.account_name, "status": self.status}
 
     def __repr__(self):
-        return f"WhitelistModel(name={self.account_name})"
+        return f"AllowlistModel(name={self.account_name})"
 
 
 class TestingFarmResult(str, enum.Enum):

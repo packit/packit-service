@@ -34,7 +34,6 @@ from ogr.services.pagure import PagureProject
 from packit.config import PackageConfig, get_package_config_from_repo
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import KojiBuildState
-from packit_service.constants import WHITELIST_CONSTANTS
 from packit_service.models import (
     AbstractTriggerDbType,
     CoprBuildModel,
@@ -46,6 +45,7 @@ from packit_service.models import (
     PullRequestModel,
     TFTTestRunModel,
     TestingFarmResult,
+    AllowlistStatus,
 )
 from packit_service.service.db_triggers import (
     AddBranchPushDbTrigger,
@@ -89,12 +89,6 @@ class FedmsgTopic(enum.Enum):
     copr_build_finished = "org.fedoraproject.prod.copr.build.end"
     copr_build_started = "org.fedoraproject.prod.copr.build.start"
     pr_flag_added = "org.fedoraproject.prod.pagure.pull-request.flag.added"
-
-
-class WhitelistStatus(enum.Enum):
-    approved_automatically = WHITELIST_CONSTANTS["approved_automatically"]
-    waiting = WHITELIST_CONSTANTS["waiting"]
-    approved_manually = WHITELIST_CONSTANTS["approved_manually"]
 
 
 class TestResult(dict):
@@ -777,7 +771,7 @@ class InstallationEvent(Event):
         repositories: List[str],
         sender_id: int,
         sender_login: str,
-        status: WhitelistStatus = WhitelistStatus.waiting,
+        status: AllowlistStatus = AllowlistStatus.waiting,
     ):
         super().__init__(created_at)
         self.installation_id = installation_id

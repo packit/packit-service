@@ -1,23 +1,6 @@
-# MIT License
-#
-# Copyright (c) 2018-2019 Red Hat, Inc.
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 import logging
 from typing import Any, Iterable, List, Optional, Union, Callable, Dict, Tuple
 
@@ -29,7 +12,7 @@ from packit.config.job_config import JobConfig
 from packit.exceptions import PackitException
 from packit_service.config import ServiceConfig
 from packit_service.constants import FAQ_URL
-from packit_service.models import WhitelistModel
+from packit_service.models import AllowlistModel
 from packit_service.service.events import (
     AbstractCoprBuildEvent,
     DistGitEvent,
@@ -49,7 +32,7 @@ from packit_service.service.events import (
     PushPagureEvent,
     ReleaseEvent,
     TestingFarmResultsEvent,
-    WhitelistStatus,
+    AllowlistStatus,
 )
 from packit_service.worker.build import CoprBuildJobHelper
 
@@ -67,7 +50,7 @@ UncheckedEvent = Union[
 ]
 
 
-class Whitelist:
+class Allowlist:
     def __init__(self, fas_user: str = None, fas_password: str = None):
         self._fas: AccountSystem = AccountSystem(
             username=fas_user, password=fas_password
@@ -105,21 +88,23 @@ class Whitelist:
 
     def add_account(self, account_login: str, sender_login: str) -> bool:
         """
-        Add account to whitelist.
+        Add account to allowlist.
         Status is set to 'waiting' or to 'approved_automatically'
         if the account is a packager in Fedora.
         :param sender_login: login of the user who installed the app into 'account'
         :param account_login: login of the account into which the app was installed
-        :return: was the account (auto/already)-whitelisted?
+        :return: was the account (auto/already)-allowlisted?
         """
-        if WhitelistModel.get_account(account_login):
+        # TODO: Switch to AllowlistModel
+        if AllowlistModel.get_account(account_login):
             return True
 
-        WhitelistModel.add_account(account_login, WhitelistStatus.waiting.value)
+        # TODO: Switch to AllowlistStatus
+        AllowlistModel.add_account(account_login, AllowlistStatus.waiting.value)
 
         if self._signed_fpca(sender_login):
-            WhitelistModel.add_account(
-                account_login, WhitelistStatus.approved_automatically.value
+            AllowlistModel.add_account(
+                account_login, AllowlistStatus.approved_automatically.value
             )
             return True
 
@@ -131,8 +116,8 @@ class Whitelist:
         Approve user manually
         :param account_name: account name for approval
         """
-        WhitelistModel.add_account(
-            account_name=account_name, status=WhitelistStatus.approved_manually.value
+        AllowlistModel.add_account(
+            account_name=account_name, status=AllowlistStatus.approved_manually.value
         )
 
         logger.info(f"Account {account_name!r} approved successfully.")
@@ -140,37 +125,35 @@ class Whitelist:
     @staticmethod
     def is_approved(account_name: str) -> bool:
         """
-        Check if user is approved in the whitelist
+        Check if user is approved in the allowlist
         :param account_name: account name to check
         :return:
         """
-        account = WhitelistModel.get_account(account_name)
-        if account:
-            db_status = account.status
-            s = WhitelistStatus(db_status)
-            return (
-                s == WhitelistStatus.approved_automatically
-                or s == WhitelistStatus.approved_manually
-            )
+        account = AllowlistModel.get_account(account_name)
+        if not account:
+            return False
 
-        return False
+        return AllowlistStatus(account.status) in (
+            AllowlistStatus.approved_automatically,
+            AllowlistStatus.approved_manually,
+        )
 
     @staticmethod
     def remove_account(account_name: str) -> bool:
         """
-        Remove account from whitelist.
+        Remove account from allowlist.
         :param account_name: account name for removing
         :return: has the account existed before?
         """
         account_existed = False
 
-        if WhitelistModel.get_account(account_name):
-            WhitelistModel.remove_account(account_name)
-            logger.info(f"Account {account_name!r} removed from postgres whitelist!")
+        if AllowlistModel.get_account(account_name):
+            AllowlistModel.remove_account(account_name)
+            logger.info(f"Account {account_name!r} removed from postgres allowlist!")
             account_existed = True
 
         if not account_existed:
-            logger.info(f"Account {account_name!r} does not exists!")
+            logger.info(f"Account {account_name!r} does not exist!")
 
         return account_existed
 
@@ -182,12 +165,12 @@ class Whitelist:
         """
         return [
             account.account_name
-            for account in WhitelistModel.get_accounts_by_status(
-                WhitelistStatus.waiting.value
+            for account in AllowlistModel.get_accounts_by_status(
+                AllowlistStatus.waiting.value
             )
         ]
 
-    def unchecked_event(
+    def _check_unchecked_event(
         self,
         event: UncheckedEvent,
         project: GitProject,
@@ -198,7 +181,7 @@ class Whitelist:
         logger.info(f"{type(event)} event does not require allowlist checks.")
         return True
 
-    def release_push_event(
+    def _check_release_push_event(
         self,
         event: Union[ReleaseEvent, PushGitHubEvent, PushGitlabEvent],
         project: GitProject,
@@ -213,10 +196,10 @@ class Whitelist:
         if self.is_approved(namespace):
             return True
 
-        logger.info("Refusing release event on not whitelisted repo namespace.")
+        logger.info("Refusing release event on not allowlisted repo namespace.")
         return False
 
-    def pr_event(
+    def _check_pr_event(
         self,
         event: Union[
             PullRequestGithubEvent,
@@ -233,14 +216,21 @@ class Whitelist:
             raise KeyError(f"Failed to get account_name from {type(event)}")
         namespace = event.target_repo_namespace
 
-        if self.is_approved(namespace) and (
+        namespace_approved = self.is_approved(namespace)
+        user_approved = (
             project.can_merge_pr(account_name)
             or project.get_pr(event.pr_id).author == account_name
-        ):
+        )
+
+        if namespace_approved and user_approved:
             # TODO: clear failing check when present
             return True
 
-        msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
+        msg = (
+            f"Namespace {namespace} is not on our allowlist!"
+            if not namespace_approved
+            else f"Account {account_name} has no write access nor is author of PR!"
+        )
         logger.error(msg)
         if isinstance(
             event, (PullRequestCommentGithubEvent, MergeRequestCommentGitlabEvent)
@@ -256,14 +246,18 @@ class Whitelist:
                     db_trigger=event.db_trigger,
                     job_config=job_config,
                 )
-                msg = "Account is not whitelisted!"  # needs to be shorter
+                msg = (
+                    "Namespace is not allowed!"
+                    if not namespace_approved
+                    else "User cannot trigger!"
+                )
                 job_helper.report_status_to_all(
                     description=msg, state=CommitStatus.error, url=FAQ_URL
                 )
 
         return False
 
-    def issue_comment_event(
+    def _check_issue_comment_event(
         self,
         event: Union[IssueCommentEvent, IssueCommentGitlabEvent],
         project: GitProject,
@@ -275,12 +269,17 @@ class Whitelist:
             raise KeyError(f"Failed to get account_name from {type(event)}")
         namespace = event.repo_namespace
 
-        # FIXME:
-        #  Why check account_name when we whitelist namespace only (in whitelist.add_account())?
-        if self.is_approved(account_name) or self.is_approved(namespace):
+        namespace_approved = self.is_approved(namespace)
+        user_approved = project.can_merge_pr(account_name)
+
+        if namespace_approved and user_approved:
             return True
 
-        msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
+        msg = (
+            f"Namespace {namespace} is not on our allowlist!"
+            if not namespace_approved
+            else f"Account {account_name} has no write access!"
+        )
         logger.error(msg)
         project.issue_comment(event.issue_id, msg)
         return False
@@ -312,22 +311,22 @@ class Whitelist:
                 DistGitEvent,
                 InstallationEvent,
                 KojiBuildEvent,
-            ): self.unchecked_event,
+            ): self._check_unchecked_event,
             (
                 ReleaseEvent,
                 PushGitHubEvent,
                 PushGitlabEvent,
-            ): self.release_push_event,
+            ): self._check_release_push_event,
             (
                 PullRequestGithubEvent,
                 PullRequestCommentGithubEvent,
                 MergeRequestGitlabEvent,
                 MergeRequestCommentGitlabEvent,
-            ): self.pr_event,
+            ): self._check_pr_event,
             (
                 IssueCommentEvent,
                 IssueCommentGitlabEvent,
-            ): self.issue_comment_event,
+            ): self._check_issue_comment_event,
         }
 
         # Administrators

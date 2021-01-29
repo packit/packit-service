@@ -154,23 +154,23 @@ def test_srpm_builds_list(client, clean_before_and_after, a_copr_build_for_pr):
     assert response_dict[0]["build_submitted_time"] is not None
 
 
-def test_whitelist_all(client, clean_before_and_after, new_whitelist_entry):
-    """Test Whitelist API (all)"""
-    response = client.get(url_for("api.whitelist_white_list"))
+def test_allowlist_all(client, clean_before_and_after, new_allowlist_entry):
+    """Test Allowlist API (all)"""
+    response = client.get(url_for("api.allowlist_allowlist"))
     response_dict = response.json
     assert response_dict[0]["account"] == "Rayquaza"
     assert response_dict[0]["status"] == "approved_manually"
     assert len(list(response_dict)) == 1
 
 
-def test_whitelist_specific(client, clean_before_and_after, new_whitelist_entry):
-    """Test Whitelist API (specific user)"""
-    user_1 = client.get(url_for("api.whitelist_white_list_item", login="Rayquaza"))
+def test_allowlist_specific(client, clean_before_and_after, new_allowlist_entry):
+    """Test Allowlist API (specific user)"""
+    user_1 = client.get(url_for("api.allowlist_allowlist_item", login="Rayquaza"))
     assert user_1.json["account"] == "Rayquaza"
     assert user_1.json["status"] == "approved_manually"
 
-    user_2 = client.get(url_for("api.whitelist_white_list_item", login="Zacian"))
-    assert user_2.status_code == 204  # No content when not in whitelist
+    user_2 = client.get(url_for("api.allowlist_allowlist_item", login="Zacian"))
+    assert user_2.status_code == 204  # No content when not in allowlist
 
 
 def test_get_testing_farm_results(

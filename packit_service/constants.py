@@ -41,7 +41,7 @@ DEFAULT_RETRY_LIMIT = 2
 # retry in 3s, 6s
 DEFAULT_RETRY_BACKOFF = 3
 
-WHITELIST_CONSTANTS = {
+ALLOWLIST_CONSTANTS = {
     "approved_automatically": "approved_automatically",
     "waiting": "waiting",
     "approved_manually": "approved_manually",
