@@ -192,6 +192,12 @@ class Whitelist:
         :return:
         """
 
+        # Administrators
+        user_login = getattr(event, "user_login", None)
+        if user_login and user_login in service_config.admins:
+            logger.info(f"{user_login} is admin, you shall pass.")
+            return True
+
         # whitelist checks dont apply to CentOS (Pagure, Gitlab)
         if isinstance(
             event,

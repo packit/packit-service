@@ -196,6 +196,22 @@ def test_signed_fpca(whitelist, account_name, person_object, raises, signed_fpca
             "issue_comment",
             True,
         ),
+        (
+            PullRequestCommentGithubEvent(
+                action=PullRequestCommentAction.created,
+                pr_id=0,
+                base_repo_namespace="banned_namespace",
+                base_repo_name="",
+                base_ref="",
+                target_repo_namespace="",
+                target_repo_name="",
+                project_url="",
+                user_login="admin",
+                comment="",
+            ),
+            "pr_comment",
+            True,
+        ),
     ],
 )
 def test_check_and_report_calls_method(whitelist, event, method, approved):
@@ -215,7 +231,7 @@ def test_check_and_report_calls_method(whitelist, event, method, approved):
         whitelist.check_and_report(
             event,
             gp,
-            service_config=flexmock(deployment=Deployment.stg),
+            service_config=flexmock(deployment=Deployment.stg, admins=["admin"]),
             job_configs=[],
         )
         is approved
@@ -295,13 +311,31 @@ def events(request) -> List[Tuple[AbstractGithubEvent, bool]]:
             )
             for namespace, login, approved in approved_accounts
         ]
+    elif request.param == "admin":
+        return [
+            (
+                PullRequestCommentGithubEvent(
+                    action=PullRequestCommentAction.created,
+                    pr_id=1,
+                    base_repo_namespace="unapproved_namespace_override",
+                    base_repo_name="",
+                    base_ref="",
+                    target_repo_namespace="",
+                    target_repo_name="",
+                    project_url="",
+                    user_login="admin",
+                    comment="",
+                ),
+                True,
+            )
+        ]
     return []
 
 
 # https://stackoverflow.com/questions/35413134/what-does-indirect-true-false-in-pytest-mark-parametrize-do-mean
 @pytest.mark.parametrize(
     "events",
-    ["release", "pr", "pr_comment", "issue_comment"],
+    ["release", "pr", "pr_comment", "issue_comment", "admin"],
     indirect=True,
 )
 def test_check_and_report(
@@ -379,7 +413,9 @@ def test_check_and_report(
                 event,
                 git_project,
                 service_config=flexmock(
-                    deployment=Deployment.stg, command_handler_work_dir=""
+                    deployment=Deployment.stg,
+                    command_handler_work_dir="",
+                    admins=["admin"],
                 ),
                 job_configs=job_configs,
             )

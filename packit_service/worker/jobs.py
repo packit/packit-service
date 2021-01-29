@@ -284,11 +284,10 @@ class SteveJobs:
             )
             # check whitelist approval for every job to be able to track down which jobs
             # failed because of missing whitelist approval
-            whitelist = Whitelist()
-            user_login = getattr(event, "user_login", None)
-            if user_login and user_login in self.service_config.admins:
-                logger.info(f"{user_login} is admin, you shall pass.")
-            elif not whitelist.check_and_report(
+            whitelist = (
+                Whitelist()
+            )  # TODO: Why do we create separate instance for each iteration?
+            if not whitelist.check_and_report(
                 event,
                 event.project,
                 service_config=self.service_config,
