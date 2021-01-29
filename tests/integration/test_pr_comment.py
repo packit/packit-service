@@ -189,13 +189,6 @@ def test_pr_comment_copr_build_handler(
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     ).once()
-    (
-        flexmock(GithubProject)
-        .should_receive("can_merge_pr")
-        .with_args("phracek")
-        .and_return(True)
-        .once()
-    )
     flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/the-namespace/the-repo"
@@ -229,13 +222,6 @@ def test_pr_comment_build_handler(
     )
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
-    )
-    (
-        flexmock(GithubProject)
-        .should_receive("can_merge_pr")
-        .with_args("phracek")
-        .and_return(True)
-        .once()
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
@@ -302,13 +288,6 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     flexmock(KojiBuildJobHelper).should_receive("run_koji_build").and_return(
         TaskResults(success=True, details={})
     )
-    (
-        flexmock(GithubProject)
-        .should_receive("can_merge_pr")
-        .with_args("phracek")
-        .and_return(True)
-        .once()
-    )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()
@@ -372,13 +351,6 @@ def test_pr_embedded_command_handler(
     pr_embedded_command_comment_event["comment"]["body"] = comments_list
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
-    )
-    (
-        flexmock(GithubProject)
-        .should_receive("can_merge_pr")
-        .with_args("phracek")
-        .and_return(True)
-        .once()
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
@@ -472,13 +444,6 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
         flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
     )
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
-    (
-        flexmock(GithubProject)
-        .should_receive("can_merge_pr")
-        .with_args("phracek")
-        .and_return(True)
-        .once()
-    )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()

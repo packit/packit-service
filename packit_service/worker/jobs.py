@@ -242,29 +242,6 @@ class SteveJobs:
                 )
             ]
 
-        if isinstance(
-            event,
-            (
-                PullRequestCommentGithubEvent,
-                PullRequestCommentPagureEvent,
-                IssueCommentEvent,
-                MergeRequestCommentGitlabEvent,
-                IssueCommentGitlabEvent,
-            ),
-        ):
-            if not event.project.can_merge_pr(event.user_login):
-                logger.debug(
-                    f"User {event.user_login} not allowed to trigger packit via comments."
-                )
-                return [
-                    TaskResults.create_from(
-                        success=True,
-                        msg=f"User {event.user_login} not allowed to trigger packit via comments.",
-                        job_config=None,
-                        event=event,
-                    )
-                ]
-
         handler_classes = get_handlers_for_event(event, event.package_config)
 
         if not handler_classes:

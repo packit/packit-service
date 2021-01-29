@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
-from typing import Any, Iterable, List, Optional
+from typing import Any, Iterable, List, Optional, Union
 
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
@@ -54,6 +54,21 @@ from packit_service.service.events import (
 from packit_service.worker.build import CoprBuildJobHelper
 
 logger = logging.getLogger(__name__)
+
+UncheckedEvent = Union[
+    PushPagureEvent,
+    PullRequestPagureEvent,
+    PullRequestCommentPagureEvent,
+    MergeRequestCommentGitlabEvent,
+    IssueCommentGitlabEvent,
+    MergeRequestGitlabEvent,
+    PushGitlabEvent,
+    AbstractCoprBuildEvent,
+    TestingFarmResultsEvent,
+    DistGitEvent,
+    InstallationEvent,
+    KojiBuildEvent,
+]
 
 
 class Whitelist:
@@ -176,6 +191,101 @@ class Whitelist:
             )
         ]
 
+    def unchecked_event(
+        self,
+        # event: UncheckedEvent,
+        event: Any,
+        project: GitProject,
+        service_config: ServiceConfig,
+        job_configs: Iterable[JobConfig],
+    ) -> bool:
+        # Allowlist checks do not apply to CentOS (Pagure, GitLab)
+        logger.info(f"{type(event)} event does not require allowlist checks.")
+        return True
+
+    def release_push_event(
+        self,
+        # event: Union[ReleaseEvent, PushGitHubEvent],
+        event: Any,
+        project: GitProject,
+        service_config: ServiceConfig,
+        job_configs: Iterable[JobConfig],
+    ) -> bool:
+        # TODO: modify event hierarchy so we can use some abstract classes instead
+        namespace = event.repo_namespace
+        if not namespace:
+            raise KeyError(f"Failed to get namespace from {type(event)!r}")
+
+        if self.is_approved(namespace):
+            return True
+
+        logger.info("Refusing release event on not whitelisted repo namespace.")
+        return False
+
+    def github_pr_event(
+        self,
+        # event: Union[PullRequestGithubEvent, PullRequestCommentGithubEvent],
+        event: Any,
+        project: GitProject,
+        service_config: ServiceConfig,
+        job_configs: Iterable[JobConfig],
+    ) -> bool:
+        account_name = event.user_login
+        if not account_name:
+            raise KeyError(f"Failed to get account_name from {type(event)}")
+        namespace = event.target_repo_namespace
+
+        if self.is_approved(namespace) and (
+            project.can_merge_pr(account_name)
+            or project.get_pr(event.pr_id).author == account_name
+        ):
+            # TODO: clear failing check when present
+            return True
+
+        msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
+        logger.error(msg)
+        if isinstance(event, PullRequestCommentGithubEvent):
+            project.pr_comment(event.pr_id, msg)
+        else:
+            for job_config in job_configs:
+                job_helper = CoprBuildJobHelper(
+                    service_config=service_config,
+                    package_config=event.get_package_config(),
+                    project=project,
+                    metadata=EventData.from_event_dict(event.get_dict()),
+                    db_trigger=event.db_trigger,
+                    job_config=job_config,
+                )
+                msg = "Account is not whitelisted!"  # needs to be shorter
+                job_helper.report_status_to_all(
+                    description=msg, state=CommitStatus.error, url=FAQ_URL
+                )
+
+        return False
+
+    def issue_comment_event(
+        self,
+        # event: IssueCommentEvent,
+        event: Any,
+        project: GitProject,
+        service_config: ServiceConfig,
+        job_configs: Iterable[JobConfig],
+    ) -> bool:
+        account_name = event.user_login
+        if not account_name:
+            raise KeyError(f"Failed to get account_name from {type(event)}")
+        namespace = event.repo_namespace
+
+        # FIXME:
+        #  Why check account_name when we whitelist namespace only (in whitelist.add_account())?
+        if self.is_approved(account_name) or self.is_approved(namespace):
+            return True
+
+        msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
+        logger.error(msg)
+        project.issue_comment(event.issue_id, msg)
+        return False
+
     def check_and_report(
         self,
         event: Optional[Any],
@@ -191,101 +301,45 @@ class Whitelist:
         :param job_configs: iterable of jobconfigs - so we know how to update status of the PR
         :return:
         """
-
         # Administrators
         user_login = getattr(event, "user_login", None)
         if user_login and user_login in service_config.admins:
             logger.info(f"{user_login} is admin, you shall pass.")
             return True
 
-        # whitelist checks dont apply to CentOS (Pagure, Gitlab)
-        if isinstance(
-            event,
+        for callback, related_events in (
             (
-                PushPagureEvent,
-                PullRequestPagureEvent,
-                PullRequestCommentPagureEvent,
-                MergeRequestCommentGitlabEvent,
-                IssueCommentGitlabEvent,
-                MergeRequestGitlabEvent,
-                PushGitlabEvent,
+                self.unchecked_event,
+                (
+                    PushPagureEvent,
+                    PullRequestPagureEvent,
+                    PullRequestCommentPagureEvent,
+                    MergeRequestCommentGitlabEvent,
+                    IssueCommentGitlabEvent,
+                    MergeRequestGitlabEvent,
+                    PushGitlabEvent,
+                    AbstractCoprBuildEvent,
+                    TestingFarmResultsEvent,
+                    DistGitEvent,
+                    InstallationEvent,
+                    KojiBuildEvent,
+                ),
             ),
-        ):
-            logger.info(
-                "Centos (Pagure, Gitlab) events don't require whitelist checks."
-            )
-            return True
-
-        # TODO: modify event hierarchy so we can use some abstract classes instead
-        if isinstance(event, (ReleaseEvent, PushGitHubEvent)):
-            account_name = event.repo_namespace
-            if not account_name:
-                raise KeyError(f"Failed to get account_name from {type(event)!r}")
-            if not self.is_approved(account_name):
-                logger.info("Refusing release event on not whitelisted repo namespace.")
-                return False
-            return True
-        if isinstance(
-            event,
             (
-                AbstractCoprBuildEvent,
-                TestingFarmResultsEvent,
-                DistGitEvent,
-                InstallationEvent,
-                KojiBuildEvent,
+                self.release_push_event,
+                (
+                    ReleaseEvent,
+                    PushGitHubEvent,
+                ),
             ),
+            (
+                self.github_pr_event,
+                (PullRequestGithubEvent, PullRequestCommentGithubEvent),
+            ),
+            (self.issue_comment_event, (IssueCommentEvent,)),
         ):
-            return True
-        if isinstance(event, (PullRequestGithubEvent, PullRequestCommentGithubEvent)):
-            account_name = event.user_login
-            if not account_name:
-                raise KeyError(f"Failed to get account_name from {type(event)}")
-            namespace = event.target_repo_namespace
-            # FIXME:
-            #  Why check account_name when we whitelist namespace only (in whitelist.add_account())?
-            if not (self.is_approved(account_name) or self.is_approved(namespace)):
-                msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
-                logger.error(msg)
-                if isinstance(
-                    event,
-                    (
-                        PullRequestCommentPagureEvent,
-                        MergeRequestCommentGitlabEvent,
-                        PullRequestCommentGithubEvent,
-                        IssueCommentGitlabEvent,
-                    ),
-                ):
-                    project.pr_comment(event.pr_id, msg)
-                else:
-                    for job_config in job_configs:
-                        job_helper = CoprBuildJobHelper(
-                            service_config=service_config,
-                            package_config=event.get_package_config(),
-                            project=project,
-                            metadata=EventData.from_event_dict(event.get_dict()),
-                            db_trigger=event.db_trigger,
-                            job_config=job_config,
-                        )
-                        msg = "Account is not whitelisted!"  # needs to be shorter
-                        job_helper.report_status_to_all(
-                            description=msg, state=CommitStatus.error, url=FAQ_URL
-                        )
-                return False
-            # TODO: clear failing check when present
-            return True
-        if isinstance(event, IssueCommentEvent):
-            account_name = event.user_login
-            if not account_name:
-                raise KeyError(f"Failed to get account_name from {type(event)}")
-            namespace = event.repo_namespace
-            # FIXME:
-            #  Why check account_name when we whitelist namespace only (in whitelist.add_account())?
-            if not (self.is_approved(account_name) or self.is_approved(namespace)):
-                msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
-                logger.error(msg)
-                project.issue_comment(event.issue_id, msg)
-                return False
-            return True
+            if isinstance(event, related_events):
+                return callback(event, project, service_config, job_configs)
 
         msg = f"Failed to validate account: Unrecognized event type {type(event)!r}."
         logger.error(msg)

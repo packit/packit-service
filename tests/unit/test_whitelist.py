@@ -47,7 +47,7 @@ from packit_service.service.events import (
     IssueCommentAction,
     AbstractGithubEvent,
 )
-from packit_service.service.events import WhitelistStatus
+from packit_service.service.events import WhitelistStatus, EventData
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.whitelist import Whitelist
 
@@ -222,6 +222,9 @@ def test_check_and_report_calls_method(whitelist, event, method, approved):
         .with_args(0, "Neither account bar nor owner foo are on our whitelist!")
     )
     mocked_gp.never() if approved else mocked_gp.once()
+    flexmock(gp).should_receive("can_merge_pr").with_args(event.user_login).and_return(
+        approved
+    )
     whitelist_mock = flexmock(DBWhitelist).should_receive("get_account")
     if approved:
         whitelist_mock.and_return(DBWhitelist(status="approved_manually"))
@@ -350,7 +353,7 @@ def test_check_and_report(
         pr_comment=lambda *args, **kwargs: None,
         set_commit_status=lambda *args, **kwargs: None,
         issue_comment=lambda *args, **kwargs: None,
-        get_pr=lambda *args, **kwargs: flexmock(source_project=flexmock()),
+        get_pr=lambda *args, **kwargs: flexmock(source_project=flexmock(), author=None),
     )
     job_configs = [
         JobConfig(
@@ -367,6 +370,16 @@ def test_check_and_report(
 
     git_project = GithubProject("", GithubService(), "")
     for event, is_valid in events:
+        flexmock(GithubProject, can_merge_pr=lambda username: is_valid)
+        flexmock(event, project=git_project).should_receive("get_dict").and_return(None)
+        # needs to be included when running only `test_whitelist`
+        # flexmock(event).should_receive("db_trigger").and_return(
+        #     flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request).mock()
+        # )
+        flexmock(EventData).should_receive("from_event_dict").and_return(
+            flexmock(commit_sha="0000000", pr_id="0")
+        )
+
         if isinstance(event, PullRequestGithubEvent) and not is_valid:
             # Report the status
             flexmock(CoprHelper).should_receive("get_copr_client").and_return(
