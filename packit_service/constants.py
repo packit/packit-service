@@ -1,9 +1,10 @@
 from enum import Enum
 
-DOCS_URL = "https://packit.dev/packit-as-a-service/"
-FAQ_URL = f"{DOCS_URL}#faq"
+DOCS_URL = "https://packit.dev/docs"
+FAQ_URL = f"{DOCS_URL}/faq"
 FAQ_URL_HOW_TO_RETRIGGER = (
-    f"{DOCS_URL}#how-to-re-trigger-packit-service-actions-in-your-pull-request"
+    f"{DOCS_URL}/packit-as-a-service/"
+    "#how-to-re-trigger-packit-service-actions-in-your-pull-request"
 )
 KOJI_PRODUCTION_BUILDS_ISSUE = "https://pagure.io/releng/issue/9801"
 
