@@ -168,7 +168,7 @@ def test_testing_farm_response(
         pipeline_id="id",
         log_url="some url",
         copr_chroot="fedora-rawhide-x86_64",
-        message=tests_message,
+        summary=tests_message,
     )
     flexmock(StatusReporter).should_receive("report").with_args(
         state=status_status,

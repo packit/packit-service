@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, Optional
 
 import requests
 from ogr.abstract import CommitStatus, GitProject
@@ -115,22 +115,31 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             chroot=chroot,
         )
 
-    def run_testing_farm_on_all(self):
+    @property
+    def latest_copr_build(self) -> Optional[CoprBuildModel]:
         copr_builds = CoprBuildModel.get_all_by_owner_and_project(
             owner=self.job_owner, project_name=self.job_project
         )
         if not copr_builds:
+            return None
+
+        return list(copr_builds)[0]
+
+    def run_testing_farm_on_all(self):
+        latest_copr_build = self.latest_copr_build
+        if not latest_copr_build:
             return TaskResults(
                 success=False,
                 details={
                     "msg": f"No copr builds for {self.job_owner}/{self.job_project}"
                 },
             )
-        latest_copr_build_id = int(list(copr_builds)[0].build_id)
 
         failed = {}
         for chroot in self.tests_targets:
-            result = self.run_testing_farm(build_id=latest_copr_build_id, chroot=chroot)
+            result = self.run_testing_farm(
+                build_id=int(latest_copr_build.build_id), chroot=chroot
+            )
             if not result["success"]:
                 failed[chroot] = result.get("details")
 

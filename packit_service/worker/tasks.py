@@ -176,7 +176,7 @@ def run_testing_farm_results_handler(
         pipeline_id=event.get("pipeline_id"),
         log_url=event.get("log_url"),
         copr_chroot=event.get("copr_chroot"),
-        message=event.get("message"),
+        summary=event.get("summary"),
     )
     return get_handlers_task_results(handler.run_job(), event)
 

@@ -443,7 +443,11 @@ class TestingFarmHandler(JobHandler):
             logger.debug(f"Test job config: {testing_farm_helper.job_tests}")
             return testing_farm_helper.run_testing_farm_on_all()
 
-        logger.info(f"Running testing farm for {self.build_id}:{self.chroot}.")
+        if self.build_id:
+            copr_build_id = CoprBuildModel.get_by_id(self.build_id).build_id
+        else:
+            copr_build_id = testing_farm_helper.latest_copr_build.build_id
+        logger.info(f"Running testing farm for {copr_build_id}:{self.chroot}.")
         return testing_farm_helper.run_testing_farm(
-            build_id=self.build_id, chroot=self.chroot
+            build_id=int(copr_build_id), chroot=self.chroot
         )

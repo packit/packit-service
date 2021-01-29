@@ -42,7 +42,7 @@ class TestingFarmResultsHandler(JobHandler):
         pipeline_id: str,
         log_url: str,
         copr_chroot: str,
-        message: str,
+        summary: str,
     ):
         super().__init__(
             package_config=package_config,
@@ -55,7 +55,7 @@ class TestingFarmResultsHandler(JobHandler):
         self.pipeline_id = pipeline_id
         self.log_url = log_url
         self.copr_chroot = copr_chroot
-        self.message = message
+        self.summary = summary
         self._db_trigger: Optional[AbstractTriggerDbType] = None
 
     @property
@@ -98,7 +98,7 @@ class TestingFarmResultsHandler(JobHandler):
         )
         status_reporter.report(
             state=status,
-            description=self.message,
+            description=self.summary,
             url=self.log_url,
             check_names=TestingFarmJobHelper.get_test_check(self.copr_chroot),
         )

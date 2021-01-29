@@ -370,6 +370,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
+    flexmock(CoprBuildModel).should_receive("get_by_id").and_return(copr_build_pr)
     copr_build_pr.should_receive("set_status").with_args("success")
     copr_build_pr.should_receive("set_end_time").once()
     flexmock(requests).should_receive("get").and_return(requests.Response())
@@ -404,7 +405,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
                 "os": {"compose": "Fedora-Rawhide"},
                 "artifacts": [
                     {
-                        "id": "1044215:fedora-rawhide-x86_64",
+                        "id": "1:fedora-rawhide-x86_64",
                         "type": "fedora-copr-build",
                     }
                 ],
@@ -479,7 +480,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         event=event_dict,
         job_config=job_config,
         chroot="fedora-rawhide-x86_64",
-        build_id=1044215,
+        build_id=1,
     )
 
 
@@ -522,6 +523,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
+    flexmock(CoprBuildModel).should_receive("get_by_id").and_return(copr_build_pr)
     copr_build_pr.should_receive("set_status").with_args("success")
     copr_build_pr.should_receive("set_end_time").once()
     flexmock(requests).should_receive("get").and_return(requests.Response())
@@ -631,6 +633,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
+    flexmock(CoprBuildModel).should_receive("get_by_id").and_return(copr_build_pr)
     copr_build_pr.should_receive("set_status").with_args("success")
     copr_build_pr.should_receive("set_end_time").once()
     url = get_copr_build_info_url_from_flask(1)
