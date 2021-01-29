@@ -768,7 +768,7 @@ class Parser:
         result: TestingFarmResult = TestingFarmResult(
             nested_get(event, "result", "overall") or event.get("state") or "unknown"
         )
-        summary: str = nested_get(event, "result", "summary")
+        summary: str = nested_get(event, "result", "summary") or ""
         log_url: str = event.get("url")
         env: dict = nested_get(event, "environments_requested", 0, default={})
         compose: str = nested_get(env, "os", "compose")
