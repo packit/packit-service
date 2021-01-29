@@ -159,7 +159,9 @@ class StatusReporter:
         if not url and isinstance(self.project, PagureProject):
             url = "https://wiki.centos.org/Manuals/ReleaseNotes/CentOSStream"
 
-        logger.debug(f"Setting status for check '{check_name}': {description}")
+        logger.debug(
+            f"Setting status '{state.name}' for check '{check_name}': {description}"
+        )
 
         try:
             self.project_with_commit.set_commit_status(
