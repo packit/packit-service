@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
-from typing import Any, Iterable, List, Optional, Union
+from typing import Any, Iterable, List, Optional, Union, Callable, Dict, Tuple
 
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
@@ -59,10 +59,6 @@ UncheckedEvent = Union[
     PushPagureEvent,
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
-    MergeRequestCommentGitlabEvent,
-    IssueCommentGitlabEvent,
-    MergeRequestGitlabEvent,
-    PushGitlabEvent,
     AbstractCoprBuildEvent,
     TestingFarmResultsEvent,
     DistGitEvent,
@@ -193,8 +189,7 @@ class Whitelist:
 
     def unchecked_event(
         self,
-        # event: UncheckedEvent,
-        event: Any,
+        event: UncheckedEvent,
         project: GitProject,
         service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
@@ -205,8 +200,7 @@ class Whitelist:
 
     def release_push_event(
         self,
-        # event: Union[ReleaseEvent, PushGitHubEvent],
-        event: Any,
+        event: Union[ReleaseEvent, PushGitHubEvent, PushGitlabEvent],
         project: GitProject,
         service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
@@ -222,10 +216,14 @@ class Whitelist:
         logger.info("Refusing release event on not whitelisted repo namespace.")
         return False
 
-    def github_pr_event(
+    def pr_event(
         self,
-        # event: Union[PullRequestGithubEvent, PullRequestCommentGithubEvent],
-        event: Any,
+        event: Union[
+            PullRequestGithubEvent,
+            PullRequestCommentGithubEvent,
+            MergeRequestGitlabEvent,
+            MergeRequestCommentGitlabEvent,
+        ],
         project: GitProject,
         service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
@@ -244,7 +242,9 @@ class Whitelist:
 
         msg = f"Neither account {account_name} nor owner {namespace} are on our whitelist!"
         logger.error(msg)
-        if isinstance(event, PullRequestCommentGithubEvent):
+        if isinstance(
+            event, (PullRequestCommentGithubEvent, MergeRequestCommentGitlabEvent)
+        ):
             project.pr_comment(event.pr_id, msg)
         else:
             for job_config in job_configs:
@@ -265,8 +265,7 @@ class Whitelist:
 
     def issue_comment_event(
         self,
-        # event: IssueCommentEvent,
-        event: Any,
+        event: Union[IssueCommentEvent, IssueCommentGitlabEvent],
         project: GitProject,
         service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
@@ -301,43 +300,43 @@ class Whitelist:
         :param job_configs: iterable of jobconfigs - so we know how to update status of the PR
         :return:
         """
+        CALLBACKS: Dict[
+            Union[type, Tuple[Union[type, Tuple[Any, ...]], ...]], Callable
+        ] = {
+            (  # events that are not checked against allowlist
+                PushPagureEvent,
+                PullRequestPagureEvent,
+                PullRequestCommentPagureEvent,
+                AbstractCoprBuildEvent,
+                TestingFarmResultsEvent,
+                DistGitEvent,
+                InstallationEvent,
+                KojiBuildEvent,
+            ): self.unchecked_event,
+            (
+                ReleaseEvent,
+                PushGitHubEvent,
+                PushGitlabEvent,
+            ): self.release_push_event,
+            (
+                PullRequestGithubEvent,
+                PullRequestCommentGithubEvent,
+                MergeRequestGitlabEvent,
+                MergeRequestCommentGitlabEvent,
+            ): self.pr_event,
+            (
+                IssueCommentEvent,
+                IssueCommentGitlabEvent,
+            ): self.issue_comment_event,
+        }
+
         # Administrators
         user_login = getattr(event, "user_login", None)
         if user_login and user_login in service_config.admins:
             logger.info(f"{user_login} is admin, you shall pass.")
             return True
 
-        for callback, related_events in (
-            (
-                self.unchecked_event,
-                (
-                    PushPagureEvent,
-                    PullRequestPagureEvent,
-                    PullRequestCommentPagureEvent,
-                    MergeRequestCommentGitlabEvent,
-                    IssueCommentGitlabEvent,
-                    MergeRequestGitlabEvent,
-                    PushGitlabEvent,
-                    AbstractCoprBuildEvent,
-                    TestingFarmResultsEvent,
-                    DistGitEvent,
-                    InstallationEvent,
-                    KojiBuildEvent,
-                ),
-            ),
-            (
-                self.release_push_event,
-                (
-                    ReleaseEvent,
-                    PushGitHubEvent,
-                ),
-            ),
-            (
-                self.github_pr_event,
-                (PullRequestGithubEvent, PullRequestCommentGithubEvent),
-            ),
-            (self.issue_comment_event, (IssueCommentEvent,)),
-        ):
+        for related_events, callback in CALLBACKS.items():
             if isinstance(event, related_events):
                 return callback(event, project, service_config, job_configs)
 
