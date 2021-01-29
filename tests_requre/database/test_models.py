@@ -6,21 +6,21 @@ from datetime import datetime, timedelta
 from sqlalchemy.exc import ProgrammingError
 
 from packit_service.models import (
-    ProjectReleaseModel,
-    PullRequestModel,
-    JobTriggerModelType,
-    GitBranchModel,
+    BugzillaModel,
     CoprBuildModel,
-    get_sa_session,
-    KojiBuildModel,
-    SRPMBuildModel,
-    JobTriggerModel,
-    TestingFarmResult,
-    TFTTestRunModel,
+    GitBranchModel,
     GitProjectModel,
     InstallationModel,
-    BugzillaModel,
+    JobTriggerModel,
+    JobTriggerModelType,
+    KojiBuildModel,
     ProjectAuthenticationIssueModel,
+    ProjectReleaseModel,
+    PullRequestModel,
+    SRPMBuildModel,
+    TFTTestRunModel,
+    TestingFarmResult,
+    get_sa_session,
 )
 from tests_requre.conftest import SampleValues
 

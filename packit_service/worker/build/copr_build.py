@@ -249,8 +249,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 web_url=web_url,
                 target=chroot,
                 status="pending",
-                srpm_build=self.srpm_model,
-                trigger_model=self.db_trigger,
             )
             url = get_copr_build_info_url_from_flask(id_=copr_build.id)
             self.report_status_to_all_for_chroot(

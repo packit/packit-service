@@ -55,7 +55,7 @@ def _get_build_info(
 ):
     project = build.get_project()
 
-    trigger = build.job_trigger.get_trigger_object()
+    trigger = build.get_trigger_object()
     if isinstance(trigger, PullRequestModel):
         title_identifier = f"PR #{trigger.pr_id}"
     elif isinstance(trigger, GitBranchModel):
@@ -65,6 +65,8 @@ def _get_build_info(
     else:
         title_identifier = ""
 
+    srpm_build = build.get_srpm_build()
+
     return render_template(
         "build_info.html",
         project=project,
@@ -72,7 +74,9 @@ def _get_build_info(
         build_description=build_description,
         build=build,
         build_submitted_time=pretty_time(build.build_submitted_time),
-        srpm_submitted_time=pretty_time(build.srpm_build.build_submitted_time),
+        srpm_submitted_time=pretty_time(srpm_build.build_submitted_time)
+        if srpm_build
+        else None,
         owner=build.owner if isinstance(build, CoprBuildModel) else None,
         project_name=build.project_name if isinstance(build, CoprBuildModel) else None,
         is_pr=isinstance(trigger, PullRequestModel),

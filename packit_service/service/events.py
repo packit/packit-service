@@ -39,7 +39,6 @@ from packit_service.models import (
     CoprBuildModel,
     GitBranchModel,
     IssueModel,
-    JobTriggerModelType,
     KojiBuildModel,
     ProjectReleaseModel,
     PullRequestModel,
@@ -935,7 +934,7 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
         if not self._db_trigger:
             run_model = TFTTestRunModel.get_by_pipeline_id(pipeline_id=self.pipeline_id)
             if run_model:
-                self._db_trigger = run_model.job_trigger.get_trigger_object()
+                self._db_trigger = run_model.get_trigger_object()
         return self._db_trigger
 
     def get_base_project(self) -> Optional[GitProject]:
@@ -1004,7 +1003,7 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         if not self._db_trigger and self.build_model:
-            self._db_trigger = self.build_model.job_trigger.get_trigger_object()
+            self._db_trigger = self.build_model.get_trigger_object()
         return self._db_trigger
 
     @property
@@ -1105,23 +1104,22 @@ class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):
         pkg: str,
         timestamp,
     ):
-        trigger_db = build.job_trigger.get_trigger_object()
+        trigger_db = build.get_trigger_object()
         self.commit_sha = build.commit_sha
         self.base_repo_name = trigger_db.project.repo_name
         self.base_repo_namespace = trigger_db.project.namespace
         git_ref = self.commit_sha  # ref should be name of the branch, not a hash
         self.topic = FedmsgTopic(topic)
 
-        trigger_type = build.job_trigger.type
-        trigger_db = build.job_trigger.get_trigger_object()
+        trigger_db = build.get_trigger_object()
         pr_id = None
-        if trigger_type == JobTriggerModelType.pull_request:
+        if isinstance(trigger_db, PullRequestModel):
             pr_id = trigger_db.pr_id
             self.identifier = str(trigger_db.pr_id)
-        elif trigger_type == JobTriggerModelType.release:
+        elif isinstance(trigger_db, ProjectReleaseModel):
             pr_id = None
             self.identifier = trigger_db.tag_name
-        elif trigger_type == JobTriggerModelType.branch_push:
+        elif isinstance(trigger_db, GitBranchModel):
             pr_id = None
             self.identifier = trigger_db.name
 
@@ -1139,7 +1137,7 @@ class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        return self.build.job_trigger.get_trigger_object()
+        return self.build.get_trigger_object()
 
     def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:

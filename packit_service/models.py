@@ -9,10 +9,9 @@ import logging
 import os
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Dict, Iterable, Optional, TYPE_CHECKING, Type, Union
+from typing import Dict, Iterable, List, Optional, TYPE_CHECKING, Type, Union
 from urllib.parse import urlparse
 
-from packit.config import JobConfigTriggerType
 from sqlalchemy import (
     Boolean,
     Column,
@@ -32,6 +31,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship, scoped_session, sessionmaker
 from sqlalchemy.types import ARRAY
 
+from packit.config import JobConfigTriggerType
 from packit_service.constants import ALLOWLIST_CONSTANTS
 
 logger = logging.getLogger(__name__)
@@ -91,6 +91,91 @@ class JobTriggerModelType(str, enum.Enum):
     branch_push = "branch_push"
     release = "release"
     issue = "issue"
+
+
+class BuildsAndTestsConnector:
+    """
+    Abstract class that is inherited by trigger models
+    to share methods for accessing build/test models..
+    """
+
+    id: int
+    job_trigger_model_type: JobTriggerModelType
+
+    def get_runs(self) -> List["RunModel"]:
+        with get_sa_session() as session:
+            trigger = (
+                session.query(JobTriggerModel)
+                .filter_by(type=type, trigger_id=self.id)
+                .all()
+            )
+            return trigger.runs
+
+    def _get_run_item(self, model):
+        run_ids = [run.id for run in self.get_runs()]
+        with get_sa_session() as session:
+            return (
+                session.query(model)
+                .filter(RunModel.id.in_(run_ids))
+                .filter_by(type=self.job_trigger_model_type)
+                .all()
+            )
+
+    def get_copr_builds(self):
+        return self._get_run_item(model=CoprBuildModel)
+
+    def get_koji_builds(self):
+        return self._get_run_item(model=KojiBuildModel)
+
+    def get_srpm_builds(self):
+        return self._get_run_item(model=SRPMBuildModel)
+
+    def get_test_runs(self):
+        return self._get_run_item(model=TFTTestRunModel)
+
+
+class ProjectAndTriggersConnector:
+    """
+    Abstract class that is inherited by build/test models
+    to share methods for accessing project and trigger models.
+    """
+
+    runs: Optional[List["RunModel"]]
+
+    def get_job_trigger_model(self) -> Optional["JobTriggerModel"]:
+        if not self.runs:
+            return None
+        return self.runs[0].job_trigger
+
+    def get_trigger_object(self) -> Optional["AbstractTriggerDbType"]:
+        job_trigger = self.get_job_trigger_model()
+        if not job_trigger:
+            return None
+        return job_trigger.get_trigger_object()
+
+    def get_project(self) -> Optional["GitProjectModel"]:
+        trigger_object = self.get_trigger_object()
+        if not trigger_object:
+            return None
+        return trigger_object.project
+
+    def get_pr_id(self) -> Optional[int]:
+        trigger_object = self.get_trigger_object()
+        if isinstance(trigger_object, PullRequestModel):
+            return trigger_object.pr_id
+        return None
+
+    def get_branch_name(self) -> Optional[str]:
+        trigger_object = self.get_trigger_object()
+        if isinstance(trigger_object, GitBranchModel):
+            return trigger_object.name
+        return None
+
+    def get_release_tag(self) -> Optional[int]:
+        trigger_object = self.get_trigger_object()
+        if isinstance(trigger_object, ProjectReleaseModel):
+            return trigger_object.tag_name
+        return None
 
 
 class GitProjectModel(Base):
@@ -253,7 +338,7 @@ class GitProjectModel(Base):
         )
 
 
-class PullRequestModel(Base):
+class PullRequestModel(BuildsAndTestsConnector, Base):
     __tablename__ = "pull_requests"
     id = Column(Integer, primary_key=True)  # our database PK
     # GitHub PR ID
@@ -290,26 +375,6 @@ class PullRequestModel(Base):
                 session.add(pr)
             return pr
 
-    def get_copr_builds(self):
-        return JobTriggerModel.get_or_create(
-            type=JobTriggerModelType.pull_request, trigger_id=self.id
-        ).copr_builds
-
-    def get_koji_builds(self):
-        return JobTriggerModel.get_or_create(
-            type=JobTriggerModelType.pull_request, trigger_id=self.id
-        ).koji_builds
-
-    def get_srpm_builds(self):
-        return JobTriggerModel.get_or_create(
-            type=JobTriggerModelType.pull_request, trigger_id=self.id
-        ).srpm_builds
-
-    def get_test_runs(self):
-        return JobTriggerModel.get_or_create(
-            type=JobTriggerModelType.pull_request, trigger_id=self.id
-        ).test_runs
-
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["PullRequestModel"]:
         with get_sa_session() as session:
@@ -319,7 +384,7 @@ class PullRequestModel(Base):
         return f"PullRequestModel(id={self.pr_id}, project={self.project})"
 
 
-class IssueModel(Base):
+class IssueModel(BuildsAndTestsConnector, Base):
     __tablename__ = "project_issues"
     id = Column(Integer, primary_key=True)  # our database PK
     issue_id = Column(Integer, index=True)
@@ -358,7 +423,7 @@ class IssueModel(Base):
         return f"IssueModel(id={self.issue_id}, project={self.project})"
 
 
-class GitBranchModel(Base):
+class GitBranchModel(BuildsAndTestsConnector, Base):
     __tablename__ = "git_branches"
     id = Column(Integer, primary_key=True)  # our database PK
     name = Column(String)
@@ -392,26 +457,6 @@ class GitBranchModel(Base):
     def get_by_id(cls, id_: int) -> Optional["GitBranchModel"]:
         with get_sa_session() as session:
             return session.query(GitBranchModel).filter_by(id=id_).first()
-
-    def get_copr_builds(self):
-        return JobTriggerModel.get_or_create(
-            type=JobTriggerModelType.branch_push, trigger_id=self.id
-        ).copr_builds
-
-    def get_koji_builds(self):
-        return JobTriggerModel.get_or_create(
-            type=JobTriggerModelType.pull_request, trigger_id=self.id
-        ).koji_builds
-
-    def get_srpm_builds(self):
-        return JobTriggerModel.get_or_create(
-            type=JobTriggerModelType.branch_push, trigger_id=self.id
-        ).srpm_builds
-
-    def get_test_runs(self):
-        return JobTriggerModel.get_or_create(
-            type=JobTriggerModelType.branch_push, trigger_id=self.id
-        ).test_runs
 
     def __repr__(self):
         return f"GitBranchModel(name={self.name},  project={self.project})"
@@ -540,10 +585,27 @@ MODEL_FOR_TRIGGER: Dict[JobTriggerModelType, Type[AbstractTriggerDbType]] = {
 
 
 class JobTriggerModel(Base):
+    """
+    Model representing a trigger of some packit task.
+
+    It connects RunModel (and built/test models via that model)
+    with models like PullRequestModel, GitBranchModel or ProjectReleaseModel.
+
+    * It contains type and id of the other database_model.
+      * We know table and id that we need to find in that table.
+    * Each RunModel has to be connected to exactly one JobTriggerModel.
+    * There can be multiple RunModels for one JobTriggerModel.
+      (e.g. For each push to PR, there will be new RunModel, but same JobTriggerModel.)
+    """
+
     __tablename__ = "build_triggers"
     id = Column(Integer, primary_key=True)  # our database PK
     type = Column(Enum(JobTriggerModelType))
     trigger_id = Column(Integer)
+
+    runs = relationship("RunModel", back_populates="job_trigger")
+
+    # TODO: Remove this relation. We need to go through RunModel.
     copr_builds = relationship("CoprBuildModel", back_populates="job_trigger")
     srpm_builds = relationship("SRPMBuildModel", back_populates="job_trigger")
     koji_builds = relationship("KojiBuildModel", back_populates="job_trigger")
@@ -566,7 +628,7 @@ class JobTriggerModel(Base):
                 session.add(trigger)
             return trigger
 
-    def get_trigger_object(self) -> AbstractTriggerDbType:
+    def get_trigger_object(self) -> Optional[AbstractTriggerDbType]:
         with get_sa_session() as session:
             return (
                 session.query(MODEL_FOR_TRIGGER[self.type])
@@ -578,16 +640,64 @@ class JobTriggerModel(Base):
         return f"JobTriggerModel(type={self.type}, trigger_id={self.trigger_id})"
 
 
-class CoprBuildModel(Base):
-    """ we create an entry for every target """
+class RunModel(Base):
+    """
+    Represents one pipeline.
+
+    Connects JobTriggerModel (and triggers like PullRequestModel via that model) with
+    build/test models like  SRPMBuildModel, CoprBuildModel, KojiBuildModel, and TFTTestRunModel.
+
+    * One model of each build/test model can be connected.
+    * Each build/test model can be connected to multiple RunModels (e.g. on retrigger).
+    * Each RunModel has to be connected to exactly one JobTriggerModel.
+    * There can be multiple RunModels for one JobTriggerModel.
+      (e.g. For each push to PR, there will be new RunModel, but same JobTriggerModel.)
+    """
+
+    __tablename__ = "runs"
+    id = Column(Integer, primary_key=True)  # our database PK
+    type = Column(Enum(JobTriggerModelType))
+    trigger_id = Column(Integer)
+
+    job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
+    job_trigger = relationship("JobTriggerModel", back_populates="runs")
+
+    srpm_build_id = Column(Integer, ForeignKey("runs.id"))
+    srpm_build = relationship("SRPMBuildModel", back_populates="runs")
+    copr_build_id = Column(Integer, ForeignKey("runs.id"))
+    copr_build = relationship("CoprBuildModel", back_populates="runs")
+    koji_build_id = Column(Integer, ForeignKey("runs.id"))
+    koji_build = relationship("KojiBuildModel", back_populates="runs")
+    test_runs_id = Column(Integer, ForeignKey("runs.id"))
+    test_runs = relationship("TFTTestRunModel", back_populates="runs")
+
+    @classmethod
+    def create(cls, type: JobTriggerModelType, trigger_id: int) -> "RunModel":
+        with get_sa_session() as session:
+            run_model = RunModel()
+            run_model.job_trigger = JobTriggerModel.get_or_create(
+                type=type, trigger_id=trigger_id
+            )
+            session.add(run_model)
+            return run_model
+
+    def get_trigger_object(self) -> AbstractTriggerDbType:
+        return self.job_trigger.get_trigger_object()
+
+    def __repr__(self):
+        return f"RunModel(type={self.type}, trigger_id={self.trigger_id})"
+
+
+class CoprBuildModel(ProjectAndTriggersConnector, Base):
+    """
+    Representation of Copr build for one target.
+    """
 
     __tablename__ = "copr_builds"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # copr build id
-    job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
-    job_trigger = relationship("JobTriggerModel", back_populates="copr_builds")
-    srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"))
-    srpm_build = relationship("SRPMBuildModel", back_populates="copr_builds")
+    runs = relationship("RunModel", back_populates="job_trigger")
+
     # commit sha of the PR (or a branch, release) we used for a build
     commit_sha = Column(String)
     # what's the build status?
@@ -632,29 +742,11 @@ class CoprBuildModel(Base):
             self.build_logs_url = build_logs
             session.add(self)
 
-    def get_project(self) -> Optional[GitProjectModel]:
-        trigger_object = self.job_trigger.get_trigger_object()
-        if not trigger_object:
+    def get_srpm_build(self) -> Optional["SRPMBuildModel"]:
+        if not self.runs:
             return None
-        return trigger_object.project
-
-    def get_pr_id(self) -> Optional[int]:
-        trigger_object = self.job_trigger.get_trigger_object()
-        if isinstance(trigger_object, PullRequestModel):
-            return trigger_object.pr_id
-        return None
-
-    def get_branch_name(self) -> Optional[str]:
-        trigger_object = self.job_trigger.get_trigger_object()
-        if isinstance(trigger_object, GitBranchModel):
-            return trigger_object.name
-        return None
-
-    def get_release_tag(self) -> Optional[str]:
-        trigger_object = self.job_trigger.get_trigger_object()
-        if isinstance(trigger_object, ProjectReleaseModel):
-            return trigger_object.tag_name
-        return None
+        # All SRPMBuild models for all the runs have to be same.
+        return self.runs[0].srpm_build
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["CoprBuildModel"]:
@@ -745,20 +837,12 @@ class CoprBuildModel(Base):
         web_url: str,
         target: str,
         status: str,
-        srpm_build: "SRPMBuildModel",
-        trigger_model: AbstractTriggerDbType,
     ) -> "CoprBuildModel":
-        job_trigger = JobTriggerModel.get_or_create(
-            type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id
-        )
-
         with get_sa_session() as session:
             build = cls.get_by_build_id(build_id, target)
             if not build:
                 build = cls()
                 build.build_id = build_id
-                build.job_trigger = job_trigger
-                build.srpm_build_id = srpm_build.id
                 build.status = status
                 build.project_name = project_name
                 build.owner = owner
@@ -769,19 +853,17 @@ class CoprBuildModel(Base):
             return build
 
     def __repr__(self):
-        return f"COPRBuildModel(id={self.id}, job_trigger={self.job_trigger})"
+        return f"COPRBuildModel(id={self.id}, run_model={self.run_model})"
 
 
-class KojiBuildModel(Base):
+class KojiBuildModel(ProjectAndTriggersConnector, Base):
     """ we create an entry for every target """
 
     __tablename__ = "koji_builds"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # koji build id
-    job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
-    job_trigger = relationship("JobTriggerModel", back_populates="koji_builds")
-    srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"))
-    srpm_build = relationship("SRPMBuildModel", back_populates="koji_builds")
+    runs = relationship("RunModel", back_populates="job_trigger")
+
     # commit sha of the PR (or a branch, release) we used for a build
     commit_sha = Column(String)
     # what's the build status?
@@ -817,9 +899,6 @@ class KojiBuildModel(Base):
             self.web_url = web_url
             session.add(self)
 
-    def get_project(self) -> GitProjectModel:
-        return self.job_trigger.get_trigger_object().project
-
     def set_build_start_time(self, build_start_time: Optional[DateTime]):
         with get_sa_session() as session:
             self.build_start_time = build_start_time
@@ -834,24 +913,6 @@ class KojiBuildModel(Base):
         with get_sa_session() as session:
             self.build_submitted_time = build_submitted_time
             session.add(self)
-
-    def get_pr_id(self) -> Optional[int]:
-        trigger_object = self.job_trigger.get_trigger_object()
-        if isinstance(trigger_object, PullRequestModel):
-            return trigger_object.pr_id
-        return None
-
-    def get_branch_name(self) -> Optional[str]:
-        trigger_object = self.job_trigger.get_trigger_object()
-        if isinstance(trigger_object, GitBranchModel):
-            return trigger_object.name
-        return None
-
-    def get_release_tag(self) -> Optional[str]:
-        trigger_object = self.job_trigger.get_trigger_object()
-        if isinstance(trigger_object, ProjectReleaseModel):
-            return trigger_object.tag_name
-        return None
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["KojiBuildModel"]:
@@ -881,11 +942,13 @@ class KojiBuildModel(Base):
         with get_sa_session() as session:
             return session.query(KojiBuildModel).filter_by(build_id=build_id)
 
-    # returns the build matching the build_id and the target
     @classmethod
     def get_by_build_id(
         cls, build_id: Union[str, int], target: Optional[str] = None
     ) -> Optional["KojiBuildModel"]:
+        """
+        Returns the build matching the build_id and the target.
+        """
         if isinstance(build_id, int):
             # PG is pesky about this:
             #   LINE 3: WHERE koji_builds.build_id = 1245767 AND koji_builds.target ...
@@ -909,19 +972,12 @@ class KojiBuildModel(Base):
         web_url: str,
         target: str,
         status: str,
-        srpm_build: "SRPMBuildModel",
-        trigger_model: AbstractTriggerDbType,
     ) -> "KojiBuildModel":
-        job_trigger = JobTriggerModel.get_or_create(
-            type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id
-        )
         with get_sa_session() as session:
             build = cls.get_by_build_id(build_id, target)
             if not build:
                 build = cls()
                 build.build_id = build_id
-                build.job_trigger = job_trigger
-                build.srpm_build_id = srpm_build.id
                 build.status = status
                 build.commit_sha = commit_sha
                 build.web_url = web_url
@@ -930,21 +986,19 @@ class KojiBuildModel(Base):
             return build
 
     def __repr__(self):
-        return f"KojiBuildModel(id={self.id}, job_trigger={self.job_trigger})"
+        return f"KojiBuildModel(id={self.id}, run_model={self.run_model})"
 
 
-class SRPMBuildModel(Base):
+class SRPMBuildModel(ProjectAndTriggersConnector, Base):
     __tablename__ = "srpm_builds"
     id = Column(Integer, primary_key=True)
     # our logs we want to show to the user
     logs = Column(Text)
     success = Column(Boolean)
-    job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
-    job_trigger = relationship("JobTriggerModel", back_populates="srpm_builds")
-    copr_builds = relationship("CoprBuildModel", back_populates="srpm_build")
-    koji_builds = relationship("KojiBuildModel", back_populates="srpm_build")
     build_submitted_time = Column(DateTime, default=datetime.utcnow)
     url = Column(Text)
+
+    runs = relationship("RunModel", back_populates="job_trigger")
 
     @classmethod
     def create(
@@ -953,16 +1007,40 @@ class SRPMBuildModel(Base):
         success: bool,
         trigger_model: AbstractTriggerDbType,
     ) -> "SRPMBuildModel":
-        job_trigger = JobTriggerModel.get_or_create(
-            type=trigger_model.job_trigger_model_type,
-            trigger_id=trigger_model.id,
-        )
+        """
+        Create a new model for SRPM and connect it to the RunModel.
+
+        * New SRPMBuildModel model will have connection to a new RunModel.
+        * The newly created RunModel can reuse existing JobTriggerModel
+          (e.g.: one pull-request can have multiple runs).
+
+        More specifically:
+        * On PR creation:
+          -> SRPMBuildModel is created.
+          -> New RunModel is created.
+          -> JobTriggerModel is created.
+        * On `/packit build` comment or new push:
+          -> SRPMBuildModel is created.
+          -> New RunModel is created.
+          -> JobTriggerModel is reused.
+        * On `/packit test` comment:
+          -> SRPMBuildModel and CoprBuildModel are reused.
+          -> New TFTTestRunModel is created.
+          -> New RunModel is created and
+             collects this new TFTTestRunModel with old SRPMBuildModel and CoprBuildModel.
+        """
         with get_sa_session() as session:
             srpm_build = cls()
             srpm_build.logs = logs
             srpm_build.success = success
-            srpm_build.job_trigger = job_trigger
             session.add(srpm_build)
+
+            # Create a new run model, reuse trigger_model if it exists:
+            new_run_model = RunModel.create(
+                type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id
+            )
+            session.add(new_run_model)
+
             return srpm_build
 
     @classmethod
@@ -980,43 +1058,13 @@ class SRPMBuildModel(Base):
                 first:last
             ]
 
-    def get_project(self) -> Optional[GitProjectModel]:
-        if not self.job_trigger_id:
-            return None
-        trigger_object = self.job_trigger.get_trigger_object()
-        if not trigger_object:
-            return None
-        return trigger_object.project
-
-    def get_pr_id(self) -> Optional[int]:
-        if not self.job_trigger_id:
-            return None
-        trigger_object = self.job_trigger.get_trigger_object()
-        if isinstance(trigger_object, PullRequestModel):
-            return trigger_object.pr_id
-        return None
-
-    def get_branch_name(self) -> Optional[str]:
-        if not self.job_trigger_id:
-            return None
-        trigger_object = self.job_trigger.get_trigger_object()
-        if isinstance(trigger_object, GitBranchModel):
-            return trigger_object.name
-        return None
-
-    def get_release_tag(self) -> Optional[str]:
-        trigger_object = self.job_trigger.get_trigger_object()
-        if isinstance(trigger_object, ProjectReleaseModel):
-            return trigger_object.tag_name
-        return None
-
     def set_url(self, url: str) -> None:
         with get_sa_session() as session:
             self.url = url
             session.add(self)
 
     def __repr__(self):
-        return f"SRPMBuildModel(id={self.id}, job_trigger={self.job_trigger})"
+        return f"SRPMBuildModel(id={self.id}, run_model={self.run_model})"
 
 
 class AllowlistStatus(str, enum.Enum):
@@ -1090,17 +1138,17 @@ class TestingFarmResult(str, enum.Enum):
     unknown = "unknown"
 
 
-class TFTTestRunModel(Base):
+class TFTTestRunModel(ProjectAndTriggersConnector, Base):
     __tablename__ = "tft_test_runs"
     id = Column(Integer, primary_key=True)
     pipeline_id = Column(String, index=True)
-    job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
-    job_trigger = relationship("JobTriggerModel", back_populates="test_runs")
     commit_sha = Column(String)
     status = Column(Enum(TestingFarmResult))
     target = Column(String)
     web_url = Column(String)
     data = Column(JSON)
+
+    runs = relationship("RunModel", back_populates="job_trigger")
 
     def set_status(self, status: TestingFarmResult):
         with get_sa_session() as session:
@@ -1112,38 +1160,6 @@ class TFTTestRunModel(Base):
             self.web_url = web_url
             session.add(self)
 
-    def get_project(self) -> Optional[GitProjectModel]:
-        trigger_object = self.job_trigger.get_trigger_object()
-        if not trigger_object:
-            return None
-        return trigger_object.project
-
-    def get_pr_id(self) -> Optional[int]:
-        trigger_object = self.job_trigger.get_trigger_object()
-        if isinstance(trigger_object, PullRequestModel):
-            return trigger_object.pr_id
-        return None
-
-    def get_branch_name(self) -> Optional[str]:
-        trigger_object = self.job_trigger.get_trigger_object()
-        if isinstance(trigger_object, GitBranchModel):
-            return trigger_object.name
-        return None
-
-    def get_release_tag(self) -> Optional[str]:
-        trigger_object = self.job_trigger.get_trigger_object()
-        if isinstance(trigger_object, ProjectReleaseModel):
-            return trigger_object.tag_name
-        return None
-
-    @classmethod
-    def get_by_id(
-        cls,
-        id_: int,
-    ) -> Optional["TFTTestRunModel"]:
-        with get_sa_session() as session:
-            return session.query(TFTTestRunModel).filter_by(id=id_).first()
-
     @classmethod
     def create(
         cls,
@@ -1151,14 +1167,8 @@ class TFTTestRunModel(Base):
         commit_sha: str,
         status: TestingFarmResult,
         target: str,
-        trigger_model: AbstractTriggerDbType,
         web_url: Optional[str] = None,
-        data: dict = None,
     ) -> "TFTTestRunModel":
-        job_trigger = JobTriggerModel.get_or_create(
-            type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id
-        )
-
         with get_sa_session() as session:
             test_run = cls()
             test_run.pipeline_id = pipeline_id
@@ -1166,8 +1176,6 @@ class TFTTestRunModel(Base):
             test_run.status = status
             test_run.target = target
             test_run.web_url = web_url
-            test_run.job_trigger = job_trigger
-            test_run.data = data or {}
             session.add(test_run)
             return test_run
 
@@ -1186,6 +1194,9 @@ class TFTTestRunModel(Base):
             return session.query(TFTTestRunModel).order_by(desc(TFTTestRunModel.id))[
                 first:last
             ]
+
+    def __repr__(self):
+        return f"TFTTestRunModel(id={self.id}, run_model={self.run_model})"
 
 
 class ProjectAuthenticationIssueModel(Base):
