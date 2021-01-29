@@ -766,7 +766,7 @@ class Parser:
             raise Exception(f"Failed to get {request_id} details from TF.")
 
         result: TestingFarmResult = TestingFarmResult(
-            nested_get(event, "result", "overall")
+            nested_get(event, "result", "overall") or event.get("state") or "unknown"
         )
         summary: str = nested_get(event, "result", "summary")
         log_url: str = event.get("url")
