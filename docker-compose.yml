@@ -49,7 +49,7 @@ services:
       context: .
       dockerfile: files/docker/Dockerfile.worker
       args:
-        SOURCE_BRANCH: master
+        SOURCE_BRANCH: main
     image: docker.io/usercont/packit-worker:dev
     command: /usr/bin/run_worker.sh
     #tty: true
@@ -87,7 +87,7 @@ services:
       context: .
       dockerfile: files/docker/Dockerfile
       args:
-        SOURCE_BRANCH: master
+        SOURCE_BRANCH: main
     image: docker.io/usercont/packit-service:dev
     command: /usr/bin/run_httpd.sh
     depends_on:

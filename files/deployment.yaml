@@ -60,7 +60,7 @@
     - name: Create dev.yml
       copy:
         content: |
-          # See https://github.com/packit/deployment/blob/master/vars/dev_template.yml
+          # See https://github.com/packit/deployment/blob/main/vars/dev_template.yml
           project: myproject
           host: https://{{ cluster_ip }}:8443
           api_key: {{ kubeconfig_token.stdout }}

@@ -25,7 +25,7 @@ When executing manually it is required to provide:
 - variable SOURCE_BRANCH for make targets:
 
 e.g.
-`SOURCE_BRANCH=master`
+`SOURCE_BRANCH=main`
 
 - arg `--build-arg SOURCE_BRANCH=value` when using docker(-compose) build
 
@@ -35,7 +35,7 @@ e.g.
     docker-compose build --build-arg SOURCE_BRANCH=stable
 
 If SOURCE_BRANCH is empty build will fail.
-If SOURCE_BRANCH is not empty and is not master or stable than master value will be used.
+If SOURCE_BRANCH is not empty and is not main or stable than main value will be used.
 
 ## Running packit-service locally
 

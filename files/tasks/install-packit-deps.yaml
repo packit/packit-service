@@ -1,7 +1,7 @@
 # Install dependencies for packit
 - name: Download script setupcfg2rpm.py
   get_url:
-    url: https://raw.githubusercontent.com/packit-service/deployment/master/scripts/setupcfg2rpm.py
+    url: https://raw.githubusercontent.com/packit-service/deployment/main/scripts/setupcfg2rpm.py
     dest: ./setupcfg2rpm.py
     mode: "0744"
 - name: Download packit spec file
