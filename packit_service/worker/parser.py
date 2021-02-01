@@ -748,7 +748,6 @@ class Parser:
         event: dict,
     ) -> Optional[TestingFarmResultsEvent]:
         """ this corresponds to testing farm results event """
-        logger.debug(f"parse_testing_farm_results_event: {event}")
         if event.get("source") != "testing-farm" or not event.get("request_id"):
             return None
 
