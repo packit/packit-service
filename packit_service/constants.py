@@ -36,9 +36,9 @@ COPR_API_FAIL_STATE = 2
 PG_COPR_BUILD_STATUS_FAILURE = "failure"
 PG_COPR_BUILD_STATUS_SUCCESS = "success"
 
-RETRY_LIMIT = 2
+DEFAULT_RETRY_LIMIT = 2
 # retry in 3s, 6s
-RETRY_BACKOFF = 3
+DEFAULT_RETRY_BACKOFF = 3
 
 WHITELIST_CONSTANTS = {
     "approved_automatically": "approved_automatically",

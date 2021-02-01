@@ -25,6 +25,7 @@ This file defines classes for job handlers specific for Github hooks
 TODO: The build and test handlers are independent and should be moved away.
 """
 import logging
+from os import getenv
 from typing import Optional
 
 from celery.app.task import Task
@@ -40,11 +41,11 @@ from packit.config.package_config import PackageConfig
 from packit.local_project import LocalProject
 from packit_service import sentry_integration
 from packit_service.constants import (
+    DEFAULT_RETRY_LIMIT,
     FAQ_URL_HOW_TO_RETRIGGER,
     FILE_DOWNLOAD_FAILURE,
     MSG_RETRIGGER,
     PERMISSIONS_ERROR_WRITE_OR_ADMIN,
-    RETRY_LIMIT,
 )
 from packit_service.models import (
     AbstractTriggerDbType,
@@ -191,7 +192,7 @@ class ProposeDownstreamHandler(JobHandler):
                     # when the task hits max_retries, it raises MaxRetriesExceededError
                     # and the error handling code would be never executed
                     retries = self.task.request.retries
-                    if retries < RETRY_LIMIT:
+                    if retries < getenv("RETRY_LIMIT", DEFAULT_RETRY_LIMIT):
                         logger.info(f"Retrying for the {retries + 1}. time...")
                         # throw=False so that exception is not raised and task
                         # is not retried also automatically

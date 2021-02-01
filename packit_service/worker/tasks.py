@@ -20,14 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import logging
+from os import getenv
 from typing import List, Optional
 
 from celery import Task
 from packit_service.celerizer import celery_app
-
-
 from packit_service.models import TestingFarmResult
-from packit_service.constants import RETRY_LIMIT, RETRY_BACKOFF
+from packit_service.constants import DEFAULT_RETRY_LIMIT, DEFAULT_RETRY_BACKOFF
 from packit_service.service.events import (
     AbstractCoprBuildEvent,
     EventData,
@@ -78,8 +77,8 @@ logging.getLogger("sandcastle").setLevel(logging.DEBUG)
 
 class HandlerTaskWithRetry(Task):
     autoretry_for = (Exception,)
-    retry_kwargs = {"max_retries": RETRY_LIMIT}
-    retry_backoff = RETRY_BACKOFF
+    retry_kwargs = {"max_retries": getenv("RETRY_LIMIT", DEFAULT_RETRY_LIMIT)}
+    retry_backoff = getenv("RETRY_BACKOFF", DEFAULT_RETRY_BACKOFF)
 
 
 @celery_app.task(name="task.steve_jobs.process_message", bind=True)
