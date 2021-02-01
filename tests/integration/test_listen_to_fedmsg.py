@@ -334,7 +334,9 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock())
+        flexmock(
+            source_project=flexmock(get_web_url=lambda: "https://github.com/foo/bar")
+        )
     )
 
     config = PackageConfig(
@@ -487,7 +489,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
 def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock())
+        flexmock(source_project=flexmock(get_web_url=lambda: "abc"))
     )
 
     config = PackageConfig(
@@ -597,7 +599,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
 def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock())
+        flexmock(source_project=flexmock(get_web_url=lambda: "abc"))
     )
 
     config = PackageConfig(

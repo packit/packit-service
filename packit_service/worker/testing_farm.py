@@ -66,11 +66,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         """
         compose, arch = self.get_compose_arch(chroot)
+        pr = self.project.get_pr(self.metadata.pr_id)
+        # url of the source/fork from which the PR has been created
+        from_url = pr.source_project.get_web_url()
         return {
             "api_key": self.service_config.testing_farm_secret,
             "test": {
                 "fmf": {
-                    "url": self.metadata.project_url,
+                    "url": from_url,
                     "ref": self.metadata.commit_sha,
                 },
             },
