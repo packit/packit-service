@@ -66,21 +66,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         """
         compose, arch = self.get_compose_arch(chroot)
-        # FIXME FIXME FIXME !!!
-        # This tells TF to load fmf metadata from main/master of the base project.
-        # What we need is to load it from self.metadata.commit_sha of the FORKED project.
-        # This is ugly hack, but I need to make this work at least like this ASAP
-        # and find proper way later. Sorry.
-        url = self.metadata.project_url
-        ref = self.project.default_branch
-        # url = ? url of the fork from which the PR has been created ?
-        # ref = self.metadata.commit_sha
         return {
             "api_key": self.service_config.testing_farm_secret,
             "test": {
                 "fmf": {
-                    "url": url,
-                    "ref": ref,
+                    "url": self.metadata.project_url,
+                    "ref": self.metadata.commit_sha,
                 },
             },
             "environments": [

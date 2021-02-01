@@ -291,7 +291,6 @@ def test_payload(
         namespace=namespace,
         service="GitHub",
         get_git_urls=lambda: {"git": f"{project_url}.git"},
-        default_branch=commit_sha,
     )
     metadata = flexmock(
         trigger=flexmock(),
