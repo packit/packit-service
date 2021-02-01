@@ -654,6 +654,8 @@ class TestEvents:
             )
         )
         assert event_object.db_trigger
+        project = super(TestingFarmResultsEvent, event_object).get_project()
+        flexmock(GithubProject).should_receive("parent").and_return(project)
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit/packit"
 
@@ -686,6 +688,8 @@ class TestEvents:
             )
         )
         assert event_object.db_trigger
+        project = super(TestingFarmResultsEvent, event_object).get_project()
+        flexmock(GithubProject).should_receive("parent").and_return(project)
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit/packit"
 

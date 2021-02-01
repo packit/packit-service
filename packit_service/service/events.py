@@ -928,6 +928,14 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
                 return None  # With Github app, we cannot work with fork repo
         return self.project
 
+    def get_project(self) -> Optional[GitProject]:
+        project = super().get_project()
+        # In TestingFarmJobHelper._payload() we asked TF to test commit_sha of fork
+        # (PR's source). Now we again need its parent, in order to continue.
+        if project.parent:
+            project = project.parent
+        return project
+
 
 class KojiBuildEvent(AbstractForgeIndependentEvent):
     def __init__(

@@ -7,7 +7,7 @@ This file defines classes for job handlers specific for Testing farm
 import logging
 from typing import List, Optional
 
-from ogr.abstract import CommitStatus
+from ogr.abstract import CommitStatus, GitProject
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
 
@@ -65,6 +65,16 @@ class TestingFarmResultsHandler(JobHandler):
             if run_model:
                 self._db_trigger = run_model.job_trigger.get_trigger_object()
         return self._db_trigger
+
+    @property
+    def project(self) -> Optional[GitProject]:
+        if not self._project:
+            self._project = super().project
+            # In TestingFarmJobHelper._payload() we asked TF to test commit_sha of fork
+            # (PR's source). Now we need its parent, in order for StatusReporter to work.
+            if self._project.parent:
+                self._project = self._project.parent
+        return self._project
 
     def run(self) -> TaskResults:
         logger.debug(f"Testing farm {self.pipeline_id} result:\n{self.result}")
