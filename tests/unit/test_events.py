@@ -632,6 +632,16 @@ class TestEvents:
         flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
             request_id
         ).and_return(testing_farm_results)
+        flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
+            flexmock(
+                job_trigger=flexmock()
+                .should_receive("get_trigger_object")
+                .and_return(PullRequestModel(pr_id=10))
+                .once()
+                .mock(),
+                data={"base_project_url": "https://github.com/packit/packit"},
+            )
+        )
         event_object = Parser.parse_event(testing_farm_notification)
 
         assert isinstance(event_object, TestingFarmResultsEvent)
@@ -644,15 +654,6 @@ class TestEvents:
         assert event_object.copr_build_id == "1810530"
         assert event_object.copr_chroot == "fedora-32-x86_64"
         assert event_object.tests
-        flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
-            flexmock(
-                job_trigger=flexmock()
-                .should_receive("get_trigger_object")
-                .and_return(PullRequestModel(pr_id=10))
-                .once()
-                .mock()
-            )
-        )
         assert event_object.db_trigger
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit/packit"
@@ -664,6 +665,16 @@ class TestEvents:
         flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
             request_id
         ).and_return(testing_farm_results_error)
+        flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
+            flexmock(
+                job_trigger=flexmock()
+                .should_receive("get_trigger_object")
+                .and_return(PullRequestModel(pr_id=10))
+                .once()
+                .mock(),
+                data={"base_project_url": "https://github.com/packit/packit"},
+            )
+        )
         event_object = Parser.parse_event(testing_farm_notification)
 
         assert isinstance(event_object, TestingFarmResultsEvent)
@@ -676,15 +687,6 @@ class TestEvents:
         assert event_object.copr_build_id == "1810530"
         assert event_object.copr_chroot == "fedora-32-x86_64"
         assert event_object.tests
-        flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
-            flexmock(
-                job_trigger=flexmock()
-                .should_receive("get_trigger_object")
-                .and_return(PullRequestModel(pr_id=10))
-                .once()
-                .mock()
-            )
-        )
         assert event_object.db_trigger
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit/packit"
@@ -882,11 +884,15 @@ class TestEvents:
         flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
             request_id
         ).and_return(testing_farm_results)
+        flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").with_args(
+            request_id
+        ).and_return(flexmock(data={"base_project_url": "abc"}))
         event_object = Parser.parse_event(testing_farm_notification)
 
         assert isinstance(event_object, TestingFarmResultsEvent)
         assert isinstance(event_object.pipeline_id, str)
         assert event_object.pipeline_id == request_id
+        assert event_object.project_url == "abc"
 
     def test_distgit_commit(self, distgit_commit):
         event_object = Parser.parse_event(distgit_commit)
@@ -904,6 +910,9 @@ class TestEvents:
     ):
         flexmock(TestingFarmJobHelper).should_receive("get_request_details").and_return(
             testing_farm_results
+        )
+        flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
+            flexmock(data={"base_project_url": "abc"})
         )
         event_object = Parser.parse_event(testing_farm_notification)
         assert json.dumps(event_object.pipeline_id)
