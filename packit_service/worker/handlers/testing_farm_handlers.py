@@ -84,12 +84,16 @@ class TestingFarmResultsHandler(JobHandler):
 
         if self.result == TestingFarmResult.running:
             status = CommitStatus.running
+            summary = self.summary or "Tests are running ..."
         elif self.result == TestingFarmResult.passed:
             status = CommitStatus.success
+            summary = self.summary or "Tests passed ..."
         elif self.result == TestingFarmResult.error:
             status = CommitStatus.error
+            summary = self.summary or "Error ..."
         else:
             status = CommitStatus.failure
+            summary = self.summary or "Tests failed ..."
 
         if test_run_model:
             test_run_model.set_web_url(self.log_url)
@@ -98,7 +102,7 @@ class TestingFarmResultsHandler(JobHandler):
         )
         status_reporter.report(
             state=status,
-            description=self.summary,
+            description=summary,
             url=self.log_url,
             check_names=TestingFarmJobHelper.get_test_check(self.copr_chroot),
         )

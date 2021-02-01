@@ -286,18 +286,20 @@ def test_payload(
         command_handler_work_dir="/tmp",
     )
     package_config = flexmock(jobs=[])
+    pr = flexmock(source_project=flexmock(get_web_url=lambda: project_url))
     project = flexmock(
         repo=repo,
         namespace=namespace,
         service="GitHub",
         get_git_urls=lambda: {"git": f"{project_url}.git"},
-        default_branch=commit_sha,
+        get_pr=lambda id_: pr,
     )
     metadata = flexmock(
         trigger=flexmock(),
         commit_sha=commit_sha,
         git_ref=git_ref,
         project_url=project_url,
+        pr_id=123,
     )
     db_trigger = flexmock()
 
