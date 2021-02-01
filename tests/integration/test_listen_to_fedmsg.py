@@ -444,6 +444,10 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         url="",
     ).once()
 
+    flexmock(GithubProject).should_receive("get_web_url").and_return(
+        "https://github.com/foo/bar"
+    )
+
     tft_test_run_model = flexmock()
     flexmock(TFTTestRunModel).should_receive("create").with_args(
         pipeline_id=pipeline_id,
@@ -452,6 +456,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         target="fedora-rawhide-x86_64",
         trigger_model=copr_build_pr.job_trigger.get_trigger_object(),
         web_url=None,
+        data={"base_project_url": "https://github.com/foo/bar"},
     ).and_return(tft_test_run_model)
 
     flexmock(StatusReporter).should_receive("report").with_args(

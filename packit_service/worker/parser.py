@@ -32,7 +32,7 @@ from ogr.parsing import parse_git_repo
 from packit.utils import nested_get
 
 from packit_service.constants import KojiBuildState
-from packit_service.models import TestingFarmResult
+from packit_service.models import TestingFarmResult, TFTTestRunModel
 from packit_service.service.events import (
     AbstractPagureEvent,
     CoprBuildEndEvent,
@@ -783,7 +783,17 @@ class Parser:
             nested_get(event, "result", "xunit")
         )
         ref: str = nested_get(event, "test", "fmf", "ref")
+
         project_url: str = nested_get(event, "test", "fmf", "url")
+        # ["test"]["fmf"]["url"] contains PR's source (fork) url.
+        # We need the original/base project url stored in db.
+        tft_test_run = TFTTestRunModel.get_by_pipeline_id(request_id)
+        if tft_test_run:
+            base_project_url = tft_test_run.data.get("base_project_url")
+            if base_project_url:
+                logger.debug(f"Using {base_project_url} instead of {project_url}")
+                project_url = base_project_url
+
         logger.debug(
             f"project_url: {project_url}, ref: {ref}, result: {result}, "
             f"summary: {summary!r}, copr-build: {artifact.get('id')}"

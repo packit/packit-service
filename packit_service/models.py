@@ -1121,6 +1121,7 @@ class TFTTestRunModel(Base):
         target: str,
         trigger_model: AbstractTriggerDbType,
         web_url: Optional[str] = None,
+        data: dict = None,
     ) -> "TFTTestRunModel":
         job_trigger = JobTriggerModel.get_or_create(
             type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id
@@ -1134,6 +1135,7 @@ class TFTTestRunModel(Base):
             test_run.target = target
             test_run.web_url = web_url
             test_run.job_trigger = job_trigger
+            test_run.data = data or {}
             session.add(test_run)
             return test_run
 

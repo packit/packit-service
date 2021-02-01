@@ -170,7 +170,6 @@ def test_testing_farm_response(
         copr_chroot="fedora-rawhide-x86_64",
         summary=tests_message,
     )
-    flexmock(test_farm_handler).should_receive("project").and_return(flexmock())
     flexmock(StatusReporter).should_receive("report").with_args(
         state=status_status,
         description=status_message,
