@@ -100,11 +100,15 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     def get_compose_arch(self, chroot) -> Tuple[str, str]:
         # fedora-33-x86_64 -> Fedora-33, x86_64
         compose, arch = chroot.rsplit("-", 1)
-        compose = compose.title()
+        compose = compose.title().replace("Centos", "CentOS")
+        # https://github.com/packit/packit-service/issues/939#issuecomment-769896841
+        compose = compose.replace("Epel", "CentOS")
+        if compose == "CentOS-Stream":
+            compose = "CentOS-Stream-8"
 
         response = self.send_testing_farm_request(endpoint="composes")
         if response.status_code == 200:
-            # {'composes': [{'name': 'Fedora-33'}, {'name': 'Fedora-Rawhide'}]}
+            # {'composes': [{'name': 'CentOS-Stream-8'}, {'name': 'Fedora-Rawhide'}]}
             composes = [c["name"] for c in response.json()["composes"]]
             if compose not in composes:
                 logger.error(f"Can't map {compose} (from {chroot}) to {composes}")
