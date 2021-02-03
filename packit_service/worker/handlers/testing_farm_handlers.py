@@ -64,7 +64,7 @@ class TestingFarmResultsHandler(JobHandler):
         if not self._db_trigger:
             run_model = TFTTestRunModel.get_by_pipeline_id(pipeline_id=self.pipeline_id)
             if run_model:
-                self._db_trigger = run_model.job_trigger.get_trigger_object()
+                self._db_trigger = run_model.get_trigger_object()
         return self._db_trigger
 
     def run(self) -> TaskResults:

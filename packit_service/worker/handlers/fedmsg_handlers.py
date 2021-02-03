@@ -410,7 +410,7 @@ class KojiBuildReportHandler(FedmsgHandler):
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         if not self._db_trigger and self.build:
-            self._db_trigger = self.build.job_trigger.get_trigger_object()
+            self._db_trigger = self.build.get_trigger_object()
         return self._db_trigger
 
     def run(self):

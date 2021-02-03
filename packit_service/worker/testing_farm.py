@@ -311,7 +311,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             status=TestingFarmResult.new,
             target=chroot,
             web_url=None,
-            trigger_model=self.db_trigger,
+            run_model=self.latest_copr_build.runs[-1],
             # In _payload() we ask TF to test commit_sha of fork (PR's source).
             # Store original url. If this proves to work, make it a separate column.
             data={"base_project_url": self.project.get_web_url()},

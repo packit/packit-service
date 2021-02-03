@@ -9,7 +9,7 @@ import logging
 import os
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Dict, Iterable, List, Optional, TYPE_CHECKING, Type, Union
+from typing import Dict, Iterable, List, Optional, TYPE_CHECKING, Tuple, Type, Union
 from urllib.parse import urlparse
 
 from sqlalchemy import (
@@ -668,8 +668,8 @@ class RunModel(Base):
     copr_build = relationship("CoprBuildModel", back_populates="runs")
     koji_build_id = Column(Integer, ForeignKey("runs.id"))
     koji_build = relationship("KojiBuildModel", back_populates="runs")
-    test_runs_id = Column(Integer, ForeignKey("runs.id"))
-    test_runs = relationship("TFTTestRunModel", back_populates="runs")
+    test_run_id = Column(Integer, ForeignKey("runs.id"))
+    test_run = relationship("TFTTestRunModel", back_populates="runs")
 
     @classmethod
     def create(cls, type: JobTriggerModelType, trigger_id: int) -> "RunModel":
@@ -828,7 +828,7 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
             return query.all()
 
     @classmethod
-    def get_or_create(
+    def create(
         cls,
         build_id: str,
         commit_sha: str,
@@ -837,20 +837,31 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
         web_url: str,
         target: str,
         status: str,
+        run_model: "RunModel",
     ) -> "CoprBuildModel":
         with get_sa_session() as session:
-            build = cls.get_by_build_id(build_id, target)
-            if not build:
-                build = cls()
-                build.build_id = build_id
-                build.status = status
-                build.project_name = project_name
-                build.owner = owner
-                build.commit_sha = commit_sha
-                build.web_url = web_url
-                build.target = target
-                session.add(build)
+            build = cls()
+            build.build_id = build_id
+            build.status = status
+            build.project_name = project_name
+            build.owner = owner
+            build.commit_sha = commit_sha
+            build.web_url = web_url
+            build.target = target
+            session.add(build)
+
+            run_model.copr_build = build
+            session.add(run_model)
+
             return build
+
+    @classmethod
+    def get(
+        cls,
+        build_id: str,
+        target: str,
+    ) -> "CoprBuildModel":
+        return cls.get_by_build_id(build_id, target)
 
     def __repr__(self):
         return f"COPRBuildModel(id={self.id}, run_model={self.run_model})"
@@ -965,25 +976,36 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
             return session.query(KojiBuildModel).filter_by(build_id=build_id).first()
 
     @classmethod
-    def get_or_create(
+    def create(
         cls,
         build_id: str,
         commit_sha: str,
         web_url: str,
         target: str,
         status: str,
+        run_model: "RunModel",
     ) -> "KojiBuildModel":
         with get_sa_session() as session:
-            build = cls.get_by_build_id(build_id, target)
-            if not build:
-                build = cls()
-                build.build_id = build_id
-                build.status = status
-                build.commit_sha = commit_sha
-                build.web_url = web_url
-                build.target = target
-                session.add(build)
+            build = cls()
+            build.build_id = build_id
+            build.status = status
+            build.commit_sha = commit_sha
+            build.web_url = web_url
+            build.target = target
+            session.add(build)
+
+            run_model.koji_build = build
+            session.add(run_model)
+
             return build
+
+    @classmethod
+    def get(
+        cls,
+        build_id: str,
+        target: str,
+    ) -> Optional["KojiBuildModel"]:
+        return cls.get_by_build_id(build_id, target)
 
     def __repr__(self):
         return f"KojiBuildModel(id={self.id}, run_model={self.run_model})"
@@ -1001,12 +1023,12 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
     runs = relationship("RunModel", back_populates="job_trigger")
 
     @classmethod
-    def create(
+    def create_with_new_run(
         cls,
         logs: str,
         success: bool,
         trigger_model: AbstractTriggerDbType,
-    ) -> "SRPMBuildModel":
+    ) -> Tuple["SRPMBuildModel", "RunModel"]:
         """
         Create a new model for SRPM and connect it to the RunModel.
 
@@ -1039,9 +1061,10 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
             new_run_model = RunModel.create(
                 type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id
             )
+            new_run_model.srpm_build = srpm_build
             session.add(new_run_model)
 
-            return srpm_build
+            return srpm_build, new_run_model
 
     @classmethod
     def get_by_id(
@@ -1167,7 +1190,9 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
         commit_sha: str,
         status: TestingFarmResult,
         target: str,
+        run_model: "RunModel",
         web_url: Optional[str] = None,
+        data: dict = None,
     ) -> "TFTTestRunModel":
         with get_sa_session() as session:
             test_run = cls()
@@ -1176,7 +1201,12 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
             test_run.status = status
             test_run.target = target
             test_run.web_url = web_url
+            test_run.data = data
             session.add(test_run)
+
+            run_model.test_run = test_run
+            session.add(run_model)
+
             return test_run
 
     @classmethod

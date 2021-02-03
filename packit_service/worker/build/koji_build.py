@@ -180,14 +180,13 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 errors[target] = str(ex)
                 continue
 
-            koji_build = KojiBuildModel.get_or_create(
+            koji_build = KojiBuildModel.create(
                 build_id=str(build_id),
                 commit_sha=self.metadata.commit_sha,
                 web_url=web_url,
                 target=target,
                 status="pending",
-                srpm_build=self.srpm_model,
-                trigger_model=self.db_trigger,
+                run_model=self.run_model,
             )
             url = get_koji_build_info_url_from_flask(id_=koji_build.id)
             self.report_status_to_all_for_chroot(

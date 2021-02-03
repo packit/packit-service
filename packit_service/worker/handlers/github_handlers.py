@@ -415,7 +415,7 @@ class TestingFarmHandler(JobHandler):
             # copr build end
             if self.build_id:
                 build = CoprBuildModel.get_by_id(self.build_id)
-                self._db_trigger = build.job_trigger.get_trigger_object()
+                self._db_trigger = build.get_trigger_object()
             # '/packit test' comment
             else:
                 self._db_trigger = self.data.db_trigger

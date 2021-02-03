@@ -36,7 +36,7 @@ from packit.local_project import LocalProject
 from packit.utils import PackitFormatter
 from packit_service import sentry_integration
 from packit_service.config import Deployment, ServiceConfig
-from packit_service.models import SRPMBuildModel
+from packit_service.models import RunModel, SRPMBuildModel
 from packit_service.service.events import EventData
 from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.reporting import StatusReporter
@@ -67,6 +67,7 @@ class BaseBuildJobHelper:
         self.db_trigger = db_trigger
         self.msg_retrigger: Optional[str] = ""
         self.metadata: EventData = metadata
+        self.run_model: Optional[RunModel] = None
 
         # lazy properties
         self._api = None
@@ -393,7 +394,7 @@ class BaseBuildJobHelper:
                 "\nPlease join the freenode IRC channel #packit for the latest info.\n"
             )
 
-        self._srpm_model = SRPMBuildModel.create(
+        self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
             logs=srpm_logs,
             success=srpm_success,
             trigger_model=self.db_trigger,
