@@ -186,6 +186,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
         }
 
+    def get_build(self, build_id: int):
+        return self.api.copr_helper.copr_client.build_proxy.get(build_id)
+
     def run_copr_build(self) -> TaskResults:
 
         if not (self.job_build or self.job_tests):
