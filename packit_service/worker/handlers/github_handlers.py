@@ -191,7 +191,7 @@ class ProposeDownstreamHandler(JobHandler):
                     # when the task hits max_retries, it raises MaxRetriesExceededError
                     # and the error handling code would be never executed
                     retries = self.task.request.retries
-                    if retries < getenv("RETRY_LIMIT", DEFAULT_RETRY_LIMIT):
+                    if retries < int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT)):
                         logger.info(f"Retrying for the {retries + 1}. time...")
                         # throw=False so that exception is not raised and task
                         # is not retried also automatically

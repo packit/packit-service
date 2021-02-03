@@ -77,8 +77,10 @@ logging.getLogger("sandcastle").setLevel(logging.DEBUG)
 
 class HandlerTaskWithRetry(Task):
     autoretry_for = (Exception,)
-    retry_kwargs = {"max_retries": getenv("RETRY_LIMIT", DEFAULT_RETRY_LIMIT)}
-    retry_backoff = getenv("RETRY_BACKOFF", DEFAULT_RETRY_BACKOFF)
+    retry_kwargs = {
+        "max_retries": int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT))
+    }
+    retry_backoff = int(getenv("CELERY_RETRY_BACKOFF", DEFAULT_RETRY_BACKOFF))
 
 
 @celery_app.task(name="task.steve_jobs.process_message", bind=True)
