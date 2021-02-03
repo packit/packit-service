@@ -58,7 +58,7 @@ from packit_service.worker.handlers.abstract import (
 from packit_service.worker.handlers.pagure_handlers import PagurePullRequestLabelHandler
 from packit_service.worker.parser import CentosEventParser, Parser
 from packit_service.worker.result import TaskResults
-from packit_service.worker.whitelist import Whitelist
+from packit_service.worker.allowlist import Allowlist
 
 REQUESTED_PULL_REQUEST_COMMENT = "/packit"
 
@@ -242,29 +242,6 @@ class SteveJobs:
                 )
             ]
 
-        if isinstance(
-            event,
-            (
-                PullRequestCommentGithubEvent,
-                PullRequestCommentPagureEvent,
-                IssueCommentEvent,
-                MergeRequestCommentGitlabEvent,
-                IssueCommentGitlabEvent,
-            ),
-        ):
-            if not event.project.can_merge_pr(event.user_login):
-                logger.debug(
-                    f"User {event.user_login} not allowed to trigger packit via comments."
-                )
-                return [
-                    TaskResults.create_from(
-                        success=True,
-                        msg=f"User {event.user_login} not allowed to trigger packit via comments.",
-                        job_config=None,
-                        event=event,
-                    )
-                ]
-
         handler_classes = get_handlers_for_event(event, event.package_config)
 
         if not handler_classes:
@@ -273,7 +250,9 @@ class SteveJobs:
             )
             return []
 
+        allowlist = Allowlist()
         job_configs = []
+
         for handler_kls in handler_classes:
             # TODO: merge to to get_handlers_for_event so
             # so we don't need to go through the similar process twice.
@@ -282,13 +261,10 @@ class SteveJobs:
                 event=event,
                 package_config=event.package_config,
             )
-            # check whitelist approval for every job to be able to track down which jobs
-            # failed because of missing whitelist approval
-            whitelist = Whitelist()
-            user_login = getattr(event, "user_login", None)
-            if user_login and user_login in self.service_config.admins:
-                logger.info(f"{user_login} is admin, you shall pass.")
-            elif not whitelist.check_and_report(
+
+            # check allowlist approval for every job to be able to track down which jobs
+            # failed because of missing allowlist approval
+            if not allowlist.check_and_report(
                 event,
                 event.project,
                 service_config=self.service_config,
@@ -299,7 +275,7 @@ class SteveJobs:
                     processing_results.append(
                         TaskResults.create_from(
                             success=False,
-                            msg="Account is not whitelisted!",
+                            msg="Account is not allowlisted!",
                             job_config=job_config,
                             event=event,
                         )

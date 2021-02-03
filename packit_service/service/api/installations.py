@@ -25,7 +25,7 @@ class InstallationsList(Resource):
 @ns.param("id", "Installation identifier")
 class InstallationItem(Resource):
     @ns.response(HTTPStatus.OK.value, "OK, installation details follow")
-    @ns.response(HTTPStatus.NO_CONTENT.value, "identifier not in whitelist")
+    @ns.response(HTTPStatus.NO_CONTENT.value, "identifier not in allowlist")
     def get(self, id):
         """A specific installation details"""
         installation = InstallationModel.get_by_id(id)

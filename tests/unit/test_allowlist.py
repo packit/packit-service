@@ -1,24 +1,6 @@
-# MIT License
-#
-# Copyright (c) 2018-2019 Red Hat, Inc.
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 from typing import List, Tuple, TYPE_CHECKING
 
 import pytest
@@ -36,7 +18,11 @@ from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 from packit_service.config import Deployment
 from packit_service.constants import FAQ_URL
-from packit_service.models import WhitelistModel as DBWhitelist
+from packit_service.models import (
+    AllowlistModel as DBAllowlist,
+    AllowlistStatus,
+    PullRequestModel,
+)
 from packit_service.service.events import (
     ReleaseEvent,
     PullRequestGithubEvent,
@@ -47,16 +33,16 @@ from packit_service.service.events import (
     IssueCommentAction,
     AbstractGithubEvent,
 )
-from packit_service.service.events import WhitelistStatus
+from packit_service.service.events import EventData
 from packit_service.worker.reporting import StatusReporter
-from packit_service.worker.whitelist import Whitelist
+from packit_service.worker.allowlist import Allowlist
 
 EXPECTED_TESTING_FARM_CHECK_NAME = "packit-stg/testing-farm-fedora-rawhide-x86_64"
 
 
 @pytest.fixture()
-def whitelist():
-    w = Whitelist()
+def allowlist():
+    w = Allowlist()
     return w
 
 
@@ -68,7 +54,7 @@ def whitelist():
             flexmock(
                 id=1,
                 account_name="fero",
-                status=WhitelistStatus.approved_manually.value,
+                status=AllowlistStatus.approved_manually.value,
             ),
             True,
         ),
@@ -77,23 +63,23 @@ def whitelist():
             flexmock(
                 id=2,
                 account_name="lojzo",
-                status=WhitelistStatus.approved_automatically.value,
+                status=AllowlistStatus.approved_automatically.value,
             ),
             True,
         ),
         (
             "konipas",
             flexmock(
-                id=3, account_name="konipas", status=WhitelistStatus.waiting.value
+                id=3, account_name="konipas", status=AllowlistStatus.waiting.value
             ),
             False,
         ),
         ("krasomila", None, False),
     ),
 )
-def test_is_approved(whitelist, account_name, model, is_approved):
-    flexmock(DBWhitelist).should_receive("get_account").and_return(model)
-    assert whitelist.is_approved(account_name) == is_approved
+def test_is_approved(allowlist, account_name, model, is_approved):
+    flexmock(DBAllowlist).should_receive("get_account").and_return(model)
+    assert allowlist.is_approved(account_name) == is_approved
 
 
 @pytest.mark.parametrize(
@@ -118,7 +104,7 @@ def test_is_approved(whitelist, account_name, model, is_approved):
         ("bear", None, FedoraServiceError, False),
     ],
 )
-def test_signed_fpca(whitelist, account_name, person_object, raises, signed_fpca):
+def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca):
     fas = (
         flexmock(AccountSystem)
         .should_receive("person_by_username")
@@ -130,7 +116,7 @@ def test_signed_fpca(whitelist, account_name, person_object, raises, signed_fpca
     if raises is not None:
         fas.and_raise(raises)
 
-    assert whitelist._signed_fpca(account_name) is signed_fpca
+    assert allowlist._signed_fpca(account_name) is signed_fpca
 
 
 @pytest.mark.parametrize(
@@ -196,26 +182,46 @@ def test_signed_fpca(whitelist, account_name, person_object, raises, signed_fpca
             "issue_comment",
             True,
         ),
+        (
+            PullRequestCommentGithubEvent(
+                action=PullRequestCommentAction.created,
+                pr_id=0,
+                base_repo_namespace="banned_namespace",
+                base_repo_name="",
+                base_ref="",
+                target_repo_namespace="",
+                target_repo_name="",
+                project_url="",
+                user_login="admin",
+                comment="",
+            ),
+            "pr_comment",
+            True,
+        ),
     ],
 )
-def test_check_and_report_calls_method(whitelist, event, method, approved):
+def test_check_and_report_calls_method(allowlist, event, method, approved):
     gp = GitProject("", GitService(), "")
     mocked_gp = (
         flexmock(gp)
         .should_receive(method)
-        .with_args(0, "Neither account bar nor owner foo are on our whitelist!")
+        .with_args(0, "Namespace foo is not on our allowlist!")
     )
     mocked_gp.never() if approved else mocked_gp.once()
-    whitelist_mock = flexmock(DBWhitelist).should_receive("get_account")
+    flexmock(gp).should_receive("can_merge_pr").with_args(event.user_login).and_return(
+        approved
+    )
+    flexmock(gp).should_receive("get_pr").and_return(flexmock(author=None))
+    allowlist_mock = flexmock(DBAllowlist).should_receive("get_account")
     if approved:
-        whitelist_mock.and_return(DBWhitelist(status="approved_manually"))
+        allowlist_mock.and_return(DBAllowlist(status="approved_manually"))
     else:
-        whitelist_mock.and_return(None)
+        allowlist_mock.and_return(None)
     assert (
-        whitelist.check_and_report(
+        allowlist.check_and_report(
             event,
             gp,
-            service_config=flexmock(deployment=Deployment.stg),
+            service_config=flexmock(deployment=Deployment.stg, admins=["admin"]),
             job_configs=[],
         )
         is approved
@@ -295,20 +301,38 @@ def events(request) -> List[Tuple[AbstractGithubEvent, bool]]:
             )
             for namespace, login, approved in approved_accounts
         ]
+    elif request.param == "admin":
+        return [
+            (
+                PullRequestCommentGithubEvent(
+                    action=PullRequestCommentAction.created,
+                    pr_id=1,
+                    base_repo_namespace="unapproved_namespace_override",
+                    base_repo_name="",
+                    base_ref="",
+                    target_repo_namespace="",
+                    target_repo_name="",
+                    project_url="",
+                    user_login="admin",
+                    comment="",
+                ),
+                True,
+            )
+        ]
     return []
 
 
 # https://stackoverflow.com/questions/35413134/what-does-indirect-true-false-in-pytest-mark-parametrize-do-mean
 @pytest.mark.parametrize(
     "events",
-    ["release", "pr", "pr_comment", "issue_comment"],
+    ["release", "pr", "pr_comment", "issue_comment", "admin"],
     indirect=True,
 )
 def test_check_and_report(
-    whitelist: Whitelist, events: List[Tuple[AbstractGithubEvent, bool]]
+    allowlist: Allowlist, events: List[Tuple[AbstractGithubEvent, bool]]
 ):
     """
-    :param whitelist: fixture
+    :param allowlist: fixture
     :param events: fixture: [(Event, should-be-approved)]
     """
     flexmock(
@@ -316,7 +340,7 @@ def test_check_and_report(
         pr_comment=lambda *args, **kwargs: None,
         set_commit_status=lambda *args, **kwargs: None,
         issue_comment=lambda *args, **kwargs: None,
-        get_pr=lambda *args, **kwargs: flexmock(source_project=flexmock()),
+        get_pr=lambda *args, **kwargs: flexmock(source_project=flexmock(), author=None),
     )
     job_configs = [
         JobConfig(
@@ -330,9 +354,22 @@ def test_check_and_report(
             jobs=job_configs,
         )
     )
+    flexmock(PullRequestModel).should_receive("get_or_create").and_return(
+        flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
 
     git_project = GithubProject("", GithubService(), "")
     for event, is_valid in events:
+        flexmock(GithubProject, can_merge_pr=lambda username: is_valid)
+        flexmock(event, project=git_project).should_receive("get_dict").and_return(None)
+        # needs to be included when running only `test_allowlist`
+        # flexmock(event).should_receive("db_trigger").and_return(
+        #     flexmock(job_config_trigger_type=job_configs[0].trigger).mock()
+        # )
+        flexmock(EventData).should_receive("from_event_dict").and_return(
+            flexmock(commit_sha="0000000", pr_id="0")
+        )
+
         if isinstance(event, PullRequestGithubEvent) and not is_valid:
             # Report the status
             flexmock(CoprHelper).should_receive("get_copr_client").and_return(
@@ -348,7 +385,7 @@ def test_check_and_report(
             )
             flexmock(LocalProject).should_receive("checkout_pr").and_return(None)
             flexmock(StatusReporter).should_receive("report").with_args(
-                description="Account is not whitelisted!",
+                description="Namespace is not allowed!",
                 state=CommitStatus.error,
                 url=FAQ_URL,
                 check_names=[EXPECTED_TESTING_FARM_CHECK_NAME],
@@ -361,25 +398,27 @@ def test_check_and_report(
             }
         )
 
-        # get_account returns the whitelist object if it exists
-        # returns nothing if it isn't whitelisted
-        # then inside the whitelist.py file, a function checks if the status is
+        # get_account returns the allowlist object if it exists
+        # returns nothing if it isn't allowlisted
+        # then inside the allowlist.py file, a function checks if the status is
         # one of the approved statuses
 
         # this exact code is used twice above but mypy has an issue with this one only
-        whitelist_mock = flexmock(DBWhitelist).should_receive("get_account")
+        allowlist_mock = flexmock(DBAllowlist).should_receive("get_account")
         if not TYPE_CHECKING:
             if is_valid:
-                whitelist_mock.and_return(DBWhitelist(status="approved_manually"))
+                allowlist_mock.and_return(DBAllowlist(status="approved_manually"))
             else:
-                whitelist_mock.and_return(None)
+                allowlist_mock.and_return(None)
 
         assert (
-            whitelist.check_and_report(
+            allowlist.check_and_report(
                 event,
                 git_project,
                 service_config=flexmock(
-                    deployment=Deployment.stg, command_handler_work_dir=""
+                    deployment=Deployment.stg,
+                    command_handler_work_dir="",
+                    admins=["admin"],
                 ),
                 job_configs=job_configs,
             )

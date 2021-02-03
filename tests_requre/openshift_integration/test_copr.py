@@ -47,7 +47,7 @@ def pr_comment_event_not_collaborator():
 
 
 class Copr(PackitServiceTestCase):
-    @unittest.skipIf(True, "troubles with whitelisting")
+    @unittest.skipIf(True, "troubles with allowlisting")
     def test_submit_copr_build_pr_event(self):
         result = self.steve.process_message(pr_event())
         self.assertTrue(result[0]["success"])
@@ -76,4 +76,4 @@ class Copr(PackitServiceTestCase):
         #     )
         # )
         result = self.steve.process_message(pr_comment_event_not_collaborator())
-        self.assertEqual(result[0]["details"]["msg"], "Account is not whitelisted!")
+        self.assertEqual(result[0]["details"]["msg"], "Account is not allowlisted!")

@@ -30,7 +30,7 @@ from packit_service.models import (
 )
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.service.events import (
-    WhitelistStatus,
+    AllowlistStatus,
     InstallationEvent,
     ReleaseEvent,
     PullRequestGithubEvent,
@@ -208,7 +208,7 @@ class TestEvents:
         )
         assert event_object.sender_login == "jpopelka"
         assert event_object.sender_id == 288686
-        assert event_object.status == WhitelistStatus.waiting
+        assert event_object.status == AllowlistStatus.waiting
         assert event_object.repositories == ["jpopelka/brewutils"]
 
     def test_parse_release(self, github_release_webhook):

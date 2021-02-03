@@ -17,7 +17,7 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.worker.jobs import SteveJobs
-from packit_service.worker.whitelist import Whitelist
+from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.tasks import run_propose_downstream_handler
 from tests.spellbook import first_dict_value, get_parameters_from_results
 
@@ -47,7 +47,7 @@ def test_dist_git_push_release_handle(github_release_webhook):
     lp.git_project = project
     flexmock(DistGit).should_receive("local_project").and_return(lp)
 
-    flexmock(Whitelist, check_and_report=True)
+    flexmock(Allowlist, check_and_report=True)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     config.get_project = lambda url: project
@@ -95,7 +95,7 @@ def test_dist_git_push_release_handle_multiple_branches(
         default_branch="main",
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Whitelist, check_and_report=True)
+    flexmock(Allowlist, check_and_report=True)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     config.get_project = lambda url: project
@@ -151,7 +151,7 @@ def test_dist_git_push_release_handle_one_failed(
         .mock()
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Whitelist, check_and_report=True)
+    flexmock(Allowlist, check_and_report=True)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     config.get_project = lambda url: project
@@ -228,7 +228,7 @@ def test_dist_git_push_release_handle_all_failed(
     lp.git_project = project
     flexmock(DistGit).should_receive("local_project").and_return(lp)
 
-    flexmock(Whitelist, check_and_report=True)
+    flexmock(Allowlist, check_and_report=True)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     config.get_project = lambda url: project
@@ -280,7 +280,7 @@ def test_retry_propose_downstream_task(github_release_webhook):
     lp.git_project = project
     flexmock(DistGit).should_receive("local_project").and_return(lp)
 
-    flexmock(Whitelist, check_and_report=True)
+    flexmock(Allowlist, check_and_report=True)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     config.get_project = lambda url: project
@@ -331,7 +331,7 @@ def test_dont_retry_propose_downstream_task(github_release_webhook):
     lp.git_project = project
     flexmock(DistGit).should_receive("local_project").and_return(lp)
 
-    flexmock(Whitelist, check_and_report=True)
+    flexmock(Allowlist, check_and_report=True)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     config.get_project = lambda url: project

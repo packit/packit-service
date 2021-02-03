@@ -42,7 +42,6 @@ from packit.local_project import LocalProject
 from packit_service import sentry_integration
 from packit_service.constants import (
     DEFAULT_RETRY_LIMIT,
-    FAQ_URL_HOW_TO_RETRIGGER,
     FILE_DOWNLOAD_FAILURE,
     MSG_RETRIGGER,
     PERMISSIONS_ERROR_WRITE_OR_ADMIN,
@@ -80,7 +79,7 @@ from packit_service.worker.handlers.abstract import (
 )
 from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
-from packit_service.worker.whitelist import Whitelist
+from packit_service.worker.allowlist import Allowlist
 
 logger = logging.getLogger(__name__)
 
@@ -113,17 +112,17 @@ class GithubAppInstallationHandler(JobHandler):
     def run(self) -> TaskResults:
         """
         Discover information about organization/user which wants to install packit on his repository
-        Try to whitelist automatically if mapping from github username to FAS account can prove that
+        Try to allowlist automatically if mapping from github username to FAS account can prove that
         user is a packager.
         :return: TaskResults
         """
         InstallationModel.create(event=self.installation_event)
-        # try to add user to whitelist
-        whitelist = Whitelist(
+        # try to add user to allowlist
+        allowlist = Allowlist(
             fas_user=self.service_config.fas_user,
             fas_password=self.service_config.fas_password,
         )
-        if not whitelist.add_account(self.account_login, self.sender_login):
+        if not allowlist.add_account(self.account_login, self.sender_login):
             # Create an issue in our repository, so we are notified when someone install the app
             self.project.create_issue(
                 title=f"{self.account_type} {self.account_login} needs to be approved.",
@@ -137,7 +136,7 @@ class GithubAppInstallationHandler(JobHandler):
             )
             msg = f"{self.account_type} {self.account_login} needs to be approved manually!"
         else:
-            msg = f"{self.account_type} {self.account_login} whitelisted!"
+            msg = f"{self.account_type} {self.account_login} allowlisted!"
 
         logger.info(msg)
         return TaskResults(success=True, details={"msg": msg})
@@ -284,23 +283,6 @@ class CoprBuildHandler(JobHandler):
         return self._copr_build_helper
 
     def run(self) -> TaskResults:
-        if self.data.event_type in (
-            PullRequestGithubEvent.__name__,
-            MergeRequestGitlabEvent.__name__,
-        ):
-            user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
-            if not (
-                user_can_merge_pr or self.data.user_login in self.service_config.admins
-            ):
-                self.copr_build_helper.report_status_to_all(
-                    description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
-                    state=CommitStatus.failure,
-                    url=FAQ_URL_HOW_TO_RETRIGGER,
-                )
-                return TaskResults(
-                    success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
-                )
-
         return self.copr_build_helper.run_copr_build()
 
     def pre_check(self) -> bool:

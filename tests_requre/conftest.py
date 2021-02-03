@@ -41,7 +41,7 @@ from packit_service.models import (
     SRPMBuildModel,
     PullRequestModel,
     GitProjectModel,
-    WhitelistModel,
+    AllowlistModel,
     GitBranchModel,
     ProjectReleaseModel,
     IssueModel,
@@ -102,7 +102,7 @@ class SampleValues:
     different_pipeline_id = "123457"
     another_different_pipeline_id = "98765"
 
-    # Whitelist
+    # Allowlist
     account_name = "Rayquaza"
     different_account_name = "Deoxys"
     another_different_acount_name = "Solgaleo"
@@ -143,7 +143,7 @@ def clean_db():
         session.query(SRPMBuildModel).delete()
         session.query(TFTTestRunModel).delete()
 
-        session.query(WhitelistModel).delete()
+        session.query(AllowlistModel).delete()
         session.query(InstallationModel).delete()
         session.query(BugzillaModel).delete()
 
@@ -623,22 +623,22 @@ def multiple_new_test_runs(pr_model, different_pr_model):
 
 
 @pytest.fixture()
-def multiple_whitelist_entries():
+def multiple_allowlist_entries():
     yield [
-        WhitelistModel.add_account(
+        AllowlistModel.add_account(
             account_name=SampleValues.account_name, status="approved_manually"
         ),
-        WhitelistModel.add_account(
+        AllowlistModel.add_account(
             account_name=SampleValues.different_account_name, status="approved_manually"
         ),
         # Not a typo, account_name repeated intentionally to check behaviour
-        WhitelistModel.add_account(
+        AllowlistModel.add_account(
             account_name=SampleValues.different_account_name, status="waiting"
         ),
-        WhitelistModel.add_account(
+        AllowlistModel.add_account(
             account_name=SampleValues.another_different_acount_name, status="waiting"
         ),
-        WhitelistModel.add_account(
+        AllowlistModel.add_account(
             account_name=SampleValues.yet_another_different_acount_name,
             status="approved_manually",
         ),
@@ -646,8 +646,8 @@ def multiple_whitelist_entries():
 
 
 @pytest.fixture()
-def new_whitelist_entry(clean_before_and_after):
-    yield WhitelistModel.add_account(
+def new_allowlist_entry(clean_before_and_after):
+    yield AllowlistModel.add_account(
         account_name=SampleValues.account_name, status="approved_manually"
     )
 

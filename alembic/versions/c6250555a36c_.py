@@ -30,7 +30,7 @@ from sqlalchemy.orm import Session, relationship
 from sqlalchemy.types import PickleType
 
 from packit_service.service.events import InstallationEvent
-from packit_service.constants import WHITELIST_CONSTANTS
+from packit_service.constants import ALLOWLIST_CONSTANTS
 
 # revision identifiers, used by Alembic.
 revision = "c6250555a36c"
@@ -102,9 +102,9 @@ class TaskResultUpgradeModel(Base):
 
 
 class WhitelistStatus(str, enum.Enum):
-    approved_automatically = WHITELIST_CONSTANTS["approved_automatically"]
-    waiting = WHITELIST_CONSTANTS["waiting"]
-    approved_manually = WHITELIST_CONSTANTS["approved_manually"]
+    approved_automatically = ALLOWLIST_CONSTANTS["approved_automatically"]
+    waiting = ALLOWLIST_CONSTANTS["waiting"]
+    approved_manually = ALLOWLIST_CONSTANTS["approved_manually"]
 
 
 class WhitelistUpgradeModel(Base):
