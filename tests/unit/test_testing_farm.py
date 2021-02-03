@@ -198,7 +198,10 @@ def test_testing_farm_response(
     "chroot,compose,arch",
     [
         ("fedora-33-x86_64", "Fedora-33", "x86_64"),
-        ("centos-stream-x86_64", "Centos-Stream", "x86_64"),
+        ("fedora-rawhide-x86_64", "Fedora-Rawhide", "x86_64"),
+        ("epel-8-x86_64", "CentOS-8", "x86_64"),
+        ("centos-stream-8-x86_64", "CentOS-Stream-8", "x86_64"),
+        ("centos-stream-x86_64", "CentOS-Stream-8", "x86_64"),
     ],
 )
 def test_get_compose_arch(chroot, compose, arch):
