@@ -34,6 +34,36 @@ from packit_service.worker.testing_farm import (
             "some message",
             [
                 TResult(
+                    name="/packit/install-and-verify",
+                    result=TFResult.passed,
+                    log_url="some specific url",
+                )
+            ],
+            CommitStatus.success,
+            "Installation passed",
+            "some url",
+            id="only_installation_passed",
+        ),
+        pytest.param(
+            TFResult.failed,
+            "some message",
+            [
+                TResult(
+                    name="/packit/install-and-verify",
+                    result=TFResult.failed,
+                    log_url="some specific url",
+                )
+            ],
+            CommitStatus.failure,
+            "Installation failed",
+            "some url",
+            id="only_installation_failed",
+        ),
+        pytest.param(
+            TFResult.passed,
+            "some message",
+            [
+                TResult(
                     name="/something/different",
                     result=TFResult.passed,
                     log_url="some specific url",

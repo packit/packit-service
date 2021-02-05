@@ -97,6 +97,47 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             },
         }
 
+    def _payload_install_test(self, build_id: int) -> dict:
+        """
+        If the project doesn't use fmf, but still wants to run tests in TF.
+        TF provides 'installation test', we request it in ['test']['fmf']['url'].
+        We don't specify 'artifacts' as in _payload(), but 'variables'.
+        """
+        copr_build = CoprBuildModel.get_by_build_id(build_id)
+        return {
+            "api_key": self.service_config.testing_farm_secret,
+            "test": {
+                "fmf": {
+                    "url": "https://gitlab.com/testing-farm/tests",
+                },
+            },
+            "environments": [
+                {
+                    "arch": "x86_64",
+                    "os": {"compose": "Fedora-Rawhide"},
+                    "variables": {
+                        "REPOSITORY": f"{copr_build.owner}{copr_build.project_name}",
+                    },
+                }
+            ],
+            "notification": {
+                "webhook": {
+                    "url": f"{self.api_url}/testing-farm/results",
+                    "token": self.service_config.testing_farm_secret,
+                },
+            },
+        }
+
+    def is_fmf_configured(self) -> bool:
+        source_project = self.project.get_pr(self.metadata.pr_id).source_project
+        try:
+            source_project.get_file_content(
+                path=".fmf/version", ref=self.metadata.commit_sha
+            )
+            return True
+        except FileNotFoundError:
+            return False
+
     def get_compose_arch(self, chroot) -> Tuple[str, str]:
         # fedora-33-x86_64 -> Fedora-33, x86_64
         compose, arch = chroot.rsplit("-", 1)
@@ -189,7 +230,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
         logger.info("Sending testing farm request...")
-        payload = self._payload(build_id, chroot)
+        if self.is_fmf_configured():
+            payload = self._payload(build_id, chroot)
+        else:
+            payload = self._payload_install_test(build_id)
         endpoint = "requests"
         logger.debug(f"POSTing {payload} to {self.tft_api_url}{endpoint}")
         req = self.send_testing_farm_request(

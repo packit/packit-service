@@ -441,6 +441,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         },
     }
 
+    flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
     flexmock(TestingFarmJobHelper).should_receive("get_compose_arch").with_args(
         "fedora-rawhide-x86_64"
     ).and_return("Fedora-Rawhide", "x86_64")
@@ -574,6 +575,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
     ).once()
 
+    flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
     flexmock(TestingFarmJobHelper).should_receive(
         "send_testing_farm_request"
     ).and_return(
@@ -687,6 +689,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
     ).once()
 
+    flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
     flexmock(TestingFarmJobHelper).should_receive(
         "send_testing_farm_request"
     ).and_return(

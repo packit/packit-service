@@ -102,6 +102,14 @@ class TestingFarmResultsHandler(JobHandler):
             status = CommitStatus.failure
             summary = self.summary or "Tests failed ..."
 
+        if len(self.tests) > 0 and self.tests[0].name == "/packit/install-and-verify":
+            logger.debug("No-fmf scenario discovered.")
+            summary = (
+                "Installation passed"
+                if status == CommitStatus.success
+                else "Installation failed"
+            )
+
         if test_run_model:
             test_run_model.set_web_url(self.log_url)
         status_reporter = StatusReporter(
