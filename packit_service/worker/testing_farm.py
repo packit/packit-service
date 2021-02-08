@@ -116,7 +116,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                     "arch": "x86_64",
                     "os": {"compose": "Fedora-Rawhide"},
                     "variables": {
-                        "REPOSITORY": f"{copr_build.owner}{copr_build.project_name}",
+                        "REPOSITORY": f"{copr_build.owner}/{copr_build.project_name}",
                     },
                 }
             ],
