@@ -773,7 +773,6 @@ class Parser:
             nested_get(event, "result", "overall") or event.get("state") or "unknown"
         )
         summary: str = nested_get(event, "result", "summary") or ""
-        log_url: str = event.get("url")
         env: dict = nested_get(event, "environments_requested", 0, default={})
         compose: str = nested_get(env, "os", "compose")
         tests: List[TestResult] = Parser._parse_tf_result_xunit(
@@ -808,6 +807,9 @@ class Parser:
                     f"Using project url {base_project_url} instead of {project_url}"
                 )
                 project_url = base_project_url
+
+        # Temporary until we have a better logs page.
+        log_url: str = f"http://artifacts.dev.testing-farm.io/{request_id}"
 
         logger.debug(
             f"project_url: {project_url}, ref: {ref}, result: {result}, "

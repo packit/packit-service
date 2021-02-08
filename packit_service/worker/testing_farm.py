@@ -367,7 +367,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             return {}
 
         details = response.json()
-        details["url"] = f"{self.tft_api_url}requests/{request_id}"
         # logger.debug(f"Request/pipeline {request_id} details: {details}")
 
         return details
