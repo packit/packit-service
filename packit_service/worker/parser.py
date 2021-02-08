@@ -798,6 +798,9 @@ class Parser:
                 logger.error(f"{a_type} != fedora-copr-build")
                 copr_build_id = copr_chroot = ""
 
+        if not copr_chroot and tft_test_run:
+            copr_chroot = tft_test_run.target
+
         # ["test"]["fmf"]["url"] contains PR's source/fork url or TF's install test url.
         # We need the original/base project url stored in db.
         if tft_test_run:
