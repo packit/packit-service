@@ -97,13 +97,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             },
         }
 
-    def _payload_install_test(self, build_id: int) -> dict:
+    def _payload_install_test(self, build_id: int, chroot: str) -> dict:
         """
         If the project doesn't use fmf, but still wants to run tests in TF.
         TF provides 'installation test', we request it in ['test']['fmf']['url'].
         We don't specify 'artifacts' as in _payload(), but 'variables'.
         """
         copr_build = CoprBuildModel.get_by_build_id(build_id)
+        compose, arch = self.get_compose_arch(chroot)
         return {
             "api_key": self.service_config.testing_farm_secret,
             "test": {
@@ -113,8 +114,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             },
             "environments": [
                 {
-                    "arch": "x86_64",
-                    "os": {"compose": "Fedora-Rawhide"},
+                    "arch": arch,
+                    "os": {"compose": compose},
                     "variables": {
                         "REPOSITORY": f"{copr_build.owner}/{copr_build.project_name}",
                     },
@@ -233,7 +234,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if self.is_fmf_configured():
             payload = self._payload(build_id, chroot)
         else:
-            payload = self._payload_install_test(build_id)
+            payload = self._payload_install_test(build_id, chroot)
         endpoint = "requests"
         logger.debug(f"POSTing {payload} to {self.tft_api_url}{endpoint}")
         req = self.send_testing_farm_request(
