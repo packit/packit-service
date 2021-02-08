@@ -13,6 +13,7 @@ from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitConfigException
 
 from packit_service.config import ServiceConfig
+from packit_service.constants import TESTING_FARM_INSTALLABILITY_TEST_URL
 from packit_service.models import CoprBuildModel, TFTTestRunModel, TestingFarmResult
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.events import EventData
@@ -109,7 +110,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "api_key": self.service_config.testing_farm_secret,
             "test": {
                 "fmf": {
-                    "url": "https://gitlab.com/testing-farm/tests",
+                    "url": TESTING_FARM_INSTALLABILITY_TEST_URL,
                 },
             },
             "environments": [
