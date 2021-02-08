@@ -130,9 +130,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         }
 
     def is_fmf_configured(self) -> bool:
-        source_project = self.project.get_pr(self.metadata.pr_id).source_project
         try:
-            source_project.get_file_content(
+            self.project.get_file_content(
                 path=".fmf/version", ref=self.metadata.commit_sha
             )
             return True
