@@ -31,7 +31,10 @@ import xmltodict
 from ogr.parsing import parse_git_repo
 from packit.utils import nested_get
 
-from packit_service.constants import KojiBuildState
+from packit_service.constants import (
+    KojiBuildState,
+    TESTING_FARM_INSTALLABILITY_TEST_URL,
+)
 from packit_service.models import TestingFarmResult, TFTTestRunModel
 from packit_service.service.events import (
     AbstractPagureEvent,
@@ -754,6 +757,8 @@ class Parser:
         request_id: str = event["request_id"]
         logger.info(f"Testing farm notification event. Request ID: {request_id}")
 
+        tft_test_run = TFTTestRunModel.get_by_pipeline_id(request_id)
+
         # Testing Farm sends only request/pipeline id in a notification.
         # We need to get more details ourselves.
         # It'd be much better to do this in TestingFarmResultsHandler.run(),
@@ -774,9 +779,14 @@ class Parser:
         tests: List[TestResult] = Parser._parse_tf_result_xunit(
             nested_get(event, "result", "xunit")
         )
+
         ref: str = nested_get(event, "test", "fmf", "ref")
         project_url: str = nested_get(event, "test", "fmf", "url")
-        if project_url == "https://gitlab.com/testing-farm/tests":
+        if project_url == TESTING_FARM_INSTALLABILITY_TEST_URL:
+            # ["test"]["fmf"]["ref"] in this case contains ref to the TF test, i.e. "master",
+            # but we need the original commit_sha to be able to continue
+            if tft_test_run:
+                ref = tft_test_run.commit_sha
             # There are no artifacts in install-test results
             copr_build_id = copr_chroot = ""
         else:
@@ -791,7 +801,6 @@ class Parser:
 
         # ["test"]["fmf"]["url"] contains PR's source/fork url or TF's install test url.
         # We need the original/base project url stored in db.
-        tft_test_run = TFTTestRunModel.get_by_pipeline_id(request_id)
         if tft_test_run:
             base_project_url = tft_test_run.data.get("base_project_url")
             if base_project_url and base_project_url != project_url:
