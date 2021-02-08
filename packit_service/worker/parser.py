@@ -771,32 +771,38 @@ class Parser:
         log_url: str = event.get("url")
         env: dict = nested_get(event, "environments_requested", 0, default={})
         compose: str = nested_get(env, "os", "compose")
-        artifact: dict = nested_get(env, "artifacts", 0, default={})
-        a_type: str = artifact.get("type")
-        if a_type == "fedora-copr-build":
-            copr_build_id: str = artifact["id"].split(":")[0]
-            copr_chroot: str = artifact["id"].split(":")[1]
-        else:
-            logger.error(f"{a_type} != fedora-copr-build")
-            copr_build_id = copr_chroot = ""
         tests: List[TestResult] = Parser._parse_tf_result_xunit(
             nested_get(event, "result", "xunit")
         )
         ref: str = nested_get(event, "test", "fmf", "ref")
-
         project_url: str = nested_get(event, "test", "fmf", "url")
-        # ["test"]["fmf"]["url"] contains PR's source (fork) url.
+        if project_url == "https://gitlab.com/testing-farm/tests":
+            # There are no artifacts in install-test results
+            copr_build_id = copr_chroot = ""
+        else:
+            artifact: dict = nested_get(env, "artifacts", 0, default={})
+            a_type: str = artifact.get("type")
+            if a_type == "fedora-copr-build":
+                copr_build_id = artifact["id"].split(":")[0]
+                copr_chroot = artifact["id"].split(":")[1]
+            else:
+                logger.error(f"{a_type} != fedora-copr-build")
+                copr_build_id = copr_chroot = ""
+
+        # ["test"]["fmf"]["url"] contains PR's source/fork url or TF's install test url.
         # We need the original/base project url stored in db.
         tft_test_run = TFTTestRunModel.get_by_pipeline_id(request_id)
         if tft_test_run:
             base_project_url = tft_test_run.data.get("base_project_url")
-            if base_project_url:
-                logger.debug(f"Using {base_project_url} instead of {project_url}")
+            if base_project_url and base_project_url != project_url:
+                logger.debug(
+                    f"Using project url {base_project_url} instead of {project_url}"
+                )
                 project_url = base_project_url
 
         logger.debug(
             f"project_url: {project_url}, ref: {ref}, result: {result}, "
-            f"summary: {summary!r}, copr-build: {artifact.get('id')}"
+            f"summary: {summary!r}, copr-build: {copr_build_id}:{copr_chroot}"
         )
 
         return TestingFarmResultsEvent(
