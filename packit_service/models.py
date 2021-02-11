@@ -656,8 +656,6 @@ class RunModel(Base):
 
     __tablename__ = "runs"
     id = Column(Integer, primary_key=True)  # our database PK
-    type = Column(Enum(JobTriggerModelType))
-    trigger_id = Column(Integer)
 
     job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
     job_trigger = relationship("JobTriggerModel", back_populates="runs")
@@ -924,6 +922,12 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
         with get_sa_session() as session:
             self.build_submitted_time = build_submitted_time
             session.add(self)
+
+    def get_srpm_build(self) -> Optional["SRPMBuildModel"]:
+        if not self.runs:
+            return None
+        # All SRPMBuild models for all the runs have to be same.
+        return self.runs[0].srpm_build
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["KojiBuildModel"]:
