@@ -650,7 +650,7 @@ class CoprBuildModel(Base):
             return trigger_object.name
         return None
 
-    def get_release_tag(self) -> Optional[int]:
+    def get_release_tag(self) -> Optional[str]:
         trigger_object = self.job_trigger.get_trigger_object()
         if isinstance(trigger_object, ProjectReleaseModel):
             return trigger_object.tag_name
@@ -847,7 +847,7 @@ class KojiBuildModel(Base):
             return trigger_object.name
         return None
 
-    def get_release_tag(self) -> Optional[int]:
+    def get_release_tag(self) -> Optional[str]:
         trigger_object = self.job_trigger.get_trigger_object()
         if isinstance(trigger_object, ProjectReleaseModel):
             return trigger_object.tag_name
@@ -1004,7 +1004,7 @@ class SRPMBuildModel(Base):
             return trigger_object.name
         return None
 
-    def get_release_tag(self) -> Optional[int]:
+    def get_release_tag(self) -> Optional[str]:
         trigger_object = self.job_trigger.get_trigger_object()
         if isinstance(trigger_object, ProjectReleaseModel):
             return trigger_object.tag_name
@@ -1130,7 +1130,7 @@ class TFTTestRunModel(Base):
             return trigger_object.name
         return None
 
-    def get_release_tag(self) -> Optional[int]:
+    def get_release_tag(self) -> Optional[str]:
         trigger_object = self.job_trigger.get_trigger_object()
         if isinstance(trigger_object, ProjectReleaseModel):
             return trigger_object.tag_name
