@@ -1113,6 +1113,14 @@ class TFTTestRunModel(Base):
         return None
 
     @classmethod
+    def get_by_id(
+        cls,
+        id_: int,
+    ) -> Optional["TFTTestRunModel"]:
+        with get_sa_session() as session:
+            return session.query(TFTTestRunModel).filter_by(id=id_).first()
+
+    @classmethod
     def create(
         cls,
         pipeline_id: str,
@@ -1154,6 +1162,12 @@ class TFTTestRunModel(Base):
             return session.query(TFTTestRunModel).order_by(desc(TFTTestRunModel.id))[
                 first:last
             ]
+
+    def get_branch_name(self) -> Optional[str]:
+        trigger_object = self.job_trigger.get_trigger_object()
+        if isinstance(trigger_object, GitBranchModel):
+            return trigger_object.name
+        return None
 
 
 class ProjectAuthenticationIssueModel(Base):

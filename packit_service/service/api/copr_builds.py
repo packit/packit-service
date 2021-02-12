@@ -8,7 +8,7 @@ from flask_restx import Namespace, Resource
 
 from packit_service.models import CoprBuildModel, optional_time
 from packit_service.service.api.parsers import indices, pagination_arguments
-from packit_service.service.api.utils import response_maker
+from packit_service.service.api.utils import get_project_info_from_build, response_maker
 
 logger = getLogger("packit_service")
 
@@ -60,13 +60,13 @@ class CoprBuildsList(Resource):
 
 
 @ns.route("/<int:id>")
-@ns.param("id", "Copr build identifier")
+@ns.param("id", "Packit id of the build")
 class CoprBuildItem(Resource):
     @ns.response(HTTPStatus.OK.value, "OK, copr build details follow")
     @ns.response(HTTPStatus.NOT_FOUND.value, "Copr build identifier not in db/hash")
     def get(self, id):
-        """A specific copr build details. From copr_build hash, filled by worker."""
-        builds_list = CoprBuildModel.get_all_by_build_id(str(id))
+        """A specific copr build details for one chroot."""
+        builds_list = CoprBuildModel.get_by_id(int(id))
         if not bool(builds_list.first()):
             return response_maker(
                 {"error": "No info about build stored in DB"},
@@ -76,34 +76,19 @@ class CoprBuildItem(Resource):
         build = builds_list[0]
 
         build_dict = {
-            "project": build.project_name,
-            "owner": build.owner,
             "build_id": build.build_id,
-            "status": build.status,  # Legacy, remove later.
-            "status_per_chroot": {},
-            "chroots": [],
+            "status": build.status,
+            "chroot": build.target,
             "build_submitted_time": optional_time(build.build_submitted_time),
             "build_start_time": optional_time(build.build_start_time),
             "build_finished_time": optional_time(build.build_finished_time),
             "commit_sha": build.commit_sha,
             "web_url": build.web_url,
-            "srpm_logs": build.srpm_build.logs if build.srpm_build else None,
-            # For backwards compatability with the old redis based API
-            "ref": build.commit_sha,
+            "build_logs_url": build.build_logs_url,
+            "copr_project": build.project_name,
+            "copr_owner": build.owner,
+            "srpm_build_id": build.srpm_build.id,
         }
 
-        project = build.get_project()
-        if project:
-            build_dict["repo_namespace"] = project.namespace
-            build_dict["repo_name"] = project.repo_name
-            build_dict["git_repo"] = project.project_url
-            build_dict["pr_id"] = build.get_pr_id()
-            build_dict["branch_name"] = build.get_branch_name()
-
-        # merge chroots into one
-        for sbid_build in builds_list:
-            build_dict["chroots"].append(sbid_build.target)
-            # Get status per chroot as well
-            build_dict["status_per_chroot"][sbid_build.target] = sbid_build.status
-
+        build_dict.update(get_project_info_from_build(build))
         return response_maker(build_dict)

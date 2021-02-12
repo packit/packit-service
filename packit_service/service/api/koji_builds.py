@@ -8,7 +8,7 @@ from flask_restx import Namespace, Resource
 
 from packit_service.models import KojiBuildModel, optional_time
 from packit_service.service.api.parsers import indices, pagination_arguments
-from packit_service.service.api.utils import response_maker
+from packit_service.service.api.utils import get_project_info_from_build, response_maker
 
 logger = getLogger("packit_service")
 
@@ -56,7 +56,7 @@ class KojiBuildsList(Resource):
 
 
 @koji_builds_ns.route("/<int:id>")
-@koji_builds_ns.param("id", "Koji build identifier")
+@koji_builds_ns.param("id", "Packit id of the build")
 class KojiBuildItem(Resource):
     @koji_builds_ns.response(HTTPStatus.OK, "OK, koji build details follow")
     @koji_builds_ns.response(
@@ -64,7 +64,7 @@ class KojiBuildItem(Resource):
     )
     def get(self, id):
         """A specific koji build details. From koji_build hash, filled by worker."""
-        builds_list = KojiBuildModel.get_all_by_build_id(str(id))
+        builds_list = KojiBuildModel.get_by_id(int(id))
 
         if not builds_list.first():
             return response_maker(
@@ -77,25 +77,16 @@ class KojiBuildItem(Resource):
         build_dict = {
             "build_id": build.build_id,
             "status": build.status,
+            "chroot": build.target,
             "build_start_time": optional_time(build.build_start_time),
             "build_finished_time": optional_time(build.build_finished_time),
             "build_submitted_time": optional_time(build.build_submitted_time),
-            "chroot": build.target,
+            "commit_sha": build.commit_sha,
             "web_url": build.web_url,
             # from old data, sometimes build_logs_url is same and sometimes different to web_url
             "build_logs_url": build.build_logs_url,
-            "pr_id": build.get_pr_id(),
-            "branch_name": build.get_branch_name(),
-            "ref": build.commit_sha,
-            "release": build.get_release_tag(),
+            "srpm_build_id": build.srpm_build.id,
         }
 
-        project = build.get_project()
-        if project:
-            build_dict["project_url"] = project.project_url
-            build_dict["repo_namespace"] = project.namespace
-            build_dict["repo_name"] = project.repo_name
-
-        build_dict["srpm_logs"] = build.srpm_build.logs if build.srpm_build else None
-
+        build_dict.update(get_project_info_from_build(build))
         return response_maker(build_dict)
