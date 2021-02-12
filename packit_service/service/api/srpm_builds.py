@@ -10,7 +10,7 @@ from flask_restx import Namespace, Resource
 
 from packit_service.models import SRPMBuildModel, optional_time
 from packit_service.service.api.parsers import indices, pagination_arguments
-from packit_service.service.api.utils import response_maker
+from packit_service.service.api.utils import get_project_info_from_build, response_maker
 
 logger = getLogger("packit_service")
 
@@ -54,3 +54,28 @@ class SRPMBuildsList(Resource):
         )
         resp.headers["Content-Range"] = f"srpm-builds {first + 1}-{last}/*"
         return resp
+
+
+@ns.route("/<int:id>")
+@ns.param("id", "Packit id of the SRPM build")
+class SRPMBuildItem(Resource):
+    @ns.response(HTTPStatus.OK.value, "OK, SRPM build details follow")
+    @ns.response(HTTPStatus.NOT_FOUND.value, "SRPM build identifier not in db/hash")
+    def get(self, id):
+        """A specific SRPM build details."""
+        build = SRPMBuildModel.get_by_id(int(id))
+        if not build:
+            return response_maker(
+                {"error": "No info about build stored in DB"},
+                status=HTTPStatus.NOT_FOUND.value,
+            )
+
+        build_dict = {
+            "success": build.success,
+            "build_submitted_time": optional_time(build.build_submitted_time),
+            "url": build.url,
+            "logs": build.logs,
+        }
+
+        build_dict.update(get_project_info_from_build(build))
+        return response_maker(build_dict)

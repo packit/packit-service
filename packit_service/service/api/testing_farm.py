@@ -12,7 +12,7 @@ from packit_service.config import ServiceConfig
 from packit_service.models import TFTTestRunModel
 from packit_service.service.api.errors import ValidationFailed
 from packit_service.service.api.parsers import indices, pagination_arguments
-from packit_service.service.api.utils import response_maker
+from packit_service.service.api.utils import get_project_info_from_build, response_maker
 
 logger = logging.getLogger("packit_service")
 
@@ -103,6 +103,7 @@ class TestingFarmResults(Resource):
         # merge them like copr builds
         for tf_result in TFTTestRunModel.get_range(first, last):
             result_dict = {
+                "packit_id": tf_result.id,
                 "pipeline_id": tf_result.pipeline_id,
                 "ref": tf_result.commit_sha,
                 "status": tf_result.status,
@@ -124,3 +125,30 @@ class TestingFarmResults(Resource):
         )
         resp.headers["Content-Range"] = f"test-results {first + 1}-{last}/*"
         return resp
+
+
+@ns.route("/<int:id>")
+@ns.param("id", "Packit id of the test run")
+class TestingFarmResult(Resource):
+    @ns.response(HTTPStatus.OK, "OK, test run details follow")
+    @ns.response(HTTPStatus.NOT_FOUND.value, "No info about test run stored in DB")
+    def get(self, id):
+        """A specific test run details."""
+        test_run_model = TFTTestRunModel.get_by_id(int(id))
+
+        if not test_run_model:
+            return response_maker(
+                {"error": "No info about build stored in DB"},
+                status=HTTPStatus.NOT_FOUND.value,
+            )
+
+        build_dict = {
+            "pipeline_id": test_run_model.pipeline_id,
+            "status": test_run_model.status,
+            "chroot": test_run_model.target,
+            "commit_sha": test_run_model.commit_sha,
+            "web_url": test_run_model.web_url,
+        }
+
+        build_dict.update(get_project_info_from_build(test_run_model))
+        return response_maker(build_dict)
