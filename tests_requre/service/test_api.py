@@ -1,5 +1,6 @@
 from flask import url_for
 
+from packit_service.models import TestingFarmResult
 from tests_requre.conftest import SampleValues
 
 
@@ -50,27 +51,30 @@ def test_pagination(client, clean_before_and_after, too_many_copr_builds):
 
 
 # Test detailed build info
-def test_detailed_copr_build_info(client, clean_before_and_after, multiple_copr_builds):
+def test_detailed_copr_build_info(client, clean_before_and_after, a_copr_build_for_pr):
     response = client.get(
-        url_for("api.copr-builds_copr_build_item", id=SampleValues.build_id)
+        url_for("api.copr-builds_copr_build_item", id=a_copr_build_for_pr.id)
     )
     response_dict = response.json
-    assert response_dict["project"] == SampleValues.project
-    assert response_dict["owner"] == SampleValues.owner
     assert response_dict["build_id"] == SampleValues.build_id
+    assert response_dict["status"] == SampleValues.status_success
+    assert response_dict["chroot"] == SampleValues.target
+    assert response_dict["build_submitted_time"] is not None
+    assert "build_start_time" in response_dict
+    assert "build_finished_time" in response_dict
     assert response_dict["commit_sha"] == SampleValues.commit_sha
     assert response_dict["web_url"] == SampleValues.copr_web_url
-    assert response_dict["srpm_logs"] == SampleValues.srpm_logs
-    assert response_dict["ref"] == SampleValues.ref
+    assert "build_logs_url" in response_dict
+    assert response_dict["copr_project"] == SampleValues.project
+    assert response_dict["copr_owner"] == SampleValues.owner
+    assert response_dict["srpm_build_id"] == a_copr_build_for_pr.srpm_build_id
+
+    # Project info:
     assert response_dict["repo_namespace"] == SampleValues.repo_namespace
     assert response_dict["repo_name"] == SampleValues.repo_name
     assert response_dict["git_repo"] == SampleValues.project_url
     assert response_dict["pr_id"] == SampleValues.pr_id
-    assert len(response_dict["chroots"]) == 2
-    assert len(list(response_dict["status_per_chroot"])) == 2
-    assert response_dict["status_per_chroot"]["fedora-42-x86_64"] == "success"
-    assert response_dict["status_per_chroot"]["fedora-43-x86_64"] == "pending"
-    assert response_dict["build_submitted_time"] is not None
+    assert response_dict["branch_name"] == SampleValues.branch
 
 
 def test_koji_builds_list(client, clean_before_and_after, multiple_koji_builds):
@@ -93,20 +97,26 @@ def test_koji_builds_list(client, clean_before_and_after, multiple_koji_builds):
 
 def test_detailed_koji_build_info(client, clean_before_and_after, a_koji_build_for_pr):
     response = client.get(
-        url_for("api.koji-builds_koji_build_item", id=SampleValues.build_id)
+        url_for("api.koji-builds_koji_build_item", id=a_koji_build_for_pr.id)
     )
     response_dict = response.json
     assert response_dict["build_id"] == SampleValues.build_id
     assert response_dict["status"] == SampleValues.status_pending
-    assert response_dict["web_url"] == SampleValues.koji_web_url
-    assert response_dict["repo_namespace"] == SampleValues.repo_namespace
-    assert response_dict["repo_name"] == SampleValues.repo_name
-    assert response_dict["project_url"] == SampleValues.project_url
-    assert response_dict["pr_id"] == SampleValues.pr_id
-
+    assert response_dict["chroot"] == SampleValues.status_pending
     assert response_dict["build_submitted_time"] is not None
     assert "build_start_time" in response_dict
     assert "build_finished_time" in response_dict
+    assert response_dict["commit_sha"] == SampleValues.commit_sha
+    assert response_dict["web_url"] == SampleValues.copr_web_url
+    assert "build_logs_url" in response_dict
+    assert response_dict["srpm_build_id"] == a_koji_build_for_pr.srpm_build_id
+
+    # Project info:
+    assert response_dict["repo_namespace"] == SampleValues.repo_namespace
+    assert response_dict["repo_name"] == SampleValues.repo_name
+    assert response_dict["git_repo"] == SampleValues.project_url
+    assert response_dict["pr_id"] == SampleValues.pr_id
+    assert response_dict["branch_name"] == SampleValues.branch
 
 
 def test_detailed_koji_build_info_for_pr(
@@ -141,7 +151,9 @@ def test_detailed_koji_build_info_for_release(
 
 #  Test SRPM Builds
 def test_srpm_builds_list(client, clean_before_and_after, a_copr_build_for_pr):
-    response = client.get(url_for("api.srpm-builds_srpm_builds_list"))
+    response = client.get(
+        url_for("api.srpm-builds_srpm_builds_list", id=a_copr_build_for_pr.id)
+    )
     response_dict = response.json
     assert response_dict[0]["success"] is True
     assert type(response_dict[0]["srpm_build_id"]) is int
@@ -152,6 +164,23 @@ def test_srpm_builds_list(client, clean_before_and_after, a_copr_build_for_pr):
     assert response_dict[0]["pr_id"] == SampleValues.pr_id
     assert response_dict[0]["branch_name"] is None  # trigger was PR, not branch push
     assert response_dict[0]["build_submitted_time"] is not None
+
+
+def test_srpm_build_info(client, clean_before_and_after, srpm_build_model):
+    response = client.get(url_for("api.srpm-builds_srpm_build_item"))
+    response_dict = response.json
+
+    assert response_dict["success"] is True
+    assert response_dict["build_submitted_time"] is not None
+    assert "url" in response_dict
+    assert response_dict["logs"] is not None
+
+    # Project info:
+    assert response_dict["repo_namespace"] == SampleValues.repo_namespace
+    assert response_dict["repo_name"] == SampleValues.repo_name
+    assert response_dict["git_repo"] == SampleValues.project_url
+    assert response_dict["pr_id"] == SampleValues.pr_id
+    assert response_dict["branch_name"] == SampleValues.branch
 
 
 def test_allowlist_all(client, clean_before_and_after, new_allowlist_entry):
@@ -196,6 +225,26 @@ def test_get_testing_farm_results(
     assert response_dict[1]["status"] == "new"
 
     assert response_dict[2]["target"] == SampleValues.chroots[1]
+
+
+def test_get_testing_farm_result(client, clean_before_and_after, a_new_test_run_pr):
+    response = client.get(
+        url_for("api.testing-farm_testing_farm_result", id=a_new_test_run_pr.id)
+    )
+    response_dict = response.json
+
+    assert response_dict["pipeline_id"] == SampleValues.another_different_pipeline_id
+    assert response_dict["chroot"] == SampleValues.target
+    assert response_dict["status"] == TestingFarmResult.new
+    assert response_dict["commit_sha"] == SampleValues.commit_sha
+    assert response_dict["web_url"] == SampleValues.testing_farm_url
+
+    # Project info:
+    assert response_dict["repo_namespace"] == SampleValues.repo_namespace
+    assert response_dict["repo_name"] == SampleValues.repo_name
+    assert response_dict["git_repo"] == SampleValues.project_url
+    assert response_dict["pr_id"] == SampleValues.pr_id
+    assert response_dict["branch_name"] == SampleValues.branch
 
 
 def test_get_projects_list(client, clean_before_and_after, a_copr_build_for_pr):
