@@ -63,14 +63,12 @@ class SRPMBuildItem(Resource):
     @ns.response(HTTPStatus.NOT_FOUND.value, "SRPM build identifier not in db/hash")
     def get(self, id):
         """A specific SRPM build details."""
-        builds_list = SRPMBuildModel.get_by_id(int(id))
-        if not bool(builds_list.first()):
+        build = SRPMBuildModel.get_by_id(int(id))
+        if not build:
             return response_maker(
                 {"error": "No info about build stored in DB"},
                 status=HTTPStatus.NOT_FOUND.value,
             )
-
-        build = builds_list[0]
 
         build_dict = {
             "success": build.success,

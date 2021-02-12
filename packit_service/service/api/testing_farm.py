@@ -134,15 +134,13 @@ class TestingFarmResult(Resource):
     @ns.response(HTTPStatus.NOT_FOUND.value, "No info about test run stored in DB")
     def get(self, id):
         """A specific test run details."""
-        builds_list = TFTTestRunModel.get_by_id(int(id))
+        test_run_model = TFTTestRunModel.get_by_id(int(id))
 
-        if not builds_list.first():
+        if not test_run_model:
             return response_maker(
                 {"error": "No info about build stored in DB"},
                 status=HTTPStatus.NOT_FOUND.value,
             )
-
-        test_run_model = builds_list[0]
 
         build_dict = {
             "pipeline_id": test_run_model.pipeline_id,

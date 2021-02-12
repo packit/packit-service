@@ -33,4 +33,5 @@ def get_project_info_from_build(
         "git_repo": project.project_url,
         "pr_id": build.get_pr_id(),
         "branch_name": build.get_branch_name(),
+        "release": build.get_release_tag(),
     }

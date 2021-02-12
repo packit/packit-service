@@ -650,6 +650,12 @@ class CoprBuildModel(Base):
             return trigger_object.name
         return None
 
+    def get_release_tag(self) -> Optional[int]:
+        trigger_object = self.job_trigger.get_trigger_object()
+        if isinstance(trigger_object, ProjectReleaseModel):
+            return trigger_object.tag_name
+        return None
+
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["CoprBuildModel"]:
         with get_sa_session() as session:
@@ -998,6 +1004,12 @@ class SRPMBuildModel(Base):
             return trigger_object.name
         return None
 
+    def get_release_tag(self) -> Optional[int]:
+        trigger_object = self.job_trigger.get_trigger_object()
+        if isinstance(trigger_object, ProjectReleaseModel):
+            return trigger_object.tag_name
+        return None
+
     def set_url(self, url: str) -> None:
         with get_sa_session() as session:
             self.url = url
@@ -1112,6 +1124,18 @@ class TFTTestRunModel(Base):
             return trigger_object.pr_id
         return None
 
+    def get_branch_name(self) -> Optional[str]:
+        trigger_object = self.job_trigger.get_trigger_object()
+        if isinstance(trigger_object, GitBranchModel):
+            return trigger_object.name
+        return None
+
+    def get_release_tag(self) -> Optional[int]:
+        trigger_object = self.job_trigger.get_trigger_object()
+        if isinstance(trigger_object, ProjectReleaseModel):
+            return trigger_object.tag_name
+        return None
+
     @classmethod
     def get_by_id(
         cls,
@@ -1162,12 +1186,6 @@ class TFTTestRunModel(Base):
             return session.query(TFTTestRunModel).order_by(desc(TFTTestRunModel.id))[
                 first:last
             ]
-
-    def get_branch_name(self) -> Optional[str]:
-        trigger_object = self.job_trigger.get_trigger_object()
-        if isinstance(trigger_object, GitBranchModel):
-            return trigger_object.name
-        return None
 
 
 class ProjectAuthenticationIssueModel(Base):

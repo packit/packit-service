@@ -64,16 +64,14 @@ class KojiBuildItem(Resource):
         HTTPStatus.NOT_FOUND.value, "No info about build stored in DB"
     )
     def get(self, id):
-        """A specific koji build details. From koji_build hash, filled by worker."""
-        builds_list = KojiBuildModel.get_by_id(int(id))
+        """A specific koji build details."""
+        build = KojiBuildModel.get_by_id(int(id))
 
-        if not builds_list.first():
+        if not build:
             return response_maker(
                 {"error": "No info about build stored in DB"},
                 status=HTTPStatus.NOT_FOUND.value,
             )
-
-        build = builds_list[0]
 
         build_dict = {
             "build_id": build.build_id,

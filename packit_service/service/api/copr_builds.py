@@ -49,7 +49,7 @@ class CoprBuildsList(Resource):
             for count, chroot in enumerate(build.target):
                 # [0] because sqlalchemy returns a single element sub-list
                 build_dict["status_per_chroot"][chroot[0]] = build.status[count][0]
-                build_dict["packit_id_per_chroot"][chroot[0]] = build.id
+                build_dict["packit_id_per_chroot"][chroot[0]] = build.new_id
 
             result.append(build_dict)
 
@@ -68,14 +68,12 @@ class CoprBuildItem(Resource):
     @ns.response(HTTPStatus.NOT_FOUND.value, "Copr build identifier not in db/hash")
     def get(self, id):
         """A specific copr build details for one chroot."""
-        builds_list = CoprBuildModel.get_by_id(int(id))
-        if not bool(builds_list.first()):
+        build = CoprBuildModel.get_by_id(int(id))
+        if not build:
             return response_maker(
                 {"error": "No info about build stored in DB"},
                 status=HTTPStatus.NOT_FOUND.value,
             )
-
-        build = builds_list[0]
 
         build_dict = {
             "build_id": build.build_id,
