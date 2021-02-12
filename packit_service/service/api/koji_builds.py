@@ -27,6 +27,7 @@ class KojiBuildsList(Resource):
 
         for build in KojiBuildModel.get_range(first, last):
             build_dict = {
+                "packit_id": build.id,
                 "build_id": build.build_id,
                 "status": build.status,
                 "build_submitted_time": optional_time(build.build_submitted_time),

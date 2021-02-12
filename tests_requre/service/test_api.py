@@ -16,6 +16,7 @@ def test_api_health(client):
 def test_copr_builds_list(client, clean_before_and_after, multiple_copr_builds):
     response = client.get(url_for("api.copr-builds_copr_builds_list"))
     response_dict = response.json
+    assert response_dict[0]["packit_id"] == multiple_copr_builds[0].id
     assert response_dict[0]["project"] == SampleValues.different_project_name
     assert response_dict[1]["project"] == SampleValues.project
     assert response_dict[1]["build_id"] == SampleValues.build_id
@@ -81,6 +82,7 @@ def test_koji_builds_list(client, clean_before_and_after, multiple_koji_builds):
     response = client.get(url_for("api.koji-builds_koji_builds_list"))
     response_dict = response.json
     assert len(response_dict) == 3
+    assert response_dict[0]["packit_id"] == multiple_koji_builds[0].id
     assert response_dict[0]["build_id"] == SampleValues.another_different_build_id
     assert response_dict[1]["build_id"] == SampleValues.different_build_id
     assert response_dict[2]["build_id"] == SampleValues.build_id
@@ -209,6 +211,7 @@ def test_get_testing_farm_results(
     response = client.get(url_for("api.testing-farm_testing_farm_results"))
     response_dict = response.json
     assert len(response_dict) == 3
+    assert response_dict[0]["packit_id"] == multiple_new_test_runs[0].id
     assert response_dict[0]["pipeline_id"] == SampleValues.another_different_pipeline_id
     assert response_dict[0]["target"] == SampleValues.chroots[0]
     assert response_dict[0]["ref"] == SampleValues.different_commit_sha

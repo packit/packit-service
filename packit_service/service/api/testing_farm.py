@@ -103,6 +103,7 @@ class TestingFarmResults(Resource):
         # merge them like copr builds
         for tf_result in TFTTestRunModel.get_range(first, last):
             result_dict = {
+                "packit_id": tf_result.id,
                 "pipeline_id": tf_result.pipeline_id,
                 "ref": tf_result.commit_sha,
                 "status": tf_result.status,
