@@ -10,21 +10,6 @@
       file:
         path: "{{ project_dir }}/secrets/dev"
         state: directory
-    #  - name: Copy secrets to packit-service dir
-    #    copy:
-    #      src: "{{ ansible_user_dir }}/{{ zuul.projects['github.com/packit-service/deployment'].src_dir }}/secrets/dev/{{ item }}"
-    #      dest: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/secrets/dev/{{ item }}"
-    #      remote_src: yes
-    #    with_items:
-    #    - packit-service.yaml
-    #    - copr
-    #    - ssh_config
-    #    - fedora.toml
-    #    - private-key.pem
-    #    - privkey.pem
-    #    - fullchain.pem
-    #    - fedora.keytab
-    #    - sentry_key
     - name: Run tests which are executed within openshift
       command: make check-inside-openshift-zuul
       args:
