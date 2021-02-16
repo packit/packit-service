@@ -1,4 +1,4 @@
-BASE_IMAGE ?= docker.io/usercont/base
+BASE_IMAGE ?= quay.io/packit/base
 SERVICE_IMAGE ?= docker.io/usercont/packit-service:dev
 WORKER_IMAGE ?= docker.io/usercont/packit-worker:dev
 WORKER_IMAGE_PROD ?= docker.io/usercont/packit-worker:prod
