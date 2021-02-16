@@ -1,0 +1,4 @@
+---
+- include: install-deps.yaml
+- include: install-deps-worker.yaml
+- include: recipe-tests.yaml

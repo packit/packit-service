@@ -90,5 +90,16 @@ check-inside-openshift: service worker test_image
 check-inside-openshift-zuul: test_image
 	ANSIBLE_STDOUT_CALLBACK=debug $(AP) files/check-inside-openshift.yaml
 
+setup-inside-toolbox:
+	@if [[ ! -e /run/.toolboxenv ]]; then \
+		echo "Not running in a toolbox!"; \
+		exit 1; \
+	fi
+	dnf install -y ansible
+	SOURCE_BRANCH=$(SOURCE_BRANCH) ANSIBLE_STDOUT_CALLBACK=debug $(AP) files/setup-toolbox.yaml
+
+check-inside-toolbox:
+	bash files/test_in_toolbox.sh packit_service
+
 requre-purge-files:
 	pre-commit run requre-purge --all-files --verbose --hook-stage manual
