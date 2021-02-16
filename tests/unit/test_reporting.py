@@ -282,6 +282,8 @@ def test_report_status_by_comment(
             "| Job | Result |",
             "| ------------- | ------------ |",
             f"| [{check_names}]({url}) | {result} |",
+            "### Description\n",
+            "should include this",
         )
     )
 
@@ -295,4 +297,4 @@ def test_report_status_by_comment(
             body=comment_body,
         ).once()
 
-    reporter.report_status_by_comment(state, url, check_names)
+    reporter.report_status_by_comment(state, url, check_names, "should include this")
