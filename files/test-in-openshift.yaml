@@ -25,7 +25,8 @@ objects:
           containers:
             - name: packit-tests
               image: quay.io/packit/packit-service-tests:latest
-              imagePullPolicy: Never # IfNotPresent
+              # If tag is latest, defaults to Always.
+              # imagePullPolicy: Never # IfNotPresent
               workingDir: /src
               env:
                 - name: POSTGRESQL_USER

@@ -12,12 +12,6 @@
           - podman
         state: present
       become: true
-    - name: Build the tests image
-      command: "make test_image"
-      args:
-        chdir: "{{ project_dir }}"
-      environment:
-        SOURCE_BRANCH: "{{ zuul.branch }}"
     - name: Run tests within a container
       command: "make check_in_container"
       args:

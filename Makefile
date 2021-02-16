@@ -35,7 +35,8 @@ check:
 test_image: files/install-deps-worker.yaml files/install-deps.yaml files/recipe-tests.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(TEST_IMAGE) -f files/docker/Dockerfile.tests --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
 
-check_in_container: test_image
+check_in_container:
+	$(CONTAINER_ENGINE) pull $(TEST_IMAGE)
 	@# don't use -ti here in CI, TTY is not allocated in zuul
 	echo $(SOURCE_BRANCH)
 	$(CONTAINER_ENGINE) run --rm \
@@ -75,7 +76,7 @@ check-in-container-tomas:
 		$(TEST_IMAGE) make check "TEST_TARGET=$(TEST_TARGET)"
 
 # deploy a pod with tests and run them
-check-inside-openshift: service worker test_image
+check-inside-openshift: service worker
 	@# http://timmurphy.org/2015/09/27/how-to-get-a-makefile-directory-path/
 	@# sadly the hostPath volume doesn't work:
 	@#   Invalid value: "hostPath": hostPath volumes are not allowed to be used
@@ -84,7 +85,7 @@ check-inside-openshift: service worker test_image
 	ANSIBLE_STDOUT_CALLBACK=debug $(AP) -K -e path_to_secrets=$(PATH_TO_SECRETS) files/deployment.yaml
 	ANSIBLE_STDOUT_CALLBACK=debug $(AP) files/check-inside-openshift.yaml
 
-check-inside-openshift-zuul: test_image
+check-inside-openshift-zuul:
 	ANSIBLE_STDOUT_CALLBACK=debug $(AP) files/check-inside-openshift.yaml
 
 setup-inside-toolbox:
