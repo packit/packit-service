@@ -12,8 +12,8 @@
           - podman
         state: present
       become: true
-    - name: Build the worker image
-      command: "make worker"
+    - name: Build the tests image
+      command: "make test_image"
       args:
         chdir: "{{ project_dir }}"
       environment:

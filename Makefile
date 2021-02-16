@@ -2,7 +2,7 @@ BASE_IMAGE ?= quay.io/packit/base
 SERVICE_IMAGE ?= docker.io/usercont/packit-service:dev
 WORKER_IMAGE ?= docker.io/usercont/packit-worker:dev
 WORKER_IMAGE_PROD ?= docker.io/usercont/packit-worker:prod
-TEST_IMAGE ?= packit-service-tests
+TEST_IMAGE ?= quay.io/packit/packit-service-tests
 TEST_TARGET ?= ./tests/unit ./tests/integration/
 CONTAINER_ENGINE ?= $(shell command -v podman 2> /dev/null || echo docker)
 ANSIBLE_PYTHON ?= /usr/bin/python3
@@ -32,12 +32,9 @@ check:
 	find . -name "*.pyc" -exec rm {} \;
 	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=$(COLOR) --verbose --showlocals --cov=packit_service --cov-report=$(COV_REPORT) $(TEST_TARGET)
 
-# first run 'make worker'
-test_image: files/install-deps.yaml files/recipe-tests.yaml
+test_image: files/install-deps-worker.yaml files/install-deps.yaml files/recipe-tests.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(TEST_IMAGE) -f files/docker/Dockerfile.tests --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
 
-# If you haven't run this for some time, run 'make worker' first.
-# 'worker' is not a dependency here because we don't want to rebuild images everytime.
 check_in_container: test_image
 	@# don't use -ti here in CI, TTY is not allocated in zuul
 	echo $(SOURCE_BRANCH)
