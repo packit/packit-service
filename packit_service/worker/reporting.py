@@ -115,6 +115,7 @@ class StatusReporter:
         state: CommitStatus,
         url: str,
         check_names: Union[str, list, None],
+        description: str,
     ):
         """
         Reporting build status with MR comment if no permission to the fork project
@@ -128,7 +129,8 @@ class StatusReporter:
             "| ------------- | ------------ |",
         ] + [f"| [{check}]({url}) | {state.name.upper()} |" for check in check_names]
 
-        self.comment("\n".join(comment_table_rows))
+        table = "\n".join(comment_table_rows)
+        self.comment(table + f"\n### Description\n\n{description}")
 
     def __add_commit_comment_with_status(
         self, state: CommitStatus, description: str, check_name: str, url: str = ""
