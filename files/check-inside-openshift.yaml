@@ -77,10 +77,6 @@
     # https://github.com/ansible/ansible/issues/55221#issuecomment-501792651
     - name: create test job in openshift
       shell: oc process -f {{ test_job_template_path }} | oc create -f -
-    - name: Create directory for response files
-      file:
-        path: ../tests/test_data
-        state: directory
     - name: Wait for tests to finish
       k8s:
         host: "{{ oc_server.stdout }}"
