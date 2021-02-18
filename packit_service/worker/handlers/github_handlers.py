@@ -55,6 +55,7 @@ from packit_service.service.events import (
     EventData,
     InstallationEvent,
     IssueCommentEvent,
+    IssueCommentGitlabEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
     PullRequestCommentGithubEvent,
@@ -147,6 +148,7 @@ class GithubAppInstallationHandler(JobHandler):
 @run_for_comment(command="propose-update")  # deprecated
 @reacts_to(event=ReleaseEvent)
 @reacts_to(event=IssueCommentEvent)
+@reacts_to(event=IssueCommentGitlabEvent)
 class ProposeDownstreamHandler(JobHandler):
     task_name = TaskName.propose_downstream
 

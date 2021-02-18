@@ -478,8 +478,7 @@ class TestEvents:
 
         assert isinstance(event_object, IssueCommentGitlabEvent)
         assert event_object.action == GitlabEventAction.opened
-        assert event_object.issue_id == 35452477
-        assert event_object.issue_iid == 1
+        assert event_object.issue_id == 1
         assert event_object.repo_namespace == "testing/packit"
         assert event_object.repo_name == "hello-there"
 
@@ -492,13 +491,16 @@ class TestEvents:
         assert isinstance(event_object.project, GitlabProject)
         assert event_object.project.full_repo_name == "testing/packit/hello-there"
 
+        flexmock(event_object.project).should_receive("get_releases").and_return(
+            [flexmock(tag_name="0.5.0"), flexmock(tag_name="0.4.1")]
+        )
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
             base_project=event_object.base_project,
             project=event_object.project,
             pr_id=None,
-            reference=None,
+            reference="0.5.0",
             fail_when_missing=False,
             spec_file_path=None,
         ).and_return(
