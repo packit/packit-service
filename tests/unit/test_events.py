@@ -478,8 +478,7 @@ class TestEvents:
 
         assert isinstance(event_object, IssueCommentGitlabEvent)
         assert event_object.action == GitlabEventAction.opened
-        assert event_object.issue_id == 35452477
-        assert event_object.issue_iid == 1
+        assert event_object.issue_id == 1
         assert event_object.repo_namespace == "testing/packit"
         assert event_object.repo_name == "hello-there"
 

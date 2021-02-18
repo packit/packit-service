@@ -229,7 +229,10 @@ class EventData:
                     project_url=self.project_url,
                     commit_hash=self.commit_sha,
                 )
-            elif self.event_type in {IssueCommentEvent.__name__}:
+            elif self.event_type in {
+                IssueCommentEvent.__name__,
+                IssueCommentGitlabEvent.__name__,
+            }:
                 self._db_trigger = IssueModel.get_or_create(
                     issue_id=self.issue_id,
                     namespace=self.project.namespace,
@@ -688,7 +691,6 @@ class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
         self,
         action: GitlabEventAction,
         issue_id: int,
-        issue_iid: int,
         repo_namespace: str,
         repo_name: str,
         project_url: str,
@@ -697,10 +699,7 @@ class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
     ):
         super().__init__(project_url=project_url)
         self.action = action
-        # issue_id = ID of the specific comment
         self.issue_id = issue_id
-        # issue ID as is used while processing
-        self.issue_iid = issue_iid
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.project_url = project_url
@@ -723,7 +722,7 @@ class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
         result = super().get_dict()
         result["action"] = result["action"].value
         result["tag_name"] = self.tag_name
-        result["issue_id"] = self.issue_iid
+        result["issue_id"] = self.issue_id
         return result
 
 

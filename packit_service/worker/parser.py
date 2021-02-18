@@ -426,13 +426,9 @@ class Parser:
         if not issue:
             return None
 
-        issue_id = nested_get(event, "issue", "id")
+        issue_id = nested_get(event, "issue", "iid")
         if not issue_id:
             logger.warning("No issue id from the event.")
-            return None
-        issue_iid = nested_get(event, "issue", "iid")
-        if not issue_iid:
-            logger.warning("No issue iid from the event.")
             return None
         comment = nested_get(event, "object_attributes", "note")
         if not comment:
@@ -450,7 +446,7 @@ class Parser:
             action = state
 
         logger.info(
-            f"Gitlab issue ID: {issue_id} IID: {issue_iid} comment: {comment!r} {action!r} event."
+            f"Gitlab issue ID: {issue_id} comment: {comment!r} {action!r} event."
         )
 
         project_url = nested_get(event, "project", "web_url")
@@ -473,7 +469,6 @@ class Parser:
         return IssueCommentGitlabEvent(
             action=GitlabEventAction[action],
             issue_id=issue_id,
-            issue_iid=issue_iid,
             repo_namespace=parsed_url.namespace,
             repo_name=parsed_url.repo,
             project_url=project_url,
