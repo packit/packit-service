@@ -730,16 +730,23 @@ class Parser:
         if not xunit:
             return []
         xunit_dict = xmltodict.parse(xunit)
-        return [
-            TestResult(
-                name=testcase["@name"],
-                result=TestingFarmResult(testcase["@result"]),
-                log_url=nested_get(testcase, "logs", "log", 1, "@href", default=""),
-            )
-            for testcase in nested_get(
-                xunit_dict, "testsuites", "testsuite", "testcase", default=[]
-            )
-        ]
+        testcases = nested_get(
+            xunit_dict, "testsuites", "testsuite", "testcase", default=[]
+        )
+        try:
+            return [
+                TestResult(
+                    name=testcase["@name"],
+                    result=TestingFarmResult(testcase["@result"]),
+                    log_url=nested_get(testcase, "logs", "log", 1, "@href", default=""),
+                )
+                for testcase in testcases
+            ]
+        except TypeError:
+            # packit-service/issues/967
+            logger.warning(f"Wrongly parsed TF result xunit: {xunit!r} -> {xunit_dict}")
+            # We don't need it in most cases, so let's just continue instead of raising
+            return []
 
     @staticmethod
     def parse_testing_farm_results_event(
