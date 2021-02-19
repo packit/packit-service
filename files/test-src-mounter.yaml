@@ -1,0 +1,18 @@
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: mount-src
+spec:
+  volumes:
+    - name: test-src-pv
+      persistentVolumeClaim:
+        claimName: test-src-pvc
+  restartPolicy: Never
+  containers:
+    - name: packit-tests
+      image: quay.io/packit/packit-service-tests:latest
+      volumeMounts:
+        - mountPath: /src
+          name: test-src-pv
+      command: ["bash", "-c", "sleep 10000"]

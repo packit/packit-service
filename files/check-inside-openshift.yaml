@@ -40,6 +40,46 @@
       command: oc whoami --show-server
       register: oc_server
 
+    - name: Create PVC for volume to be mounted to /src
+      k8s:
+        host: "{{ oc_server.stdout }}"
+        api_key: "{{ kubeconfig_token.stdout }}"
+        validate_certs: no
+        namespace: "{{ oc_project.stdout }}"
+        resource_definition: "{{ lookup('file', './test-src-pvc.yaml') }}"
+    - name: Start pod which mounts test-src-pvc to /src
+      k8s:
+        host: "{{ oc_server.stdout }}"
+        api_key: "{{ kubeconfig_token.stdout }}"
+        validate_certs: no
+        namespace: "{{ oc_project.stdout }}"
+        resource_definition: "{{ lookup('file', './test-src-mounter.yaml') }}"
+    - name: Wait for the pod to be running so we can rsync the files
+      k8s:
+        host: "{{ oc_server.stdout }}"
+        api_key: "{{ kubeconfig_token.stdout }}"
+        validate_certs: no
+        namespace: "{{ oc_project.stdout }}"
+        name: mount-src
+        api_version: v1
+        kind: Pod
+        wait: yes
+        wait_condition:
+          type: Ready
+        wait_timeout: 100
+    - name: rsync ../ to pod:/src
+      command: oc rsync ../ mount-src:/src --no-perms
+    - name: Delete the pod with mounted /src
+      k8s:
+        host: "{{ oc_server.stdout }}"
+        api_key: "{{ kubeconfig_token.stdout }}"
+        validate_certs: no
+        namespace: "{{ oc_project.stdout }}"
+        name: mount-src
+        api_version: v1
+        kind: Pod
+        state: absent
+
     - name: Delete old test job if it exists
       k8s:
         host: "{{ oc_server.stdout }}"

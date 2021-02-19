@@ -18,6 +18,9 @@ objects:
             - name: packit-config
               secret:
                 secretName: packit-config
+            - name: test-src-pv
+              persistentVolumeClaim:
+                claimName: test-src-pvc
             - name: test-data-pv
               persistentVolumeClaim:
                 claimName: test-data-pvc
@@ -54,8 +57,10 @@ objects:
                   mountPath: /secrets
                 - name: packit-config
                   mountPath: /home/packit/.config
-                - mountPath: /tmp/test_data
-                  name: test-data-pv
+                - name: test-src-pv
+                  mountPath: /src
+                - name: test-data-pv
+                  mountPath: /tmp/test_data
               command: ["bash", "/src/files/run_tests.sh"]
       backoffLimit: 1
   - apiVersion: v1
