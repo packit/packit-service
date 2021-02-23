@@ -1,11 +1,11 @@
 ---
-- name: Install dependencies for packit-service worker.
+- name: Install dependencies for packit-service worker
   hosts: all
   vars:
     source_branch: "{{ lookup('env', 'SOURCE_BRANCH') }}"
   tasks:
     - import_tasks: tasks/process-source-branch.yaml
-    - name: Install all RPM/python packages needed to run packit-service worker.
+    - name: Install all RPM/python packages needed to run packit-service worker
       dnf:
         name:
           - python3-ipdb # for easy debugging

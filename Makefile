@@ -1,8 +1,8 @@
-BASE_IMAGE ?= docker.io/usercont/base
+BASE_IMAGE ?= quay.io/packit/base
 SERVICE_IMAGE ?= docker.io/usercont/packit-service:dev
 WORKER_IMAGE ?= docker.io/usercont/packit-worker:dev
 WORKER_IMAGE_PROD ?= docker.io/usercont/packit-worker:prod
-TEST_IMAGE ?= packit-service-tests
+TEST_IMAGE ?= quay.io/packit/packit-service-tests
 TEST_TARGET ?= ./tests/unit ./tests/integration/
 CONTAINER_ENGINE ?= $(shell command -v podman 2> /dev/null || echo docker)
 ANSIBLE_PYTHON ?= /usr/bin/python3
@@ -32,13 +32,11 @@ check:
 	find . -name "*.pyc" -exec rm {} \;
 	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=$(COLOR) --verbose --showlocals --cov=packit_service --cov-report=$(COV_REPORT) $(TEST_TARGET)
 
-# first run 'make worker'
-test_image: files/install-deps.yaml files/recipe-tests.yaml
+test_image: files/install-deps-worker.yaml files/install-deps.yaml files/recipe-tests.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(TEST_IMAGE) -f files/docker/Dockerfile.tests --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
 
-# If you haven't run this for some time, run 'make worker' first.
-# 'worker' is not a dependency here because we don't want to rebuild images everytime.
-check_in_container: test_image
+check_in_container:
+	$(CONTAINER_ENGINE) pull $(TEST_IMAGE)
 	@# don't use -ti here in CI, TTY is not allocated in zuul
 	echo $(SOURCE_BRANCH)
 	$(CONTAINER_ENGINE) run --rm \
@@ -78,7 +76,7 @@ check-in-container-tomas:
 		$(TEST_IMAGE) make check "TEST_TARGET=$(TEST_TARGET)"
 
 # deploy a pod with tests and run them
-check-inside-openshift: service worker test_image
+check-inside-openshift: service worker
 	@# http://timmurphy.org/2015/09/27/how-to-get-a-makefile-directory-path/
 	@# sadly the hostPath volume doesn't work:
 	@#   Invalid value: "hostPath": hostPath volumes are not allowed to be used
@@ -87,7 +85,7 @@ check-inside-openshift: service worker test_image
 	ANSIBLE_STDOUT_CALLBACK=debug $(AP) -K -e path_to_secrets=$(PATH_TO_SECRETS) files/deployment.yaml
 	ANSIBLE_STDOUT_CALLBACK=debug $(AP) files/check-inside-openshift.yaml
 
-check-inside-openshift-zuul: test_image
+check-inside-openshift-zuul:
 	ANSIBLE_STDOUT_CALLBACK=debug $(AP) files/check-inside-openshift.yaml
 
 setup-inside-toolbox:

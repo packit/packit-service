@@ -1,6 +1,6 @@
 # For running tests locally, see check_in_container target in Makefile
 
-FROM docker.io/usercont/packit-worker:dev
+FROM quay.io/packit/base
 
 ARG SOURCE_BRANCH
 RUN  if [[ -z $SOURCE_BRANCH ]]; then \
@@ -9,13 +9,25 @@ echo -e "\nMissing SOURCE_BRANCH build argument! Please add \
 This is the branch used when installing other Packit projects (e.g. ogr, packit).\n" && exit 1;\
 fi
 
-# Since we use worker base image, we need to install service deps manually
-RUN ansible-playbook -vv -c local -i localhost, files/install-deps.yaml
+ENV USER=packit \
+    HOME=/home/packit
 
-RUN set -ex; mkdir -p ${HOME}/.config \
-    && ln -s $(pwd)/files/packit-service.yaml ${HOME}/.config/packit-service.yaml \
-    && ansible-playbook -vv -c local -i localhost, files/recipe-tests.yaml
+WORKDIR /src
 
-# we are doing the same here as in worker Df so that we don't need to rerun the
-# playbook above for every code change: iterating fast <3
+COPY files/ ./files/
+
+# Install worker & service & tests deps
+RUN ansible-playbook -vv -c local -i localhost, files/install-deps-worker.yaml && \
+    ansible-playbook -vv -c local -i localhost, files/install-deps.yaml && \
+    ansible-playbook -vv -c local -i localhost, files/recipe-tests.yaml && \
+    dnf clean all
+
+RUN set -ex; \
+    mkdir -m 0777 /sandcastle && \
+    mkdir -m 0776 -p ${HOME} && \
+    mkdir -p ${HOME}/.config && \
+    ln -s $(pwd)/files/packit-service.yaml ${HOME}/.config/packit-service.yaml
+
 COPY . ./
+
+RUN pip3 install -e . && pip3 check && rm -rf ~/.cache/*
