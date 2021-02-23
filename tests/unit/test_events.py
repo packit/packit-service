@@ -456,8 +456,8 @@ class TestEvents:
         assert event_object.project.full_repo_name == "packit-service/packit"
         assert not event_object.base_project
 
-        flexmock(event_object.project).should_receive("get_releases").and_return(
-            [flexmock(tag_name="0.5.0"), flexmock(tag_name="0.4.1")]
+        flexmock(event_object.project).should_receive("get_latest_release").and_return(
+            flexmock(tag_name="0.5.0")
         )
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
@@ -491,8 +491,8 @@ class TestEvents:
         assert isinstance(event_object.project, GitlabProject)
         assert event_object.project.full_repo_name == "testing/packit/hello-there"
 
-        flexmock(event_object.project).should_receive("get_releases").and_return(
-            [flexmock(tag_name="0.5.0"), flexmock(tag_name="0.4.1")]
+        flexmock(event_object.project).should_receive("get_latest_release").and_return(
+            flexmock(tag_name="0.5.0")
         )
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
