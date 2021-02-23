@@ -84,7 +84,7 @@ def mock_comment(request):
         project=flexmock(project_class),
         raw_release=flexmock(),
     )
-    flexmock(project_class).should_receive("get_releases").and_return([gr])
+    flexmock(project_class).should_receive("get_latest_release").and_return(gr)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)

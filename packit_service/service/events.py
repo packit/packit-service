@@ -710,8 +710,9 @@ class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
     @property
     def tag_name(self):
         if not self._tag_name:
-            releases = self.project.get_releases()
-            self._tag_name = releases[0].tag_name if releases else ""
+            self._tag_name = ""
+            if latest_release := self.project.get_latest_release():
+                self._tag_name = latest_release.tag_name
         return self._tag_name
 
     @property
@@ -757,8 +758,9 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
     @property
     def tag_name(self):
         if not self._tag_name:
-            releases = self.project.get_releases()
-            self._tag_name = releases[0].tag_name if releases else ""
+            self._tag_name = ""
+            if latest_release := self.project.get_latest_release():
+                self._tag_name = latest_release.tag_name
         return self._tag_name
 
     @property
