@@ -37,6 +37,7 @@ from ogr import GithubService, GitlabService, PagureService
 from packit_service.config import ServiceConfig
 from packit_service.models import (
     CoprBuildModel,
+    JobTriggerModel,
     get_sa_session,
     SRPMBuildModel,
     PullRequestModel,
@@ -148,6 +149,7 @@ def clean_db():
         session.query(BugzillaModel).delete()
 
         session.query(RunModel).delete()
+        session.query(JobTriggerModel).delete()
 
         session.query(GitBranchModel).delete()
         session.query(ProjectReleaseModel).delete()

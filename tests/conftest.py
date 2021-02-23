@@ -117,7 +117,10 @@ def copr_build_model(
         trigger_id=1,
         get_trigger_object=lambda: pr_model,
     )
-    return flexmock(
+
+    runs = []
+    srpm_build = flexmock(logs="asdsdf", url=None, runs=runs)
+    copr_build = flexmock(
         id=1,
         build_id="1",
         commit_sha="0011223344",
@@ -126,9 +129,18 @@ def copr_build_model(
         web_url="https://some-url",
         target="some-target",
         status="some-status",
-        srpm_build=flexmock(logs="asdsdf", url=None),
-        job_trigger=trigger_model,
+        runs=runs,
     )
+    copr_build._srpm_build_for_mocking = srpm_build
+    copr_build.get_trigger_object = lambda: pr_model
+    copr_build.get_srpm_build = lambda: srpm_build
+
+    run_model = flexmock(
+        id=3, job_trigger=trigger_model, srpm_build=srpm_build, copr_build=copr_build
+    )
+    runs.append(run_model)
+
+    return copr_build
 
 
 @pytest.fixture(scope="module")
@@ -153,6 +165,8 @@ def koji_build_pr():
         trigger_id=1,
         get_trigger_object=lambda: pr_model,
     )
+    runs = []
+    srpm_build = flexmock(logs="asdsdf", url=None, runs=runs)
     koji_build_model = flexmock(
         id=1,
         build_id="1",
@@ -162,9 +176,19 @@ def koji_build_pr():
         web_url="https://some-url",
         target="some-target",
         status="some-status",
-        srpm_build=flexmock(logs="asdsdf"),
-        job_trigger=trigger_model,
+        runs=runs,
     )
+    koji_build_model._srpm_build_for_mocking = srpm_build
+    koji_build_model.get_trigger_object = lambda: pr_model
+    koji_build_model.get_srpm_build = lambda: srpm_build
+
+    run_model = flexmock(
+        id=3,
+        job_trigger=trigger_model,
+        srpm_build=srpm_build,
+        copr_build=koji_build_model,
+    )
+    runs.append(run_model)
 
     return koji_build_model
 

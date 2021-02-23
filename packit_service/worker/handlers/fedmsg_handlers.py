@@ -174,7 +174,7 @@ class AbstractCoprBuildReportHandler(FedmsgHandler):
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         if not self._db_trigger:
-            self._db_trigger = self.build.job_trigger.get_trigger_object()
+            self._db_trigger = self.build.get_trigger_object()
         return self._db_trigger
 
 
@@ -204,14 +204,16 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         return False
 
     def set_srpm_url(self, build_job_helper: CoprBuildJobHelper) -> None:
-        if self.build.srpm_build.url is not None:
+        srpm_build = self.build.get_srpm_build()
+
+        if srpm_build.url is not None:
             # URL has been already set
             return
 
         srpm_url = build_job_helper.get_build(
             self.copr_event.build_id
         ).source_package.get("url")
-        self.build.srpm_build.set_url(srpm_url)
+        srpm_build.set_url(srpm_url)
 
     def run(self):
         build_job_helper = CoprBuildJobHelper(

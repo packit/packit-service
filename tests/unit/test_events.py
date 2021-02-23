@@ -633,13 +633,13 @@ class TestEvents:
         ).and_return(testing_farm_results)
         flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
             flexmock(
-                job_trigger=flexmock()
-                .should_receive("get_trigger_object")
-                .and_return(PullRequestModel(pr_id=10))
-                .once()
-                .mock(),
+                job_trigger=flexmock(),
                 data={"base_project_url": "https://github.com/packit/packit"},
             )
+            .should_receive("get_trigger_object")
+            .and_return(flexmock(pr_id=10))
+            .once()
+            .mock()
         )
         event_object = Parser.parse_event(testing_farm_notification)
 
@@ -666,13 +666,13 @@ class TestEvents:
         ).and_return(testing_farm_results_error)
         flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
             flexmock(
-                job_trigger=flexmock()
-                .should_receive("get_trigger_object")
-                .and_return(PullRequestModel(pr_id=10))
-                .once()
-                .mock(),
+                job_trigger=flexmock(),
                 data={"base_project_url": "https://github.com/packit/packit"},
             )
+            .should_receive("get_trigger_object")
+            .and_return(flexmock(pr_id=10))
+            .once()
+            .mock()
         )
         event_object = Parser.parse_event(testing_farm_notification)
 

@@ -80,26 +80,26 @@ def test_check_copr_build_updated():
                 owner="the-owner",
                 project_name="the-project-name",
                 commit_sha="123456",
-                job_trigger=flexmock(type=JobTriggerModelType.pull_request)
-                .should_receive("get_trigger_object")
-                .and_return(
-                    flexmock(
-                        project=flexmock(
-                            repo_name="repo_name",
-                            namespace="the-namespace",
-                            project_url="https://github.com/the-namespace/repo_name",
-                        ),
-                        pr_id=5,
-                        job_config_trigger_type=JobConfigTriggerType.pull_request,
-                        id=123,
-                    )
-                )
-                .mock(),
+                job_trigger=flexmock(type=JobTriggerModelType.pull_request),
                 srpm_build=flexmock(url=None)
                 .should_receive("set_url")
                 .with_args("https://some.host/my.srpm")
                 .mock(),
             )
+            .should_receive("get_trigger_object")
+            .and_return(
+                flexmock(
+                    project=flexmock(
+                        repo_name="repo_name",
+                        namespace="the-namespace",
+                        project_url="https://github.com/the-namespace/repo_name",
+                    ),
+                    pr_id=5,
+                    job_config_trigger_type=JobConfigTriggerType.pull_request,
+                    id=123,
+                )
+            )
+            .mock()
         ]
     )
     flexmock(Client).should_receive("create_from_config_file").and_return(
