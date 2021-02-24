@@ -1,4 +1,4 @@
-name: Rebuild & push tests image
+name: Rebuild & push worker:stg
 on:
   push:
     branches: [main]
@@ -19,8 +19,9 @@ jobs:
         # https://github.com/marketplace/actions/buildah-build
         uses: redhat-actions/buildah-build@v2
         with:
-          dockerfiles: files/docker/Dockerfile.tests
-          image: packit-service-tests
+          dockerfiles: files/docker/Dockerfile.worker
+          image: packit-worker
+          tags: stg
           oci: true
           build-args: |
             SOURCE_BRANCH=main

@@ -1,7 +1,7 @@
-name: Rebuild & push tests image
+name: Rebuild & push worker:prod
 on:
   push:
-    branches: [main]
+    branches: [stable]
 
 jobs:
   build:
@@ -19,11 +19,12 @@ jobs:
         # https://github.com/marketplace/actions/buildah-build
         uses: redhat-actions/buildah-build@v2
         with:
-          dockerfiles: files/docker/Dockerfile.tests
-          image: packit-service-tests
+          dockerfiles: files/docker/Dockerfile.worker
+          image: packit-worker
+          tags: prod
           oci: true
           build-args: |
-            SOURCE_BRANCH=main
+            SOURCE_BRANCH=stable
 
       - name: Push To Quay
         # https://github.com/marketplace/actions/push-to-registry
