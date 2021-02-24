@@ -33,24 +33,25 @@ def mock_config():
     config.webhook_secret = "testing-secret"
     config.gitlab_token_secret = "gitlab-token-secret"
     config.gitlab_webhook_tokens = []
+    config.validate_webhooks = True
     return config
 
 
 @pytest.mark.parametrize(
-    "digest, is_good",
+    "headers, is_good",
     [
         # hmac.new(webhook_secret, msg=payload, digestmod=hashlib.sha1).hexdigest()
-        ("4e0281ef362383a2ab30c9dde79167da3b300b58", True),
-        ("abcdefghijklmnopqrstuvqxyz", False),
+        ({"X-Hub-Signature": "sha1=4e0281ef362383a2ab30c9dde79167da3b300b58"}, True),
+        ({"X-Hub-Signature": "sha1=abcdefghijklmnopqrstuvqxyz"}, False),
+        ({}, False),
     ],
 )
-def test_validate_signature(mock_config, digest, is_good):
+def test_validate_signature(mock_config, headers, is_good):
     payload = b'{"zen": "Keep it logically awesome."}'
-    headers = {"X-Hub-Signature": f"sha1={digest}"}
 
     # flexmock config before import as it fails on looking for config
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        flexmock(ServiceConfig)
+        flexmock(validate_webhooks=True)
     )
     from packit_service.service.api import webhooks
 
@@ -67,30 +68,38 @@ def test_validate_signature(mock_config, digest, is_good):
 
 
 @pytest.mark.parametrize(
-    "token, is_good",
+    "headers, is_good",
     [
         (
-            "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9."
-            "eyJuYW1lc3BhY2UiOiJtdWx0aS9wYXJ0L25hbWVzcGFjZSIsInJlcG9fbmFtZSI6InJlcG8ifQ."
-            "r5-khuzdQJ3b15KZt3E1AqFXjtKfFn_Q1BBwkq04Mf8",
+            {
+                "X-Gitlab-Token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9."
+                "eyJuYW1lc3BhY2UiOiJtdWx0aS9wYXJ0L25hbWVzcGFjZSIsInJlcG9fbmFtZSI6InJlcG8ifQ."
+                "r5-khuzdQJ3b15KZt3E1AqFXjtKfFn_Q1BBwkq04Mf8"
+            },
             True,
         ),
-        ("guyirhgrehjguyrhg", False),
-        (None, False),
+        ({"X-Gitlab-Token": "guyirhgrehjguyrhg"}, False),
+        ({"X-Gitlab-Token": "None"}, False),
+        ({}, False),
     ],
 )
-def test_validate_token(mock_config, token, is_good):
+def test_validate_token(mock_config, headers, is_good):
     payload = (
         b'{"project": {"path_with_namespace": "multi/part/namespace/repo", '
         b'"http_url": "https://gitlab.com/multi/part/namespace/repo.git"}}'
     )
-    headers = {"X-Gitlab-Token": f"{token}"}
 
     # flexmock config before import as it fails on looking for config
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
         flexmock(ServiceConfig)
     )
+
     from packit_service.service.api import webhooks
+
+    if "X-Gitlab-Token" not in headers and not is_good:
+        flexmock(webhooks.GitlabWebhook).should_receive(
+            "create_confidential_issue_with_token"
+        ).mock()
 
     webhooks.config = mock_config
 
