@@ -156,31 +156,28 @@ class BaseBuildJobHelper:
         """
         Return the targets to build.
 
-        1. If the job is not defined, use the test_targets.
-        2. If the job is defined, but not the targets, use "fedora-stable" alias otherwise.
+        1. Use targets defined for build job and targets defined for test job.
+        2. Use "fedora-stable" alias if neither defined.
         """
-        if (
-            (not self.job_build or not self.job_build.metadata.targets)
-            and self.job_tests
-            and self.job_tests.metadata.targets
-        ):
-            return self.configured_tests_targets
+        targets = set()
+        if self.job_build:
+            targets.update(self.job_build.metadata.targets)
 
-        if self.job_build and self.job_build.metadata.targets:
-            return self.job_build.metadata.targets
+        if self.job_tests:
+            targets.update(self.job_tests.metadata.targets)
 
-        return {"fedora-stable"}
+        return targets or {"fedora-stable"}
 
     @property
     def configured_tests_targets(self) -> Set[str]:
         """
-        Return the list of chroots used in the testing farm.
-        Has to be a sub-set of the `build_chroots`.
+        Return the targets used in the testing farm.
+        Has to be a sub-set of the `configured_build_targets`.
 
-        Return an empty list if there is no job configured.
+        Return an empty set if there is no test job configured.
 
         If not defined:
-        1. use the build_chroots if the job si configured
+        1. use the `configured_build_targets` if the build job is configured
         2. use "fedora-stable" alias otherwise
         """
         if not self.job_tests:
