@@ -1,7 +1,6 @@
 import pytest
 from flexmock import flexmock
 
-import packit_service
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
@@ -34,7 +33,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 )
             ],
             JobConfigTriggerType.pull_request,
-            STABLE_CHROOTS,
+            set(STABLE_VERSIONS),
             set(),
             id="build_with_targets",
         ),
@@ -47,7 +46,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 )
             ],
             JobConfigTriggerType.pull_request,
-            STABLE_CHROOTS,
+            set(STABLE_VERSIONS),
             set(),
             id="build_with_targets&pr_comment",
         ),
@@ -60,7 +59,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 )
             ],
             JobConfigTriggerType.release,
-            STABLE_CHROOTS,
+            set(STABLE_VERSIONS),
             set(),
             id="build_with_targets&release",
         ),
@@ -73,7 +72,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 )
             ],
             JobConfigTriggerType.commit,
-            STABLE_CHROOTS,
+            set(STABLE_VERSIONS),
             set(),
             id="build_with_targets&push",
         ),
@@ -91,7 +90,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            STABLE_CHROOTS,
+            set(STABLE_VERSIONS),
             set(),
             id="build_with_targets&pull_request_with_pr_and_push_defined",
         ),
@@ -109,7 +108,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            STABLE_CHROOTS,
+            set(STABLE_VERSIONS),
             set(),
             id="build_with_targets&pr_comment_with_pr_and_push_defined",
         ),
@@ -127,7 +126,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 ),
             ],
             JobConfigTriggerType.commit,
-            STABLE_CHROOTS,
+            set(STABLE_VERSIONS),
             set(),
             id="build_with_targets&push_with_pr_and_push_defined",
         ),
@@ -139,7 +138,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 )
             ],
             JobConfigTriggerType.pull_request,
-            STABLE_CHROOTS,
+            {"fedora-stable"},
             set(),
             id="build_without_targets",
         ),
@@ -151,8 +150,8 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 )
             ],
             JobConfigTriggerType.pull_request,
-            STABLE_CHROOTS,
-            STABLE_CHROOTS,
+            {"fedora-stable"},
+            {"fedora-stable"},
             id="test_without_targets",
         ),
         pytest.param(
@@ -164,8 +163,8 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 )
             ],
             JobConfigTriggerType.pull_request,
-            STABLE_CHROOTS,
-            STABLE_CHROOTS,
+            set(STABLE_VERSIONS),
+            set(STABLE_VERSIONS),
             id="test_with_targets",
         ),
         pytest.param(
@@ -180,8 +179,8 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            STABLE_CHROOTS,
-            STABLE_CHROOTS,
+            {"fedora-stable"},
+            {"fedora-stable"},
             id="build_without_target&test_without_targets",
         ),
         pytest.param(
@@ -197,8 +196,8 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            STABLE_CHROOTS,
-            STABLE_CHROOTS,
+            set(STABLE_VERSIONS),
+            set(STABLE_VERSIONS),
             id="build_with_target&test_without_targets",
         ),
         pytest.param(
@@ -214,8 +213,8 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            STABLE_CHROOTS,
-            STABLE_CHROOTS,
+            set(STABLE_VERSIONS),
+            set(STABLE_VERSIONS),
             id="build_without_target&test_with_targets",
         ),
         pytest.param(
@@ -251,7 +250,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 ),
             ],
             JobConfigTriggerType.commit,
-            STABLE_CHROOTS,
+            {"fedora-stable"},
             set(),
             id="build[pr+commit]&test[pr]&commit",
         ),
@@ -271,8 +270,8 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 ),
             ],
             JobConfigTriggerType.pull_request,
-            STABLE_CHROOTS,
-            STABLE_CHROOTS,
+            {"fedora-stable"},
+            {"fedora-stable"},
             id="build[pr+commit]&test[pr]&pr",
         ),
         pytest.param(
@@ -288,8 +287,8 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 ),
             ],
             JobConfigTriggerType.commit,
-            STABLE_CHROOTS,
-            STABLE_CHROOTS,
+            {"fedora-stable"},
+            {"fedora-stable"},
             id="build[pr+commit]&test[commit]&commit",
         ),
         pytest.param(
@@ -305,7 +304,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.commit),
             ],
             JobConfigTriggerType.pull_request,
-            STABLE_CHROOTS,
+            {"fedora-stable"},
             set(),
             id="build[pr+commit]&test[commit]&pr",
         ),
@@ -328,7 +327,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 ),
             ],
             JobConfigTriggerType.commit,
-            STABLE_CHROOTS,
+            {"fedora-stable"},
             set(),
             id="build[pr+commit+release]&test[pr]&commit",
         ),
@@ -352,20 +351,25 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
         pytest.param(
             [
                 JobConfig(
-                    type=JobType.production_build,
+                    type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
-                )
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(targets=["fedora-rawhide"]),
+                ),
             ],
             JobConfigTriggerType.pull_request,
-            STABLE_CHROOTS,
-            set(),
-            id="koji_build_with_targets_for_pr",
+            set(STABLE_VERSIONS + ["fedora-rawhide"]),
+            {"fedora-rawhide"},
+            id="build_with_mixed_build_tests",
         ),
     ],
 )
 def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
-    copr_build_handler = CoprBuildJobHelper(
+    copr_build_helper = CoprBuildJobHelper(
         service_config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],  # BuildHelper looks at all jobs in the end
@@ -374,15 +378,11 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
     )
 
-    flexmock(packit_service.worker.build.copr_build).should_receive(
-        "get_valid_build_targets"
-    ).and_return(build_chroots).and_return(test_chroots)
+    assert copr_build_helper.package_config.jobs
+    assert [j.type for j in copr_build_helper.package_config.jobs]
 
-    assert copr_build_handler.package_config.jobs
-    assert [j.type for j in copr_build_handler.package_config.jobs]
-
-    assert copr_build_handler.build_targets == build_chroots
-    assert copr_build_handler.tests_targets == test_chroots
+    assert copr_build_helper.configured_build_targets == build_chroots
+    assert copr_build_helper.configured_tests_targets == test_chroots
 
 
 @pytest.mark.parametrize(
@@ -720,7 +720,7 @@ def test_build_handler_job_and_test_properties(
     result_job_build,
     result_job_tests,
 ):
-    copr_build_handler = CoprBuildJobHelper(
+    copr_build_helper = CoprBuildJobHelper(
         service_config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
         job_config=init_job,
@@ -729,11 +729,11 @@ def test_build_handler_job_and_test_properties(
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
     )
 
-    assert copr_build_handler.package_config.jobs
-    assert [j.type for j in copr_build_handler.package_config.jobs]
+    assert copr_build_helper.package_config.jobs
+    assert [j.type for j in copr_build_helper.package_config.jobs]
 
-    assert copr_build_handler.job_build == result_job_build
-    assert copr_build_handler.job_tests == result_job_tests
+    assert copr_build_helper.job_build == result_job_build
+    assert copr_build_helper.job_tests == result_job_tests
 
 
 @pytest.mark.parametrize(
@@ -954,7 +954,7 @@ def test_build_handler_job_and_test_properties(
 def test_copr_project_and_namespace(
     jobs, job_config_trigger_type, job_owner, job_project
 ):
-    copr_build_handler = CoprBuildJobHelper(
+    copr_build_helper = CoprBuildJobHelper(
         service_config=flexmock(deployment="stg"),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],  # BuildHelper looks at all jobs in the end
@@ -966,12 +966,12 @@ def test_copr_project_and_namespace(
         metadata=flexmock(pr_id=None, identifier="the-event-identifier"),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
     )
-    copr_build_handler._api = flexmock(
+    copr_build_helper._api = flexmock(
         copr_helper=flexmock(copr_client=flexmock(config={"username": "nobody"}))
     )
 
-    assert copr_build_handler.job_project == job_project
-    assert copr_build_handler.job_owner == job_owner
+    assert copr_build_helper.job_project == job_project
+    assert copr_build_helper.job_owner == job_owner
 
 
 @pytest.mark.parametrize(
