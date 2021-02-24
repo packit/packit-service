@@ -175,7 +175,7 @@ class StatusReporter:
             if e.response_code != 400:
                 # 403: No permissions to set status, falling back to comment
                 # 404: Commit has not been found, e.g. used target project on GitLab
-                logger.error(
+                logger.debug(
                     f"Failed to set status for {self.commit_sha}, commenting on"
                     f" commit as a fallback: {str(e)}"
                 )
