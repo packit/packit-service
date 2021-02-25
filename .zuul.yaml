@@ -27,6 +27,7 @@
       with_testing: true
       deployment: dev
     pre-run:
+      - files/update.yaml
       - files/packit-service-image.yaml
       - files/deployment.yaml
       # having the check as separate job would be nicer, but waste of resources

@@ -1,0 +1,7 @@
+---
+- name: Update node
+  hosts: all
+  tasks:
+    - name: dnf update
+      command: dnf update -y
+      become: true
