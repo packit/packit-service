@@ -4,11 +4,19 @@
     url: https://raw.githubusercontent.com/packit/deployment/main/scripts/setupcfg2rpm.py
     dest: ./setupcfg2rpm.py
     mode: "0744"
+  register: fetch_setupcfg2rpm
+  until: fetch_setupcfg2rpm is not failed
+  retries: 6
+
 - name: Download ogr setup.cfg
   get_url:
     # ogr has only main branch
     url: https://raw.githubusercontent.com/packit/ogr/main/setup.cfg
     dest: ./ogr_setup.cfg
+  register: fetch_ogr_setup
+  until: fetch_ogr_setup is not failed
+  retries: 6
+
 - name: Install ogr dependencies provided by setupcfg2rpm
   shell: dnf install $(./setupcfg2rpm.py ogr_setup.cfg) -y
   args:
