@@ -4,10 +4,18 @@
     url: https://raw.githubusercontent.com/packit/deployment/main/scripts/setupcfg2rpm.py
     dest: ./setupcfg2rpm.py
     mode: "0744"
+  register: fetch_setupcfg2rpm
+  until: fetch_setupcfg2rpm is not failed
+  retries: 6
+
 - name: Download packit spec file
   get_url:
     url: https://raw.githubusercontent.com/packit/packit/{{ source_branch }}/packit.spec
     dest: ./packit.spec
+  register: fetch_packit_spec
+  until: fetch_packit_spec is not failed
+  retries: 6
+
 - name: Install packit RPM build dependencies from packit.spec
   shell: dnf builddep packit.spec -y
   args:
@@ -17,10 +25,15 @@
   args:
     warn: no
   become: true
+
 - name: Download packit setup.cfg
   get_url:
     url: https://raw.githubusercontent.com/packit/packit/{{ source_branch }}/setup.cfg
     dest: ./packit_setup.cfg
+  register: fetch_packit_setup
+  until: fetch_packit_setup is not failed
+  retries: 6
+
 - name: Install dependencies provided by setupcfg2rpm
   shell: dnf install $(./setupcfg2rpm.py packit_setup.cfg)
   become: true
