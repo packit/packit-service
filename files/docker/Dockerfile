@@ -15,7 +15,8 @@ ENV USER=packit \
 WORKDIR /src
 
 COPY files/ ./files/
-RUN ansible-playbook -vv -c local -i localhost, files/install-deps.yaml \
+RUN dnf update -y && \
+    ansible-playbook -vv -c local -i localhost, files/install-deps.yaml \
     && dnf clean all
 
 COPY setup.py setup.cfg ./
