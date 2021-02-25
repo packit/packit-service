@@ -9,7 +9,7 @@ import logging
 import os
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Dict, Iterable, List, Optional, TYPE_CHECKING, Tuple, Type, Union
+from typing import Dict, Iterable, List, Optional, TYPE_CHECKING, Tuple, Type, Union, Any
 from urllib.parse import urlparse
 
 from sqlalchemy import (
@@ -1123,14 +1123,21 @@ class AllowlistStatus(str, enum.Enum):
     approved_automatically = ALLOWLIST_CONSTANTS["approved_automatically"]
     waiting = ALLOWLIST_CONSTANTS["waiting"]
     approved_manually = ALLOWLIST_CONSTANTS["approved_manually"]
+    denied = ALLOWLIST_CONSTANTS["denied"]
 
 
 class AllowlistModel(Base):
     __tablename__ = "allowlist"
     id = Column(Integer, primary_key=True)
-    account_name = Column(String, index=True)
+    namespace = Column(String, index=True)  # renamed from account_name
     status = Column(Enum(AllowlistStatus))
+    fas_account = Column(String)
 
+    parent_id = Column(Integer, ForeignKey("allowlist.id"), nullable=True)
+    parent = relationship("AllowlistModel", back_populates="subnamespaces")
+    subnamespaces = relationship("AllowlistModel", back_populates="parent")
+
+    # TODO: For backward compatibility keeping account_name for now, where necessary
     # add new account or change status if it already exists
     @classmethod
     def add_account(cls, account_name: str, status: str):
@@ -1138,19 +1145,23 @@ class AllowlistModel(Base):
             account = cls.get_account(account_name)
             if not account:
                 account = cls()
-                account.account_name = account_name
+                account.namespace = account_name
             account.status = status
             session.add(account)
             return account
 
     @classmethod
-    def get_account(cls, account_name: str) -> Optional["AllowlistModel"]:
+    def __get_accounts(cls, account_name: str) -> Any:
         with get_sa_session() as session:
-            return (
-                session.query(AllowlistModel)
-                .filter_by(account_name=account_name)
-                .first()
-            )
+            return session.query(AllowlistModel).filter_by(namespace=account_name)
+
+    @classmethod
+    def get_accounts(cls, account_name: str) -> Iterable["AllowlistModel"]:
+        return cls.__get_accounts(account_name)
+
+    @classmethod
+    def get_account(cls, account_name: str) -> Optional["AllowlistModel"]:
+        return cls.__get_accounts(account_name).first()
 
     @classmethod
     def get_accounts_by_status(
@@ -1162,7 +1173,7 @@ class AllowlistModel(Base):
     @classmethod
     def remove_account(cls, account_name: str) -> Optional["AllowlistModel"]:
         with get_sa_session() as session:
-            account = session.query(AllowlistModel).filter_by(account_name=account_name)
+            account = session.query(AllowlistModel).filter_by(namespace=account_name)
             if account:
                 account.delete()
             return account
@@ -1173,10 +1184,15 @@ class AllowlistModel(Base):
             return session.query(AllowlistModel).all()
 
     def to_dict(self) -> dict:
-        return {"account": self.account_name, "status": self.status}
+        # TODO: Update to new model
+        return {"account": self.namespace, "status": self.status}
+
+    # TODO: Maybe introduce property to construct path all the way back?
+    # Would make it easier to print them, e.g. in waiting list
 
     def __repr__(self):
-        return f"AllowlistModel(name={self.account_name})"
+        # TODO: Should we update to include more info?
+        return f"AllowlistModel(name={self.namespace})"
 
 
 class TestingFarmResult(str, enum.Enum):

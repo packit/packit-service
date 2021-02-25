@@ -1,7 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from typing import List, Tuple, TYPE_CHECKING
+from typing import Tuple, Iterable
 
 import pytest
 from copr.v3 import Client
@@ -46,39 +46,151 @@ def allowlist():
     return w
 
 
+@pytest.fixture(scope="module")
+def allowlist_entries():
+    entries = {
+        "github.com": flexmock(
+            id=1, namespace="github.com", status=AllowlistStatus.denied.value
+        ),
+        "gitlab.com": flexmock(
+            id=2, namespace="gitlab.com", status=AllowlistStatus.denied.value
+        ),
+        "github.com/fero": flexmock(
+            id=3,
+            namespace="github.com/fero",
+            status=AllowlistStatus.approved_manually.value,
+        ),
+        "gitlab.com/lojzo": flexmock(
+            id=4,
+            namespace="gitlab.com/lojzo",
+            status=AllowlistStatus.approved_automatically.value,
+        ),
+        "github.com/konipas": flexmock(
+            id=5,
+            namespace="github.com/konipas",
+            status=AllowlistStatus.waiting.value,
+        ),
+        "gitlab.com/packit-service": flexmock(
+            id=6,
+            namespace="gitlab.com/packit-service",
+            status=AllowlistStatus.denied.value,
+        ),
+        "gitlab.com/packit": flexmock(
+            id=8,
+            namespace="gitlab.com/packit",
+            status=AllowlistStatus.approved_manually.value,
+        ),
+        "github.com/packit": flexmock(
+            id=10,
+            namespace="github.com/packit",
+            status=AllowlistStatus.denied.value,
+        ),
+        "gitlab.com/packit-service/src": flexmock(
+            id=7,
+            namespace="gitlab.com/packit-service/src",
+            status=AllowlistStatus.approved_automatically.value,
+        ),
+        "github.com/packit/packit.git": flexmock(
+            id=9,
+            namespace="github.com/packit/packit.git",
+            status=AllowlistStatus.approved_manually.value,
+        ),
+        "gitlab.com/packit/packit.git": flexmock(
+            id=11,
+            namespace="gitlab.com/packit/packit.git",
+            status=AllowlistStatus.denied.value,
+        ),
+        "github.com/packit/denied_packit.git": flexmock(
+            id=12,
+            namespace="github.com/packit/denied_packit.git",
+            status=AllowlistStatus.denied.value,
+        ),
+        "github.com/fero/denied_packit.git": flexmock(
+            id=13,
+            namespace="github.com/fero/denied_packit.git",
+            status=AllowlistStatus.denied.value,
+        ),
+    }
+
+    return entries
+
+
+def mock_model(entries, namespaces):
+    for queried_namespace in namespaces:
+        (
+            flexmock(DBAllowlist)
+            .should_receive("get_namespace")
+            .with_args(queried_namespace)
+            .and_return(entries.get(queried_namespace))
+            .ordered()
+        )
+
+
+@pytest.fixture()
+def mocked_model(allowlist_entries, request):
+    mock_model(allowlist_entries, request.param)
+
+
 @pytest.mark.parametrize(
-    "account_name, model, is_approved",
+    "account_name, mocked_model, is_approved",
     (
-        (
-            "fero",
-            flexmock(
-                id=1,
-                account_name="fero",
-                status=AllowlistStatus.approved_manually.value,
-            ),
+        (  # Fero is approved
+            "github.com/fero",
+            ("github.com/fero",),
             True,
         ),
-        (
-            "lojzo",
-            flexmock(
-                id=2,
-                account_name="lojzo",
-                status=AllowlistStatus.approved_automatically.value,
-            ),
+        (  # Lojzo is approved
+            "gitlab.com/lojzo",
+            ("gitlab.com/lojzo",),
             True,
         ),
-        (
-            "konipas",
-            flexmock(
-                id=3, account_name="konipas", status=AllowlistStatus.waiting.value
-            ),
+        (  # Lojzo is approved on GitLab, shall not pass on GitHub
+            "github.com/lojzo",
+            ("github.com/lojzo", "github.com"),
             False,
         ),
-        ("krasomila", None, False),
+        (  # Konipas is waiting... checks parent if approved(???)
+            "github.com/konipas",
+            ("github.com/konipas", "github.com"),
+            False,
+        ),
+        (  # Krasomila is not present at all, checks parent
+            "github.com/krasomila",
+            ("github.com/krasomila", "github.com"),
+            False,
+        ),
+        (  # gitlab.com/packit-service/src is approved
+            "gitlab.com/packit-service/src/glibc.git",
+            (
+                "gitlab.com/packit-service/src/glibc.git",
+                "gitlab.com/packit-service/src",
+            ),
+            True,
+        ),
+        (  # Approved on gitlab, shall not pass on GitHub
+            "github.com/src/glibc.git",
+            ("github.com/src/glibc.git", "github.com/src", "github.com"),
+            False,
+        ),
+        (  # checks all the way up to the root: gitlab.com that is implicitly denied
+            "gitlab.com/packit/packit.git",
+            ("gitlab.com/packit/packit.git",),
+            False,
+        ),
+        (  # packit.git is allowed on github, packit.git on gitlab is ignored
+            "github.com/packit/packit.git",
+            ("github.com/packit/packit.git",),
+            True,
+        ),
+        (  # approved gitlab.com/packit
+            "gitlab.com/packit/ogr.git",
+            ("gitlab.com/packit/ogr.git", "gitlab.com/packit"),
+            True,
+        ),
     ),
+    indirect=["mocked_model"],
 )
-def test_is_approved(allowlist, account_name, model, is_approved):
-    flexmock(DBAllowlist).should_receive("get_account").and_return(model)
+def test_is_approved(allowlist, account_name, mocked_model, is_approved):
     assert allowlist.is_approved(account_name) == is_approved
 
 
@@ -120,7 +232,7 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
 
 
 @pytest.mark.parametrize(
-    "event, method, approved",
+    "event, method, mocked_model, approved",
     [
         (
             PullRequestCommentGithubEvent(
@@ -130,26 +242,28 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 base_repo_name="",
                 base_ref="",
                 target_repo_namespace="foo",
-                target_repo_name="",
-                project_url="",
+                target_repo_name="bar",
+                project_url="https://github.com/foo/bar",
                 user_login="bar",
                 comment="",
             ),
             "pr_comment",
+            ("github.com/foo/bar.git", "github.com/foo", "github.com"),
             False,
         ),
         (
             IssueCommentEvent(
-                IssueCommentAction.created,
-                0,
-                "foo",
-                "",
-                "",
-                "",
-                "bar",
-                "",
+                action=IssueCommentAction.created,
+                issue_id=0,
+                repo_namespace="foo",
+                repo_name="bar",
+                target_repo="",
+                project_url="https://github.com/foo/bar",
+                user_login="baz",
+                comment="",
             ),
             "issue_comment",
+            ("github.com/foo/bar.git", "github.com/foo", "github.com"),
             False,
         ),
         (
@@ -157,29 +271,34 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 action=PullRequestCommentAction.created,
                 pr_id=0,
                 base_repo_namespace="foo",
-                base_repo_name="",
+                base_repo_name="dwm",
                 base_ref="",
-                target_repo_namespace="",
-                target_repo_name="",
-                project_url="",
+                target_repo_namespace="fero",
+                target_repo_name="dwm.git",
+                project_url="https://github.com/fero/dwm",
                 user_login="lojzo",
                 comment="",
             ),
             "pr_comment",
+            ("github.com/fero/dwm.git", "github.com/fero"),
             True,
         ),
         (
             IssueCommentEvent(
-                IssueCommentAction.created,
-                0,
-                "",
-                "",
-                "",
-                "",
-                "lojzo",
-                "",
+                action=IssueCommentAction.created,
+                issue_id=0,
+                repo_namespace="packit-service/src",
+                repo_name="glibc",
+                target_repo="",
+                project_url="https://gitlab.com/packit-service/src/glibc",
+                user_login="lojzo",
+                comment="",
             ),
             "issue_comment",
+            (
+                "gitlab.com/packit-service/src/glibc.git",
+                "gitlab.com/packit-service/src",
+            ),
             True,
         ),
         (
@@ -189,34 +308,33 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 base_repo_namespace="banned_namespace",
                 base_repo_name="",
                 base_ref="",
-                target_repo_namespace="",
-                target_repo_name="",
-                project_url="",
+                target_repo_namespace="banned_namespace_again",
+                target_repo_name="some_repo",
+                project_url="https://github.com/banned_namespace_again/some_repo",
                 user_login="admin",
                 comment="",
             ),
             "pr_comment",
+            [],
             True,
         ),
     ],
+    indirect=["mocked_model"],
 )
-def test_check_and_report_calls_method(allowlist, event, method, approved):
+def test_check_and_report_calls_method(
+    allowlist, event, method, mocked_model, approved
+):
     gp = GitProject("", GitService(), "")
     mocked_gp = (
         flexmock(gp)
         .should_receive(method)
-        .with_args(0, "Namespace foo is not on our allowlist!")
+        .with_args(0, "Project github.com/foo/bar.git is not on our allowlist!")
     )
     mocked_gp.never() if approved else mocked_gp.once()
     flexmock(gp).should_receive("can_merge_pr").with_args(event.user_login).and_return(
         approved
     )
     flexmock(gp).should_receive("get_pr").and_return(flexmock(author=None))
-    allowlist_mock = flexmock(DBAllowlist).should_receive("get_account")
-    if approved:
-        allowlist_mock.and_return(flexmock(status="approved_manually"))
-    else:
-        allowlist_mock.and_return(None)
     assert (
         allowlist.check_and_report(
             event,
@@ -224,102 +342,135 @@ def test_check_and_report_calls_method(allowlist, event, method, approved):
             service_config=flexmock(deployment=Deployment.stg, admins=["admin"]),
             job_configs=[],
         )
-        is approved
+        == approved
     )
 
 
 @pytest.fixture()
-def events(request) -> List[Tuple[AbstractGithubEvent, bool]]:
+def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]:
     """
     :param request: event type to create Event instances of that type
     :return: list of Events that check_and_report accepts together with whether they should pass
     """
-    approved_accounts = [
-        ("foo", "bar", False),
-        ("foo", "lojzo", True),
-        ("lojzo", "bar", True),
-        ("lojzo", "fero", True),
+    types = {
+        "release": (
+            ReleaseEvent,
+            lambda forge, namespace, repository: {
+                "repo_namespace": namespace,
+                "repo_name": repository,
+                "tag_name": "",
+                "project_url": f"https://{forge}/{namespace}/{repository}",
+            },
+        ),
+        "pr": (
+            PullRequestGithubEvent,
+            lambda forge, namespace, repository: {
+                "action": PullRequestAction.opened,
+                "pr_id": 1,
+                "base_repo_namespace": "",
+                "base_repo_name": "",
+                "target_repo_namespace": namespace,
+                "target_repo_name": repository,
+                "project_url": f"https://{forge}/{namespace}/{repository}",
+                "commit_sha": "",
+                "user_login": "login",
+                "base_ref": "",
+            },
+        ),
+        "pr_comment": (
+            PullRequestCommentGithubEvent,
+            lambda forge, namespace, repository: {
+                "action": PullRequestCommentAction.created,
+                "pr_id": 1,
+                "base_repo_namespace": namespace,
+                "base_repo_name": "",
+                "base_ref": "",
+                "target_repo_namespace": namespace,
+                "target_repo_name": repository,
+                "project_url": f"https://{forge}/{namespace}/{repository}",
+                "user_login": "login",
+                "comment": "",
+            },
+        ),
+        "issue_comment": (
+            IssueCommentEvent,
+            lambda forge, namespace, repository: {
+                "action": IssueCommentAction.created,
+                "issue_id": 1,
+                "repo_namespace": namespace,
+                "repo_name": repository,
+                "target_repo": "",
+                "project_url": f"https://{forge}/{namespace}/{repository}",
+                "user_login": "login",
+                "comment": "",
+            },
+        ),
+        "admin": (
+            PullRequestCommentGithubEvent,
+            lambda forge, namespace, repository: {
+                "action": PullRequestCommentAction.created,
+                "pr_id": 1,
+                "base_repo_namespace": "unapproved_namespace_override",
+                "base_repo_name": "",
+                "base_ref": "",
+                "target_repo_namespace": namespace,
+                "target_repo_name": repository,
+                "project_url": f"https://{forge}/{namespace}/{repository}",
+                "user_login": "admin",
+                "comment": "",
+            },
+        ),
+    }
+
+    entries = [
+        # could be turned into property-based if necessary
+        # format: forge, namespace, repository, approved, resolved_through
+        (
+            "github.com",
+            "fero",
+            "awesome",
+            True,
+            ("github.com/fero/awesome.git", "github.com/fero"),
+        ),
+        (
+            "github.com",
+            "konipas",
+            "dwm",
+            False,
+            ("github.com/konipas/dwm.git", "github.com/konipas", "github.com"),
+        ),
+        (
+            "github.com",
+            "lojzo",
+            "something",
+            False,
+            ("github.com/lojzo/something.git", "github.com/lojzo", "github.com"),
+        ),
+        (
+            "github.com",
+            "packit",
+            "denied_packit",
+            False,
+            ("github.com/packit/denied_packit.git",),
+        ),
+        (
+            "github.com",
+            "fero",
+            "denied_packit",
+            False,
+            ("github.com/fero/denied_packit.git",),
+        ),
     ]
 
-    if request.param == "release":
-        return [
-            (ReleaseEvent("foo", "", "", ""), False),
-            (ReleaseEvent("lojzo", "", "", ""), True),
-        ]
-    elif request.param == "pr":
-        return [
-            (
-                PullRequestGithubEvent(
-                    action=PullRequestAction.opened,
-                    pr_id=1,
-                    base_repo_namespace="",
-                    base_repo_name="",
-                    target_repo_namespace=namespace,
-                    target_repo_name="",
-                    project_url="example-url",
-                    commit_sha="",
-                    user_login=login,
-                    base_ref="",
-                ),
-                approved,
-            )
-            for namespace, login, approved in approved_accounts
-        ]
-    elif request.param == "pr_comment":
-        return [
-            (
-                PullRequestCommentGithubEvent(
-                    action=PullRequestCommentAction.created,
-                    pr_id=1,
-                    base_repo_namespace=namespace,
-                    base_repo_name="",
-                    base_ref="",
-                    target_repo_namespace="",
-                    target_repo_name="",
-                    project_url="",
-                    user_login=login,
-                    comment="",
-                ),
-                approved,
-            )
-            for namespace, login, approved in approved_accounts
-        ]
-    elif request.param == "issue_comment":
-        return [
-            (
-                IssueCommentEvent(
-                    action=IssueCommentAction.created,
-                    issue_id=1,
-                    repo_namespace=namespace,
-                    repo_name="",
-                    target_repo="",
-                    project_url="",
-                    user_login=login,
-                    comment="",
-                ),
-                approved,
-            )
-            for namespace, login, approved in approved_accounts
-        ]
-    elif request.param == "admin":
-        return [
-            (
-                PullRequestCommentGithubEvent(
-                    action=PullRequestCommentAction.created,
-                    pr_id=1,
-                    base_repo_namespace="unapproved_namespace_override",
-                    base_repo_name="",
-                    base_ref="",
-                    target_repo_namespace="",
-                    target_repo_name="",
-                    project_url="",
-                    user_login="admin",
-                    comment="",
-                ),
-                True,
-            )
-        ]
-    return []
+    event_type, args_factory = types[request.param]
+    return (
+        (
+            event_type(**args_factory(forge, namespace, repository)),
+            request.param == "admin" or approved,
+            resolved_through if request.param != "admin" else [],
+        )
+        for forge, namespace, repository, approved, resolved_through in entries
+    )
 
 
 # https://stackoverflow.com/questions/35413134/what-does-indirect-true-false-in-pytest-mark-parametrize-do-mean
@@ -329,7 +480,9 @@ def events(request) -> List[Tuple[AbstractGithubEvent, bool]]:
     indirect=True,
 )
 def test_check_and_report(
-    allowlist: Allowlist, events: List[Tuple[AbstractGithubEvent, bool]]
+    allowlist: Allowlist,
+    allowlist_entries,
+    events: Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]],
 ):
     """
     :param allowlist: fixture
@@ -359,7 +512,7 @@ def test_check_and_report(
     )
 
     git_project = GithubProject("", GithubService(), "")
-    for event, is_valid in events:
+    for event, is_valid, resolved_through in events:
         flexmock(GithubProject, can_merge_pr=lambda username: is_valid)
         flexmock(event, project=git_project).should_receive("get_dict").and_return(None)
         # needs to be included when running only `test_allowlist`
@@ -397,19 +550,7 @@ def test_check_and_report(
                 "fedora-rawhide-x86_64",
             }
         )
-
-        # get_account returns the allowlist object if it exists
-        # returns nothing if it isn't allowlisted
-        # then inside the allowlist.py file, a function checks if the status is
-        # one of the approved statuses
-
-        # this exact code is used twice above but mypy has an issue with this one only
-        allowlist_mock = flexmock(DBAllowlist).should_receive("get_account")
-        if not TYPE_CHECKING:
-            if is_valid:
-                allowlist_mock.and_return(flexmock(status="approved_manually"))
-            else:
-                allowlist_mock.and_return(None)
+        mock_model(allowlist_entries, resolved_through)
 
         assert (
             allowlist.check_and_report(
@@ -424,3 +565,17 @@ def test_check_and_report(
             )
             is is_valid
         )
+
+
+@pytest.mark.parametrize(
+    "url, expected_url",
+    [
+        ("https://github.com/test/test_repo", "github.com/test/test_repo.git"),
+        (
+            "https://gitlab.somewhere.on.the.net/with/multiple/namespaces/repo.git",
+            "gitlab.somewhere.on.the.net/with/multiple/namespaces/repo.git.git",
+        ),
+    ],
+)
+def test_strip_protocol_and_add_git(url: str, expected_url: str) -> None:
+    assert Allowlist._strip_protocol_and_add_git(url) == expected_url

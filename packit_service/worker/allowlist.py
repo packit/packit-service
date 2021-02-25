@@ -56,6 +56,19 @@ class Allowlist:
             username=fas_user, password=fas_password
         )
 
+    @staticmethod
+    def _strip_protocol_and_add_git(url: str) -> str:
+        """
+        Remove the protocol from the URL and add .git suffix.
+
+        Args:
+            url (str): URL to remove protocol from and add .git suffix to.
+
+        Returns:
+            URL without the protocol with added .git suffix.
+        """
+        return url.split("://")[1] + ".git"
+
     def _signed_fpca(self, account_login: str) -> bool:
         """
         Check if the user is a packager, by checking if their GitHub
@@ -95,11 +108,9 @@ class Allowlist:
         :param account_login: login of the account into which the app was installed
         :return: was the account (auto/already)-allowlisted?
         """
-        # TODO: Switch to AllowlistModel
         if AllowlistModel.get_account(account_login):
             return True
 
-        # TODO: Switch to AllowlistStatus
         AllowlistModel.add_account(account_login, AllowlistStatus.waiting.value)
 
         if self._signed_fpca(sender_login):
@@ -123,20 +134,57 @@ class Allowlist:
         logger.info(f"Account {account_name!r} approved successfully.")
 
     @staticmethod
+    def __check_path_and_status(
+        model: AllowlistModel, path: List[str]
+    ) -> Tuple[bool, bool]:
+        """
+        Checks path and if is allowed.
+
+        Args:
+            model (AllowlistModel): Model from database matching last part of the
+                path.
+            path (List[str]): Namespaces on the path.
+
+        Returns:
+            Pair of bool values, first denoting if model represents given path and
+            second value represents allowed property.
+        """
+        is_allowed = AllowlistStatus(model.status) in (
+            AllowlistStatus.approved_automatically,
+            AllowlistStatus.approved_manually,
+        )
+
+        for part_of_path in reversed(path):
+            if model is None or model.namespace != part_of_path:
+                return (False, is_allowed)
+
+            model = model.parent
+
+        return (True, is_allowed)
+
+    @staticmethod
     def is_approved(account_name: str) -> bool:
         """
         Check if user is approved in the allowlist
         :param account_name: account name to check
         :return:
         """
-        account = AllowlistModel.get_account(account_name)
-        if not account:
-            return False
+        separated_path = account_name.split("/")
 
-        return AllowlistStatus(account.status) in (
-            AllowlistStatus.approved_automatically,
-            AllowlistStatus.approved_manually,
-        )
+        while separated_path:
+            matching_namespaces = AllowlistModel.get_accounts(separated_path[-1])
+
+            for matched_model in matching_namespaces:
+                is_path, is_allowed = Allowlist.__check_path_and_status(
+                    matched_model, separated_path
+                )
+                if is_path:
+                    return is_allowed
+
+            separated_path.pop()
+
+        # shouldn't be reachable, unless Pagure?
+        return False
 
     @staticmethod
     def remove_account(account_name: str) -> bool:
@@ -164,7 +212,7 @@ class Allowlist:
         :return: list of accounts waiting for approval
         """
         return [
-            account.account_name
+            account.namespace
             for account in AllowlistModel.get_accounts_by_status(
                 AllowlistStatus.waiting.value
             )

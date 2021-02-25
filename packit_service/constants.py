@@ -46,6 +46,7 @@ ALLOWLIST_CONSTANTS = {
     "approved_automatically": "approved_automatically",
     "waiting": "waiting",
     "approved_manually": "approved_manually",
+    "denied": "denied",
 }
 
 
