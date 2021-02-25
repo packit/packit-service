@@ -4,6 +4,7 @@
     url: https://raw.githubusercontent.com/packit-service/deployment/main/scripts/setupcfg2rpm.py
     dest: ./setupcfg2rpm.py
     mode: "0744"
+    validate_certs: no
 - name: Download ogr setup.cfg
   get_url:
     # ogr has only main branch
