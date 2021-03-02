@@ -33,7 +33,7 @@ payload = ns.model(
 
 @ns.route("/results")
 class TestingFarmResults(Resource):
-    @ns.response(HTTPStatus.ACCEPTED, "Test results accepted and being processed")
+    @ns.response(HTTPStatus.OK, "Notification has been accepted")
     @ns.response(HTTPStatus.BAD_REQUEST, "Bad request data")
     @ns.response(HTTPStatus.UNAUTHORIZED, "Testing farm secret validation failed")
     @ns.expect(payload)
@@ -60,7 +60,7 @@ class TestingFarmResults(Resource):
             name="task.steve_jobs.process_message", kwargs={"event": msg}
         )
 
-        return "Test results accepted", HTTPStatus.ACCEPTED
+        return "Test results accepted", HTTPStatus.OK
 
     @staticmethod
     def validate_testing_farm_request():
