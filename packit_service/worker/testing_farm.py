@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Tuple, Dict, Any, Optional
+from typing import Dict, Any, Optional
 
 import requests
 from ogr.abstract import CommitStatus, GitProject
@@ -66,7 +66,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         We might later use a different secret for those use cases.
 
         """
-        compose, arch = self.get_compose_arch(chroot)
+        distro, arch = chroot.rsplit("-", 1)
+        compose = self.distro2compose(distro)
         pr = self.project.get_pr(self.metadata.pr_id)
         # url of the source/fork from which the PR has been created
         from_url = pr.source_project.get_web_url()
@@ -88,6 +89,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                             "type": "fedora-copr-build",
                         }
                     ],
+                    "tmt": {
+                        "context": {"distro": distro, "arch": arch, "trigger": "commit"}
+                    },
                 }
             ],
             "notification": {
@@ -105,7 +109,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         We don't specify 'artifacts' as in _payload(), but 'variables'.
         """
         copr_build = CoprBuildModel.get_by_build_id(build_id)
-        compose, arch = self.get_compose_arch(chroot)
+        distro, arch = chroot.rsplit("-", 1)
+        compose = self.distro2compose(distro)
         return {
             "api_key": self.service_config.testing_farm_secret,
             "test": {
@@ -140,10 +145,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         except FileNotFoundError:
             return False
 
-    def get_compose_arch(self, chroot) -> Tuple[str, str]:
-        # fedora-33-x86_64 -> Fedora-33, x86_64
-        compose, arch = chroot.rsplit("-", 1)
-        compose = compose.title().replace("Centos", "CentOS")
+    def distro2compose(self, distro: str) -> str:
+        """Create a compose string from distro, e.g. fedora-33 -> Fedora-33
+        https://api.dev.testing-farm.io/v0.1/composes"""
+        compose = distro.title().replace("Centos", "CentOS")
         # https://github.com/packit/packit-service/issues/939#issuecomment-769896841
         compose = compose.replace("Epel", "CentOS")
         if compose == "CentOS-Stream":
@@ -154,9 +159,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             # {'composes': [{'name': 'CentOS-Stream-8'}, {'name': 'Fedora-Rawhide'}]}
             composes = [c["name"] for c in response.json()["composes"]]
             if compose not in composes:
-                logger.error(f"Can't map {compose} (from {chroot}) to {composes}")
+                logger.error(f"Can't map {compose} (from {distro}) to {composes}")
 
-        return compose, arch
+        return compose
 
     def report_missing_build_chroot(self, chroot: str):
         self.report_status_to_test_for_chroot(
