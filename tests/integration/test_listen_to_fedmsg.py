@@ -442,9 +442,9 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     }
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
-    flexmock(TestingFarmJobHelper).should_receive("get_compose_arch").with_args(
-        "fedora-rawhide-x86_64"
-    ).and_return("Fedora-Rawhide", "x86_64")
+    flexmock(TestingFarmJobHelper).should_receive("distro2compose").with_args(
+        "fedora-rawhide"
+    ).and_return("Fedora-Rawhide")
 
     pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
     flexmock(TestingFarmJobHelper).should_receive(

@@ -225,16 +225,16 @@ def test_testing_farm_response(
 
 
 @pytest.mark.parametrize(
-    "chroot,compose,arch",
+    "distro,compose",
     [
-        ("fedora-33-x86_64", "Fedora-33", "x86_64"),
-        ("fedora-rawhide-x86_64", "Fedora-Rawhide", "x86_64"),
-        ("epel-8-x86_64", "CentOS-8", "x86_64"),
-        ("centos-stream-8-x86_64", "CentOS-Stream-8", "x86_64"),
-        ("centos-stream-x86_64", "CentOS-Stream-8", "x86_64"),
+        ("fedora-33", "Fedora-33"),
+        ("fedora-rawhide", "Fedora-Rawhide"),
+        ("epel-8", "CentOS-8"),
+        ("centos-stream-8", "CentOS-Stream-8"),
+        ("centos-stream", "CentOS-Stream-8"),
     ],
 )
-def test_get_compose_arch(chroot, compose, arch):
+def test_distro2compose(distro, compose):
     job_helper = TFJobHelper(
         service_config=flexmock(
             testing_farm_api_url="xyz",
@@ -254,9 +254,7 @@ def test_get_compose_arch(chroot, compose, arch):
     )
     job_helper.should_receive("send_testing_farm_request").and_return(response)
 
-    compose_, arch_ = job_helper.get_compose_arch(chroot)
-    assert compose_ == compose
-    assert arch_ == arch
+    assert job_helper.distro2compose(distro) == compose
 
 
 @pytest.mark.parametrize(
@@ -350,7 +348,7 @@ def test_payload(
 
     job_helper.should_receive("job_owner").and_return(copr_owner)
     job_helper.should_receive("job_project").and_return(copr_project)
-    job_helper.should_receive("get_compose_arch").and_return(compose, arch)
+    job_helper.should_receive("distro2compose").and_return(compose)
     payload = job_helper._payload(build_id, chroot)
 
     assert payload["api_key"] == tf_token
