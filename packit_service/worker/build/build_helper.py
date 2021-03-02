@@ -410,37 +410,30 @@ class BaseBuildJobHelper:
         The status reporting should be done through this method
         so we can extend it in subclasses easily.
         """
-        if not self.is_gitlab_instance or self.is_reporting_allowed:
-            self.status_reporter.report(
-                description=description,
-                state=state,
-                url=url,
-                check_names=check_names,
+        if self.is_gitlab_instance and not self.is_reporting_allowed:
+            self.request_project_access()
+            description = (
+                f"{description}\n\n---\n*Packit-User does not have access to the "
+                "source project. We have requested access to be able to set "
+                "commit statuses / pipelines instead of the comments.*"
             )
-            return
 
-        # "Packit-User" does not have access to project.
-
-        self.request_project_access()
-        final_commit_states = [
-            CommitStatus.error,
-            CommitStatus.success,
-            CommitStatus.failure,
-        ]
-
-        # We are only commenting final states to avoid multiple comments for a build
-        # Ignoring all other states eg. pending, running
-        if state in final_commit_states and check_names is not None:
-            self.status_reporter.report_status_by_comment(
-                state,
-                url,
-                check_names,
-                (
-                    f"{description}\n\n---\n*Packit-User does not have access to the "
-                    "source project. We have requested access to be able to set "
-                    "commit statuses / pipelines instead of the comments.*"
-                ),
+            final_commit_states = (
+                CommitStatus.success,
+                CommitStatus.failure,
+                CommitStatus.error,
             )
+            # We are only commenting final states to avoid multiple comments for a build
+            # Ignoring all other states eg. pending, running
+            if state not in final_commit_states:
+                return
+
+        self.status_reporter.report(
+            description=description,
+            state=state,
+            url=url,
+            check_names=check_names,
+        )
 
     def report_status_to_all(
         self, description: str, state: CommitStatus, url: str = ""

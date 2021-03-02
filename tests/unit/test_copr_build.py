@@ -26,6 +26,7 @@ from celery import Celery
 from copr.v3 import Client
 from flexmock import flexmock
 
+import gitlab
 import packit
 import packit_service
 from ogr.abstract import GitProject, CommitStatus
@@ -1435,10 +1436,13 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
         )
     )
     flexmock(GitProject).should_receive("request_access").and_return()
-    flexmock(GitProject).should_receive("pr_comment").and_return()
     flexmock(BaseBuildJobHelper).should_receive("is_reporting_allowed").and_return(
         False
     )
+    flexmock(GitProject).should_receive("set_commit_status").and_raise(
+        gitlab.GitlabCreateError(response_code=403)
+    )
+    flexmock(GitProject).should_receive("commit_comment").and_return()
     flexmock(GitProject).should_receive("get_pr").and_return(
         flexmock(
             comment=flexmock().should_receive("comment").and_return().mock(),
