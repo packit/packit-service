@@ -271,6 +271,7 @@ def test_distro2compose(distro, compose):
         "copr_project,"
         "build_id,"
         "chroot,"
+        "distro,"
         "compose,"
         "arch"
     ),
@@ -288,6 +289,7 @@ def test_distro2compose(distro, compose):
             "cool-project",
             "123456",
             "centos-stream-x86_64",
+            "centos-stream",
             "Fedora-Rawhide",
             "x86_64",
         ),
@@ -306,6 +308,7 @@ def test_payload(
     copr_project,
     build_id,
     chroot,
+    distro,
     compose,
     arch,
 ):
@@ -361,6 +364,7 @@ def test_payload(
             "arch": arch,
             "os": {"compose": compose},
             "artifacts": [{"id": f"{build_id}:{chroot}", "type": "fedora-copr-build"}],
+            "tmt": {"context": {"distro": distro, "arch": arch, "trigger": "commit"}},
         }
     ]
     assert payload["notification"]["webhook"]["url"].endswith("/testing-farm/results")

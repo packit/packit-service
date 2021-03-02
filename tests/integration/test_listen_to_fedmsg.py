@@ -429,8 +429,15 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
                     {
                         "id": "1:fedora-rawhide-x86_64",
                         "type": "fedora-copr-build",
-                    }
+                    },
                 ],
+                "tmt": {
+                    "context": {
+                        "distro": "fedora-rawhide",
+                        "arch": "x86_64",
+                        "trigger": "commit",
+                    }
+                },
             }
         ],
         "notification": {

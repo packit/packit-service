@@ -89,6 +89,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                             "type": "fedora-copr-build",
                         }
                     ],
+                    "tmt": {
+                        "context": {"distro": distro, "arch": arch, "trigger": "commit"}
+                    },
                 }
             ],
             "notification": {
