@@ -1,0 +1,62 @@
+name: Rebuild & push images
+on:
+  push:
+    branches:
+      - main
+      - stable
+
+jobs:
+  build-and-push:
+    # To not run in forks
+    if: github.repository == 'packit/packit-service'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - dockerfile: files/docker/Dockerfile
+            image: packit-service
+          - dockerfile: files/docker/Dockerfile.worker
+            image: packit-worker
+          - dockerfile: files/docker/Dockerfile.tests
+            image: packit-service-tests
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # https://stackoverflow.com/a/58035262/2768738
+      - name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
+
+      # If you know how to simplify or squash into one step, fill a PR please
+      - name: Set env.TAG to stg
+        if: steps.extract_branch.outputs.branch == 'main'
+        run: echo "::set-output name=tag::stg"
+        id: stg
+      - name: Set env.TAG to prod
+        if: steps.extract_branch.outputs.branch == 'stable'
+        run: echo "::set-output name=tag::prod"
+        id: prod
+
+      - name: Build Image
+        id: build-image
+        # https://github.com/marketplace/actions/buildah-build
+        uses: redhat-actions/buildah-build@v2
+        with:
+          dockerfiles: ${{ matrix.dockerfile }}
+          image: ${{ matrix.image }}
+          tags: ${{ steps.stg.outputs.tag || steps.prod.outputs.tag }}
+          oci: true
+          build-args: |
+            SOURCE_BRANCH=${{ steps.extract_branch.outputs.branch }}
+
+      - name: Push To Quay
+        # https://github.com/marketplace/actions/push-to-registry
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.build-image.outputs.tags }}
+          registry: quay.io/packit
+          username: ${{ secrets.QUAY_IMAGE_BUILDER_USERNAME }}
+          password: ${{ secrets.QUAY_IMAGE_BUILDER_TOKEN }}
