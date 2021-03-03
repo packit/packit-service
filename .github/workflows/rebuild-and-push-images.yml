@@ -23,21 +23,22 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      # https://stackoverflow.com/a/58035262/2768738
-      - name: Extract branch name
+      - name: Extract branch name and set tag
         shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-        id: extract_branch
-
-      # If you know how to simplify or squash into one step, fill a PR please
-      - name: Set env.TAG to stg
-        if: steps.extract_branch.outputs.branch == 'main'
-        run: echo "::set-output name=tag::stg"
-        id: stg
-      - name: Set env.TAG to prod
-        if: steps.extract_branch.outputs.branch == 'stable'
-        run: echo "::set-output name=tag::prod"
-        id: prod
+        run: |
+          branch=${GITHUB_REF#refs/heads/}
+          tag=""
+          case $branch in
+              main)
+                  tag=stg
+                  ;;
+              stable)
+                  tag=prod
+                  ;;
+          esac
+          echo "::set-output name=branch::$branch"
+          echo "::set-output name=tag::$tag"
+        id: branch_tag
 
       - name: Build Image
         id: build-image
@@ -46,10 +47,10 @@ jobs:
         with:
           dockerfiles: ${{ matrix.dockerfile }}
           image: ${{ matrix.image }}
-          tags: ${{ steps.stg.outputs.tag || steps.prod.outputs.tag }}
+          tags: ${{ steps.branch_tag.outputs.tag }}
           oci: true
           build-args: |
-            SOURCE_BRANCH=${{ steps.extract_branch.outputs.branch }}
+            SOURCE_BRANCH=${{ steps.branch_tag.outputs.branch }}
 
       - name: Push To Quay
         # https://github.com/marketplace/actions/push-to-registry
