@@ -18,7 +18,7 @@ objects:
       restartPolicy: Never
       containers:
         - name: packit-tests
-          image: quay.io/packit/packit-service-tests:latest
+          image: quay.io/packit/packit-service-tests:stg
           # If tag is latest, defaults to Always.
           # imagePullPolicy: Never # IfNotPresent
           workingDir: /src
