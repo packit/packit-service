@@ -11,7 +11,7 @@ spec:
   restartPolicy: Never
   containers:
     - name: packit-tests
-      image: quay.io/packit/packit-service-tests:latest
+      image: quay.io/packit/packit-service-tests:stg
       volumeMounts:
         - mountPath: /src
           name: test-src-pv

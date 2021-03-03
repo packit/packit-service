@@ -1,0 +1,63 @@
+name: Rebuild & push images
+on:
+  push:
+    branches:
+      - main
+      - stable
+
+jobs:
+  build-and-push:
+    # To not run in forks
+    if: github.repository == 'packit/packit-service'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - dockerfile: files/docker/Dockerfile
+            image: packit-service
+          - dockerfile: files/docker/Dockerfile.worker
+            image: packit-worker
+          - dockerfile: files/docker/Dockerfile.tests
+            image: packit-service-tests
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Extract branch name and set tag
+        shell: bash
+        run: |
+          branch=${GITHUB_REF#refs/heads/}
+          tag=""
+          case $branch in
+              main)
+                  tag=stg
+                  ;;
+              stable)
+                  tag=prod
+                  ;;
+          esac
+          echo "::set-output name=branch::$branch"
+          echo "::set-output name=tag::$tag"
+        id: branch_tag
+
+      - name: Build Image
+        id: build-image
+        # https://github.com/marketplace/actions/buildah-build
+        uses: redhat-actions/buildah-build@v2
+        with:
+          dockerfiles: ${{ matrix.dockerfile }}
+          image: ${{ matrix.image }}
+          tags: ${{ steps.branch_tag.outputs.tag }}
+          oci: true
+          build-args: |
+            SOURCE_BRANCH=${{ steps.branch_tag.outputs.branch }}
+
+      - name: Push To Quay
+        # https://github.com/marketplace/actions/push-to-registry
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.build-image.outputs.tags }}
+          registry: quay.io/packit
+          username: ${{ secrets.QUAY_IMAGE_BUILDER_USERNAME }}
+          password: ${{ secrets.QUAY_IMAGE_BUILDER_TOKEN }}
