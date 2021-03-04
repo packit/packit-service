@@ -59,7 +59,7 @@ def service_config_valid():
         "pr_accepted_labels": ["good-enough", "will-maintain-this"],
         "command_handler": "sandcastle",
         "command_handler_work_dir": "/sandcastle",
-        "command_handler_image_reference": "docker.io/usercont/sandcastle",
+        "command_handler_image_reference": "quay.io/packit/sandcastle",
         "command_handler_k8s_namespace": "packit-test-sandbox",
         "admins": ["Dasher", "Dancer", "Vixen", "Comet", "Blitzen"],
         "server_name": "hub.packit.org",
@@ -117,7 +117,7 @@ def service_config_invalid():
         },
         "webhook_secret": "secret",
         "command_handler_work_dir": "/sandcastle",
-        "command_handler_image_reference": "docker.io/usercont/sandcastle",
+        "command_handler_image_reference": "quay.io/packit/sandcastle",
         "command_handler_k8s_namespace": "packit-test-sandbox",
     }
 

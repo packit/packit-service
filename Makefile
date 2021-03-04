@@ -1,6 +1,6 @@
 BASE_IMAGE ?= quay.io/packit/base
-SERVICE_IMAGE ?= docker.io/usercont/packit-service:dev
-WORKER_IMAGE ?= docker.io/usercont/packit-worker:dev
+SERVICE_IMAGE ?= quay.io/packit/packit-service:dev
+WORKER_IMAGE ?= quay.io/packit/packit-worker:dev
 WORKER_IMAGE_PROD ?= docker.io/usercont/packit-worker:prod
 TEST_IMAGE ?= quay.io/packit/packit-service-tests:stg
 TEST_TARGET ?= ./tests/unit ./tests/integration/

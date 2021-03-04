@@ -9,7 +9,7 @@ FAQ_URL_HOW_TO_RETRIGGER = (
 KOJI_PRODUCTION_BUILDS_ISSUE = "https://pagure.io/releng/issue/9801"
 
 SANDCASTLE_WORK_DIR = "/sandcastle"
-SANDCASTLE_IMAGE = "docker.io/usercont/sandcastle"
+SANDCASTLE_IMAGE = "quay.io/packit/sandcastle"
 SANDCASTLE_DEFAULT_PROJECT = "myproject"
 SANDCASTLE_PVC = "SANDCASTLE_PVC"
 
