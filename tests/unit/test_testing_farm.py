@@ -225,11 +225,37 @@ def test_testing_farm_response(
 
 
 @pytest.mark.parametrize(
+    "chroot,distro,arch",
+    [
+        ("fedora-33-x86_64", "fedora-33", "x86_64"),
+        ("fedora-rawhide-aarch64", "fedora-rawhide", "aarch64"),
+        ("centos-stream-x86_64", "centos-stream", "x86_64"),
+        ("epel-8-x86_64", "centos-8", "x86_64"),
+    ],
+)
+def test_chroot2distro_arch(chroot, distro, arch):
+    job_helper = TFJobHelper(
+        service_config=flexmock(
+            testing_farm_api_url="xyz",
+        ),
+        package_config=flexmock(jobs=[]),
+        project=flexmock(),
+        metadata=flexmock(),
+        db_trigger=flexmock(),
+        job_config=JobConfig(
+            type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+        ),
+    )
+    job_helper = flexmock(job_helper)
+
+    assert job_helper.chroot2distro_arch(chroot) == (distro, arch)
+
+
+@pytest.mark.parametrize(
     "distro,compose",
     [
         ("fedora-33", "Fedora-33"),
         ("fedora-rawhide", "Fedora-Rawhide"),
-        ("epel-8", "CentOS-8"),
         ("centos-stream-8", "CentOS-Stream-8"),
         ("centos-stream", "CentOS-Stream-8"),
     ],
