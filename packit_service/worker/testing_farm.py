@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 
 import requests
 from ogr.abstract import CommitStatus, GitProject
@@ -66,7 +66,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         We might later use a different secret for those use cases.
 
         """
-        distro, arch = chroot.rsplit("-", 1)
+        distro, arch = self.chroot2distro_arch(chroot)
         compose = self.distro2compose(distro)
         pr = self.project.get_pr(self.metadata.pr_id)
         # url of the source/fork from which the PR has been created
@@ -109,7 +109,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         We don't specify 'artifacts' as in _payload(), but 'variables'.
         """
         copr_build = CoprBuildModel.get_by_build_id(build_id)
-        distro, arch = chroot.rsplit("-", 1)
+        distro, arch = self.chroot2distro_arch(chroot)
         compose = self.distro2compose(distro)
         return {
             "api_key": self.service_config.testing_farm_secret,
@@ -145,12 +145,19 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         except FileNotFoundError:
             return False
 
+    @staticmethod
+    def chroot2distro_arch(chroot: str) -> Tuple[str, str]:
+        """ Get distro and arch from chroot. """
+        distro, arch = chroot.rsplit("-", 1)
+        # https://github.com/packit/packit-service/issues/939#issuecomment-769896841
+        # https://github.com/packit/packit-service/pull/1008#issuecomment-789574614
+        distro = distro.replace("epel", "centos")
+        return distro, arch
+
     def distro2compose(self, distro: str) -> str:
         """Create a compose string from distro, e.g. fedora-33 -> Fedora-33
         https://api.dev.testing-farm.io/v0.1/composes"""
         compose = distro.title().replace("Centos", "CentOS")
-        # https://github.com/packit/packit-service/issues/939#issuecomment-769896841
-        compose = compose.replace("Epel", "CentOS")
         if compose == "CentOS-Stream":
             compose = "CentOS-Stream-8"
 
