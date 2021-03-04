@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-push:
     # To not run in forks
-    if: github.repository == 'packit/packit-service'
+    if: github.repository_owner == 'packit'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -30,10 +30,10 @@ jobs:
           tag=""
           case $branch in
               main)
-                  tag=stg
+                  tag="stg latest"
                   ;;
               stable)
-                  tag=prod
+                  tag="prod"
                   ;;
           esac
           echo "::set-output name=branch::$branch"
