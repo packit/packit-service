@@ -1,7 +1,6 @@
 BASE_IMAGE ?= quay.io/packit/base
-SERVICE_IMAGE ?= docker.io/usercont/packit-service:dev
-WORKER_IMAGE ?= docker.io/usercont/packit-worker:dev
-WORKER_IMAGE_PROD ?= docker.io/usercont/packit-worker:prod
+SERVICE_IMAGE ?= quay.io/packit/packit-service:dev
+WORKER_IMAGE ?= quay.io/packit/packit-worker:dev
 TEST_IMAGE ?= quay.io/packit/packit-service-tests:stg
 TEST_TARGET ?= ./tests/unit ./tests/integration/
 CONTAINER_ENGINE ?= $(shell command -v podman 2> /dev/null || echo docker)
@@ -19,14 +18,6 @@ service: files/install-deps.yaml files/recipe.yaml
 worker: files/install-deps-worker.yaml files/recipe-worker.yaml
 	$(CONTAINER_ENGINE) pull $(BASE_IMAGE)
 	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE) -f files/docker/Dockerfile.worker --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
-
-# This is for cases when you want to deploy into production and don't want to wait for dockerhub
-# Make sure you have latest docker.io/usercont/packit:prod prior to running this
-worker-prod: files/install-deps-worker.yaml files/recipe-worker.yaml
-	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE_PROD) -f files/docker/Dockerfile.worker --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
-
-worker-prod-push: worker-prod
-	$(CONTAINER_ENGINE) push $(WORKER_IMAGE_PROD)
 
 check:
 	find . -name "*.pyc" -exec rm {} \;

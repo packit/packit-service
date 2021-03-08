@@ -50,7 +50,7 @@ services:
       dockerfile: files/docker/Dockerfile.worker
       args:
         SOURCE_BRANCH: main
-    image: docker.io/usercont/packit-worker:dev
+    image: quay.io/packit/packit-worker:dev
     command: /usr/bin/run_worker.sh
     #tty: true
     depends_on:
@@ -88,7 +88,7 @@ services:
       dockerfile: files/docker/Dockerfile
       args:
         SOURCE_BRANCH: main
-    image: docker.io/usercont/packit-service:dev
+    image: quay.io/packit/packit-service:dev
     command: /usr/bin/run_httpd.sh
     depends_on:
       - redis
@@ -119,7 +119,7 @@ services:
 
   fedora-messaging:
     container_name: fedora-messaging
-    image: docker.io/usercont/packit-service-fedmsg:dev
+    image: quay.io/packit/packit-service-fedmsg:dev
     depends_on:
       - redis
     environment:
@@ -133,7 +133,7 @@ services:
 
   centosmsg:
     container_name: centosmsg
-    image: docker.io/usercont/packit-service-centosmsg:dev
+    image: quay.io/packit/packit-service-centosmsg:dev
     depends_on:
       - redis
     environment:
