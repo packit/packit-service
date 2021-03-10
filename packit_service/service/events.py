@@ -39,6 +39,7 @@ from packit_service.models import (
     CoprBuildModel,
     GitBranchModel,
     IssueModel,
+    JobTriggerModelType,
     KojiBuildModel,
     ProjectReleaseModel,
     PullRequestModel,
@@ -1113,15 +1114,15 @@ class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):
 
         trigger_db = build.get_trigger_object()
         pr_id = None
-        if isinstance(trigger_db, PullRequestModel):
-            pr_id = trigger_db.pr_id
-            self.identifier = str(trigger_db.pr_id)
-        elif isinstance(trigger_db, ProjectReleaseModel):
+        if trigger_db.job_trigger_model_type == JobTriggerModelType.pull_request:
+            pr_id = trigger_db.pr_id  # type: ignore
+            self.identifier = str(trigger_db.pr_id)  # type: ignore
+        elif trigger_db.job_trigger_model_type == JobTriggerModelType.release:
             pr_id = None
-            self.identifier = trigger_db.tag_name
-        elif isinstance(trigger_db, GitBranchModel):
+            self.identifier = trigger_db.tag_name  # type: ignore
+        elif trigger_db.job_trigger_model_type == JobTriggerModelType.branch_push:
             pr_id = None
-            self.identifier = trigger_db.name
+            self.identifier = trigger_db.name  # type: ignore
 
         super().__init__(project_url=trigger_db.project.project_url, pr_id=pr_id)
 

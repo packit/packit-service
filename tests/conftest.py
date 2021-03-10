@@ -109,6 +109,7 @@ def copr_build_model(
         pr_id=123,
         project=project_model,
         job_config_trigger_type=job_config_trigger_type,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
         **trigger_model_kwargs,
     )
     trigger_model = flexmock(

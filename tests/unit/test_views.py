@@ -1,14 +1,14 @@
 """
 Let's test flask views.
 """
+from datetime import datetime
 
 import pytest
 from flexmock import flexmock
 
 from packit_service.models import (
     CoprBuildModel,
-    PullRequestModel,
-    GitProjectModel,
+    JobTriggerModelType,
     SRPMBuildModel,
 )
 from packit_service.service.app import packit_as_a_service as application
@@ -46,18 +46,22 @@ def test_get_logs(client):
     state = "success"
     build_id = 2
 
-    project = GitProjectModel()
+    project = flexmock()
     project.namespace = "john-foo"
     project.repo_name = "bar"
 
-    pr = PullRequestModel()
+    pr = flexmock()
+    pr.job_trigger_model_type = JobTriggerModelType.pull_request
     pr.pr_id = 234
     pr.project = project
 
-    srpm = SRPMBuildModel()
+    srpm = flexmock()
     srpm.url = "https://some.random.copr.subdomain.org/my_srpm.srpm"
+    srpm.build_submitted_time = datetime(
+        year=2020, month=1, day=1, hour=0, minute=0, second=0, microsecond=0
+    )
 
-    c = CoprBuildModel()
+    c = flexmock()
     c.target = chroot
     c.build_id = str(build_id)
     c.srpm_build_id = 11
@@ -68,13 +72,15 @@ def test_get_logs(client):
     )
     c.build_logs_url = "https://localhost:5000/build/2/foo-1-x86_64/logs"
     c.owner = "packit"
+    c.build_submitted_time = datetime(
+        year=2020, month=1, day=1, hour=0, minute=0, second=0, microsecond=0
+    )
     c.project_name = "example_project"
+    c.should_receive("get_trigger_object").and_return(pr)
+    c.should_receive("get_project").and_return(project)
+    c.should_receive("get_srpm_build").and_return(srpm)
 
     flexmock(CoprBuildModel).should_receive("get_by_id").and_return(c)
-    flexmock(CoprBuildModel).should_receive("get_project").and_return(project)
-    flexmock(CoprBuildModel).should_receive("job_trigger").and_return(
-        flexmock(get_trigger_object=lambda: pr)
-    )
 
     url = "/copr-build/1"
     logs_url = get_copr_build_info_url_from_flask(1)
@@ -93,7 +99,7 @@ def test_get_logs(client):
 
 
 def test_get_srpm_logs(client):
-    srpm_build = SRPMBuildModel()
+    srpm_build = flexmock()
     srpm_build.id = 2
     srpm_build.logs = "asd\nqwe"
 

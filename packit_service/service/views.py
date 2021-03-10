@@ -31,6 +31,7 @@ from packit_service.log_versions import log_service_versions
 from packit_service.models import (
     CoprBuildModel,
     GitBranchModel,
+    JobTriggerModelType,
     KojiBuildModel,
     ProjectReleaseModel,
     PullRequestModel,
@@ -77,9 +78,9 @@ def _get_build_info(
         srpm_submitted_time=pretty_time(srpm_build.build_submitted_time)
         if srpm_build
         else None,
-        owner=build.owner if isinstance(build, CoprBuildModel) else None,
-        project_name=build.project_name if isinstance(build, CoprBuildModel) else None,
-        is_pr=isinstance(trigger, PullRequestModel),
+        owner=build.owner if hasattr(build, "owner") else None,  # type: ignore
+        project_name=build.project_name if hasattr(build, "project_name") else None,  # type: ignore
+        is_pr=trigger.job_trigger_model_type == JobTriggerModelType.pull_request,
     )
 
 
