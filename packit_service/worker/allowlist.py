@@ -57,16 +57,19 @@ class Allowlist:
         )
 
     @staticmethod
-    def _strip_protocol_and_add_git(url: str) -> str:
+    def _strip_protocol_and_add_git(url: Optional[str]) -> Optional[str]:
         """
         Remove the protocol from the URL and add .git suffix.
 
         Args:
-            url (str): URL to remove protocol from and add .git suffix to.
+            url (Optional[str]): URL to remove protocol from and add .git suffix to.
 
         Returns:
-            URL without the protocol with added .git suffix.
+            URL without the protocol with added .git suffix. If not given URL returns
+            None.
         """
+        if not url:
+            return None
         return url.split("://")[1] + ".git"
 
     def _signed_fpca(self, account_login: str) -> bool:
@@ -178,7 +181,10 @@ class Allowlist:
                 is_path, is_allowed = Allowlist.__check_path_and_status(
                     matched_model, separated_path
                 )
-                if is_path:
+                if (
+                    is_path
+                    and AllowlistStatus(matched_model.status) != AllowlistStatus.waiting
+                ):
                     return is_allowed
 
             separated_path.pop()
@@ -237,11 +243,11 @@ class Allowlist:
         job_configs: Iterable[JobConfig],
     ) -> bool:
         # TODO: modify event hierarchy so we can use some abstract classes instead
-        namespace = event.repo_namespace
-        if not namespace:
+        project_url = self._strip_protocol_and_add_git(event.project_url)
+        if not project_url:
             raise KeyError(f"Failed to get namespace from {type(event)!r}")
 
-        if self.is_approved(namespace):
+        if self.is_approved(project_url):
             return True
 
         logger.info("Refusing release event on not allowlisted repo namespace.")
@@ -259,15 +265,16 @@ class Allowlist:
         service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
     ) -> bool:
-        account_name = event.user_login
-        if not account_name:
-            raise KeyError(f"Failed to get account_name from {type(event)}")
-        namespace = event.target_repo_namespace
+        actor_name = event.user_login
+        if not actor_name:
+            raise KeyError(f"Failed to get login of the actor from {type(event)}")
 
-        namespace_approved = self.is_approved(namespace)
+        project_url = self._strip_protocol_and_add_git(event.project_url)
+
+        namespace_approved = self.is_approved(project_url)
         user_approved = (
-            project.can_merge_pr(account_name)
-            or project.get_pr(event.pr_id).author == account_name
+            project.can_merge_pr(actor_name)
+            or project.get_pr(event.pr_id).author == actor_name
         )
 
         if namespace_approved and user_approved:
@@ -275,9 +282,9 @@ class Allowlist:
             return True
 
         msg = (
-            f"Namespace {namespace} is not on our allowlist!"
+            f"Project {project_url} is not on our allowlist!"
             if not namespace_approved
-            else f"Account {account_name} has no write access nor is author of PR!"
+            else f"Account {actor_name} has no write access nor is author of PR!"
         )
         logger.error(msg)
         if isinstance(
@@ -312,21 +319,21 @@ class Allowlist:
         service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
     ) -> bool:
-        account_name = event.user_login
-        if not account_name:
-            raise KeyError(f"Failed to get account_name from {type(event)}")
-        namespace = event.repo_namespace
+        actor_name = event.user_login
+        if not actor_name:
+            raise KeyError(f"Failed to get login of the actor from {type(event)}")
+        project_url = self._strip_protocol_and_add_git(event.project_url)
 
-        namespace_approved = self.is_approved(namespace)
-        user_approved = project.can_merge_pr(account_name)
+        namespace_approved = self.is_approved(project_url)
+        user_approved = project.can_merge_pr(actor_name)
 
         if namespace_approved and user_approved:
             return True
 
         msg = (
-            f"Namespace {namespace} is not on our allowlist!"
+            f"Project {project_url} is not on our allowlist!"
             if not namespace_approved
-            else f"Account {account_name} has no write access!"
+            else f"Account {actor_name} has no write access!"
         )
         logger.error(msg)
         project.issue_comment(event.issue_id, msg)

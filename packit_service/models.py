@@ -1135,7 +1135,7 @@ class AllowlistModel(Base):
 
     parent_id = Column(Integer, ForeignKey("allowlist.id"), nullable=True)
     parent = relationship("AllowlistModel", back_populates="subnamespaces")
-    subnamespaces = relationship("AllowlistModel", back_populates="parent")
+    subnamespaces = relationship("AllowlistModel")
 
     # TODO: For backward compatibility keeping account_name for now, where necessary
     # add new account or change status if it already exists
