@@ -85,6 +85,7 @@ from packit_service.worker.allowlist import Allowlist
 logger = logging.getLogger(__name__)
 
 
+@reacts_to(event=InstallationEvent)
 class GithubAppInstallationHandler(JobHandler):
     task_name = TaskName.installation
 
