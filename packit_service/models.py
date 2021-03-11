@@ -605,12 +605,6 @@ class JobTriggerModel(Base):
 
     runs = relationship("RunModel", back_populates="job_trigger")
 
-    # TODO: Remove this relation. We need to go through RunModel.
-    copr_builds = relationship("CoprBuildModel", back_populates="job_trigger")
-    srpm_builds = relationship("SRPMBuildModel", back_populates="job_trigger")
-    koji_builds = relationship("KojiBuildModel", back_populates="job_trigger")
-    test_runs = relationship("TFTTestRunModel", back_populates="job_trigger")
-
     @classmethod
     def get_or_create(
         cls, type: JobTriggerModelType, trigger_id: int
@@ -660,13 +654,13 @@ class RunModel(Base):
     job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
     job_trigger = relationship("JobTriggerModel", back_populates="runs")
 
-    srpm_build_id = Column(Integer, ForeignKey("runs.id"))
+    srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"))
     srpm_build = relationship("SRPMBuildModel", back_populates="runs")
-    copr_build_id = Column(Integer, ForeignKey("runs.id"))
+    copr_build_id = Column(Integer, ForeignKey("copr_builds.id"))
     copr_build = relationship("CoprBuildModel", back_populates="runs")
-    koji_build_id = Column(Integer, ForeignKey("runs.id"))
+    koji_build_id = Column(Integer, ForeignKey("koji_builds.id"))
     koji_build = relationship("KojiBuildModel", back_populates="runs")
-    test_run_id = Column(Integer, ForeignKey("runs.id"))
+    test_run_id = Column(Integer, ForeignKey("tft_test_runs.id"))
     test_run = relationship("TFTTestRunModel", back_populates="runs")
 
     @classmethod
@@ -694,7 +688,7 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
     __tablename__ = "copr_builds"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # copr build id
-    runs = relationship("RunModel", back_populates="job_trigger")
+    runs = relationship("RunModel", back_populates="copr_build")
 
     # commit sha of the PR (or a branch, release) we used for a build
     commit_sha = Column(String)
@@ -871,7 +865,7 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
     __tablename__ = "koji_builds"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # koji build id
-    runs = relationship("RunModel", back_populates="job_trigger")
+    runs = relationship("RunModel", back_populates="koji_build")
 
     # commit sha of the PR (or a branch, release) we used for a build
     commit_sha = Column(String)
@@ -1024,7 +1018,7 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
     build_submitted_time = Column(DateTime, default=datetime.utcnow)
     url = Column(Text)
 
-    runs = relationship("RunModel", back_populates="job_trigger")
+    runs = relationship("RunModel", back_populates="srpm_build")
 
     @classmethod
     def create_with_new_run(
@@ -1175,7 +1169,7 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
     web_url = Column(String)
     data = Column(JSON)
 
-    runs = relationship("RunModel", back_populates="job_trigger")
+    runs = relationship("RunModel", back_populates="test_run")
 
     def set_status(self, status: TestingFarmResult):
         with get_sa_session() as session:

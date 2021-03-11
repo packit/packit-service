@@ -1,8 +1,8 @@
 """Add RunModel
 
-Revision ID: 2870354b84cf
+Revision ID: a5c06aa9ef30
 Revises: 70444197d206
-Create Date: 2021-02-09 11:07:59.697152
+Create Date: 2021-03-11 17:14:26.240507
 
 """
 import enum
@@ -12,8 +12,6 @@ from typing import List, TYPE_CHECKING
 from alembic import op
 import sqlalchemy as sa
 
-
-# revision identifiers, used by Alembic.
 from sqlalchemy import (
     Boolean,
     Column,
@@ -30,15 +28,16 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 
-revision = "2870354b84cf"
-down_revision = "70444197d206"
-branch_labels = None
-depends_on = None
-
 if TYPE_CHECKING:
     Base = object
 else:
     Base = declarative_base()
+
+# revision identifiers, used by Alembic.
+revision = "a5c06aa9ef30"
+down_revision = "70444197d206"
+branch_labels = None
+depends_on = None
 
 
 class JobTriggerModelType(str, enum.Enum):
@@ -98,13 +97,13 @@ class RunModel(Base):
     job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
     job_trigger = relationship("JobTriggerModel", back_populates="runs")
 
-    srpm_build_id = Column(Integer, ForeignKey("runs.id"))
+    srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"))
     srpm_build = relationship("SRPMBuildModel", back_populates="runs")
-    copr_build_id = Column(Integer, ForeignKey("runs.id"))
+    copr_build_id = Column(Integer, ForeignKey("copr_builds.id"))
     copr_build = relationship("CoprBuildModel", back_populates="runs")
-    koji_build_id = Column(Integer, ForeignKey("runs.id"))
+    koji_build_id = Column(Integer, ForeignKey("koji_builds.id"))
     koji_build = relationship("KojiBuildModel", back_populates="runs")
-    test_run_id = Column(Integer, ForeignKey("runs.id"))
+    test_run_id = Column(Integer, ForeignKey("tft_test_runs.id"))
     test_run = relationship("TFTTestRunModel", back_populates="runs")
 
 
@@ -117,7 +116,7 @@ class SRPMBuildModel(Base):
     build_submitted_time = Column(DateTime, default=datetime.utcnow)
     url = Column(Text)
 
-    runs = relationship("RunModel", back_populates="job_trigger")
+    runs = relationship("RunModel", back_populates="srpm_build")
 
     # TO-BE-REMOVED
     job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
@@ -134,7 +133,7 @@ class CoprBuildModel(Base):
     __tablename__ = "copr_builds"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # copr build id
-    runs = relationship("RunModel", back_populates="job_trigger")
+    runs = relationship("RunModel", back_populates="copr_build")
 
     # commit sha of the PR (or a branch, release) we used for a build
     commit_sha = Column(String)
@@ -174,7 +173,7 @@ class KojiBuildModel(Base):
     __tablename__ = "koji_builds"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # koji build id
-    runs = relationship("RunModel", back_populates="job_trigger")
+    runs = relationship("RunModel", back_populates="koji_build")
 
     # commit sha of the PR (or a branch, release) we used for a build
     commit_sha = Column(String)
@@ -198,10 +197,10 @@ class KojiBuildModel(Base):
 
     # TO-BE-REMOVED
     job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
-    job_trigger = relationship("JobTriggerModel", back_populates="copr_builds")
+    job_trigger = relationship("JobTriggerModel", back_populates="koji_builds")
 
     srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"))
-    srpm_build = relationship("SRPMBuildModel", back_populates="copr_builds")
+    srpm_build = relationship("SRPMBuildModel", back_populates="koji_builds")
 
 
 class TFTTestRunModel(Base):
@@ -213,7 +212,7 @@ class TFTTestRunModel(Base):
     web_url = Column(String)
     data = Column(JSON)
 
-    runs = relationship("RunModel", back_populates="job_trigger")
+    runs = relationship("RunModel", back_populates="test_run")
 
     # TO-BE-REMOVED
     job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
@@ -232,7 +231,7 @@ def upgrade():
         sa.Column("test_run_id", sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(
             ["copr_build_id"],
-            ["runs.id"],
+            ["copr_builds.id"],
         ),
         sa.ForeignKeyConstraint(
             ["job_trigger_id"],
@@ -240,15 +239,15 @@ def upgrade():
         ),
         sa.ForeignKeyConstraint(
             ["koji_build_id"],
-            ["runs.id"],
+            ["koji_builds.id"],
         ),
         sa.ForeignKeyConstraint(
             ["srpm_build_id"],
-            ["runs.id"],
+            ["srpm_builds.id"],
         ),
         sa.ForeignKeyConstraint(
             ["test_run_id"],
-            ["runs.id"],
+            ["tft_test_runs.id"],
         ),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -314,16 +313,16 @@ def upgrade():
     op.drop_constraint(
         "copr_builds_srpm_build_id_fkey1", "copr_builds", type_="foreignkey"
     )
-    op.drop_column("copr_builds", "srpm_build_id")
     op.drop_column("copr_builds", "job_trigger_id")
-    op.drop_constraint(
-        "koji_builds_job_trigger_id_fkey", "koji_builds", type_="foreignkey"
-    )
+    op.drop_column("copr_builds", "srpm_build_id")
     op.drop_constraint(
         "koji_builds_srpm_build_id_fkey", "koji_builds", type_="foreignkey"
     )
-    op.drop_column("koji_builds", "srpm_build_id")
+    op.drop_constraint(
+        "koji_builds_job_trigger_id_fkey", "koji_builds", type_="foreignkey"
+    )
     op.drop_column("koji_builds", "job_trigger_id")
+    op.drop_column("koji_builds", "srpm_build_id")
     op.drop_constraint(
         "srpm_builds_job_trigger_id_fkey", "srpm_builds", type_="foreignkey"
     )
@@ -362,18 +361,11 @@ def downgrade():
     )
     op.add_column(
         "koji_builds",
-        sa.Column("job_trigger_id", sa.INTEGER(), autoincrement=False, nullable=True),
+        sa.Column("srpm_build_id", sa.INTEGER(), autoincrement=False, nullable=True),
     )
     op.add_column(
         "koji_builds",
-        sa.Column("srpm_build_id", sa.INTEGER(), autoincrement=False, nullable=True),
-    )
-    op.create_foreign_key(
-        "koji_builds_srpm_build_id_fkey",
-        "koji_builds",
-        "srpm_builds",
-        ["srpm_build_id"],
-        ["id"],
+        sa.Column("job_trigger_id", sa.INTEGER(), autoincrement=False, nullable=True),
     )
     op.create_foreign_key(
         "koji_builds_job_trigger_id_fkey",
@@ -382,13 +374,20 @@ def downgrade():
         ["job_trigger_id"],
         ["id"],
     )
-    op.add_column(
-        "copr_builds",
-        sa.Column("job_trigger_id", sa.INTEGER(), autoincrement=False, nullable=True),
+    op.create_foreign_key(
+        "koji_builds_srpm_build_id_fkey",
+        "koji_builds",
+        "srpm_builds",
+        ["srpm_build_id"],
+        ["id"],
     )
     op.add_column(
         "copr_builds",
         sa.Column("srpm_build_id", sa.INTEGER(), autoincrement=False, nullable=True),
+    )
+    op.add_column(
+        "copr_builds",
+        sa.Column("job_trigger_id", sa.INTEGER(), autoincrement=False, nullable=True),
     )
     op.create_foreign_key(
         "copr_builds_srpm_build_id_fkey1",
