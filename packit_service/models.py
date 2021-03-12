@@ -845,8 +845,18 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
             build.target = target
             session.add(build)
 
-            run_model.copr_build = build
-            session.add(run_model)
+            if run_model.copr_build:
+                # Clone run model
+                new_run_model = RunModel.create(
+                    type=run_model.job_trigger.type,
+                    trigger_id=run_model.job_trigger.trigger_id,
+                )
+                new_run_model.srpm_build = run_model.srpm_build
+                new_run_model.copr_build = build
+                session.add(new_run_model)
+            else:
+                run_model.copr_build = build
+                session.add(run_model)
 
             return build
 
@@ -995,8 +1005,18 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
             build.target = target
             session.add(build)
 
-            run_model.koji_build = build
-            session.add(run_model)
+            if run_model.koji_build:
+                # Clone run model
+                new_run_model = RunModel.create(
+                    type=run_model.job_trigger.type,
+                    trigger_id=run_model.job_trigger.trigger_id,
+                )
+                new_run_model.srpm_build = run_model.srpm_build
+                new_run_model.koji_build = build
+                session.add(new_run_model)
+            else:
+                run_model.koji_build = build
+                session.add(run_model)
 
             return build
 
@@ -1205,8 +1225,19 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
             test_run.data = data
             session.add(test_run)
 
-            run_model.test_run = test_run
-            session.add(run_model)
+            if run_model.test_run:
+                # Clone run model
+                new_run_model = RunModel.create(
+                    type=run_model.job_trigger.type,
+                    trigger_id=run_model.job_trigger.trigger_id,
+                )
+                new_run_model.srpm_build = run_model.srpm_build
+                new_run_model.copr_build = run_model.copr_build
+                new_run_model.test_run = test_run
+                session.add(new_run_model)
+            else:
+                run_model.test_run = test_run
+                session.add(run_model)
 
             return test_run
 
@@ -1218,6 +1249,11 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
                 .filter_by(pipeline_id=pipeline_id)
                 .first()
             )
+
+    @classmethod
+    def get_by_id(cls, id: int) -> Optional["InstallationModel"]:
+        with get_sa_session() as session:
+            return session.query(TFTTestRunModel).filter_by(id=id).first()
 
     @classmethod
     def get_range(cls, first: int, last: int) -> Optional[Iterable["TFTTestRunModel"]]:
