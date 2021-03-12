@@ -32,6 +32,7 @@ from sqlalchemy.orm import Session, relationship, scoped_session, sessionmaker
 from sqlalchemy.types import ARRAY
 
 from packit.config import JobConfigTriggerType
+from packit.exceptions import PackitException
 from packit_service.constants import ALLOWLIST_CONSTANTS
 
 logger = logging.getLogger(__name__)
@@ -104,22 +105,24 @@ class BuildsAndTestsConnector:
 
     def get_runs(self) -> List["RunModel"]:
         with get_sa_session() as session:
-            trigger = (
+            trigger_list = (
                 session.query(JobTriggerModel)
-                .filter_by(type=type, trigger_id=self.id)
+                .filter_by(type=self.job_trigger_model_type, trigger_id=self.id)
                 .all()
             )
-            return trigger.runs
+            if len(trigger_list) > 1:
+                msg = (
+                    f"There are multiple run models for type {self.job_trigger_model_type}"
+                    f"and id={self.id}."
+                )
+                logger.error(msg)
+                raise PackitException(msg)
+            return trigger_list[0].runs if trigger_list else []
 
     def _get_run_item(self, model):
         run_ids = [run.id for run in self.get_runs()]
         with get_sa_session() as session:
-            return (
-                session.query(model)
-                .filter(RunModel.id.in_(run_ids))
-                .filter_by(type=self.job_trigger_model_type)
-                .all()
-            )
+            return session.query(model).filter(RunModel.id.in_(run_ids)).all()
 
     def get_copr_builds(self):
         return self._get_run_item(model=CoprBuildModel)
