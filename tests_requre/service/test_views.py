@@ -11,7 +11,7 @@ def test_get_build_logs_for_build_pr(clean_before_and_after, a_copr_build_for_pr
     assert "Builds for the-namespace/the-repo-name: PR #342" in response
     assert a_copr_build_for_pr.status in response
     assert a_copr_build_for_pr.target in response
-    assert str(a_copr_build_for_pr.srpm_build_id) in response
+    assert str(a_copr_build_for_pr.get_srpm_build().id) in response
     assert a_copr_build_for_pr.build_logs_url in response
     assert f"Status: {a_copr_build_for_pr.status}" in response
     assert "For more info see" in response
@@ -36,7 +36,7 @@ def test_get_build_logs_for_build_branch_push(
     assert "Builds for the-namespace/the-repo-name: branch build-branch" in response
     assert a_copr_build_for_branch_push.status in response
     assert a_copr_build_for_branch_push.target in response
-    assert str(a_copr_build_for_branch_push.srpm_build_id) in response
+    assert str(a_copr_build_for_branch_push.get_srpm_build().id) in response
     assert a_copr_build_for_branch_push.build_logs_url in response
     assert f"Status: {a_copr_build_for_branch_push.status}" in response
     assert "For more info see" in response
@@ -61,7 +61,7 @@ def test_get_build_logs_for_build_release(
     assert "Builds for the-namespace/the-repo-name: release v1.0.2" in response
     assert a_copr_build_for_release.status in response
     assert a_copr_build_for_release.target in response
-    assert str(a_copr_build_for_release.srpm_build_id) in response
+    assert str(a_copr_build_for_release.get_srpm_build().id) in response
     assert a_copr_build_for_release.build_logs_url in response
     assert f"Status: {a_copr_build_for_release.status}" in response
     assert "For more info see" in response
@@ -76,8 +76,11 @@ def test_get_build_logs_for_build_release(
     )
 
 
-def test_srpm_logs_view(client, clean_before_and_after, srpm_build_model):
+def test_srpm_logs_view(
+    client, clean_before_and_after, srpm_build_model_with_new_run_for_pr
+):
     # Logs view uses the id of the SRPMBuildModel not CoprBuildModel
+    srpm_build_model, _ = srpm_build_model_with_new_run_for_pr
     response = client.get(
         url_for("builds.get_srpm_build_logs_by_id", id_=srpm_build_model.id)
     )
@@ -99,7 +102,7 @@ def test_copr_build_info_view(client, clean_before_and_after, multiple_copr_buil
     assert "Builds for the-namespace/the-repo-name: PR #342" in response
     assert build.status in response
     assert build.target in response
-    assert str(build.srpm_build_id) in response
+    assert str(build.get_srpm_build().id) in response
     assert build.build_logs_url in response
     assert f"Status: {build.status}" in response
     assert "For more info see" in response
@@ -115,7 +118,7 @@ def test_koji_build_info_view(client, clean_before_and_after, a_koji_build_for_p
     assert "Builds for the-namespace/the-repo-name: PR #342" in response
     assert a_koji_build_for_pr.status in response
     assert a_koji_build_for_pr.target in response
-    assert str(a_koji_build_for_pr.srpm_build_id) in response
+    assert str(a_koji_build_for_pr.get_srpm_build().id) in response
     assert a_koji_build_for_pr.build_logs_url in response
     assert f"Status: {a_koji_build_for_pr.status}" in response
     assert "For more info see" in response
