@@ -74,6 +74,7 @@ def _get_build_info(
         title_identifier=title_identifier,
         build_description=build_description,
         build=build,
+        srpm_build=srpm_build,
         build_submitted_time=pretty_time(build.build_submitted_time),
         srpm_submitted_time=pretty_time(srpm_build.build_submitted_time)
         if srpm_build
