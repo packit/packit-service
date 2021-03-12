@@ -195,16 +195,18 @@ class ProposeDownstreamHandler(JobHandler):
                     # and the error handling code would be never executed
                     retries = self.task.request.retries
                     if retries < int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT)):
-                        logger.info(f"Retrying for the {retries + 1}. time...")
+                        # will retry in: 1m and then again in another 2m
+                        delay = 60 * 2 ** retries
+                        logger.info(
+                            f"Will retry for the {retries + 1}. time in {delay}s."
+                        )
                         # throw=False so that exception is not raised and task
                         # is not retried also automatically
-                        self.task.retry(
-                            exc=ex, countdown=15 * 2 ** retries, throw=False
-                        )
+                        self.task.retry(exc=ex, countdown=delay, throw=False)
                         return TaskResults(
                             success=False,
                             details={
-                                "msg": "Task was retried, we were not able to download the archive."
+                                "msg": "Not able to download archive. Task will be retried."
                             },
                         )
                 sentry_integration.send_to_sentry(ex)
