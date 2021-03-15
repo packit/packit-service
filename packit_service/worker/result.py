@@ -34,12 +34,11 @@ class TaskResults(dict):
             "package_config": dump_package_config(event.package_config),
         }
 
-        if job_config:
-            details.update(
-                {
-                    "job": job_config.type.value,
-                    "job_config": dump_job_config(job_config),
-                }
-            )
+        details.update(
+            {
+                "job": job_config.type.value if job_config else None,
+                "job_config": dump_job_config(job_config),
+            }
+        )
 
         return cls(success=success, details=details)

@@ -371,12 +371,12 @@ class SteveJobs:
 
         # installation is handled differently b/c app is installed to GitHub account
         # not repository, so package config with jobs is missing
-        if isinstance(event, InstallationEvent):
+        if isinstance(event_object, InstallationEvent):
             GithubAppInstallationHandler.get_signature(
                 event=event_object, job=None
             ).apply_async()
         # Label/Tag added event handler is run even when the job is not configured in package
-        elif isinstance(event, PullRequestLabelPagureEvent):
+        elif isinstance(event_object, PullRequestLabelPagureEvent):
             PagurePullRequestLabelHandler.get_signature(
                 event=event_object,
                 job=None,
@@ -384,5 +384,15 @@ class SteveJobs:
         else:
             # Processing the jobs from the config.
             processing_results = self.process_jobs(event_object)
+
+        if processing_results is None:
+            processing_results = [
+                TaskResults.create_from(
+                    success=True,
+                    msg="Job created.",
+                    job_config=None,
+                    event=event_object,
+                )
+            ]
 
         return processing_results
