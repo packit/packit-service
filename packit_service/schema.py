@@ -21,10 +21,10 @@
 # SOFTWARE.
 import typing
 
-from marshmallow import ValidationError, fields, post_load
+from marshmallow import ValidationError, fields, post_load, Schema
 
 from packit.schema import UserConfigSchema
-from packit_service.config import Deployment, ServiceConfig
+from packit_service.config import Deployment, ServiceConfig, ProjectToSync
 
 
 class DeploymentField(fields.Field):
@@ -44,6 +44,23 @@ class DeploymentField(fields.Field):
         return Deployment(value)
 
 
+class ProjectToSyncSchema(Schema):
+    """
+    Schema for projects to sync.
+    """
+
+    forge = fields.String(required=True)
+    repo_namespace = fields.String(required=True)
+    repo_name = fields.String(required=True)
+    branch = fields.String(required=True)
+    dg_repo_name = fields.String(required=True)
+    dg_branch = fields.String(required=True)
+
+    @post_load
+    def make_instance(self, data, **_):
+        return ProjectToSync(**data)
+
+
 class ServiceConfigSchema(UserConfigSchema):
     deployment = DeploymentField(required=True)
     webhook_secret = fields.String()
@@ -59,6 +76,7 @@ class ServiceConfigSchema(UserConfigSchema):
     gitlab_webhook_tokens = fields.List(fields.String())
     gitlab_token_secret = fields.String()
     enabled_private_namespaces = fields.List(fields.String())
+    projects_to_sync = fields.List(fields.Nested(ProjectToSyncSchema), missing=None)
 
     @post_load
     def make_instance(self, data, **kwargs):
