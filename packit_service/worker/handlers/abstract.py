@@ -309,12 +309,14 @@ class JobHandler(Handler):
         If pre-check succeeds, run the job for the specific handler.
         :return: Dict [str, TaskResults]
         """
-        job_type = self.job_config.type if self.job_config else self.type
+        job_type = (
+            self.job_config.type.value if self.job_config else self.task_name.value
+        )
         logger.debug(f"Running handler {str(self)} for {job_type}")
         job_results: Dict[str, TaskResults] = {}
         if self.pre_check():
             current_time = datetime.now().strftime(DATETIME_FORMAT)
-            result_key = f"{job_type.value}-{current_time}"
+            result_key = f"{job_type}-{current_time}"
             job_results[result_key] = self.run_n_clean()
             logger.debug("Job finished!")
 
