@@ -15,7 +15,7 @@ from packit_service.constants import FAQ_URL
 from packit_service.models import AllowlistModel
 from packit_service.service.events import (
     AbstractCoprBuildEvent,
-    DistGitEvent,
+    DistGitCommitEvent,
     EventData,
     InstallationEvent,
     IssueCommentEvent,
@@ -44,9 +44,9 @@ UncheckedEvent = Union[
     PullRequestCommentPagureEvent,
     AbstractCoprBuildEvent,
     TestingFarmResultsEvent,
-    DistGitEvent,
     InstallationEvent,
     KojiBuildEvent,
+    DistGitCommitEvent,
 ]
 
 
@@ -177,7 +177,7 @@ class Allowlist:
         service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
     ) -> bool:
-        # Allowlist checks do not apply to CentOS (Pagure, GitLab)
+        # Allowlist checks do not apply to CentOS (Pagure, GitLab) and distgit commit event.
         logger.info(f"{type(event)} event does not require allowlist checks.")
         return True
 
@@ -308,9 +308,9 @@ class Allowlist:
                 PullRequestCommentPagureEvent,
                 AbstractCoprBuildEvent,
                 TestingFarmResultsEvent,
-                DistGitEvent,
                 InstallationEvent,
                 KojiBuildEvent,
+                DistGitCommitEvent,
             ): self._check_unchecked_event,
             (
                 ReleaseEvent,

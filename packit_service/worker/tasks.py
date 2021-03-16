@@ -42,7 +42,7 @@ from packit_service.worker.handlers.fedmsg_handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
     KojiBuildReportHandler,
-    NewDistGitCommitHandler,
+    DistGitCommitHandler,
 )
 from packit_service.worker.handlers.github_handlers import (
     CoprBuildHandler,
@@ -216,7 +216,7 @@ def run_koji_build_handler(event: dict, package_config: dict, job_config: dict):
 
 @celery_app.task(name=TaskName.distgit_commit, base=HandlerTaskWithRetry)
 def run_distgit_commit_handler(event: dict, package_config: dict, job_config: dict):
-    handler = NewDistGitCommitHandler(
+    handler = DistGitCommitHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         data=EventData.from_event_dict(event),

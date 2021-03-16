@@ -31,6 +31,7 @@ import xmltodict
 from ogr.parsing import parse_git_repo
 from packit.utils import nested_get
 
+from packit_service.config import ServiceConfig
 from packit_service.constants import (
     KojiBuildState,
     TESTING_FARM_INSTALLABILITY_TEST_URL,
@@ -41,7 +42,7 @@ from packit_service.service.events import (
     CoprBuildEndEvent,
     AbstractCoprBuildEvent,
     CoprBuildStartEvent,
-    DistGitEvent,
+    DistGitCommitEvent,
     GitlabEventAction,
     InstallationEvent,
     IssueCommentAction,
@@ -66,7 +67,7 @@ from packit_service.service.events import (
     TestResult,
 )
 from packit_service.worker.handlers import (
-    NewDistGitCommitHandler,
+    DistGitCommitHandler,
 )
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 
@@ -87,7 +88,7 @@ class Parser:
             PullRequestGithubEvent,
             InstallationEvent,
             ReleaseEvent,
-            DistGitEvent,
+            DistGitCommitEvent,
             TestingFarmResultsEvent,
             PullRequestCommentGithubEvent,
             IssueCommentEvent,
@@ -119,7 +120,7 @@ class Parser:
                 Parser.parse_release_event,
                 Parser.parse_push_event,
                 Parser.parse_installation_event,
-                Parser.parse_distgit_event,
+                Parser.parse_distgit_commit_event,
                 Parser.parse_testing_farm_results_event,
                 Parser.parse_copr_event,
                 Parser.parse_mr_event,
@@ -685,43 +686,61 @@ class Parser:
         return ReleaseEvent(repo_namespace, repo_name, release_ref, https_url)
 
     @staticmethod
-    def parse_distgit_event(event) -> Optional[DistGitEvent]:
+    def parse_distgit_commit_event(event) -> Optional[DistGitCommitEvent]:
         """ this corresponds to dist-git event when someone pushes new commits """
         topic = event.get("topic")
-        if topic != NewDistGitCommitHandler.topic:
+        if topic != DistGitCommitHandler.topic:
             return None
 
         logger.info(f"Dist-git commit event, topic: {topic}")
 
-        repo_namespace = nested_get(event, "msg", "commit", "namespace")
-        repo_name = nested_get(event, "msg", "commit", "repo")
+        dg_repo_namespace = nested_get(event, "msg", "commit", "namespace")
+        dg_repo_name = nested_get(event, "msg", "commit", "repo")
 
-        if not (repo_namespace and repo_name):
+        if not (dg_repo_namespace and dg_repo_name):
             logger.warning("No full name of the repository.")
             return None
 
-        branch = nested_get(event, "msg", "commit", "branch")
-        rev = nested_get(event, "msg", "commit", "rev")
-        if not (branch and rev):
+        dg_branch = nested_get(event, "msg", "commit", "branch")
+        dg_rev = nested_get(event, "msg", "commit", "rev")
+        if not (dg_branch and dg_rev):
             logger.warning("Target branch/rev for the new commits is not set.")
             return None
 
         msg_id = event.get("msg_id")
         logger.info(
-            f"New commits added to dist-git repo {repo_namespace}/{repo_name},"
-            f"rev: {rev}, branch: {branch}, msg_id: {msg_id}"
+            f"New commits added to dist-git repo {dg_repo_namespace}/{dg_repo_name},"
+            f"rev: {dg_rev}, branch: {dg_branch}, msg_id: {msg_id}"
+        )
+
+        project_to_sync = ServiceConfig.get_service_config().get_project_to_sync(
+            dg_repo_name, dg_branch
+        )
+        if not project_to_sync:
+            logger.info("No matching upstream repo for syncing found.")
+            return None
+
+        upstream_project_url = (
+            f"{project_to_sync.forge}/{project_to_sync.repo_namespace}/"
+            f"{project_to_sync.repo_name}"
         )
 
         # TODO: get the right hostname without hardcoding
-        project_url = f"https://src.fedoraproject.org/{repo_namespace}/{repo_name}"
-        return DistGitEvent(
+        dg_project_url = (
+            f"https://src.fedoraproject.org/{dg_repo_namespace}/{dg_repo_name}"
+        )
+
+        return DistGitCommitEvent(
             topic=topic,
-            repo_namespace=repo_namespace,
-            repo_name=repo_name,
-            git_ref=rev,
-            branch=branch,
-            msg_id=msg_id,
-            project_url=project_url,
+            repo_namespace=project_to_sync.repo_namespace,
+            repo_name=project_to_sync.repo_name,
+            branch=project_to_sync.branch,
+            project_url=upstream_project_url,
+            dg_repo_namespace=dg_repo_namespace,
+            dg_repo_name=dg_repo_name,
+            dg_branch=dg_branch,
+            dg_rev=dg_rev,
+            dg_project_url=dg_project_url,
         )
 
     @staticmethod

@@ -36,9 +36,7 @@ from ogr.services.gitlab import GitlabProject
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobConfigTriggerType, JobType
 from packit.config.package_config import PackageConfig
-from packit.distgit import DistGit
 from packit.local_project import LocalProject
-from packit.utils import get_namespace_and_repo_name
 from packit_service.constants import (
     COPR_API_SUCC_STATE,
     KojiBuildState,
@@ -50,7 +48,7 @@ from packit_service.service.events import (
     CoprBuildEndEvent,
     AbstractCoprBuildEvent,
     CoprBuildStartEvent,
-    DistGitEvent,
+    DistGitCommitEvent,
     EventData,
     KojiBuildEvent,
 )
@@ -105,9 +103,9 @@ class FedmsgHandler(JobHandler):
 
 @add_topic
 @configured_as(job_type=JobType.sync_from_downstream)
-@reacts_to(event=DistGitEvent)
-class NewDistGitCommitHandler(FedmsgHandler):
-    """Sync new changes to upstream after a new git push in the dist-git."""
+@reacts_to(event=DistGitCommitEvent)
+class DistGitCommitHandler(FedmsgHandler):
+    """Sync new specfile changes to upstream after a new git push in the dist-git."""
 
     topic = "org.fedoraproject.prod.git.receive"
     task_name = TaskName.distgit_commit
@@ -124,33 +122,24 @@ class NewDistGitCommitHandler(FedmsgHandler):
             data=data,
         )
         self.branch = data.event_dict.get("branch")
+        self.dg_branch = data.event_dict.get("dg_branch")
 
     def run(self) -> TaskResults:
-        # self.project is dist-git, we need to get upstream
-        dg = DistGit(self.service_config, self.job_config)
-        self.job_config.upstream_project_url = dg.get_project_url_from_distgit_spec()
-        if not self.job_config.upstream_project_url:
-            return TaskResults(
-                success=False,
-                details={
-                    "msg": "URL in specfile is not set. "
-                    "We don't know where the upstream project lives."
-                },
-            )
-
-        n, r = get_namespace_and_repo_name(self.job_config.upstream_project_url)
-        up = self.project.service.get_project(repo=r, namespace=n)
-        self.local_project = LocalProject(
-            git_project=up, working_dir=self.service_config.command_handler_work_dir
+        self.upstream_local_project = LocalProject(
+            git_project=self.project,
+            working_dir=self.service_config.command_handler_work_dir,
         )
+        self.api = PackitAPI(
+            self.service_config,
+            self.job_config,
+            upstream_local_project=self.local_project,
+        )
+        # rev is a commit
+        # we use branch on purpose so we get the latest thing
+        # TODO: check if rev is HEAD on {branch}, warn then?
 
-        self.api = PackitAPI(self.service_config, self.job_config, self.local_project)
         self.api.sync_from_downstream(
-            # rev is a commit
-            # we use branch on purpose so we get the latest thing
-            # TODO: check if rev is HEAD on {branch}, warn then?
-            dist_git_branch=self.branch,
-            upstream_branch=None,  # repo's default branch
+            dist_git_branch=self.dg_branch, upstream_branch=self.branch
         )
         return TaskResults(success=True, details={})
 
