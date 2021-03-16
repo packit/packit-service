@@ -16,10 +16,7 @@ from ogr.services.github import GithubProject, GithubService
 from ogr.services.gitlab import GitlabProject, GitlabService
 from ogr.services.pagure import PagureProject
 
-from packit_service.config import (
-    ServiceConfig,
-    PackageConfigGetter,
-)
+from packit_service.config import ServiceConfig, PackageConfigGetter, ProjectToSync
 from packit_service.constants import KojiBuildState
 from packit_service.models import (
     CoprBuildModel,
@@ -42,7 +39,7 @@ from packit_service.service.events import (
     IssueCommentAction,
     AbstractCoprBuildEvent,
     FedmsgTopic,
-    DistGitEvent,
+    DistGitCommitEvent,
     PushGitHubEvent,
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
@@ -897,15 +894,36 @@ class TestEvents:
         assert event_object.project_url == "abc"
 
     def test_distgit_commit(self, distgit_commit):
+
+        flexmock(ServiceConfig).should_receive("get_service_config").and_return(
+            ServiceConfig(
+                projects_to_sync=[
+                    ProjectToSync(
+                        forge="https://github.com",
+                        repo_namespace="example",
+                        repo_name="upstream_buildah",
+                        branch="aaa",
+                        dg_branch="master",
+                        dg_repo_name="buildah",
+                    )
+                ]
+            )
+        )
         event_object = Parser.parse_event(distgit_commit)
 
-        assert isinstance(event_object, DistGitEvent)
+        assert isinstance(event_object, DistGitCommitEvent)
         assert event_object.topic == FedmsgTopic.dist_git_push
-        assert event_object.repo_namespace == "rpms"
-        assert event_object.repo_name == "buildah"
-        assert event_object.git_ref == "abcd"
-        assert event_object.branch == "master"
-        assert event_object.msg_id == "2019-49c02775-6d37-40a9-b108-879e3511c49a"
+        assert event_object.dg_repo_namespace == "rpms"
+        assert event_object.dg_repo_name == "buildah"
+        assert event_object.dg_rev == "abcd"
+        assert event_object.dg_branch == "master"
+        assert (
+            event_object.dg_project_url == "https://src.fedoraproject.org/rpms/buildah"
+        )
+        assert event_object.repo_namespace == "example"
+        assert event_object.repo_name == "upstream_buildah"
+        assert event_object.branch == "aaa"
+        assert event_object.project_url == "https://github.com/example/upstream_buildah"
 
     def test_json_testing_farm_notification(
         self, testing_farm_notification, testing_farm_results
