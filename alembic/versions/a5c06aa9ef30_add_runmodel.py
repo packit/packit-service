@@ -75,6 +75,9 @@ class JobTriggerModel(Base):
     koji_builds = relationship("KojiBuildModel", back_populates="job_trigger")
     test_runs = relationship("TFTTestRunModel", back_populates="job_trigger")
 
+    def __repr__(self):
+        return f"JobTriggerModel(type={self.type}, trigger_id={self.trigger_id})"
+
 
 class RunModel(Base):
     """
@@ -105,6 +108,9 @@ class RunModel(Base):
     test_run_id = Column(Integer, ForeignKey("tft_test_runs.id"))
     test_run = relationship("TFTTestRunModel", back_populates="runs")
 
+    def __repr__(self):
+        return f"RunModel(id={self.id}, job_trigger={self.job_trigger})"
+
 
 class SRPMBuildModel(Base):
     __tablename__ = "srpm_builds"
@@ -122,6 +128,9 @@ class SRPMBuildModel(Base):
     job_trigger = relationship("JobTriggerModel", back_populates="srpm_builds")
     copr_builds = relationship("CoprBuildModel", back_populates="srpm_build")
     koji_builds = relationship("KojiBuildModel", back_populates="srpm_build")
+
+    def __repr__(self):
+        return f"SRPMBuildModel(id={self.id}, build_submitted_time={self.build_submitted_time})"
 
 
 class CoprBuildModel(Base):
@@ -166,6 +175,9 @@ class CoprBuildModel(Base):
     srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"))
     srpm_build = relationship("SRPMBuildModel", back_populates="copr_builds")
 
+    def __repr__(self):
+        return f"COPRBuildModel(id={self.id}, build_submitted_time={self.build_submitted_time})"
+
 
 class KojiBuildModel(Base):
     """ we create an entry for every target """
@@ -202,6 +214,9 @@ class KojiBuildModel(Base):
 
     srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"))
     srpm_build = relationship("SRPMBuildModel", back_populates="koji_builds")
+
+    def __repr__(self):
+        return f"KojiBuildModel(id={self.id}, build_submitted_time={self.build_submitted_time})"
 
 
 class TFTTestRunModel(Base):

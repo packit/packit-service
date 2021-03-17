@@ -384,7 +384,7 @@ class PullRequestModel(BuildsAndTestsConnector, Base):
             return session.query(PullRequestModel).filter_by(id=id_).first()
 
     def __repr__(self):
-        return f"PullRequestModel(id={self.pr_id}, project={self.project})"
+        return f"PullRequestModel(pr_id={self.pr_id}, project={self.project})"
 
 
 class IssueModel(BuildsAndTestsConnector, Base):
@@ -680,7 +680,7 @@ class RunModel(Base):
         return self.job_trigger.get_trigger_object()
 
     def __repr__(self):
-        return f"RunModel(type={self.type}, trigger_id={self.trigger_id})"
+        return f"RunModel(id={self.id}, job_trigger={self.job_trigger})"
 
 
 class CoprBuildModel(ProjectAndTriggersConnector, Base):
@@ -691,7 +691,6 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
     __tablename__ = "copr_builds"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # copr build id
-    runs = relationship("RunModel", back_populates="copr_build")
 
     # commit sha of the PR (or a branch, release) we used for a build
     commit_sha = Column(String)
@@ -716,6 +715,8 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
     # metadata for the build which didn't make it to schema yet
     # metadata is reserved to sqlalch
     data = Column(JSON)
+
+    runs = relationship("RunModel", back_populates="copr_build")
 
     def set_start_time(self, start_time: DateTime):
         with get_sa_session() as session:
@@ -869,7 +870,7 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
         return cls.get_by_build_id(build_id, target)
 
     def __repr__(self):
-        return f"COPRBuildModel(id={self.id}, run_model={self.run_model})"
+        return f"COPRBuildModel(id={self.id}, build_submitted_time={self.build_submitted_time})"
 
 
 class KojiBuildModel(ProjectAndTriggersConnector, Base):
@@ -878,7 +879,6 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
     __tablename__ = "koji_builds"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # koji build id
-    runs = relationship("RunModel", back_populates="koji_build")
 
     # commit sha of the PR (or a branch, release) we used for a build
     commit_sha = Column(String)
@@ -899,6 +899,8 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
     # metadata for the build which didn't make it to schema yet
     # metadata is reserved to sqlalch
     data = Column(JSON)
+
+    runs = relationship("RunModel", back_populates="koji_build")
 
     def set_status(self, status: str):
         with get_sa_session() as session:
@@ -1029,7 +1031,7 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
         return cls.get_by_build_id(build_id, target)
 
     def __repr__(self):
-        return f"KojiBuildModel(id={self.id}, run_model={self.run_model})"
+        return f"KojiBuildModel(id={self.id}, build_submitted_time={self.build_submitted_time})"
 
 
 class SRPMBuildModel(ProjectAndTriggersConnector, Base):
@@ -1108,7 +1110,7 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
             session.add(self)
 
     def __repr__(self):
-        return f"SRPMBuildModel(id={self.id}, run_model={self.run_model})"
+        return f"SRPMBuildModel(id={self.id}, build_submitted_time={self.build_submitted_time})"
 
 
 class AllowlistStatus(str, enum.Enum):
@@ -1263,7 +1265,7 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
             ]
 
     def __repr__(self):
-        return f"TFTTestRunModel(id={self.id}, run_model={self.run_model})"
+        return f"TFTTestRunModel(id={self.id}, pipeline_id={self.pipeline_id})"
 
 
 class ProjectAuthenticationIssueModel(Base):
