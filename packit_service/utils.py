@@ -57,7 +57,7 @@ def load_package_config(package_config: PackageConfig):
 
 
 def dump_package_config(package_config: PackageConfig):
-    return PackageConfigSchema().dump_config(package_config) if package_config else None
+    return PackageConfigSchema().dump(package_config) if package_config else None
 
 
 def load_job_config(job_config: JobConfig):
@@ -65,7 +65,7 @@ def load_job_config(job_config: JobConfig):
 
 
 def dump_job_config(job_config: JobConfig):
-    return JobConfigSchema().dump_config(job_config) if job_config else None
+    return JobConfigSchema().dump(job_config) if job_config else None
 
 
 def pretty_time(time: datetime) -> Optional[str]:
