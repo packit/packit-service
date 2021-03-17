@@ -6,12 +6,12 @@ Create Date: 2021-03-11 17:14:26.240507
 
 """
 import enum
+from collections import defaultdict
 from datetime import datetime
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 from sqlalchemy import (
     Boolean,
     Column,
@@ -27,6 +27,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
+from packit.exceptions import PackitException
 
 if TYPE_CHECKING:
     Base = object
@@ -91,8 +92,6 @@ class RunModel(Base):
 
     __tablename__ = "runs"
     id = Column(Integer, primary_key=True)  # our database PK
-    type = Column(Enum(JobTriggerModelType))
-    trigger_id = Column(Integer)
 
     job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
     job_trigger = relationship("JobTriggerModel", back_populates="runs")
@@ -133,7 +132,6 @@ class CoprBuildModel(Base):
     __tablename__ = "copr_builds"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # copr build id
-    runs = relationship("RunModel", back_populates="copr_build")
 
     # commit sha of the PR (or a branch, release) we used for a build
     commit_sha = Column(String)
@@ -159,6 +157,8 @@ class CoprBuildModel(Base):
     # metadata is reserved to sqlalch
     data = Column(JSON)
 
+    runs = relationship("RunModel", back_populates="copr_build")
+
     # TO-BE-REMOVED
     job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
     job_trigger = relationship("JobTriggerModel", back_populates="copr_builds")
@@ -173,7 +173,6 @@ class KojiBuildModel(Base):
     __tablename__ = "koji_builds"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # koji build id
-    runs = relationship("RunModel", back_populates="koji_build")
 
     # commit sha of the PR (or a branch, release) we used for a build
     commit_sha = Column(String)
@@ -194,6 +193,8 @@ class KojiBuildModel(Base):
     # metadata for the build which didn't make it to schema yet
     # metadata is reserved to sqlalch
     data = Column(JSON)
+
+    runs = relationship("RunModel", back_populates="koji_build")
 
     # TO-BE-REMOVED
     job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
@@ -218,9 +219,11 @@ class TFTTestRunModel(Base):
     job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
     job_trigger = relationship("JobTriggerModel", back_populates="test_runs")
 
+    def __repr__(self):
+        return f"TFTTestRunModel(id={self.id}, pipeline_id={self.pipeline_id})"
+
 
 def upgrade():
-
     op.create_table(
         "runs",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -256,52 +259,227 @@ def upgrade():
 
     bind = op.get_bind()
     session = orm.Session(bind=bind)
+
+    all_run_models = 0
+    (
+        deleted_copr_builds_for_no_srpm,
+        all_copr_builds,
+        fixed_srpm_matching_from_copr_build,
+    ) = (0, 0, 0)
+    (
+        deleted_koji_builds_for_no_srpm,
+        all_koji_builds,
+        fixed_srpm_matching_from_koji_build,
+    ) = (0, 0, 0)
+
+    # Removing the builds without SRPMBuildModel set in JobTriggerModel.
+    # Add matching between SRPMBuildModel and JobTriggerModel
+    #     if we have srpm_build set as a build property.
+    for job_trigger_model in session.query(JobTriggerModel).all():
+        if not job_trigger_model.srpm_builds:
+            for copr_build in job_trigger_model.copr_builds:
+                if copr_build.srpm_build:
+                    print(
+                        f"Fixing SRPM matching: {copr_build.srpm_build} -> {copr_build.job_trigger}"
+                    )
+                    fixed_srpm_matching_from_copr_build += 1
+                    copr_build.srpm_build.job_trigger = job_trigger_model
+                    session.add(copr_build.srpm_build)
+                else:
+                    deleted_copr_builds_for_no_srpm += 1
+                    all_copr_builds += 1
+                    session.delete(copr_build)
+            for koji_build in job_trigger_model.koji_builds:
+                if koji_build.srpm_build:
+                    print(
+                        f"Fixing SRPM matching: {koji_build.srpm_build} -> {koji_build.job_trigger}"
+                    )
+                    fixed_srpm_matching_from_koji_build += 1
+                    koji_build.srpm_build.job_trigger = job_trigger_model
+                    session.add(koji_build.srpm_build)
+                else:
+                    deleted_koji_builds_for_no_srpm += 1
+                    all_koji_builds += 1
+                    session.delete(koji_build)
+
+    # Remove the CoprBuildModel if there is no SRPMBuildModel set as a CoprBuildModel property.
+    copr_builds_without_srpm = 0
     for copr_build in session.query(CoprBuildModel).all():
+        all_copr_builds += 1
+        if not copr_build.srpm_build:
+            copr_builds_without_srpm += 1
+            session.delete(copr_build)
+            continue
+
+        all_run_models += 1
         run_model = RunModel()
         run_model.job_trigger = copr_build.job_trigger
         run_model.srpm_build = copr_build.srpm_build
         run_model.copr_build = copr_build
         session.add(run_model)
 
+    # Remove the KojiBuildModel if there is no SRPMBuildModeland set as a KojiBuildModel property.
+    koji_builds_without_srpm = 0
     for koji_build in session.query(KojiBuildModel).all():
+        all_koji_builds += 1
+        if not koji_build.srpm_build:
+            koji_builds_without_srpm += 1
+            continue
+
+        all_run_models += 1
         run_model = RunModel()
         run_model.job_trigger = koji_build.job_trigger
         run_model.srpm_build = koji_build.srpm_build
         run_model.koji_build = koji_build
         session.add(run_model)
 
-    for test_run in session.query(TFTTestRunModel):
-        matching_runs: List[CoprBuildModel] = []
-        for copr_build in test_run.job_trigger.copr_builds:
-            if (
-                copr_build.commit_sha == test_run.commit_sha
-                and copr_build.target == test_run.target
-            ):
-                # TODO: match only successful Copr builds
-                matching_runs += copr_build.runs
+    all_test_runs = 0
+    test_runs_deleted = 0
+    test_runs_attached = 0
 
-        if not matching_runs:
-            # Leave it as is, bad data
-            pass
-        else:
-            if len(matching_runs) != 1:
-                # This is the problematic part of the previous schema.
-                # We don't know the matching between between test runs and builds.
-                pass
+    number_of_builds_and_tests_differ = 0
+    run_models_successful = 0
 
-            for run_model in matching_runs:
-                if not run_model.test_run:
-                    run_model.test_run = test_run
-                    session.add(run_model)
-                    break
+    for job_trigger_model in session.query(JobTriggerModel).order_by(
+        JobTriggerModel.id
+    ):
+        copr_builds = defaultdict(list)
+        for copr_build in job_trigger_model.copr_builds:
+            if copr_build.status != "success":
+                break
+            copr_builds[(copr_build.commit_sha, copr_build.target)].append(copr_build)
+
+        test_runs = defaultdict(list)
+        for test_run in job_trigger_model.test_runs:
+            all_test_runs += 1
+            test_runs[(test_run.commit_sha, test_run.target)].append(test_run)
+
+        for ((commit, target), test_group) in test_runs.items():
+            matching_builds = copr_builds[(commit, target)]
+            if len(matching_builds) != len(test_group):
+                number_of_builds_and_tests_differ += 1
+                for test_run in test_group:
+                    test_runs_deleted += 1
+                    session.delete(test_run)
             else:
-                # Create new RunModel
-                run_to_copy = matching_runs[-1]
-                new_run = RunModel()
-                new_run.srpm_build = run_to_copy.srpm_build
-                new_run.copr_build = run_to_copy.copr_build
-                new_run.test_run = test_run
-                session.add(new_run)
+                run_models_successful += 1
+                for test, build in zip(test_group, matching_builds):
+                    if len(build.runs) != 1:
+                        PackitException(
+                            f"Build {build} does not have exactly one run:\n"
+                            f"{build.runs}"
+                        )
+                    test_runs_attached += 1
+                    build.runs[-1].test_run = test
+                    session.add(build.runs[-1])
+
+    srpm_builds_removed_for_no_job_trigger = 0
+    for srpm_build in session.query(SRPMBuildModel).all():
+        if not srpm_build.job_trigger:
+            srpm_builds_removed_for_no_job_trigger += 1
+            session.delete(srpm_build)
+
+    srpms_without_build = 0
+    # Create RunModel for SRPMBuildModels without any build.
+    for job_trigger_model in session.query(JobTriggerModel).all():
+        if job_trigger_model.id == 5504:
+            print(
+                f"job_trigger_model={job_trigger_model}\n"
+                f"runs={job_trigger_model.runs}\n"
+                f"srpm_builds={job_trigger_model.srpm_builds}"
+            )
+        if not job_trigger_model.copr_builds and not job_trigger_model.koji_builds:
+            for srpm_build in job_trigger_model.srpm_builds:
+                print(
+                    f"Creating RunModel for SRPMBuildModel without any build: {srpm_build}"
+                )
+                all_run_models += 1
+                srpms_without_build += 1
+                run_model = RunModel()
+                run_model.job_trigger = srpm_build.job_trigger
+                run_model.srpm_build = srpm_build
+                session.add(run_model)
+                assert srpm_build.runs
+
+    srpms_without_run = 0
+    for srpm_build in session.query(SRPMBuildModel).all():
+        if not srpm_build.runs:
+            print(
+                f"Creating RunModel for SRPMBuildModel without any RunModel: {srpm_build}"
+            )
+            all_run_models += 1
+            srpms_without_run += 1
+            run_model = RunModel()
+            run_model.job_trigger = srpm_build.job_trigger
+            run_model.datetime = srpm_build.build_submitted_time
+            run_model.srpm_build = srpm_build
+            session.add(run_model)
+            assert srpm_build.runs
+
+    print("================================")
+    print(f"SRPM models without any build: {srpms_without_build}")
+    print(f"SRPM models without any run (RunModel created): {srpms_without_run}")
+    print(
+        f"SRPM models removed because of no connection to any job trigger: "
+        f"{srpm_builds_removed_for_no_job_trigger}"
+    )
+    print("================================")
+    print(f"All Copr builds: {all_copr_builds}")
+    print(
+        f"Copr builds deleted for no SRPM for trigger: {deleted_copr_builds_for_no_srpm}"
+    )
+    print(f"Copr builds deleted for no SRPM set: {copr_builds_without_srpm}")
+    print(
+        f"Fixed SRPM matching to trigger model from Copr build: "
+        f"{fixed_srpm_matching_from_copr_build}"
+    )
+    print("================================")
+    print(f"All Koji builds: {all_koji_builds}")
+    print(
+        f"Koji builds deleted for no SRPM for trigger: {deleted_koji_builds_for_no_srpm}"
+    )
+    print(f"Koji builds deleted for no SRPM set: {koji_builds_without_srpm}")
+    print(
+        f"Fixed SRPM matching to trigger model from Koji build: "
+        f"{fixed_srpm_matching_from_koji_build}"
+    )
+    print("================================")
+    print(f"All Test runs: {all_test_runs}")
+    print(f"Attached correctly to build: {test_runs_attached}")
+    print(f"All Run models: {all_run_models}")
+    print(
+        f"Run models with different number of tests and builds: {number_of_builds_and_tests_differ}"
+    )
+    print(f"Run models with test run correctly set: {run_models_successful}")
+    print("================================")
+
+    # Check:
+    for srpm_build in session.query(SRPMBuildModel).all():
+        if not srpm_build.runs:
+            raise PackitException(f"SRPMBuildModel without any run: {srpm_build}")
+
+    for copr_build in session.query(CoprBuildModel).all():
+        srpm_builds = {run.srpm_build for run in copr_build.runs}
+        if len(srpm_builds) != 1:
+            raise PackitException(
+                f"More SRPM builds for one copr_build {copr_build}:\n{srpm_builds}"
+            )
+
+    for koji_build in session.query(KojiBuildModel).all():
+        srpm_builds = {run.srpm_build for run in koji_build.runs}
+        if len(srpm_builds) != 1:
+            raise PackitException(
+                f"More SRPM builds for one koji_build {koji_build}:\n{srpm_builds}"
+            )
+
+    run_model_count = 0
+    for run_model in session.query(RunModel).all():
+        run_model_count += 1
+        if not run_model.srpm_build:
+
+            raise PackitException(
+                f"Run model does not have SRPM build set: {run_model}"
+            )
 
     session.commit()
 
@@ -414,13 +592,16 @@ def downgrade():
         if run_model.copr_build:
             run_model.copr_build.job_trigger = run_model.job_trigger
             run_model.copr_build.srpm_build = run_model.srpm_build
+            session.add(run_model.copr_build)
 
         if run_model.koji_build:
             run_model.koji_build.job_trigger = run_model.job_trigger
             run_model.koji_build.srpm_build = run_model.srpm_build
+            session.add(run_model.koji_build)
 
         if run_model.test_run:
             run_model.test_run.job_trigger = run_model.job_trigger
+            session.add(run_model.test_run)
 
     session.commit()
 
