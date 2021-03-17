@@ -139,7 +139,9 @@ class DistGitCommitHandler(FedmsgHandler):
         # TODO: check if rev is HEAD on {branch}, warn then?
 
         self.api.sync_from_downstream(
-            dist_git_branch=self.dg_branch, upstream_branch=self.branch
+            dist_git_branch=self.dg_branch,
+            upstream_branch=self.branch,
+            sync_only_specfile=True,
         )
         return TaskResults(success=True, details={})
 

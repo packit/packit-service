@@ -72,7 +72,7 @@ def test_distgit_commit_handler():
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("sync_from_downstream").with_args(
-        dist_git_branch="master", upstream_branch="aaa"
+        dist_git_branch="master", upstream_branch="aaa", sync_only_specfile=True
     )
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
