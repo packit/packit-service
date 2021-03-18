@@ -653,6 +653,9 @@ class RunModel(Base):
 
     __tablename__ = "runs"
     id = Column(Integer, primary_key=True)  # our database PK
+    # datetime.utcnow instead of datetime.utcnow() because its an argument to the function
+    # so it will run when the model is initiated, not when the table is made
+    datetime = Column(DateTime, default=datetime.utcnow)
 
     job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
     job_trigger = relationship("JobTriggerModel", back_populates="runs")
@@ -680,7 +683,7 @@ class RunModel(Base):
         return self.job_trigger.get_trigger_object()
 
     def __repr__(self):
-        return f"RunModel(id={self.id}, job_trigger={self.job_trigger})"
+        return f"RunModel(id={self.id}, datetime='{datetime}', job_trigger={self.job_trigger})"
 
 
 class CoprBuildModel(ProjectAndTriggersConnector, Base):
@@ -1192,6 +1195,9 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
     status = Column(Enum(TestingFarmResult))
     target = Column(String)
     web_url = Column(String)
+    # datetime.utcnow instead of datetime.utcnow() because its an argument to the function
+    # so it will run when the model is initiated, not when the table is made
+    submitted_time = Column(DateTime)
     data = Column(JSON)
 
     runs = relationship("RunModel", back_populates="test_run")

@@ -95,6 +95,9 @@ class RunModel(Base):
 
     __tablename__ = "runs"
     id = Column(Integer, primary_key=True)  # our database PK
+    # datetime.utcnow instead of datetime.utcnow() because its an argument to the function
+    # so it will run when the model is initiated, not when the table is made
+    datetime = Column(DateTime, default=datetime.utcnow)
 
     job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
     job_trigger = relationship("JobTriggerModel", back_populates="runs")
@@ -109,7 +112,7 @@ class RunModel(Base):
     test_run = relationship("TFTTestRunModel", back_populates="runs")
 
     def __repr__(self):
-        return f"RunModel(id={self.id}, job_trigger={self.job_trigger})"
+        return f"RunModel(id={self.id}, datetime='{datetime}', job_trigger={self.job_trigger})"
 
 
 class SRPMBuildModel(Base):
@@ -226,6 +229,9 @@ class TFTTestRunModel(Base):
     commit_sha = Column(String)
     target = Column(String)
     web_url = Column(String)
+    # datetime.utcnow instead of datetime.utcnow() because its an argument to the function
+    # so it will run when the model is initiated, not when the table is made
+    submitted_time = Column(DateTime)
     data = Column(JSON)
 
     runs = relationship("RunModel", back_populates="test_run")
@@ -242,6 +248,7 @@ def upgrade():
     op.create_table(
         "runs",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("datetime", sa.DateTime(), nullable=True),
         sa.Column("job_trigger_id", sa.Integer(), nullable=True),
         sa.Column("srpm_build_id", sa.Integer(), nullable=True),
         sa.Column("copr_build_id", sa.Integer(), nullable=True),
@@ -268,6 +275,9 @@ def upgrade():
             ["tft_test_runs.id"],
         ),
         sa.PrimaryKeyConstraint("id"),
+    )
+    op.add_column(
+        "tft_test_runs", sa.Column("submitted_time", sa.DateTime(), nullable=True)
     )
 
     # Start data migration
@@ -331,6 +341,7 @@ def upgrade():
         run_model.job_trigger = copr_build.job_trigger
         run_model.srpm_build = copr_build.srpm_build
         run_model.copr_build = copr_build
+        run_model.datetime = copr_build.srpm_build.build_submitted_time
         session.add(run_model)
 
     # Remove the KojiBuildModel if there is no SRPMBuildModeland set as a KojiBuildModel property.
@@ -345,6 +356,7 @@ def upgrade():
         run_model = RunModel()
         run_model.job_trigger = koji_build.job_trigger
         run_model.srpm_build = koji_build.srpm_build
+        run_model.datetime = koji_build.srpm_build.build_submitted_time
         run_model.koji_build = koji_build
         session.add(run_model)
 
@@ -412,6 +424,7 @@ def upgrade():
                 srpms_without_build += 1
                 run_model = RunModel()
                 run_model.job_trigger = srpm_build.job_trigger
+                run_model.datetime = srpm_build.build_submitted_time
                 run_model.srpm_build = srpm_build
                 session.add(run_model)
                 assert srpm_build.runs
@@ -541,6 +554,7 @@ def downgrade():
         ["job_trigger_id"],
         ["id"],
     )
+    op.drop_column("tft_test_runs", "submitted_time")
     op.add_column(
         "srpm_builds",
         sa.Column("job_trigger_id", sa.INTEGER(), autoincrement=False, nullable=True),
