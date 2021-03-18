@@ -9,7 +9,16 @@ import logging
 import os
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Dict, Iterable, List, Optional, TYPE_CHECKING, Tuple, Type, Union, Any
+from typing import (
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    TYPE_CHECKING,
+    Tuple,
+    Type,
+    Union,
+)
 from urllib.parse import urlparse
 
 from sqlalchemy import (
@@ -1133,66 +1142,98 @@ class AllowlistModel(Base):
     status = Column(Enum(AllowlistStatus))
     fas_account = Column(String)
 
-    parent_id = Column(Integer, ForeignKey("allowlist.id"), nullable=True)
-    parent = relationship("AllowlistModel", back_populates="subnamespaces")
-    subnamespaces = relationship("AllowlistModel")
-
-    # TODO: For backward compatibility keeping account_name for now, where necessary
-    # add new account or change status if it already exists
     @classmethod
-    def add_account(cls, account_name: str, status: str):
+    def add_namespace(
+        cls, namespace: str, status: str, fas_account: Optional[str] = None
+    ):
+        """
+        Adds namespace with specific status to the allowlist. If namespace is present,
+        just changes the status.
+
+        Args:
+            namespace (str): Namespace to be added. Can be `github.com/namespace`
+                or specific repository `github.com/namespace/repository.git`.
+            status (str): Status to be set. AllowlistStatus enumeration as string.
+            fas_account (Optional[str]): FAS login, in case the namespace was automatically
+                approved through the FAS login of user that installed GitHub App.
+
+                Defaults to `None`.
+
+        Returns:
+            Newly created entry or entry that represents requested namespace.
+        """
         with get_sa_session() as session:
-            account = cls.get_account(account_name)
-            if not account:
-                account = cls()
-                account.namespace = account_name
-            account.status = status
-            session.add(account)
-            return account
+            namespace_entry = cls.get_namespace(namespace)
+            if not namespace_entry:
+                namespace_entry = cls()
+                namespace_entry.namespace = namespace
+
+            namespace_entry.status = status
+            if fas_account:
+                namespace_entry.fas_account = fas_account
+
+            session.add(namespace_entry)
+            return namespace_entry
 
     @classmethod
-    def __get_accounts(cls, account_name: str) -> Any:
+    def get_namespace(cls, namespace: str) -> Optional["AllowlistModel"]:
+        """
+        Retrieves namespace from the allowlist.
+
+        Args:
+            namespace (str): Namespace to be added. Can be `github.com/namespace`
+                or specific repository `github.com/namespace/repository.git`.
+
+        Returns:
+            Entry that represents namespace or `None` if cannot be found.
+        """
         with get_sa_session() as session:
-            return session.query(AllowlistModel).filter_by(namespace=account_name)
+            return session.query(AllowlistModel).filter_by(namespace=namespace).first()
 
     @classmethod
-    def get_accounts(cls, account_name: str) -> Iterable["AllowlistModel"]:
-        return cls.__get_accounts(account_name)
-
-    @classmethod
-    def get_account(cls, account_name: str) -> Optional["AllowlistModel"]:
-        return cls.__get_accounts(account_name).first()
-
-    @classmethod
-    def get_accounts_by_status(
+    def get_namespaces_by_status(
         cls, status: str
     ) -> Optional[Iterable["AllowlistModel"]]:
+        """
+        Get list of namespaces with specific status.
+
+        Args:
+            status (str): Status of the namespaces. AllowlistStatus enumeration as string.
+
+        Returns:
+            List of the namespaces with set status.
+        """
         with get_sa_session() as session:
             return session.query(AllowlistModel).filter_by(status=status)
 
     @classmethod
-    def remove_account(cls, account_name: str) -> Optional["AllowlistModel"]:
+    def remove_namespace(cls, namespace: str) -> Optional["AllowlistModel"]:
         with get_sa_session() as session:
-            account = session.query(AllowlistModel).filter_by(namespace=account_name)
-            if account:
-                account.delete()
-            return account
+            namespace_entry = session.query(AllowlistModel).filter_by(
+                namespace=namespace
+            )
+            if namespace_entry:
+                namespace_entry.delete()
+            return namespace_entry
 
     @classmethod
     def get_all(cls) -> Optional[Iterable["AllowlistModel"]]:
         with get_sa_session() as session:
             return session.query(AllowlistModel).all()
 
-    def to_dict(self) -> dict:
-        # TODO: Update to new model
-        return {"account": self.namespace, "status": self.status}
-
-    # TODO: Maybe introduce property to construct path all the way back?
-    # Would make it easier to print them, e.g. in waiting list
+    def to_dict(self) -> Dict[str, str]:
+        return {
+            "namespace": self.namespace,
+            "status": self.status,
+            "fas_account": self.fas_account,
+        }
 
     def __repr__(self):
-        # TODO: Should we update to include more info?
-        return f"AllowlistModel(name={self.namespace})"
+        return (
+            f'<AllowlistModel(namespace="{self.namespace}", '
+            f'status="{self.status}", '
+            f'fas_account="{self.fas_account}")>'
+        )
 
 
 class TestingFarmResult(str, enum.Enum):

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Any, Iterable, List, Optional, Union, Callable, Dict, Tuple
+from typing import Any, Iterable, Optional, Union, Callable, List, Tuple, Dict
 
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
@@ -77,8 +77,12 @@ class Allowlist:
         Check if the user is a packager, by checking if their GitHub
         username is in the 'packager' group in FAS. Works only the user's
         username is the same in GitHub and FAS.
-        :param account_login: str, Github username
-        :return: bool
+
+        Args:
+            account_login (str): Github username.
+
+        Returns:
+            `True` if user is a packager, `False` otherwise.
         """
 
         try:
@@ -102,124 +106,111 @@ class Allowlist:
         logger.info(f"Cannot verify whether {account_login!r} signed FPCA.")
         return False
 
-    def add_account(self, account_login: str, sender_login: str) -> bool:
+    def add_namespace(self, namespace: str, sender_login: Optional[str] = None) -> bool:
         """
-        Add account to allowlist.
-        Status is set to 'waiting' or to 'approved_automatically'
-        if the account is a packager in Fedora.
-        :param sender_login: login of the user who installed the app into 'account'
-        :param account_login: login of the account into which the app was installed
-        :return: was the account (auto/already)-allowlisted?
+        Add namespace to the allowlist. Namespace is set to `waiting` unless the
+        `sender_login` matches packager account in FAS.
+
+        Args:
+            namespace (str): Namespace to be added in format of: `github.com/namespace`
+                or `github.com/namespace/repo.git`.
+            sender_login (str): Login of the user that can be matched against FAS.
+
+                Defaults to `None`.
+
+        Returns:
+            `True` if account is already allowed, was auto-allowed. `False` otherwise.
         """
-        if AllowlistModel.get_account(account_login):
+        if AllowlistModel.get_namespace(namespace):
             return True
 
-        AllowlistModel.add_account(account_login, AllowlistStatus.waiting.value)
+        AllowlistModel.add_namespace(namespace, AllowlistStatus.waiting.value)
 
         if self._signed_fpca(sender_login):
-            AllowlistModel.add_account(
-                account_login, AllowlistStatus.approved_automatically.value
+            AllowlistModel.add_namespace(
+                namespace, AllowlistStatus.approved_automatically.value, sender_login
             )
             return True
 
         return False
 
     @staticmethod
-    def approve_account(account_name: str):
+    def approve_namespace(namespace: str):
         """
-        Approve user manually
-        :param account_name: account name for approval
-        """
-        AllowlistModel.add_account(
-            account_name=account_name, status=AllowlistStatus.approved_manually.value
-        )
-
-        logger.info(f"Account {account_name!r} approved successfully.")
-
-    @staticmethod
-    def __check_path_and_status(
-        model: AllowlistModel, path: List[str]
-    ) -> Tuple[bool, bool]:
-        """
-        Checks path and if is allowed.
+        Approve namespace manually.
 
         Args:
-            model (AllowlistModel): Model from database matching last part of the
-                path.
-            path (List[str]): Namespaces on the path.
-
-        Returns:
-            Pair of bool values, first denoting if model represents given path and
-            second value represents allowed property.
+            namespace (str): Namespace in the format of `github.com/namespace` or
+                `github.com/namespace/repository.git`.
         """
-        is_allowed = AllowlistStatus(model.status) in (
-            AllowlistStatus.approved_automatically,
-            AllowlistStatus.approved_manually,
+        AllowlistModel.add_namespace(
+            namespace=namespace, status=AllowlistStatus.approved_manually.value
         )
 
-        for part_of_path in reversed(path):
-            if model is None or model.namespace != part_of_path:
-                return (False, is_allowed)
-
-            model = model.parent
-
-        return (True, is_allowed)
+        logger.info(f"Account {namespace!r} approved successfully.")
 
     @staticmethod
-    def is_approved(account_name: str) -> bool:
+    def is_approved(namespace: str) -> bool:
         """
-        Check if user is approved in the allowlist
-        :param account_name: account name to check
-        :return:
+        Checks if namespace is approved in the allowlist.
+
+        Args:
+            namespace (str): Namespace in format `example.com/namespace/repository.git`,
+                where `/repository.git` is optional.
+
+        Returns:
+            `True` if namespace is approved, `False` otherwise.
         """
-        separated_path = account_name.split("/")
+        if not namespace:
+            return False
 
-        while separated_path:
-            matching_namespaces = AllowlistModel.get_accounts(separated_path[-1])
+        separated_path = [namespace, None]
+        while len(separated_path) > 1:
+            if matching_namespace := AllowlistModel.get_namespace(separated_path[0]):
+                status = AllowlistStatus(matching_namespace.status)
+                if status != AllowlistStatus.waiting:
+                    return status in (
+                        AllowlistStatus.approved_automatically,
+                        AllowlistStatus.approved_manually,
+                    )
 
-            for matched_model in matching_namespaces:
-                is_path, is_allowed = Allowlist.__check_path_and_status(
-                    matched_model, separated_path
-                )
-                if (
-                    is_path
-                    and AllowlistStatus(matched_model.status) != AllowlistStatus.waiting
-                ):
-                    return is_allowed
+            separated_path = separated_path[0].rsplit("/", 1)
 
-            separated_path.pop()
-
-        # shouldn't be reachable, unless Pagure?
+        logger.info(f"Could not find entry for: {namespace}")
         return False
 
     @staticmethod
-    def remove_account(account_name: str) -> bool:
+    def remove_namespace(namespace: str) -> bool:
         """
-        Remove account from allowlist.
-        :param account_name: account name for removing
-        :return: has the account existed before?
+        Remove namespace from the allowlist.
+
+        Args:
+            namespace (str): Namespace to be removed in format of `github.com/namespace`
+                or `github.com/namespace/repository.git` if for specific repository.
+
+        Returns:
+            `True` if the namespace was in the allowlist before, `False` otherwise.
         """
-        account_existed = False
+        if not AllowlistModel.get_namespace(namespace):
+            logger.info(f"Namespace {namespace!r} does not exist!")
+            return False
 
-        if AllowlistModel.get_account(account_name):
-            AllowlistModel.remove_account(account_name)
-            logger.info(f"Account {account_name!r} removed from postgres allowlist!")
-            account_existed = True
+        AllowlistModel.remove_namespace(namespace)
+        logger.info(f"Namespace {namespace!r} removed from allowlist!")
 
-        if not account_existed:
-            logger.info(f"Account {account_name!r} does not exist!")
-
-        return account_existed
+        return True
 
     @staticmethod
-    def accounts_waiting() -> List[str]:
+    def waiting_namespaces() -> List[str]:
         """
-        Get accounts waiting for approval
-        :return: list of accounts waiting for approval
+        Get namespaces waiting for approval.
+
+        Returns:
+            List of namespaces that are waiting for approval.
         """
         return [
             account.namespace
-            for account in AllowlistModel.get_accounts_by_status(
+            for account in AllowlistModel.get_namespaces_by_status(
                 AllowlistStatus.waiting.value
             )
         ]
