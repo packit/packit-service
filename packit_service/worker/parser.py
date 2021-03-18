@@ -694,23 +694,22 @@ class Parser:
 
         logger.info(f"Dist-git commit event, topic: {topic}")
 
-        dg_repo_namespace = nested_get(event, "msg", "commit", "namespace")
-        dg_repo_name = nested_get(event, "msg", "commit", "repo")
+        dg_repo_namespace = nested_get(event, "commit", "namespace")
+        dg_repo_name = nested_get(event, "commit", "repo")
 
         if not (dg_repo_namespace and dg_repo_name):
             logger.warning("No full name of the repository.")
             return None
 
-        dg_branch = nested_get(event, "msg", "commit", "branch")
-        dg_rev = nested_get(event, "msg", "commit", "rev")
+        dg_branch = nested_get(event, "commit", "branch")
+        dg_rev = nested_get(event, "commit", "rev")
         if not (dg_branch and dg_rev):
             logger.warning("Target branch/rev for the new commits is not set.")
             return None
 
-        msg_id = event.get("msg_id")
         logger.info(
             f"New commits added to dist-git repo {dg_repo_namespace}/{dg_repo_name},"
-            f"rev: {dg_rev}, branch: {dg_branch}, msg_id: {msg_id}"
+            f"rev: {dg_rev}, branch: {dg_branch}"
         )
 
         project_to_sync = ServiceConfig.get_service_config().get_project_to_sync(
