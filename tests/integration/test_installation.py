@@ -30,8 +30,8 @@ def test_installation():
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
 
     flexmock(InstallationModel).should_receive("create").once()
-    flexmock(Allowlist).should_receive("add_account").with_args(
-        "packit-service", "jpopelka"
+    flexmock(Allowlist).should_receive("add_namespace").with_args(
+        "github.com/packit-service", "jpopelka"
     ).and_return(False)
     flexmock(GithubProject).should_receive("create_issue").once()
 
