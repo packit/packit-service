@@ -56,6 +56,20 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 self._tft_api_url += "/"
         return self._tft_api_url
 
+    @property
+    def fmf_url(self):
+        return (
+            self.job_config.metadata.fmf_url
+            or self.project.get_pr(self.metadata.pr_id).source_project.get_web_url()
+        )
+
+    @property
+    def fmf_ref(self):
+        if self.job_config.metadata.fmf_url:
+            return self.job_config.metadata.fmf_ref
+
+        return self.metadata.commit_sha
+
     def _payload(self, build_id: int, chroot: str) -> dict:
         """
         Testing Farm API: https://testing-farm.gitlab.io/api/
@@ -68,16 +82,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """
         distro, arch = self.chroot2distro_arch(chroot)
         compose = self.distro2compose(distro)
-        pr = self.project.get_pr(self.metadata.pr_id)
-        # url of the source/fork from which the PR has been created
-        from_url = pr.source_project.get_web_url()
+        fmf = {"url": self.fmf_url}
+        if self.fmf_ref:
+            fmf["ref"] = self.fmf_ref
+
         return {
             "api_key": self.service_config.testing_farm_secret,
             "test": {
-                "fmf": {
-                    "url": from_url,
-                    "ref": self.metadata.commit_sha,
-                },
+                "fmf": fmf,
             },
             "environments": [
                 {
@@ -137,6 +149,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         }
 
     def is_fmf_configured(self) -> bool:
+
+        if self.job_config.metadata.fmf_url is not None:
+            return True
+
         try:
             self.project.get_file_content(
                 path=".fmf/version", ref=self.metadata.commit_sha

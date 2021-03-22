@@ -5,6 +5,7 @@ import pytest
 from flexmock import flexmock
 from ogr.abstract import CommitStatus
 from packit.config import JobConfig, JobType, JobConfigTriggerType
+from packit.config.job_config import JobMetadataConfig
 from packit.local_project import LocalProject
 
 from packit_service.config import PackageConfigGetter
@@ -394,6 +395,99 @@ def test_payload(
         }
     ]
     assert payload["notification"]["webhook"]["url"].endswith("/testing-farm/results")
+
+
+@pytest.mark.parametrize(
+    ("fmf_url," "fmf_ref," "result_url," "result_ref"),
+    [
+        (
+            "https://github.com/mmuzila/test",
+            "main",
+            "https://github.com/mmuzila/test",
+            "main",
+        ),
+        (
+            None,
+            None,
+            "https://github.com/packit/packit",
+            "feb41e5",
+        ),
+        (
+            None,
+            "main",
+            "https://github.com/packit/packit",
+            "feb41e5",
+        ),
+        (
+            "https://github.com/mmuzila/test",
+            None,
+            "https://github.com/mmuzila/test",
+            None,
+        ),
+    ],
+)
+def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
+    tf_api = "https://api.dev.testing-farm.io/v0.1/"
+    tf_token = "very-secret"
+    ps_deployment = "test"
+    repo = "packit"
+    project_url = "https://github.com/packit/packit"
+    git_ref = "master"
+    namespace = "packit-service"
+    commit_sha = "feb41e5"
+    copr_owner = "me"
+    copr_project = "cool-project"
+    build_id = "123456"
+    chroot = "centos-stream-x86_64"
+    compose = "Fedora-Rawhide"
+
+    config = flexmock(
+        testing_farm_api_url=tf_api,
+        testing_farm_secret=tf_token,
+        deployment=ps_deployment,
+        command_handler_work_dir="/tmp",
+    )
+    package_config = flexmock(jobs=[])
+    pr = flexmock(source_project=flexmock(get_web_url=lambda: project_url))
+    project = flexmock(
+        repo=repo,
+        namespace=namespace,
+        service="GitHub",
+        get_git_urls=lambda: {"git": f"{project_url}.git"},
+        get_pr=lambda id_: pr,
+    )
+    metadata = flexmock(
+        trigger=flexmock(),
+        commit_sha=commit_sha,
+        git_ref=git_ref,
+        project_url=project_url,
+        pr_id=123,
+    )
+    db_trigger = flexmock()
+
+    job_helper = TFJobHelper(
+        service_config=config,
+        package_config=package_config,
+        project=project,
+        metadata=metadata,
+        db_trigger=db_trigger,
+        job_config=JobConfig(
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.pull_request,
+            metadata=JobMetadataConfig(fmf_url=fmf_url, fmf_ref=fmf_ref),
+        ),
+    )
+    job_helper = flexmock(job_helper)
+
+    job_helper.should_receive("job_owner").and_return(copr_owner)
+    job_helper.should_receive("job_project").and_return(copr_project)
+    job_helper.should_receive("distro2compose").and_return(compose)
+
+    payload = job_helper._payload(build_id, chroot)
+    assert payload.get("test")
+    assert payload["test"].get("fmf")
+    assert payload["test"]["fmf"].get("url") == result_url
+    assert payload["test"]["fmf"].get("ref") == result_ref
 
 
 def test_get_request_details():
