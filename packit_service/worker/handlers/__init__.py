@@ -33,7 +33,7 @@ from packit_service.worker.handlers.fedmsg_handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
     FedmsgHandler,
-    NewDistGitCommitHandler,
+    DistGitCommitHandler,
 )
 from packit_service.worker.handlers.github_handlers import (
     GithubAppInstallationHandler,
@@ -53,7 +53,7 @@ __all__ = [
     ProposeDownstreamHandler.__name__,
     Handler.__name__,
     JobHandler.__name__,
-    NewDistGitCommitHandler.__name__,
+    DistGitCommitHandler.__name__,
     TestingFarmResultsHandler.__name__,
     CoprBuildHandler.__name__,
     TestingFarmHandler.__name__,

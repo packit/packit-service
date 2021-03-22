@@ -4,7 +4,7 @@
 import enum
 import logging
 from pathlib import Path
-from typing import List, Optional, Set, Union
+from typing import List, Optional, Set, Union, NamedTuple
 
 from yaml import safe_load
 
@@ -34,6 +34,39 @@ class Deployment(enum.Enum):
     prod = "prod"
 
 
+class ProjectToSync(NamedTuple):
+    """
+    Project we want to sync from downstream.
+    """
+
+    forge: str
+    repo_namespace: str
+    repo_name: str
+    branch: str
+    dg_repo_name: str
+    dg_branch: str
+
+    def __repr__(self):
+        return (
+            f"ProjectToSync(forge={self.forge}, repo_namespace={self.repo_namespace}, "
+            f"repo_name={self.repo_name}, branch={self.branch}, "
+            f"dg_repo_name={self.dg_repo_name}, dg_branch={self.dg_branch})"
+        )
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ProjectToSync):
+            raise NotImplementedError()
+
+        return (
+            self.forge == other.forge
+            and self.repo_name == other.repo_name
+            and self.repo_namespace == other.repo_namespace
+            and self.branch == other.branch
+            and self.dg_repo_name == other.dg_repo_name
+            and self.dg_branch == other.dg_branch
+        )
+
+
 class ServiceConfig(Config):
     service_config = None
 
@@ -52,6 +85,7 @@ class ServiceConfig(Config):
         gitlab_webhook_tokens: List[str] = None,
         enabled_private_namespaces: Union[Set[str], List[str]] = None,
         gitlab_token_secret: str = "",
+        projects_to_sync: List[ProjectToSync] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -94,6 +128,8 @@ class ServiceConfig(Config):
         self.enabled_private_namespaces: Set[str] = set(
             enabled_private_namespaces or []
         )
+
+        self.projects_to_sync = projects_to_sync or []
 
     def __repr__(self):
         def hide(token: str) -> str:
@@ -166,6 +202,17 @@ class ServiceConfig(Config):
 
             cls.service_config = ServiceConfig.get_from_dict(raw_dict=loaded_config)
         return cls.service_config
+
+    def get_project_to_sync(self, dg_repo_name, dg_branch) -> Optional[ProjectToSync]:
+        projects = [
+            project
+            for project in self.projects_to_sync
+            if project.dg_repo_name == dg_repo_name and project.dg_branch == dg_branch
+        ]
+        if projects:
+            logger.info(f"Found project to sync: {projects[0]}.")
+            return projects[0]
+        return None
 
 
 class PackageConfigGetter:

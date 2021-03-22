@@ -1,54 +1,42 @@
 {
-  "certificate": "foo",
-  "crypto": "x509",
-  "headers": {},
-  "i": 1,
-  "msg": {
-    "commit": {
-      "agent": "rhcontainerbot",
-      "branch": "master",
-      "email": "rhcontainerbot@fedoraproject.org",
-      "message": "buildah-1.12.0-0.73.dev.git1e6a70c\n\n- autobuilt 1e6a70c\n\nSigned-off-by: RH Container Bot <rhcontainerbot@fedoraproject.org>\n",
-      "name": "RH Container Bot",
-      "namespace": "rpms",
-      "path": "/srv/git/repositories/rpms/buildah.git",
-      "repo": "buildah",
-      "rev": "abcd",
-      "seen": false,
-      "stats": {
-        "files": {
-          ".gitignore": {
-            "additions": 1,
-            "deletions": 0,
-            "lines": 1
-          },
-          "buildah.spec": {
-            "additions": 5,
-            "deletions": 2,
-            "lines": 7
-          },
-          "sources": {
-            "additions": 1,
-            "deletions": 1,
-            "lines": 2
-          }
+  "topic": "org.fedoraproject.prod.git.receive",
+  "commit": {
+    "agent": "rhcontainerbot",
+    "branch": "master",
+    "email": "rhcontainerbot@fedoraproject.org",
+    "message": "buildah-1.12.0-0.73.dev.git1e6a70c\n\n- autobuilt 1e6a70c\n\nSigned-off-by: RH Container Bot <rhcontainerbot@fedoraproject.org>\n",
+    "name": "RH Container Bot",
+    "namespace": "rpms",
+    "path": "/srv/git/repositories/rpms/buildah.git",
+    "repo": "buildah",
+    "rev": "abcd",
+    "seen": false,
+    "stats": {
+      "files": {
+        ".gitignore": {
+          "additions": 1,
+          "deletions": 0,
+          "lines": 1
         },
-        "total": {
-          "additions": 7,
-          "deletions": 3,
-          "files": 3,
-          "lines": 10
+        "buildah.spec": {
+          "additions": 5,
+          "deletions": 2,
+          "lines": 7
+        },
+        "sources": {
+          "additions": 1,
+          "deletions": 1,
+          "lines": 2
         }
       },
-      "summary": "buildah-1.12.0-0.73.dev.git1e6a70c",
-      "username": "rhcontainerbot"
-    }
-  },
-  "msg_id": "2019-49c02775-6d37-40a9-b108-879e3511c49a",
-  "signature": "boo",
-  "source_name": "datanommer",
-  "source_version": "0.9.0",
-  "timestamp": 1574266579.0,
-  "topic": "org.fedoraproject.prod.git.receive",
-  "username": "rhcontainerbot"
+      "total": {
+        "additions": 7,
+        "deletions": 3,
+        "files": 3,
+        "lines": 10
+      }
+    },
+    "summary": "buildah-1.12.0-0.73.dev.git1e6a70c",
+    "username": "rhcontainerbot"
+  }
 }

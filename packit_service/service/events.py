@@ -409,7 +409,6 @@ class AbstractForgeIndependentEvent(Event):
                 f"Getting package_config from Pagure. "
                 f"(Spec-file is expected to be in {spec_path})"
             )
-
         package_config = PackageConfigGetter.get_package_config_from_repo(
             base_project=self.base_project,
             project=self.project,
@@ -834,44 +833,59 @@ class InstallationEvent(Event):
         return None
 
 
-class DistGitEvent(AbstractForgeIndependentEvent):
+class DistGitCommitEvent(AbstractForgeIndependentEvent):
     def __init__(
         self,
         topic: str,
         repo_namespace: str,
         repo_name: str,
-        git_ref: str,
         branch: str,
-        msg_id: str,
         project_url: str,
+        dg_repo_namespace: str,
+        dg_repo_name: str,
+        dg_branch: str,
+        dg_rev: str,
+        dg_project_url: str,
     ):
         super().__init__()
         self.topic = FedmsgTopic(topic)
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
-        self.git_ref = git_ref
         self.branch = branch
-        self.msg_id = msg_id
         self.project_url = project_url
         self.identifier = branch
+        self.dg_repo_namespace = dg_repo_namespace
+        self.dg_repo_name = dg_repo_name
+        self.dg_branch = dg_branch
+        self.dg_rev = dg_rev
+        self.dg_project_url = dg_project_url
 
         self._package_config = None
+        self._db_trigger: Optional[AbstractTriggerDbType] = None
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["topic"] = result["topic"].value
         return result
 
-    def get_project(self) -> GitProject:
-        return ServiceConfig.get_service_config().get_project(self.project_url)
-
     @property
     def package_config(self):
         if not self._package_config:
             self._package_config = get_package_config_from_repo(
-                self.project, self.git_ref
+                self.project, self.branch
             )
         return self._package_config
+
+    @property
+    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        if not self._db_trigger:
+            self._db_trigger = GitBranchModel.get_or_create(
+                branch_name=self.dg_rev,
+                namespace=self.dg_repo_namespace,
+                repo_name=self.dg_repo_name,
+                project_url=self.dg_project_url,
+            )
+        return self._db_trigger
 
 
 class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
