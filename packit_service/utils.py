@@ -53,7 +53,7 @@ class only_once(object):
 
 # wrappers for dumping/loading of configs
 def load_package_config(package_config: PackageConfig):
-    return PackageConfigSchema().load_config(package_config) if package_config else None
+    return PackageConfigSchema().load(package_config) if package_config else None
 
 
 def dump_package_config(package_config: PackageConfig):
@@ -61,7 +61,7 @@ def dump_package_config(package_config: PackageConfig):
 
 
 def load_job_config(job_config: JobConfig):
-    return JobConfigSchema().load_config(job_config) if job_config else None
+    return JobConfigSchema().load(job_config) if job_config else None
 
 
 def dump_job_config(job_config: JobConfig):

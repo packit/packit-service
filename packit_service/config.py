@@ -158,7 +158,7 @@ class ServiceConfig(Config):
         # required to avoid circular imports
         from packit_service.schema import ServiceConfigSchema
 
-        config = ServiceConfigSchema().load_config(raw_dict)
+        config = ServiceConfigSchema().load(raw_dict)
 
         config.server_name = raw_dict.get("server_name", "localhost:5000")
 
