@@ -193,10 +193,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             chroot=chroot,
         )
 
-    @property
-    def latest_copr_build(self) -> Optional[CoprBuildModel]:
-        copr_builds = CoprBuildModel.get_all_by_owner_and_project(
-            owner=self.job_owner, project_name=self.job_project
+    def get_latest_copr_build(self, target: str) -> Optional[CoprBuildModel]:
+        """
+        Search a last build for the given target using Copr owner and project name.
+        """
+        copr_builds = CoprBuildModel.get_all_by_owner_and_project_and_target(
+            owner=self.job_owner, project_name=self.job_project, target=target
         )
         if not copr_builds:
             return None
@@ -204,20 +206,19 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return list(copr_builds)[0]
 
     def run_testing_farm_on_all(self):
-        latest_copr_build = self.latest_copr_build
-        if not latest_copr_build:
-            return TaskResults(
-                success=False,
-                details={
-                    "msg": f"No copr builds for {self.job_owner}/{self.job_project}"
-                },
-            )
 
         failed = {}
         for chroot in self.tests_targets:
-            result = self.run_testing_farm(
-                build_id=int(latest_copr_build.build_id), chroot=chroot
-            )
+
+            latest_copr_build = self.get_latest_copr_build(target=chroot)
+            if not latest_copr_build:
+                failed[chroot] = (
+                    f"No copr builds for {self.job_owner}/{self.job_project}"
+                    f"with this target: {chroot}"
+                )
+                continue
+
+            result = self.run_testing_farm(build=latest_copr_build, chroot=chroot)
             if not result["success"]:
                 failed[chroot] = result.get("details")
 
@@ -231,7 +232,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             ),
         )
 
-    def run_testing_farm(self, build_id: int, chroot: str) -> TaskResults:
+    def run_testing_farm(self, build: "CoprBuildModel", chroot: str) -> TaskResults:
         if chroot not in self.tests_targets:
             # Leaving here just to be sure that we will discover this situation if it occurs.
             # Currently not possible to trigger this situation.
@@ -261,9 +262,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         logger.info("Sending testing farm request...")
         if self.is_fmf_configured():
-            payload = self._payload(build_id, chroot)
+            payload = self._payload(int(build.build_id), chroot)
         else:
-            payload = self._payload_install_test(build_id, chroot)
+            payload = self._payload_install_test(int(build.build_id), chroot)
         endpoint = "requests"
         logger.debug(f"POSTing {payload} to {self.tft_api_url}{endpoint}")
         req = self.send_testing_farm_request(
@@ -311,7 +312,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             status=TestingFarmResult.new,
             target=chroot,
             web_url=None,
-            run_model=self.latest_copr_build.runs[-1],
+            run_model=build.runs[-1],
             # In _payload() we ask TF to test commit_sha of fork (PR's source).
             # Store original url. If this proves to work, make it a separate column.
             data={"base_project_url": self.project.get_web_url()},

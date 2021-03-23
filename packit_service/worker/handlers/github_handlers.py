@@ -442,10 +442,10 @@ class TestingFarmHandler(JobHandler):
             return testing_farm_helper.run_testing_farm_on_all()
 
         if self.build_id:
-            copr_build_id = CoprBuildModel.get_by_id(self.build_id).build_id
+            copr_build = CoprBuildModel.get_by_id(self.build_id)
         else:
-            copr_build_id = testing_farm_helper.latest_copr_build.build_id
-        logger.info(f"Running testing farm for {copr_build_id}:{self.chroot}.")
+            copr_build = testing_farm_helper.get_latest_copr_build(target=self.chroot)
+        logger.info(f"Running testing farm for {copr_build}:{self.chroot}.")
         return testing_farm_helper.run_testing_farm(
-            build_id=int(copr_build_id), chroot=self.chroot
+            build=copr_build, chroot=self.chroot
         )

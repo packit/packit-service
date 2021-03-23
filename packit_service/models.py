@@ -812,8 +812,11 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
             return query.first()
 
     @classmethod
-    def get_all_by_owner_and_project(
-        cls, owner: str, project_name: str
+    def get_all_by_owner_and_project_and_target(
+        cls,
+        owner: str,
+        project_name: str,
+        target: str,
     ) -> Optional[Iterable["CoprBuildModel"]]:
         """
         All owner/project_name builds sorted from latest to oldest
@@ -821,7 +824,7 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
         with get_sa_session() as session:
             query = (
                 session.query(CoprBuildModel)
-                .filter_by(owner=owner, project_name=project_name)
+                .filter_by(owner=owner, project_name=project_name, target=target)
                 .order_by(CoprBuildModel.build_id.desc())
             )
             return query.all()
