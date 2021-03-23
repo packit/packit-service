@@ -21,8 +21,8 @@ class Allowlist(Resource):
         return [account.to_dict() for account in AllowlistModel.get_all()]
 
 
-@ns.route("/<string:namespace>")
-@ns.param("namespace", "Namespace to be queried, URL encoded")
+@ns.route("/<path:namespace>")
+@ns.param("namespace", "Namespace to be queried")
 class AllowlistItem(Resource):
     @ns.response(HTTPStatus.OK.value, "OK, allowlisted namespace details follow")
     @ns.response(HTTPStatus.NO_CONTENT.value, "namespace not in allowlist")

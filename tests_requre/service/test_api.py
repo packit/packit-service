@@ -215,7 +215,7 @@ def test_allowlist_specific(client, clean_before_and_after, new_allowlist_entry)
     user_1 = client.get(
         url_for("api.allowlist_allowlist_item", namespace="github.com/Rayquaza")
     )
-    assert user_1.json["namespace"] == "Rayquaza"
+    assert user_1.json["namespace"] == "github.com/Rayquaza"
     assert user_1.json["status"] == "approved_manually"
 
     user_2 = client.get(

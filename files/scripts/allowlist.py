@@ -37,7 +37,7 @@ def remove(full_path: str):
 def waiting():
     print("Accounts waiting for approval:")
 
-    for namespace in Allowlist().accounts_waiting():
+    for namespace in Allowlist().waiting_namespaces():
         print(f"- {namespace}")
 
 
