@@ -241,7 +241,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 unprocessed_chroots.append(chroot)
                 continue
 
-            copr_build = CoprBuildModel.get_or_create(
+            copr_build = CoprBuildModel.create(
                 build_id=str(build_id),
                 commit_sha=self.metadata.commit_sha,
                 project_name=self.job_project,
@@ -249,8 +249,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 web_url=web_url,
                 target=chroot,
                 status="pending",
-                srpm_build=self.srpm_model,
-                trigger_model=self.db_trigger,
+                run_model=self.run_model,
             )
             url = get_copr_build_info_url_from_flask(id_=copr_build.id)
             self.report_status_to_all_for_chroot(

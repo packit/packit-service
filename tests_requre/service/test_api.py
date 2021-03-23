@@ -21,17 +21,23 @@ def test_copr_builds_list(client, clean_before_and_after, multiple_copr_builds):
     }
     assert response_dict[0]["project"] == SampleValues.different_project_name
     assert response_dict[1]["project"] == SampleValues.project
-    assert response_dict[1]["build_id"] == SampleValues.build_id
+
     assert response_dict[1]["web_url"] == SampleValues.copr_web_url
     assert response_dict[1]["repo_namespace"] == SampleValues.repo_namespace
     assert response_dict[1]["repo_name"] == SampleValues.repo_name
     assert response_dict[1]["pr_id"] == SampleValues.pr_id
-    assert len(list(response_dict[1]["status_per_chroot"])) == 2
-    assert response_dict[1]["status_per_chroot"]["fedora-42-x86_64"] == "success"
-    assert response_dict[1]["status_per_chroot"]["fedora-43-x86_64"] == "pending"
+    assert {
+        len(response_build["status_per_chroot"]) for response_build in response_dict
+    } == {1, 2}
+
     assert response_dict[1]["build_submitted_time"] is not None
     assert response_dict[1]["project_url"] == SampleValues.project_url
-    assert len(response_dict) == 2  # three builds, but two unique build ids
+
+    # four builds, but three unique build ids
+    assert len(response_dict) == 3
+    assert {response_build["build_id"] for response_build in response_dict} == {
+        build.build_id for build in multiple_copr_builds
+    }
 
 
 #  Test Pagination
@@ -70,7 +76,7 @@ def test_detailed_copr_build_info(client, clean_before_and_after, a_copr_build_f
     assert "build_logs_url" in response_dict
     assert response_dict["copr_project"] == SampleValues.project
     assert response_dict["copr_owner"] == SampleValues.owner
-    assert response_dict["srpm_build_id"] == a_copr_build_for_pr.srpm_build_id
+    assert response_dict["srpm_build_id"] == a_copr_build_for_pr.get_srpm_build().id
 
     # Project info:
     assert response_dict["repo_namespace"] == SampleValues.repo_namespace
@@ -84,12 +90,8 @@ def test_detailed_copr_build_info(client, clean_before_and_after, a_copr_build_f
 def test_koji_builds_list(client, clean_before_and_after, multiple_koji_builds):
     response = client.get(url_for("api.koji-builds_koji_builds_list"))
     response_dict = response.json
-    assert len(response_dict) == 3
+    assert len(response_dict) == 4
     assert response_dict[0]["packit_id"] in {build.id for build in multiple_koji_builds}
-    assert response_dict[0]["build_id"] == SampleValues.another_different_build_id
-    assert response_dict[1]["build_id"] == SampleValues.different_build_id
-    assert response_dict[2]["build_id"] == SampleValues.build_id
-
     assert response_dict[1]["status"] == SampleValues.status_pending
     assert response_dict[1]["web_url"] == SampleValues.koji_web_url
     assert response_dict[1]["repo_namespace"] == SampleValues.repo_namespace
@@ -98,6 +100,10 @@ def test_koji_builds_list(client, clean_before_and_after, multiple_koji_builds):
     assert response_dict[1]["pr_id"] == SampleValues.pr_id
 
     assert response_dict[1]["build_submitted_time"] is not None
+
+    assert {response_build["build_id"] for response_build in response_dict} == {
+        build.build_id for build in multiple_koji_builds
+    }
 
 
 def test_detailed_koji_build_info(client, clean_before_and_after, a_koji_build_for_pr):
@@ -114,7 +120,7 @@ def test_detailed_koji_build_info(client, clean_before_and_after, a_koji_build_f
     assert response_dict["commit_sha"] == SampleValues.commit_sha
     assert response_dict["web_url"] == SampleValues.koji_web_url
     assert "build_logs_url" in response_dict
-    assert response_dict["srpm_build_id"] == a_koji_build_for_pr.srpm_build_id
+    assert response_dict["srpm_build_id"] == a_koji_build_for_pr.get_srpm_build().id
 
     # Project info:
     assert response_dict["repo_namespace"] == SampleValues.repo_namespace
@@ -172,7 +178,10 @@ def test_srpm_builds_list(client, clean_before_and_after, a_copr_build_for_pr):
     assert response_dict[0]["build_submitted_time"] is not None
 
 
-def test_srpm_build_info(client, clean_before_and_after, srpm_build_model):
+def test_srpm_build_info(
+    client, clean_before_and_after, srpm_build_model_with_new_run_for_pr
+):
+    srpm_build_model, _ = srpm_build_model_with_new_run_for_pr
     response = client.get(
         url_for("api.srpm-builds_srpm_build_item", id=srpm_build_model.id)
     )
@@ -217,7 +226,7 @@ def test_get_testing_farm_results(
     """Test Get Testing Farm Results"""
     response = client.get(url_for("api.testing-farm_testing_farm_results"))
     response_dict = response.json
-    assert len(response_dict) == 3
+    assert len(response_dict) == 4
     assert response_dict[0]["packit_id"] in {
         test_run.id for test_run in multiple_new_test_runs
     }
@@ -236,7 +245,7 @@ def test_get_testing_farm_results(
     assert response_dict[1]["pr_id"] == 342
     assert response_dict[1]["status"] == "new"
 
-    assert response_dict[2]["target"] == SampleValues.chroots[1]
+    assert response_dict[2]["target"] in SampleValues.chroots
 
 
 def test_get_testing_farm_result(client, clean_before_and_after, a_new_test_run_pr):

@@ -75,10 +75,10 @@ def packit_build_752():
         project_url="https://github.com/packit-service/packit",
     )
 
-    srpm_build = SRPMBuildModel.create(
+    srpm_build, run_model = SRPMBuildModel.create_with_new_run(
         "asd\nqwe\n", success=True, trigger_model=pr_model
     )
-    yield CoprBuildModel.get_or_create(
+    yield CoprBuildModel.create(
         build_id=str(BUILD_ID),
         commit_sha="687abc76d67d",
         project_name="packit-service-packit-752",
@@ -89,8 +89,7 @@ def packit_build_752():
         ),
         target="fedora-rawhide-x86_64",
         status="pending",
-        srpm_build=srpm_build,
-        trigger_model=pr_model,
+        run_model=run_model,
     )
 
 

@@ -202,6 +202,7 @@ def test_copr_build_end(
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
     copr_build_pr.should_receive("set_status").with_args("success")
     copr_build_pr.should_receive("set_end_time").once()
+
     url = get_copr_build_info_url_from_flask(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -227,7 +228,7 @@ def test_copr_build_end(
         .at_least()
         .once()
     )
-    flexmock(copr_build_pr.srpm_build).should_receive("set_url").with_args(
+    flexmock(copr_build_pr._srpm_build_for_mocking).should_receive("set_url").with_args(
         "https://my.host/my.srpm"
     ).mock()
 
@@ -482,7 +483,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         commit_sha="0011223344",
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
-        trigger_model=copr_build_pr.job_trigger.get_trigger_object(),
+        run_model=copr_build_pr.runs[0],
         web_url=None,
         data={"base_project_url": "https://github.com/foo/bar"},
     ).and_return(tft_test_run_model)
@@ -510,8 +511,12 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     )
 
     flexmock(TestingFarmHandler).should_receive("db_trigger").and_return(
-        copr_build_pr.job_trigger.get_trigger_object()
+        copr_build_pr.get_trigger_object()
     )
+
+    flexmock(CoprBuildModel).should_receive(
+        "get_all_by_owner_and_project_and_target"
+    ).and_return([copr_build_pr])
 
     run_testing_farm_handler(
         package_config=package_config,
@@ -624,7 +629,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     )
 
     flexmock(TestingFarmHandler).should_receive("db_trigger").and_return(
-        copr_build_pr.job_trigger.get_trigger_object()
+        copr_build_pr.get_trigger_object()
     )
 
     run_testing_farm_handler(
@@ -740,7 +745,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     )
 
     flexmock(TestingFarmHandler).should_receive("db_trigger").and_return(
-        copr_build_pr.job_trigger.get_trigger_object()
+        copr_build_pr.get_trigger_object()
     )
 
     run_testing_farm_handler(

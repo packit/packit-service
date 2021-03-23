@@ -87,7 +87,7 @@ class CoprBuildItem(Resource):
             "build_logs_url": build.build_logs_url,
             "copr_project": build.project_name,
             "copr_owner": build.owner,
-            "srpm_build_id": build.srpm_build.id,
+            "srpm_build_id": build.get_srpm_build().id,
         }
 
         build_dict.update(get_project_info_from_build(build))

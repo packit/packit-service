@@ -37,6 +37,7 @@ from ogr import GithubService, GitlabService, PagureService
 from packit_service.config import ServiceConfig
 from packit_service.models import (
     CoprBuildModel,
+    JobTriggerModel,
     get_sa_session,
     SRPMBuildModel,
     PullRequestModel,
@@ -45,7 +46,7 @@ from packit_service.models import (
     GitBranchModel,
     ProjectReleaseModel,
     IssueModel,
-    JobTriggerModel,
+    RunModel,
     JobTriggerModelType,
     KojiBuildModel,
     TFTTestRunModel,
@@ -71,6 +72,7 @@ class SampleValues:
     project = "the-project-name"
     owner = "the-owner"
     ref = "80201a74d96c"
+    different_ref = "123456789012"
     branch = "build-branch"
     commit_sha = "80201a74d96c"
     different_commit_sha = "687abc76d67d"
@@ -138,16 +140,18 @@ def global_service_config():
 
 def clean_db():
     with get_sa_session() as session:
-        session.query(CoprBuildModel).delete()
-        session.query(KojiBuildModel).delete()
-        session.query(SRPMBuildModel).delete()
-        session.query(TFTTestRunModel).delete()
 
         session.query(AllowlistModel).delete()
         session.query(InstallationModel).delete()
         session.query(BugzillaModel).delete()
 
+        session.query(RunModel).delete()
         session.query(JobTriggerModel).delete()
+
+        session.query(TFTTestRunModel).delete()
+        session.query(CoprBuildModel).delete()
+        session.query(KojiBuildModel).delete()
+        session.query(SRPMBuildModel).delete()
 
         session.query(GitBranchModel).delete()
         session.query(ProjectReleaseModel).delete()
@@ -245,7 +249,7 @@ def pr_trigger_model(pr_model):
 
 @pytest.fixture()
 def different_pr_trigger_model(different_pr_model):
-    yield JobTriggerModel.get_or_create(
+    yield RunModel.get_or_create(
         type=JobTriggerModelType.pull_request, trigger_id=different_pr_model.id
     )
 
@@ -265,9 +269,23 @@ def branch_trigger_model(branch_model):
 
 
 @pytest.fixture()
-def srpm_build_model(pr_model):
-    yield SRPMBuildModel.create(
+def srpm_build_model_with_new_run_for_pr(pr_model):
+    yield SRPMBuildModel.create_with_new_run(
         SampleValues.srpm_logs, success=True, trigger_model=pr_model
+    )
+
+
+@pytest.fixture()
+def srpm_build_model_with_new_run_for_branch(branch_model):
+    yield SRPMBuildModel.create_with_new_run(
+        SampleValues.srpm_logs, success=True, trigger_model=branch_model
+    )
+
+
+@pytest.fixture()
+def srpm_build_model_with_new_run_for_release(release_model):
+    yield SRPMBuildModel.create_with_new_run(
+        SampleValues.srpm_logs, success=True, trigger_model=release_model
     )
 
 
@@ -294,8 +312,9 @@ def an_issue_model():
 
 
 @pytest.fixture()
-def a_copr_build_for_pr(pr_model, srpm_build_model):
-    model = CoprBuildModel.get_or_create(
+def a_copr_build_for_pr(srpm_build_model_with_new_run_for_pr):
+    _, run_model = srpm_build_model_with_new_run_for_pr
+    copr_build_model = CoprBuildModel.create(
         build_id=SampleValues.build_id,
         commit_sha=SampleValues.commit_sha,
         project_name=SampleValues.project,
@@ -303,18 +322,18 @@ def a_copr_build_for_pr(pr_model, srpm_build_model):
         web_url=SampleValues.copr_web_url,
         target=SampleValues.target,
         status=SampleValues.status_pending,
-        srpm_build=srpm_build_model,
-        trigger_model=pr_model,
+        run_model=run_model,
     )
-    model.set_build_logs_url(
+    copr_build_model.set_build_logs_url(
         "https://copr.somewhere/results/owner/package/target/build.logs"
     )
-    yield model
+    yield copr_build_model
 
 
 @pytest.fixture()
-def a_copr_build_for_branch_push(branch_model, srpm_build_model):
-    model = CoprBuildModel.get_or_create(
+def a_copr_build_for_branch_push(srpm_build_model_with_new_run_for_branch):
+    _, run_model = srpm_build_model_with_new_run_for_branch
+    copr_build_model = CoprBuildModel.create(
         build_id=SampleValues.build_id,
         commit_sha=SampleValues.commit_sha,
         project_name=SampleValues.project,
@@ -322,18 +341,18 @@ def a_copr_build_for_branch_push(branch_model, srpm_build_model):
         web_url=SampleValues.copr_web_url,
         target=SampleValues.target,
         status=SampleValues.status_pending,
-        srpm_build=srpm_build_model,
-        trigger_model=branch_model,
+        run_model=run_model,
     )
-    model.set_build_logs_url(
+    copr_build_model.set_build_logs_url(
         "https://copr.somewhere/results/owner/package/target/build.logs"
     )
-    yield model
+    yield copr_build_model
 
 
 @pytest.fixture()
-def a_copr_build_for_release(release_model, srpm_build_model):
-    model = CoprBuildModel.get_or_create(
+def a_copr_build_for_release(srpm_build_model_with_new_run_for_release):
+    _, run_model = srpm_build_model_with_new_run_for_release
+    copr_build_model = CoprBuildModel.create(
         build_id=SampleValues.build_id,
         commit_sha=SampleValues.commit_sha,
         project_name=SampleValues.project,
@@ -341,19 +360,29 @@ def a_copr_build_for_release(release_model, srpm_build_model):
         web_url=SampleValues.copr_web_url,
         target=SampleValues.target,
         status=SampleValues.status_pending,
-        srpm_build=srpm_build_model,
-        trigger_model=release_model,
+        run_model=run_model,
     )
-    model.set_build_logs_url(
+    copr_build_model.set_build_logs_url(
         "https://copr.somewhere/results/owner/package/target/build.logs"
     )
-    yield model
+    yield copr_build_model
 
 
 @pytest.fixture()
-def multiple_copr_builds(pr_model, different_pr_model, srpm_build_model):
+def multiple_copr_builds(pr_model, different_pr_model):
+    _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
+        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+    )
+    _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
+        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+    )
+    _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
+        SampleValues.srpm_logs, success=True, trigger_model=different_pr_model
+    )
+
     yield [
-        CoprBuildModel.get_or_create(
+        # Two chroots for one run model
+        CoprBuildModel.create(
             build_id=SampleValues.build_id,
             commit_sha=SampleValues.ref,
             project_name=SampleValues.project,
@@ -361,10 +390,9 @@ def multiple_copr_builds(pr_model, different_pr_model, srpm_build_model):
             web_url=SampleValues.copr_web_url,
             target=SampleValues.target,
             status=SampleValues.status_success,
-            srpm_build=srpm_build_model,
-            trigger_model=pr_model,
+            run_model=run_model_for_pr,
         ),
-        CoprBuildModel.get_or_create(
+        CoprBuildModel.create(
             build_id=SampleValues.build_id,
             commit_sha=SampleValues.ref,
             project_name=SampleValues.project,
@@ -372,31 +400,52 @@ def multiple_copr_builds(pr_model, different_pr_model, srpm_build_model):
             web_url=SampleValues.copr_web_url,
             target=SampleValues.different_target,
             status=SampleValues.status_pending,
-            srpm_build=srpm_build_model,
-            trigger_model=pr_model,
+            run_model=run_model_for_pr,
         ),
-        CoprBuildModel.get_or_create(
+        # Same PR, same ref, but different run model
+        CoprBuildModel.create(
             build_id=SampleValues.different_build_id,
-            commit_sha=SampleValues.different_commit_sha,
+            commit_sha=SampleValues.ref,
+            project_name=SampleValues.project,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url,
+            target=SampleValues.target,
+            status=SampleValues.status_success,
+            run_model=run_model_for_same_pr,
+        ),
+        # Different PR
+        CoprBuildModel.create(
+            build_id=SampleValues.another_different_build_id,
+            commit_sha=SampleValues.different_ref,
             project_name=SampleValues.different_project_name,
             owner=SampleValues.owner,
             web_url=SampleValues.copr_web_url,
             target=SampleValues.target,
             status=SampleValues.status_success,
-            srpm_build=srpm_build_model,
-            trigger_model=different_pr_model,
+            run_model=run_model_for_a_different_pr,
         ),
     ]
 
 
 @pytest.fixture()
-def too_many_copr_builds(pr_model, different_pr_model, srpm_build_model):
+def too_many_copr_builds(pr_model, different_pr_model):
     """Don't use for testing anything other than pagination, use multiple_copr_builds."""
+
     builds_list = []
     for i in range(20):
+        _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
+            SampleValues.srpm_logs, success=True, trigger_model=pr_model
+        )
+        _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
+            SampleValues.srpm_logs, success=True, trigger_model=pr_model
+        )
+        _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
+            SampleValues.srpm_logs, success=True, trigger_model=different_pr_model
+        )
+
         builds_list += [
             # The following two are similar, except for target, status
-            CoprBuildModel.get_or_create(
+            CoprBuildModel.create(
                 build_id=SampleValues.build_id + str(i),
                 commit_sha=SampleValues.ref,
                 project_name=SampleValues.project,
@@ -404,10 +453,9 @@ def too_many_copr_builds(pr_model, different_pr_model, srpm_build_model):
                 web_url=SampleValues.copr_web_url + str(i),
                 target=SampleValues.target,
                 status=SampleValues.status_success,
-                srpm_build=srpm_build_model,
-                trigger_model=pr_model,
+                run_model=run_model_for_pr,
             ),
-            CoprBuildModel.get_or_create(
+            CoprBuildModel.create(
                 build_id=SampleValues.build_id + str(i),
                 commit_sha=SampleValues.ref,
                 project_name=SampleValues.project,
@@ -415,11 +463,10 @@ def too_many_copr_builds(pr_model, different_pr_model, srpm_build_model):
                 web_url=SampleValues.copr_web_url + str(i),
                 target=SampleValues.different_target,
                 status=SampleValues.status_pending,
-                srpm_build=srpm_build_model,
-                trigger_model=pr_model,
+                run_model=run_model_for_pr,
             ),
-            # The following two are similar, except for target, status
-            CoprBuildModel.get_or_create(
+            # Same PR, different run model
+            CoprBuildModel.create(
                 build_id=SampleValues.different_build_id + str(i),
                 commit_sha=SampleValues.different_commit_sha,
                 project_name=SampleValues.different_project_name,
@@ -427,10 +474,10 @@ def too_many_copr_builds(pr_model, different_pr_model, srpm_build_model):
                 web_url=SampleValues.copr_web_url + str(i),
                 target=SampleValues.target,
                 status=SampleValues.status_success,
-                srpm_build=srpm_build_model,
-                trigger_model=different_pr_model,
+                run_model=run_model_for_same_pr,
             ),
-            CoprBuildModel.get_or_create(
+            # Different PR:
+            CoprBuildModel.create(
                 build_id=SampleValues.different_build_id + str(i),
                 commit_sha=SampleValues.different_commit_sha,
                 project_name=SampleValues.different_project_name,
@@ -438,8 +485,7 @@ def too_many_copr_builds(pr_model, different_pr_model, srpm_build_model):
                 web_url=SampleValues.copr_web_url + str(i),
                 target=SampleValues.different_target,
                 status=SampleValues.status_success,
-                srpm_build=srpm_build_model,
-                trigger_model=different_pr_model,
+                run_model=run_model_for_a_different_pr,
             ),
         ]
     yield builds_list
@@ -447,11 +493,17 @@ def too_many_copr_builds(pr_model, different_pr_model, srpm_build_model):
 
 @pytest.fixture()
 def copr_builds_with_different_triggers(
-    pr_model, branch_model, release_model, srpm_build_model
+    srpm_build_model_with_new_run_for_pr,
+    srpm_build_model_with_new_run_for_branch,
+    srpm_build_model_with_new_run_for_release,
 ):
+    _, run_model_for_pr = srpm_build_model_with_new_run_for_pr
+    _, run_model_for_branch = srpm_build_model_with_new_run_for_branch
+    _, run_model_for_release = srpm_build_model_with_new_run_for_release
+
     yield [
         # pull request trigger
-        CoprBuildModel.get_or_create(
+        CoprBuildModel.create(
             build_id=SampleValues.build_id,
             commit_sha=SampleValues.ref,
             project_name=SampleValues.project,
@@ -459,11 +511,10 @@ def copr_builds_with_different_triggers(
             web_url=SampleValues.copr_web_url,
             target=SampleValues.target,
             status=SampleValues.status_success,
-            srpm_build=srpm_build_model,
-            trigger_model=pr_model,
+            run_model=run_model_for_pr,
         ),
         # branch push trigger
-        CoprBuildModel.get_or_create(
+        CoprBuildModel.create(
             build_id=SampleValues.different_build_id,
             commit_sha=SampleValues.ref,
             project_name=SampleValues.project,
@@ -471,11 +522,10 @@ def copr_builds_with_different_triggers(
             web_url=SampleValues.copr_web_url,
             target=SampleValues.target,
             status=SampleValues.status_success,
-            srpm_build=srpm_build_model,
-            trigger_model=branch_model,
+            run_model=run_model_for_branch,
         ),
         # release trigger
-        CoprBuildModel.get_or_create(
+        CoprBuildModel.create(
             build_id=SampleValues.another_different_build_id,
             commit_sha=SampleValues.ref,
             project_name=SampleValues.project,
@@ -483,115 +533,182 @@ def copr_builds_with_different_triggers(
             web_url=SampleValues.copr_web_url,
             target=SampleValues.target,
             status=SampleValues.status_success,
-            srpm_build=srpm_build_model,
-            trigger_model=release_model,
+            run_model=run_model_for_release,
         ),
     ]
 
 
 @pytest.fixture()
-def a_koji_build_for_pr(pr_model, srpm_build_model):
-    build = KojiBuildModel.get_or_create(
+def a_koji_build_for_pr(srpm_build_model_with_new_run_for_pr):
+    _, run_model = srpm_build_model_with_new_run_for_pr
+    koji_build_model = KojiBuildModel.create(
         build_id=SampleValues.build_id,
         commit_sha=SampleValues.commit_sha,
         web_url=SampleValues.koji_web_url,
         target=SampleValues.target,
         status=SampleValues.status_pending,
-        srpm_build=srpm_build_model,
-        trigger_model=pr_model,
+        run_model=run_model,
     )
-    build.set_build_logs_url(
+    koji_build_model.set_build_logs_url(
         "https://koji.somewhere/results/owner/package/target/build.logs"
     )
-    yield build
+    yield koji_build_model
 
 
 @pytest.fixture()
-def a_koji_build_for_branch_push(branch_model, srpm_build_model):
-    yield KojiBuildModel.get_or_create(
+def a_koji_build_for_branch_push(srpm_build_model_with_new_run_for_branch):
+    _, run_model = srpm_build_model_with_new_run_for_branch
+
+    yield KojiBuildModel.create(
         build_id=SampleValues.build_id,
         commit_sha=SampleValues.commit_sha,
         web_url=SampleValues.koji_web_url,
         target=SampleValues.target,
         status=SampleValues.status_pending,
-        srpm_build=srpm_build_model,
-        trigger_model=branch_model,
+        run_model=run_model,
     )
 
 
 @pytest.fixture()
-def a_koji_build_for_release(release_model, srpm_build_model):
-    yield KojiBuildModel.get_or_create(
+def a_koji_build_for_release(srpm_build_model_with_new_run_for_release):
+    _, run_model = srpm_build_model_with_new_run_for_release
+
+    yield KojiBuildModel.create(
         build_id=SampleValues.build_id,
         commit_sha=SampleValues.commit_sha,
         web_url=SampleValues.koji_web_url,
         target=SampleValues.target,
         status=SampleValues.status_pending,
-        srpm_build=srpm_build_model,
-        trigger_model=release_model,
+        run_model=run_model,
     )
 
 
 @pytest.fixture()
-def multiple_koji_builds(pr_model, different_pr_model, srpm_build_model):
+def multiple_koji_builds(pr_model, different_pr_model):
+    _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
+        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+    )
+    _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
+        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+    )
+    _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
+        SampleValues.srpm_logs, success=True, trigger_model=different_pr_model
+    )
+
     yield [
-        KojiBuildModel.get_or_create(
+        # Two builds for same run
+        KojiBuildModel.create(
             build_id=SampleValues.build_id,
             commit_sha=SampleValues.commit_sha,
             web_url=SampleValues.koji_web_url,
             target=SampleValues.target,
             status=SampleValues.status_pending,
-            srpm_build=srpm_build_model,
-            trigger_model=pr_model,
+            run_model=run_model_for_pr,
         ),
-        KojiBuildModel.get_or_create(
+        KojiBuildModel.create(
             build_id=SampleValues.different_build_id,
             commit_sha=SampleValues.commit_sha,
             web_url=SampleValues.koji_web_url,
             target=SampleValues.different_target,
             status=SampleValues.status_pending,
-            srpm_build=srpm_build_model,
-            trigger_model=pr_model,
+            run_model=run_model_for_pr,
+        ),
+        # Same PR, different run
+        KojiBuildModel.create(
+            build_id=SampleValues.different_build_id,
+            commit_sha=SampleValues.commit_sha,
+            web_url=SampleValues.koji_web_url,
+            target=SampleValues.different_target,
+            status=SampleValues.status_pending,
+            run_model=run_model_for_same_pr,
         ),
         # Completely different build
-        KojiBuildModel.get_or_create(
+        KojiBuildModel.create(
             build_id=SampleValues.another_different_build_id,
             commit_sha=SampleValues.different_commit_sha,
             web_url=SampleValues.koji_web_url,
             target=SampleValues.target,
             status=SampleValues.status_pending,
-            srpm_build=srpm_build_model,
-            trigger_model=different_pr_model,
+            run_model=run_model_for_a_different_pr,
         ),
     ]
 
 
 @pytest.fixture()
-def a_new_test_run_pr(pr_model):
+def a_new_test_run_pr(srpm_build_model_with_new_run_for_pr, a_copr_build_for_pr):
+    _, run_model = srpm_build_model_with_new_run_for_pr
     yield TFTTestRunModel.create(
         pipeline_id=SampleValues.pipeline_id,
         commit_sha=SampleValues.commit_sha,
         web_url=SampleValues.testing_farm_url,
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        trigger_model=pr_model,
+        run_model=run_model,
     )
 
 
 @pytest.fixture()
-def a_new_test_run_branch_push(branch_model):
+def a_new_test_run_branch_push(
+    srpm_build_model_with_new_run_for_branch, a_copr_build_for_branch_push
+):
+    _, run_model = srpm_build_model_with_new_run_for_branch
     yield TFTTestRunModel.create(
         pipeline_id=SampleValues.pipeline_id,
         commit_sha=SampleValues.commit_sha,
         web_url=SampleValues.testing_farm_url,
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        trigger_model=branch_model,
+        run_model=run_model,
     )
 
 
 @pytest.fixture()
 def multiple_new_test_runs(pr_model, different_pr_model):
+    _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
+        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+    )
+    _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
+        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+    )
+    _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
+        SampleValues.srpm_logs, success=True, trigger_model=different_pr_model
+    )
+
+    CoprBuildModel.create(
+        build_id=SampleValues.build_id,
+        commit_sha=SampleValues.ref,
+        project_name=SampleValues.project,
+        owner=SampleValues.owner,
+        web_url=SampleValues.copr_web_url,
+        target=SampleValues.target,
+        status=SampleValues.status_success,
+        run_model=run_model_for_pr,
+    )
+
+    # Same PR, same ref, but different run model
+    CoprBuildModel.create(
+        build_id=SampleValues.different_build_id,
+        commit_sha=SampleValues.ref,
+        project_name=SampleValues.project,
+        owner=SampleValues.owner,
+        web_url=SampleValues.copr_web_url,
+        target=SampleValues.target,
+        status=SampleValues.status_success,
+        run_model=run_model_for_same_pr,
+    )
+
+    # Different PR
+    CoprBuildModel.create(
+        build_id=SampleValues.another_different_build_id,
+        commit_sha=SampleValues.different_ref,
+        project_name=SampleValues.different_project_name,
+        owner=SampleValues.owner,
+        web_url=SampleValues.copr_web_url,
+        target=SampleValues.target,
+        status=SampleValues.status_success,
+        run_model=run_model_for_a_different_pr,
+    )
+
     yield [
         TFTTestRunModel.create(
             pipeline_id=SampleValues.pipeline_id,
@@ -599,7 +716,7 @@ def multiple_new_test_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=SampleValues.target,
             status=TestingFarmResult.new,
-            trigger_model=pr_model,
+            run_model=run_model_for_pr,
         ),
         # Same commit_sha but different chroot and pipeline_id
         TFTTestRunModel.create(
@@ -608,7 +725,16 @@ def multiple_new_test_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=SampleValues.different_target,
             status=TestingFarmResult.new,
-            trigger_model=pr_model,
+            run_model=run_model_for_pr,
+        ),
+        # Same PR, different run model
+        TFTTestRunModel.create(
+            pipeline_id=SampleValues.different_pipeline_id,
+            commit_sha=SampleValues.commit_sha,
+            web_url=SampleValues.testing_farm_url,
+            target=SampleValues.different_target,
+            status=TestingFarmResult.new,
+            run_model=run_model_for_same_pr,
         ),
         # Completely different build
         TFTTestRunModel.create(
@@ -617,7 +743,7 @@ def multiple_new_test_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=SampleValues.different_target,
             status=TestingFarmResult.running,
-            trigger_model=different_pr_model,
+            run_model=run_model_for_a_different_pr,
         ),
     ]
 

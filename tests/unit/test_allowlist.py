@@ -214,7 +214,7 @@ def test_check_and_report_calls_method(allowlist, event, method, approved):
     flexmock(gp).should_receive("get_pr").and_return(flexmock(author=None))
     allowlist_mock = flexmock(DBAllowlist).should_receive("get_account")
     if approved:
-        allowlist_mock.and_return(DBAllowlist(status="approved_manually"))
+        allowlist_mock.and_return(flexmock(status="approved_manually"))
     else:
         allowlist_mock.and_return(None)
     assert (
@@ -407,7 +407,7 @@ def test_check_and_report(
         allowlist_mock = flexmock(DBAllowlist).should_receive("get_account")
         if not TYPE_CHECKING:
             if is_valid:
-                allowlist_mock.and_return(DBAllowlist(status="approved_manually"))
+                allowlist_mock.and_return(flexmock(status="approved_manually"))
             else:
                 allowlist_mock.and_return(None)
 

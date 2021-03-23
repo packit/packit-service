@@ -823,7 +823,7 @@ class Parser:
 
         # ["test"]["fmf"]["url"] contains PR's source/fork url or TF's install test url.
         # We need the original/base project url stored in db.
-        if tft_test_run:
+        if tft_test_run and tft_test_run.data:
             base_project_url = tft_test_run.data.get("base_project_url")
             if base_project_url and base_project_url != project_url:
                 logger.debug(

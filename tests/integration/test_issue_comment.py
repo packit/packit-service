@@ -33,6 +33,7 @@ from ogr.services.github import GithubProject, GithubRelease
 from ogr.services.gitlab import GitlabProject, GitlabRelease
 from packit.api import PackitAPI
 from packit.distgit import DistGit
+from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
@@ -138,9 +139,11 @@ def test_issue_comment_propose_downstream_handler(
         is_private=lambda: False,
     )
 
-    flexmock(event_type, db_trigger=IssueModel(id=123))
-    flexmock(IssueModel).should_receive("get_by_id").with_args(123).and_return(
-        flexmock(issue_id=12345)
+    flexmock(IssueCommentGitlabEvent).should_receive("db_trigger").and_return(
+        flexmock(id=123, job_config_trigger_type=JobConfigTriggerType.release)
+    )
+    flexmock(IssueModel).should_receive("get_or_create").and_return(
+        flexmock(id=123, job_config_trigger_type=JobConfigTriggerType.release)
     )
     flexmock(Signature).should_receive("apply_async").once()
 
