@@ -53,7 +53,6 @@ def global_service_config():
         GithubService(token="token"),
         GitlabService(token="token"),
     }
-    service_config.dry_run = False
     service_config.server_name = "localhost"
     service_config.github_requests_log_path = "/path"
     ServiceConfig.service_config = service_config
@@ -82,7 +81,6 @@ def dump_http_com():
         # conf._pagure_user_token = os.environ.get("PAGURE_TOKEN", "test")
         # conf._pagure_fork_token = os.environ.get("PAGURE_FORK_TOKEN", "test")
         conf._github_token = os.getenv("GITHUB_TOKEN", None)
-        conf.dry_run = True
         target_path: Path = SAVED_HTTPD_REQS / path
         target_path.parent.mkdir(parents=True, exist_ok=True)
         conf.github_requests_log_path = str(target_path)
