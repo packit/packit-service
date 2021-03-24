@@ -801,11 +801,13 @@ class Parser:
 
         ref: str = nested_get(event, "test", "fmf", "ref")
         project_url: str = nested_get(event, "test", "fmf", "url")
+
+        # ["test"]["fmf"]["ref"] contains ref to the TF test, i.e. "master",
+        # but we need the original commit_sha to be able to continue
+        if tft_test_run:
+            ref = tft_test_run.commit_sha
+
         if project_url == TESTING_FARM_INSTALLABILITY_TEST_URL:
-            # ["test"]["fmf"]["ref"] in this case contains ref to the TF test, i.e. "master",
-            # but we need the original commit_sha to be able to continue
-            if tft_test_run:
-                ref = tft_test_run.commit_sha
             # There are no artifacts in install-test results
             copr_build_id = copr_chroot = ""
         else:

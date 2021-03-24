@@ -302,7 +302,7 @@ def test_testing_farm_response_existing_pr(
     event_object = Parser.parse_event(tf_notification)
     assert isinstance(event_object, TestingFarmResultsEvent)
 
-    assert event_object.commit_sha == SampleValues.different_commit_sha
+    assert event_object.commit_sha == SampleValues.commit_sha
 
     assert isinstance(event_object.db_trigger, PullRequestModel)
     assert event_object.db_trigger == pr_model
@@ -340,7 +340,7 @@ def test_testing_farm_response_existing_branch_push(
     event_object = Parser.parse_event(tf_notification)
     assert isinstance(event_object, TestingFarmResultsEvent)
 
-    assert event_object.commit_sha == SampleValues.different_commit_sha
+    assert event_object.commit_sha == SampleValues.commit_sha
 
     assert isinstance(event_object.db_trigger, GitBranchModel)
     assert event_object.db_trigger == branch_model

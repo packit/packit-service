@@ -635,6 +635,7 @@ class TestEvents:
             flexmock(
                 job_trigger=flexmock(),
                 data={"base_project_url": "https://github.com/packit/packit"},
+                commit_sha="12345",
             )
             .should_receive("get_trigger_object")
             .and_return(flexmock(pr_id=10))
@@ -647,7 +648,7 @@ class TestEvents:
         assert event_object.pipeline_id == request_id
         assert event_object.result == TestingFarmResult.passed
         assert event_object.project_url == "https://github.com/packit/packit"
-        assert event_object.commit_sha == "e7e3c8b688403048e7aefa64c19b79e89fe764df"
+        assert event_object.commit_sha == "12345"
         assert not event_object.summary
         assert event_object.compose == "Fedora-32"
         assert event_object.copr_build_id == "1810530"
@@ -668,6 +669,7 @@ class TestEvents:
             flexmock(
                 job_trigger=flexmock(),
                 data={"base_project_url": "https://github.com/packit/packit"},
+                commit_sha="12345",
             )
             .should_receive("get_trigger_object")
             .and_return(flexmock(pr_id=10))
@@ -680,7 +682,7 @@ class TestEvents:
         assert event_object.pipeline_id == request_id
         assert event_object.result == TestingFarmResult.error
         assert event_object.project_url == "https://github.com/packit/packit"
-        assert event_object.commit_sha == "e7e3c8b688403048e7aefa64c19b79e89fe764df"
+        assert event_object.commit_sha == "12345"
         assert event_object.summary == "something went wrong"
         assert event_object.compose == "Fedora-32"
         assert event_object.copr_build_id == "1810530"
@@ -885,13 +887,14 @@ class TestEvents:
         ).and_return(testing_farm_results)
         flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").with_args(
             request_id
-        ).and_return(flexmock(data={"base_project_url": "abc"}))
+        ).and_return(flexmock(data={"base_project_url": "abc"}, commit_sha="12345"))
         event_object = Parser.parse_event(testing_farm_notification)
 
         assert isinstance(event_object, TestingFarmResultsEvent)
         assert isinstance(event_object.pipeline_id, str)
         assert event_object.pipeline_id == request_id
         assert event_object.project_url == "abc"
+        assert event_object.commit_sha == "12345"
 
     def test_distgit_commit(self, distgit_commit):
 
@@ -932,7 +935,7 @@ class TestEvents:
             testing_farm_results
         )
         flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
-            flexmock(data={"base_project_url": "abc"})
+            flexmock(data={"base_project_url": "abc"}, commit_sha="12345")
         )
         event_object = Parser.parse_event(testing_farm_notification)
         assert json.dumps(event_object.pipeline_id)
