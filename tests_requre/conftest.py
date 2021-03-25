@@ -132,7 +132,6 @@ def global_service_config():
         GitlabService(token="token"),
         PagureService(token="token", instance_url="https://git.stg.centos.org"),
     }
-    service_config.dry_run = False
     service_config.github_requests_log_path = "/path"
     service_config.server_name = "localhost"
     ServiceConfig.service_config = service_config

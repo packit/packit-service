@@ -185,7 +185,6 @@ class TestEvents:
             GithubService(token="token"),
             GitlabService(token="token"),
         }
-        service_config.dry_run = False
         service_config.github_requests_log_path = "/path"
         ServiceConfig.service_config = service_config
 
@@ -949,7 +948,6 @@ class TestCentOSEventParser:
             GithubService(token="12345"),
             PagureService(instance_url="https://git.stg.centos.org", token="6789"),
         }
-        service_config.dry_run = False
         service_config.github_requests_log_path = "/path"
         ServiceConfig.service_config = service_config
 
