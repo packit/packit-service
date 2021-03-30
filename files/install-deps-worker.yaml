@@ -38,6 +38,7 @@
           - dnf-plugins-core
           # oc rsync /sandcastle -> sandcastle pod
           - rsync
+          - fedpkg-stage
         state: present
     - import_tasks: tasks/install-packit-deps.yaml
     - import_tasks: tasks/install-ogr-deps.yaml
