@@ -444,7 +444,6 @@ class TestingFarmHandler(JobHandler):
             PullRequestCommentGithubEvent.__name__,
             MergeRequestCommentGitlabEvent.__name__,
             PullRequestCommentPagureEvent.__name__,
-
         ):
             logger.debug(f"Test job config: {testing_farm_helper.job_tests}")
             return testing_farm_helper.run_testing_farm_on_all()
