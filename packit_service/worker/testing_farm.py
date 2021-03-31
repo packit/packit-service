@@ -227,9 +227,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         return TaskResults(
             success=False,
-            details={"msg": f"Failed testing farm targets: '{failed.keys()}'."}.update(
-                failed
-            ),
+            details={
+                "msg": f"Failed testing farm targets: '{failed.keys()}'.",
+                **failed,
+            },
         )
 
     def run_testing_farm(self, build: "CoprBuildModel", chroot: str) -> TaskResults:
