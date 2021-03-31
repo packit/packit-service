@@ -105,10 +105,10 @@ class SampleValues:
     another_different_pipeline_id = "98765"
 
     # Allowlist
-    account_name = "Rayquaza"
-    different_account_name = "Deoxys"
-    another_different_acount_name = "Solgaleo"
-    yet_another_different_acount_name = "Zacian"
+    account_name = "github.com/Rayquaza"
+    different_account_name = "gitlab.com/Deoxys"
+    another_different_acount_name = "gitlab.com/Solgaleo"
+    yet_another_different_acount_name = "github.com/Zacian"
 
     # Bugzilla
     bug_id = 123456
@@ -750,21 +750,21 @@ def multiple_new_test_runs(pr_model, different_pr_model):
 @pytest.fixture()
 def multiple_allowlist_entries():
     yield [
-        AllowlistModel.add_account(
-            account_name=SampleValues.account_name, status="approved_manually"
+        AllowlistModel.add_namespace(
+            namespace=SampleValues.account_name, status="approved_manually"
         ),
-        AllowlistModel.add_account(
-            account_name=SampleValues.different_account_name, status="approved_manually"
+        AllowlistModel.add_namespace(
+            namespace=SampleValues.different_account_name, status="approved_manually"
         ),
         # Not a typo, account_name repeated intentionally to check behaviour
-        AllowlistModel.add_account(
-            account_name=SampleValues.different_account_name, status="waiting"
+        AllowlistModel.add_namespace(
+            namespace=SampleValues.different_account_name, status="waiting"
         ),
-        AllowlistModel.add_account(
-            account_name=SampleValues.another_different_acount_name, status="waiting"
+        AllowlistModel.add_namespace(
+            namespace=SampleValues.another_different_acount_name, status="waiting"
         ),
-        AllowlistModel.add_account(
-            account_name=SampleValues.yet_another_different_acount_name,
+        AllowlistModel.add_namespace(
+            namespace=SampleValues.yet_another_different_acount_name,
             status="approved_manually",
         ),
     ]
@@ -772,8 +772,8 @@ def multiple_allowlist_entries():
 
 @pytest.fixture()
 def new_allowlist_entry(clean_before_and_after):
-    yield AllowlistModel.add_account(
-        account_name=SampleValues.account_name, status="approved_manually"
+    yield AllowlistModel.add_namespace(
+        namespace=SampleValues.account_name, status="approved_manually"
     )
 
 

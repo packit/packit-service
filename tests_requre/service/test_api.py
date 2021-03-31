@@ -205,18 +205,22 @@ def test_allowlist_all(client, clean_before_and_after, new_allowlist_entry):
     """Test Allowlist API (all)"""
     response = client.get(url_for("api.allowlist_allowlist"))
     response_dict = response.json
-    assert response_dict[0]["account"] == "Rayquaza"
+    assert response_dict[0]["namespace"] == "github.com/Rayquaza"
     assert response_dict[0]["status"] == "approved_manually"
     assert len(list(response_dict)) == 1
 
 
 def test_allowlist_specific(client, clean_before_and_after, new_allowlist_entry):
     """Test Allowlist API (specific user)"""
-    user_1 = client.get(url_for("api.allowlist_allowlist_item", login="Rayquaza"))
-    assert user_1.json["account"] == "Rayquaza"
+    user_1 = client.get(
+        url_for("api.allowlist_allowlist_item", namespace="github.com/Rayquaza")
+    )
+    assert user_1.json["namespace"] == "github.com/Rayquaza"
     assert user_1.json["status"] == "approved_manually"
 
-    user_2 = client.get(url_for("api.allowlist_allowlist_item", login="Zacian"))
+    user_2 = client.get(
+        url_for("api.allowlist_allowlist_item", namespace="github.com/Zacian")
+    )
     assert user_2.status_code == 204  # No content when not in allowlist
 
 

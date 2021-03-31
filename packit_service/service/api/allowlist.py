@@ -21,12 +21,12 @@ class Allowlist(Resource):
         return [account.to_dict() for account in AllowlistModel.get_all()]
 
 
-@ns.route("/<string:login>")
-@ns.param("login", "Account login")
+@ns.route("/<path:namespace>")
+@ns.param("namespace", "Namespace to be queried")
 class AllowlistItem(Resource):
-    @ns.response(HTTPStatus.OK.value, "OK, allowlisted account details follow")
-    @ns.response(HTTPStatus.NO_CONTENT.value, "login not in allowlist")
-    def get(self, login):
+    @ns.response(HTTPStatus.OK.value, "OK, allowlisted namespace details follow")
+    @ns.response(HTTPStatus.NO_CONTENT.value, "namespace not in allowlist")
+    def get(self, namespace):
         """A specific allowlist item details"""
-        account = AllowlistModel.get_account(login)
-        return account.to_dict() if account else ("", HTTPStatus.NO_CONTENT.value)
+        entry = AllowlistModel.get_namespace(namespace)
+        return entry.to_dict() if entry else ("", HTTPStatus.NO_CONTENT.value)

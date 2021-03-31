@@ -124,7 +124,9 @@ class GithubAppInstallationHandler(JobHandler):
             fas_user=self.service_config.fas_user,
             fas_password=self.service_config.fas_password,
         )
-        if not allowlist.add_account(self.account_login, self.sender_login):
+        if not allowlist.add_namespace(
+            f"github.com/{self.account_login}", self.sender_login
+        ):
             # Create an issue in our repository, so we are notified when someone install the app
             self.project.create_issue(
                 title=f"{self.account_type} {self.account_login} needs to be approved.",

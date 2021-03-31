@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Any, Iterable, List, Optional, Union, Callable, Dict, Tuple
+from typing import Any, Iterable, Optional, Union, Callable, List, Tuple, Dict
 
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
@@ -56,13 +56,33 @@ class Allowlist:
             username=fas_user, password=fas_password
         )
 
+    @staticmethod
+    def _strip_protocol_and_add_git(url: Optional[str]) -> Optional[str]:
+        """
+        Remove the protocol from the URL and add .git suffix.
+
+        Args:
+            url (Optional[str]): URL to remove protocol from and add .git suffix to.
+
+        Returns:
+            URL without the protocol with added .git suffix. If not given URL returns
+            None.
+        """
+        if not url:
+            return None
+        return url.split("://")[1] + ".git"
+
     def _signed_fpca(self, account_login: str) -> bool:
         """
         Check if the user is a packager, by checking if their GitHub
         username is in the 'packager' group in FAS. Works only the user's
         username is the same in GitHub and FAS.
-        :param account_login: str, Github username
-        :return: bool
+
+        Args:
+            account_login (str): Github username.
+
+        Returns:
+            `True` if user is a packager, `False` otherwise.
         """
 
         try:
@@ -86,86 +106,111 @@ class Allowlist:
         logger.info(f"Cannot verify whether {account_login!r} signed FPCA.")
         return False
 
-    def add_account(self, account_login: str, sender_login: str) -> bool:
+    def add_namespace(self, namespace: str, sender_login: Optional[str] = None) -> bool:
         """
-        Add account to allowlist.
-        Status is set to 'waiting' or to 'approved_automatically'
-        if the account is a packager in Fedora.
-        :param sender_login: login of the user who installed the app into 'account'
-        :param account_login: login of the account into which the app was installed
-        :return: was the account (auto/already)-allowlisted?
+        Add namespace to the allowlist. Namespace is set to `waiting` unless the
+        `sender_login` matches packager account in FAS.
+
+        Args:
+            namespace (str): Namespace to be added in format of: `github.com/namespace`
+                or `github.com/namespace/repo.git`.
+            sender_login (str): Login of the user that can be matched against FAS.
+
+                Defaults to `None`.
+
+        Returns:
+            `True` if account is already allowed, was auto-allowed. `False` otherwise.
         """
-        # TODO: Switch to AllowlistModel
-        if AllowlistModel.get_account(account_login):
+        if AllowlistModel.get_namespace(namespace):
             return True
 
-        # TODO: Switch to AllowlistStatus
-        AllowlistModel.add_account(account_login, AllowlistStatus.waiting.value)
+        AllowlistModel.add_namespace(namespace, AllowlistStatus.waiting.value)
 
         if self._signed_fpca(sender_login):
-            AllowlistModel.add_account(
-                account_login, AllowlistStatus.approved_automatically.value
+            AllowlistModel.add_namespace(
+                namespace, AllowlistStatus.approved_automatically.value, sender_login
             )
             return True
 
         return False
 
     @staticmethod
-    def approve_account(account_name: str):
+    def approve_namespace(namespace: str):
         """
-        Approve user manually
-        :param account_name: account name for approval
+        Approve namespace manually.
+
+        Args:
+            namespace (str): Namespace in the format of `github.com/namespace` or
+                `github.com/namespace/repository.git`.
         """
-        AllowlistModel.add_account(
-            account_name=account_name, status=AllowlistStatus.approved_manually.value
+        AllowlistModel.add_namespace(
+            namespace=namespace, status=AllowlistStatus.approved_manually.value
         )
 
-        logger.info(f"Account {account_name!r} approved successfully.")
+        logger.info(f"Account {namespace!r} approved successfully.")
 
     @staticmethod
-    def is_approved(account_name: str) -> bool:
+    def is_approved(namespace: str) -> bool:
         """
-        Check if user is approved in the allowlist
-        :param account_name: account name to check
-        :return:
+        Checks if namespace is approved in the allowlist.
+
+        Args:
+            namespace (str): Namespace in format `example.com/namespace/repository.git`,
+                where `/repository.git` is optional.
+
+        Returns:
+            `True` if namespace is approved, `False` otherwise.
         """
-        account = AllowlistModel.get_account(account_name)
-        if not account:
+        if not namespace:
             return False
 
-        return AllowlistStatus(account.status) in (
-            AllowlistStatus.approved_automatically,
-            AllowlistStatus.approved_manually,
-        )
+        separated_path = [namespace, None]
+        while len(separated_path) > 1:
+            if matching_namespace := AllowlistModel.get_namespace(separated_path[0]):
+                status = AllowlistStatus(matching_namespace.status)
+                if status != AllowlistStatus.waiting:
+                    return status in (
+                        AllowlistStatus.approved_automatically,
+                        AllowlistStatus.approved_manually,
+                    )
+
+            separated_path = separated_path[0].rsplit("/", 1)
+
+        logger.info(f"Could not find entry for: {namespace}")
+        return False
 
     @staticmethod
-    def remove_account(account_name: str) -> bool:
+    def remove_namespace(namespace: str) -> bool:
         """
-        Remove account from allowlist.
-        :param account_name: account name for removing
-        :return: has the account existed before?
+        Remove namespace from the allowlist.
+
+        Args:
+            namespace (str): Namespace to be removed in format of `github.com/namespace`
+                or `github.com/namespace/repository.git` if for specific repository.
+
+        Returns:
+            `True` if the namespace was in the allowlist before, `False` otherwise.
         """
-        account_existed = False
+        if not AllowlistModel.get_namespace(namespace):
+            logger.info(f"Namespace {namespace!r} does not exist!")
+            return False
 
-        if AllowlistModel.get_account(account_name):
-            AllowlistModel.remove_account(account_name)
-            logger.info(f"Account {account_name!r} removed from postgres allowlist!")
-            account_existed = True
+        AllowlistModel.remove_namespace(namespace)
+        logger.info(f"Namespace {namespace!r} removed from allowlist!")
 
-        if not account_existed:
-            logger.info(f"Account {account_name!r} does not exist!")
-
-        return account_existed
+        return True
 
     @staticmethod
-    def accounts_waiting() -> List[str]:
+    def waiting_namespaces() -> List[str]:
         """
-        Get accounts waiting for approval
-        :return: list of accounts waiting for approval
+        Get namespaces waiting for approval.
+
+        Returns:
+            List of namespaces that are waiting for approval.
         """
         return [
-            account.account_name
-            for account in AllowlistModel.get_accounts_by_status(
+            account.namespace
+            for account in AllowlistModel.get_namespaces_by_status(
                 AllowlistStatus.waiting.value
             )
         ]
@@ -189,11 +234,11 @@ class Allowlist:
         job_configs: Iterable[JobConfig],
     ) -> bool:
         # TODO: modify event hierarchy so we can use some abstract classes instead
-        namespace = event.repo_namespace
-        if not namespace:
+        project_url = self._strip_protocol_and_add_git(event.project_url)
+        if not project_url:
             raise KeyError(f"Failed to get namespace from {type(event)!r}")
 
-        if self.is_approved(namespace):
+        if self.is_approved(project_url):
             return True
 
         logger.info("Refusing release event on not allowlisted repo namespace.")
@@ -211,15 +256,16 @@ class Allowlist:
         service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
     ) -> bool:
-        account_name = event.user_login
-        if not account_name:
-            raise KeyError(f"Failed to get account_name from {type(event)}")
-        namespace = event.target_repo_namespace
+        actor_name = event.user_login
+        if not actor_name:
+            raise KeyError(f"Failed to get login of the actor from {type(event)}")
 
-        namespace_approved = self.is_approved(namespace)
+        project_url = self._strip_protocol_and_add_git(event.project_url)
+
+        namespace_approved = self.is_approved(project_url)
         user_approved = (
-            project.can_merge_pr(account_name)
-            or project.get_pr(event.pr_id).author == account_name
+            project.can_merge_pr(actor_name)
+            or project.get_pr(event.pr_id).author == actor_name
         )
 
         if namespace_approved and user_approved:
@@ -227,9 +273,9 @@ class Allowlist:
             return True
 
         msg = (
-            f"Namespace {namespace} is not on our allowlist!"
+            f"Project {project_url} is not on our allowlist!"
             if not namespace_approved
-            else f"Account {account_name} has no write access nor is author of PR!"
+            else f"Account {actor_name} has no write access nor is author of PR!"
         )
         logger.error(msg)
         if isinstance(
@@ -264,21 +310,21 @@ class Allowlist:
         service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
     ) -> bool:
-        account_name = event.user_login
-        if not account_name:
-            raise KeyError(f"Failed to get account_name from {type(event)}")
-        namespace = event.repo_namespace
+        actor_name = event.user_login
+        if not actor_name:
+            raise KeyError(f"Failed to get login of the actor from {type(event)}")
+        project_url = self._strip_protocol_and_add_git(event.project_url)
 
-        namespace_approved = self.is_approved(namespace)
-        user_approved = project.can_merge_pr(account_name)
+        namespace_approved = self.is_approved(project_url)
+        user_approved = project.can_merge_pr(actor_name)
 
         if namespace_approved and user_approved:
             return True
 
         msg = (
-            f"Namespace {namespace} is not on our allowlist!"
+            f"Project {project_url} is not on our allowlist!"
             if not namespace_approved
-            else f"Account {account_name} has no write access!"
+            else f"Account {actor_name} has no write access!"
         )
         logger.error(msg)
         project.issue_comment(event.issue_id, msg)
