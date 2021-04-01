@@ -785,6 +785,9 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
                     # Merge chroots and statuses from different rows into one
                     func.array_agg(psql_array([CoprBuildModel.target])).label("target"),
                     func.array_agg(psql_array([CoprBuildModel.status])).label("status"),
+                    func.array_agg(psql_array([CoprBuildModel.id])).label(
+                        "packit_id_per_chroot"
+                    ),
                 )
                 .group_by(CoprBuildModel.build_id)  # Group by identical element(s)
                 .order_by(desc("new_id"))[first:last]
