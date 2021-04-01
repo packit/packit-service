@@ -133,11 +133,11 @@ class DistGitCommitHandler(FedmsgHandler):
             self.service_config,
             self.job_config,
             upstream_local_project=self.local_project,
+            stage=self.service_config.use_stage(),
         )
         # rev is a commit
         # we use branch on purpose so we get the latest thing
         # TODO: check if rev is HEAD on {branch}, warn then?
-
         self.api.sync_from_downstream(
             dist_git_branch=self.dg_branch,
             upstream_branch=self.branch,

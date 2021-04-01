@@ -153,6 +153,9 @@ class ServiceConfig(Config):
             f"server_name='{self.server_name}')"
         )
 
+    def use_stage(self) -> bool:
+        return self.deployment != Deployment.prod
+
     @classmethod
     def get_from_dict(cls, raw_dict: dict) -> "ServiceConfig":
         # required to avoid circular imports

@@ -140,7 +140,10 @@ class BaseBuildJobHelper:
     def api(self) -> PackitAPI:
         if not self._api:
             self._api = PackitAPI(
-                self.service_config, self.job_config, self.local_project
+                self.service_config,
+                self.job_config,
+                self.local_project,
+                stage=self.service_config.use_stage(),
             )
         return self._api
 
