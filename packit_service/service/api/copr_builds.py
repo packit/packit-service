@@ -32,6 +32,7 @@ class CoprBuildsList(Resource):
             build_info = CoprBuildModel.get_by_build_id(build.build_id, None)
             project_info = build_info.get_project()
             build_dict = {
+                "packit_id": build.id,
                 "project": build_info.project_name,
                 "build_id": build.build_id,
                 "status_per_chroot": {},
