@@ -866,6 +866,7 @@ class DistGitCommitEvent(AbstractForgeIndependentEvent):
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["topic"] = result["topic"].value
+        result.pop("_db_trigger")
         return result
 
     @property
