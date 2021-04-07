@@ -25,16 +25,7 @@ from typing import List, Optional
 
 from celery import Task
 from packit_service.celerizer import celery_app
-from packit_service.models import TestingFarmResult
 from packit_service.constants import DEFAULT_RETRY_LIMIT, DEFAULT_RETRY_BACKOFF
-from packit_service.service.events import (
-    AbstractCoprBuildEvent,
-    EventData,
-    InstallationEvent,
-    KojiBuildEvent,
-    PullRequestLabelAction,
-    TestResult,
-)
 from packit_service.utils import load_job_config, load_package_config
 from packit_service.worker.build.babysit import check_copr_build
 from packit_service.worker.handlers.abstract import TaskName
@@ -117,8 +108,7 @@ def run_copr_build_start_handler(event: dict, package_config: dict, job_config: 
     handler = CoprBuildStartHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
-        data=EventData.from_event_dict(event),
-        copr_event=AbstractCoprBuildEvent.from_event_dict(event),
+        event=event,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -128,8 +118,7 @@ def run_copr_build_end_handler(event: dict, package_config: dict, job_config: di
     handler = CoprBuildEndHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
-        data=EventData.from_event_dict(event),
-        copr_event=AbstractCoprBuildEvent.from_event_dict(event),
+        event=event,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -139,7 +128,7 @@ def run_copr_build_handler(event: dict, package_config: dict, job_config: dict):
     handler = CoprBuildHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
-        data=EventData.from_event_dict(event),
+        event=event,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -147,10 +136,7 @@ def run_copr_build_handler(event: dict, package_config: dict, job_config: dict):
 @celery_app.task(name=TaskName.installation, base=HandlerTaskWithRetry)
 def run_installation_handler(event: dict, package_config: dict, job_config: dict):
     handler = GithubAppInstallationHandler(
-        package_config=None,
-        job_config=None,
-        data=None,
-        installation_event=InstallationEvent.from_event_dict(event),
+        package_config=None, job_config=None, event=event
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -166,7 +152,7 @@ def run_testing_farm_handler(
     handler = TestingFarmHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
-        data=EventData.from_event_dict(event),
+        event=event,
         chroot=chroot,
         build_id=build_id,
     )
@@ -180,13 +166,7 @@ def run_testing_farm_results_handler(
     handler = TestingFarmResultsHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
-        data=EventData.from_event_dict(event),
-        tests=[TestResult(**test) for test in event.get("tests", [])],
-        result=TestingFarmResult(event.get("result")) if event.get("result") else None,
-        pipeline_id=event.get("pipeline_id"),
-        log_url=event.get("log_url"),
-        copr_chroot=event.get("copr_chroot"),
-        summary=event.get("summary"),
+        event=event,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -198,7 +178,7 @@ def run_propose_downstream_handler(
     handler = ProposeDownstreamHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
-        data=EventData.from_event_dict(event),
+        event=event,
         task=self,
     )
     return get_handlers_task_results(handler.run_job(), event)
@@ -209,7 +189,7 @@ def run_koji_build_handler(event: dict, package_config: dict, job_config: dict):
     handler = KojiBuildHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
-        data=EventData.from_event_dict(event),
+        event=event,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -219,7 +199,7 @@ def run_distgit_commit_handler(event: dict, package_config: dict, job_config: di
     handler = DistGitCommitHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
-        data=EventData.from_event_dict(event),
+        event=event,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -229,12 +209,7 @@ def run_pagure_pr_label_handler(event: dict, package_config: dict, job_config: d
     handler = PagurePullRequestLabelHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
-        data=EventData.from_event_dict(event),
-        labels=event.get("labels"),
-        action=PullRequestLabelAction(event.get("action")),
-        base_repo_owner=event.get("base_repo_owner"),
-        base_repo_name=event.get("base_repo_name"),
-        base_repo_namespace=event.get("base_repo_namespace"),
+        event=event,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -244,8 +219,7 @@ def run_koji_build_report_handler(event: dict, package_config: dict, job_config:
     handler = KojiBuildReportHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
-        data=EventData.from_event_dict(event),
-        koji_event=KojiBuildEvent.from_event_dict(event),
+        event=event,
     )
     return get_handlers_task_results(handler.run_job(), event)
 

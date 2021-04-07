@@ -28,7 +28,6 @@ from packit.config import JobConfig, JobConfigTriggerType, JobType, PackageConfi
 from packit.config.job_config import JobMetadataConfig
 from packit_service.config import ServiceConfig
 from packit_service.models import GitBranchModel, PullRequestModel
-from packit_service.service.events import EventData
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.github_handlers import CoprBuildHandler
 
@@ -58,7 +57,7 @@ def test_handler_cleanup(tmp_path, trick_p_s_with_k8s):
         trigger=JobConfigTriggerType.pull_request,
         metadata=JobMetadataConfig(),
     )
-    j = JobHandler(package_config=pc, job_config=jc, data=flexmock())
+    j = JobHandler(package_config=pc, job_config=jc, event={})
 
     flexmock(j).should_receive("service_config").and_return(c)
 
@@ -94,7 +93,7 @@ def test_precheck(github_pr_event):
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.pull_request,
         ),
-        data=EventData.from_event_dict(github_pr_event.get_dict()),
+        event=github_pr_event.get_dict(),
     )
     assert copr_build_handler.pre_check()
 
@@ -119,7 +118,7 @@ def test_precheck_push(github_push_event):
             trigger=JobConfigTriggerType.commit,
             metadata=JobMetadataConfig(branch="build-branch"),
         ),
-        data=EventData.from_event_dict(github_push_event.get_dict()),
+        event=github_push_event.get_dict(),
     )
 
     assert copr_build_handler.pre_check()
@@ -145,6 +144,6 @@ def test_precheck_push_to_a_different_branch(github_push_event):
             trigger=JobConfigTriggerType.commit,
             metadata=JobMetadataConfig(branch="bad-branch"),
         ),
-        data=EventData.from_event_dict(github_push_event.get_dict()),
+        event=github_push_event.get_dict(),
     )
     assert not copr_build_handler.pre_check()

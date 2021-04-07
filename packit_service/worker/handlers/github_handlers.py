@@ -53,7 +53,6 @@ from packit_service.models import (
     InstallationModel,
 )
 from packit_service.service.events import (
-    EventData,
     InstallationEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
@@ -96,18 +95,18 @@ class GithubAppInstallationHandler(JobHandler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
-        installation_event: InstallationEvent,
+        event: dict,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
-            data=data,
+            event=event,
         )
-        self.installation_event = installation_event
-        self.account_type = installation_event.account_type
-        self.account_login = installation_event.account_login
-        self.sender_login = installation_event.sender_login
+
+        self.installation_event = InstallationEvent.from_event_dict(event)
+        self.account_type = self.installation_event.account_type
+        self.account_login = self.installation_event.account_login
+        self.sender_login = self.installation_event.sender_login
         self._project = self.service_config.get_project(
             url="https://github.com/packit/notifications"
         )
@@ -160,13 +159,13 @@ class ProposeDownstreamHandler(JobHandler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
-        task: Task,
+        event: dict,
+        task: Task = None,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
-            data=data,
+            event=event,
         )
         self.task = task
 
@@ -272,12 +271,12 @@ class CoprBuildHandler(JobHandler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
+        event: dict,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
-            data=data,
+            event=event,
         )
 
         self._copr_build_helper: Optional[CoprBuildJobHelper] = None
@@ -337,12 +336,12 @@ class KojiBuildHandler(JobHandler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
+        event: dict,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
-            data=data,
+            event=event,
         )
 
         # lazy property
@@ -419,14 +418,14 @@ class TestingFarmHandler(JobHandler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
+        event: dict,
         chroot: Optional[str] = None,
         build_id: Optional[int] = None,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
-            data=data,
+            event=event,
         )
         self.chroot = chroot
         self.build_id = build_id

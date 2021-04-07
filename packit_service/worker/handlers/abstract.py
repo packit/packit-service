@@ -284,13 +284,13 @@ class JobHandler(Handler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
+        event: dict,
     ):
         # build helper needs package_config to resolve dependencies b/w tests and build jobs
         self.package_config = package_config
         # always use job_config to pick up values, use package_config only for package_config.jobs
         self.job_config = job_config
-        self.data = data
+        self.data = EventData.from_event_dict(event)
 
         self._db_trigger: Optional[AbstractTriggerDbType] = None
         self._project: Optional[GitProject] = None

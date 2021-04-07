@@ -49,7 +49,6 @@ from packit_service.service.events import (
     AbstractCoprBuildEvent,
     CoprBuildStartEvent,
     DistGitCommitEvent,
-    EventData,
     KojiBuildEvent,
 )
 from packit_service.service.urls import (
@@ -88,12 +87,12 @@ class FedmsgHandler(JobHandler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
+        event: dict,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
-            data=data,
+            event=event,
         )
         self._pagure_service = None
 
@@ -114,15 +113,15 @@ class DistGitCommitHandler(FedmsgHandler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
+        event: dict,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
-            data=data,
+            event=event,
         )
-        self.branch = data.event_dict.get("branch")
-        self.dg_branch = data.event_dict.get("dg_branch")
+        self.branch = event.get("branch")
+        self.dg_branch = event.get("dg_branch")
 
     def run(self) -> TaskResults:
         self.upstream_local_project = LocalProject(
@@ -151,15 +150,14 @@ class AbstractCoprBuildReportHandler(FedmsgHandler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
-        copr_event: AbstractCoprBuildEvent,
+        event: dict,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
-            data=data,
+            event=event,
         )
-        self.copr_event = copr_event
+        self.copr_event = AbstractCoprBuildEvent.from_event_dict(event)
         self._build = None
         self._db_trigger = None
 
@@ -386,18 +384,14 @@ class KojiBuildReportHandler(FedmsgHandler):
     task_name = TaskName.koji_build_report
 
     def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        data: EventData,
-        koji_event: KojiBuildEvent,
+        self, package_config: PackageConfig, job_config: JobConfig, event: dict
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
-            data=data,
+            event=event,
         )
-        self.koji_event = koji_event
+        self.koji_event: KojiBuildEvent = KojiBuildEvent.from_event_dict(event)
         self._db_trigger: Optional[AbstractTriggerDbType] = None
         self._build: Optional[KojiBuildModel] = None
 
