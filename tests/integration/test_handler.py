@@ -24,12 +24,19 @@ import os
 import pytest
 from flexmock import flexmock
 
+from ogr.abstract import CommitStatus
+from ogr.services.github import GithubProject
 from packit.config import JobConfig, JobConfigTriggerType, JobType, PackageConfig
 from packit.config.job_config import JobMetadataConfig
 from packit_service.config import ServiceConfig
+from packit_service.constants import KOJI_PRODUCTION_BUILDS_ISSUE
 from packit_service.models import GitBranchModel, PullRequestModel
 from packit_service.worker.handlers import JobHandler
-from packit_service.worker.handlers.github_handlers import CoprBuildHandler
+from packit_service.worker.handlers.github_handlers import (
+    CoprBuildHandler,
+    KojiBuildHandler,
+)
+from packit_service.worker.reporting import StatusReporter
 
 
 @pytest.fixture()
@@ -147,3 +154,41 @@ def test_precheck_push_to_a_different_branch(github_push_event):
         event=github_push_event.get_dict(),
     )
     assert not copr_build_handler.pre_check()
+
+
+def test_precheck_koji_build_non_scratch(github_pr_event):
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=342,
+        namespace="packit-service",
+        repo_name="packit",
+        project_url="https://github.com/packit-service/packit",
+    ).and_return(
+        flexmock(id=342, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
+    flexmock(StatusReporter).should_receive("set_status").with_args(
+        state=CommitStatus.error,
+        description="Non-scratch builds not possible from upstream.",
+        check_name="packit-stg/production-build-bright-future",
+        url=KOJI_PRODUCTION_BUILDS_ISSUE,
+    ).and_return().once()
+    flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
+    koji_build_handler = KojiBuildHandler(
+        package_config=PackageConfig(
+            jobs=[
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(
+                        targets=["bright-future"], scratch=False
+                    ),
+                ),
+            ]
+        ),
+        job_config=JobConfig(
+            type=JobType.production_build,
+            trigger=JobConfigTriggerType.pull_request,
+            metadata=JobMetadataConfig(targets=["bright-future"], scratch=False),
+        ),
+        event=github_pr_event.get_dict(),
+    )
+    assert not koji_build_handler.pre_check()

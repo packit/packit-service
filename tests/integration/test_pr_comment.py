@@ -28,11 +28,15 @@ from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
 
+from ogr.abstract import CommitStatus
 from ogr.services.github import GithubProject
 from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
-from packit_service.constants import SANDCASTLE_WORK_DIR
+from packit_service.constants import (
+    SANDCASTLE_WORK_DIR,
+    TASK_ACCEPTED,
+)
 from packit_service.models import PullRequestModel
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
@@ -194,6 +198,11 @@ def test_pr_comment_copr_build_handler(
         "https://github.com/the-namespace/the-repo"
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_all").with_args(
+        description=TASK_ACCEPTED,
+        state=CommitStatus.pending,
+        url="",
+    ).once()
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_copr_build_comment_event)
@@ -225,6 +234,11 @@ def test_pr_comment_build_handler(
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_all").with_args(
+        description=TASK_ACCEPTED,
+        state=CommitStatus.pending,
+        url="",
+    ).once()
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_build_comment_event)
@@ -290,6 +304,11 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(KojiBuildJobHelper).should_receive("report_status_to_all").with_args(
+        description=TASK_ACCEPTED,
+        state=CommitStatus.pending,
+        url="",
+    ).once()
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_production_build_comment_event)
@@ -354,6 +373,11 @@ def test_pr_embedded_command_handler(
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_all").with_args(
+        description=TASK_ACCEPTED,
+        state=CommitStatus.pending,
+        url="",
+    ).once()
     flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
@@ -366,7 +390,6 @@ def test_pr_embedded_command_handler(
         event=event_dict,
         job_config=job_config,
     )
-
     assert first_dict_value(results["job"])["success"]
 
 
