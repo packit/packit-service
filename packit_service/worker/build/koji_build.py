@@ -30,7 +30,7 @@ from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitCommandFailedError
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
-from packit_service.constants import KOJI_PRODUCTION_BUILDS_ISSUE, MSG_RETRIGGER
+from packit_service.constants import MSG_RETRIGGER
 from packit_service.models import KojiBuildModel
 from packit_service.service.events import EventData
 from packit_service.service.urls import (
@@ -114,15 +114,6 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         return self._supported_koji_targets
 
     def run_koji_build(self) -> TaskResults:
-        if not self.is_scratch:
-            msg = "Non-scratch builds not possible from upstream."
-            self.report_status_to_all(
-                description=msg,
-                state=CommitStatus.error,
-                url=KOJI_PRODUCTION_BUILDS_ISSUE,
-            )
-            return TaskResults(success=True, details={"msg": msg})
-
         self.report_status_to_all(
             description="Building SRPM ...", state=CommitStatus.pending
         )

@@ -190,12 +190,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         return self.api.copr_helper.copr_client.build_proxy.get(build_id)
 
     def run_copr_build(self) -> TaskResults:
-
-        if not (self.job_build or self.job_tests):
-            msg = "No copr_build or tests job defined."
-            # we can't report it to end-user at this stage
-            return TaskResults(success=False, details={"msg": msg})
-
         self.report_status_to_all(
             description="Building SRPM ...",
             state=CommitStatus.pending,

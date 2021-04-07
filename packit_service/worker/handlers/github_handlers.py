@@ -43,6 +43,7 @@ from packit_service import sentry_integration
 from packit_service.constants import (
     DEFAULT_RETRY_LIMIT,
     FILE_DOWNLOAD_FAILURE,
+    KOJI_PRODUCTION_BUILDS_ISSUE,
     MSG_RETRIGGER,
     PERMISSIONS_ERROR_WRITE_OR_ADMIN,
 )
@@ -310,6 +311,12 @@ class CoprBuildHandler(JobHandler):
                     f"Push configured only for '{configured_branch}'."
                 )
                 return False
+
+        if not (self.copr_build_helper.job_build or self.copr_build_helper.job_tests):
+            logger.info("No copr_build or tests job defined.")
+            # we can't report it to end-user at this stage
+            return False
+
         return True
 
 
@@ -356,18 +363,6 @@ class KojiBuildHandler(JobHandler):
         return self._koji_build_helper
 
     def run(self) -> TaskResults:
-        if self.data.event_type == PullRequestGithubEvent.__name__:
-            user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
-            if not (
-                user_can_merge_pr or self.data.user_login in self.service_config.admins
-            ):
-                self.koji_build_helper.report_status_to_all(
-                    description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
-                    state=CommitStatus.failure,
-                )
-                return TaskResults(
-                    success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
-                )
         return self.koji_build_helper.run_koji_build()
 
     def pre_check(self) -> bool:
@@ -383,6 +378,27 @@ class KojiBuildHandler(JobHandler):
                     f"Push configured only for '{configured_branch}'."
                 )
                 return False
+
+        if self.data.event_type == PullRequestGithubEvent.__name__:
+            user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
+            if not (
+                user_can_merge_pr or self.data.user_login in self.service_config.admins
+            ):
+                self.koji_build_helper.report_status_to_all(
+                    description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
+                    state=CommitStatus.failure,
+                )
+                return False
+
+        if not self.koji_build_helper.is_scratch:
+            msg = "Non-scratch builds not possible from upstream."
+            self.koji_build_helper.report_status_to_all(
+                description=msg,
+                state=CommitStatus.error,
+                url=KOJI_PRODUCTION_BUILDS_ISSUE,
+            )
+            return False
+
         return True
 
 
