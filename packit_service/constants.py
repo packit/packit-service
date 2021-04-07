@@ -30,6 +30,8 @@ PERMISSIONS_ERROR_WRITE_OR_ADMIN = (
     "can trigger Packit-as-a-Service"
 )
 
+TASK_ACCEPTED = "The task was accepted :+1:"
+
 COPR_SUCC_STATE = "succeeded"
 COPR_FAILED_STATE = "failed"
 COPR_API_SUCC_STATE = 1

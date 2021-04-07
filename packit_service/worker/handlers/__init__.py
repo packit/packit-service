@@ -40,6 +40,7 @@ from packit_service.worker.handlers.github_handlers import (
     ProposeDownstreamHandler,
     TestingFarmHandler,
     CoprBuildHandler,
+    KojiBuildHandler,
 )
 from packit_service.worker.handlers.testing_farm_handlers import (
     TestingFarmResultsHandler,
@@ -57,4 +58,5 @@ __all__ = [
     TestingFarmResultsHandler.__name__,
     CoprBuildHandler.__name__,
     TestingFarmHandler.__name__,
+    KojiBuildHandler.__name__,
 ]
