@@ -204,17 +204,21 @@ class Handler:
             self._service_config = ServiceConfig.get_service_config()
         return self._service_config
 
+    @property
+    def project(self) -> Optional[GitProject]:
+        return None
+
     def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")
 
     def get_tag_info(self) -> dict:
-        tags = {"handler": getattr(self, "name", "generic-handler")}
+        tags = {"handler": self.__class__.__name__}
         # repository info for easier filtering events that were grouped based on event type
-        if self.local_project:
+        if self.project:
             tags.update(
                 {
-                    "repository": self.local_project.repo_name,
-                    "namespace": self.local_project.namespace,
+                    "repository": self.project.repo,
+                    "namespace": self.project.namespace,
                 }
             )
         return tags
