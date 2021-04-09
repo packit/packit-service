@@ -15,7 +15,7 @@ repos:
     rev: v2.2.1
     hooks:
       - id: prettier
-        exclude: tests_requre/openshift_integration/test_data/*
+        exclude: tests_requre/openshift_integration/test_data/
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
     hooks:
