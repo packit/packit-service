@@ -9,9 +9,7 @@ jobs:
   build-and-push:
     # To not run in forks
     if: github.repository_owner == 'packit'
-    # https://github.com/redhat-actions/buildah-build/issues/45
-    #    runs-on: ubuntu-latest
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
