@@ -22,8 +22,10 @@
 
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
+from packit_service.worker.build.koji_build import KojiBuildJobHelper
 
 __all__ = [
     CoprBuildJobHelper.__name__,
     BaseBuildJobHelper.__name__,
+    KojiBuildJobHelper.__name__,
 ]

@@ -21,13 +21,12 @@
 # SOFTWARE.
 
 import logging
-from typing import List, Optional
+from typing import Optional
 
 from ogr.abstract import CommitStatus, PullRequest
 from packit.config import JobConfig, PackageConfig
 from packit_service.models import BugzillaModel
 from packit_service.service.events import (
-    EventData,
     PullRequestLabelAction,
     PullRequestLabelPagureEvent,
 )
@@ -48,24 +47,18 @@ class PagurePullRequestLabelHandler(JobHandler):
     task_name = TaskName.pagure_pr_label
 
     def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        data: EventData,
-        labels: List[str],
-        action: PullRequestLabelAction,
-        base_repo_owner: str,
-        base_repo_name: str,
-        base_repo_namespace: str,
+        self, package_config: PackageConfig, job_config: JobConfig, event: dict
     ):
         super().__init__(
-            package_config=package_config, job_config=job_config, data=data
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
         )
-        self.labels = set(labels)
-        self.action = action
-        self.base_repo_owner = base_repo_owner
-        self.base_repo_name = base_repo_name
-        self.base_repo_namespace = base_repo_namespace
+        self.labels = set(event.get("labels"))
+        self.action = PullRequestLabelAction(event.get("action"))
+        self.base_repo_owner = event.get("base_repo_owner")
+        self.base_repo_name = event.get("base_repo_name")
+        self.base_repo_namespace = event.get("base_repo_namespace")
 
         self.pr: PullRequest = self.project.get_pr(self.data.pr_id)
         # lazy properties

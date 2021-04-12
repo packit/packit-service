@@ -29,11 +29,14 @@ from typing import List, Set, Type, Union
 
 from celery import group
 
+from ogr.abstract import CommitStatus
 from packit.config import JobConfig, PackageConfig
+from packit_service.constants import TASK_ACCEPTED
 from packit_service.config import ServiceConfig
 from packit_service.log_versions import log_job_versions
 from packit_service.service.events import (
     Event,
+    EventData,
     InstallationEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
@@ -42,10 +45,13 @@ from packit_service.service.events import (
     PullRequestCommentPagureEvent,
     PullRequestLabelPagureEvent,
 )
+from packit_service.worker.build import CoprBuildJobHelper, KojiBuildJobHelper
 from packit_service.worker.handlers import (
+    CoprBuildHandler,
     CoprBuildEndHandler,
     CoprBuildStartHandler,
     GithubAppInstallationHandler,
+    KojiBuildHandler,
     TestingFarmResultsHandler,
 )
 from packit_service.worker.handlers.abstract import (
@@ -251,7 +257,7 @@ class SteveJobs:
             return []
 
         allowlist = Allowlist()
-        job_configs = []
+        processing_results: List[TaskResults] = []
 
         for handler_kls in handler_classes:
             # TODO: merge to to get_handlers_for_event so
@@ -282,24 +288,52 @@ class SteveJobs:
                     )
                 return processing_results
 
+            signatures = []
+
             # we want to run handlers for all possible jobs, not just the first one
-            signatures = [
-                handler_kls.get_signature(event=event, job=job_config)
-                for job_config in job_configs
-            ]
+            for job_config in job_configs:
+                handler = handler_kls(
+                    package_config=event.package_config,
+                    job_config=job_config,
+                    event=event.get_dict(),
+                )
+                if not handler.pre_check():
+                    continue
+
+                if isinstance(handler, (CoprBuildHandler, KojiBuildHandler)):
+                    helper = (
+                        CoprBuildJobHelper
+                        if isinstance(handler, CoprBuildHandler)
+                        else KojiBuildJobHelper
+                    )
+                    job_helper = helper(
+                        service_config=self.service_config,
+                        package_config=event.package_config,
+                        project=event.project,
+                        metadata=EventData.from_event_dict(event.get_dict()),
+                        db_trigger=event.db_trigger,
+                        job_config=job_config,
+                    )
+
+                    job_helper.report_status_to_all(
+                        description=TASK_ACCEPTED,
+                        state=CommitStatus.pending,
+                        url="",
+                    )
+                signatures.append(
+                    handler_kls.get_signature(event=event, job=job_config)
+                )
+                processing_results.append(
+                    TaskResults.create_from(
+                        success=True,
+                        msg="Job created.",
+                        job_config=job_config,
+                        event=event,
+                    )
+                )
             # https://docs.celeryproject.org/en/stable/userguide/canvas.html#groups
             group(signatures).apply_async()
 
-        processing_results = []
-        for job_config in job_configs:
-            processing_results.append(
-                TaskResults.create_from(
-                    success=True,
-                    msg="Job created.",
-                    job_config=job_config,
-                    event=event,
-                )
-            )
         return processing_results
 
     def process_message(

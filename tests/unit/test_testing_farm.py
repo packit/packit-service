@@ -18,7 +18,6 @@ from packit_service.service.events import (
     TestingFarmResultsEvent as TFResultsEvent,
     TestingFarmResult as TFResult,
     TestResult as TResult,
-    EventData,
 )
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.reporting import StatusReporter
@@ -191,15 +190,7 @@ def test_testing_farm_response(
         project_url="https://github.com/packit/ogr",
     ).get_dict()
     test_farm_handler = TFResultsHandler(
-        package_config=flexmock(),
-        job_config=flexmock(),
-        data=EventData.from_event_dict(event_dict),
-        tests=tests_tests,
-        result=tests_result,
-        pipeline_id="id",
-        log_url="some url",
-        copr_chroot="fedora-rawhide-x86_64",
-        summary=tests_message,
+        package_config=flexmock(), job_config=flexmock(), event=event_dict
     )
     flexmock(StatusReporter).should_receive("report").with_args(
         state=status_status,

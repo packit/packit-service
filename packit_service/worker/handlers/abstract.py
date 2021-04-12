@@ -284,13 +284,13 @@ class JobHandler(Handler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
+        event: dict,
     ):
         # build helper needs package_config to resolve dependencies b/w tests and build jobs
         self.package_config = package_config
         # always use job_config to pick up values, use package_config only for package_config.jobs
         self.job_config = job_config
-        self.data = data
+        self.data = EventData.from_event_dict(event)
 
         self._db_trigger: Optional[AbstractTriggerDbType] = None
         self._project: Optional[GitProject] = None
@@ -318,15 +318,14 @@ class JobHandler(Handler):
         )
         logger.debug(f"Running handler {str(self)} for {job_type}")
         job_results: Dict[str, TaskResults] = {}
-        if self.pre_check():
-            current_time = datetime.now().strftime(DATETIME_FORMAT)
-            result_key = f"{job_type}-{current_time}"
-            job_results[result_key] = self.run_n_clean()
-            logger.debug("Job finished!")
+        current_time = datetime.now().strftime(DATETIME_FORMAT)
+        result_key = f"{job_type}-{current_time}"
+        job_results[result_key] = self.run_n_clean()
+        logger.debug("Job finished!")
 
-            for result in job_results.values():
-                if not (result and result["success"]):
-                    logger.error(result["details"]["msg"])
+        for result in job_results.values():
+            if not (result and result["success"]):
+                logger.error(result["details"]["msg"])
 
         return job_results
 

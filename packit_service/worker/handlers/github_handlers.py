@@ -43,6 +43,7 @@ from packit_service import sentry_integration
 from packit_service.constants import (
     DEFAULT_RETRY_LIMIT,
     FILE_DOWNLOAD_FAILURE,
+    KOJI_PRODUCTION_BUILDS_ISSUE,
     MSG_RETRIGGER,
     PERMISSIONS_ERROR_WRITE_OR_ADMIN,
 )
@@ -52,7 +53,6 @@ from packit_service.models import (
     InstallationModel,
 )
 from packit_service.service.events import (
-    EventData,
     InstallationEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
@@ -95,18 +95,18 @@ class GithubAppInstallationHandler(JobHandler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
-        installation_event: InstallationEvent,
+        event: dict,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
-            data=data,
+            event=event,
         )
-        self.installation_event = installation_event
-        self.account_type = installation_event.account_type
-        self.account_login = installation_event.account_login
-        self.sender_login = installation_event.sender_login
+
+        self.installation_event = InstallationEvent.from_event_dict(event)
+        self.account_type = self.installation_event.account_type
+        self.account_login = self.installation_event.account_login
+        self.sender_login = self.installation_event.sender_login
         self._project = self.service_config.get_project(
             url="https://github.com/packit/notifications"
         )
@@ -159,13 +159,13 @@ class ProposeDownstreamHandler(JobHandler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
-        task: Task,
+        event: dict,
+        task: Task = None,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
-            data=data,
+            event=event,
         )
         self.task = task
 
@@ -271,12 +271,12 @@ class CoprBuildHandler(JobHandler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
+        event: dict,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
-            data=data,
+            event=event,
         )
 
         self._copr_build_helper: Optional[CoprBuildJobHelper] = None
@@ -310,6 +310,12 @@ class CoprBuildHandler(JobHandler):
                     f"Push configured only for '{configured_branch}'."
                 )
                 return False
+
+        if not (self.copr_build_helper.job_build or self.copr_build_helper.job_tests):
+            logger.info("No copr_build or tests job defined.")
+            # we can't report it to end-user at this stage
+            return False
+
         return True
 
 
@@ -330,12 +336,12 @@ class KojiBuildHandler(JobHandler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
+        event: dict,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
-            data=data,
+            event=event,
         )
 
         # lazy property
@@ -356,18 +362,6 @@ class KojiBuildHandler(JobHandler):
         return self._koji_build_helper
 
     def run(self) -> TaskResults:
-        if self.data.event_type == PullRequestGithubEvent.__name__:
-            user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
-            if not (
-                user_can_merge_pr or self.data.user_login in self.service_config.admins
-            ):
-                self.koji_build_helper.report_status_to_all(
-                    description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
-                    state=CommitStatus.failure,
-                )
-                return TaskResults(
-                    success=True, details={"msg": PERMISSIONS_ERROR_WRITE_OR_ADMIN}
-                )
         return self.koji_build_helper.run_koji_build()
 
     def pre_check(self) -> bool:
@@ -383,6 +377,27 @@ class KojiBuildHandler(JobHandler):
                     f"Push configured only for '{configured_branch}'."
                 )
                 return False
+
+        if self.data.event_type == PullRequestGithubEvent.__name__:
+            user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
+            if not (
+                user_can_merge_pr or self.data.user_login in self.service_config.admins
+            ):
+                self.koji_build_helper.report_status_to_all(
+                    description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
+                    state=CommitStatus.failure,
+                )
+                return False
+
+        if not self.koji_build_helper.is_scratch:
+            msg = "Non-scratch builds not possible from upstream."
+            self.koji_build_helper.report_status_to_all(
+                description=msg,
+                state=CommitStatus.error,
+                url=KOJI_PRODUCTION_BUILDS_ISSUE,
+            )
+            return False
+
         return True
 
 
@@ -403,14 +418,14 @@ class TestingFarmHandler(JobHandler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
+        event: dict,
         chroot: Optional[str] = None,
         build_id: Optional[int] = None,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
-            data=data,
+            event=event,
         )
         self.chroot = chroot
         self.build_id = build_id

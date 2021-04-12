@@ -5,7 +5,7 @@
 This file defines classes for job handlers specific for Testing farm
 """
 import logging
-from typing import List, Optional
+from typing import Optional
 
 from ogr import GitlabService
 from ogr.abstract import CommitStatus
@@ -14,7 +14,6 @@ from packit.config.package_config import PackageConfig
 
 from packit_service.models import AbstractTriggerDbType, TFTTestRunModel
 from packit_service.service.events import (
-    EventData,
     TestResult,
     TestingFarmResult,
     TestingFarmResultsEvent,
@@ -37,26 +36,22 @@ class TestingFarmResultsHandler(JobHandler):
         self,
         package_config: PackageConfig,
         job_config: JobConfig,
-        data: EventData,
-        tests: List[TestResult],
-        result: TestingFarmResult,
-        pipeline_id: str,
-        log_url: str,
-        copr_chroot: str,
-        summary: str,
+        event: dict,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
-            data=data,
+            event=event,
         )
 
-        self.tests = tests
-        self.result = result
-        self.pipeline_id = pipeline_id
-        self.log_url = log_url
-        self.copr_chroot = copr_chroot
-        self.summary = summary
+        self.tests = [TestResult(**test) for test in event.get("tests", [])]
+        self.result = (
+            TestingFarmResult(event.get("result")) if event.get("result") else None
+        )
+        self.pipeline_id = event.get("pipeline_id")
+        self.log_url = event.get("log_url")
+        self.copr_chroot = event.get("copr_chroot")
+        self.summary = event.get("summary")
         self._db_trigger: Optional[AbstractTriggerDbType] = None
 
     @property
