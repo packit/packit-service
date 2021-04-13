@@ -104,6 +104,13 @@ def test_get_merged_chroots(clean_before_and_after, too_many_copr_builds):
     # two merged chroots so two statuses
     assert len(builds_list[0].status) == 2
     assert len(builds_list[0].target) == 2
+
+    # check that IDs are different
+    assert (
+        builds_list[0].packit_id_per_chroot[0][0]
+        != builds_list[0].packit_id_per_chroot[1][0]
+    )
+
     assert builds_list[1].status[0][0] == "success"
     assert builds_list[2].target[0][0] == "fedora-42-x86_64"
 
