@@ -32,6 +32,7 @@ class CoprBuildsList(Resource):
             build_info = CoprBuildModel.get_by_build_id(build.build_id, None)
             project_info = build_info.get_project()
             build_dict = {
+                "packit_id": build_info.id,
                 "project": build_info.project_name,
                 "build_id": build.build_id,
                 "status_per_chroot": {},
@@ -46,10 +47,12 @@ class CoprBuildsList(Resource):
                 "project_url": project_info.project_url,
             }
 
-            for count, chroot in enumerate(build.target):
+            for i, chroot in enumerate(build.target):
                 # [0] because sqlalchemy returns a single element sub-list
-                build_dict["status_per_chroot"][chroot[0]] = build.status[count][0]
-                build_dict["packit_id_per_chroot"][chroot[0]] = build.new_id
+                build_dict["status_per_chroot"][chroot[0]] = build.status[i][0]
+                build_dict["packit_id_per_chroot"][
+                    chroot[0]
+                ] = build.packit_id_per_chroot[i][0]
 
             result.append(build_dict)
 
