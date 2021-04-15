@@ -27,10 +27,9 @@ test_image: files/install-deps-worker.yaml files/install-deps.yaml files/recipe-
 	$(CONTAINER_ENGINE) build --rm -t $(TEST_IMAGE) -f files/docker/Dockerfile.tests --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
 
 check_in_container:
-	$(CONTAINER_ENGINE) pull $(TEST_IMAGE)
 	@# don't use -ti here in CI, TTY is not allocated in zuul
 	echo $(SOURCE_BRANCH)
-	$(CONTAINER_ENGINE) run --rm \
+	$(CONTAINER_ENGINE) run --rm --pull=always \
 		--env COV_REPORT \
 		--env TEST_TARGET \
 		--env COLOR \

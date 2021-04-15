@@ -11,6 +11,7 @@ from packit.config import JobType, JobConfigTriggerType
 from packit.config.job_config import JobConfig
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitConfigException
+from packit.utils import nested_get
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import TESTING_FARM_INSTALLABILITY_TEST_URL
@@ -288,11 +289,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         # success set check on pending
         if req.status_code != 200:
             # something went wrong
-            if req.json() and "message" in req.json():
-                msg = req.json()["message"]
+            if req.json() and "errors" in req.json():
+                msg = req.json()["errors"]
+                # specific case, unsupported arch
+                if nested_get(req.json(), "errors", "environments", "0", "arch"):
+                    msg = req.json()["errors"]["environments"][0]["arch"]
             else:
                 msg = f"Failed to submit tests: {req.reason}"
-                logger.error(msg)
+            logger.error(msg)
             self.report_status_to_test_for_chroot(
                 state=CommitStatus.failure,
                 description=msg,
