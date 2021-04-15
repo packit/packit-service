@@ -594,8 +594,8 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         RequestResponse(
             status_code=400,
             ok=False,
-            content=b'{"message": "some error"}',
-            json={"message": "some error"},
+            content=b'{"errors": "some error"}',
+            json={"errors": "some error"},
         )
     )
 
