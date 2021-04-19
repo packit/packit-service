@@ -12,9 +12,10 @@ from packit_service.models import (
     SRPMBuildModel,
 )
 from packit_service.service.app import packit_as_a_service as application
+from packit_service.service import urls
 from packit_service.service.urls import (
-    get_copr_build_info_url_from_flask,
-    get_srpm_log_url_from_flask,
+    get_copr_build_info_url,
+    get_srpm_build_info_url,
 )
 
 
@@ -24,6 +25,8 @@ def client():
     # this affects all tests actually, heads up!
     application.config["SERVER_NAME"] = "localhost:5000"
     application.config["PREFERRED_URL_SCHEME"] = "https"
+
+    urls.DASHBOARD_URL = "https://localhost"
 
     with application.test_client() as client:
         yield client
@@ -81,20 +84,8 @@ def test_get_logs(client):
 
     flexmock(CoprBuildModel).should_receive("get_by_id").and_return(copr_build_mock)
 
-    url = "/copr-build/1"
-    logs_url = get_copr_build_info_url_from_flask(1)
-    assert logs_url.endswith(url)
-
-    resp = client.get(url).data.decode()
-    assert f"srpm-build/{srpm_build_mock.id}/logs" in resp
-    assert copr_build_mock.web_url in resp
-    assert copr_build_mock.build_logs_url in resp
-    assert copr_build_mock.target in resp
-    assert "Status: success" in resp
-    assert "You can install" in resp
-
-    assert "Download SRPM" in resp
-    assert srpm_build_mock.url in resp
+    logs_url = get_copr_build_info_url(1)
+    assert logs_url == "https://localhost/results/copr-builds/1"
 
 
 def test_get_srpm_logs(client):
@@ -104,10 +95,5 @@ def test_get_srpm_logs(client):
 
     flexmock(SRPMBuildModel).should_receive("get_by_id").and_return(srpm_build_mock)
 
-    url = "/srpm-build/2/logs"
-    logs_url = get_srpm_log_url_from_flask(2)
-    assert logs_url.endswith(url)
-
-    resp = client.get(url).data.decode()
-    assert srpm_build_mock.logs in resp
-    assert f"build {srpm_build_mock.id}" in resp
+    logs_url = get_srpm_build_info_url(2)
+    assert logs_url == "https://localhost/results/srpm-builds/2"
