@@ -34,8 +34,8 @@ from packit_service.constants import MSG_RETRIGGER
 from packit_service.models import KojiBuildModel
 from packit_service.service.events import EventData
 from packit_service.service.urls import (
-    get_koji_build_info_url_from_flask,
-    get_srpm_log_url_from_flask,
+    get_koji_build_info_url,
+    get_srpm_build_info_url,
 )
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.result import TaskResults
@@ -124,7 +124,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             self.report_status_to_all(
                 state=CommitStatus.failure,
                 description=msg,
-                url=get_srpm_log_url_from_flask(self.srpm_model.id),
+                url=get_srpm_build_info_url(self.srpm_model.id),
             )
             return TaskResults(success=False, details={"msg": msg})
 
@@ -138,7 +138,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             self.report_status_to_all(
                 state=CommitStatus.error,
                 description=msg,
-                url=get_srpm_log_url_from_flask(self.srpm_model.id),
+                url=get_srpm_build_info_url(self.srpm_model.id),
             )
             return TaskResults(success=False, details={"msg": msg})
 
@@ -150,7 +150,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 self.report_status_to_all_for_chroot(
                     state=CommitStatus.error,
                     description=msg,
-                    url=get_srpm_log_url_from_flask(self.srpm_model.id),
+                    url=get_srpm_build_info_url(self.srpm_model.id),
                     chroot=target,
                 )
                 errors[target] = msg
@@ -165,7 +165,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 self.report_status_to_all_for_chroot(
                     state=CommitStatus.error,
                     description=f"Submit of the build failed: {ex}",
-                    url=get_srpm_log_url_from_flask(self.srpm_model.id),
+                    url=get_srpm_build_info_url(self.srpm_model.id),
                     chroot=target,
                 )
                 errors[target] = str(ex)
@@ -179,7 +179,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 status="pending",
                 run_model=self.run_model,
             )
-            url = get_koji_build_info_url_from_flask(id_=koji_build.id)
+            url = get_koji_build_info_url(id_=koji_build.id)
             self.report_status_to_all_for_chroot(
                 state=CommitStatus.pending,
                 description="Building RPM ...",

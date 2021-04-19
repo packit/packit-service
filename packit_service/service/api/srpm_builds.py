@@ -4,8 +4,7 @@
 from http import HTTPStatus
 from logging import getLogger
 
-# from packit_service.service.urls import get_srpm_log_url_from_flask
-from flask import url_for
+from packit_service.service.urls import get_srpm_build_info_url
 from flask_restx import Namespace, Resource
 
 from packit_service.models import SRPMBuildModel, optional_time
@@ -31,9 +30,7 @@ class SRPMBuildsList(Resource):
             build_dict = {
                 "srpm_build_id": build.id,
                 "success": build.success,
-                "log_url": url_for(
-                    "builds.get_srpm_build_logs_by_id", id_=build.id, _external=True
-                ),
+                "log_url": get_srpm_build_info_url(build.id),
                 "build_submitted_time": optional_time(build.build_submitted_time),
             }
             project = build.get_project()
