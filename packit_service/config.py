@@ -86,6 +86,7 @@ class ServiceConfig(Config):
         enabled_private_namespaces: Union[Set[str], List[str]] = None,
         gitlab_token_secret: str = "",
         projects_to_sync: List[ProjectToSync] = None,
+        dashboard_url: str = "",
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -131,6 +132,9 @@ class ServiceConfig(Config):
 
         self.projects_to_sync = projects_to_sync or []
 
+        # Full URL to the dashboard, e.g. https://dashboard.packit.dev
+        self.dashboard_url = dashboard_url
+
     def __repr__(self):
         def hide(token: str) -> str:
             return f"{token[:1]}***{token[-1:]}" if token else ""
@@ -150,7 +154,8 @@ class ServiceConfig(Config):
             f"gitlab_webhook_tokens='{self.gitlab_webhook_tokens}',"
             f"gitlab_token_secret='{hide(self.gitlab_token_secret)}',"
             f"enabled_private_namespaces='{self.enabled_private_namespaces}',"
-            f"server_name='{self.server_name}')"
+            f"server_name='{self.server_name}', "
+            f"dashboard_url='{self.dashboard_url}')"
         )
 
     def use_stage(self) -> bool:

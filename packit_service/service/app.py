@@ -48,17 +48,18 @@ def get_flask_application():
     app = Flask(__name__)
     app.register_blueprint(blueprint)
     app.register_blueprint(builds_blueprint)
-    s = ServiceConfig.get_service_config()
+    service_config = ServiceConfig.get_service_config()
     # https://flask.palletsprojects.com/en/1.1.x/config/#SERVER_NAME
     # also needs to contain port if it's not 443
-    app.config["SERVER_NAME"] = s.server_name
+    app.config["SERVER_NAME"] = service_config.server_name
     app.config["PREFERRED_URL_SCHEME"] = "https"
     if getenv("DEPLOYMENT") in ("dev", "stg"):
         app.config["DEBUG"] = True
+
     app.logger.setLevel(logging.DEBUG)
     logger = logging.getLogger("packit_service")
     logger.info(
-        f"server name = {s.server_name}, all HTTP requests need to use this URL!"
+        f"server name = {service_config.server_name}, all HTTP requests need to use this URL!"
     )
     log_service_versions()
     # no need to thank me, just buy me a beer
