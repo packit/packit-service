@@ -52,3 +52,7 @@ def get_copr_build_info_url(id_: int) -> str:
 
 def get_koji_build_info_url(id_: int) -> str:
     return _get_url_for_dashboard_results("koji-builds", id_)
+
+
+def get_testing_farm_info_url(id_: int) -> str:
+    return _get_url_for_dashboard_results("testing-farm", id_)

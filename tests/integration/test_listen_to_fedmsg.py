@@ -25,6 +25,7 @@ from packit_service.models import (
     KojiBuildModel,
 )
 from packit_service.service.events import AbstractCoprBuildEvent, KojiBuildEvent
+import packit_service.service.urls as urls
 from packit_service.service.urls import (
     get_copr_build_info_url,
     get_koji_build_info_url,
@@ -359,6 +360,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
             source_project=flexmock(get_web_url=lambda: "https://github.com/foo/bar")
         )
     )
+    urls.DASHBOARD_URL = "https://dashboard.localhost"
 
     config = PackageConfig(
         jobs=[
@@ -477,7 +479,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         "https://github.com/foo/bar"
     )
 
-    tft_test_run_model = flexmock()
+    tft_test_run_model = flexmock(id=5)
     flexmock(TFTTestRunModel).should_receive("create").with_args(
         pipeline_id=pipeline_id,
         commit_sha="0011223344",
@@ -491,7 +493,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(StatusReporter).should_receive("report").with_args(
         state=CommitStatus.pending,
         description="Tests have been submitted ...",
-        url=f"{tft_api_url}requests/{pipeline_id}",
+        url="https://dashboard.localhost/results/testing-farm/5",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
     ).once()
     flexmock(Signature).should_receive("apply_async").twice()
