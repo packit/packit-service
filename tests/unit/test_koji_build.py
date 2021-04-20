@@ -49,8 +49,8 @@ from packit_service.service.events import (
     KojiBuildEvent,
 )
 from packit_service.service.urls import (
-    get_koji_build_info_url_from_flask,
-    get_srpm_log_url_from_flask,
+    get_koji_build_info_url,
+    get_srpm_build_info_url,
 )
 from packit_service.worker.build import koji_build
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
@@ -120,7 +120,7 @@ def test_koji_build_check_names(github_pr_event):
         ["dark-past", "bright-future"]
     ).once()
 
-    koji_build_url = get_koji_build_info_url_from_flask(1)
+    koji_build_url = get_koji_build_info_url(1)
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building SRPM ...",
@@ -182,7 +182,7 @@ def test_koji_build_failed_kerberos(github_pr_event):
         state=CommitStatus.error,
         description="Kerberos authentication error: the bad authentication error",
         check_name="packit-stg/production-build-bright-future",
-        url=get_srpm_log_url_from_flask(1),
+        url=get_srpm_build_info_url(1),
     ).and_return()
 
     flexmock(GitProject).should_receive("get_pr").and_return(
@@ -234,7 +234,7 @@ def test_koji_build_target_not_supported(github_pr_event):
         state=CommitStatus.error,
         description="Target not supported: nonexisting-target",
         check_name="packit-stg/production-build-nonexisting-target",
-        url=get_srpm_log_url_from_flask(1),
+        url=get_srpm_build_info_url(1),
     ).and_return()
 
     flexmock(GitProject).should_receive("get_pr").and_return(
@@ -325,7 +325,7 @@ def test_koji_build_failed(github_pr_event):
         url="",
     ).and_return()
 
-    srpm_build_url = get_srpm_log_url_from_flask(2)
+    srpm_build_url = get_srpm_build_info_url(2)
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.error,
         description="Submit of the build failed: some error",
@@ -363,7 +363,7 @@ def test_koji_build_failed_srpm(github_pr_event):
         metadata=JobMetadataConfig(targets=["bright-future"], scratch=True),
         db_trigger=trigger,
     )
-    srpm_build_url = get_srpm_log_url_from_flask(2)
+    srpm_build_url = get_srpm_build_info_url(2)
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building SRPM ...",

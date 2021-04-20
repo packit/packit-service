@@ -77,6 +77,7 @@ class ServiceConfigSchema(UserConfigSchema):
     gitlab_token_secret = fields.String()
     enabled_private_namespaces = fields.List(fields.String())
     projects_to_sync = fields.List(fields.Nested(ProjectToSyncSchema), missing=None)
+    dashboard_url = fields.String()
 
     @post_load
     def make_instance(self, data, **kwargs):

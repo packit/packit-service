@@ -143,9 +143,9 @@ def test_copr_build_check_names(github_pr_event):
     # so we can check it out and add it to spec's release field
     assert helper.metadata.pr_id
 
-    flexmock(copr_build).should_receive(
-        "get_copr_build_info_url_from_flask"
-    ).and_return("https://test.url")
+    flexmock(copr_build).should_receive("get_copr_build_info_url").and_return(
+        "https://test.url"
+    )
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building SRPM ...",
@@ -236,10 +236,10 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
     # so we can check it out and add it to spec's release field
     assert helper.metadata.pr_id
 
-    flexmock(copr_build).should_receive(
-        "get_copr_build_info_url_from_flask"
-    ).and_return("https://test.url")
-    flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
+    flexmock(copr_build).should_receive("get_copr_build_info_url").and_return(
+        "https://test.url"
+    )
+    flexmock(copr_build).should_receive("get_srpm_build_info_url").and_return(
         "https://test.url"
     )
 
@@ -375,9 +375,9 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
     # so we can check it out and add it to spec's release field
     assert helper.metadata.pr_id
 
-    flexmock(copr_build).should_receive(
-        "get_copr_build_info_url_from_flask"
-    ).and_return("https://test.url")
+    flexmock(copr_build).should_receive("get_copr_build_info_url").and_return(
+        "https://test.url"
+    )
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building SRPM ...",
@@ -461,9 +461,9 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
     # so we can check it out and add it to spec's release field
     assert helper.metadata.pr_id
 
-    flexmock(copr_build).should_receive(
-        "get_copr_build_info_url_from_flask"
-    ).and_return("https://test.url")
+    flexmock(copr_build).should_receive("get_copr_build_info_url").and_return(
+        "https://test.url"
+    )
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building SRPM ...",
@@ -866,7 +866,7 @@ def test_copr_build_fails_in_packit(github_pr_event):
         "get_valid_build_targets"
     ).and_return({"fedora-31-x86_64", "fedora-rawhide-x86_64"})
     templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
-    flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
+    flexmock(copr_build).should_receive("get_srpm_build_info_url").and_return(
         "https://test.url"
     )
     for v in ["31", "rawhide"]:
@@ -917,7 +917,7 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
         ),
     )
     templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
-    flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
+    flexmock(copr_build).should_receive("get_srpm_build_info_url").and_return(
         "https://test.url"
     )
     flexmock(packit_service.worker.build.copr_build).should_receive(
@@ -1029,7 +1029,7 @@ def test_copr_build_no_targets(github_pr_event):
         ),
     )
 
-    flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
+    flexmock(copr_build).should_receive("get_srpm_build_info_url").and_return(
         "https://test.url"
     )
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
@@ -1096,9 +1096,9 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
         db_trigger=trigger,
     )
 
-    flexmock(copr_build).should_receive(
-        "get_copr_build_info_url_from_flask"
-    ).and_return("https://test.url")
+    flexmock(copr_build).should_receive("get_copr_build_info_url").and_return(
+        "https://test.url"
+    )
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=CommitStatus.pending,
         description="Building SRPM ...",
@@ -1382,7 +1382,7 @@ def test_copr_build_fails_in_packit_gitlab(gitlab_mr_event):
         ),
     )
     templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
-    flexmock(copr_build).should_receive("get_srpm_log_url_from_flask").and_return(
+    flexmock(copr_build).should_receive("get_srpm_build_info_url").and_return(
         "https://test.url"
     )
     flexmock(packit_service.worker.build.copr_build).should_receive(

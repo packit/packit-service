@@ -38,8 +38,8 @@ from packit_service.constants import MSG_RETRIGGER
 from packit_service.models import AbstractTriggerDbType, CoprBuildModel
 from packit_service.service.events import EventData
 from packit_service.service.urls import (
-    get_copr_build_info_url_from_flask,
-    get_srpm_log_url_from_flask,
+    get_copr_build_info_url,
+    get_srpm_build_info_url,
 )
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.monitoring import Pushgateway
@@ -203,7 +203,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             self.report_status_to_all(
                 state=CommitStatus.failure,
                 description=msg,
-                url=get_srpm_log_url_from_flask(self.srpm_model.id),
+                url=get_srpm_build_info_url(self.srpm_model.id),
             )
             return TaskResults(success=False, details={"msg": msg})
 
@@ -229,7 +229,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 self.report_status_to_all_for_chroot(
                     state=CommitStatus.error,
                     description=f"Not supported target: {chroot}",
-                    url=get_srpm_log_url_from_flask(self.srpm_model.id),
+                    url=get_srpm_build_info_url(self.srpm_model.id),
                     chroot=chroot,
                 )
                 unprocessed_chroots.append(chroot)
@@ -245,7 +245,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 status="pending",
                 run_model=self.run_model,
             )
-            url = get_copr_build_info_url_from_flask(id_=copr_build.id)
+            url = get_copr_build_info_url(id_=copr_build.id)
             self.report_status_to_all_for_chroot(
                 state=CommitStatus.pending,
                 description="Starting RPM build...",

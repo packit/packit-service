@@ -25,9 +25,10 @@ from packit_service.models import (
     KojiBuildModel,
 )
 from packit_service.service.events import AbstractCoprBuildEvent, KojiBuildEvent
+import packit_service.service.urls as urls
 from packit_service.service.urls import (
-    get_copr_build_info_url_from_flask,
-    get_koji_build_info_url_from_flask,
+    get_copr_build_info_url,
+    get_koji_build_info_url,
 )
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.handlers import CoprBuildEndHandler, TestingFarmHandler
@@ -203,7 +204,7 @@ def test_copr_build_end(
     copr_build_pr.should_receive("set_status").with_args("success")
     copr_build_pr.should_receive("set_end_time").once()
 
-    url = get_copr_build_info_url_from_flask(1)
+    url = get_copr_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
@@ -265,7 +266,7 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
 
     copr_build_branch_push.should_receive("set_status").with_args("success")
     copr_build_branch_push.should_receive("set_end_time").once()
-    url = get_copr_build_info_url_from_flask(1)
+    url = get_copr_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
@@ -315,7 +316,7 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
     )
     copr_build_release.should_receive("set_status").with_args("success")
     copr_build_release.should_receive("set_end_time").once()
-    url = get_copr_build_info_url_from_flask(1)
+    url = get_copr_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
@@ -359,6 +360,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
             source_project=flexmock(get_web_url=lambda: "https://github.com/foo/bar")
         )
     )
+    urls.DASHBOARD_URL = "https://dashboard.localhost"
 
     config = PackageConfig(
         jobs=[
@@ -399,7 +401,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
-    url = get_copr_build_info_url_from_flask(1)
+    url = get_copr_build_info_url(1)
     flexmock(StatusReporter).should_receive("report").with_args(
         state=CommitStatus.success,
         description="RPMs were built successfully.",
@@ -477,7 +479,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         "https://github.com/foo/bar"
     )
 
-    tft_test_run_model = flexmock()
+    tft_test_run_model = flexmock(id=5)
     flexmock(TFTTestRunModel).should_receive("create").with_args(
         pipeline_id=pipeline_id,
         commit_sha="0011223344",
@@ -491,7 +493,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(StatusReporter).should_receive("report").with_args(
         state=CommitStatus.pending,
         description="Tests have been submitted ...",
-        url=f"{tft_api_url}requests/{pipeline_id}",
+        url="https://dashboard.localhost/results/testing-farm/5",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
     ).once()
     flexmock(Signature).should_receive("apply_async").twice()
@@ -572,7 +574,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
-    url = get_copr_build_info_url_from_flask(1)
+    url = get_copr_build_info_url(1)
     flexmock(StatusReporter).should_receive("report").with_args(
         state=CommitStatus.success,
         description="RPMs were built successfully.",
@@ -683,7 +685,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     flexmock(CoprBuildModel).should_receive("get_by_id").and_return(copr_build_pr)
     copr_build_pr.should_receive("set_status").with_args("success")
     copr_build_pr.should_receive("set_end_time").once()
-    url = get_copr_build_info_url_from_flask(1)
+    url = get_copr_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
@@ -770,7 +772,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     )
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    url = get_copr_build_info_url_from_flask(1)
+    url = get_copr_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 
@@ -816,7 +818,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
     )
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    url = get_copr_build_info_url_from_flask(1)
+    url = get_copr_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     copr_build_pr.should_receive("set_start_time").once()
@@ -871,7 +873,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
     copr_build_pr.should_receive("set_status").with_args("success")
     copr_build_pr.should_receive("set_end_time").once()
-    url = get_copr_build_info_url_from_flask(1)
+    url = get_copr_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 
@@ -910,7 +912,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
     )
 
     flexmock(KojiBuildModel).should_receive("get_by_build_id").and_return(koji_build_pr)
-    url = get_koji_build_info_url_from_flask(1)
+    url = get_koji_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 
@@ -967,7 +969,7 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
     )
 
     flexmock(KojiBuildModel).should_receive("get_by_build_id").and_return(koji_build_pr)
-    url = get_koji_build_info_url_from_flask(1)
+    url = get_koji_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 

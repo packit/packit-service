@@ -20,49 +20,39 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from flask import url_for
+from packit_service.config import ServiceConfig
 
-from packit_service.service.app import packit_as_a_service as application
+DASHBOARD_URL = ServiceConfig().get_service_config().dashboard_url
 
 
-def get_srpm_log_url_from_flask(
-    id_: int = None,
-) -> str:
+def _get_url_for_dashboard_results(job_type: str, id_: int) -> str:
     """
-    provide absolute URL to p-s srpm build logs view meant to set in a commit status
+    Generates an URL to the dashboard result page that can be used for setting
+    URL in a commit status.
+
+    Args:
+        job_type (str): Type of results. Represents route on dashboard.
+
+            Specifically: `srpm-builds`, `copr-builds`, `koji-builds` or `testing-farm`.
+        id_ (int): Packit ID of the build.
+
+    Returns:
+        URL to the results of `id_` entry of type `type`.
     """
-    # flask magic
-    with application.app_context():
-        return url_for(
-            "builds.get_srpm_build_logs_by_id",
-            id_=id_,
-            _external=True,  # _external = generate a URL with FQDN, not a relative one
-        )
+    return f"{DASHBOARD_URL}/results/{job_type}/{id_}"
 
 
-def get_copr_build_info_url_from_flask(
-    id_: int = None,
-) -> str:
-    """
-    provide absolute URL to p-s copr build logs view meant to set in a commit status
-    """
-    with application.app_context():
-        return url_for(
-            "builds.copr_build_info",
-            id_=id_,
-            _external=True,  # _external = generate a URL with FQDN, not a relative one
-        )
+def get_srpm_build_info_url(id_: int) -> str:
+    return _get_url_for_dashboard_results("srpm-builds", id_)
 
 
-def get_koji_build_info_url_from_flask(
-    id_: int = None,
-) -> str:
-    """
-    provide absolute URL to p-s koji build logs view meant to set in a commit status
-    """
-    with application.app_context():
-        return url_for(
-            "builds.koji_build_info",
-            id_=id_,
-            _external=True,  # _external = generate a URL with FQDN, not a relative one
-        )
+def get_copr_build_info_url(id_: int) -> str:
+    return _get_url_for_dashboard_results("copr-builds", id_)
+
+
+def get_koji_build_info_url(id_: int) -> str:
+    return _get_url_for_dashboard_results("koji-builds", id_)
+
+
+def get_testing_farm_info_url(id_: int) -> str:
+    return _get_url_for_dashboard_results("testing-farm", id_)

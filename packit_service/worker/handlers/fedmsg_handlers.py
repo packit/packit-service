@@ -52,8 +52,8 @@ from packit_service.service.events import (
     KojiBuildEvent,
 )
 from packit_service.service.urls import (
-    get_copr_build_info_url_from_flask,
-    get_koji_build_info_url_from_flask,
+    get_copr_build_info_url,
+    get_koji_build_info_url,
 )
 from packit_service.utils import dump_job_config, dump_package_config
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
@@ -253,7 +253,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         self.build.set_end_time(end_time)
         self.set_srpm_url(build_job_helper)
 
-        url = get_copr_build_info_url_from_flask(self.build.id)
+        url = get_copr_build_info_url(self.build.id)
 
         # https://pagure.io/copr/copr/blob/master/f/common/copr_common/enums.py#_42
         if self.copr_event.status != COPR_API_SUCC_STATE:
@@ -361,7 +361,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
             else None
         )
         self.build.set_start_time(start_time)
-        url = get_copr_build_info_url_from_flask(self.build.id)
+        url = get_copr_build_info_url(self.build.id)
         self.build.set_status("pending")
         copr_build_logs = self.copr_event.get_copr_build_logs_url()
         self.build.set_build_logs_url(copr_build_logs)
@@ -434,7 +434,7 @@ class KojiBuildReportHandler(FedmsgHandler):
             else None
         )
 
-        url = get_koji_build_info_url_from_flask(build.id)
+        url = get_koji_build_info_url(build.id)
         build_job_helper = KojiBuildJobHelper(
             service_config=self.service_config,
             package_config=self.package_config,

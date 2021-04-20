@@ -19,6 +19,7 @@ from packit_service.service.events import (
     TestingFarmResult as TFResult,
     TestResult as TResult,
 )
+import packit_service.service.urls as urls
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.testing_farm import (
@@ -195,11 +196,12 @@ def test_testing_farm_response(
     flexmock(StatusReporter).should_receive("report").with_args(
         state=status_status,
         description=status_message,
-        url=status_url,
+        url="https://dashboard.localhost/results/testing-farm/123",
         check_names="packit-stg/testing-farm-fedora-rawhide-x86_64",
     )
 
-    tft_test_run_model = flexmock()
+    urls.DASHBOARD_URL = "https://dashboard.localhost"
+    tft_test_run_model = flexmock(id=123)
     tft_test_run_model.should_receive("set_status").with_args(
         tests_result
     ).and_return().once()

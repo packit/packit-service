@@ -18,6 +18,7 @@ from packit_service.constants import TESTING_FARM_INSTALLABILITY_TEST_URL
 from packit_service.models import CoprBuildModel, TFTTestRunModel, TestingFarmResult
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.events import EventData
+from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.result import TaskResults
 
@@ -311,7 +312,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             f"Submitted ({req.status_code}) to testing farm as request {pipeline_id}"
         )
 
-        TFTTestRunModel.create(
+        created_model = TFTTestRunModel.create(
             pipeline_id=pipeline_id,
             commit_sha=self.metadata.commit_sha,
             status=TestingFarmResult.new,
@@ -326,7 +327,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self.report_status_to_test_for_chroot(
             state=CommitStatus.pending,
             description="Tests have been submitted ...",
-            url=f"{self.tft_api_url}requests/{pipeline_id}",
+            url=get_testing_farm_info_url(created_model.id),
             chroot=chroot,
         )
 

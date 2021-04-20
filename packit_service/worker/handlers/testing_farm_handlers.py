@@ -18,6 +18,7 @@ from packit_service.service.events import (
     TestingFarmResult,
     TestingFarmResultsEvent,
 )
+from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.abstract import TaskName, configured_as, reacts_to
 from packit_service.worker.reporting import StatusReporter
@@ -113,7 +114,9 @@ class TestingFarmResultsHandler(JobHandler):
         status_reporter.report(
             state=status,
             description=summary,
-            url=self.log_url,
+            url=get_testing_farm_info_url(test_run_model.id)
+            if test_run_model
+            else self.log_url,
             check_names=TestingFarmJobHelper.get_test_check(self.copr_chroot),
         )
 
