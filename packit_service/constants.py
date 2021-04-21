@@ -54,6 +54,8 @@ ALLOWLIST_CONSTANTS = {
     "denied": "denied",
 }
 
+CELERY_DEFAULT_QUEUE_NAME = "short-running"
+
 
 class KojiBuildState(Enum):
     """

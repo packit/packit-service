@@ -26,6 +26,10 @@ install -m 0400 /packit-ssh/config .
 grep -q pkgs.fedoraproject.org known_hosts || ssh-keyscan pkgs.fedoraproject.org >>known_hosts
 popd
 
+# define queues to serve
+DEFAULT_QUEUES="short-running,long-running"
+QUEUES="${QUEUES:-$DEFAULT_QUEUES}"
+
 if [[ "${CELERY_COMMAND}" == "beat" ]]; then
     # when using the database backend, celery beat must be running for the results to be expired.
     # https://docs.celeryproject.org/en/stable/userguide/periodic-tasks.html#starting-the-scheduler
@@ -35,5 +39,5 @@ elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     # concurrency: Number of concurrent worker processes/threads/green threads executing tasks.
     # prefetch-multiplier: How many messages to prefetch at a time multiplied by the number of concurrent processes.
     # http://docs.celeryproject.org/en/latest/userguide/optimizing.html#prefetch-limits
-    exec celery --app="${APP}" worker --loglevel=${LOGLEVEL} --concurrency=1 --prefetch-multiplier=1
+    exec celery --app="${APP}" worker --loglevel=${LOGLEVEL} --concurrency=1 --prefetch-multiplier=1 --queues="${QUEUES}"
 fi
