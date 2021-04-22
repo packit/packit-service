@@ -87,6 +87,8 @@ class ServiceConfig(Config):
         gitlab_token_secret: str = "",
         projects_to_sync: List[ProjectToSync] = None,
         dashboard_url: str = "",
+        koji_logs_url: str = "https://kojipkgs.fedoraproject.org",
+        koji_web_url: str = "https://koji.fedoraproject.org",
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -134,6 +136,8 @@ class ServiceConfig(Config):
 
         # Full URL to the dashboard, e.g. https://dashboard.packit.dev
         self.dashboard_url = dashboard_url
+        self.koji_logs_url = koji_logs_url
+        self.koji_web_url = koji_web_url
 
     def __repr__(self):
         def hide(token: str) -> str:
@@ -155,7 +159,9 @@ class ServiceConfig(Config):
             f"gitlab_token_secret='{hide(self.gitlab_token_secret)}',"
             f"enabled_private_namespaces='{self.enabled_private_namespaces}',"
             f"server_name='{self.server_name}', "
-            f"dashboard_url='{self.dashboard_url}')"
+            f"dashboard_url='{self.dashboard_url}', "
+            f"koji_logs_url='{self.koji_logs_url}', "
+            f"koji_web_url='{self.koji_web_url}')"
         )
 
     def use_stage(self) -> bool:

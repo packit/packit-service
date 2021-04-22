@@ -462,9 +462,13 @@ class KojiBuildReportHandler(FedmsgHandler):
                 f"We don't react to this koji build state change: {self.koji_event.state}"
             )
 
-        koji_build_logs = self.koji_event.get_koji_build_logs_url()
+        koji_build_logs = self.koji_event.get_koji_build_logs_url(
+            koji_logs_url=self.service_config.koji_logs_url
+        )
         build.set_build_logs_url(koji_build_logs)
-        koji_rpm_task_web_url = self.koji_event.get_koji_build_logs_url()
+        koji_rpm_task_web_url = self.koji_event.get_koji_rpm_build_web_url(
+            koji_web_url=self.service_config.koji_web_url
+        )
         build.set_web_url(koji_rpm_task_web_url)
 
         msg = (
