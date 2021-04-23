@@ -1,3 +1,6 @@
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 from enum import Enum
 
 DOCS_URL = "https://packit.dev/docs"

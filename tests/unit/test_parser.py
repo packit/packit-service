@@ -1,5 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+
 from packit_service.models import TestingFarmResult
 from packit_service.service.events import TestResult
 from packit_service.worker.parser import Parser

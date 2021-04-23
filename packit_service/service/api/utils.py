@@ -1,3 +1,6 @@
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 from http import HTTPStatus
 from json import dumps
 from typing import Any, Dict, Union

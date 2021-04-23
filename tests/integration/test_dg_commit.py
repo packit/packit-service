@@ -1,7 +1,3 @@
-# MIT License
-#
-# Copyright (c) 2018-2019 Red Hat, Inc.
-
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 

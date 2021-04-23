@@ -1,3 +1,6 @@
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 import logging
 
 # Mypy errors out with Module 'flask' has no attribute '__version__'.

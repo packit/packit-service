@@ -1,3 +1,6 @@
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 import pytest
 from celery.app.task import Task, Context
 from celery.canvas import Signature
