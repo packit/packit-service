@@ -1,7 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-
 from flexmock import flexmock
 
 from ogr.services.github import GithubProject

@@ -1,3 +1,6 @@
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 from flask import url_for
 
 from packit_service.models import TestingFarmResult

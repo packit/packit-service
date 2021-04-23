@@ -1,3 +1,6 @@
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 """
 mock webhook payload and send it to an existing packit service
 """
