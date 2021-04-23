@@ -270,7 +270,7 @@ class PackageConfigGetter:
                     "on ref '{reference}'"
                 )
 
-            if (
+            if package_config and (
                 package_config.current_version_command
                 or package_config.create_tarball_command
             ):

@@ -305,6 +305,21 @@ def test_get_package_config_from_repo_not_found_exception_pr():
         )
 
 
+def test_get_package_config_from_repo_not_found():
+    gp = flexmock(GitProject)
+    gp.should_receive("full_repo_name").and_return("a/b")
+    gp.should_receive("get_file_content").and_raise(FileNotFoundError, "not found")
+    assert (
+        PackageConfigGetter.get_package_config_from_repo(
+            project=GitProject(repo="", service=GitService(), namespace=""),
+            reference=None,
+            pr_id=2,
+            fail_when_missing=False,
+        )
+        is None
+    )
+
+
 def test_get_package_config_from_repo_not_found_exception_existing_issue():
     flexmock(GitService).should_receive("user").and_return(
         flexmock().should_receive("get_username").and_return("packit").mock()
