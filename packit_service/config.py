@@ -8,7 +8,7 @@ from typing import List, Optional, Set, Union, NamedTuple
 
 from yaml import safe_load
 
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, Issue
 from packit.config import (
     Config,
     PackageConfig,
@@ -225,6 +225,23 @@ class ServiceConfig(Config):
 
 class PackageConfigGetter:
     @staticmethod
+    def create_issue_if_needed(
+        project: GitProject, message: str, details: str = ""
+    ) -> Optional[Issue]:
+        issues = project.get_issue_list(author=project.service.user.get_username())
+
+        if "[packit] Invalid config" in (x.title for x in issues):
+            return None
+
+        if details:
+            details = f": {details}"
+
+        # TODO: store in DB
+        return project.create_issue(
+            title=f"[packit] Invalid config{details}", body=message
+        )
+
+    @staticmethod
     def get_package_config_from_repo(
         project: GitProject,
         reference: Optional[str] = None,
@@ -232,7 +249,7 @@ class PackageConfigGetter:
         pr_id: int = None,
         fail_when_missing: bool = True,
         spec_file_path: Optional[str] = None,
-    ):
+    ) -> Optional[PackageConfig]:
         """
         Get the package config and catch the invalid config scenario and possibly no-config scenario
         """
@@ -252,27 +269,56 @@ class PackageConfigGetter:
                     f"No config file found in {project_to_search_in.full_repo_name} "
                     "on ref '{reference}'"
                 )
-        except PackitConfigException as ex:
-            if pr_id:
-                project.pr_comment(
-                    pr_id, f"Failed to load packit config file:\n```\n{str(ex)}\n```"
-                )
-            else:
-                # TODO: filter when https://github.com/packit/ogr/issues/308 fixed
-                issues = project.get_issue_list()
-                if "Invalid packit config" not in [x.title for x in issues]:
-                    # TODO: store in DB
-                    message = (
-                        f"Failed to load packit config file:\n```\n{str(ex)}\n```\n"
-                        "For more info, please check out the documentation: "
-                        "http://packit.dev/packit-as-a-service/ or contact us - "
-                        "[Packit team]"
-                        "(https://github.com/orgs/packit/teams/the-packit-team)"
-                    )
 
-                    i = project.create_issue(
-                        title="[packit] Invalid config", body=message
+            if (
+                package_config.current_version_command
+                or package_config.create_tarball_command
+            ):
+                # TODO: Remove once the commands are removed from packit tooling.
+                current_version_set = (
+                    "- `current_version_command`\n"
+                    if package_config.current_version_command
+                    else ""
+                )
+                create_tarball_set = (
+                    "- `create_tarball_command`\n"
+                    if package_config.create_tarball_command
+                    else ""
+                )
+                message = (
+                    "Your config appears to use:\n"
+                    f"{current_version_set}{create_tarball_set}"
+                    "Those options will soon be deprecated and superseded by actions, "
+                    "please adjust you packit configuration.\n\n"
+                    "For more info, please check out the documentation: "
+                    "https://packit.dev/docs/actions/ or contact us - "
+                    "[Packit team]"
+                    "(https://github.com/orgs/packit/teams/the-packit-team)"
+                )
+
+                if created_issue := PackageConfigGetter.create_issue_if_needed(
+                    project, message, "deprecated options used"
+                ):
+                    logger.debug(
+                        "Created issue for soon-to-be-deprecated packit config: "
+                        f"{created_issue.url}"
                     )
-                    logger.debug(f"Created issue for invalid packit config: {i.url}")
+        except PackitConfigException as ex:
+            message = (
+                f"Failed to load packit config file:\n```\n{str(ex)}\n```\n"
+                "For more info, please check out the documentation: "
+                "https://packit.dev/packit-as-a-service/ or contact us - "
+                "[Packit team]"
+                "(https://github.com/orgs/packit/teams/the-packit-team)"
+            )
+
+            if pr_id:
+                project.pr_comment(pr_id, message)
+            elif created_issue := PackageConfigGetter.create_issue_if_needed(
+                project, message
+            ):
+                logger.debug(
+                    f"Created issue for invalid packit config: {created_issue.url}"
+                )
             raise ex
         return package_config

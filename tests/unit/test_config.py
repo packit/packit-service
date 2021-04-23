@@ -306,11 +306,14 @@ def test_get_package_config_from_repo_not_found_exception_pr():
 
 
 def test_get_package_config_from_repo_not_found_exception_existing_issue():
+    flexmock(GitService).should_receive("user").and_return(
+        flexmock().should_receive("get_username").and_return("packit").mock()
+    )
     gp = flexmock(GitProject)
     gp.should_receive("full_repo_name").and_return("a/b")
     gp.should_receive("get_file_content").and_raise(FileNotFoundError, "not found")
     gp.should_receive("get_issue_list").and_return(
-        [flexmock(title="Invalid packit config")]
+        [flexmock(title="[packit] Invalid config")]
     ).once()
     with pytest.raises(PackitConfigException):
         PackageConfigGetter.get_package_config_from_repo(
@@ -320,6 +323,9 @@ def test_get_package_config_from_repo_not_found_exception_existing_issue():
 
 
 def test_get_package_config_from_repo_not_found_exception_nonexisting_issue():
+    flexmock(GitService).should_receive("user").and_return(
+        flexmock().should_receive("get_username").and_return("packit").mock()
+    )
     gp = flexmock(GitProject)
     gp.should_receive("full_repo_name").and_return("a/b")
     gp.should_receive("get_file_content").and_raise(FileNotFoundError, "not found")
