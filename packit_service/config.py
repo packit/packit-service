@@ -228,7 +228,8 @@ class PackageConfigGetter:
     def create_issue_if_needed(
         project: GitProject, message: str, details: str = ""
     ) -> Optional[Issue]:
-        issues = project.get_issue_list(author=project.service.user.get_username())
+        # TODO: Improve filtering
+        issues = project.get_issue_list()
 
         if "[packit] Invalid config" in (x.title for x in issues):
             return None
