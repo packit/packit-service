@@ -25,10 +25,10 @@ class StatusReporter:
         logger.debug(
             f"Status reporter will report for {project}, commit={commit_sha}, pr={pr_id}"
         )
-        self.project = project
-        self._project_with_commit = None
-        self.commit_sha = commit_sha
-        self.pr_id = pr_id
+        self.project: GitProject = project
+        self._project_with_commit: Optional[GitProject] = None
+        self.commit_sha: str = commit_sha
+        self.pr_id: Optional[int] = pr_id
 
     @property
     def project_with_commit(self) -> GitProject:
@@ -80,7 +80,7 @@ class StatusReporter:
         pr = self.project.get_pr(self.pr_id)
         if hasattr(pr, "set_flag") and pr.head_commit == self.commit_sha:
             logger.debug("Setting the PR status (pagure only).")
-            pr.set_flag(
+            pr.set_flag(  # type: ignore
                 username=check_name,
                 comment=description,
                 url=url,
