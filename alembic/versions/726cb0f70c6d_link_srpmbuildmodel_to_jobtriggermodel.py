@@ -41,7 +41,7 @@ else:
 
 
 class CoprBuildModel(Base):
-    """ we create an entry for every target """
+    """we create an entry for every target"""
 
     __tablename__ = "copr_builds"
     id = Column(Integer, primary_key=True)
@@ -100,7 +100,7 @@ class JobTriggerModel(Base):
 
 
 class KojiBuildModel(Base):
-    """ we create an entry for every target """
+    """we create an entry for every target"""
 
     __tablename__ = "koji_builds"
     id = Column(Integer, primary_key=True)

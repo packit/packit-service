@@ -404,7 +404,7 @@ def test_get_projects_branches(
 
 
 def test_meta(client, clean_before_and_after, a_copr_build_for_pr):
-    """ Test meta info like headers, status etc """
+    """Test meta info like headers, status etc"""
     response = client.get(url_for("api.copr-builds_copr_builds_list"))
     assert response.status_code == 206
     assert response.status == "206 PARTIAL CONTENT"

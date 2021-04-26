@@ -57,7 +57,7 @@ def dump_http_com():
     """
 
     def f(path: str):
-        """ path points to a file where the http communication will be saved """
+        """path points to a file where the http communication will be saved"""
         conf = ServiceConfig()
         # TODO: add pagure support
         # conf._pagure_user_token = os.environ.get("PAGURE_TOKEN", "test")

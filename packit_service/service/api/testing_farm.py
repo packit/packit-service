@@ -94,7 +94,7 @@ class TestingFarmResults(Resource):
     @ns.expect(pagination_arguments)
     @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "Testing Farm Results follow")
     def get(self):
-        """ List all Testing Farm  results. """
+        """List all Testing Farm  results."""
 
         result = []
 

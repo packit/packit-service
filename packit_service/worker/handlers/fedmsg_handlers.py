@@ -60,7 +60,7 @@ def add_topic(kls: Type["FedmsgHandler"]):
 
 
 class FedmsgHandler(JobHandler):
-    """ Handlers for events from fedmsg """
+    """Handlers for events from fedmsg"""
 
     topic: str
 

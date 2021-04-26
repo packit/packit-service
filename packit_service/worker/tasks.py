@@ -79,7 +79,7 @@ def process_message(
     max_retries=7,
 )
 def babysit_copr_build(self, build_id: int):
-    """ check status of a copr build and update it in DB """
+    """check status of a copr build and update it in DB"""
     if not check_copr_build(build_id=build_id):
         self.retry()
 

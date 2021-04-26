@@ -13,7 +13,7 @@ from bugzilla import Bugzilla as XMLRPCBugzilla
 
 
 class Bugzilla:
-    """ To create a Bugzilla bug & attach a patch. Uses Bugzilla XMLRPC access module. """
+    """To create a Bugzilla bug & attach a patch. Uses Bugzilla XMLRPC access module."""
 
     def __init__(self, url: str, api_key: str):
         self.logger = logging.getLogger(__name__)
