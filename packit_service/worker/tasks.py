@@ -22,12 +22,12 @@ from packit_service.worker.handlers.github_handlers import (
     GithubAppInstallationHandler,
     KojiBuildHandler,
     ProposeDownstreamHandler,
-    TestingFarmHandler,
 )
 from packit_service.worker.handlers.pagure_handlers import (
     PagurePullRequestLabelHandler,
 )
 from packit_service.worker.handlers.testing_farm_handlers import (
+    TestingFarmHandler,
     TestingFarmResultsHandler,
 )
 from packit_service.worker.jobs import SteveJobs

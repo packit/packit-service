@@ -19,11 +19,11 @@ from packit_service.worker.handlers.fedmsg_handlers import (
 from packit_service.worker.handlers.github_handlers import (
     GithubAppInstallationHandler,
     ProposeDownstreamHandler,
-    TestingFarmHandler,
     CoprBuildHandler,
     KojiBuildHandler,
 )
 from packit_service.worker.handlers.testing_farm_handlers import (
+    TestingFarmHandler,
     TestingFarmResultsHandler,
 )
 
