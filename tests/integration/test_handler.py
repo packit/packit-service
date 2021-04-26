@@ -14,7 +14,7 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import KOJI_PRODUCTION_BUILDS_ISSUE
 from packit_service.models import GitBranchModel, PullRequestModel
 from packit_service.worker.handlers import JobHandler
-from packit_service.worker.handlers.github_handlers import (
+from packit_service.worker.handlers.forges_handlers import (
     CoprBuildHandler,
     KojiBuildHandler,
 )

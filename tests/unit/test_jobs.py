@@ -31,7 +31,7 @@ from packit_service.worker.handlers import (
     TestingFarmResultsHandler,
 )
 from packit_service.worker.handlers.fedmsg_handlers import KojiBuildReportHandler
-from packit_service.worker.handlers.github_handlers import (
+from packit_service.worker.handlers.forges_handlers import (
     CoprBuildHandler,
     KojiBuildHandler,
     ProposeDownstreamHandler,

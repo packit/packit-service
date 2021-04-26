@@ -17,7 +17,7 @@ from packit_service.worker.handlers.fedmsg_handlers import (
     KojiBuildReportHandler,
     DistGitCommitHandler,
 )
-from packit_service.worker.handlers.github_handlers import (
+from packit_service.worker.handlers.forges_handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,
     KojiBuildHandler,
