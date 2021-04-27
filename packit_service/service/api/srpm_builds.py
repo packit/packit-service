@@ -21,7 +21,7 @@ class SRPMBuildsList(Resource):
     @ns.expect(pagination_arguments)
     @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "SRPM builds list follows")
     def get(self):
-        """ List all SRPM builds. """
+        """List all SRPM builds."""
 
         result = []
 

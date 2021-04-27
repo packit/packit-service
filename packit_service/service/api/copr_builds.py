@@ -20,7 +20,7 @@ class CoprBuildsList(Resource):
     @ns.expect(pagination_arguments)
     @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "Copr builds list follows")
     def get(self):
-        """ List all Copr builds. """
+        """List all Copr builds."""
 
         # Return relevant info thats concise
         # Usecases like the packit-dashboard copr-builds table

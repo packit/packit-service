@@ -119,7 +119,7 @@ class Parser:
 
     @staticmethod
     def parse_mr_event(event) -> Optional[MergeRequestGitlabEvent]:
-        """ Look into the provided event and see if it's one for a new gitlab MR. """
+        """Look into the provided event and see if it's one for a new gitlab MR."""
         if event.get("object_kind") != "merge_request":
             return None
 
@@ -186,7 +186,7 @@ class Parser:
 
     @staticmethod
     def parse_pr_event(event) -> Optional[PullRequestGithubEvent]:
-        """ Look into the provided event and see if it's one for a new github PR. """
+        """Look into the provided event and see if it's one for a new github PR."""
         if not event.get("pull_request"):
             return None
 
@@ -362,7 +362,7 @@ class Parser:
 
     @staticmethod
     def parse_issue_comment_event(event) -> Optional[IssueCommentEvent]:
-        """ Look into the provided event and see if it is Github issue comment event. """
+        """Look into the provided event and see if it is Github issue comment event."""
         if nested_get(event, "issue", "pull_request"):
             return None
 
@@ -400,7 +400,7 @@ class Parser:
 
     @staticmethod
     def parse_gitlab_issue_comment_event(event) -> Optional[IssueCommentGitlabEvent]:
-        """ Look into the provided event and see if it is Gitlab Issue comment event. """
+        """Look into the provided event and see if it is Gitlab Issue comment event."""
         if event.get("object_kind") != "note":
             return None
 
@@ -462,7 +462,7 @@ class Parser:
     def parse_merge_request_comment_event(
         event,
     ) -> Optional[MergeRequestCommentGitlabEvent]:
-        """ Look into the provided event and see if it is Gitlab MR comment event. """
+        """Look into the provided event and see if it is Gitlab MR comment event."""
         if event.get("object_kind") != "note":
             return None
 
@@ -543,7 +543,7 @@ class Parser:
     def parse_pull_request_comment_event(
         event,
     ) -> Optional[PullRequestCommentGithubEvent]:
-        """ Look into the provided event and see if it is Github PR comment event. """
+        """Look into the provided event and see if it is Github PR comment event."""
         if not nested_get(event, "issue", "pull_request"):
             return None
 
@@ -589,7 +589,7 @@ class Parser:
 
     @staticmethod
     def parse_installation_event(event) -> Optional[InstallationEvent]:
-        """ Look into the provided event and see Github App installation details. """
+        """Look into the provided event and see Github App installation details."""
         # Check if installation key in JSON isn't enough, we have to check the account as well
         if not nested_get(event, "installation", "account"):
             return None
@@ -668,7 +668,7 @@ class Parser:
 
     @staticmethod
     def parse_distgit_commit_event(event) -> Optional[DistGitCommitEvent]:
-        """ this corresponds to dist-git event when someone pushes new commits """
+        """this corresponds to dist-git event when someone pushes new commits"""
         topic = event.get("topic")
         if topic != DistGitCommitHandler.topic:
             return None
@@ -725,7 +725,7 @@ class Parser:
 
     @staticmethod
     def _parse_tf_result_xunit(xunit: Optional[str]) -> List[TestResult]:
-        """ Parse event["result"]["xunit"] to get tests results """
+        """Parse event["result"]["xunit"] to get tests results"""
         if not xunit:
             return []
         xunit_dict = xmltodict.parse(xunit)
@@ -751,7 +751,7 @@ class Parser:
     def parse_testing_farm_results_event(
         event: dict,
     ) -> Optional[TestingFarmResultsEvent]:
-        """ this corresponds to testing farm results event """
+        """this corresponds to testing farm results event"""
         if event.get("source") != "testing-farm" or not event.get("request_id"):
             return None
 
@@ -837,7 +837,7 @@ class Parser:
 
     @staticmethod
     def parse_copr_event(event) -> Optional[AbstractCoprBuildEvent]:
-        """ this corresponds to copr build event e.g:"""
+        """this corresponds to copr build event e.g:"""
         topic = event.get("topic")
 
         copr_build_cls: Type["AbstractCoprBuildEvent"]

@@ -50,7 +50,7 @@ session_instance = None
 
 
 def get_pg_url() -> str:
-    """ create postgresql connection string """
+    """create postgresql connection string"""
     return (
         f"postgres+psycopg2://{os.getenv('POSTGRESQL_USER')}"
         f":{os.getenv('POSTGRESQL_PASSWORD')}@{os.getenv('POSTGRESQL_HOST', 'postgres')}"
@@ -64,7 +64,7 @@ ScopedSession = scoped_session(sessionmaker(bind=engine))
 
 @contextmanager
 def get_sa_session() -> Session:
-    """ get SQLAlchemy session """
+    """get SQLAlchemy session"""
     session = ScopedSession()
     try:
         yield session
@@ -892,7 +892,7 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
 
 
 class KojiBuildModel(ProjectAndTriggersConnector, Base):
-    """ we create an entry for every target """
+    """we create an entry for every target"""
 
     __tablename__ = "koji_builds"
     id = Column(Integer, primary_key=True)

@@ -92,7 +92,7 @@ class FedPkg(PackitServiceTestCase):
         super().tearDown()
 
     def test_fedpkg_clone(self):
-        """ test `fedpkg clone -a` within an openshift pod """
+        """test `fedpkg clone -a` within an openshift pod"""
         t = Path(self.tmpdir)
         f = FedPKG()
         f.clone("units", str(t), anonymous=True)

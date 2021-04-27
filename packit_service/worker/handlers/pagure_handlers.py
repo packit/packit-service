@@ -76,7 +76,7 @@ class PagurePullRequestLabelHandler(JobHandler):
         return self._status_reporter
 
     def _create_bug(self):
-        """ Fill a Bugzilla bug and store in db. """
+        """Fill a Bugzilla bug and store in db."""
         bug_id, bug_url = self.bugzilla.create_bug(
             product="Red Hat Enterprise Linux 8",
             version="CentOS Stream",
@@ -94,7 +94,7 @@ class PagurePullRequestLabelHandler(JobHandler):
         )
 
     def _attach_patch(self):
-        """ Attach a patch from the pull request to the bug. """
+        """Attach a patch from the pull request to the bug."""
         if not (self.bz_model and self.bz_model.bug_id):
             raise RuntimeError(
                 "PagurePullRequestLabelHandler._attach_patch(): bug_id not set"

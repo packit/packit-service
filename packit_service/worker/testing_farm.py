@@ -165,7 +165,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     @staticmethod
     def chroot2distro_arch(chroot: str) -> Tuple[str, str]:
-        """ Get distro and arch from chroot. """
+        """Get distro and arch from chroot."""
         distro, arch = chroot.rsplit("-", 1)
         # https://github.com/packit/packit-service/issues/939#issuecomment-769896841
         # https://github.com/packit/packit-service/pull/1008#issuecomment-789574614

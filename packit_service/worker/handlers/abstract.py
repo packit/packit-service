@@ -249,7 +249,7 @@ class Handler:
         return True
 
     def clean(self):
-        """ clean up the mess once we're done """
+        """clean up the mess once we're done"""
         logger.info("Cleaning up the mess.")
         if self.api:
             self.api.clean()
@@ -257,7 +257,7 @@ class Handler:
 
 
 class JobHandler(Handler):
-    """ Generic interface to handle different type of inputs """
+    """Generic interface to handle different type of inputs"""
 
     task_name: TaskName
 

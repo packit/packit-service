@@ -20,7 +20,7 @@ class KojiBuildsList(Resource):
     @koji_builds_ns.expect(pagination_arguments)
     @koji_builds_ns.response(HTTPStatus.PARTIAL_CONTENT, "Koji builds list follows")
     def get(self):
-        """ List all Koji builds. """
+        """List all Koji builds."""
 
         first, last = indices()
         result = []

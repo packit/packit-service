@@ -127,7 +127,7 @@ def test_parse_missing(service_config_missing):
     ),
 )
 def test_config_opts(sc):
-    """ test that ServiceConfig knows all the options """
+    """test that ServiceConfig knows all the options"""
     assert sc.server_name is not None
     assert sc.deployment == Deployment.stg
     assert sc.admins is not None
