@@ -72,6 +72,7 @@ class SRPMBuildItem(Resource):
             "build_submitted_time": optional_time(build.build_submitted_time),
             "url": build.url,
             "logs": build.logs,
+            "run_ids": sorted(run.id for run in build.runs),
         }
 
         build_dict.update(get_project_info_from_build(build))
