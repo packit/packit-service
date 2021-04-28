@@ -119,24 +119,17 @@ def get_packit_commands_from_comment(comment: str) -> List[str]:
         logger.debug("Empty comment, nothing to do.")
         return []
 
-    cmd_start_index = comment.find(REQUESTED_PULL_REQUEST_COMMENT)
+    comment_lines = comment_parts.split("\n")
 
-    if cmd_start_index == -1:
-        logger.debug(f"comment '{comment}' is not handled by packit-service.")
-        return []
+    for line in comment_lines:
+        (packit_mark, *packit_command) = line.split(maxsplit=3)
+        # packit_command[0] has the first cmd and [1] has the second, if needed.
 
-    (packit_mark, *packit_command) = comment[cmd_start_index:].split(maxsplit=3)
-    # packit_command[0] has the first cmd and [1] has the second, if needed.
+        if packit_mark == REQUESTED_PULL_REQUEST_COMMENT:
+            if packit_command:
+                return packit_command
 
-    if packit_mark != REQUESTED_PULL_REQUEST_COMMENT:
-        logger.debug(f"comment '{comment}' is not handled by packit-service.")
-        return []
-
-    if not packit_command:
-        logger.debug(f"comment '{comment}' does not contain a packit-service command.")
-        return []
-
-    return packit_command
+    return []
 
 
 def get_handlers_for_comment(comment: str) -> Set[Type[JobHandler]]:

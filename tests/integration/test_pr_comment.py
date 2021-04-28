@@ -317,6 +317,8 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
         " stuff",
         " \n ",
         "x ",
+        """comment with embedded /packit build not recognized
+        unless /packit command is on line by itself""",
     ),
 )
 def test_pr_comment_invalid(comment):
@@ -334,7 +336,7 @@ def test_pr_comment_invalid(comment):
         " /packit build ",
         "asd\n/packit build\n",
         "asd\n /packit build \n",
-        "Should be fixed now, lets /packit build it.",
+        "Should be fixed now, let's\n /packit build\n it.",
     ),
 )
 def test_pr_embedded_command_handler(
