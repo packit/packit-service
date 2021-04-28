@@ -1,5 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+from inspect import signature
 
 import github
 import gitlab
@@ -170,7 +171,21 @@ def test_set_status_gitlab(
             "We made it!",
             "packit/pr-rpm-build",
             "https://api.packit.dev/build/111/logs",
-            (github.GithubException, (None, None), dict()),
+            (
+                github.GithubException,
+                # https://docs.python.org/3/library/inspect.html#inspect.signature
+                # to account for changes in positional arguments: pygithub 1.55 added headers
+                # as additional positional argument; this creates an iterable and sets None
+                # for every argument of GithubException.__init__ except for 'self'
+                [
+                    None
+                    for param_name, param in signature(
+                        github.GithubException.__init__
+                    ).parameters.items()
+                    if param_name != "self"
+                ],
+                dict(),
+            ),
             id="GitHub PR",
         ),
         pytest.param(
