@@ -335,3 +335,49 @@ def test_get_package_config_from_repo_not_found_exception_nonexisting_issue():
             project=GitProject(repo="", service=GitService(), namespace=""),
             reference=None,
         )
+
+
+@pytest.mark.parametrize(
+    "issues, create_new, title, message",
+    [
+        (
+            [flexmock(title="Some random issue"), flexmock(title="Many issues")],
+            True,
+            "Created issue",
+            "Let's make sure to deliver the message",
+        ),
+        (
+            [
+                flexmock(title="Some random issue"),
+                flexmock(title="[packit] I was here"),
+                flexmock(title="Many issues"),
+            ],
+            False,
+            "I was here",
+            "Down the rabbit hole",
+        ),
+        (
+            [
+                flexmock(title="Some random issue"),
+                flexmock(title="[packit] I was here"),
+                flexmock(title="Many issues"),
+            ],
+            True,
+            "Something new",
+            "Knock, knock! Here we go again!",
+        ),
+    ],
+)
+def test_create_issue_if_needed(issues, create_new, title, message):
+    project = flexmock()
+    check = lambda value: value is None  # noqa
+    project.should_receive("get_issue_list").and_return(issues).once()
+
+    if create_new:
+        project.should_receive("create_issue").with_args(
+            title=f"[packit] {title}", body=message
+        ).and_return(flexmock(title="new issue")).once()
+        check = lambda value: value.title == "new issue"  # noqa
+
+    issue_created = PackageConfigGetter.create_issue_if_needed(project, title, message)
+    assert check(issue_created)
