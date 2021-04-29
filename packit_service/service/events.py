@@ -1056,20 +1056,24 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
         result.pop("_db_trigger")
         return result
 
-    def get_koji_build_logs_url(self) -> Optional[str]:
+    def get_koji_build_logs_url(
+        self, koji_logs_url: str = "https://kojipkgs.fedoraproject.org"
+    ) -> Optional[str]:
         if not self.rpm_build_task_id:
             return None
 
         return (
-            f"https://kojipkgs.fedoraproject.org//work/tasks/"
+            f"{koji_logs_url}//work/tasks/"
             f"{self.rpm_build_task_id % 10000}/{self.rpm_build_task_id}/build.log"
         )
 
-    def get_koji_rpm_build_web_url(self) -> Optional[str]:
+    def get_koji_rpm_build_web_url(
+        self, koji_web_url: str = "https://koji.fedoraproject.org"
+    ) -> Optional[str]:
         if not self.rpm_build_task_id:
             return None
 
-        return f"https://koji.fedoraproject.org/koji/taskinfo?taskID={self.rpm_build_task_id}"
+        return f"{koji_web_url}/koji/taskinfo?taskID={self.rpm_build_task_id}"
 
 
 class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):

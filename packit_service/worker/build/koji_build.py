@@ -223,7 +223,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             task_id = int(task_id_match.group(1))
 
         task_url_match = search(
-            pattern=r"(https://koji\.fedoraproject\.org/koji/taskinfo\?taskID=\d+)",
+            pattern=r"(https://.+/koji/taskinfo\?taskID=\d+)",
             string=out,
         )
         if task_url_match:
