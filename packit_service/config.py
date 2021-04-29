@@ -232,21 +232,17 @@ class ServiceConfig(Config):
 class PackageConfigGetter:
     @staticmethod
     def create_issue_if_needed(
-        project: GitProject, message: str, details: str = ""
+        project: GitProject, title: str, message: str
     ) -> Optional[Issue]:
         # TODO: Improve filtering
         issues = project.get_issue_list()
+        title = f"[packit] {title}"
 
-        if "[packit] Invalid config" in (x.title for x in issues):
+        if any(title in issue.title for issue in issues):
             return None
 
-        if details:
-            details = f": {details}"
-
         # TODO: store in DB
-        return project.create_issue(
-            title=f"[packit] Invalid config{details}", body=message
-        )
+        return project.create_issue(title=title, body=message)
 
     @staticmethod
     def get_package_config_from_repo(
@@ -304,7 +300,9 @@ class PackageConfigGetter:
                 )
 
                 if created_issue := PackageConfigGetter.create_issue_if_needed(
-                    project, message, "deprecated options used"
+                    project,
+                    title="Deprecated options used in configuration",
+                    message=message,
                 ):
                     logger.debug(
                         "Created issue for soon-to-be-deprecated packit config: "
@@ -322,7 +320,7 @@ class PackageConfigGetter:
             if pr_id:
                 project.pr_comment(pr_id, message)
             elif created_issue := PackageConfigGetter.create_issue_if_needed(
-                project, message
+                project, title="Invalid config", message=message
             ):
                 logger.debug(
                     f"Created issue for invalid packit config: {created_issue.url}"
