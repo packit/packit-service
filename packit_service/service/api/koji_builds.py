@@ -85,6 +85,7 @@ class KojiBuildItem(Resource):
             # from old data, sometimes build_logs_url is same and sometimes different to web_url
             "build_logs_url": build.build_logs_url,
             "srpm_build_id": build.get_srpm_build().id,
+            "run_ids": sorted(run.id for run in build.runs),
         }
 
         build_dict.update(get_project_info_from_build(build))
