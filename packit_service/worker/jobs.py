@@ -121,7 +121,7 @@ def get_packit_commands_from_comment(comment: str) -> List[str]:
 
     comment_lines = comment_parts.split("\n")
 
-    for line in comment_lines:
+    for line in filter(None, map(str.strip, comment_lines)):
         (packit_mark, *packit_command) = line.split(maxsplit=3)
         # packit_command[0] has the first cmd and [1] has the second, if needed.
 

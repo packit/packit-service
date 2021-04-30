@@ -319,6 +319,8 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
         "x ",
         """comment with embedded /packit build not recognized
         unless /packit command is on line by itself""",
+        "\n2nd line\n\n4th line",
+        "1st line\n\t\n\t\t\n4th line\n",
     ),
 )
 def test_pr_comment_invalid(comment):
