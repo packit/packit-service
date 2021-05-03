@@ -7,6 +7,7 @@ from os import getenv
 from celery import Celery
 from lazy_object_proxy import Proxy
 
+from packit_service.constants import CELERY_DEFAULT_QUEUE_NAME
 from packit_service.models import get_pg_url
 from packit_service.sentry_integration import configure_sentry
 
@@ -41,6 +42,8 @@ class Celerizer:
             days = int(getenv("CELERY_RESULT_EXPIRES", "30"))
             # https://docs.celeryproject.org/en/latest/userguide/configuration.html#result-expires
             self._celery_app.conf.result_expires = timedelta(days=days)
+            # https://docs.celeryproject.org/en/latest/userguide/configuration.html#std-setting-task_default_queue
+            self._celery_app.conf.task_default_queue = CELERY_DEFAULT_QUEUE_NAME
 
         return self._celery_app
 

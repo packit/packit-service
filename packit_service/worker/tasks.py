@@ -105,7 +105,9 @@ def run_copr_build_end_handler(event: dict, package_config: dict, job_config: di
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.copr_build, base=HandlerTaskWithRetry)
+@celery_app.task(
+    name=TaskName.copr_build, base=HandlerTaskWithRetry, queue="long-running"
+)
 def run_copr_build_handler(event: dict, package_config: dict, job_config: dict):
     handler = CoprBuildHandler(
         package_config=load_package_config(package_config),
@@ -166,7 +168,9 @@ def run_propose_downstream_handler(
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.koji_build, base=HandlerTaskWithRetry)
+@celery_app.task(
+    name=TaskName.koji_build, base=HandlerTaskWithRetry, queue="long-running"
+)
 def run_koji_build_handler(event: dict, package_config: dict, job_config: dict):
     handler = KojiBuildHandler(
         package_config=load_package_config(package_config),
