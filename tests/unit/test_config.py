@@ -8,11 +8,16 @@ from flexmock import flexmock
 from marshmallow import ValidationError
 
 from ogr.abstract import GitProject, GitService
-from packit.config import PackageConfig, SyncFilesConfig
+from packit.config import PackageConfig
 from packit.exceptions import PackitConfigException
 from packit.sync import SyncFilesItem
 from packit_service.config import ServiceConfig, Deployment, PackageConfigGetter
 from packit_service.constants import TESTING_FARM_API_URL
+
+try:
+    from packit.config import SyncFilesConfig
+except ImportError:
+    pass
 
 
 @pytest.fixture(scope="module")
@@ -145,6 +150,10 @@ def test_config_opts(sc):
     assert sc.gitlab_webhook_tokens is not None
 
 
+@pytest.mark.skipif(
+    "SyncFilesConfig" not in globals(),
+    reason="Remove after braking change in Packit is released.",
+)
 @pytest.mark.parametrize(
     "content,project,mock_spec_search,spec_path_option,spec_path,reference",
     [
@@ -243,6 +252,10 @@ def test_get_package_config_from_repo(
         assert j.upstream_package_name == config.upstream_package_name
 
 
+@pytest.mark.skipif(
+    "SyncFilesConfig" not in globals(),
+    reason="Remove after braking change in Packit is released.",
+)
 def test_get_package_config_from_repo_alternative_config_name():
     gp = flexmock(GitProject)
     gp.should_receive("full_repo_name").and_return("a/b")
