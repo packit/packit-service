@@ -14,6 +14,9 @@ from packit_service.worker.handlers.abstract import (
     JobHandler,
     FedmsgHandler,
 )
+from packit_service.worker.handlers.bugzilla_handler import (
+    BugzillaHandler,
+)
 from packit_service.worker.handlers.copr_handlers import (
     CoprBuildHandler,
     CoprBuildEndHandler,
@@ -39,14 +42,15 @@ __all__ = [
     Handler.__name__,
     JobHandler.__name__,
     FedmsgHandler.__name__,
+    BugzillaHandler.__name__,
     CoprBuildHandler.__name__,
     CoprBuildEndHandler.__name__,
     CoprBuildStartHandler.__name__,
     GithubAppInstallationHandler.__name__,
-    ProposeDownstreamHandler.__name__,
     DistGitCommitHandler.__name__,
-    TestingFarmHandler.__name__,
-    TestingFarmResultsHandler.__name__,
+    ProposeDownstreamHandler.__name__,
     KojiBuildHandler.__name__,
     KojiBuildReportHandler.__name__,
+    TestingFarmHandler.__name__,
+    TestingFarmResultsHandler.__name__,
 ]
