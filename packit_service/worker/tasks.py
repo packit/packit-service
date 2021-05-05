@@ -11,13 +11,11 @@ from packit_service.constants import DEFAULT_RETRY_LIMIT, DEFAULT_RETRY_BACKOFF
 from packit_service.utils import load_job_config, load_package_config
 from packit_service.worker.build.babysit import check_copr_build
 from packit_service.worker.handlers.abstract import TaskName
-from packit_service.worker.handlers.fedmsg_handlers import (
+from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
     KojiBuildReportHandler,
     DistGitCommitHandler,
-)
-from packit_service.worker.handlers.forges_handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,
     KojiBuildHandler,

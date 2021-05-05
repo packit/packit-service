@@ -41,6 +41,8 @@ SUPPORTED_EVENTS_FOR_HANDLER: Dict[
 ] = defaultdict(set)
 MAP_COMMENT_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
 
+PROCESSED_FEDMSG_TOPICS = []
+
 
 def configured_as(job_type: JobType):
     """
@@ -157,6 +159,12 @@ def run_for_comment(command: str):
         return kls
 
     return _add_to_mapping
+
+
+def add_topic(kls: Type["FedmsgHandler"]):
+    if issubclass(kls, FedmsgHandler):
+        PROCESSED_FEDMSG_TOPICS.append(kls.topic)
+    return kls
 
 
 class TaskName(str, enum.Enum):
@@ -327,6 +335,28 @@ class JobHandler(Handler):
                 "event": event.get_dict(),
             },
         )
+
+    def run(self) -> TaskResults:
+        raise NotImplementedError("This should have been implemented.")
+
+
+class FedmsgHandler(JobHandler):
+    """Handlers for events from fedmsg"""
+
+    topic: str
+
+    def __init__(
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        event: dict,
+    ):
+        super().__init__(
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
+        )
+        self._pagure_service = None
 
     def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")

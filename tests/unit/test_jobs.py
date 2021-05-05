@@ -29,11 +29,9 @@ from packit_service.worker.handlers import (
     JobHandler,
     TestingFarmHandler,
     TestingFarmResultsHandler,
-)
-from packit_service.worker.handlers.fedmsg_handlers import KojiBuildReportHandler
-from packit_service.worker.handlers.forges_handlers import (
     CoprBuildHandler,
     KojiBuildHandler,
+    KojiBuildReportHandler,
     ProposeDownstreamHandler,
 )
 from packit_service.worker.jobs import (

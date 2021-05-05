@@ -9,18 +9,26 @@
 # from packit_service.worker.handlers import something
 
 
-from packit_service.worker.handlers.abstract import Handler, JobHandler
-from packit_service.worker.handlers.fedmsg_handlers import (
+from packit_service.worker.handlers.abstract import (
+    Handler,
+    JobHandler,
+    FedmsgHandler,
+)
+from packit_service.worker.handlers.copr_handlers import (
+    CoprBuildHandler,
     CoprBuildEndHandler,
     CoprBuildStartHandler,
-    FedmsgHandler,
+)
+from packit_service.worker.handlers.distgit_handlers import (
     DistGitCommitHandler,
+    ProposeDownstreamHandler,
 )
 from packit_service.worker.handlers.forges_handlers import (
     GithubAppInstallationHandler,
-    ProposeDownstreamHandler,
-    CoprBuildHandler,
+)
+from packit_service.worker.handlers.koji_handlers import (
     KojiBuildHandler,
+    KojiBuildReportHandler,
 )
 from packit_service.worker.handlers.testing_farm_handlers import (
     TestingFarmHandler,
@@ -28,16 +36,17 @@ from packit_service.worker.handlers.testing_farm_handlers import (
 )
 
 __all__ = [
-    CoprBuildEndHandler.__name__,
-    CoprBuildStartHandler.__name__,
-    FedmsgHandler.__name__,
-    GithubAppInstallationHandler.__name__,
-    ProposeDownstreamHandler.__name__,
     Handler.__name__,
     JobHandler.__name__,
-    DistGitCommitHandler.__name__,
-    TestingFarmResultsHandler.__name__,
+    FedmsgHandler.__name__,
     CoprBuildHandler.__name__,
+    CoprBuildEndHandler.__name__,
+    CoprBuildStartHandler.__name__,
+    GithubAppInstallationHandler.__name__,
+    ProposeDownstreamHandler.__name__,
+    DistGitCommitHandler.__name__,
     TestingFarmHandler.__name__,
+    TestingFarmResultsHandler.__name__,
     KojiBuildHandler.__name__,
+    KojiBuildReportHandler.__name__,
 ]
