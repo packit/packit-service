@@ -243,14 +243,13 @@ class GitlabWebhook(Resource):
             token_decoded = jwt.decode(
                 token, config.gitlab_token_secret, algorithms=["HS256"]
             )
-        except jwt.exceptions.InvalidSignatureError:
-            msg_failed_signature = "Payload token does not match the project."
-            logger.warning(msg_failed_signature)
-            raise ValidationFailed(msg_failed_signature)
-        except jwt.exceptions.DecodeError:
-            msg_failed_error = "Payload token has invalid signature."
-            logger.warning(msg_failed_error)
-            raise ValidationFailed(msg_failed_error)
+        except (
+            jwt.exceptions.InvalidSignatureError,
+            jwt.exceptions.DecodeError,
+        ) as exc:
+            msg_failed_error = "Can't decode X-Gitlab-Token."
+            logger.warning(f"{msg_failed_error} {exc}")
+            raise ValidationFailed(msg_failed_error) from exc
 
         project_data = json.loads(request.data)["project"]
         parsed_url = parse_git_repo(potential_url=project_data["http_url"])
@@ -263,7 +262,7 @@ class GitlabWebhook(Resource):
         ):
             logger.debug("Payload signature is OK.")
         else:
-            msg_failed_validation = "Signature of the payload token is not valid."
+            msg_failed_validation = "X-Gitlab-Token does not match the project."
             logger.warning(msg_failed_validation)
             raise ValidationFailed(msg_failed_validation)
 
