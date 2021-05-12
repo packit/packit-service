@@ -177,8 +177,13 @@ class GitlabWebhook(Resource):
         )
 
         if not project_authentication_issue:
-            token = jwt.encode(
+            token_project = jwt.encode(
                 {"namespace": parsed_url.namespace, "repo_name": parsed_url.repo},
+                config.gitlab_token_secret,
+                algorithm="HS256",
+            ).decode("utf-8")
+            token_group = jwt.encode(
+                {"namespace": parsed_url.namespace},
                 config.gitlab_token_secret,
                 algorithm="HS256",
             ).decode("utf-8")
@@ -188,11 +193,16 @@ class GitlabWebhook(Resource):
 
             project.create_issue(
                 title="Packit-Service Authentication",
-                body=f"To configure Packit-Service with `{parsed_url.repo}` you need to\n"
-                f"configure the webhook settings. Head to {project.get_web_url()}/hooks and add\n"
-                "the following Secret Token to authenticate requests coming to Packit:\n"
+                body=f"To configure Packit-Service you need to configure a webhook.\n"
+                f"Head to {project.get_web_url()}/hooks and add\n"
+                "the following Secret token to authenticate requests coming to Packit:\n"
                 "```\n"
-                f"{token}\n"
+                f"{token_project}\n"
+                "```\n"
+                "\n"
+                "Or if you want to configure a Group Hook (Gitlab EE) the Secret token would be:\n"
+                "```\n"
+                f"{token_group}\n"
                 "```\n"
                 "\n"
                 "Packit also needs rights to set commit status to merge requests. Please, grant\n"
@@ -230,7 +240,7 @@ class GitlabWebhook(Resource):
         token = request.headers["X-Gitlab-Token"]
 
         if token in config.gitlab_webhook_tokens:
-            logger.debug("Deprecation Warning: Old Gitlab tokens used.")
+            logger.debug("Deprecation Warning: Old/static Gitlab tokens used.")
             return
 
         gitlab_token_secret = config.gitlab_token_secret
@@ -253,18 +263,20 @@ class GitlabWebhook(Resource):
 
         project_data = json.loads(request.data)["project"]
         parsed_url = parse_git_repo(potential_url=project_data["http_url"])
-        token_namespace = token_decoded["namespace"]
-        token_repo_name = token_decoded["repo_name"]
 
-        if (token_namespace, token_repo_name) == (
-            parsed_url.namespace,
-            parsed_url.repo,
+        # "repo_name" might be missing in token_decoded if the token is for group/namespace
+        if token_decoded["namespace"] != parsed_url.namespace or (
+            "repo_name" in token_decoded
+            and token_decoded["repo_name"] != parsed_url.repo
         ):
-            logger.debug("Payload signature is OK.")
-        else:
-            msg_failed_validation = "X-Gitlab-Token does not match the project."
+            msg_failed_validation = (
+                "Decoded X-Gitlab-Token does not match namespace[/project]."
+            )
             logger.warning(msg_failed_validation)
+            logger.debug(f"decoded: {token_decoded}, url: {parsed_url}")
             raise ValidationFailed(msg_failed_validation)
+
+        logger.debug("Payload signature is OK.")
 
     @staticmethod
     def interested():
