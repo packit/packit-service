@@ -13,7 +13,7 @@
         state: present
       become: true
     - name: Run tests within a container
-      command: "make check_in_container"
+      command: "make check-in-container"
       args:
         chdir: "{{ project_dir }}"
       environment:
