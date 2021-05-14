@@ -55,13 +55,37 @@ def test_validate_signature(mock_config, headers, is_good):
     [
         (
             {
+                # token generated for specific repo
+                # jwt.encode({"namespace": "multi/part/namespace", "repo_name": "repo"},
+                #            "gitlab-token-secret", algorithm="HS256")
                 "X-Gitlab-Token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9."
                 "eyJuYW1lc3BhY2UiOiJtdWx0aS9wYXJ0L25hbWVzcGFjZSIsInJlcG9fbmFtZSI6InJlcG8ifQ."
                 "r5-khuzdQJ3b15KZt3E1AqFXjtKfFn_Q1BBwkq04Mf8"
             },
             True,
         ),
-        ({"X-Gitlab-Token": "guyirhgrehjguyrhg"}, False),
+        (
+            {
+                # token generated for whole group/namespace
+                # jwt.encode({"namespace": "multi/part/namespace"},
+                #            "gitlab-token-secret", algorithm="HS256")
+                "X-Gitlab-Token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9."
+                "eyJuYW1lc3BhY2UiOiJtdWx0aS9wYXJ0L25hbWVzcGFjZSJ9."
+                "WNasZgIU91hMwKtGeGCILjPIDLU-PpL5rww-BEAzMgU"
+            },
+            True,
+        ),
+        (
+            {
+                # token generated for a different repo
+                # jwt.encode({"namespace": "multi/part/namespace", "repo_name": "repo2"},
+                #            "gitlab-token-secret", algorithm="HS256")
+                "X-Gitlab-Token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9."
+                "eyJuYW1lc3BhY2UiOiJtdWx0aS9wYXJ0L25hbWVzcGFjZSIsInJlcG9fbmFtZSI6InJlcG8yIn0."
+                "vyQYbtmaCyHfDKpfmyk_uAn9QvDulnaIy2wZ1xgc-uI"
+            },
+            False,
+        ),
         ({"X-Gitlab-Token": "None"}, False),
         ({}, False),
     ],
@@ -85,7 +109,6 @@ def test_validate_token(mock_config, headers, is_good):
     with Flask(__name__).test_request_context():
         payload = {
             "project": {
-                "path_with_namespace": "multi/part/namespace/repo",
                 "http_url": "https://gitlab.com/multi/part/namespace/repo.git",
             }
         }
