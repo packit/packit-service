@@ -1,5 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+from json import dumps
 
 import pytest
 from flask import Flask, request
@@ -29,8 +30,6 @@ def mock_config():
     ],
 )
 def test_validate_signature(mock_config, headers, is_good):
-    payload = b'{"zen": "Keep it logically awesome."}'
-
     # flexmock config before import as it fails on looking for config
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
         flexmock(validate_webhooks=True)
@@ -40,7 +39,9 @@ def test_validate_signature(mock_config, headers, is_good):
     webhooks.config = mock_config
 
     with Flask(__name__).test_request_context():
-        request._cached_data = request.data = payload
+        payload = {"zen": "Keep it logically awesome."}
+
+        request._cached_data = request.data = dumps(payload).encode()
         request.headers = headers
         if not is_good:
             with pytest.raises(ValidationFailed):
@@ -66,11 +67,6 @@ def test_validate_signature(mock_config, headers, is_good):
     ],
 )
 def test_validate_token(mock_config, headers, is_good):
-    payload = (
-        b'{"project": {"path_with_namespace": "multi/part/namespace/repo", '
-        b'"http_url": "https://gitlab.com/multi/part/namespace/repo.git"}}'
-    )
-
     # flexmock config before import as it fails on looking for config
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
         flexmock(ServiceConfig)
@@ -87,7 +83,13 @@ def test_validate_token(mock_config, headers, is_good):
 
     temp = webhooks.GitlabWebhook()
     with Flask(__name__).test_request_context():
-        request._cached_data = request.data = payload
+        payload = {
+            "project": {
+                "path_with_namespace": "multi/part/namespace/repo",
+                "http_url": "https://gitlab.com/multi/part/namespace/repo.git",
+            }
+        }
+        request._cached_data = request.data = dumps(payload).encode()
         request.headers = headers
         if not is_good:
             with pytest.raises(ValidationFailed):
