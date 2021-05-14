@@ -56,7 +56,6 @@ class ServiceConfigSchema(UserConfigSchema):
     bugz_branches = fields.List(fields.String())
     admins = fields.List(fields.String())
     server_name = fields.String()
-    gitlab_webhook_tokens = fields.List(fields.String())
     gitlab_token_secret = fields.String()
     enabled_private_namespaces = fields.List(fields.String())
     projects_to_sync = fields.List(fields.Nested(ProjectToSyncSchema), missing=None)

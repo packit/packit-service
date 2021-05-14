@@ -239,10 +239,6 @@ class GitlabWebhook(Resource):
 
         token = request.headers["X-Gitlab-Token"]
 
-        if token in config.gitlab_webhook_tokens:
-            logger.debug("Deprecation Warning: Old/static Gitlab tokens used.")
-            return
-
         gitlab_token_secret = config.gitlab_token_secret
         if not gitlab_token_secret:
             msg = "'gitlab_token_secret' not specified in the config."

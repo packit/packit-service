@@ -15,7 +15,6 @@ def mock_config():
     config = flexmock(ServiceConfig)
     config.webhook_secret = "testing-secret"
     config.gitlab_token_secret = "gitlab-token-secret"
-    config.gitlab_webhook_tokens = []
     config.validate_webhooks = True
     return config
 

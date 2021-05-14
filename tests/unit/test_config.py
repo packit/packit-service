@@ -51,7 +51,6 @@ def service_config_valid():
         "command_handler_k8s_namespace": "packit-test-sandbox",
         "admins": ["Dasher", "Dancer", "Vixen", "Comet", "Blitzen"],
         "server_name": "hub.packit.org",
-        "gitlab_webhook_tokens": ["token1", "token2", "token3", "aged"],
         "gitlab_token_secret": "jwt_secret",
         "enabled_private_namespaces": [
             "gitlab.com/private/namespace",
@@ -79,7 +78,6 @@ def test_parse_valid(service_config_valid):
     assert config.admins == {"Dasher", "Dancer", "Vixen", "Comet", "Blitzen"}
     assert config.server_name == "hub.packit.org"
     assert config.gitlab_token_secret == "jwt_secret"
-    assert config.gitlab_webhook_tokens == {"token1", "token2", "token3", "aged"}
     assert config.enabled_private_namespaces == {
         "gitlab.com/private/namespace",
         "github.com/other-private-namespace",
@@ -149,7 +147,6 @@ def test_config_opts(sc):
     assert sc.webhook_secret is not None
     assert sc.validate_webhooks is not None
     assert sc.gitlab_token_secret is not None
-    assert sc.gitlab_webhook_tokens is not None
 
 
 @pytest.mark.skipif(
