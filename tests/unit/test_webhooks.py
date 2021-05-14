@@ -1,5 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+from json import dumps
 
 import pytest
 from flask import Flask, request
@@ -29,8 +30,6 @@ def mock_config():
     ],
 )
 def test_validate_signature(mock_config, headers, is_good):
-    payload = b'{"zen": "Keep it logically awesome."}'
-
     # flexmock config before import as it fails on looking for config
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
         flexmock(validate_webhooks=True)
@@ -40,7 +39,9 @@ def test_validate_signature(mock_config, headers, is_good):
     webhooks.config = mock_config
 
     with Flask(__name__).test_request_context():
-        request._cached_data = request.data = payload
+        payload = {"zen": "Keep it logically awesome."}
+
+        request._cached_data = request.data = dumps(payload).encode()
         request.headers = headers
         if not is_good:
             with pytest.raises(ValidationFailed):
@@ -54,23 +55,42 @@ def test_validate_signature(mock_config, headers, is_good):
     [
         (
             {
+                # token generated for specific repo
+                # jwt.encode({"namespace": "multi/part/namespace", "repo_name": "repo"},
+                #            "gitlab-token-secret", algorithm="HS256")
                 "X-Gitlab-Token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9."
                 "eyJuYW1lc3BhY2UiOiJtdWx0aS9wYXJ0L25hbWVzcGFjZSIsInJlcG9fbmFtZSI6InJlcG8ifQ."
                 "r5-khuzdQJ3b15KZt3E1AqFXjtKfFn_Q1BBwkq04Mf8"
             },
             True,
         ),
-        ({"X-Gitlab-Token": "guyirhgrehjguyrhg"}, False),
+        (
+            {
+                # token generated for whole group/namespace
+                # jwt.encode({"namespace": "multi/part/namespace"},
+                #            "gitlab-token-secret", algorithm="HS256")
+                "X-Gitlab-Token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9."
+                "eyJuYW1lc3BhY2UiOiJtdWx0aS9wYXJ0L25hbWVzcGFjZSJ9."
+                "WNasZgIU91hMwKtGeGCILjPIDLU-PpL5rww-BEAzMgU"
+            },
+            True,
+        ),
+        (
+            {
+                # token generated for a different repo
+                # jwt.encode({"namespace": "multi/part/namespace", "repo_name": "repo2"},
+                #            "gitlab-token-secret", algorithm="HS256")
+                "X-Gitlab-Token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9."
+                "eyJuYW1lc3BhY2UiOiJtdWx0aS9wYXJ0L25hbWVzcGFjZSIsInJlcG9fbmFtZSI6InJlcG8yIn0."
+                "vyQYbtmaCyHfDKpfmyk_uAn9QvDulnaIy2wZ1xgc-uI"
+            },
+            False,
+        ),
         ({"X-Gitlab-Token": "None"}, False),
         ({}, False),
     ],
 )
 def test_validate_token(mock_config, headers, is_good):
-    payload = (
-        b'{"project": {"path_with_namespace": "multi/part/namespace/repo", '
-        b'"http_url": "https://gitlab.com/multi/part/namespace/repo.git"}}'
-    )
-
     # flexmock config before import as it fails on looking for config
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
         flexmock(ServiceConfig)
@@ -87,7 +107,12 @@ def test_validate_token(mock_config, headers, is_good):
 
     temp = webhooks.GitlabWebhook()
     with Flask(__name__).test_request_context():
-        request._cached_data = request.data = payload
+        payload = {
+            "project": {
+                "http_url": "https://gitlab.com/multi/part/namespace/repo.git",
+            }
+        }
+        request._cached_data = request.data = dumps(payload).encode()
         request.headers = headers
         if not is_good:
             with pytest.raises(ValidationFailed):
