@@ -81,7 +81,6 @@ class ServiceConfig(Config):
         bugzilla_api_key: str = "",
         bugz_namespaces: List[str] = None,
         bugz_branches: List[str] = None,
-        gitlab_webhook_tokens: List[str] = None,
         enabled_private_namespaces: Union[Set[str], List[str]] = None,
         gitlab_token_secret: str = "",
         projects_to_sync: List[ProjectToSync] = None,
@@ -120,10 +119,6 @@ class ServiceConfig(Config):
         # for flask SERVER_NAME so we can create links to logs
         self.server_name: str = ""
 
-        # Makeshift for now to authenticate webhooks coming from gitlab instances
-        # Old way of authenticating
-        self.gitlab_webhook_tokens: Set[str] = set(gitlab_webhook_tokens or [])
-
         # Gitlab token secret to decode JWT tokens
         self.gitlab_token_secret: str = gitlab_token_secret
 
@@ -160,7 +155,6 @@ class ServiceConfig(Config):
             f"fas_password='{hide(self.fas_password)}', "
             f"bugzilla_url='{self.bugzilla_url}', "
             f"bugzilla_api_key='{hide(self.bugzilla_api_key)}', "
-            f"gitlab_webhook_tokens='{self.gitlab_webhook_tokens}',"
             f"gitlab_token_secret='{hide(self.gitlab_token_secret)}',"
             f"enabled_private_namespaces='{self.enabled_private_namespaces}',"
             f"server_name='{self.server_name}', "
