@@ -16,6 +16,7 @@ from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
 from packit.local_project import LocalProject
 from packit.utils import PackitFormatter
+from packit.utils.repo import RepositoryCache
 from packit_service import sentry_integration
 from packit_service.config import Deployment, ServiceConfig
 from packit_service.models import RunModel, SRPMBuildModel
@@ -74,6 +75,12 @@ class BaseBuildJobHelper:
                 working_dir=self.service_config.command_handler_work_dir,
                 ref=self.metadata.git_ref,
                 pr_id=self.metadata.pr_id,
+                cache=RepositoryCache(
+                    cache_path=self.service_config.repository_cache,
+                    add_new=self.service_config.add_repositories_to_repository_cache,
+                )
+                if self.service_config.repository_cache
+                else None,
             )
         return self._local_project
 
