@@ -10,6 +10,7 @@ from ogr.services.github import GithubProject
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
+from packit.utils.repo import RepositoryCache
 from packit_service.config import ServiceConfig, ProjectToSync
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import GitBranchModel
@@ -62,10 +63,13 @@ def test_distgit_commit_handler():
                 )
             ],
             command_handler_work_dir=SANDCASTLE_WORK_DIR,
+            repository_cache="/tmp/repository-cache",
+            add_repositories_to_repository_cache=False,
         )
     )
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(RepositoryCache).should_call("__init__").once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(PackitAPI).should_receive("sync_from_downstream").with_args(
         dist_git_branch="master", upstream_branch="aaa", sync_only_specfile=True
