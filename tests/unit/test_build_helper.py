@@ -1,11 +1,13 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+from pathlib import Path
 
 import pytest
 from flexmock import flexmock
 
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
+from packit.utils.repo import RepositoryCache
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 
@@ -1043,3 +1045,49 @@ def test_targets_for_koji_build(
 
     assert koji_build_handler.configured_build_targets == build_targets
     assert koji_build_handler.build_targets == koji_targets
+
+
+def test_repository_cache_invocation():
+    copr_build_helper = CoprBuildJobHelper(
+        service_config=flexmock(
+            repository_cache="/tmp/repository-cache",
+            add_repositories_to_repository_cache=False,
+            command_handler_work_dir="/tmp/some-dir",
+        ),
+        package_config=PackageConfig(
+            jobs=[
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                )
+            ],
+        ),
+        job_config=JobConfig(
+            type=JobType.copr_build,
+            trigger=JobConfigTriggerType.pull_request,
+            metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+        ),
+        project=flexmock(
+            service=flexmock(),
+            get_git_urls=lambda: {
+                "git": "https://github.com/some-namespace/some-repo.git"
+            },
+            repo=flexmock(),
+            namespace=flexmock(),
+        ),
+        metadata=flexmock(pr_id=None, git_ref=flexmock()),
+        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+    )
+
+    flexmock(RepositoryCache).should_call("__init__").once()
+    flexmock(RepositoryCache).should_receive("get_repo").with_args(
+        "https://github.com/some-namespace/some-repo.git",
+        directory=Path("/tmp/some-dir"),
+    ).and_return(
+        flexmock(
+            git=flexmock().should_receive("checkout").and_return().mock(),
+            commit=lambda: "commit",
+        )
+    ).once()
+    assert copr_build_helper.local_project
