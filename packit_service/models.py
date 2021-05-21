@@ -1248,6 +1248,7 @@ class TestingFarmResult(str, enum.Enum):
     skipped = "skipped"
     error = "error"
     unknown = "unknown"
+    needs_inspection = "needs_inspection"
 
 
 class TFTTestRunModel(ProjectAndTriggersConnector, Base):
