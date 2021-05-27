@@ -12,7 +12,7 @@ from rebasehelper.exceptions import RebaseHelperError
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.config.aliases import get_branches
-from packit.fedpkg import FedPKG
+from packit.pkgtool import PkgTool
 from packit.local_project import LocalProject
 
 from packit_service import sentry_integration
@@ -111,7 +111,7 @@ def test_dist_git_push_release_handle_multiple_branches(
             dist_git_branch=branch, tag="0.3.0"
         ).once()
 
-    flexmock(FedPKG).should_receive("clone").and_return(None)
+    flexmock(PkgTool).should_receive("clone").and_return(None)
 
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
@@ -173,7 +173,7 @@ def test_dist_git_push_release_handle_one_failed(
         if i == 1:
             sync_release.and_raise(Exception, f"Failed {branch}").once()
 
-    flexmock(FedPKG).should_receive("clone").and_return(None)
+    flexmock(PkgTool).should_receive("clone").and_return(None)
 
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
