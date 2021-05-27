@@ -17,7 +17,7 @@ from requre.helpers.git.fetchinfo import FetchInfoStorageList
 from requre.helpers.git.repo import Repo
 
 from tests_requre.openshift_integration.base import PackitServiceTestCase
-from packit.fedpkg import FedPKG
+from packit.pkgtool import PkgTool
 
 #        where="download_helper",
 #        what="DownloadHelper.request",
@@ -33,7 +33,7 @@ from packit.fedpkg import FedPKG
 )
 @apply_decorator_to_all_methods(
     replace_module_match(
-        what="packit.fedpkg.FedPKG.clone",
+        what="packit.pkgtool.PkgTool.clone",
         decorate=StoreFiles.where_arg_references(
             key_position_params_dict={"target_path": 2}
         ),
@@ -76,7 +76,7 @@ from packit.fedpkg import FedPKG
         what="copr.v3.helpers.config_from_file", decorate=Simple.decorator_plain()
     )
 )
-class FedPkg(PackitServiceTestCase):
+class Pkgtool(PackitServiceTestCase):
     def setUp(self) -> None:
         super().setUp()
         self._tmpdir = None
@@ -91,9 +91,8 @@ class FedPkg(PackitServiceTestCase):
         shutil.rmtree(self.tmpdir)
         super().tearDown()
 
-    def test_fedpkg_clone(self):
+    def test_pkgtool_clone(self):
         """test `fedpkg clone -a` within an openshift pod"""
         t = Path(self.tmpdir)
-        f = FedPKG()
-        f.clone("units", str(t), anonymous=True)
+        PkgTool().clone("units", str(t), anonymous=True)
         assert t.joinpath("units.spec").is_file()
