@@ -68,9 +68,10 @@ def process_message(
 @celery_app.task(
     bind=True,
     name="task.babysit_copr_build",
-    retry_backoff=60,  # retry again in 60s, 120s, 240s, 480s...
-    retry_backoff_max=60 * 60 * 8,  # is 8 hours okay? gcc/kernel build really long
-    max_retries=7,
+    retry_backoff=30,  # retry again in 30s, 60s, 120s, 240s...
+    retry_backoff_max=3600,  # at most, wait for an hour between retries
+    max_retries=14,  # retry 14 times; with the backoff values above this is ~8 hours
+    retry_jitter=False,  # do not jitter, as it might considerably reduce the total wait time
 )
 def babysit_copr_build(self, build_id: int):
     """check status of a copr build and update it in DB"""
