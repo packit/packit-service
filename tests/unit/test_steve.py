@@ -64,6 +64,10 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
     lp.git_project = gh_project
     flexmock(DistGit).should_receive("local_project").and_return(lp)
+    # reset of the upstream repo
+    flexmock(LocalProject).should_receive("reset").with_args("HEAD").times(
+        1 if success else 0
+    )
 
     config = ServiceConfig(enabled_private_namespaces=enabled_private_namespaces)
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR

@@ -120,6 +120,8 @@ def test_issue_comment_propose_downstream_handler(
         is_private=lambda: False,
     )
 
+    flexmock(LocalProject).should_receive("reset").with_args("HEAD").once()
+
     flexmock(IssueCommentGitlabEvent).should_receive("db_trigger").and_return(
         flexmock(id=123, job_config_trigger_type=JobConfigTriggerType.release)
     )

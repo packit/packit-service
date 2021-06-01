@@ -50,6 +50,8 @@ def test_dist_git_push_release_handle(github_release_webhook):
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
     lp.git_project = project
     flexmock(DistGit).should_receive("local_project").and_return(lp)
+    # reset of the upstream repo
+    flexmock(LocalProject).should_receive("reset").with_args("HEAD").once()
 
     flexmock(Allowlist, check_and_report=True)
     config = ServiceConfig()
@@ -100,6 +102,10 @@ def test_dist_git_push_release_handle_multiple_branches(
         default_branch="main",
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProject).should_receive("reset").with_args("HEAD").times(
+        len(fedora_branches)
+    )
+
     flexmock(Allowlist, check_and_report=True)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
@@ -157,6 +163,9 @@ def test_dist_git_push_release_handle_one_failed(
         .mock()
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(LocalProject).should_receive("reset").with_args("HEAD").times(
+        len(fedora_branches)
+    )
     flexmock(Allowlist, check_and_report=True)
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
@@ -234,6 +243,10 @@ def test_dist_git_push_release_handle_all_failed(
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
     lp.git_project = project
     flexmock(DistGit).should_receive("local_project").and_return(lp)
+    # reset of the upstream repo
+    flexmock(LocalProject).should_receive("reset").with_args("HEAD").times(
+        len(fedora_branches)
+    )
 
     flexmock(Allowlist, check_and_report=True)
     config = ServiceConfig()
@@ -287,6 +300,8 @@ def test_retry_propose_downstream_task(github_release_webhook):
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
     lp.git_project = project
     flexmock(DistGit).should_receive("local_project").and_return(lp)
+    # reset of the upstream repo
+    flexmock(LocalProject).should_receive("reset").with_args("HEAD").once()
 
     flexmock(Allowlist, check_and_report=True)
     config = ServiceConfig()
@@ -357,6 +372,7 @@ def test_dont_retry_propose_downstream_task(github_release_webhook):
     ).and_raise(
         RebaseHelperError, "Failed to download file from URL example.com"
     ).once()
+    flexmock(LocalProject).should_receive("reset").with_args("HEAD").once()
     flexmock(Context, retries=2)
     flexmock(Task).should_receive("retry").never()
     flexmock(project).should_receive("create_issue").once()
