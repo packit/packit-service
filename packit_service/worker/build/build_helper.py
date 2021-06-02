@@ -383,7 +383,7 @@ class BaseBuildJobHelper:
 
             srpm_logs += (
                 f"\nMessage: {exception}\nException: {exception!r}\n{self.msg_retrigger}"
-                "\nPlease join the freenode IRC channel #packit for the latest info.\n"
+                "\nPlease join #packit on irc.libera.chat if you need help with the error above.\n"
             )
 
         self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
