@@ -4,34 +4,34 @@ Please follow common guidelines for our projects [here](https://github.com/packi
 
 ## Reporting Bugs
 
-- [List of known issues](https://github.com/packit/packit-service/issues) and in case you need to create a new issue, you can do so [here](https://github.com/packit/packit-service/issues/new).
+- [List of known issues](https://github.com/packit/packit-service/issues); if you need to create a new issue, you can do so [here](https://github.com/packit/packit-service/issues/new).
 - Getting a version of `packit`:<br>
   `rpm -q packit` or `pip3 freeze | grep packitos`
 
 ## Building images locally
 
-For building images SOURCE_BRANCH build arg is required. It allows select which branch should be
-used during automated build and test process, based on deployment stage it was executed from.
+For building images the SOURCE_BRANCH build arg is required. It allows selecting which branch should be
+used during the automated build and test process, based on the deployment stage it was executed from.
 
-Docker file build arg SOURCE_BRANCH is set to:
+In the Dockerfiles SOURCE_BRANCH is set to:
 
 - SOURCE_BRANCH env variable, which is available in custom build process([docs](https://docs.docker
   .com/docker-hub/builds/advanced/))
 - zuul.branch ansible variable, which is provided in zuul-ci environment. ([docs](- [scripts](scripts/) - devops scripts used in multiple repositories
   ))
 
-When executing manually it is required to provide:
+When you are invoking 'make' manually, you must provide:
 
 - variable SOURCE_BRANCH for make targets:
 
 e.g.
 `SOURCE_BRANCH=main`
 
-- arg `--build-arg SOURCE_BRANCH=value` when using docker(-compose) build
+- arg `--build-arg SOURCE_BRANCH=value` when using podman build
 
 e.g.
 
-    docker build --build-arg SOURCE_BRANCH=stable
+    podman build --build-arg SOURCE_BRANCH=stable
     docker-compose build --build-arg SOURCE_BRANCH=stable
 
 If SOURCE_BRANCH is empty build will fail.
@@ -40,11 +40,11 @@ If SOURCE_BRANCH is not empty and is not main or stable than main value will be 
 ## Running packit-service locally
 
 Since packit-service is already a fairly complex system, it's not trivial to
-run it locally. This is why we are running everything in containers.
+run it locally. This is why we run everything in containers.
 
 This repository contains [docker-compose.yml](./docker-compose.yml) for
 [docker-compose](https://github.com/docker/compose). Before you run it, we
-suggest you to open the file and read all the comments.
+suggest that you open the file and read all the comments.
 You can also run only certain pieces of packit-service for local development
 (e.g. worker, database or service/httpd).
 
@@ -104,18 +104,18 @@ the project which handles migrations and schema versioning for SQLAlchemy.
 
 To generate a migration script for your recent change you can do:
 
-    $ docker-compose up service
-    $ docker exec -ti service bash -c 'cd /src/; alembic revision -m "My change" --autogenerate'
-    $ docker cp service:/src/alembic/versions/123456789abc_my_change.py .
+    $ podman-compose up service
+    $ podman exec -ti service bash -c 'cd /src/; alembic revision -m "My change" --autogenerate'
+    $ podman cp service:/src/alembic/versions/123456789abc_my_change.py .
 
 The `alembic upgrade head` is run in [run_httpd.sh](files/run_httpd.sh)
 during (packit-)service pod/container start.
 
 ### How to check what's inside postgres?
 
-Get shell inside the container (or pod). E.g. with docker-compose:
+Get shell inside the container (or pod). E.g. with podman-compose:
 
-    $ docker-compose exec -ti postgres bash
+    $ podman-compose exec -ti postgres bash
     bash-4.2$
 
 Invoke psql interactive shell:
@@ -158,7 +158,7 @@ Look inside a table
 
 ## Testing
 
-Tests are stored in [tests/](/tests) directory and tests using [requre](https://github.com/packit/requre) are stored in [tests_requre/](/tests_requre).
+Tests are stored in the [tests/](/tests) directory and tests using [requre](https://github.com/packit/requre) are stored in [tests_requre/](/tests_requre).
 
 ### Test categories
 
@@ -183,7 +183,7 @@ We have multiple test categories within packit-service:
   openshift as a job while the root process is pytest.
 - With these, we are making sure that tools we use run well inside [the non-standard OpenShift environment](.https://developers.redhat.com/blog/2016/10/21/understanding-openshift-security-context-constraints/)
 - [requre](https://github.com/packit/requre) and/or
-  [flexmock](https://flexmock.readthedocs.io/en/latest/) is suppose to be
+  [flexmock](https://flexmock.readthedocs.io/en/latest/) is supposed to be
   used to handle remote interactions and secrets so we don't touch production
   systems while running tests in CI
 
@@ -197,14 +197,16 @@ We have multiple test categories within packit-service:
 
 ### Running tests locally
 
-You can run unit and integration tests locally in a container:
+You can run unit and integration tests locally in a container;
+make sure that you have the podman package installed, then:
 
-    make check_in_container
+    make build-test-image
+    make check-in-container
 
 To select a subset of the whole test suite, set `TEST_TARGET`. For example to
 run only the unit tests use:
 
-    TEST_TARGET=tests/unit make check_in_container
+    TEST_TARGET=tests/unit make check-in-container
 
 ### Openshift tests using requre
 
@@ -213,7 +215,7 @@ to store and replay data for tests.
 
 #### General requirements
 
-- Set up docker and allow your user access it:
+- Set up docker and allow your user access to it:
 
   ```bash
   sudo dnf -y install docker
@@ -269,7 +271,7 @@ to store and replay data for tests.
     ```
     oc cluster down
     ```
-  - Remove all docker images (including openshift itself) (there is some issue, that openshift uses sometimes some old images)
+  - Remove all docker images (including openshift itself) (there is an issue, that openshift sometimes uses some old images)
     ```
     docker rmi -f $(docker images -q)
     ```
