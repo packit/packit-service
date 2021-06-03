@@ -171,6 +171,8 @@ class ProposeDownstreamHandler(JobHandler):
                         )
                 sentry_integration.send_to_sentry(ex)
                 errors[branch] = str(ex)
+            finally:
+                self.api.up.local_project.reset("HEAD")
 
         if errors:
             branch_errors = ""
