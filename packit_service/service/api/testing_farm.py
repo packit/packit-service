@@ -9,7 +9,7 @@ from flask_restx import Namespace, Resource, fields
 
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
-from packit_service.models import TFTTestRunModel
+from packit_service.models import TFTTestRunModel, optional_time
 from packit_service.service.api.errors import ValidationFailed
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import get_project_info_from_build, response_maker
@@ -110,6 +110,7 @@ class TestingFarmResults(Resource):
                 "target": tf_result.target,
                 "web_url": tf_result.web_url,
                 "pr_id": tf_result.get_pr_id(),
+                "submitted_time": optional_time(tf_result.submitted_time),
             }
 
             project = tf_result.get_project()
@@ -142,7 +143,7 @@ class TestingFarmResult(Resource):
                 status=HTTPStatus.NOT_FOUND.value,
             )
 
-        build_dict = {
+        test_result_dict = {
             "pipeline_id": test_run_model.pipeline_id,
             "status": test_run_model.status,
             "chroot": test_run_model.target,
@@ -150,7 +151,8 @@ class TestingFarmResult(Resource):
             "web_url": test_run_model.web_url,
             "copr_build_id": test_run_model.runs[0].copr_build_id,
             "run_ids": sorted(run.id for run in test_run_model.runs),
+            "submitted_time": optional_time(test_run_model.submitted_time),
         }
 
-        build_dict.update(get_project_info_from_build(test_run_model))
-        return response_maker(build_dict)
+        test_result_dict.update(get_project_info_from_build(test_run_model))
+        return response_maker(test_result_dict)
