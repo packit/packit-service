@@ -667,10 +667,15 @@ def test_get_installation_by_account(
 
 
 def test_pr_get_copr_builds(
-    clean_before_and_after, a_copr_build_for_pr, different_pr_model
+    clean_before_and_after,
+    a_copr_build_for_pr,
+    different_pr_model,
+    a_copr_build_for_branch_push,
 ):
     pr_model = a_copr_build_for_pr.get_trigger_object()
-    assert a_copr_build_for_pr in pr_model.get_copr_builds()
+    copr_builds = pr_model.get_copr_builds()
+    assert a_copr_build_for_pr in copr_builds
+    assert len(copr_builds) == 1
     assert not different_pr_model.get_copr_builds()
 
 

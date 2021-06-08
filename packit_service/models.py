@@ -128,22 +128,37 @@ class BuildsAndTestsConnector:
                 raise PackitException(msg)
             return trigger_list[0].runs if trigger_list else []
 
-    def _get_run_item(self, model):
-        run_ids = [run.id for run in self.get_runs()]
-        with get_sa_session() as session:
-            return session.query(model).filter(RunModel.id.in_(run_ids)).all()
+    def _get_run_item(
+        self, model_type: Type["AbstractBuildTestDbType"]
+    ) -> List["AbstractBuildTestDbType"]:
+        runs = self.get_runs()
+        models = []
+
+        if model_type == CoprBuildModel:
+            models = [run.copr_build for run in runs]
+
+        if model_type == KojiBuildModel:
+            models = [run.koji_build for run in runs]
+
+        if model_type == SRPMBuildModel:
+            models = [run.srpm_build for run in runs]
+
+        if model_type == TFTTestRunModel:
+            models = [run.test_run for run in runs]
+
+        return list({model for model in models if model is not None})
 
     def get_copr_builds(self):
-        return self._get_run_item(model=CoprBuildModel)
+        return self._get_run_item(model_type=CoprBuildModel)
 
     def get_koji_builds(self):
-        return self._get_run_item(model=KojiBuildModel)
+        return self._get_run_item(model_type=KojiBuildModel)
 
     def get_srpm_builds(self):
-        return self._get_run_item(model=SRPMBuildModel)
+        return self._get_run_item(model_type=SRPMBuildModel)
 
     def get_test_runs(self):
-        return self._get_run_item(model=TFTTestRunModel)
+        return self._get_run_item(model_type=TFTTestRunModel)
 
 
 class ProjectAndTriggersConnector:
@@ -587,6 +602,7 @@ AbstractTriggerDbType = Union[
     GitBranchModel,
     IssueModel,
 ]
+
 
 MODEL_FOR_TRIGGER: Dict[JobTriggerModelType, Type[AbstractTriggerDbType]] = {
     JobTriggerModelType.pull_request: PullRequestModel,
@@ -1336,6 +1352,11 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
 
     def __repr__(self):
         return f"TFTTestRunModel(id={self.id}, pipeline_id={self.pipeline_id})"
+
+
+AbstractBuildTestDbType = Union[
+    CoprBuildModel, KojiBuildModel, SRPMBuildModel, TFTTestRunModel
+]
 
 
 class ProjectAuthenticationIssueModel(Base):
