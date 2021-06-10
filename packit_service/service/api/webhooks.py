@@ -258,7 +258,8 @@ class GitlabWebhook(Resource):
             raise ValidationFailed(msg_failed_error) from exc
 
         project_data = json.loads(request.data)["project"]
-        parsed_url = parse_git_repo(potential_url=project_data["http_url"])
+        git_http_url = project_data.get("git_http_url") or project_data["http_url"]
+        parsed_url = parse_git_repo(potential_url=git_http_url)
 
         # "repo_name" might be missing in token_decoded if the token is for group/namespace
         if token_decoded["namespace"] != parsed_url.namespace or (
