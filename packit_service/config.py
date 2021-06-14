@@ -74,6 +74,8 @@ class ServiceConfig(Config):
         webhook_secret: str = "",
         testing_farm_secret: str = "",
         testing_farm_api_url: str = "",
+        internal_testing_farm_secret: str = "",
+        internal_testing_farm_api_url: str = "",
         validate_webhooks: bool = True,
         admins: list = None,
         fas_password: Optional[str] = "",
@@ -98,6 +100,8 @@ class ServiceConfig(Config):
         # We might later use different secrets for those two use cases.
         self.testing_farm_secret = testing_farm_secret
         self.testing_farm_api_url = testing_farm_api_url
+        self.internal_testing_farm_secret = internal_testing_farm_secret
+        self.internal_testing_farm_api_url = internal_testing_farm_api_url
         self.validate_webhooks = validate_webhooks
 
         # fas.fedoraproject.org needs password to authenticate
@@ -150,6 +154,8 @@ class ServiceConfig(Config):
             f"webhook_secret='{hide(self.webhook_secret)}', "
             f"testing_farm_secret='{hide(self.testing_farm_secret)}', "
             f"testing_farm_api_url='{self.testing_farm_api_url}', "
+            f"internal_testing_farm_secret='{hide(self.internal_testing_farm_secret)}', "
+            f"internal_testing_farm_api_url='{self.internal_testing_farm_api_url}', "
             f"validate_webhooks='{self.validate_webhooks}', "
             f"admins='{self.admins}', "
             f"fas_password='{hide(self.fas_password)}', "
