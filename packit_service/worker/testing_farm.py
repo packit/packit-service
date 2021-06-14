@@ -279,6 +279,22 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 },
             )
 
+        if (
+            self.job_config.metadata.use_internal_tf
+            and f"{self.project.service.hostname}/{self.project.full_repo_name}"
+            not in self.service_config.enabled_projects_for_internal_tf
+        ):
+            self.report_status_to_test_for_chroot(
+                state=CommitStatus.error,
+                description="Internal TF not allowed for this project. Let us know.",
+                chroot=chroot,
+                url="https://packit.dev/#contact",
+            )
+            return TaskResults(
+                success=True,
+                details={"msg": "Project not allowed to use internal TF."},
+            )
+
         self.report_status_to_test_for_chroot(
             state=CommitStatus.pending,
             description="Build succeeded. Submitting the tests ...",

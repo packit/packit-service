@@ -60,6 +60,7 @@ class ServiceConfigSchema(UserConfigSchema):
     server_name = fields.String()
     gitlab_token_secret = fields.String()
     enabled_private_namespaces = fields.List(fields.String())
+    enabled_projects_for_internal_tf = fields.List(fields.String())
     projects_to_sync = fields.List(fields.Nested(ProjectToSyncSchema), missing=None)
     dashboard_url = fields.String()
     koji_logs_url = fields.String()
