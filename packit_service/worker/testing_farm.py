@@ -54,14 +54,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     @property
     def tft_api_url(self) -> str:
         if not self._tft_api_url:
-            # Project needs to be added to the `enabled_projects_for_internal_tf` list
-            # in the service config.
-            # This is checked in the run_testing_farm method.
-            self._tft_api_url = (
-                self.service_config.internal_testing_farm_api_url
-                if self.job_config.metadata.use_internal_tf
-                else self.service_config.testing_farm_api_url
-            )
+            self._tft_api_url = self.service_config.testing_farm_api_url
             if not self._tft_api_url.endswith("/"):
                 self._tft_api_url += "/"
         return self._tft_api_url
@@ -69,6 +62,13 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     @property
     def tft_token(self) -> str:
         if not self._tft_token:
+            # We have two tokens (=TF users), one for upstream and one for internal instance.
+            # The URL is same and the instance choice is based on the TF user (=token)
+            # we use in the payload.
+            # To use internal instance,
+            # project needs to be added to the `enabled_projects_for_internal_tf` list
+            # in the service config.
+            # This is checked in the run_testing_farm method.
             self._tft_token = (
                 self.service_config.internal_testing_farm_secret
                 if self.job_config.metadata.use_internal_tf
