@@ -79,18 +79,16 @@ class TestingFarmResults(Resource):
             logger.error(msg)
             raise ValidationFailed(msg)
 
-        if not config.internal_testing_farm_secret:
-            msg = "Testing farm secret for internal instance not specified in config"
-            logger.error(msg)
-            raise ValidationFailed(msg)
-
         token = request.json.get("token")
         if not token:
             msg = "The notification doesn't contain any token"
             logger.info(msg)
             raise ValidationFailed(msg)
 
-        if token in {config.testing_farm_secret, config.internal_testing_farm_secret}:
+        if token == config.testing_farm_secret or (
+            config.internal_testing_farm_secret
+            and token == config.internal_testing_farm_secret
+        ):
             return
 
         msg = "Invalid testing farm secret provided"
