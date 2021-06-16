@@ -74,6 +74,7 @@ class ServiceConfig(Config):
         webhook_secret: str = "",
         testing_farm_secret: str = "",
         testing_farm_api_url: str = "",
+        internal_testing_farm_secret: str = "",
         validate_webhooks: bool = True,
         admins: list = None,
         fas_password: Optional[str] = "",
@@ -84,6 +85,7 @@ class ServiceConfig(Config):
         enabled_private_namespaces: Union[Set[str], List[str]] = None,
         gitlab_token_secret: str = "",
         projects_to_sync: List[ProjectToSync] = None,
+        enabled_projects_for_internal_tf: Union[Set[str], List[str]] = None,
         dashboard_url: str = "",
         koji_logs_url: str = "https://kojipkgs.fedoraproject.org",
         koji_web_url: str = "https://koji.fedoraproject.org",
@@ -98,6 +100,7 @@ class ServiceConfig(Config):
         # We might later use different secrets for those two use cases.
         self.testing_farm_secret = testing_farm_secret
         self.testing_farm_api_url = testing_farm_api_url
+        self.internal_testing_farm_secret = internal_testing_farm_secret
         self.validate_webhooks = validate_webhooks
 
         # fas.fedoraproject.org needs password to authenticate
@@ -129,6 +132,13 @@ class ServiceConfig(Config):
         self.enabled_private_namespaces: Set[str] = set(
             enabled_private_namespaces or []
         )
+        # Explicit list of project we allow the internal TF instance to be used-
+        # e.g.:
+        #  - github.com/other-private-namespace/project
+        #  - gitlab.com/namespace/project
+        self.enabled_projects_for_internal_tf: Set[str] = set(
+            enabled_projects_for_internal_tf or []
+        )
 
         self.projects_to_sync = projects_to_sync or []
 
@@ -150,6 +160,7 @@ class ServiceConfig(Config):
             f"webhook_secret='{hide(self.webhook_secret)}', "
             f"testing_farm_secret='{hide(self.testing_farm_secret)}', "
             f"testing_farm_api_url='{self.testing_farm_api_url}', "
+            f"internal_testing_farm_secret='{hide(self.internal_testing_farm_secret)}', "
             f"validate_webhooks='{self.validate_webhooks}', "
             f"admins='{self.admins}', "
             f"fas_password='{hide(self.fas_password)}', "
@@ -157,6 +168,7 @@ class ServiceConfig(Config):
             f"bugzilla_api_key='{hide(self.bugzilla_api_key)}', "
             f"gitlab_token_secret='{hide(self.gitlab_token_secret)}',"
             f"enabled_private_namespaces='{self.enabled_private_namespaces}',"
+            f"enabled_projects_for_internal_tf='{self.enabled_projects_for_internal_tf}',"
             f"server_name='{self.server_name}', "
             f"dashboard_url='{self.dashboard_url}', "
             f"koji_logs_url='{self.koji_logs_url}', "

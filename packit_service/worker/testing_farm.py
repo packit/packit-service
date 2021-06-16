@@ -49,6 +49,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self.insecure = False
         self.session.mount("https://", adapter)
         self._tft_api_url: str = ""
+        self._tft_token: str = ""
 
     @property
     def tft_api_url(self) -> str:
@@ -57,6 +58,23 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             if not self._tft_api_url.endswith("/"):
                 self._tft_api_url += "/"
         return self._tft_api_url
+
+    @property
+    def tft_token(self) -> str:
+        if not self._tft_token:
+            # We have two tokens (=TF users), one for upstream and one for internal instance.
+            # The URL is same and the instance choice is based on the TF user (=token)
+            # we use in the payload.
+            # To use internal instance,
+            # project needs to be added to the `enabled_projects_for_internal_tf` list
+            # in the service config.
+            # This is checked in the run_testing_farm method.
+            self._tft_token = (
+                self.service_config.internal_testing_farm_secret
+                if self.job_config.metadata.use_internal_tf
+                else self.service_config.testing_farm_secret
+            )
+        return self._tft_token
 
     @property
     def fmf_url(self):
@@ -89,7 +107,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             fmf["ref"] = self.fmf_ref
 
         return {
-            "api_key": self.service_config.testing_farm_secret,
+            "api_key": self.tft_token,
             "test": {
                 "fmf": fmf,
             },
@@ -111,7 +129,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "notification": {
                 "webhook": {
                     "url": f"{self.api_url}/testing-farm/results",
-                    "token": self.service_config.testing_farm_secret,
+                    # Token is checked when accepting the results.
+                    # See TestingFarmResults.validate_testing_farm_request
+                    # in packit_service/service/api/testing_farm.py
+                    # for more details.
+                    "token": self.tft_token,
                 },
             },
         }
@@ -255,6 +277,22 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                     "msg": f"Target '{chroot}' not defined for build. "
                     "Cannot run tests without build."
                 },
+            )
+
+        if (
+            self.job_config.metadata.use_internal_tf
+            and f"{self.project.service.hostname}/{self.project.full_repo_name}"
+            not in self.service_config.enabled_projects_for_internal_tf
+        ):
+            self.report_status_to_test_for_chroot(
+                state=CommitStatus.error,
+                description="Internal TF not allowed for this project. Let us know.",
+                chroot=chroot,
+                url="https://packit.dev/#contact",
+            )
+            return TaskResults(
+                success=True,
+                details={"msg": "Project not allowed to use internal TF."},
             )
 
         self.report_status_to_test_for_chroot(

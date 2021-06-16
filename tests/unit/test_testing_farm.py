@@ -281,6 +281,8 @@ def test_distro2compose(distro, compose):
     (
         "tf_api,"
         "tf_token,"
+        "internal_tf_token,"
+        "use_internal_tf,"
         "ps_deployment,"
         "repo,"
         "namespace,"
@@ -299,6 +301,46 @@ def test_distro2compose(distro, compose):
         (
             "https://api.dev.testing-farm.io/v0.1/",
             "very-secret",
+            "",  # without internal TF configured
+            False,
+            "test",
+            "packit",
+            "packit-service",
+            "feb41e5",
+            "https://github.com/packit/packit",
+            "master",
+            "me",
+            "cool-project",
+            "123456",
+            "centos-stream-x86_64",
+            "centos-stream",
+            "Fedora-Rawhide",
+            "x86_64",
+        ),
+        (
+            "https://api.dev.testing-farm.io/v0.1/",
+            "very-secret",
+            "internal-very-secret",  # internal TF configured
+            False,  # internal TF disabled in the config
+            "test",
+            "packit",
+            "packit-service",
+            "feb41e5",
+            "https://github.com/packit/packit",
+            "master",
+            "me",
+            "cool-project",
+            "123456",
+            "centos-stream-x86_64",
+            "centos-stream",
+            "Fedora-Rawhide",
+            "x86_64",
+        ),
+        (
+            "https://api.dev.testing-farm.io/v0.1/",
+            "very-secret",
+            "internal-very-secret",  # internal TF configured
+            True,  # internal TF enabled in the config
             "test",
             "packit",
             "packit-service",
@@ -318,6 +360,8 @@ def test_distro2compose(distro, compose):
 def test_payload(
     tf_api,
     tf_token,
+    internal_tf_token,
+    use_internal_tf,
     ps_deployment,
     repo,
     namespace,
@@ -336,6 +380,7 @@ def test_payload(
     config = flexmock(
         testing_farm_api_url=tf_api,
         testing_farm_secret=tf_token,
+        internal_testing_farm_secret=internal_tf_token,
         deployment=ps_deployment,
         command_handler_work_dir="/tmp",
     )
@@ -364,9 +409,15 @@ def test_payload(
         metadata=metadata,
         db_trigger=db_trigger,
         job_config=JobConfig(
-            type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.pull_request,
+            metadata=JobMetadataConfig(use_internal_tf=use_internal_tf),
         ),
     )
+
+    token_to_use = internal_tf_token if use_internal_tf else tf_token
+    assert job_helper.tft_token == token_to_use
+
     job_helper = flexmock(job_helper)
 
     job_helper.should_receive("job_owner").and_return(copr_owner)
@@ -374,7 +425,7 @@ def test_payload(
     job_helper.should_receive("distro2compose").and_return(compose)
     payload = job_helper._payload(build_id, chroot)
 
-    assert payload["api_key"] == tf_token
+    assert payload["api_key"] == token_to_use
     assert payload["test"]["fmf"] == {
         "url": project_url,
         "ref": commit_sha,
