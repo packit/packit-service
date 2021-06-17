@@ -219,15 +219,21 @@ def test_testing_farm_response(
 
 
 @pytest.mark.parametrize(
-    "chroot,distro,arch",
+    "chroot,distro,arch,use_internal_tf",
     [
-        ("fedora-33-x86_64", "fedora-33", "x86_64"),
-        ("fedora-rawhide-aarch64", "fedora-rawhide", "aarch64"),
-        ("centos-stream-x86_64", "centos-stream", "x86_64"),
-        ("epel-8-x86_64", "centos-8", "x86_64"),
+        ("fedora-33-x86_64", "fedora-33", "x86_64", False),
+        ("fedora-rawhide-aarch64", "fedora-rawhide", "aarch64", False),
+        ("centos-stream-x86_64", "centos-stream", "x86_64", False),
+        ("epel-7-x86_64", "centos-7", "x86_64", False),
+        ("epel-8-x86_64", "centos-stream-8", "x86_64", False),
+        ("fedora-33-x86_64", "fedora-33", "x86_64", True),
+        ("fedora-rawhide-aarch64", "fedora-rawhide", "aarch64", True),
+        ("centos-stream-x86_64", "centos-stream", "x86_64", True),
+        ("epel-7-x86_64", "rhel-7", "x86_64", True),
+        ("epel-8-x86_64", "rhel-8", "x86_64", True),
     ],
 )
-def test_chroot2distro_arch(chroot, distro, arch):
+def test_chroot2distro_arch(chroot, distro, arch, use_internal_tf):
     job_helper = TFJobHelper(
         service_config=flexmock(
             testing_farm_api_url="xyz",
@@ -237,7 +243,9 @@ def test_chroot2distro_arch(chroot, distro, arch):
         metadata=flexmock(),
         db_trigger=flexmock(),
         job_config=JobConfig(
-            type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.pull_request,
+            metadata=JobMetadataConfig(use_internal_tf=use_internal_tf),
         ),
     )
     job_helper = flexmock(job_helper)
@@ -260,6 +268,8 @@ def test_chroot2distro_arch(chroot, distro, arch):
         ("centos-stream", "RHEL-8.5.0-Nightly", True),
         ("Centos-7", "CentOS-7-latest", True),
         ("Centos-8", "CentOS-8-latest", True),
+        ("rhel-7", "RHEL-7-LatestReleased", True),
+        ("rhel-8", "RHEL-8.5.0-Nightly", True),
     ],
 )
 def test_distro2compose(distro, compose, use_internal_tf):

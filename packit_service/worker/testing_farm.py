@@ -185,13 +185,22 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         except FileNotFoundError:
             return False
 
-    @staticmethod
-    def chroot2distro_arch(chroot: str) -> Tuple[str, str]:
+    def chroot2distro_arch(self, chroot: str) -> Tuple[str, str]:
         """Get distro and arch from chroot."""
         distro, arch = chroot.rsplit("-", 1)
-        # https://github.com/packit/packit-service/issues/939#issuecomment-769896841
-        # https://github.com/packit/packit-service/pull/1008#issuecomment-789574614
-        distro = distro.replace("epel", "centos")
+
+        if self.job_config.metadata.use_internal_tf:
+            epel_mapping = {
+                "epel-7": "rhel-7",
+                "epel-8": "rhel-8",
+            }
+        else:
+            epel_mapping = {
+                "epel-7": "centos-7",
+                "epel-8": "centos-stream-8",
+            }
+
+        distro = epel_mapping.get(distro, distro)
         return distro, arch
 
     def distro2compose(self, distro: str) -> str:
@@ -204,7 +213,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         * CentOS-x ->  CentOS-x-latest
         * CentOS-Stream-8 -> RHEL-8.5.0-Nightly
         """
-        compose = distro.title().replace("Centos", "CentOS")
+        compose = distro.title().replace("Centos", "CentOS").replace("Rhel", "RHEL")
         if compose == "CentOS-Stream":
             compose = "CentOS-Stream-8"
 
@@ -219,6 +228,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 return "RHEL-8.5.0-Nightly"
             if compose.startswith("CentOS"):
                 return f"{compose}-latest"
+            if compose == "RHEL-7":
+                return "RHEL-7-LatestReleased"
+            if compose == "RHEL-8":
+                return "RHEL-8.5.0-Nightly"
         else:
             response = self.send_testing_farm_request(endpoint="composes")
             if response.status_code == 200:
