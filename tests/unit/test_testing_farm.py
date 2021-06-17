@@ -246,15 +246,23 @@ def test_chroot2distro_arch(chroot, distro, arch):
 
 
 @pytest.mark.parametrize(
-    "distro,compose",
+    "distro,compose,use_internal_tf",
     [
-        ("fedora-33", "Fedora-33"),
-        ("fedora-rawhide", "Fedora-Rawhide"),
-        ("centos-stream-8", "CentOS-Stream-8"),
-        ("centos-stream", "CentOS-Stream-8"),
+        ("fedora-33", "Fedora-33", False),
+        ("fedora-rawhide", "Fedora-Rawhide", False),
+        ("centos-stream-8", "CentOS-Stream-8", False),
+        ("centos-stream", "CentOS-Stream-8", False),
+        ("Centos-7", "CentOS-7", False),
+        ("Centos-8", "CentOS-8", False),
+        ("fedora-33", "Fedora-33-Updated", True),
+        ("fedora-rawhide", "Fedora-Rawhide-Nightly", True),
+        ("centos-stream-8", "RHEL-8.5.0-Nightly", True),
+        ("centos-stream", "RHEL-8.5.0-Nightly", True),
+        ("Centos-7", "CentOS-7-latest", True),
+        ("Centos-8", "CentOS-8-latest", True),
     ],
 )
-def test_distro2compose(distro, compose):
+def test_distro2compose(distro, compose, use_internal_tf):
     job_helper = TFJobHelper(
         service_config=flexmock(
             testing_farm_api_url="xyz",
@@ -264,7 +272,9 @@ def test_distro2compose(distro, compose):
         metadata=flexmock(),
         db_trigger=flexmock(),
         job_config=JobConfig(
-            type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.pull_request,
+            metadata=JobMetadataConfig(use_internal_tf=use_internal_tf),
         ),
     )
     job_helper = flexmock(job_helper)
@@ -272,7 +282,9 @@ def test_distro2compose(distro, compose):
     response = flexmock(
         status_code=200, json=lambda: {"composes": [{"name": "Fedora-33"}]}
     )
-    job_helper.should_receive("send_testing_farm_request").and_return(response)
+    job_helper.should_receive("send_testing_farm_request").and_return(response).times(
+        0 if use_internal_tf else 1
+    )
 
     assert job_helper.distro2compose(distro) == compose
 

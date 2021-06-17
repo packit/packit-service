@@ -195,18 +195,37 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return distro, arch
 
     def distro2compose(self, distro: str) -> str:
-        """Create a compose string from distro, e.g. fedora-33 -> Fedora-33
-        https://api.dev.testing-farm.io/v0.1/composes"""
+        """
+        Create a compose string from distro, e.g. fedora-33 -> Fedora-33
+        https://api.dev.testing-farm.io/v0.1/composes
+
+        The internal TF has a different set and behaves differently:
+        * Fedora-3x -> Fedora-3x-Updated
+        * CentOS-x ->  CentOS-x-latest
+        * CentOS-Stream-8 -> RHEL-8.5.0-Nightly
+        """
         compose = distro.title().replace("Centos", "CentOS")
         if compose == "CentOS-Stream":
             compose = "CentOS-Stream-8"
 
-        response = self.send_testing_farm_request(endpoint="composes")
-        if response.status_code == 200:
-            # {'composes': [{'name': 'CentOS-Stream-8'}, {'name': 'Fedora-Rawhide'}]}
-            composes = [c["name"] for c in response.json()["composes"]]
-            if compose not in composes:
-                logger.error(f"Can't map {compose} (from {distro}) to {composes}")
+        if self.job_config.metadata.use_internal_tf:
+            # Internal TF does not have own endpoint for composes
+            # This should be solved on the TF side.
+            if compose == "Fedora-Rawhide":
+                return "Fedora-Rawhide-Nightly"
+            if compose.startswith("Fedora-"):
+                return f"{compose}-Updated"
+            if compose == "CentOS-Stream-8":
+                return "RHEL-8.5.0-Nightly"
+            if compose.startswith("CentOS"):
+                return f"{compose}-latest"
+        else:
+            response = self.send_testing_farm_request(endpoint="composes")
+            if response.status_code == 200:
+                # {'composes': [{'name': 'CentOS-Stream-8'}, {'name': 'Fedora-Rawhide'}]}
+                composes = [c["name"] for c in response.json()["composes"]]
+                if compose not in composes:
+                    logger.error(f"Can't map {compose} (from {distro}) to {composes}")
 
         return compose
 
