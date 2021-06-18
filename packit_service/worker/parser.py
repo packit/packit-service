@@ -755,14 +755,14 @@ class Parser:
         compose: str = nested_get(env, "os", "compose")
 
         ref: str = nested_get(event, "test", "fmf", "ref")
-        project_url: str = nested_get(event, "test", "fmf", "url")
+        fmf_url: str = nested_get(event, "test", "fmf", "url")
 
         # ["test"]["fmf"]["ref"] contains ref to the TF test, i.e. "master",
         # but we need the original commit_sha to be able to continue
         if tft_test_run:
             ref = tft_test_run.commit_sha
 
-        if project_url == TESTING_FARM_INSTALLABILITY_TEST_URL:
+        if fmf_url == TESTING_FARM_INSTALLABILITY_TEST_URL:
             # There are no artifacts in install-test results
             copr_build_id = copr_chroot = ""
             summary = {
@@ -784,13 +784,16 @@ class Parser:
 
         # ["test"]["fmf"]["url"] contains PR's source/fork url or TF's install test url.
         # We need the original/base project url stored in db.
-        if tft_test_run and tft_test_run.data:
-            base_project_url = tft_test_run.data.get("base_project_url")
-            if base_project_url and base_project_url != project_url:
-                logger.debug(
-                    f"Using project url {base_project_url} instead of {project_url}"
-                )
-                project_url = base_project_url
+        if (
+            tft_test_run
+            and tft_test_run.data
+            and "base_project_url" in tft_test_run.data
+        ):
+            project_url = tft_test_run.data["base_project_url"]
+        else:
+            project_url = (
+                fmf_url if fmf_url != TESTING_FARM_INSTALLABILITY_TEST_URL else None
+            )
 
         # Temporary until we have a better logs page.
         log_url: str = f"http://artifacts.dev.testing-farm.io/{request_id}"
