@@ -6,22 +6,20 @@ Parser is transforming github JSONs into `events` objects
 """
 import logging
 from functools import partial
-from typing import Optional, Type, Union, List
+from typing import Optional, Type, Union
 
-import xmltodict
 from ogr.parsing import parse_git_repo
 from packit.utils import nested_get
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     KojiBuildState,
     TESTING_FARM_INSTALLABILITY_TEST_URL,
 )
-from packit_service.models import TestingFarmResult, TFTTestRunModel
+from packit_service.models import TFTTestRunModel, TestingFarmResult
 from packit_service.service.events import (
+    AbstractCoprBuildEvent,
     AbstractPagureEvent,
     CoprBuildEndEvent,
-    AbstractCoprBuildEvent,
     CoprBuildStartEvent,
     DistGitCommitEvent,
     GitlabEventAction,
@@ -43,7 +41,6 @@ from packit_service.service.events import (
     PushPagureEvent,
     ReleaseEvent,
     TestingFarmResultsEvent,
-    TestResult,
 )
 from packit_service.worker.handlers import (
     DistGitCommitHandler,
@@ -728,30 +725,6 @@ class Parser:
         )
 
     @staticmethod
-    def _parse_tf_result_xunit(xunit: Optional[str]) -> List[TestResult]:
-        """Parse event["result"]["xunit"] to get tests results"""
-        if not xunit:
-            return []
-        xunit_dict = xmltodict.parse(xunit)
-        testcases = nested_get(
-            xunit_dict, "testsuites", "testsuite", "testcase", default=[]
-        )
-        try:
-            return [
-                TestResult(
-                    name=testcase["@name"],
-                    result=TestingFarmResult(testcase["@result"]),
-                    log_url=nested_get(testcase, "logs", "log", 1, "@href", default=""),
-                )
-                for testcase in testcases
-            ]
-        except TypeError:
-            # packit-service/issues/967
-            logger.warning(f"Wrongly parsed TF result xunit: {xunit!r} -> {xunit_dict}")
-            # We don't need it in most cases, so let's just continue instead of raising
-            return []
-
-    @staticmethod
     def parse_testing_farm_results_event(
         event: dict,
     ) -> Optional[TestingFarmResultsEvent]:
@@ -780,9 +753,6 @@ class Parser:
         summary: str = nested_get(event, "result", "summary") or ""
         env: dict = nested_get(event, "environments_requested", 0, default={})
         compose: str = nested_get(env, "os", "compose")
-        tests: List[TestResult] = Parser._parse_tf_result_xunit(
-            nested_get(event, "result", "xunit")
-        )
 
         ref: str = nested_get(event, "test", "fmf", "ref")
         project_url: str = nested_get(event, "test", "fmf", "url")
@@ -795,6 +765,10 @@ class Parser:
         if project_url == TESTING_FARM_INSTALLABILITY_TEST_URL:
             # There are no artifacts in install-test results
             copr_build_id = copr_chroot = ""
+            summary = {
+                TestingFarmResult.passed: "Installation passed",
+                TestingFarmResult.failed: "Installation failed",
+            }.get(result, summary)
         else:
             artifact: dict = nested_get(env, "artifacts", 0, default={})
             a_type: str = artifact.get("type")
@@ -834,7 +808,6 @@ class Parser:
             log_url=log_url,
             copr_build_id=copr_build_id,
             copr_chroot=copr_chroot,
-            tests=tests,
             commit_sha=ref,
             project_url=project_url,
         )

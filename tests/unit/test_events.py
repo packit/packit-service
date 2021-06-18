@@ -649,7 +649,6 @@ class TestEvents:
         assert event_object.compose == "Fedora-32"
         assert event_object.copr_build_id == "1810530"
         assert event_object.copr_chroot == "fedora-32-x86_64"
-        assert event_object.tests
         assert event_object.db_trigger
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit/packit"
@@ -683,7 +682,6 @@ class TestEvents:
         assert event_object.compose == "Fedora-32"
         assert event_object.copr_build_id == "1810530"
         assert event_object.copr_chroot == "fedora-32-x86_64"
-        assert event_object.tests
         assert event_object.db_trigger
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit/packit"

@@ -14,7 +14,6 @@ from packit.config.package_config import PackageConfig
 
 from packit_service.models import AbstractTriggerDbType, TFTTestRunModel, CoprBuildModel
 from packit_service.service.events import (
-    TestResult,
     TestingFarmResult,
     TestingFarmResultsEvent,
     PullRequestCommentGithubEvent,
@@ -124,8 +123,6 @@ class TestingFarmResultsHandler(JobHandler):
             job_config=job_config,
             event=event,
         )
-
-        self.tests = [TestResult(**test) for test in event.get("tests", [])]
         self.result = (
             TestingFarmResult(event.get("result")) if event.get("result") else None
         )
@@ -145,7 +142,6 @@ class TestingFarmResultsHandler(JobHandler):
 
     def run(self) -> TaskResults:
         logger.debug(f"Testing farm {self.pipeline_id} result:\n{self.result}")
-        logger.debug(f"Testing farm test results:\n{self.tests}")
 
         test_run_model = TFTTestRunModel.get_by_pipeline_id(
             pipeline_id=self.pipeline_id
@@ -177,14 +173,6 @@ class TestingFarmResultsHandler(JobHandler):
         else:
             status = CommitStatus.failure
             summary = self.summary or "Tests failed ..."
-
-        if len(self.tests) > 0 and self.tests[0].name == "/packit/install-and-verify":
-            logger.debug("No-fmf scenario discovered.")
-            summary = (
-                "Installation passed"
-                if status == CommitStatus.success
-                else "Installation failed"
-            )
 
         if test_run_model:
             test_run_model.set_web_url(self.log_url)

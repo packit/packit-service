@@ -73,33 +73,6 @@ class FedmsgTopic(enum.Enum):
     pr_flag_added = "org.fedoraproject.prod.pagure.pull-request.flag.added"
 
 
-class TestResult(dict):
-    def __init__(self, name: str, result: TestingFarmResult, log_url: str):
-        dict.__init__(self, name=name, result=result, log_url=log_url)
-        self.name = name
-        self.result = result
-        self.log_url = log_url
-
-    def __str__(self) -> str:
-        return f"TestResult(name='{self.name}', result={self.result}, log_url='{self.log_url}')"
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __hash__(self) -> int:  # type: ignore
-        return hash(self.__str__())
-
-    def __eq__(self, o: object) -> bool:
-        if not isinstance(o, TestResult):
-            return False
-
-        return (
-            self.name == o.name
-            and self.result == o.result
-            and self.log_url == o.log_url
-        )
-
-
 class EventData:
     """
     Class to represent the data which are common for handlers and comes from the original event
@@ -885,7 +858,6 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
         log_url: str,
         copr_build_id: str,
         copr_chroot: str,
-        tests: List[TestResult],
         commit_sha: str,
         project_url: str,
     ):
@@ -897,7 +869,6 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
         self.log_url = log_url
         self.copr_build_id = copr_build_id
         self.copr_chroot = copr_chroot
-        self.tests = tests
         self.commit_sha: str = commit_sha
 
         # Lazy properties

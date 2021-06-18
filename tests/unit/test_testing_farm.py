@@ -17,7 +17,6 @@ from packit_service.models import TFTTestRunModel
 from packit_service.service.events import (
     TestingFarmResultsEvent as TFResultsEvent,
     TestingFarmResult as TFResult,
-    TestResult as TResult,
 )
 import packit_service.service.urls as urls
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
@@ -28,137 +27,43 @@ from packit_service.worker.testing_farm import (
 
 
 @pytest.mark.parametrize(
-    "tests_result,tests_message,tests_tests,status_status,status_message,status_url",
+    "tests_result,tests_summary,status_status,status_message",
     [
         pytest.param(
             TFResult.passed,
-            "some message",
-            [
-                TResult(
-                    name="/packit/install-and-verify",
-                    result=TFResult.passed,
-                    log_url="some specific url",
-                )
-            ],
+            "some summary",
             CommitStatus.success,
-            "Installation passed",
-            "some url",
-            id="only_installation_passed",
-        ),
-        pytest.param(
-            TFResult.failed,
-            "some message",
-            [
-                TResult(
-                    name="/packit/install-and-verify",
-                    result=TFResult.failed,
-                    log_url="some specific url",
-                )
-            ],
-            CommitStatus.failure,
-            "Installation failed",
-            "some url",
-            id="only_installation_failed",
+            "some summary",
+            id="passed_and_summary_provided",
         ),
         pytest.param(
             TFResult.passed,
-            "some message",
-            [
-                TResult(
-                    name="/something/different",
-                    result=TFResult.passed,
-                    log_url="some specific url",
-                )
-            ],
+            None,
             CommitStatus.success,
-            "some message",
-            "some url",
-            id="only_installation_not_provided_passed",
+            "Tests passed ...",
+            id="passed_and_summary_not_provided",
         ),
         pytest.param(
             TFResult.failed,
-            "some message",
-            [
-                TResult(
-                    name="/something/different",
-                    result=TFResult.failed,
-                    log_url="some specific url",
-                )
-            ],
+            "some summary",
             CommitStatus.failure,
-            "some message",
-            "some url",
-            id="only_installation_not_provided_failed",
-        ),
-        pytest.param(
-            TFResult.passed,
-            "some message",
-            [
-                TResult(
-                    name="/install/copr-build",
-                    result=TFResult.passed,
-                    log_url="some specific url",
-                ),
-                TResult(
-                    name="/different/test",
-                    result=TFResult.passed,
-                    log_url="some specific url",
-                ),
-            ],
-            CommitStatus.success,
-            "some message",
-            "some url",
-            id="only_installation_multiple_results_passed",
+            "some summary",
+            id="failed_and_summary_provided",
         ),
         pytest.param(
             TFResult.failed,
-            "some message",
-            [
-                TResult(
-                    name="/install/copr-build",
-                    result=TFResult.failed,
-                    log_url="some specific url",
-                ),
-                TResult(
-                    name="/different/test",
-                    result=TFResult.passed,
-                    log_url="some specific url",
-                ),
-            ],
+            None,
             CommitStatus.failure,
-            "some message",
-            "some url",
-            id="only_installation_multiple_results_failed",
-        ),
-        pytest.param(
-            TFResult.failed,
-            "some message",
-            [
-                TResult(
-                    name="/install/copr-build",
-                    result=TFResult.passed,
-                    log_url="some specific url",
-                ),
-                TResult(
-                    name="/different/test",
-                    result=TFResult.failed,
-                    log_url="some specific url",
-                ),
-            ],
-            CommitStatus.failure,
-            "some message",
-            "some url",
-            id="only_installation_multiple_results_failed_different",
+            "Tests failed ...",
+            id="failed_and_summary_not_provided",
         ),
     ],
 )
 def test_testing_farm_response(
     tests_result,
-    tests_message,
-    tests_tests,
+    tests_summary,
     status_status,
     status_message,
-    status_url,
 ):
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
@@ -182,11 +87,10 @@ def test_testing_farm_response(
         pipeline_id="id",
         result=tests_result,
         compose=flexmock(),
-        summary=tests_message,
+        summary=tests_summary,
         log_url="some url",
         copr_build_id=flexmock(),
         copr_chroot="fedora-rawhide-x86_64",
-        tests=tests_tests,
         commit_sha=flexmock(),
         project_url="https://github.com/packit/ogr",
     ).get_dict()
