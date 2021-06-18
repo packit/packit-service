@@ -795,12 +795,12 @@ class Parser:
                 fmf_url if fmf_url != TESTING_FARM_INSTALLABILITY_TEST_URL else None
             )
 
-        # Temporary until we have a better logs page.
-        log_url: str = f"http://artifacts.dev.testing-farm.io/{request_id}"
+        log_url: str = nested_get(event, "run", "artifacts")
 
         logger.debug(
             f"project_url: {project_url}, ref: {ref}, result: {result}, "
-            f"summary: {summary!r}, copr-build: {copr_build_id}:{copr_chroot}"
+            f"summary: {summary!r}, copr-build: {copr_build_id}:{copr_chroot},\n"
+            f"log_url: {log_url}"
         )
 
         return TestingFarmResultsEvent(
