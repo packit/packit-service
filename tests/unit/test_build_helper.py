@@ -742,7 +742,7 @@ def test_build_handler_job_and_test_properties(
 
 
 @pytest.mark.parametrize(
-    "jobs,job_config_trigger_type,job_owner,job_project",
+    "jobs,job_config_trigger_type,tag_name,job_owner,job_project",
     [
         pytest.param(
             [
@@ -753,6 +753,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.pull_request,
+            None,
             "nobody",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
             id="default-values",
@@ -766,6 +767,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.pull_request,
+            None,
             "custom-owner",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
             id="custom-owner&default-project",
@@ -779,6 +781,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.pull_request,
+            None,
             "nobody",
             "custom-project",
             id="default-owner&custom-project",
@@ -794,6 +797,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.pull_request,
+            None,
             "custom-owner",
             "custom-project",
             id="custom-owner&custom-project",
@@ -809,6 +813,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.pull_request,
+            None,
             "custom-owner",
             "custom-project",
             id="custom-owner-build&custom-project",
@@ -822,9 +827,24 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.commit,
+            None,
             "nobody",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
             id="commit&default-owner&default-project",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.release,
+                    metadata=JobMetadataConfig(),
+                )
+            ],
+            JobConfigTriggerType.release,
+            "v1.O.0",
+            "nobody",
+            "git.instance.io-the-example-namespace-the-example-repo-releases",
+            id="release&default-owner&default-project",
         ),
         pytest.param(
             [
@@ -842,6 +862,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.pull_request,
+            None,
             "pr-owner",
             "pr-project",
             id="two-copr-builds&custom-owner&custom-project",
@@ -860,6 +881,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.pull_request,
+            None,
             "nobody",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
             id="build+test&default-owner&default-project",
@@ -880,6 +902,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.pull_request,
+            None,
             "custom-owner",
             "custom-project",
             id="build+test&custom-owner&custom-project-from-build",
@@ -900,6 +923,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.pull_request,
+            None,
             "custom-owner",
             "custom-project",
             id="build+test&custom-owner&custom-project-from-test",
@@ -925,6 +949,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.pull_request,
+            None,
             "pr-owner",
             "pr-project",
             id="two-copr-builds+test-pr&custom-owner&custom-project",
@@ -950,6 +975,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.commit,
+            None,
             "commit-owner",
             "commit-project",
             id="two-copr-builds+test-commit&custom-owner&custom-project",
@@ -957,7 +983,11 @@ def test_build_handler_job_and_test_properties(
     ],
 )
 def test_copr_project_and_namespace(
-    jobs, job_config_trigger_type, job_owner, job_project
+    jobs,
+    job_config_trigger_type,
+    tag_name,
+    job_owner,
+    job_project,
 ):
     copr_build_helper = CoprBuildJobHelper(
         service_config=flexmock(deployment="stg"),
@@ -968,7 +998,9 @@ def test_copr_project_and_namespace(
             repo="the-example-repo",
             service=flexmock(instance_url="https://git.instance.io"),
         ),
-        metadata=flexmock(pr_id=None, identifier="the-event-identifier"),
+        metadata=flexmock(
+            pr_id=None, identifier="the-event-identifier", tag_name=tag_name
+        ),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
     )
     copr_build_helper._api = flexmock(

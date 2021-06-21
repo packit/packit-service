@@ -104,6 +104,7 @@ def build_helper(
             git_ref=event.git_ref,
             commit_sha=event.commit_sha,
             identifier=event.identifier,
+            tag_name=None,
         ),
         db_trigger=db_trigger,
     )
