@@ -60,7 +60,7 @@ repos:
           - git://github.com/packit-service/packit-service.git
         stages: [manual, push]
   - repo: https://github.com/packit/requre
-    rev: 0.8.0
+    rev: 0.8.1
     hooks:
       - id: requre-purge
         name: Requre response files cleanup
