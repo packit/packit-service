@@ -37,11 +37,11 @@
       become: "{{ as_root }}"
       when: path_to_secrets is not defined
 
-    - name: symlink provided path_to_secrets to secrets/dev/
+    - name: symlink provided path_to_secrets/packit/dev to secrets/packit/dev/
       file:
         state: link
-        src: "{{ path_to_secrets }}/dev"
-        dest: "{{ deployment_dir }}/secrets/dev"
+        src: "{{ path_to_secrets }}/packit/dev"
+        dest: "{{ deployment_dir }}/secrets/packit/dev"
       when: path_to_secrets is defined
 
     - name: get token

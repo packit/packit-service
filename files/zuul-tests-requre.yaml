@@ -8,7 +8,7 @@
   tasks:
     - name: Creates zuul secrets directory
       file:
-        path: "{{ project_dir }}/secrets/dev"
+        path: "{{ project_dir }}/secrets/packit/dev"
         state: directory
     - name: Run tests which are executed within openshift
       command: make check-inside-openshift-zuul

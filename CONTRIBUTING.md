@@ -291,7 +291,7 @@ Re-build the images:
 
 Generate and deploy fake secrets (you need to have [deployment repository](https://github.com/packit/deployment) cloned):
 
-**Note: We highly recommend to clone deployment repository to a temporary location since the command below will overwrite secrets stored in deployment/secrets/dev**
+**Note: We highly recommend to clone deployment repository to a temporary location since the command below will overwrite secrets stored in deployment/secrets/packit/dev**
 
     ansible-playbook --extra-vars="deployment_dir=<PATH_TO_LOCAL_DEPLOYMENT_DIR>" files/deployment.yaml
 

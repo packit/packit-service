@@ -53,11 +53,11 @@ check-in-container-tomas:
 	$(CONTAINER_ENGINE) run --rm \
 		-v $(CURDIR):/src \
 		-v $(CURDIR)/packit_service:/usr/local/lib/python3.7/site-packages/packit_service:ro,z \
-		-v $(CURDIR)/secrets/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z \
-		-v $(CURDIR)/secrets/dev/fedora.keytab:/secrets/fedora.keytab:ro,z \
-		-v $(CURDIR)/secrets/dev/private-key.pem:/secrets/private-key.pem:ro,z \
-		-v $(CURDIR)/secrets/dev/fullchain.pem:/secrets/fullchain.pem:ro,z \
-		-v $(CURDIR)/secrets/dev/privkey.pem:/secrets/privkey.pem:ro,z \
+		-v $(CURDIR)/secrets/packit/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z \
+		-v $(CURDIR)/secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z \
+		-v $(CURDIR)/secrets/packit/dev/private-key.pem:/secrets/private-key.pem:ro,z \
+		-v $(CURDIR)/secrets/packit/dev/fullchain.pem:/secrets/fullchain.pem:ro,z \
+		-v $(CURDIR)/secrets/packit/dev/privkey.pem:/secrets/privkey.pem:ro,z \
 		-w /src \
 		--security-opt label=disable \
 		-v $(CURDIR)/files/packit-service.yaml:/root/.config/packit-service.yaml \
