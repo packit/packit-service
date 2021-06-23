@@ -44,7 +44,7 @@ from packit.pkgtool import PkgTool
         what="git.repo.base.Repo.clone_from",
         decorate=StoreFiles.where_arg_references(
             key_position_params_dict={"to_path": 2},
-            return_decorator=Repo.decorator_plain,
+            output_cls=Repo,
         ),
     )
 )
