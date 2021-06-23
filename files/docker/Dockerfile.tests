@@ -12,21 +12,22 @@ fi
 ENV USER=packit \
     HOME=/home/packit
 
+RUN set -ex; \
+    mkdir -m 0777 /sandcastle && \
+    mkdir -m 0776 -p ${HOME} && \
+    mkdir -p ${HOME}/.config
+
 WORKDIR /src
 
 COPY files/ ./files/
+
+RUN ln -s $(pwd)/files/packit-service.yaml ${HOME}/.config/packit-service.yaml
 
 # Install worker & service & tests deps
 RUN ansible-playbook -vv -c local -i localhost, files/install-deps-worker.yaml && \
     ansible-playbook -vv -c local -i localhost, files/install-deps.yaml && \
     ansible-playbook -vv -c local -i localhost, files/recipe-tests.yaml && \
     dnf clean all
-
-RUN set -ex; \
-    mkdir -m 0777 /sandcastle && \
-    mkdir -m 0776 -p ${HOME} && \
-    mkdir -p ${HOME}/.config && \
-    ln -s $(pwd)/files/packit-service.yaml ${HOME}/.config/packit-service.yaml
 
 COPY . ./
 
