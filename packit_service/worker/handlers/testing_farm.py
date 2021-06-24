@@ -7,6 +7,7 @@ This file defines classes for job handlers specific for Testing farm
 import logging
 from typing import Optional
 
+from celery import signature
 from ogr import GitlabService
 from ogr.abstract import CommitStatus
 from packit.config import JobConfig, JobType
@@ -36,8 +37,7 @@ from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 from packit_service.constants import PG_COPR_BUILD_STATUS_SUCCESS
-from packit_service.utils import dump_job_config
-from packit_service.worker.build import CoprBuildJobHelper
+from packit_service.utils import dump_job_config, dump_package_config
 
 logger = logging.getLogger(__name__)
 
@@ -119,21 +119,21 @@ class TestingFarmHandler(JobHandler):
             logger.info("No suitable copr-build found, run copr build.")
 
             result_details = {
-                "msg": "Build required, triggering the build",
+                "msg": "Build required, triggering copr build",
                 "event": self.data,
                 "package_config": self.package_config,
                 "job": self.job_config.type.value if self.job_config else None,
                 "job_config": dump_job_config(self.job_config),
             }
 
-            CoprBuildJobHelper(
-                self.service_config,
-                self.package_config,
-                self.project,
-                self.data,
-                self.db_trigger,
-                self.job_config,
-            ).run_copr_build()
+            signature(
+                TaskName.copr_build.value,
+                kwargs={
+                    "package_config": dump_package_config(self.package_config),
+                    "job_config": dump_job_config(self.job_config),
+                    "event": self.data.get_dict(),
+                },
+            ).apply_async()
 
             return TaskResults(success=True, details=result_details)
 
