@@ -6,17 +6,17 @@ from typing import Any, Iterable, Optional, Union, Callable, List, Tuple, Dict
 
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
-
 from ogr.abstract import CommitStatus, GitProject
 from packit.config.job_config import JobConfig
 from packit.exceptions import PackitException
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import FAQ_URL
-from packit_service.models import AllowlistModel
+from packit_service.models import AllowlistModel, AllowlistStatus
 from packit_service.service.events import (
+    EventData,
     AbstractCoprBuildEvent,
     DistGitCommitEvent,
-    EventData,
     InstallationEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
@@ -32,7 +32,6 @@ from packit_service.service.events import (
     PushPagureEvent,
     ReleaseEvent,
     TestingFarmResultsEvent,
-    AllowlistStatus,
 )
 from packit_service.worker.build import CoprBuildJobHelper
 

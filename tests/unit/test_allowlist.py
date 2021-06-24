@@ -8,14 +8,14 @@ from copr.v3 import Client
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
 from flexmock import flexmock
-
-import packit_service
 from ogr.abstract import GitProject, GitService, CommitStatus
 from ogr.services.github import GithubProject, GithubService
 from packit.config import JobType, JobConfig, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
+
+import packit_service
 from packit_service.config import Deployment
 from packit_service.constants import FAQ_URL
 from packit_service.models import (
@@ -24,31 +24,32 @@ from packit_service.models import (
     PullRequestModel,
 )
 from packit_service.service.events import (
-    ReleaseEvent,
-    PullRequestGithubEvent,
-    PullRequestCommentGithubEvent,
-    PullRequestAction,
-    PullRequestCommentAction,
+    EventData,
     IssueCommentEvent,
-    IssueCommentAction,
+    PullRequestCommentGithubEvent,
+    PullRequestGithubEvent,
+    ReleaseEvent,
     AbstractGithubEvent,
 )
-from packit_service.service.events import EventData
-from packit_service.worker.reporting import StatusReporter
+from packit_service.service.events.enums import (
+    PullRequestAction,
+    PullRequestCommentAction,
+    IssueCommentAction,
+)
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.reporting import StatusReporter
 
 EXPECTED_TESTING_FARM_CHECK_NAME = "packit-stg/testing-farm-fedora-rawhide-x86_64"
 
 
 @pytest.fixture()
 def allowlist():
-    w = Allowlist()
-    return w
+    return Allowlist()
 
 
 @pytest.fixture(scope="module")
 def allowlist_entries():
-    entries = {
+    return {
         "github.com": flexmock(
             id=1, namespace="github.com", status=AllowlistStatus.denied.value
         ),
@@ -111,8 +112,6 @@ def allowlist_entries():
             status=AllowlistStatus.denied.value,
         ),
     }
-
-    return entries
 
 
 def mock_model(entries, namespaces):

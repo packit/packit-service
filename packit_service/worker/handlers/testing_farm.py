@@ -12,9 +12,13 @@ from ogr.abstract import CommitStatus
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
 
-from packit_service.models import AbstractTriggerDbType, TFTTestRunModel, CoprBuildModel
-from packit_service.service.events import (
+from packit_service.models import (
+    AbstractTriggerDbType,
+    TFTTestRunModel,
+    CoprBuildModel,
     TestingFarmResult,
+)
+from packit_service.service.events import (
     TestingFarmResultsEvent,
     PullRequestCommentGithubEvent,
     MergeRequestCommentGitlabEvent,

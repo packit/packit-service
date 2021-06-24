@@ -10,6 +10,7 @@ from typing import Optional, Type, Union
 
 from ogr.parsing import parse_git_repo
 from packit.utils import nested_get
+
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     KojiBuildState,
@@ -18,29 +19,31 @@ from packit_service.constants import (
 from packit_service.models import TFTTestRunModel, TestingFarmResult
 from packit_service.service.events import (
     AbstractCoprBuildEvent,
-    AbstractPagureEvent,
-    CoprBuildEndEvent,
-    CoprBuildStartEvent,
-    DistGitCommitEvent,
-    GitlabEventAction,
-    InstallationEvent,
-    IssueCommentAction,
-    IssueCommentEvent,
-    IssueCommentGitlabEvent,
     KojiBuildEvent,
+    DistGitCommitEvent,
+    CoprBuildStartEvent,
+    CoprBuildEndEvent,
+    PullRequestPagureEvent,
+    PushPagureEvent,
+    AbstractPagureEvent,
+    IssueCommentGitlabEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
-    PullRequestAction,
-    PullRequestCommentAction,
-    PullRequestCommentGithubEvent,
-    PullRequestCommentPagureEvent,
-    PullRequestGithubEvent,
-    PullRequestPagureEvent,
-    PushGitHubEvent,
     PushGitlabEvent,
-    PushPagureEvent,
+    InstallationEvent,
+    IssueCommentEvent,
+    PullRequestCommentGithubEvent,
+    PullRequestGithubEvent,
+    PushGitHubEvent,
     ReleaseEvent,
     TestingFarmResultsEvent,
+    PullRequestCommentPagureEvent,
+)
+from packit_service.service.events.enums import (
+    GitlabEventAction,
+    IssueCommentAction,
+    PullRequestAction,
+    PullRequestCommentAction,
 )
 from packit_service.worker.handlers import (
     DistGitCommitHandler,
@@ -53,7 +56,7 @@ logger = logging.getLogger(__name__)
 class Parser:
     """
     Once we receive a new event (GitHub/GitLab webhook or Fedmsg/Centosmsg event) for every event
-    we need to have method inside the `Parser` class to create objects defined in `events.py`.
+    we need to have method inside the `Parser` class to create objects defined in `event.py`.
     """
 
     @staticmethod
