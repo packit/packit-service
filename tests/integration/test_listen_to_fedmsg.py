@@ -201,7 +201,7 @@ def test_copr_build_end(
     else:
         flexmock(GithubProject).should_receive("pr_comment").never()
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    copr_build_pr.should_receive("set_status").with_args("success")
+    copr_build_pr.should_call("set_status").with_args("success").once()
     copr_build_pr.should_receive("set_end_time").once()
 
     url = get_copr_build_info_url(1)
@@ -396,7 +396,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
     flexmock(CoprBuildModel).should_receive("get_by_id").and_return(copr_build_pr)
-    copr_build_pr.should_receive("set_status").with_args("success")
+    copr_build_pr.should_call("set_status").with_args("success").once()
     copr_build_pr.should_receive("set_end_time").once()
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -569,7 +569,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
     flexmock(CoprBuildModel).should_receive("get_by_id").and_return(copr_build_pr)
-    copr_build_pr.should_receive("set_status").with_args("success")
+    copr_build_pr.should_call("set_status").with_args("success").once()
     copr_build_pr.should_receive("set_end_time").once()
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -683,7 +683,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
     flexmock(CoprBuildModel).should_receive("get_by_id").and_return(copr_build_pr)
-    copr_build_pr.should_receive("set_status").with_args("success")
+    copr_build_pr.should_call("set_status").with_args("success").once()
     copr_build_pr.should_receive("set_end_time").once()
     url = get_copr_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
@@ -777,7 +777,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
 
     copr_build_pr.should_receive("set_start_time").once()
-    copr_build_pr.should_receive("set_status").with_args("pending").once()
+    copr_build_pr.should_call("set_status").with_args("pending").once()
     copr_build_pr.should_receive("set_build_logs_url")
 
     # check if packit-service set correct PR status
@@ -822,7 +822,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     copr_build_pr.should_receive("set_start_time").once()
-    copr_build_pr.should_receive("set_status").with_args("pending")
+    copr_build_pr.should_call("set_status").with_args("pending").once()
     copr_build_pr.should_receive("set_build_logs_url")
 
     # check if packit-service sets the correct PR status
@@ -871,7 +871,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     flexmock(GithubProject).should_receive("pr_comment").never()
 
     flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    copr_build_pr.should_receive("set_status").with_args("success")
+    copr_build_pr.should_call("set_status").with_args("success").once()
     copr_build_pr.should_receive("set_end_time").once()
     url = get_copr_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
