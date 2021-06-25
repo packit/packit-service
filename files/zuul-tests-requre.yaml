@@ -2,9 +2,6 @@
 # This playbook is running tests inside Zuul
 - name: Run packit-service tests
   hosts: all
-  vars:
-    # Zuul base job redefines project_dir
-    project_dir: "{{ playbook_dir }}/.."
   tasks:
     - name: Creates zuul secrets directory
       file:
@@ -13,7 +10,7 @@
     - name: Run tests which are executed within openshift
       command: make check-inside-openshift-zuul
       args:
-        chdir: "{{ project_dir }}"
+        chdir: "{{ zuul.project.src_dir }}"
       become: true
       environment:
         SOURCE_BRANCH: "{{ zuul.branch }}"
