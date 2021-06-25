@@ -15,12 +15,12 @@ from typing import Dict, Optional, Set, Type
 
 from celery import signature
 from celery.canvas import Signature
-
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobType, PackageConfig
 from packit.constants import DATETIME_FORMAT
 from packit.local_project import LocalProject
+
 from packit_service.config import ServiceConfig
 from packit_service.models import (
     AbstractTriggerDbType,

@@ -14,10 +14,8 @@ from packit.config.package_config import PackageConfig
 from packit_service.models import (
     BugzillaModel,
 )
-from packit_service.service.events import (
-    MergeRequestGitlabEvent,
-    GitlabEventAction,
-)
+from packit_service.service.events import MergeRequestGitlabEvent
+from packit_service.service.events.enums import GitlabEventAction
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,

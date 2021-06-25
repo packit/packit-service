@@ -8,6 +8,7 @@ from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
 from packit.local_project import LocalProject
 
+import packit_service.service.urls as urls
 from packit_service.config import PackageConfigGetter
 from packit_service.models import TFTTestRunModel
 
@@ -16,9 +17,9 @@ from packit_service.models import TFTTestRunModel
 # and so stop the test discovery warnings.
 from packit_service.service.events import (
     TestingFarmResultsEvent as TFResultsEvent,
-    TestingFarmResult as TFResult,
 )
-import packit_service.service.urls as urls
+from packit_service.models import TestingFarmResult as TFResult
+
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.testing_farm import (

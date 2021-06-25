@@ -18,13 +18,13 @@ from packit_service.log_versions import log_job_versions
 from packit_service.service.events import (
     Event,
     EventData,
-    InstallationEvent,
-    IssueCommentEvent,
+    PullRequestCommentPagureEvent,
     IssueCommentGitlabEvent,
     MergeRequestCommentGitlabEvent,
-    PullRequestCommentGithubEvent,
-    PullRequestCommentPagureEvent,
     MergeRequestGitlabEvent,
+    InstallationEvent,
+    IssueCommentEvent,
+    PullRequestCommentGithubEvent,
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.build import CoprBuildJobHelper, KojiBuildJobHelper

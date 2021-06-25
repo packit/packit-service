@@ -5,7 +5,6 @@ import logging
 from typing import List, Optional, Set, Tuple
 
 from copr.v3 import CoprRequestException
-
 from ogr.abstract import CommitStatus, GitProject
 from ogr.parsing import parse_git_repo
 from ogr.services.github import GithubProject
@@ -13,6 +12,7 @@ from packit.config import JobConfig, JobType
 from packit.config.aliases import get_valid_build_targets
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitCoprException, PackitCoprSettingsException
+
 from packit_service import sentry_integration
 from packit_service.celerizer import celery_app
 from packit_service.config import Deployment, ServiceConfig

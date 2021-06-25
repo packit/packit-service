@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import List, Optional, Set, Tuple, Union
 
 from kubernetes.client.rest import ApiException
-
 from ogr.abstract import CommitStatus, GitProject
 from ogr.exceptions import GitlabAPIException
 from ogr.services.gitlab import GitlabProject
@@ -17,13 +16,14 @@ from packit.config.package_config import PackageConfig
 from packit.local_project import LocalProject
 from packit.utils import PackitFormatter
 from packit.utils.repo import RepositoryCache
+from sandcastle import SandcastleTimeoutReached
+
 from packit_service import sentry_integration
 from packit_service.config import Deployment, ServiceConfig
 from packit_service.models import RunModel, SRPMBuildModel
 from packit_service.service.events import EventData
 from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.reporting import StatusReporter
-from sandcastle import SandcastleTimeoutReached
 
 logger = logging.getLogger(__name__)
 

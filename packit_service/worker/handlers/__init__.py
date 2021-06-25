@@ -4,7 +4,7 @@
 # If you have some problems with the imports between files in this directory,
 # try using absolute import.
 # Example:
-# from packit_service.worker.handlers.fedmsg_handlers import something
+# from packit_service.worker.handlers.fedmsg import something
 # instead of
 # from packit_service.worker.handlers import something
 
@@ -14,26 +14,26 @@ from packit_service.worker.handlers.abstract import (
     JobHandler,
     FedmsgHandler,
 )
-from packit_service.worker.handlers.bugzilla_handler import (
+from packit_service.worker.handlers.bugzilla import (
     BugzillaHandler,
 )
-from packit_service.worker.handlers.copr_handlers import (
+from packit_service.worker.handlers.copr import (
     CoprBuildHandler,
     CoprBuildEndHandler,
     CoprBuildStartHandler,
 )
-from packit_service.worker.handlers.distgit_handlers import (
+from packit_service.worker.handlers.distgit import (
     DistGitCommitHandler,
     ProposeDownstreamHandler,
 )
-from packit_service.worker.handlers.forges_handlers import (
+from packit_service.worker.handlers.forges import (
     GithubAppInstallationHandler,
 )
-from packit_service.worker.handlers.koji_handlers import (
+from packit_service.worker.handlers.koji import (
     KojiBuildHandler,
     KojiBuildReportHandler,
 )
-from packit_service.worker.handlers.testing_farm_handlers import (
+from packit_service.worker.handlers.testing_farm import (
     TestingFarmHandler,
     TestingFarmResultsHandler,
 )
