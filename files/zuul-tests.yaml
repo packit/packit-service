@@ -2,9 +2,6 @@
 # This playbook is running tests inside Zuul
 - name: Run packit-service tests
   hosts: all
-  vars:
-    # Zuul base job redefines project_dir
-    project_dir: "{{ playbook_dir }}/.."
   tasks:
     - name: Install podman
       dnf:
@@ -15,7 +12,7 @@
     - name: Run tests within a container
       command: "make check-in-container"
       args:
-        chdir: "{{ project_dir }}"
+        chdir: "{{ zuul.project.src_dir }}"
       environment:
         COLOR: "no"
         SOURCE_BRANCH: "{{ zuul.branch }}"
