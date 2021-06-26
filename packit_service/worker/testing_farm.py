@@ -152,7 +152,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "test": {
                 "fmf": {
                     "url": TESTING_FARM_INSTALLABILITY_TEST_URL,
-                    "name": "/packit/install-and-verify",
+                    "name": "/packit/installation",
                 },
             },
             "environments": [
