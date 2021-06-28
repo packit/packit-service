@@ -164,7 +164,7 @@ class ProposeDownstreamHandler(JobHandler):
                         # is not retried also automatically
                         self.task.retry(exc=ex, countdown=delay, throw=False)
                         return TaskResults(
-                            success=False,
+                            success=True,  # do not create a Sentry issue
                             details={
                                 "msg": "Not able to download archive. Task will be retried."
                             },
