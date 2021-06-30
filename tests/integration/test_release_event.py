@@ -329,7 +329,7 @@ def test_retry_propose_downstream_task(github_release_webhook):
 
     results = run_propose_downstream_handler(event_dict, package_config, job_config)
 
-    assert not first_dict_value(results["job"])["success"]
+    assert first_dict_value(results["job"])["success"]  # yes, success, see #1140
     assert "Not able to download" in first_dict_value(results["job"])["details"]["msg"]
 
 
