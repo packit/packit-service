@@ -12,7 +12,7 @@ from packit_service.models import (
     PullRequestModel,
     TFTTestRunModel,
 )
-from packit_service.service.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.events.event import AbstractForgeIndependentEvent
 
 
 class TestingFarmResultsEvent(AbstractForgeIndependentEvent):

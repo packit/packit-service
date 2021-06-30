@@ -29,7 +29,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, relationship
 from sqlalchemy.types import PickleType
 
-from packit_service.service.events import InstallationEvent
+from packit_service.worker.events import InstallationEvent
 from packit_service.constants import ALLOWLIST_CONSTANTS
 
 # revision identifiers, used by Alembic.

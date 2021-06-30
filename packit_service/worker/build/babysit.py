@@ -11,8 +11,8 @@ from packit_service.constants import (
     COPR_SUCC_STATE,
 )
 from packit_service.models import CoprBuildModel
-from packit_service.service.events import AbstractCoprBuildEvent
-from packit_service.service.events.enums import FedmsgTopic
+from packit_service.worker.events import AbstractCoprBuildEvent
+from packit_service.worker.events.enums import FedmsgTopic
 from packit_service.worker.handlers import CoprBuildEndHandler
 from packit_service.worker.jobs import get_config_for_handler_kls
 

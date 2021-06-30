@@ -26,7 +26,7 @@ from packit_service.service.db_triggers import (
     AddBranchPushDbTrigger,
     AddReleaseDbTrigger,
 )
-from packit_service.service.events import (
+from packit_service.worker.events import (
     PullRequestGithubEvent,
     PushGitHubEvent,
     ReleaseEvent,

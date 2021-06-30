@@ -1,14 +1,14 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from packit_service.service.events.copr import (
+from packit_service.worker.events.copr import (
     AbstractCoprBuildEvent,
     CoprBuildStartEvent,
     CoprBuildEndEvent,
 )
-from packit_service.service.events.distgit import DistGitCommitEvent
-from packit_service.service.events.event import EventData, Event
-from packit_service.service.events.github import (
+from packit_service.worker.events.distgit import DistGitCommitEvent
+from packit_service.worker.events.event import EventData, Event
+from packit_service.worker.events.github import (
     InstallationEvent,
     IssueCommentEvent,
     PullRequestCommentGithubEvent,
@@ -17,20 +17,20 @@ from packit_service.service.events.github import (
     ReleaseEvent,
     AbstractGithubEvent,
 )
-from packit_service.service.events.gitlab import (
+from packit_service.worker.events.gitlab import (
     IssueCommentGitlabEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
     PushGitlabEvent,
 )
-from packit_service.service.events.koji import KojiBuildEvent
-from packit_service.service.events.pagure import (
+from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.pagure import (
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
     PushPagureEvent,
     AbstractPagureEvent,
 )
-from packit_service.service.events.testing_farm import TestingFarmResultsEvent
+from packit_service.worker.events.testing_farm import TestingFarmResultsEvent
 
 __all__ = [
     Event.__name__,

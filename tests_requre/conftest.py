@@ -37,7 +37,7 @@ from packit_service.models import (
     BugzillaModel,
     ProjectAuthenticationIssueModel,
 )
-from packit_service.service.events import InstallationEvent
+from packit_service.worker.events import InstallationEvent
 
 
 class SampleValues:

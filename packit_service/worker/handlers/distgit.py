@@ -22,7 +22,7 @@ from packit_service.constants import (
     FILE_DOWNLOAD_FAILURE,
     MSG_RETRIGGER,
 )
-from packit_service.service.events import (
+from packit_service.worker.events import (
     DistGitCommitEvent,
     ReleaseEvent,
     IssueCommentEvent,

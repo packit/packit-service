@@ -25,7 +25,7 @@ from packit_service.models import (
     AllowlistStatus,
 )
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
-from packit_service.service.events import (
+from packit_service.worker.events import (
     EventData,
     KojiBuildEvent,
     TestingFarmResultsEvent,
@@ -44,7 +44,7 @@ from packit_service.service.events import (
     ReleaseEvent,
     PullRequestCommentPagureEvent,
 )
-from packit_service.service.events.enums import (
+from packit_service.worker.events.enums import (
     PullRequestAction,
     PullRequestCommentAction,
     IssueCommentAction,

@@ -12,12 +12,12 @@ from packit_service.service.db_triggers import (
     AddBranchPushDbTrigger,
     AddReleaseDbTrigger,
 )
-from packit_service.service.events.enums import (
+from packit_service.worker.events.enums import (
     IssueCommentAction,
     PullRequestCommentAction,
     PullRequestAction,
 )
-from packit_service.service.events.event import (
+from packit_service.worker.events.event import (
     Event,
     AbstractForgeIndependentEvent,
 )

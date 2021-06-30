@@ -21,7 +21,7 @@ from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.models import SRPMBuildModel, KojiBuildModel
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
-from packit_service.service.events import (
+from packit_service.worker.events import (
     PullRequestGithubEvent,
     PullRequestCommentGithubEvent,
     PushGitHubEvent,

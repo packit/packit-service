@@ -18,7 +18,7 @@ from packit_service.celerizer import celery_app
 from packit_service.config import Deployment, ServiceConfig
 from packit_service.constants import MSG_RETRIGGER
 from packit_service.models import AbstractTriggerDbType, CoprBuildModel
-from packit_service.service.events import EventData
+from packit_service.worker.events import EventData
 from packit_service.service.urls import (
     get_copr_build_info_url,
     get_srpm_build_info_url,

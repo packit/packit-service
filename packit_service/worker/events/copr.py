@@ -12,8 +12,8 @@ from packit_service.models import (
     JobTriggerModelType,
     AbstractTriggerDbType,
 )
-from packit_service.service.events.event import AbstractForgeIndependentEvent
-from packit_service.service.events.enums import FedmsgTopic
+from packit_service.worker.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.events.enums import FedmsgTopic
 
 logger = getLogger(__name__)
 

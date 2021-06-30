@@ -13,7 +13,7 @@ from packit.exceptions import PackitException
 from packit_service.config import ServiceConfig
 from packit_service.constants import FAQ_URL
 from packit_service.models import AllowlistModel, AllowlistStatus
-from packit_service.service.events import (
+from packit_service.worker.events import (
     EventData,
     AbstractCoprBuildEvent,
     DistGitCommitEvent,

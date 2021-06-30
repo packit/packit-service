@@ -22,7 +22,7 @@ from packit_service.constants import (
     PG_COPR_BUILD_STATUS_SUCCESS,
 )
 from packit_service.models import AbstractTriggerDbType, CoprBuildModel
-from packit_service.service.events import (
+from packit_service.worker.events import (
     CoprBuildEndEvent,
     AbstractCoprBuildEvent,
     CoprBuildStartEvent,

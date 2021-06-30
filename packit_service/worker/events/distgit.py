@@ -5,8 +5,8 @@ from typing import Optional, Dict
 from packit.config.package_config import get_package_config_from_repo
 
 from packit_service.models import AbstractTriggerDbType, GitBranchModel
-from packit_service.service.events.event import AbstractForgeIndependentEvent
-from packit_service.service.events.enums import FedmsgTopic
+from packit_service.worker.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.events.enums import FedmsgTopic
 
 
 class DistGitCommitEvent(AbstractForgeIndependentEvent):
