@@ -17,7 +17,7 @@ from packit_service.constants import (
     TESTING_FARM_INSTALLABILITY_TEST_URL,
 )
 from packit_service.models import TFTTestRunModel, TestingFarmResult
-from packit_service.service.events import (
+from packit_service.worker.events import (
     AbstractCoprBuildEvent,
     KojiBuildEvent,
     DistGitCommitEvent,
@@ -39,7 +39,7 @@ from packit_service.service.events import (
     TestingFarmResultsEvent,
     PullRequestCommentPagureEvent,
 )
-from packit_service.service.events.enums import (
+from packit_service.worker.events.enums import (
     GitlabEventAction,
     IssueCommentAction,
     PullRequestAction,

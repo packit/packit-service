@@ -24,7 +24,7 @@ from packit_service.models import (
     JobTriggerModelType,
     KojiBuildModel,
 )
-from packit_service.service.events import AbstractCoprBuildEvent, KojiBuildEvent
+from packit_service.worker.events import AbstractCoprBuildEvent, KojiBuildEvent
 import packit_service.service.urls as urls
 from packit_service.service.urls import (
     get_copr_build_info_url,

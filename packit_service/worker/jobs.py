@@ -15,7 +15,7 @@ from packit.config import JobConfig, PackageConfig
 from packit_service.config import ServiceConfig
 from packit_service.constants import TASK_ACCEPTED
 from packit_service.log_versions import log_job_versions
-from packit_service.service.events import (
+from packit_service.worker.events import (
     Event,
     EventData,
     PullRequestCommentPagureEvent,

@@ -8,7 +8,7 @@ from flexmock import flexmock
 
 from packit.config import JobConfig, JobConfigTriggerType, JobType
 from packit.config.job_config import JobMetadataConfig
-from packit_service.service.events import (
+from packit_service.worker.events import (
     CoprBuildEndEvent,
     CoprBuildStartEvent,
     IssueCommentEvent,

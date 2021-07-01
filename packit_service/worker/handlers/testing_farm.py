@@ -19,7 +19,7 @@ from packit_service.models import (
     CoprBuildModel,
     TestingFarmResult,
 )
-from packit_service.service.events import (
+from packit_service.worker.events import (
     TestingFarmResultsEvent,
     PullRequestCommentGithubEvent,
     MergeRequestCommentGitlabEvent,

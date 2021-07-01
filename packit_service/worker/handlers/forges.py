@@ -15,7 +15,7 @@ from packit.config.package_config import PackageConfig
 from packit_service.models import (
     InstallationModel,
 )
-from packit_service.service.events import (
+from packit_service.worker.events import (
     InstallationEvent,
 )
 from packit_service.worker.allowlist import Allowlist

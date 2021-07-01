@@ -21,7 +21,7 @@ from sandcastle import SandcastleTimeoutReached
 from packit_service import sentry_integration
 from packit_service.config import Deployment, ServiceConfig
 from packit_service.models import RunModel, SRPMBuildModel
-from packit_service.service.events import EventData
+from packit_service.worker.events import EventData
 from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.reporting import StatusReporter
 

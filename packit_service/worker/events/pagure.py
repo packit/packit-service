@@ -7,11 +7,11 @@ from typing import Dict, Optional
 from ogr.abstract import GitProject
 
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
-from packit_service.service.events.enums import (
+from packit_service.worker.events.enums import (
     PullRequestAction,
     PullRequestCommentAction,
 )
-from packit_service.service.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.events.event import AbstractForgeIndependentEvent
 
 logger = getLogger(__name__)
 

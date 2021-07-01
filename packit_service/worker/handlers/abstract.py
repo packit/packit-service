@@ -26,7 +26,7 @@ from packit_service.models import (
     AbstractTriggerDbType,
 )
 from packit_service.sentry_integration import push_scope_to_sentry
-from packit_service.service.events import Event, EventData
+from packit_service.worker.events import Event, EventData
 from packit_service.utils import dump_job_config, dump_package_config
 from packit_service.worker.result import TaskResults
 

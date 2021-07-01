@@ -24,7 +24,7 @@ from packit_service.constants import (
     KojiBuildState,
 )
 from packit_service.models import AbstractTriggerDbType, KojiBuildModel
-from packit_service.service.events import (
+from packit_service.worker.events import (
     KojiBuildEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,

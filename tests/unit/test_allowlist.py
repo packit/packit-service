@@ -23,7 +23,7 @@ from packit_service.models import (
     AllowlistStatus,
     PullRequestModel,
 )
-from packit_service.service.events import (
+from packit_service.worker.events import (
     EventData,
     IssueCommentEvent,
     PullRequestCommentGithubEvent,
@@ -31,7 +31,7 @@ from packit_service.service.events import (
     ReleaseEvent,
     AbstractGithubEvent,
 )
-from packit_service.service.events.enums import (
+from packit_service.worker.events.enums import (
     PullRequestAction,
     PullRequestCommentAction,
     IssueCommentAction,

@@ -10,8 +10,8 @@ from packit_service.service.db_triggers import (
     AddPullRequestDbTrigger,
     AddBranchPushDbTrigger,
 )
-from packit_service.service.events.enums import GitlabEventAction
-from packit_service.service.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.events.enums import GitlabEventAction
+from packit_service.worker.events.event import AbstractForgeIndependentEvent
 
 
 class AbstractGitlabEvent(AbstractForgeIndependentEvent):

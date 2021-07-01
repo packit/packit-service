@@ -11,7 +11,7 @@ from packit_service.models import (
     GitBranchModel,
     PullRequestModel,
 )
-from packit_service.service.events import (
+from packit_service.worker.events import (
     ReleaseEvent,
     PushGitHubEvent,
     PullRequestGithubEvent,

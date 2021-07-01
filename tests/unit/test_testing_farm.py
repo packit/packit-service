@@ -15,7 +15,7 @@ from packit_service.models import TFTTestRunModel
 # These names are definitely not nice, still they help with making classes
 # whose names start with Testing* or Test* to become invisible for pytest,
 # and so stop the test discovery warnings.
-from packit_service.service.events import (
+from packit_service.worker.events import (
     TestingFarmResultsEvent as TFResultsEvent,
 )
 from packit_service.models import TestingFarmResult as TFResult

@@ -6,7 +6,7 @@ from flexmock import flexmock
 
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit_service.models import CoprBuildModel, JobTriggerModelType
-from packit_service.service.events import AbstractCoprBuildEvent
+from packit_service.worker.events import AbstractCoprBuildEvent
 from packit_service.worker.build.babysit import check_copr_build
 from packit_service.worker.handlers import CoprBuildEndHandler
 

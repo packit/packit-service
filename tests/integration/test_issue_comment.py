@@ -19,7 +19,7 @@ from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import IssueModel
-from packit_service.service.events import IssueCommentEvent, IssueCommentGitlabEvent
+from packit_service.worker.events import IssueCommentEvent, IssueCommentGitlabEvent
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.tasks import run_propose_downstream_handler
 from packit_service.worker.allowlist import Allowlist
