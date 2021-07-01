@@ -316,6 +316,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             and f"{self.project.service.hostname}/{self.project.full_repo_name}"
             not in self.service_config.enabled_projects_for_internal_tf
         ):
+            logger.debug(
+                f"Internal TF not enabled for"
+                f"'{self.project.service.hostname}/{self.project.full_repo_name}'\n"
+                f"enabled_projects_for_internal_tf"
+                f"={self.service_config.enabled_projects_for_internal_tf}"
+            )
             self.report_status_to_test_for_chroot(
                 state=CommitStatus.error,
                 description="Internal TF not allowed for this project. Let us know.",
