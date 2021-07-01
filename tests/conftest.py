@@ -111,7 +111,13 @@ def copr_build_model(
         target="some-target",
         status="some-status",
         runs=runs,
+        set_status=lambda x: None,
     )
+
+    def mock_set_status(status):
+        copr_build.status = status
+
+    copr_build.set_status = mock_set_status
     copr_build._srpm_build_for_mocking = srpm_build
     copr_build.get_trigger_object = lambda: pr_model
     copr_build.get_srpm_build = lambda: srpm_build
@@ -124,7 +130,7 @@ def copr_build_model(
     return copr_build
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def copr_build_pr():
     return copr_build_model()
 

@@ -21,10 +21,14 @@ from packit_service.service.events import (
 from packit_service.models import TestingFarmResult as TFResult
 
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
+from packit_service.worker.handlers import TestingFarmHandler
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.testing_farm import (
     TestingFarmJobHelper as TFJobHelper,
 )
+from packit_service.constants import PG_COPR_BUILD_STATUS_SUCCESS
+from packit.config.package_config import PackageConfig
+from celery import Signature
 
 
 @pytest.mark.parametrize(
@@ -479,3 +483,67 @@ def test_get_request_details():
     )
     details = TFJobHelper.get_request_details(request_id)
     assert details == request
+
+
+@pytest.mark.parametrize(
+    ("copr_build," "run_new_build"),
+    [
+        (
+            None,
+            True,
+        ),
+        (
+            flexmock(
+                commit_sha="0000000000000000000000000000000000000000",
+                status="some-invalid-status",
+            ),
+            True,
+        ),
+        (
+            flexmock(
+                commit_sha="1111111111111111111111111111111111111111",
+                status="some-invalid-status",
+            ),
+            True,
+        ),
+        (
+            flexmock(
+                commit_sha="0000000000000000000000000000000000000000",
+                status=PG_COPR_BUILD_STATUS_SUCCESS,
+            ),
+            True,
+        ),
+        (
+            flexmock(
+                commit_sha="1111111111111111111111111111111111111111",
+                status=PG_COPR_BUILD_STATUS_SUCCESS,
+            ),
+            False,
+        ),
+    ],
+)
+def test_trigger_build(copr_build, run_new_build):
+
+    valid_commit_sha = "1111111111111111111111111111111111111111"
+
+    package_config = PackageConfig()
+    package_config.jobs = []
+    package_config.spec_source_id = 1
+    job_config = flexmock()
+    job_config.type = JobType.build
+    job_config.spec_source_id = 1
+
+    event = {
+        "event_type": "CoprBuileEndEvent",
+        "commit_sha": valid_commit_sha,
+    }
+
+    flexmock(TFJobHelper).should_receive("get_latest_copr_build").and_return(copr_build)
+
+    if run_new_build:
+        flexmock(Signature).should_receive("apply_async").once()
+    else:
+        flexmock(TFJobHelper).should_receive("run_testing_farm").once()
+
+    tf_handler = TestingFarmHandler(package_config, job_config, event)
+    tf_handler.run()

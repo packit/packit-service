@@ -7,6 +7,7 @@ This file defines classes for job handlers specific for Testing farm
 import logging
 from typing import Optional
 
+from celery import signature
 from ogr import GitlabService
 from ogr.abstract import CommitStatus
 from packit.config import JobConfig, JobType
@@ -35,6 +36,8 @@ from packit_service.worker.handlers.abstract import (
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
+from packit_service.constants import PG_COPR_BUILD_STATUS_SUCCESS
+from packit_service.utils import dump_job_config, dump_package_config
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +108,35 @@ class TestingFarmHandler(JobHandler):
             copr_build = CoprBuildModel.get_by_id(self.build_id)
         else:
             copr_build = testing_farm_helper.get_latest_copr_build(target=self.chroot)
+
+        # If no suitable copr build is found, run trigger copr build
+        if (
+            not copr_build
+            or copr_build.commit_sha != self.data.commit_sha
+            or copr_build.status != PG_COPR_BUILD_STATUS_SUCCESS
+        ):
+
+            logger.info("No suitable copr-build found, run copr build.")
+
+            result_details = {
+                "msg": "Build required, triggering copr build",
+                "event": self.data,
+                "package_config": self.package_config,
+                "job": self.job_config.type.value if self.job_config else None,
+                "job_config": dump_job_config(self.job_config),
+            }
+
+            signature(
+                TaskName.copr_build.value,
+                kwargs={
+                    "package_config": dump_package_config(self.package_config),
+                    "job_config": dump_job_config(self.job_config),
+                    "event": self.data.get_dict(),
+                },
+            ).apply_async()
+
+            return TaskResults(success=True, details=result_details)
+
         logger.info(f"Running testing farm for {copr_build}:{self.chroot}.")
         return testing_farm_helper.run_testing_farm(
             build=copr_build, chroot=self.chroot
