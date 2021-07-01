@@ -276,7 +276,7 @@ class Allowlist:
             if not namespace_approved
             else f"Account {actor_name} has no write access nor is author of PR!"
         )
-        logger.error(msg)
+        logger.debug(msg)
         if isinstance(
             event, (PullRequestCommentGithubEvent, MergeRequestCommentGitlabEvent)
         ):
@@ -325,7 +325,7 @@ class Allowlist:
             if not namespace_approved
             else f"Account {actor_name} has no write access!"
         )
-        logger.error(msg)
+        logger.debug(msg)
         project.issue_comment(event.issue_id, msg)
         return False
 
