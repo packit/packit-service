@@ -11,6 +11,7 @@ from flask_restx import __version__ as restx_version
 from sqlalchemy import __version__ as sqlal_version
 
 from ogr import __version__ as ogr_version
+from packit import __version__ as packit_version
 from packit_service import __version__ as ps_version
 
 logger = logging.getLogger(__name__)
@@ -28,9 +29,9 @@ def log_job_versions():
     """Log essential package versions before running a job."""
     package_versions = [
         ("OGR", ogr_version),
+        ("Packit", packit_version),
         ("Packit Service", ps_version),
         ("SQL Alchemy", sqlal_version),
-        # NOTE: Can't log packit's version for now because it does not provide one.
     ]
     log_package_versions(package_versions)
 
