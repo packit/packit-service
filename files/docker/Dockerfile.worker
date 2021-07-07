@@ -19,15 +19,13 @@ COPY files/ ./files/
 RUN ansible-playbook -vv -c local -i localhost, files/install-deps-worker.yaml \
     && dnf clean all
 
-COPY setup.py setup.cfg .git_archival.txt .gitattributes ./
+COPY setup.* .git_archival.txt .gitattributes ./
 # setuptools-scm
-COPY .git ./.git
-COPY packit_service/ ./packit_service/
+COPY .git/ .git/
+COPY packit_service/ packit_service/
 
 RUN git rev-parse HEAD >/.packit-service.git.commit.hash \
     && git show --quiet --format=%B HEAD >/.packit-service.git.commit.message \
     && ansible-playbook -vv -c local -i localhost, files/recipe-worker.yaml
-
-COPY . ./
 
 CMD ["/usr/bin/run_worker.sh"]
