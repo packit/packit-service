@@ -26,6 +26,8 @@ COPY packit_service/ packit_service/
 
 RUN git rev-parse HEAD >/.packit-service.git.commit.hash \
     && git show --quiet --format=%B HEAD >/.packit-service.git.commit.message \
-    && ansible-playbook -vv -c local -i localhost, files/recipe-worker.yaml
+    && ansible-playbook -vv -c local -i localhost, files/recipe-worker.yaml \
+    && rm -rf /src/*
+# /src content is no longer needed, clean it for 'hardly'
 
 CMD ["/usr/bin/run_worker.sh"]
