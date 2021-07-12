@@ -69,7 +69,7 @@ services:
       POSTGRESQL_HOST: postgres
       POSTGRESQL_DATABASE: packit
     volumes:
-      - ./packit_service:/src/packit_service:ro,z
+      - ./packit_service:/usr/local/lib/python3.9/site-packages/packit_service:ro,z
       # worker should not require packit-service.yaml
       - ./secrets/packit/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
       - ./secrets/packit/dev/copr:/home/packit/.config/copr:ro,z
@@ -106,7 +106,7 @@ services:
       POSTGRESQL_HOST: postgres
       POSTGRESQL_DATABASE: packit
     volumes:
-      - ./packit_service:/usr/local/lib/python3.8/site-packages/packit_service:ro,z
+      - ./packit_service:/usr/local/lib/python3.9/site-packages/packit_service:ro,z
       - ./files/packit-httpd.conf:/etc/httpd/conf.d/packit-httpd.conf:ro,z
       # There's no secrets/ by default. You have to create (or symlink to other dir) it yourself.
       # Make sure to set `command_handler: local` since there is no kube in d-c
