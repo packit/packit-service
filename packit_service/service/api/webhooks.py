@@ -6,6 +6,7 @@ import json
 from hashlib import sha1
 from http import HTTPStatus
 from logging import getLogger
+from os import getenv
 
 import jwt
 from flask import request
@@ -15,6 +16,7 @@ from prometheus_client import Counter
 from ogr.parsing import parse_git_repo
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
+from packit_service.constants import CELERY_DEFAULT_MAIN_TASK_NAME
 from packit_service.models import ProjectAuthenticationIssueModel
 from packit_service.service.api.errors import ValidationFailed
 
@@ -78,9 +80,9 @@ class GithubWebhook(Resource):
             github_webhook_calls.labels(result="invalid_signature").inc()
             return str(exc), HTTPStatus.UNAUTHORIZED
 
-        # TODO: define task names at one place
         celery_app.send_task(
-            name="task.steve_jobs.process_message", kwargs={"event": msg}
+            name=getenv("CELERY_MAIN_TASK_NAME") or CELERY_DEFAULT_MAIN_TASK_NAME,
+            kwargs={"event": msg},
         )
         github_webhook_calls.labels(result="accepted").inc()
 
@@ -157,9 +159,9 @@ class GitlabWebhook(Resource):
         if not self.interested():
             return "Thanks but we don't care about this event", HTTPStatus.ACCEPTED
 
-        # TODO: define task names at one place
         celery_app.send_task(
-            name="task.steve_jobs.process_message", kwargs={"event": msg}
+            name=getenv("CELERY_MAIN_TASK_NAME") or CELERY_DEFAULT_MAIN_TASK_NAME,
+            kwargs={"event": msg},
         )
 
         return "Webhook accepted. We thank you, Gitlab.", HTTPStatus.ACCEPTED

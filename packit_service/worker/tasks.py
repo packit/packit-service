@@ -7,7 +7,11 @@ from typing import List, Optional
 
 from celery import Task
 from packit_service.celerizer import celery_app
-from packit_service.constants import DEFAULT_RETRY_LIMIT, DEFAULT_RETRY_BACKOFF
+from packit_service.constants import (
+    DEFAULT_RETRY_LIMIT,
+    DEFAULT_RETRY_BACKOFF,
+    CELERY_DEFAULT_MAIN_TASK_NAME,
+)
 from packit_service.utils import load_job_config, load_package_config
 from packit_service.worker.build.babysit import check_copr_build
 from packit_service.worker.handlers.abstract import TaskName
@@ -50,12 +54,14 @@ class HandlerTaskWithRetry(Task):
     retry_backoff = int(getenv("CELERY_RETRY_BACKOFF", DEFAULT_RETRY_BACKOFF))
 
 
-@celery_app.task(name="task.steve_jobs.process_message", bind=True)
+@celery_app.task(
+    name=getenv("CELERY_MAIN_TASK_NAME") or CELERY_DEFAULT_MAIN_TASK_NAME, bind=True
+)
 def process_message(
     self, event: dict, topic: str = None, source: str = None
 ) -> List[TaskResults]:
     """
-    Base celery task for processing messages.
+    Main celery task for processing messages.
 
     :param event: event data
     :param topic: event topic

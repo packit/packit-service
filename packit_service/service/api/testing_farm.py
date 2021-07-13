@@ -3,12 +3,14 @@
 
 import logging
 from http import HTTPStatus
+from os import getenv
 
 from flask import request
 from flask_restx import Namespace, Resource, fields
 
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
+from packit_service.constants import CELERY_DEFAULT_MAIN_TASK_NAME
 from packit_service.models import TFTTestRunModel, optional_time
 from packit_service.service.api.errors import ValidationFailed
 from packit_service.service.api.parsers import indices, pagination_arguments
@@ -57,7 +59,8 @@ class TestingFarmResults(Resource):
         # so make sure we don't confuse this with something else
         msg["source"] = "testing-farm"
         celery_app.send_task(
-            name="task.steve_jobs.process_message", kwargs={"event": msg}
+            name=getenv("CELERY_MAIN_TASK_NAME") or CELERY_DEFAULT_MAIN_TASK_NAME,
+            kwargs={"event": msg},
         )
 
         return "Test results accepted", HTTPStatus.OK
