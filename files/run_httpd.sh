@@ -2,7 +2,7 @@
 
 set -xe
 
-source /src/files/setup_env_in_openshift.sh
+source /usr/bin/setup_env_in_openshift.sh
 
 pushd /src
 # if all containers started at the same time, pg is definitely not ready to serve
