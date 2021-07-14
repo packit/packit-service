@@ -16,7 +16,7 @@ else
   LOGLEVEL="DEBUG"
 fi
 
-source /src/files/setup_env_in_openshift.sh
+source /usr/bin/setup_env_in_openshift.sh
 
 mkdir --mode=0700 -p "${PACKIT_HOME}/.ssh"
 pushd "${PACKIT_HOME}/.ssh"

@@ -18,7 +18,7 @@
 - name: Let's make sure {{ packit_service_path }} is present
   assert:
     that:
-      - "src_path.stat.isdir"
+      - src_path.stat.isdir
 - name: Install packit-service from {{ packit_service_path }}
   pip:
     name: "{{ packit_service_path }}"
@@ -27,3 +27,7 @@
   file:
     state: absent
     path: ~/.cache/
+- name: Copy setup_env_in_openshift.sh
+  copy:
+    src: setup_env_in_openshift.sh
+    dest: /usr/bin/setup_env_in_openshift.sh
