@@ -259,6 +259,19 @@ class GitProjectModel(Base):
             return projects
 
     @classmethod
+    def get_forge(
+        cls, first: int, last: int, forge: str
+    ) -> Iterable["GitProjectModel"]:
+        """Return projects of given forge"""
+        with get_sa_session() as session:
+            projects = (
+                session.query(GitProjectModel)
+                .filter_by(instance_url=forge)
+                .order_by(GitProjectModel.namespace)[first:last]
+            )
+            return projects
+
+    @classmethod
     def get_namespace(cls, forge: str, namespace: str) -> Iterable["GitProjectModel"]:
         """Return projects of given forge and namespace"""
         with get_sa_session() as session:

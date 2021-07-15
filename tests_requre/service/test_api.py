@@ -287,6 +287,20 @@ def test_get_projects_list(client, clean_before_and_after, a_copr_build_for_pr):
     assert response_dict[0]["prs_handled"] == 1
 
 
+def test_get_projects_list_forge(
+    client, clean_before_and_after, multiple_forge_projects
+):
+    """Test Get Projects by Forge"""
+    response = client.get(
+        url_for(
+            "api.projects_projects_forge",
+            forge="github.com",
+        )
+    )
+    response_dict = response.json
+    assert len(response_dict) == 2
+
+
 def test_get_projects_list_namespace(
     client, clean_before_and_after, multiple_copr_builds
 ):

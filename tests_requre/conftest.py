@@ -803,6 +803,24 @@ def multiple_installation_entries(installation_events):
 
 
 @pytest.fixture()
+def multiple_forge_projects():
+    yield [
+        GitProjectModel.get_or_create(
+            "namespace", "repo", "https://github.com/namespace/repo"
+        ),
+        GitProjectModel.get_or_create(
+            "namespace", "different-repo", "https://github.com/namespace/different-repo"
+        ),
+        GitProjectModel.get_or_create(
+            "namespace", "repo", "https://gitlab.com/namespace/repo"
+        ),
+        GitProjectModel.get_or_create(
+            "namespace", "repo", "https://git.stg.centos.org/namespace/repo"
+        ),
+    ]
+
+
+@pytest.fixture()
 def release_event_dict():
     """
     Cleared version of the release webhook content.

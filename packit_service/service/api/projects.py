@@ -78,6 +78,41 @@ class ProjectInfo(Resource):
         return response_maker(project_info)
 
 
+@ns.route("/<forge>")
+@ns.param("forge", "Git Forge")
+class ProjectsForge(Resource):
+    @ns.expect(pagination_arguments)
+    @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "Projects list follows")
+    @ns.response(HTTPStatus.OK.value, "OK")
+    def get(self, forge):
+        """List of projects of given forge (e.g. github.com, gitlab.com)"""
+
+        result = []
+        first, last = indices()
+
+        projects_list = GitProjectModel.get_forge(first, last, forge)
+        if not projects_list:
+            return response_maker([])
+        for project in projects_list:
+            project_info = {
+                "namespace": project.namespace,
+                "repo_name": project.repo_name,
+                "project_url": project.project_url,
+                "prs_handled": len(project.pull_requests),
+                "branches_handled": len(project.branches),
+                "releases_handled": len(project.releases),
+                "issues_handled": len(project.issues),
+            }
+            result.append(project_info)
+
+        resp = response_maker(
+            result,
+            status=HTTPStatus.PARTIAL_CONTENT.value,
+        )
+        resp.headers["Content-Range"] = f"git-projects {first + 1}-{last}/*"
+        return resp
+
+
 @ns.route("/<forge>/<namespace>")
 @ns.param("forge", "Git Forge")
 @ns.param("namespace", "Namespace")
