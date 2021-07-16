@@ -1290,7 +1290,7 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
     web_url = Column(String)
     # datetime.utcnow instead of datetime.utcnow() because its an argument to the function
     # so it will run when the model is initiated, not when the table is made
-    submitted_time = Column(DateTime)
+    submitted_time = Column(DateTime, default=datetime.utcnow)
     data = Column(JSON)
 
     runs = relationship("RunModel", back_populates="test_run")
