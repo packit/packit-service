@@ -1433,12 +1433,12 @@ class InstallationModel(Base):
     repositories = Column(ARRAY(Integer, ForeignKey("git_projects.id")))
 
     @classmethod
-    def get_project(cls, repo: str):
-        namespace, repo_name = repo.split("/")
+    def get_project(cls, repository: str):
+        namespace, repo_name = repository.split("/")
         return GitProjectModel.get_or_create(
             namespace=namespace,
             repo_name=repo_name,
-            project_url=f"https://github.com/{namespace}/{repo}",
+            project_url=f"https://github.com/{namespace}/{repo_name}",
         )
 
     @classmethod
