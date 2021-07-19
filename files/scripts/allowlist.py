@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import click
 
 from packit_service.worker.allowlist import Allowlist

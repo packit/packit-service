@@ -21,3 +21,10 @@
         src: run_worker.sh
         dest: /usr/bin/run_worker.sh
         mode: 0777
+    - name: Install scripts
+      copy:
+        src: "{{ item }}"
+        dest: /usr/bin/
+        mode: 0777
+      with_fileglob:
+        - scripts/*.py
