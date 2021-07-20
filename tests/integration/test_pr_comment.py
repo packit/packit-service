@@ -9,7 +9,6 @@ from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
 
-from ogr.abstract import CommitStatus
 from ogr.services.github import GithubProject
 from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
@@ -31,6 +30,7 @@ from packit_service.worker.tasks import (
 )
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.reporting import BaseCommitStatus
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
@@ -181,7 +181,7 @@ def test_pr_comment_copr_build_handler(
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_all").with_args(
         description=TASK_ACCEPTED,
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.pending,
         url="",
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
@@ -217,7 +217,7 @@ def test_pr_comment_build_handler(
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_all").with_args(
         description=TASK_ACCEPTED,
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.pending,
         url="",
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
@@ -287,7 +287,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(KojiBuildJobHelper).should_receive("report_status_to_all").with_args(
         description=TASK_ACCEPTED,
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.pending,
         url="",
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
@@ -360,7 +360,7 @@ def test_pr_embedded_command_handler(
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_all").with_args(
         description=TASK_ACCEPTED,
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.pending,
         url="",
     ).once()
     flexmock(Signature).should_receive("apply_async").once()

@@ -6,7 +6,7 @@ from typing import Union
 import pytest
 from flexmock import flexmock
 
-from ogr.abstract import GitProject, CommitStatus
+from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import (
     PackageConfig,
@@ -34,7 +34,7 @@ from packit_service.service.urls import (
 )
 from packit_service.worker.build import koji_build
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
-from packit_service.worker.reporting import StatusReporter
+from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 
 
 def build_helper(
@@ -102,13 +102,13 @@ def test_koji_build_check_names(github_pr_event):
 
     koji_build_url = get_koji_build_info_url(1)
     flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.running,
         description="Building SRPM ...",
         check_name="packit-stg/production-build-bright-future",
         url="",
     ).and_return()
     flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.running,
         description="Building RPM ...",
         check_name="packit-stg/production-build-bright-future",
         url=koji_build_url,
@@ -153,13 +153,13 @@ def test_koji_build_failed_kerberos(github_pr_event):
     ).never()
 
     flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.running,
         description="Building SRPM ...",
         check_name="packit-stg/production-build-bright-future",
         url="",
     ).and_return()
     flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.error,
+        state=BaseCommitStatus.error,
         description="Kerberos authentication error: the bad authentication error",
         check_name="packit-stg/production-build-bright-future",
         url=get_srpm_build_info_url(1),
@@ -205,13 +205,13 @@ def test_koji_build_target_not_supported(github_pr_event):
     ).once()
 
     flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.running,
         description="Building SRPM ...",
         check_name="packit-stg/production-build-nonexisting-target",
         url="",
     ).and_return()
     flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.error,
+        state=BaseCommitStatus.error,
         description="Target not supported: nonexisting-target",
         check_name="packit-stg/production-build-nonexisting-target",
         url=get_srpm_build_info_url(1),
@@ -299,7 +299,7 @@ def test_koji_build_failed(github_pr_event):
     ).once()
 
     flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.running,
         description="Building SRPM ...",
         check_name="packit-stg/production-build-bright-future",
         url="",
@@ -307,7 +307,7 @@ def test_koji_build_failed(github_pr_event):
 
     srpm_build_url = get_srpm_build_info_url(2)
     flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.error,
+        state=BaseCommitStatus.error,
         description="Submit of the build failed: some error",
         check_name="packit-stg/production-build-bright-future",
         url=srpm_build_url,
@@ -345,13 +345,13 @@ def test_koji_build_failed_srpm(github_pr_event):
     )
     srpm_build_url = get_srpm_build_info_url(2)
     flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.running,
         description="Building SRPM ...",
         check_name="packit-stg/production-build-bright-future",
         url="",
     ).and_return()
     flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.failure,
+        state=BaseCommitStatus.failure,
         description="SRPM build failed, check the logs for details.",
         check_name="packit-stg/production-build-bright-future",
         url=srpm_build_url,

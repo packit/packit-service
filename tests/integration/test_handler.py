@@ -6,7 +6,6 @@ import os
 import pytest
 from flexmock import flexmock
 
-from ogr.abstract import CommitStatus
 from ogr.services.github import GithubProject
 from packit.config import JobConfig, JobConfigTriggerType, JobType, PackageConfig
 from packit.config.job_config import JobMetadataConfig
@@ -18,7 +17,7 @@ from packit_service.worker.handlers import (
     CoprBuildHandler,
     KojiBuildHandler,
 )
-from packit_service.worker.reporting import StatusReporter
+from packit_service.worker.reporting import StatusReporterGithubChecks, BaseCommitStatus
 
 
 @pytest.fixture()
@@ -147,8 +146,8 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
     ).and_return(
         flexmock(id=342, job_config_trigger_type=JobConfigTriggerType.pull_request)
     )
-    flexmock(StatusReporter).should_receive("set_status").with_args(
-        state=CommitStatus.error,
+    flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
+        state=BaseCommitStatus.neutral,
         description="Non-scratch builds not possible from upstream.",
         check_name="packit-stg/production-build-bright-future",
         url=KOJI_PRODUCTION_BUILDS_ISSUE,

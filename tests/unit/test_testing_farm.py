@@ -3,7 +3,6 @@
 
 import pytest
 from flexmock import flexmock
-from ogr.abstract import CommitStatus
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
 from packit.local_project import LocalProject
@@ -22,7 +21,7 @@ from packit_service.models import TestingFarmResult as TFResult
 
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.handlers import TestingFarmHandler
-from packit_service.worker.reporting import StatusReporter
+from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.testing_farm import (
     TestingFarmJobHelper as TFJobHelper,
 )
@@ -37,28 +36,28 @@ from celery import Signature
         pytest.param(
             TFResult.passed,
             "some summary",
-            CommitStatus.success,
+            BaseCommitStatus.success,
             "some summary",
             id="passed_and_summary_provided",
         ),
         pytest.param(
             TFResult.passed,
             None,
-            CommitStatus.success,
+            BaseCommitStatus.success,
             "Tests passed ...",
             id="passed_and_summary_not_provided",
         ),
         pytest.param(
             TFResult.failed,
             "some summary",
-            CommitStatus.failure,
+            BaseCommitStatus.failure,
             "some summary",
             id="failed_and_summary_provided",
         ),
         pytest.param(
             TFResult.failed,
             None,
-            CommitStatus.failure,
+            BaseCommitStatus.failure,
             "Tests failed ...",
             id="failed_and_summary_not_provided",
         ),
