@@ -9,7 +9,6 @@ from typing import Any
 from typing import List, Set, Type, Union
 
 from celery import group
-from ogr.abstract import CommitStatus
 from packit.config import JobConfig, PackageConfig
 
 from packit_service.config import ServiceConfig
@@ -45,6 +44,7 @@ from packit_service.worker.handlers.abstract import (
     SUPPORTED_EVENTS_FOR_HANDLER,
 )
 from packit_service.worker.parser import CentosEventParser, Parser
+from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 
 REQUESTED_PULL_REQUEST_COMMENT = "/packit"
@@ -291,7 +291,7 @@ class SteveJobs:
 
                     job_helper.report_status_to_all(
                         description=TASK_ACCEPTED,
-                        state=CommitStatus.pending,
+                        state=BaseCommitStatus.pending,
                         url="",
                     )
                 signatures.append(

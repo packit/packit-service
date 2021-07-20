@@ -5,7 +5,7 @@ import logging
 from typing import List, Optional, Set, Tuple
 
 from copr.v3 import CoprRequestException
-from ogr.abstract import CommitStatus, GitProject
+from ogr.abstract import GitProject
 from ogr.parsing import parse_git_repo
 from ogr.services.github import GithubProject
 from packit.config import JobConfig, JobType
@@ -26,6 +26,7 @@ from packit_service.service.urls import (
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.result import TaskResults
+from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
 
@@ -178,7 +179,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
     def run_copr_build(self) -> TaskResults:
         self.report_status_to_all(
             description="Building SRPM ...",
-            state=CommitStatus.pending,
+            state=BaseCommitStatus.running,
             # pagure requires "valid url"
             url="",
         )
@@ -187,7 +188,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         if not self.srpm_model.success:
             msg = "SRPM build failed, check the logs for details."
             self.report_status_to_all(
-                state=CommitStatus.failure,
+                state=BaseCommitStatus.failure,
                 description=msg,
                 url=get_srpm_build_info_url(self.srpm_model.id),
             )
@@ -201,7 +202,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             # TODO: Where can we show more info about failure?
             # TODO: Retry
             self.report_status_to_all(
-                state=CommitStatus.error,
+                state=BaseCommitStatus.error,
                 description=f"Submit of the build failed: {ex}",
             )
             return TaskResults(
@@ -213,7 +214,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         for chroot in self.build_targets:
             if chroot not in self.available_chroots:
                 self.report_status_to_all_for_chroot(
-                    state=CommitStatus.error,
+                    state=BaseCommitStatus.error,
                     description=f"Not supported target: {chroot}",
                     url=get_srpm_build_info_url(self.srpm_model.id),
                     chroot=chroot,
@@ -233,7 +234,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
             url = get_copr_build_info_url(id_=copr_build.id)
             self.report_status_to_all_for_chroot(
-                state=CommitStatus.pending,
+                state=BaseCommitStatus.running,
                 description="Starting RPM build...",
                 url=url,
                 chroot=chroot,

@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import Optional
 
 from celery import signature
-from ogr.abstract import CommitStatus
 from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
 from packit.config import (
@@ -51,6 +50,7 @@ from packit_service.worker.handlers.abstract import (
     add_topic,
     FedmsgHandler,
 )
+from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -198,7 +198,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
 
         build_job_helper.report_status_to_all_for_chroot(
             description="RPM build is in progress...",
-            state=CommitStatus.pending,
+            state=BaseCommitStatus.running,
             url=url,
             chroot=self.copr_event.chroot,
         )
@@ -289,7 +289,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         if self.copr_event.status != COPR_API_SUCC_STATE:
             failed_msg = "RPMs failed to be built."
             build_job_helper.report_status_to_all_for_chroot(
-                state=CommitStatus.failure,
+                state=BaseCommitStatus.failure,
                 description=failed_msg,
                 url=url,
                 chroot=self.copr_event.chroot,
@@ -322,13 +322,13 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             self.project.pr_comment(pr_id=self.copr_event.pr_id, body=msg)
 
         build_job_helper.report_status_to_build_for_chroot(
-            state=CommitStatus.success,
+            state=BaseCommitStatus.success,
             description="RPMs were built successfully.",
             url=url,
             chroot=self.copr_event.chroot,
         )
         build_job_helper.report_status_to_test_for_chroot(
-            state=CommitStatus.pending,
+            state=BaseCommitStatus.pending,
             description="RPMs were built successfully.",
             url=url,
             chroot=self.copr_event.chroot,

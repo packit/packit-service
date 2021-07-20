@@ -6,7 +6,7 @@ from typing import Any, Iterable, Optional, Union, Callable, List, Tuple, Dict
 
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
-from ogr.abstract import CommitStatus, GitProject
+from ogr.abstract import GitProject
 from packit.config.job_config import JobConfig
 from packit.exceptions import PackitException
 
@@ -34,6 +34,7 @@ from packit_service.worker.events import (
     TestingFarmResultsEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
+from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
 
@@ -297,7 +298,7 @@ class Allowlist:
                     else "User cannot trigger!"
                 )
                 job_helper.report_status_to_all(
-                    description=msg, state=CommitStatus.error, url=FAQ_URL
+                    description=msg, state=BaseCommitStatus.neutral, url=FAQ_URL
                 )
 
         return False

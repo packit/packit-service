@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import List, Optional, Set, Tuple, Union
 
 from kubernetes.client.rest import ApiException
-from ogr.abstract import CommitStatus, GitProject
+from ogr.abstract import GitProject
 from ogr.exceptions import GitlabAPIException
 from ogr.services.gitlab import GitlabProject
 from packit.api import PackitAPI
@@ -23,7 +23,7 @@ from packit_service.config import Deployment, ServiceConfig
 from packit_service.models import RunModel, SRPMBuildModel
 from packit_service.worker.events import EventData
 from packit_service.trigger_mapping import are_job_types_same
-from packit_service.worker.reporting import StatusReporter
+from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 
 logger = logging.getLogger(__name__)
 
@@ -394,7 +394,7 @@ class BaseBuildJobHelper:
 
     def _report(
         self,
-        state: CommitStatus,
+        state: BaseCommitStatus,
         description: str,
         url: str = "",
         check_names: Union[str, list, None] = None,
@@ -412,9 +412,9 @@ class BaseBuildJobHelper:
             )
 
             final_commit_states = (
-                CommitStatus.success,
-                CommitStatus.failure,
-                CommitStatus.error,
+                BaseCommitStatus.success,
+                BaseCommitStatus.failure,
+                BaseCommitStatus.error,
             )
             # We are only commenting final states to avoid multiple comments for a build
             # Ignoring all other states eg. pending, running
@@ -429,7 +429,7 @@ class BaseBuildJobHelper:
         )
 
     def report_status_to_all(
-        self, description: str, state: CommitStatus, url: str = ""
+        self, description: str, state: BaseCommitStatus, url: str = ""
     ) -> None:
         self.report_status_to_build(description, state, url)
         self.report_status_to_tests(description, state, url)

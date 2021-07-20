@@ -8,8 +8,6 @@ import logging
 from typing import Optional
 
 from celery import signature
-from ogr import GitlabService
-from ogr.abstract import CommitStatus
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
 
@@ -33,7 +31,7 @@ from packit_service.worker.handlers.abstract import (
     reacts_to,
     run_for_comment,
 )
-from packit_service.worker.reporting import StatusReporter
+from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 from packit_service.constants import PG_COPR_BUILD_STATUS_SUCCESS
@@ -192,22 +190,16 @@ class TestingFarmResultsHandler(JobHandler):
             test_run_model.set_status(self.result)
 
         if self.result == TestingFarmResult.running:
-            status = CommitStatus.pending
-            if isinstance(self.project.service, GitlabService):
-                # only Gitlab has 'running' state
-                status = CommitStatus.running
+            status = BaseCommitStatus.running
             summary = self.summary or "Tests are running ..."
         elif self.result == TestingFarmResult.passed:
-            status = CommitStatus.success
+            status = BaseCommitStatus.success
             summary = self.summary or "Tests passed ..."
         elif self.result == TestingFarmResult.error:
-            status = CommitStatus.error
-            if isinstance(self.project.service, GitlabService):
-                # Gitlab has no 'error' state
-                status = CommitStatus.failure
+            status = BaseCommitStatus.error
             summary = self.summary or "Error ..."
         else:
-            status = CommitStatus.failure
+            status = BaseCommitStatus.failure
             summary = self.summary or "Tests failed ..."
 
         if test_run_model:
