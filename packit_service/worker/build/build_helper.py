@@ -231,7 +231,7 @@ class BaseBuildJobHelper:
     @property
     def status_reporter(self) -> StatusReporter:
         if not self._status_reporter:
-            self._status_reporter = StatusReporter(
+            self._status_reporter = StatusReporter.get_instance(
                 project=self.project,
                 commit_sha=self.metadata.commit_sha,
                 pr_id=self.metadata.pr_id,

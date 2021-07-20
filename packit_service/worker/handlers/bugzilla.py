@@ -74,7 +74,7 @@ class BugzillaHandler(JobHandler):
     @property
     def status_reporter(self) -> StatusReporter:
         if not self._status_reporter:
-            self._status_reporter = StatusReporter(
+            self._status_reporter = StatusReporter.get_instance(
                 self.project, self.data.commit_sha, self.data.pr_id
             )
         return self._status_reporter
