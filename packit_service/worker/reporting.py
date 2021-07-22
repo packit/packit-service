@@ -319,7 +319,9 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
             self.project_with_commit.create_check_run(
                 name=check_name,
                 commit_sha=self.commit_sha,
-                url=url,
+                url=url
+                if url
+                else None,  # must use the http or https scheme, cannot be ""
                 status=state_to_set
                 if isinstance(state_to_set, GithubCheckRunStatus)
                 else GithubCheckRunStatus.completed,
