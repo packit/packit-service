@@ -147,9 +147,9 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
+    flexmock(GithubProject).should_receive("create_check_run").and_return().once()
     flexmock(GithubProject).should_receive("get_pr_comments").and_return([])
     flexmock(GithubProject).should_receive("pr_comment").and_return()
-    flexmock(GithubProject).should_receive("set_commit_status").and_return().once()
     flexmock(GithubProject).should_receive("get_git_urls").and_return(
         {"git": "https://github.com/packit-service/packit.git"}
     )

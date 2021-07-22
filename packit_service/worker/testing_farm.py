@@ -5,7 +5,7 @@ import logging
 from typing import Dict, Any, Optional, Tuple
 
 import requests
-from ogr.abstract import CommitStatus, GitProject
+from ogr.abstract import GitProject
 from ogr.utils import RequestResponse
 from packit.config import JobType, JobConfigTriggerType
 from packit.config.job_config import JobConfig
@@ -20,6 +20,7 @@ from packit_service.sentry_integration import send_to_sentry
 from packit_service.worker.events import EventData
 from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.worker.build import CoprBuildJobHelper
+from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -244,7 +245,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def report_missing_build_chroot(self, chroot: str):
         self.report_status_to_test_for_chroot(
-            state=CommitStatus.error,
+            state=BaseCommitStatus.error,
             description=f"No build defined for the target '{chroot}'.",
             chroot=chroot,
         )
@@ -317,7 +318,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             not in self.service_config.enabled_projects_for_internal_tf
         ):
             self.report_status_to_test_for_chroot(
-                state=CommitStatus.error,
+                state=BaseCommitStatus.neutral,
                 description="Internal TF not allowed for this project. Let us know.",
                 chroot=chroot,
                 url="https://packit.dev/#contact",
@@ -328,7 +329,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             )
 
         self.report_status_to_test_for_chroot(
-            state=CommitStatus.pending,
+            state=BaseCommitStatus.running,
             description="Build succeeded. Submitting the tests ...",
             chroot=chroot,
         )
@@ -351,7 +352,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             msg = "Failed to post request to testing farm API."
             logger.debug("Failed to post request to testing farm API.")
             self.report_status_to_test_for_chroot(
-                state=CommitStatus.error,
+                state=BaseCommitStatus.error,
                 description=msg,
                 chroot=chroot,
             )
@@ -369,7 +370,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 msg = f"Failed to submit tests: {req.reason}"
             logger.error(msg)
             self.report_status_to_test_for_chroot(
-                state=CommitStatus.failure,
+                state=BaseCommitStatus.failure,
                 description=msg,
                 chroot=chroot,
             )
@@ -395,7 +396,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
         self.report_status_to_test_for_chroot(
-            state=CommitStatus.pending,
+            state=BaseCommitStatus.running,
             description="Tests have been submitted ...",
             url=get_testing_farm_info_url(created_model.id),
             chroot=chroot,

@@ -5,7 +5,7 @@ import logging
 import re
 from typing import Optional
 
-from ogr.abstract import CommitStatus, PullRequest
+from ogr.abstract import PullRequest
 from packit.config import (
     JobConfig,
 )
@@ -22,7 +22,7 @@ from packit_service.worker.handlers.abstract import (
     reacts_to,
 )
 from packit_service.worker.psbugzilla import Bugzilla
-from packit_service.worker.reporting import StatusReporter
+from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ class BugzillaHandler(JobHandler):
     @property
     def status_reporter(self) -> StatusReporter:
         if not self._status_reporter:
-            self._status_reporter = StatusReporter(
+            self._status_reporter = StatusReporter.get_instance(
                 self.project, self.data.commit_sha, self.data.pr_id
             )
         return self._status_reporter
@@ -117,7 +117,7 @@ curl {self.pr.url}.patch"""
             )
 
         self.status_reporter.set_status(
-            state=CommitStatus.success,
+            state=BaseCommitStatus.success,
             description="Bugzilla bug created.",
             check_name=f"RHBZ#{self.bz_model.bug_id}",
             url=self.bz_model.bug_url,

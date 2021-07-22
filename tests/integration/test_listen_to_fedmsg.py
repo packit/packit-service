@@ -7,7 +7,6 @@ import pytest
 import requests
 from celery.canvas import Signature
 from flexmock import flexmock
-from ogr.abstract import CommitStatus
 from ogr.services.github import GithubProject
 from ogr.utils import RequestResponse
 from packit.config import JobConfig, JobType, JobConfigTriggerType
@@ -33,7 +32,7 @@ from packit_service.service.urls import (
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.handlers import CoprBuildEndHandler, TestingFarmHandler
 from packit_service.worker.jobs import SteveJobs
-from packit_service.worker.reporting import StatusReporter
+from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.tasks import (
     run_koji_build_report_handler,
     run_copr_build_end_handler,
@@ -209,7 +208,7 @@ def test_copr_build_end(
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.success,
+        state=BaseCommitStatus.success,
         description="RPMs were built successfully.",
         url=url,
         check_names=CoprBuildJobHelper.get_build_check(copr_build_end["chroot"]),
@@ -271,7 +270,7 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.success,
+        state=BaseCommitStatus.success,
         description="RPMs were built successfully.",
         url=url,
         check_names=CoprBuildJobHelper.get_build_check(copr_build_end["chroot"]),
@@ -321,7 +320,7 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.success,
+        state=BaseCommitStatus.success,
         description="RPMs were built successfully.",
         url=url,
         check_names=CoprBuildJobHelper.get_build_check(copr_build_end["chroot"]),
@@ -403,14 +402,14 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     # check if packit-service set correct PR status
     url = get_copr_build_info_url(1)
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.success,
+        state=BaseCommitStatus.success,
         description="RPMs were built successfully.",
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.pending,
         description="RPMs were built successfully.",
         url=url,
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
@@ -469,7 +468,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     )
 
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.running,
         description="Build succeeded. Submitting the tests ...",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
@@ -491,7 +490,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     ).and_return(tft_test_run_model)
 
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.running,
         description="Tests have been submitted ...",
         url="https://dashboard.localhost/results/testing-farm/5",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
@@ -576,14 +575,14 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     # check if packit-service set correct PR status
     url = get_copr_build_info_url(1)
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.success,
+        state=BaseCommitStatus.success,
         description="RPMs were built successfully.",
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.pending,
         description="RPMs were built successfully.",
         url=url,
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
@@ -602,13 +601,13 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     )
 
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.running,
         description="Build succeeded. Submitting the tests ...",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
     ).once()
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.failure,
+        state=BaseCommitStatus.failure,
         description="some error",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
@@ -690,14 +689,14 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
     # check if packit-service set correct PR status
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.success,
+        state=BaseCommitStatus.success,
         description="RPMs were built successfully.",
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.pending,
         description="RPMs were built successfully.",
         url=url,
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
@@ -718,13 +717,13 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
 
     flexmock(CoprBuildModel).should_receive("set_status").with_args("failure")
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.running,
         description="Build succeeded. Submitting the tests ...",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
     ).once()
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.failure,
+        state=BaseCommitStatus.failure,
         description="Failed to submit tests: some text error",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
@@ -782,7 +781,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
 
     # check if packit-service set correct PR status
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.running,
         description="RPM build is in progress...",
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
@@ -827,14 +826,14 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
 
     # check if packit-service sets the correct PR status
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.running,
         description="RPM build is in progress...",
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
     ).never()
 
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.running,
         description="RPM build is in progress...",
         url=url,
         check_names=TestingFarmJobHelper.get_test_check(copr_build_start["chroot"]),
@@ -879,7 +878,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
 
     # check if packit-service set correct PR status
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.success,
+        state=BaseCommitStatus.success,
         description="RPMs were built successfully.",
         url=url,
         check_names=CoprBuildJobHelper.get_build_check(copr_build_end["chroot"]),
@@ -924,7 +923,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
 
     # check if packit-service set correct PR status
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.pending,
+        state=BaseCommitStatus.running,
         description="RPM build is in progress...",
         url=url,
         check_names="packit-stg/production-build-rawhide",
@@ -981,7 +980,7 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
 
     # check if packit-service set correct PR status
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=CommitStatus.success,
+        state=BaseCommitStatus.success,
         description="RPMs were built successfully.",
         url=url,
         check_names="packit-stg/production-build-rawhide",

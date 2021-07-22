@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from ogr.abstract import CommitStatus, GitProject
+from ogr.abstract import GitProject
 from packit.config import (
     JobConfig,
     JobType,
@@ -49,6 +49,7 @@ from packit_service.worker.handlers.abstract import (
     add_topic,
     FedmsgHandler,
 )
+from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -120,7 +121,7 @@ class KojiBuildHandler(JobHandler):
             ):
                 self.koji_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
-                    state=CommitStatus.failure,
+                    state=BaseCommitStatus.neutral,
                 )
                 return False
 
@@ -128,7 +129,7 @@ class KojiBuildHandler(JobHandler):
             msg = "Non-scratch builds not possible from upstream."
             self.koji_build_helper.report_status_to_all(
                 description=msg,
-                state=CommitStatus.error,
+                state=BaseCommitStatus.neutral,
                 url=KOJI_PRODUCTION_BUILDS_ISSUE,
             )
             return False
@@ -208,7 +209,7 @@ class KojiBuildReportHandler(FedmsgHandler):
             build.set_status("pending")
             build_job_helper.report_status_to_all_for_chroot(
                 description="RPM build is in progress...",
-                state=CommitStatus.pending,
+                state=BaseCommitStatus.running,
                 url=url,
                 chroot=build.target,
             )
@@ -216,7 +217,7 @@ class KojiBuildReportHandler(FedmsgHandler):
             build.set_status("success")
             build_job_helper.report_status_to_all_for_chroot(
                 description="RPMs were built successfully.",
-                state=CommitStatus.success,
+                state=BaseCommitStatus.success,
                 url=url,
                 chroot=build.target,
             )
@@ -224,7 +225,7 @@ class KojiBuildReportHandler(FedmsgHandler):
             build.set_status("failed")
             build_job_helper.report_status_to_all_for_chroot(
                 description="RPMs failed to be built.",
-                state=CommitStatus.failure,
+                state=BaseCommitStatus.failure,
                 url=url,
                 chroot=build.target,
             )
@@ -232,7 +233,7 @@ class KojiBuildReportHandler(FedmsgHandler):
             build.set_status("error")
             build_job_helper.report_status_to_all_for_chroot(
                 description="RPMs build was canceled.",
-                state=CommitStatus.error,
+                state=BaseCommitStatus.error,
                 url=url,
                 chroot=build.target,
             )

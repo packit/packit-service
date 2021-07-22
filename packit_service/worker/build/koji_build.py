@@ -5,7 +5,7 @@ import logging
 from re import search
 from typing import Dict, Optional, Set, Tuple
 
-from ogr.abstract import CommitStatus, GitProject
+from ogr.abstract import GitProject
 from packit.config import JobConfig, JobType
 from packit.config.aliases import get_all_koji_targets, get_koji_targets
 from packit.config.package_config import PackageConfig
@@ -21,6 +21,7 @@ from packit_service.service.urls import (
 )
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.result import TaskResults
+from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
 
@@ -97,14 +98,14 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
 
     def run_koji_build(self) -> TaskResults:
         self.report_status_to_all(
-            description="Building SRPM ...", state=CommitStatus.pending
+            description="Building SRPM ...", state=BaseCommitStatus.running
         )
         self.create_srpm_if_needed()
 
         if not self.srpm_model.success:
             msg = "SRPM build failed, check the logs for details."
             self.report_status_to_all(
-                state=CommitStatus.failure,
+                state=BaseCommitStatus.failure,
                 description=msg,
                 url=get_srpm_build_info_url(self.srpm_model.id),
             )
@@ -118,7 +119,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             msg = f"Kerberos authentication error: {ex.stderr_output}"
             logger.error(msg)
             self.report_status_to_all(
-                state=CommitStatus.error,
+                state=BaseCommitStatus.error,
                 description=msg,
                 url=get_srpm_build_info_url(self.srpm_model.id),
             )
@@ -130,7 +131,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             if target not in self.supported_koji_targets:
                 msg = f"Target not supported: {target}"
                 self.report_status_to_all_for_chroot(
-                    state=CommitStatus.error,
+                    state=BaseCommitStatus.error,
                     description=msg,
                     url=get_srpm_build_info_url(self.srpm_model.id),
                     chroot=target,
@@ -145,7 +146,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 # TODO: Where can we show more info about failure?
                 # TODO: Retry
                 self.report_status_to_all_for_chroot(
-                    state=CommitStatus.error,
+                    state=BaseCommitStatus.error,
                     description=f"Submit of the build failed: {ex}",
                     url=get_srpm_build_info_url(self.srpm_model.id),
                     chroot=target,
@@ -163,7 +164,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             )
             url = get_koji_build_info_url(id_=koji_build.id)
             self.report_status_to_all_for_chroot(
-                state=CommitStatus.pending,
+                state=BaseCommitStatus.running,
                 description="Building RPM ...",
                 url=url,
                 chroot=target,

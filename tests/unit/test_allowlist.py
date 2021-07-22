@@ -8,7 +8,7 @@ from copr.v3 import Client
 from fedora.client import AuthError, FedoraServiceError
 from fedora.client.fas2 import AccountSystem
 from flexmock import flexmock
-from ogr.abstract import GitProject, GitService, CommitStatus
+from ogr.abstract import GitProject, GitService
 from ogr.services.github import GithubProject, GithubService
 from packit.config import JobType, JobConfig, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
@@ -37,7 +37,7 @@ from packit_service.worker.events.enums import (
     IssueCommentAction,
 )
 from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.reporting import StatusReporter
+from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 
 EXPECTED_TESTING_FARM_CHECK_NAME = "packit-stg/testing-farm-fedora-rawhide-x86_64"
 
@@ -490,7 +490,7 @@ def test_check_and_report(
     flexmock(
         GithubProject,
         pr_comment=lambda *args, **kwargs: None,
-        set_commit_status=lambda *args, **kwargs: None,
+        create_check_run=lambda *args, **kwargs: None,
         issue_comment=lambda *args, **kwargs: None,
         get_pr=lambda *args, **kwargs: flexmock(source_project=flexmock(), author=None),
     )
@@ -538,7 +538,7 @@ def test_check_and_report(
             flexmock(LocalProject).should_receive("checkout_pr").and_return(None)
             flexmock(StatusReporter).should_receive("report").with_args(
                 description="Namespace is not allowed!",
-                state=CommitStatus.error,
+                state=BaseCommitStatus.neutral,
                 url=FAQ_URL,
                 check_names=[EXPECTED_TESTING_FARM_CHECK_NAME],
             ).once()

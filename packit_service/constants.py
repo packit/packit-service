@@ -58,6 +58,13 @@ CELERY_DEFAULT_QUEUE_NAME = "short-running"
 
 CELERY_DEFAULT_MAIN_TASK_NAME = "task.steve_jobs.process_message"
 
+MSG_MORE_DETAILS = "You can find more details about the job [here]({url}).\n\n"
+
+MSG_RERUN_NOT_SUPPORTED = (
+    "*Rerunning tasks via `Re-run` button is currently not supported, "
+    "please don't click it.*"
+)
+
 
 class KojiBuildState(Enum):
     """
