@@ -876,7 +876,7 @@ def test_copr_build_fails_in_packit(github_pr_event):
         flexmock(GithubProject).should_receive("create_check_run").with_args(
             name=templ.format(ver=v),
             commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
-            url="",
+            url=None,
             status=GithubCheckRunStatus.in_progress,
             conclusion=None,
             output=create_github_check_run_output("Building SRPM ...", ""),
@@ -934,7 +934,7 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
         flexmock(GithubProject).should_receive("create_check_run").with_args(
             name=templ.format(ver=v),
             commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
-            url="",
+            url=None,
             status=GithubCheckRunStatus.in_progress,
             conclusion=None,
             output=create_github_check_run_output("Building SRPM ...", ""),
@@ -943,7 +943,7 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
         flexmock(GithubProject).should_receive("create_check_run").with_args(
             name=templ.format(ver=v),
             commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
-            url="",
+            url=None,
             status=GithubCheckRunStatus.completed,
             conclusion=GithubCheckRunResult.failure,
             output=create_github_check_run_output(
