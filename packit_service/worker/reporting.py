@@ -196,12 +196,12 @@ class StatusReporter:
 class StatusReporterPagure(StatusReporter):
     @staticmethod
     def get_commit_status(state: BaseCommitStatus):
-        state = StatusReporter.get_commit_status(state)
+        mapped_state = StatusReporter.get_commit_status(state)
         # Pagure has no running status
-        if state == CommitStatus.running:
-            state = CommitStatus.pending
+        if mapped_state == CommitStatus.running:
+            mapped_state = CommitStatus.pending
 
-        return state
+        return mapped_state
 
     def set_status(
         self,
@@ -227,11 +227,11 @@ class StatusReporterPagure(StatusReporter):
 class StatusReporterGitlab(StatusReporter):
     @staticmethod
     def get_commit_status(state: BaseCommitStatus):
-        state = StatusReporter.get_commit_status(state)
+        mapped_state = StatusReporter.get_commit_status(state)
         # Gitlab has no error status
-        if state == CommitStatus.error:
-            state = CommitStatus.failure
-        return state
+        if mapped_state == CommitStatus.error:
+            mapped_state = CommitStatus.failure
+        return mapped_state
 
     def set_status(
         self,
@@ -268,11 +268,11 @@ class StatusReporterGitlab(StatusReporter):
 class StatusReporterGithubStatuses(StatusReporter):
     @staticmethod
     def get_commit_status(state: BaseCommitStatus):
-        state = StatusReporter.get_commit_status(state)
+        mapped_state = StatusReporter.get_commit_status(state)
         # Github has no running status
-        if state == CommitStatus.running:
-            state = CommitStatus.pending
-        return state
+        if mapped_state == CommitStatus.running:
+            mapped_state = CommitStatus.pending
+        return mapped_state
 
     def set_status(
         self,
@@ -298,6 +298,8 @@ class StatusReporterGithubStatuses(StatusReporter):
 
 
 class StatusReporterGithubChecks(StatusReporterGithubStatuses):
+    project_with_commit: GithubProject
+
     def set_status(
         self,
         state: BaseCommitStatus,
