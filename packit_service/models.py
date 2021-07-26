@@ -723,6 +723,42 @@ class RunModel(Base):
     def __repr__(self):
         return f"RunModel(id={self.id}, datetime='{datetime}', job_trigger={self.job_trigger})"
 
+    @classmethod
+    def __query_merged_runs(cls, session):
+        return session.query(
+            func.min(RunModel.id).label("merged_id"),
+            RunModel.srpm_build_id,
+            func.array_agg(psql_array([RunModel.copr_build_id])).label("copr_build_id"),
+            func.array_agg(psql_array([RunModel.koji_build_id])).label("koji_build_id"),
+            func.array_agg(psql_array([RunModel.test_run_id])).label("test_run_id"),
+        )
+
+    @classmethod
+    def get_merged_chroots(
+        cls, first: int, last: int
+    ) -> Optional[Iterable["RunModel"]]:
+        with get_sa_session() as session:
+            return (
+                cls.__query_merged_runs(session)
+                .group_by(RunModel.srpm_build_id)
+                .order_by(desc("merged_id"))[first:last]
+            )
+
+    @classmethod
+    def get_merged_run(cls, first_id: int) -> Optional[Iterable["RunModel"]]:
+        with get_sa_session() as session:
+            return (
+                cls.__query_merged_runs(session)
+                .filter(RunModel.id >= first_id, RunModel.id <= first_id + 100)
+                .group_by(RunModel.srpm_build_id)
+                .first()
+            )
+
+    @classmethod
+    def get_run(cls, id_: int) -> Optional["RunModel"]:
+        with get_sa_session() as session:
+            return session.query(RunModel).filter_by(id=id_).first()
+
 
 class CoprBuildModel(ProjectAndTriggersConnector, Base):
     """
