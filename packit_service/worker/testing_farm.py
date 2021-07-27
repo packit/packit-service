@@ -14,7 +14,10 @@ from packit.exceptions import PackitConfigException
 from packit.utils import nested_get
 
 from packit_service.config import ServiceConfig
-from packit_service.constants import TESTING_FARM_INSTALLABILITY_TEST_URL
+from packit_service.constants import (
+    TESTING_FARM_INSTALLABILITY_TEST_URL,
+    TESTING_FARM_INSTALLABILITY_TEST_REF,
+)
 from packit_service.models import CoprBuildModel, TFTTestRunModel, TestingFarmResult
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.worker.events import EventData
@@ -153,6 +156,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "test": {
                 "fmf": {
                     "url": TESTING_FARM_INSTALLABILITY_TEST_URL,
+                    "ref": TESTING_FARM_INSTALLABILITY_TEST_REF,
                     "name": "/packit/installation",
                 },
             },

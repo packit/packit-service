@@ -20,6 +20,7 @@ CONFIG_FILE_NAME = "packit-service.yaml"
 
 TESTING_FARM_API_URL = "https://api.dev.testing-farm.io/v0.1/"
 TESTING_FARM_INSTALLABILITY_TEST_URL = "https://gitlab.com/testing-farm/tests"
+TESTING_FARM_INSTALLABILITY_TEST_REF = "main"
 
 MSG_RETRIGGER = (
     "You can retrigger the {job} by adding a comment (`/packit {command}`) "
