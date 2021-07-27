@@ -6,9 +6,11 @@ Parser is transforming github JSONs into `events` objects
 """
 import logging
 from functools import partial
+from os import getenv
 from typing import Optional, Type, Union
 
 from ogr.parsing import parse_git_repo
+from packit.constants import PROD_DISTGIT_URL
 from packit.utils import nested_get
 
 from packit_service.config import ServiceConfig
@@ -709,10 +711,8 @@ class Parser:
             f"{project_to_sync.repo_name}"
         )
 
-        # TODO: get the right hostname without hardcoding
-        dg_project_url = (
-            f"https://src.fedoraproject.org/{dg_repo_namespace}/{dg_repo_name}"
-        )
+        dg_base_url = getenv("DISTGIT_URL", PROD_DISTGIT_URL)
+        dg_project_url = f"{dg_base_url}{dg_repo_namespace}/{dg_repo_name}"
 
         return DistGitCommitEvent(
             topic=topic,
