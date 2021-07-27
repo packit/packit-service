@@ -292,6 +292,10 @@ class GitlabWebhook(Resource):
             "Issue Hook",
         }
         event_type = request.headers.get("X-Gitlab-Event")
+        if not event_type and not config.validate_webhooks:
+            # probably just a local testing
+            logger.debug("X-Gitlab-Event missing, skipping 'interested' check")
+            return True
         _interested = event_type in interesting_events
 
         logger.debug(f"{event_type} {' (not interested)' if not _interested else ''}")
