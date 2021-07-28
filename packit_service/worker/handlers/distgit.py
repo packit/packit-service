@@ -66,7 +66,7 @@ class DistGitCommitHandler(FedmsgHandler):
         self.dg_branch = event.get("dg_branch")
 
     def run(self) -> TaskResults:
-        self.upstream_local_project = LocalProject(
+        self.local_project = LocalProject(
             git_project=self.project,
             working_dir=self.service_config.command_handler_work_dir,
             cache=RepositoryCache(
