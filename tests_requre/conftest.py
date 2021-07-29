@@ -1581,3 +1581,70 @@ def koji_build_scratch_end_dict():
         "srpm": "hello-0.74-1.20200601063010016064.fc31.src.rpm",
         "method": "build",
     }
+
+
+@pytest.fixture()
+def few_runs(pr_model, different_pr_model):
+    _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
+        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+    )
+
+    for target in (SampleValues.target, SampleValues.different_target):
+        copr_build = CoprBuildModel.create(
+            build_id=SampleValues.build_id,
+            commit_sha=SampleValues.ref,
+            project_name=SampleValues.project,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url,
+            target=target,
+            status=SampleValues.status_success,
+            run_model=run_model_for_pr,
+        )
+
+        TFTTestRunModel.create(
+            pipeline_id=SampleValues.pipeline_id,
+            commit_sha=SampleValues.commit_sha,
+            web_url=SampleValues.testing_farm_url,
+            target=target,
+            status=TestingFarmResult.new,
+            run_model=copr_build.runs[0],
+        )
+
+    _, run_model_for_different_pr = SRPMBuildModel.create_with_new_run(
+        SampleValues.srpm_logs, success=True, trigger_model=different_pr_model
+    )
+
+    runs = []
+    for target in (SampleValues.target, SampleValues.different_target):
+        copr_build = CoprBuildModel.create(
+            build_id=SampleValues.build_id,
+            commit_sha=SampleValues.ref,
+            project_name=SampleValues.project,
+            owner=SampleValues.owner,
+            web_url=SampleValues.copr_web_url,
+            target=target,
+            status=SampleValues.status_success,
+            run_model=run_model_for_different_pr,
+        )
+        runs.append(copr_build.runs[0])
+
+        TFTTestRunModel.create(
+            pipeline_id=SampleValues.pipeline_id,
+            commit_sha=SampleValues.commit_sha,
+            web_url=SampleValues.testing_farm_url,
+            target=target,
+            status=TestingFarmResult.new,
+            run_model=runs[-1],
+        )
+
+    for i, target in enumerate((SampleValues.target, SampleValues.different_target)):
+        TFTTestRunModel.create(
+            pipeline_id=SampleValues.pipeline_id,
+            commit_sha=SampleValues.commit_sha,
+            web_url=SampleValues.testing_farm_url,
+            target=target,
+            status=TestingFarmResult.new,
+            run_model=runs[i],
+        )
+
+    yield run_model_for_pr.id, run_model_for_different_pr.id

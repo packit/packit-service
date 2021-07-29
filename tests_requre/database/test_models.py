@@ -20,6 +20,7 @@ from packit_service.models import (
     TFTTestRunModel,
     TestingFarmResult,
     get_sa_session,
+    RunModel,
 )
 from tests_requre.conftest import SampleValues
 
@@ -741,3 +742,22 @@ def test_project_token_model(clean_before_and_after):
         project_url=http_url,
     )
     assert actual.issue_created == expected.issue_created
+
+
+def test_merged_runs(clean_before_and_after, few_runs):
+    for i, run_id in enumerate(few_runs, 1):
+        merged_run = RunModel.get_merged_run(run_id)
+        srpm_build_id = merged_run.srpm_build_id
+
+        # for different_pr (i=1) there are Copr builds twice, since the second
+        # run of TFT from the same Copr build produces new row with same SRPM
+        # and Copr IDs, but different Testing Farm IDs
+        # ^ handled in API by iterating over set of IDs instead of list
+        assert len(merged_run.copr_build_id) == 2 * i
+
+        for copr_build in map(
+            lambda ids: CoprBuildModel.get_by_id(ids[0]), merged_run.copr_build_id
+        ):
+            assert copr_build.get_srpm_build().id == srpm_build_id
+
+        assert len(merged_run.test_run_id) == 2 * i
