@@ -1388,7 +1388,7 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
             )
 
     @classmethod
-    def get_by_id(cls, id: int) -> Optional["InstallationModel"]:
+    def get_by_id(cls, id: int) -> Optional["TFTTestRunModel"]:
         with get_sa_session() as session:
             return session.query(TFTTestRunModel).filter_by(id=id).first()
 
