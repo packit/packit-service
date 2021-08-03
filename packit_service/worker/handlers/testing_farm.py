@@ -5,6 +5,7 @@
 This file defines classes for job handlers specific for Testing farm
 """
 import logging
+from datetime import datetime
 from typing import Optional
 
 from celery import signature
@@ -166,6 +167,7 @@ class TestingFarmHandler(JobHandler):
                 continue
 
             logger.info(f"Running testing farm for {copr_build}:{target}.")
+            self.pushgateway.test_runs_queued.inc()
             result = testing_farm_helper.run_testing_farm(
                 build=copr_build, chroot=target
             )
@@ -244,6 +246,15 @@ class TestingFarmResultsHandler(JobHandler):
         else:
             status = BaseCommitStatus.failure
             summary = self.summary or "Tests failed ..."
+
+        if self.result == TestingFarmResult.running:
+            self.pushgateway.test_runs_started.inc()
+        else:
+            self.pushgateway.test_runs_finished.inc()
+            test_run_time = (
+                datetime.now() - test_run_model.submitted_time
+            ).total_seconds()
+            self.pushgateway.test_run_finished_time.observe(test_run_time)
 
         if test_run_model:
             test_run_model.set_web_url(self.log_url)

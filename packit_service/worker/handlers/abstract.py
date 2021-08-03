@@ -27,6 +27,7 @@ from packit_service.models import (
 )
 from packit_service.sentry_integration import push_scope_to_sentry
 from packit_service.worker.events import Event, EventData
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.utils import dump_job_config, dump_package_config
 from packit_service.worker.result import TaskResults
 
@@ -279,6 +280,7 @@ class JobHandler(Handler):
         # always use job_config to pick up values, use package_config only for package_config.jobs
         self.job_config = job_config
         self.data = EventData.from_event_dict(event)
+        self.pushgateway = Pushgateway()
 
         self._db_trigger: Optional[AbstractTriggerDbType] = None
         self._project: Optional[GitProject] = None
@@ -314,6 +316,9 @@ class JobHandler(Handler):
         for result in job_results.values():
             if not (result and result["success"]):
                 logger.error(result["details"]["msg"])
+
+        # push the metrics from job
+        self.pushgateway.push()
 
         return job_results
 
