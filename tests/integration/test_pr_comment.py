@@ -465,7 +465,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(copr_build).should_receive("get_valid_build_targets").once().and_return(
+    flexmock(copr_build).should_receive("get_valid_build_targets").twice().and_return(
         ["test-target"]
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
@@ -474,7 +474,12 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})
     )
-    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+        description=TASK_ACCEPTED,
+        state=BaseCommitStatus.pending,
+        url="",
+    ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
