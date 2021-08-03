@@ -779,6 +779,8 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
     web_url = Column(String)
     # url to copr build logs
     build_logs_url = Column(String)
+    # for monitoring: time when we set the status about accepted task
+    task_accepted_time = Column(DateTime)
     # datetime.utcnow instead of datetime.utcnow() because its an argument to the function
     # so it will run when the copr build is initiated, not when the table is made
     build_submitted_time = Column(DateTime, default=datetime.utcnow)
@@ -924,6 +926,7 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
         target: str,
         status: str,
         run_model: "RunModel",
+        task_accepted_time: Optional[datetime] = None,
     ) -> "CoprBuildModel":
         with get_sa_session() as session:
             build = cls()
@@ -934,6 +937,7 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
             build.commit_sha = commit_sha
             build.web_url = web_url
             build.target = target
+            build.task_accepted_time = task_accepted_time
             session.add(build)
 
             if run_model.copr_build:
