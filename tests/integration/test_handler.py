@@ -45,7 +45,11 @@ def test_handler_cleanup(tmp_path, trick_p_s_with_k8s):
         trigger=JobConfigTriggerType.pull_request,
         metadata=JobMetadataConfig(),
     )
-    j = JobHandler(package_config=pc, job_config=jc, event={})
+    j = JobHandler(
+        package_config=pc,
+        job_config=jc,
+        event={},
+    )
 
     flexmock(j).should_receive("service_config").and_return(c)
 

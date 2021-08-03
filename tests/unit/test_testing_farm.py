@@ -1,5 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+from datetime import datetime
 
 import pytest
 from flexmock import flexmock
@@ -110,7 +111,7 @@ def test_testing_farm_response(
     )
 
     urls.DASHBOARD_URL = "https://dashboard.localhost"
-    tft_test_run_model = flexmock(id=123)
+    tft_test_run_model = flexmock(id=123, submitted_time=datetime.now())
     tft_test_run_model.should_receive("set_status").with_args(
         tests_result
     ).and_return().once()

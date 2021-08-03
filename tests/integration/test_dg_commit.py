@@ -15,6 +15,7 @@ from packit_service.config import ServiceConfig, ProjectToSync
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import GitBranchModel
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import run_distgit_commit_handler
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
@@ -71,6 +72,7 @@ def test_distgit_commit_handler():
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(RepositoryCache).should_call("__init__").once()
     flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
     flexmock(PackitAPI).should_receive("sync_from_downstream").with_args(
         dist_git_branch="master", upstream_branch="aaa", sync_only_specfile=True
     )
