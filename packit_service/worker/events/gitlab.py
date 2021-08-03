@@ -55,11 +55,14 @@ class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
         source_repo_namespace: str,
         source_repo_name: str,
         source_repo_branch: str,
+        source_project_url: str,
         target_repo_namespace: str,
         target_repo_name: str,
         target_repo_branch: str,
         project_url: str,
         commit_sha: str,
+        title: str,
+        description: str,
     ):
         super().__init__(
             project_url=project_url,
@@ -72,11 +75,14 @@ class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
         self.source_repo_namespace = source_repo_namespace
         self.source_repo_name = source_repo_name
         self.source_repo_branch = source_repo_branch
+        self.source_project_url = source_project_url
         self.target_repo_namespace = target_repo_namespace
         self.target_repo_name = target_repo_name
         self.target_repo_branch = target_repo_branch
         self.project_url = project_url
         self.commit_sha = commit_sha
+        self.title = title
+        self.description = description
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
