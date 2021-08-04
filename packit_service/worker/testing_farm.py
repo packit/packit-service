@@ -254,45 +254,22 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             chroot=chroot,
         )
 
-    def get_latest_copr_build(self, target: str) -> Optional[CoprBuildModel]:
+    def get_latest_copr_build(
+        self, target: str, commit_sha: str
+    ) -> Optional[CoprBuildModel]:
         """
-        Search a last build for the given target using Copr owner and project name.
+        Search a last build for the given target and commit SHA using Copr owner and project.
         """
-        copr_builds = CoprBuildModel.get_all_by_owner_and_project_and_target(
-            owner=self.job_owner, project_name=self.job_project, target=target
+        copr_builds = CoprBuildModel.get_all_by_owner_project_target_commit(
+            owner=self.job_owner,
+            project_name=self.job_project,
+            target=target,
+            commit_sha=commit_sha,
         )
         if not copr_builds:
             return None
 
         return list(copr_builds)[0]
-
-    def run_testing_farm_on_all(self):
-
-        failed = {}
-        for chroot in self.tests_targets:
-
-            latest_copr_build = self.get_latest_copr_build(target=chroot)
-            if not latest_copr_build:
-                failed[chroot] = (
-                    f"No copr builds for {self.job_owner}/{self.job_project}"
-                    f"with this target: {chroot}"
-                )
-                continue
-
-            result = self.run_testing_farm(build=latest_copr_build, chroot=chroot)
-            if not result["success"]:
-                failed[chroot] = result.get("details")
-
-        if not failed:
-            return TaskResults(success=True, details={})
-
-        return TaskResults(
-            success=False,
-            details={
-                "msg": f"Failed testing farm targets: '{failed.keys()}'.",
-                **failed,
-            },
-        )
 
     def run_testing_farm(self, build: "CoprBuildModel", chroot: str) -> TaskResults:
         if chroot not in self.tests_targets:

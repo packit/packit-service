@@ -22,6 +22,7 @@ from packit_service.models import TestingFarmResult as TFResult
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.handlers import TestingFarmHandler
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
+from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import (
     TestingFarmJobHelper as TFJobHelper,
 )
@@ -493,27 +494,6 @@ def test_get_request_details():
         ),
         (
             flexmock(
-                commit_sha="0000000000000000000000000000000000000000",
-                status="some-invalid-status",
-            ),
-            True,
-        ),
-        (
-            flexmock(
-                commit_sha="1111111111111111111111111111111111111111",
-                status="some-invalid-status",
-            ),
-            True,
-        ),
-        (
-            flexmock(
-                commit_sha="0000000000000000000000000000000000000000",
-                status=PG_COPR_BUILD_STATUS_SUCCESS,
-            ),
-            True,
-        ),
-        (
-            flexmock(
                 commit_sha="1111111111111111111111111111111111111111",
                 status=PG_COPR_BUILD_STATUS_SUCCESS,
             ),
@@ -540,9 +520,12 @@ def test_trigger_build(copr_build, run_new_build):
     flexmock(TFJobHelper).should_receive("get_latest_copr_build").and_return(copr_build)
 
     if run_new_build:
+        flexmock(TFJobHelper, job_owner="owner", job_project="project")
         flexmock(Signature).should_receive("apply_async").once()
     else:
-        flexmock(TFJobHelper).should_receive("run_testing_farm").once()
+        flexmock(TFJobHelper).should_receive("run_testing_farm").and_return(
+            TaskResults(success=True, details={})
+        )
 
-    tf_handler = TestingFarmHandler(package_config, job_config, event)
+    tf_handler = TestingFarmHandler(package_config, job_config, event, "target")
     tf_handler.run()
