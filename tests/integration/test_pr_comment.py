@@ -16,9 +16,11 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import (
     SANDCASTLE_WORK_DIR,
     TASK_ACCEPTED,
+    PG_COPR_BUILD_STATUS_SUCCESS,
 )
 from packit_service.models import PullRequestModel
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
+from packit_service.worker.build import copr_build
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.jobs import SteveJobs, get_packit_commands_from_comment
@@ -455,7 +457,13 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(TestingFarmJobHelper).should_receive("run_testing_farm_on_all").and_return(
+    flexmock(copr_build).should_receive("get_valid_build_targets").once().and_return(
+        ["test-target"]
+    )
+    flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
+        flexmock(status=PG_COPR_BUILD_STATUS_SUCCESS)
+    )
+    flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})
     )
 

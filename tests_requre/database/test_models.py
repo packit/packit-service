@@ -309,12 +309,15 @@ def test_get_by_build_id(clean_before_and_after, multiple_copr_builds):
     assert build_c.project_name == "different-project-name"
 
 
-def test_get_all_by_owner_and_project(clean_before_and_after, multiple_copr_builds):
+def test_get_all_by_owner_project_target_commit(
+    clean_before_and_after, multiple_copr_builds
+):
     builds_list = list(
-        CoprBuildModel.get_all_by_owner_and_project_and_target(
+        CoprBuildModel.get_all_by_owner_project_target_commit(
             owner=SampleValues.owner,
             project_name=SampleValues.project,
             target=SampleValues.target,
+            commit_sha=SampleValues.ref,
         )
     )
     assert len(builds_list) == 2

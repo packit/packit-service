@@ -23,7 +23,10 @@ from packit_service.worker.events import (
     MergeRequestCommentGitlabEvent,
     PullRequestCommentPagureEvent,
 )
-from packit_service.service.urls import get_testing_farm_info_url
+from packit_service.service.urls import (
+    get_testing_farm_info_url,
+    get_copr_build_info_url,
+)
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.abstract import (
     TaskName,
@@ -100,21 +103,34 @@ class TestingFarmHandler(JobHandler):
             PullRequestCommentPagureEvent.__name__,
         ):
             logger.debug(f"Test job config: {testing_farm_helper.job_tests}")
-            return testing_farm_helper.run_testing_farm_on_all()
-
-        if self.build_id:
-            copr_build = CoprBuildModel.get_by_id(self.build_id)
+            targets = list(testing_farm_helper.tests_targets)
         else:
-            copr_build = testing_farm_helper.get_latest_copr_build(target=self.chroot)
+            targets = [self.chroot]
 
-        # If no suitable copr build is found, run trigger copr build
-        if (
-            not copr_build
-            or copr_build.commit_sha != self.data.commit_sha
-            or copr_build.status != PG_COPR_BUILD_STATUS_SUCCESS
-        ):
+        logger.debug(f"Targets to run the tests: {targets}")
+        targets_with_builds = {}
+        for target in targets:
+            if self.build_id:
+                copr_build = CoprBuildModel.get_by_id(self.build_id)
+            else:
+                copr_build = testing_farm_helper.get_latest_copr_build(
+                    target=target, commit_sha=self.data.commit_sha
+                )
+            if copr_build:
+                targets_with_builds[target] = copr_build
 
-            logger.info("No suitable copr-build found, run copr build.")
+        # If there is missing build for some target, trigger copr build for everything
+        if len(targets) != len(targets_with_builds):
+            logger.info(
+                f"Missing Copr build for some target in {testing_farm_helper.job_owner}/"
+                f"{testing_farm_helper.job_project}"
+                f" and commit:{self.data.commit_sha}, running a new Copr build."
+            )
+            testing_farm_helper.report_status_to_tests(
+                state=BaseCommitStatus.pending,
+                description="Missing Copr build for some target, running a new Copr build.",
+                url="",
+            )
 
             result_details = {
                 "msg": "Build required, triggering copr build",
@@ -135,9 +151,36 @@ class TestingFarmHandler(JobHandler):
 
             return TaskResults(success=True, details=result_details)
 
-        logger.info(f"Running testing farm for {copr_build}:{self.chroot}.")
-        return testing_farm_helper.run_testing_farm(
-            build=copr_build, chroot=self.chroot
+        failed = {}
+        for target, copr_build in targets_with_builds.items():
+            if copr_build.status != PG_COPR_BUILD_STATUS_SUCCESS:
+                logger.info(
+                    "The latest build was not successful, not running tests for it."
+                )
+                testing_farm_helper.report_status_to_test_for_chroot(
+                    state=BaseCommitStatus.failure,
+                    description="The latest build was not successful, not running tests for it.",
+                    chroot=target,
+                    url=get_copr_build_info_url(copr_build.id),
+                )
+                continue
+
+            logger.info(f"Running testing farm for {copr_build}:{target}.")
+            result = testing_farm_helper.run_testing_farm(
+                build=copr_build, chroot=target
+            )
+            if not result["success"]:
+                failed[target] = result.get("details")
+
+        if not failed:
+            return TaskResults(success=True, details={})
+
+        return TaskResults(
+            success=False,
+            details={
+                "msg": f"Failed testing farm targets: '{failed.keys()}'.",
+                **failed,
+            },
         )
 
 
