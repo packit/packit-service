@@ -17,4 +17,4 @@ Merge before/after
 
 ---
 
-<!-- release notes for blog follow -->
+<!-- release notes for changelog/blog follow -->
