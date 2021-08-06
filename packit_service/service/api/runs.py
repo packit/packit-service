@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 from http import HTTPStatus
+import itertools
 from logging import getLogger
 
 from flask_restx import Namespace, Resource
@@ -78,6 +79,35 @@ class RunsList(Resource):
         """List all runs."""
         first, last = indices()
         result = process_runs(RunModel.get_merged_chroots(first, last))
+        resp = response_maker(
+            result,
+            status=HTTPStatus.PARTIAL_CONTENT.value,
+        )
+        resp.headers["Content-Range"] = f"runs {first + 1}-{last}/*"
+        return resp
+
+
+@ns.route("/<path:project>")
+class RunsListPerProject(Resource):
+    @ns.expect(pagination_arguments)
+    @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "List of runs per project follows")
+    def get(self, project: str):
+        """List all runs of a specific project."""
+        first, last = indices()
+
+        result = process_runs(
+            itertools.islice(
+                filter(
+                    lambda run: SRPMBuildModel.get_by_id(run.srpm_build_id)
+                    .get_project()
+                    .full_path
+                    == project,
+                    RunModel.get_merged_chroots_of(project),
+                ),
+                first,
+                last,
+            )
+        )
         resp = response_maker(
             result,
             status=HTTPStatus.PARTIAL_CONTENT.value,

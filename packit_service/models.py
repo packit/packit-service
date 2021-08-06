@@ -230,6 +230,11 @@ class GitProjectModel(Base):
         super().__init__(*args, **kwargs)
         self.instance_url = urlparse(self.project_url).hostname
 
+    @property
+    def full_path(self) -> str:
+        """Allowlist-like representation of project."""
+        return f"{self.instance_url}/{self.namespace}/{self.repo_name}"
+
     @classmethod
     def get_or_create(
         cls, namespace: str, repo_name: str, project_url: str
@@ -745,6 +750,15 @@ class RunModel(Base):
             )
 
     @classmethod
+    def get_merged_chroots_of(cls, project: str) -> Optional[Iterable["RunModel"]]:
+        with get_sa_session() as session:
+            return (
+                cls.__query_merged_runs(session)
+                .group_by(RunModel.srpm_build_id)
+                .order_by(desc("merged_id"))
+            )
+
+    @classmethod
     def get_merged_run(cls, first_id: int) -> Optional[Iterable["RunModel"]]:
         with get_sa_session() as session:
             return (
@@ -1198,6 +1212,9 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
         with get_sa_session() as session:
             self.url = url
             session.add(self)
+
+    def get_project_path(self) -> str:
+        return self.get_project().full_path
 
     def __repr__(self):
         return f"SRPMBuildModel(id={self.id}, build_submitted_time={self.build_submitted_time})"
