@@ -169,7 +169,7 @@ class GitlabWebhook(Resource):
     def create_confidential_issue_with_token(self):
         project_data = request.json["project"]
 
-        http_url = project_data["git_http_url"]
+        http_url = project_data["web_url"]
         parsed_url = parse_git_repo(potential_url=http_url)
 
         project_authentication_issue = ProjectAuthenticationIssueModel.get_project(
