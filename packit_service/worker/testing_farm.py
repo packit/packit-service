@@ -218,7 +218,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         * CentOS-x ->  CentOS-x-latest
         * CentOS-Stream-8 -> RHEL-8.5.0-Nightly
         """
-        compose = distro.title().replace("Centos", "CentOS").replace("Rhel", "RHEL")
+        compose = (
+            distro.title()
+            .replace("Centos", "CentOS")
+            .replace("Rhel", "RHEL")
+            .replace("Oraclelinux", "Oracle-Linux")
+        )
         if compose == "CentOS-Stream":
             compose = "CentOS-Stream-8"
 
@@ -237,6 +242,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 return "RHEL-7-LatestReleased"
             if compose == "RHEL-8":
                 return "RHEL-8.5.0-Nightly"
+            if compose == "Oracle-Linux-7":
+                return "Oracle-Linux-7.9"
+            if compose == "Oracle-Linux-8":
+                return "Oracle-Linux-8.4"
         else:
             response = self.send_testing_farm_request(endpoint="composes")
             if response.status_code == 200:

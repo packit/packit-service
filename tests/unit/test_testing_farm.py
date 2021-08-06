@@ -140,6 +140,8 @@ def test_testing_farm_response(
         ("centos-stream-x86_64", "centos-stream", "x86_64", True),
         ("epel-7-x86_64", "rhel-7", "x86_64", True),
         ("epel-8-x86_64", "rhel-8", "x86_64", True),
+        ("oraclelinux-7-x86_64", "oraclelinux-7", "x86_64", True),
+        ("oraclelinux-8-x86_64", "oraclelinux-8", "x86_64", True),
     ],
 )
 def test_chroot2distro_arch(chroot, distro, arch, use_internal_tf):
@@ -179,6 +181,8 @@ def test_chroot2distro_arch(chroot, distro, arch, use_internal_tf):
         ("Centos-8", "CentOS-8-latest", True),
         ("rhel-7", "RHEL-7-LatestReleased", True),
         ("rhel-8", "RHEL-8.5.0-Nightly", True),
+        ("oraclelinux-7", "Oracle-Linux-7.9", True),
+        ("oraclelinux-8", "Oracle-Linux-8.4", True),
     ],
 )
 def test_distro2compose(distro, compose, use_internal_tf):
