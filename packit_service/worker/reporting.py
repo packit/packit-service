@@ -318,18 +318,20 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
             else ""
         )
         try:
+            status = (
+                state_to_set
+                if isinstance(state_to_set, GithubCheckRunStatus)
+                else GithubCheckRunStatus.completed
+            )
+            conclusion = (
+                state_to_set if isinstance(state_to_set, GithubCheckRunResult) else None
+            )
             self.project_with_commit.create_check_run(
                 name=check_name,
                 commit_sha=self.commit_sha,
-                url=url
-                if url
-                else None,  # must use the http or https scheme, cannot be ""
-                status=state_to_set
-                if isinstance(state_to_set, GithubCheckRunStatus)
-                else GithubCheckRunStatus.completed,
-                conclusion=state_to_set
-                if isinstance(state_to_set, GithubCheckRunResult)
-                else None,
+                url=url or None,  # must use the http or https scheme, cannot be ""
+                status=status,
+                conclusion=conclusion,
                 output=create_github_check_run_output(description, summary),
             )
         except github.GithubException as e:
