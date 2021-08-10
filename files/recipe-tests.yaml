@@ -5,7 +5,8 @@
     - name: Install test RPM dependencies
       dnf:
         name:
-          - python3-flexmock
+          # 0.10.5 causes a regression
+          - python3-flexmock-0.10.4
           - tar
           - rsync
         state: present
