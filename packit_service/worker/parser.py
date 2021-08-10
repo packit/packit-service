@@ -177,6 +177,7 @@ class Parser:
 
         title = nested_get(event, "object_attributes", "title")
         description = nested_get(event, "object_attributes", "description")
+        url = nested_get(event, "object_attributes", "url")
 
         return MergeRequestGitlabEvent(
             action=GitlabEventAction[action],
@@ -194,6 +195,7 @@ class Parser:
             commit_sha=commit_sha,
             title=title,
             description=description,
+            url=url,
         )
 
     @staticmethod

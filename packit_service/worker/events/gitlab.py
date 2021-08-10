@@ -63,6 +63,7 @@ class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
         commit_sha: str,
         title: str,
         description: str,
+        url: str,
     ):
         super().__init__(
             project_url=project_url,
@@ -83,6 +84,7 @@ class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
         self.commit_sha = commit_sha
         self.title = title
         self.description = description
+        self.url = url
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
