@@ -36,8 +36,9 @@ jobs:
                   tag="prod"
                   ;;
           esac
-          echo "::set-output name=branch::$branch"
-          echo "::set-output name=tag::$tag"
+          echo "::set-output name=branch::${branch}"
+          unique_tag="${branch}-${GITHUB_SHA::7}"
+          echo "::set-output name=tag::${tag} ${unique_tag}"
         id: branch_tag
 
       - name: Build Image
