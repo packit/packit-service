@@ -156,7 +156,12 @@ def run_testing_farm_results_handler(
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(bind=True, name=TaskName.propose_downstream, base=HandlerTaskWithRetry)
+@celery_app.task(
+    bind=True,
+    name=TaskName.propose_downstream,
+    base=HandlerTaskWithRetry,
+    queue="long-running",
+)
 def run_propose_downstream_handler(
     self, event: dict, package_config: dict, job_config: dict
 ):
@@ -181,7 +186,9 @@ def run_koji_build_handler(event: dict, package_config: dict, job_config: dict):
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.distgit_commit, base=HandlerTaskWithRetry)
+@celery_app.task(
+    name=TaskName.distgit_commit, base=HandlerTaskWithRetry, queue="long-running"
+)
 def run_distgit_commit_handler(event: dict, package_config: dict, job_config: dict):
     handler = DistGitCommitHandler(
         package_config=load_package_config(package_config),
