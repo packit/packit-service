@@ -24,7 +24,6 @@ from packit_service.service.urls import (
     get_srpm_build_info_url,
 )
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
-from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.result import TaskResults
 from packit_service.worker.reporting import BaseCommitStatus
 
@@ -196,7 +195,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         try:
             build_id, web_url = self.run_build()
-            Pushgateway().push_copr_build_created()
         except Exception as ex:
             sentry_integration.send_to_sentry(ex)
             # TODO: Where can we show more info about failure?
@@ -231,6 +229,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 target=chroot,
                 status="pending",
                 run_model=self.run_model,
+                task_accepted_time=self.metadata.task_accepted_time,
             )
             url = get_copr_build_info_url(id_=copr_build.id)
             self.report_status_to_all_for_chroot(

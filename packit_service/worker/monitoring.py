@@ -4,7 +4,7 @@
 import logging
 import os
 
-from prometheus_client import CollectorRegistry, Counter, push_to_gateway
+from prometheus_client import CollectorRegistry, Counter, push_to_gateway, Histogram
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +20,63 @@ class Pushgateway:
         self.registry = CollectorRegistry()
 
         # metrics
-        self.copr_builds = Counter(
-            "copr_builds",
-            "Number of Copr builds created",
+        self.copr_builds_queued = Counter(
+            "copr_builds_queued",
+            "Number of Copr builds queued",
+            registry=self.registry,
+        )
+
+        self.copr_builds_started = Counter(
+            "copr_builds_started",
+            "Number of Copr builds started",
+            registry=self.registry,
+        )
+
+        self.copr_builds_finished = Counter(
+            "copr_builds_finished",
+            "Number of Copr builds finished",
+            registry=self.registry,
+        )
+
+        self.test_runs_queued = Counter(
+            "test_runs_queued",
+            "Number of test runs queued",
+            registry=self.registry,
+        )
+
+        self.test_runs_started = Counter(
+            "test_runs_started",
+            "Number of test runs started",
+            registry=self.registry,
+        )
+
+        self.test_runs_finished = Counter(
+            "test_runs_finished",
+            "Number of test runs finished",
+            registry=self.registry,
+        )
+
+        self.no_status_after_15_s = Counter(
+            "no_status_after_15_s",
+            "Number of PRs/commits with no commit status for more than 15s",
+            registry=self.registry,
+        )
+
+        self.initial_status_time = Histogram(
+            "initial_status_time",
+            "Time it takes to set the initial status",
+            registry=self.registry,
+        )
+
+        self.copr_build_finished_time = Histogram(
+            "copr_build_finished_time",
+            "Time it takes from setting accepted status for Copr build to finished",
+            registry=self.registry,
+        )
+
+        self.test_run_finished_time = Histogram(
+            "test_run_finished_time",
+            "Time it takes from submitting the test run to set finished status",
             registry=self.registry,
         )
 
@@ -31,10 +85,7 @@ class Pushgateway:
             logger.debug("Pushgateway address or worker name not defined.")
             return
 
+        logger.info("Pushing the metrics to pushgateway.")
         push_to_gateway(
             self.pushgateway_address, job=self.worker_name, registry=self.registry
         )
-
-    def push_copr_build_created(self):
-        self.copr_builds.inc()
-        self.push()

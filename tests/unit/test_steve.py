@@ -22,6 +22,7 @@ from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.tasks import run_propose_downstream_handler
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.monitoring import Pushgateway
 from tests.spellbook import first_dict_value, get_parameters_from_results, DATA_DIR
 
 EVENT = {
@@ -82,6 +83,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     )
     flexmock(Allowlist, check_and_report=True)
     flexmock(Signature).should_receive("apply_async").times(1 if success else 0)
+    flexmock(Pushgateway).should_receive("push").times(1 if success else 0)
 
     processing_results = SteveJobs().process_message(event)
     if not success:

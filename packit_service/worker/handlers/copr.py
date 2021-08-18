@@ -185,6 +185,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
             logger.warning(msg)
             return TaskResults(success=False, details={"msg": msg})
 
+        self.pushgateway.copr_builds_started.inc()
         start_time = (
             datetime.utcfromtimestamp(self.copr_event.timestamp)
             if self.copr_event.timestamp
@@ -275,12 +276,22 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             logger.info(msg)
             return TaskResults(success=True, details={"msg": msg})
 
+        self.pushgateway.copr_builds_finished.inc()
+
+        # if the build is needed only for test, it doesn't have the task_accepted_time
+        if self.build.task_accepted_time:
+            copr_build_time = (
+                datetime.now() - self.build.task_accepted_time
+            ).total_seconds()
+            self.pushgateway.copr_build_finished_time.observe(copr_build_time)
+
         end_time = (
             datetime.utcfromtimestamp(self.copr_event.timestamp)
             if self.copr_event.timestamp
             else None
         )
         self.build.set_end_time(end_time)
+
         self.set_srpm_url(build_job_helper)
 
         url = get_copr_build_info_url(self.build.id)

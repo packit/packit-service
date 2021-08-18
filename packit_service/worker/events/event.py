@@ -43,6 +43,7 @@ class EventData:
         identifier: Optional[str],
         event_dict: Optional[dict],
         issue_id: Optional[int],
+        task_accepted_time: Optional[datetime],
     ):
         self.event_type = event_type
         self.user_login = user_login
@@ -55,6 +56,7 @@ class EventData:
         self.identifier = identifier
         self.event_dict = event_dict
         self.issue_id = issue_id
+        self.task_accepted_time = task_accepted_time
 
         # lazy attributes
         self._project = None
@@ -73,6 +75,11 @@ class EventData:
         commit_sha = event.get("commit_sha")
         identifier = event.get("identifier")
         issue_id = event.get("issue_id")
+        task_accepted_time = (
+            datetime.fromtimestamp(event.get("task_accepted_time"), timezone.utc)
+            if event.get("task_accepted_time")
+            else None
+        )
 
         return EventData(
             event_type=event_type,
@@ -86,6 +93,7 @@ class EventData:
             identifier=identifier,
             event_dict=event,
             issue_id=issue_id,
+            task_accepted_time=task_accepted_time,
         )
 
     @property
@@ -156,6 +164,10 @@ class EventData:
     def get_dict(self) -> dict:
         d = self.__dict__
         d = copy.deepcopy(d)
+        task_accepted_time = d.get("task_accepted_time")
+        d["task_accepted_time"] = (
+            int(task_accepted_time.timestamp()) if task_accepted_time else None
+        )
         return d
 
     def get_project(self) -> Optional[GitProject]:
@@ -167,6 +179,8 @@ class EventData:
 
 
 class Event:
+    task_accepted_time: Optional[datetime] = None
+
     def __init__(self, created_at: Union[int, float, str] = None):
         self.created_at: datetime
         if created_at:
@@ -200,6 +214,10 @@ class Event:
         d["event_type"] = self.__class__.__name__
         d["trigger_id"] = self.db_trigger.id if self.db_trigger else None
         d["created_at"] = int(d["created_at"].timestamp())
+        task_accepted_time = d.get("task_accepted_time")
+        d["task_accepted_time"] = (
+            int(task_accepted_time.timestamp()) if task_accepted_time else None
+        )
         d["project_url"] = d.get("project_url") or (
             self.db_trigger.project.project_url if self.db_trigger else None
         )

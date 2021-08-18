@@ -21,6 +21,7 @@ from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import IssueModel
 from packit_service.worker.events import IssueCommentEvent, IssueCommentGitlabEvent
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import run_propose_downstream_handler
 from packit_service.worker.allowlist import Allowlist
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
@@ -129,6 +130,7 @@ def test_issue_comment_propose_downstream_handler(
         flexmock(id=123, job_config_trigger_type=JobConfigTriggerType.release)
     )
     flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
 
     processing_results = SteveJobs().process_message(comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(

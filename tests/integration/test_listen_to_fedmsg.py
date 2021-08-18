@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import json
+from datetime import datetime
 
 import pytest
 import requests
@@ -32,6 +33,7 @@ from packit_service.service.urls import (
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.handlers import CoprBuildEndHandler, TestingFarmHandler
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.tasks import (
     run_koji_build_report_handler,
@@ -157,6 +159,7 @@ def copr_build_branch_push():
         job_config_trigger_type=JobConfigTriggerType.commit,
         job_trigger_model_type=JobTriggerModelType.branch_push,
         name="build-branch",
+        task_accepted_time=datetime.now(),
     )
 
 
@@ -167,6 +170,7 @@ def copr_build_release():
         job_trigger_model_type=JobTriggerModelType.release,
         tag_name="v1.0.1",
         commit_hash="0011223344",
+        task_accepted_time=datetime.now(),
     )
 
 
@@ -232,6 +236,8 @@ def test_copr_build_end(
         "https://my.host/my.srpm"
     ).mock()
 
+    flexmock(Pushgateway).should_receive("push").once().and_return()
+
     processing_results = SteveJobs().process_message(copr_build_end)
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
@@ -283,6 +289,8 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
 
+    flexmock(Pushgateway).should_receive("push").once().and_return()
+
     processing_results = SteveJobs().process_message(copr_build_end)
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
@@ -332,6 +340,8 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
+
+    flexmock(Pushgateway).should_receive("push").once().and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -500,6 +510,8 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
 
+    flexmock(Pushgateway).should_receive("push").twice().and_return()
+
     processing_results = SteveJobs().process_message(copr_build_end)
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
@@ -614,6 +626,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     ).once()
 
     flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(Pushgateway).should_receive("push").twice().and_return()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -730,6 +743,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     ).once()
 
     flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(Pushgateway).should_receive("push").twice().and_return()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -788,6 +802,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     ).once()
 
     flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
 
     processing_results = SteveJobs().process_message(copr_build_start)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -839,6 +854,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
         check_names=TestingFarmJobHelper.get_test_check(copr_build_start["chroot"]),
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
 
     processing_results = SteveJobs().process_message(copr_build_start)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -887,6 +903,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     # skip testing farm
     flexmock(CoprBuildJobHelper).should_receive("job_tests").and_return(None)
     flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -929,6 +946,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
         check_names="packit-stg/production-build-rawhide",
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
 
     processing_results = SteveJobs().process_message(koji_build_scratch_start)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -986,6 +1004,7 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
         check_names="packit-stg/production-build-rawhide",
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
 
     processing_results = SteveJobs().process_message(koji_build_scratch_end)
     event_dict, job, job_config, package_config = get_parameters_from_results(

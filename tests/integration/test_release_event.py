@@ -21,6 +21,7 @@ from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import run_propose_downstream_handler
 from tests.spellbook import first_dict_value, get_parameters_from_results
 
@@ -67,6 +68,7 @@ def test_dist_git_push_release_handle(github_release_webhook):
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     )
     flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -123,6 +125,7 @@ def test_dist_git_push_release_handle_multiple_branches(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     )
     flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -190,6 +193,7 @@ def test_dist_git_push_release_handle_one_failed(
     )
 
     flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
     processing_results = SteveJobs().process_message(github_release_webhook)
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
@@ -265,6 +269,7 @@ def test_dist_git_push_release_handle_all_failed(
         len(fedora_branches)
     )
     flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -321,6 +326,7 @@ def test_retry_propose_downstream_task(github_release_webhook):
         RebaseHelperError, "Failed to download file from URL example.com"
     ).once()
     flexmock(Task).should_receive("retry").once().and_return()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -376,6 +382,7 @@ def test_dont_retry_propose_downstream_task(github_release_webhook):
     flexmock(Context, retries=2)
     flexmock(Task).should_receive("retry").never()
     flexmock(project).should_receive("create_issue").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     event_dict, job, job_config, package_config = get_parameters_from_results(

@@ -5,6 +5,7 @@
 We love you, Steve Jobs.
 """
 import logging
+from datetime import datetime
 from typing import Any
 from typing import List, Set, Type, Union
 
@@ -43,6 +44,8 @@ from packit_service.worker.handlers.abstract import (
     MAP_REQUIRED_JOB_TYPE_TO_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER,
 )
+
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.parser import CentosEventParser, Parser
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
@@ -190,6 +193,25 @@ def get_config_for_handler_kls(
     return matching_jobs
 
 
+def push_initial_metrics(event: Event, handler: JobHandler, build_targets_len: int):
+    pushgateway = Pushgateway()
+
+    task_accepted_time = datetime.now()
+    response_time = (task_accepted_time - event.created_at).total_seconds()
+    pushgateway.initial_status_time.observe(response_time)
+    if response_time > 15:
+        pushgateway.no_status_after_15_s.inc()
+
+    # set the time when the accepted status was set so that we can use it later for measurements
+    event.task_accepted_time = task_accepted_time
+
+    if isinstance(handler, CoprBuildHandler):
+        for _ in range(build_targets_len):
+            pushgateway.copr_builds_queued.inc()
+
+    pushgateway.push()
+
+
 class SteveJobs:
     """
     Steve makes sure all the jobs are done with precision.
@@ -294,6 +316,8 @@ class SteveJobs:
                         state=BaseCommitStatus.pending,
                         url="",
                     )
+                    push_initial_metrics(event, handler, len(job_helper.build_targets))
+
                 signatures.append(
                     handler_kls.get_signature(event=event, job=job_config)
                 )

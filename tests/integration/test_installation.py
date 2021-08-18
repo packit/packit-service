@@ -13,6 +13,7 @@ from packit_service.models import (
     InstallationModel,
 )
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import run_installation_handler
 from packit_service.worker.allowlist import Allowlist
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
@@ -36,6 +37,7 @@ def test_installation():
     flexmock(GithubProject).should_receive("create_issue").once()
 
     flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
     processing_results = SteveJobs().process_message(installation_event())
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results

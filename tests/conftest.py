@@ -3,6 +3,7 @@
 
 import json
 import os
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -112,6 +113,7 @@ def copr_build_model(
         status="some-status",
         runs=runs,
         set_status=lambda x: None,
+        task_accepted_time=datetime.now(),
     )
 
     def mock_set_status(status):
