@@ -133,13 +133,9 @@ class TestingFarmHandler(JobHandler):
                 url="",
             )
 
-            result_details = {
-                "msg": "Build required, triggering copr build",
-                "event": self.data,
-                "package_config": self.package_config,
-                "job": self.job_config.type.value if self.job_config else None,
-                "job_config": dump_job_config(self.job_config),
-            }
+            # monitor queued builds
+            for _ in range(len(targets)):
+                self.pushgateway.copr_builds_queued.inc()
 
             signature(
                 TaskName.copr_build.value,
@@ -150,7 +146,10 @@ class TestingFarmHandler(JobHandler):
                 },
             ).apply_async()
 
-            return TaskResults(success=True, details=result_details)
+            return TaskResults(
+                success=True,
+                details={"msg": "Build required, triggering copr build"},
+            )
 
         failed = {}
         for target, copr_build in targets_with_builds.items():

@@ -168,6 +168,8 @@ class EventData:
         d["task_accepted_time"] = (
             int(task_accepted_time.timestamp()) if task_accepted_time else None
         )
+        d.pop("_project", None)
+        d.pop("_db_trigger", None)
         return d
 
     def get_project(self) -> Optional[GitProject]:
