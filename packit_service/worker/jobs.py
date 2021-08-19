@@ -35,6 +35,7 @@ from packit_service.worker.handlers import (
     CoprBuildStartHandler,
     GithubAppInstallationHandler,
     KojiBuildHandler,
+    TestingFarmHandler,
     TestingFarmResultsHandler,
 )
 from packit_service.worker.handlers.abstract import (
@@ -296,10 +297,12 @@ class SteveJobs:
                 if not handler.pre_check():
                     continue
 
-                if isinstance(handler, (CoprBuildHandler, KojiBuildHandler)):
+                if isinstance(
+                    handler, (CoprBuildHandler, KojiBuildHandler, TestingFarmHandler)
+                ):
                     helper = (
                         CoprBuildJobHelper
-                        if isinstance(handler, CoprBuildHandler)
+                        if isinstance(handler, (CoprBuildHandler, TestingFarmHandler))
                         else KojiBuildJobHelper
                     )
                     job_helper = helper(
@@ -311,7 +314,13 @@ class SteveJobs:
                         job_config=job_config,
                     )
 
-                    job_helper.report_status_to_all(
+                    reporting_method = (
+                        job_helper.report_status_to_tests
+                        if isinstance(handler, TestingFarmHandler)
+                        else job_helper.report_status_to_all
+                    )
+
+                    reporting_method(
                         description=TASK_ACCEPTED,
                         state=BaseCommitStatus.pending,
                         url="",
