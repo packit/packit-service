@@ -182,7 +182,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             # pagure requires "valid url"
             url="",
         )
-        self.create_srpm_if_needed()
+        if results := self.create_srpm_if_needed():
+            return results
 
         if not self.srpm_model.success:
             msg = "SRPM build failed, check the logs for details."

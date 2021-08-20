@@ -3,6 +3,8 @@
 
 import logging
 from io import StringIO
+from packit_service.service.urls import get_srpm_build_info_url
+from packit_service.worker.result import TaskResults
 from pathlib import Path
 from typing import List, Optional, Set, Tuple, Union
 
@@ -13,6 +15,7 @@ from ogr.services.gitlab import GitlabProject
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
+from packit.exceptions import PackitMergeException
 from packit.local_project import LocalProject
 from packit.utils import PackitFormatter
 from packit.utils.repo import RepositoryCache
@@ -323,12 +326,35 @@ class BaseBuildJobHelper:
         chroot_str = f"-{chroot}" if chroot else ""
         return f"{deployment_str}/{cls.status_name_test}{chroot_str}"
 
-    def create_srpm_if_needed(self) -> None:
-        """If you want to be sure we already created the SRPM."""
-        if not (self._srpm_path or self._srpm_model):
-            self._create_srpm()
+    def create_srpm_if_needed(self) -> Optional[TaskResults]:
+        """
+        Create SRPM if is needed.
+
+        Returns:
+            Task results if job is cancelled because of merge conflicts, `None`
+        otherwise.
+        """
+        if self._srpm_path or self._srpm_model:
+            return None
+
+        results = self._create_srpm()
+        if results:
+            # merge conflict occurred
+            self.report_status_to_all(
+                state=BaseCommitStatus.neutral,
+                description="Merge conflicts present",
+                url=get_srpm_build_info_url(self.srpm_model.id),
+            )
+        return results
 
     def _create_srpm(self):
+        """
+        Create SRPM.
+
+        Returns:
+            Task results if job is done because of merge conflicts, `None`
+        otherwise.
+        """
         # we want to get packit logs from the SRPM creation process
         # so we stuff them into a StringIO buffer
         stream = StringIO()
@@ -342,6 +368,7 @@ class BaseBuildJobHelper:
         srpm_success = True
         exception: Optional[Exception] = None
         extra_logs: str = ""
+        results: Optional[TaskResults] = None
 
         try:
             self._srpm_path = Path(
@@ -356,6 +383,15 @@ class BaseBuildJobHelper:
             extra_logs = (
                 "\nThere was a problem in the environment the packit-service is running in.\n"
                 "Please hang tight, the help is coming."
+            )
+        except PackitMergeException as ex:
+            exception = ex
+            results = TaskResults(
+                success=True,
+                details={
+                    "msg": "Merge conflicts were detected, cannot build SRPM.",
+                    "exception": str(ex),
+                },
             )
         except Exception as ex:
             exception = ex
@@ -372,7 +408,8 @@ class BaseBuildJobHelper:
             srpm_success = False
 
             # when do we NOT want to send stuff to sentry?
-            sentry_integration.send_to_sentry(exception)
+            if not isinstance(exception, PackitMergeException):
+                sentry_integration.send_to_sentry(exception)
 
             # this needs to be done AFTER we gather logs
             # so that extra logs are after actual logs
@@ -391,6 +428,7 @@ class BaseBuildJobHelper:
             success=srpm_success,
             trigger_model=self.db_trigger,
         )
+        return results
 
     def _report(
         self,

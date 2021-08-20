@@ -100,7 +100,8 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         self.report_status_to_all(
             description="Building SRPM ...", state=BaseCommitStatus.running
         )
-        self.create_srpm_if_needed()
+        if results := self.create_srpm_if_needed():
+            return results
 
         if not self.srpm_model.success:
             msg = "SRPM build failed, check the logs for details."
