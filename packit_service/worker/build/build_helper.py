@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+from functools import partial
 from io import StringIO
 from packit_service.service.urls import get_srpm_build_info_url
 from packit_service.worker.result import TaskResults
@@ -9,6 +10,8 @@ from pathlib import Path
 from typing import List, Optional, Set, Tuple, Union
 
 from kubernetes.client.rest import ApiException
+from lazy_object_proxy import Proxy
+
 from ogr.abstract import GitProject
 from ogr.exceptions import GitlabAPIException
 from ogr.services.gitlab import GitlabProject
@@ -134,7 +137,8 @@ class BaseBuildJobHelper:
             self._api = PackitAPI(
                 self.service_config,
                 self.job_config,
-                self.local_project,
+                # so that the local_project is evaluated only if needed
+                Proxy(partial(BaseBuildJobHelper.local_project.__get__, self)),  # type: ignore
                 stage=self.service_config.use_stage(),
             )
         return self._api

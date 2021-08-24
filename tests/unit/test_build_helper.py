@@ -7,6 +7,7 @@ from flexmock import flexmock
 
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
+from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
@@ -1123,3 +1124,24 @@ def test_repository_cache_invocation():
         )
     ).once()
     assert copr_build_helper.local_project
+
+
+def test_local_project_not_called_when_initializing_api():
+    jobs = [
+        JobConfig(
+            type=JobType.copr_build,
+            trigger=JobConfigTriggerType.pull_request,
+            metadata=JobMetadataConfig(),
+        )
+    ]
+    copr_build_handler = CoprBuildJobHelper(
+        service_config=flexmock(use_stage=lambda: False),
+        package_config=PackageConfig(jobs=jobs),
+        job_config=jobs[0],
+        project=flexmock(),
+        metadata=flexmock(pr_id=1),
+        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+    )
+    flexmock(LocalProject).should_receive("__init__").never()
+    assert copr_build_handler.api
+    assert copr_build_handler.api.copr_helper
