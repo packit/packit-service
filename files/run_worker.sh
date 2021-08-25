@@ -16,10 +16,6 @@ install -m 0400 /packit-ssh/config .
 grep -q pkgs.fedoraproject.org known_hosts || ssh-keyscan pkgs.fedoraproject.org >>known_hosts
 popd
 
-# Can't be set during deployment
-SANDCASTLE_REPOSITORY_CACHE_VOLUME="sandcastle-repository-cache-$(uname --nodename)"
-export SANDCASTLE_REPOSITORY_CACHE_VOLUME
-
 DEFAULT_CELERY_COMMAND="worker"
 # Whether to run Celery worker or beat (task scheduler)
 CELERY_COMMAND="${CELERY_COMMAND:-$DEFAULT_CELERY_COMMAND}"
@@ -39,6 +35,13 @@ elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     # define queues to serve
     DEFAULT_QUEUES="short-running,long-running"
     QUEUES="${QUEUES:-$DEFAULT_QUEUES}"
+
+    # if this worker serves the long-running queue, it needs the repository cache
+    if [[ "$QUEUES" == *"long-running"* ]]; then
+      # Can't be set during deployment
+      SANDCASTLE_REPOSITORY_CACHE_VOLUME="sandcastle-repository-cache-$(uname --nodename)"
+      export SANDCASTLE_REPOSITORY_CACHE_VOLUME
+    fi
     # concurrency: Number of concurrent worker processes/threads/green threads executing tasks.
     # prefetch-multiplier: How many messages to prefetch at a time multiplied by the number of concurrent processes.
     # http://docs.celeryproject.org/en/latest/userguide/optimizing.html#prefetch-limits
