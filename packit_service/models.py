@@ -1461,7 +1461,10 @@ class ProjectAuthenticationIssueModel(Base):
             return project_authentication_issue
 
     def __repr__(self):
-        return f"ProjectAuthenticationIssueModel(project={self.project}, token={self.token})"
+        return (
+            f"ProjectAuthenticationIssueModel(project={self.project}, "
+            f"issue_created={self.issue_created})"
+        )
 
 
 class InstallationModel(Base):

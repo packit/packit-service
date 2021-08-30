@@ -156,6 +156,22 @@ Look inside a table
     ----+-----------+-----------
     (0 rows)
 
+### Using live data locally
+
+Here is a list of commands to run if you need a local database with real data from stg or prod:
+
+1. Obtain a DB dump: `oc rsh $POSTGRES_POD pg_dump -Fc -Z3 packit >dump.$ENV.$DATE`
+
+2. Load them into your local postgres instance:
+
+   1. Create a database named packit and owned by the packit user: `postgres=# create database packit owner=packit;`
+
+   2. Copy the dump file in the database container: `sudo podman cp ./dump.$ENV.$DATE postgres:/tmp`
+      This is a more reliable option than a direct load.
+
+   3. Load the dump as a packit user `pg_restore -U packit -d packit /tmp/dump.$ENV.$DATE`
+      It's important to do this as a packit user because that's how worker and service pods connect.
+
 ## Testing
 
 Tests are stored in the [tests/](/tests) directory and tests using [requre](https://github.com/packit/requre) are stored in [tests_requre/](/tests_requre).
