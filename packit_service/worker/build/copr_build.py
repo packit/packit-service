@@ -160,6 +160,11 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
         }
 
+    def get_built_packages(self, build_id: int, chroot: str) -> List:
+        return self.api.copr_helper.copr_client.build_chroot_proxy.get_built_packages(
+            build_id, chroot
+        ).packages
+
     def get_build(self, build_id: int):
         return self.api.copr_helper.copr_client.build_proxy.get(build_id)
 
