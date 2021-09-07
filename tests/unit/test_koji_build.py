@@ -1,6 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-
+from pathlib import Path
 from typing import Union
 
 import pytest
@@ -48,6 +48,7 @@ def build_helper(
     trigger=None,
     jobs=None,
     db_trigger=None,
+    targets_override=None,
 ):
     if not metadata:
         metadata = JobMetadataConfig(
@@ -81,6 +82,7 @@ def build_helper(
             identifier=event.identifier,
         ),
         db_trigger=db_trigger,
+        targets_override=targets_override,
     )
     handler._api = PackitAPI(config=ServiceConfig(), package_config=pkg_conf)
     return handler
@@ -371,6 +373,55 @@ def test_koji_build_failed_srpm(github_pr_event):
     result = helper.run_koji_build()
     assert not result["success"]
     assert "SRPM build failed" in result["details"]["msg"]
+
+
+def test_koji_build_targets_override(github_pr_event):
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    helper = build_helper(
+        event=github_pr_event,
+        metadata=JobMetadataConfig(
+            targets=["bright-future", "dark-past"], scratch=True
+        ),
+        db_trigger=trigger,
+        targets_override={"bright-future"},
+    )
+    flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
+        ["dark-past", "bright-future"]
+    ).once()
+
+    # SRPM + RPM
+    flexmock(StatusReporter).should_receive("set_status").and_return().times(2)
+
+    flexmock(GitProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
+    flexmock(GitProject).should_receive("set_commit_status").and_return().never()
+    flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
+        (flexmock(id=1, success=True), flexmock())
+    )
+    flexmock(KojiBuildModel).should_receive("create").and_return(
+        flexmock(id=1)
+    ).and_return(flexmock(id=2))
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+
+    # koji build
+    flexmock(Upstream).should_receive("koji_build").once().with_args(
+        scratch=True,
+        nowait=True,
+        koji_target="bright-future",
+        srpm_path=Path("my.srpm"),
+    ).and_return(
+        "Uploading srpm: /python-ogr-0.11.1"
+        ".dev21+gf2dec9b-1.20200407142424746041.21.gf2dec9b.fc31.src.rpm\n"
+        "[====================================] 100% 00:00:11   1.67 MiB 148.10 KiB/sec\n"
+        "Created task: 43429338\n"
+        "Task info: https://koji.fedoraproject.org/koji/taskinfo?taskID=43429338\n"
+    )
+
+    assert helper.run_koji_build()["success"]
 
 
 @pytest.mark.parametrize(

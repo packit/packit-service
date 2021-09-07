@@ -20,6 +20,7 @@ from packit_service.worker.events import (
 )
 from packit_service.models import TestingFarmResult as TFResult
 
+from packit_service.worker.build import copr_build as cb
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.handlers import TestingFarmHandler
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
@@ -531,6 +532,10 @@ def test_trigger_build(copr_build, run_new_build):
         flexmock(TFJobHelper).should_receive("run_testing_farm").and_return(
             TaskResults(success=True, details={})
         )
+
+    flexmock(cb).should_receive("get_valid_build_targets").and_return(
+        {"target", "another-target"}
+    )
 
     tf_handler = TestingFarmHandler(package_config, job_config, event, "target")
     tf_handler.run()
