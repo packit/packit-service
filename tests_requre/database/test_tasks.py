@@ -128,6 +128,37 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
     )
     flexmock(BuildProxy).should_receive("get").and_return(coprs_response)
 
+    copr_response_built_packages = Munch(
+        {
+            "packages": [
+                {
+                    "arch": "noarch",
+                    "epoch": 0,
+                    "name": "python3-packit",
+                    "release": "1.20210930124525726166.main.0.g0b7b36b.fc36",
+                    "version": "0.38.0",
+                },
+                {
+                    "arch": "src",
+                    "epoch": 0,
+                    "name": "packit",
+                    "release": "1.20210930124525726166.main.0.g0b7b36b.fc36",
+                    "version": "0.38.0",
+                },
+                {
+                    "arch": "noarch",
+                    "epoch": 0,
+                    "name": "packit",
+                    "release": "1.20210930124525726166.main.0.g0b7b36b.fc36",
+                    "version": "0.38.0",
+                },
+            ],
+        }
+    )
+    flexmock(BuildChrootProxy).should_receive("get_built_packages").with_args(
+        BUILD_ID, "fedora-rawhide-x86_64"
+    ).and_return(copr_response_built_packages)
+
     chroot_response = Munch(
         {
             "ended_on": 1583916564,

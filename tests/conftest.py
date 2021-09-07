@@ -113,11 +113,16 @@ def copr_build_model(
         status="some-status",
         runs=runs,
         set_status=lambda x: None,
+        set_built_packages=lambda x: None,
+        built_packages=None,
         task_accepted_time=datetime.now(),
     )
 
     def mock_set_status(status):
         copr_build.status = status
+
+    def mock_set_built_packages(built_packages):
+        copr_build.built_packages = built_packages
 
     copr_build.set_status = mock_set_status
     copr_build._srpm_build_for_mocking = srpm_build
