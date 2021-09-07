@@ -44,6 +44,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         metadata: EventData,
         db_trigger: AbstractTriggerDbType,
         job_config: JobConfig,
+        targets_override: Optional[Set[str]] = None,
     ):
         super().__init__(
             service_config=service_config,
@@ -52,6 +53,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             metadata=metadata,
             db_trigger=db_trigger,
             job_config=job_config,
+            targets_override=targets_override,
         )
 
         self.msg_retrigger: str = MSG_RETRIGGER.format(
@@ -131,30 +133,16 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         return self.job_build.metadata.additional_repos if self.job_build else None
 
     @property
-    def build_targets(self) -> Set[str]:
+    def build_targets_all(self) -> Set[str]:
         """
-        Return the chroots to build.
-
-        (Used when submitting the copr build and as a part of the commit status name.)
-
-        1. If the job is not defined, use the test chroots.
-        2. If the job is defined without targets, use "fedora-stable".
+        Return all valid Copr build targets/chroots from config.
         """
         return get_valid_build_targets(*self.configured_build_targets, default=None)
 
     @property
-    def tests_targets(self) -> Set[str]:
+    def tests_targets_all(self) -> Set[str]:
         """
-        Return the list of chroots used in testing farm.
-        Has to be a sub-set of the `build_targets`.
-
-        (Used when submitting the copr build and as a part of the commit status name.)
-
-        Return an empty list if there is no job configured.
-
-        If not defined:
-        1. use the build_targets if the job si configured
-        2. use "fedora-stable" alias otherwise
+        Return all valid test targets/chroots from config.
         """
         return get_valid_build_targets(*self.configured_tests_targets, default=None)
 
@@ -279,7 +267,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             overwrite_booleans = owner == "packit"
             self.api.copr_helper.create_copr_project_if_not_exists(
                 project=self.job_project,
-                chroots=list(self.build_targets),
+                chroots=list(self.build_targets_all),
                 owner=owner,
                 description=None,
                 instructions=None,
@@ -352,7 +340,12 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         try:
             build = self.api.copr_helper.copr_client.build_proxy.create_from_file(
-                ownername=owner, projectname=self.job_project, path=self.srpm_path
+                ownername=owner,
+                projectname=self.job_project,
+                path=self.srpm_path,
+                buildopts={
+                    "chroots": list(self.build_targets),
+                },
             )
         except CoprRequestException as ex:
             if "You don't have permissions to build in this copr." in str(

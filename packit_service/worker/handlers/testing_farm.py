@@ -96,18 +96,11 @@ class TestingFarmHandler(JobHandler):
             metadata=self.data,
             db_trigger=self.db_trigger,
             job_config=self.job_config,
+            targets_override={self.chroot} if self.chroot else None,
         )
 
-        if self.data.event_type in (
-            PullRequestCommentGithubEvent.__name__,
-            MergeRequestCommentGitlabEvent.__name__,
-            PullRequestCommentPagureEvent.__name__,
-        ):
-            logger.debug(f"Test job config: {testing_farm_helper.job_tests}")
-            targets = list(testing_farm_helper.tests_targets)
-        else:
-            targets = [self.chroot]
-
+        logger.debug(f"Test job config: {testing_farm_helper.job_tests}")
+        targets = list(testing_farm_helper.tests_targets)
         logger.debug(f"Targets to run the tests: {targets}")
         targets_with_builds = {}
         for target in targets:
