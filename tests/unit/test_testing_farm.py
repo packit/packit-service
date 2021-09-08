@@ -107,6 +107,7 @@ def test_testing_farm_response(
     flexmock(StatusReporter).should_receive("report").with_args(
         state=status_status,
         description=status_message,
+        links_to_external_services={"Testing Farm": "some url"},
         url="https://dashboard.localhost/results/testing-farm/123",
         check_names="packit-stg/testing-farm-fedora-rawhide-x86_64",
     )

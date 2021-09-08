@@ -23,8 +23,11 @@ from packit_service.worker.reporting import (
     BaseCommitStatus,
     StatusReporterGithubStatuses,
     StatusReporterGitlab,
+    StatusReporterGithubChecks,
 )
-from packit_service.constants import MSG_MORE_DETAILS, MSG_RERUN_NOT_SUPPORTED
+from packit_service.constants import MSG_RERUN_NOT_SUPPORTED
+
+create_table_content = StatusReporterGithubChecks._create_table
 
 
 @pytest.mark.parametrize(
@@ -150,7 +153,10 @@ def test_set_status_gitlab(
             flexmock(),
             BaseCommitStatus.success,
             "We made it!",
-            MSG_MORE_DETAILS.format(url="https://api.packit.dev/build/111/logs"),
+            create_table_content(
+                url="https://api.packit.dev/build/111/logs",
+                links_to_external_services=None,
+            ),
             "packit/pr-rpm-build",
             "https://api.packit.dev/build/111/logs",
             GithubCheckRunStatus.completed,
@@ -164,7 +170,10 @@ def test_set_status_gitlab(
             flexmock(),
             BaseCommitStatus.running,
             "In progress",
-            MSG_MORE_DETAILS.format(url="https://api.packit.dev/build/111/logs"),
+            create_table_content(
+                url="https://api.packit.dev/build/111/logs",
+                links_to_external_services=None,
+            ),
             "packit/pr-rpm-build",
             "https://api.packit.dev/build/111/logs",
             GithubCheckRunStatus.in_progress,
@@ -178,7 +187,10 @@ def test_set_status_gitlab(
             flexmock(),
             BaseCommitStatus.failure,
             "We made it!",
-            MSG_MORE_DETAILS.format(url="https://api.packit.dev/build/112/logs")
+            create_table_content(
+                url="https://api.packit.dev/build/112/logs",
+                links_to_external_services=None,
+            )
             + MSG_RERUN_NOT_SUPPORTED,
             "packit/branch-rpm-build",
             "https://api.packit.dev/build/112/logs",
@@ -382,7 +394,10 @@ def test_report_status_by_comment(
             flexmock(source_project=flexmock()),
             BaseCommitStatus.success,
             "We made it!",
-            MSG_MORE_DETAILS.format(url="https://api.packit.dev/build/111/logs"),
+            create_table_content(
+                url="https://api.packit.dev/build/111/logs",
+                links_to_external_services=None,
+            ),
             "packit/pr-rpm-build",
             "https://api.packit.dev/build/111/logs",
             GithubCheckRunStatus.completed,
@@ -441,3 +456,16 @@ def test_status_instead_check(
     ).once()
 
     reporter.set_status(state, title, check_name, url)
+
+
+def test_create_table():
+    assert create_table_content(
+        "dashboard-url",
+        {"Testing Farm": "tf-url", "COPR build": "copr-build-url"},
+    ) == (
+        "| Name/Job | URL |\n"
+        "| --- | --- |\n"
+        "| Dashboard | dashboard-url |\n"
+        "| Testing Farm | tf-url |\n"
+        "| COPR build | copr-build-url |\n"
+    )
