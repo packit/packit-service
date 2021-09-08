@@ -18,7 +18,10 @@ from ogr.services.github.check_run import (
 from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
 
-from packit_service.constants import MSG_MORE_DETAILS, MSG_RERUN_NOT_SUPPORTED
+from packit_service.constants import (
+    MSG_RERUN_NOT_SUPPORTED,
+    MSG_TABLE_HEADER_WITH_DETAILS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +115,7 @@ class StatusReporter:
         description: str,
         check_name: str,
         url: str = "",
+        links_to_external_services: Optional[Dict[str, str]] = None,
     ):
         raise NotImplementedError()
 
@@ -120,15 +124,29 @@ class StatusReporter:
         state: BaseCommitStatus,
         description: str,
         url: str = "",
+        links_to_external_services: Optional[Dict[str, str]] = None,
         check_names: Union[str, list, None] = None,
     ) -> None:
         """
-        set commit check status
+        Set commit check status.
 
-        :param state: state accepted by github
-        :param description: the long text
-        :param url: url to point to (logs usually)
-        :param check_names: those in bold
+        Args:
+            state: State accepted by github.
+            description: The long text.
+            url: Url to point to (logs usually).
+
+                Defaults to empty string
+            links_to_external_services: Direct links to external services.
+                e.g. `{"Testing Farm": "url-to-testing-farm"}`
+
+                Defaults to None
+            check_names: Those in bold.
+
+                Defaults to None
+
+        Returns:
+            None
+
         """
 
         if not check_names:
@@ -140,7 +158,11 @@ class StatusReporter:
 
         for check in check_names:
             self.set_status(
-                state=state, description=description, check_name=check, url=url
+                state=state,
+                description=description,
+                check_name=check,
+                url=url,
+                links_to_external_services=links_to_external_services,
             )
 
     def _add_commit_comment_with_status(
@@ -209,6 +231,7 @@ class StatusReporterPagure(StatusReporter):
         description: str,
         check_name: str,
         url: str = "",
+        links_to_external_services: Optional[Dict[str, str]] = None,
     ):
         state_to_set = self.get_commit_status(state)
         logger.debug(
@@ -239,6 +262,7 @@ class StatusReporterGitlab(StatusReporter):
         description: str,
         check_name: str,
         url: str = "",
+        links_to_external_services: Optional[Dict[str, str]] = None,
     ):
         state_to_set = self.get_commit_status(state)
         logger.debug(
@@ -280,6 +304,7 @@ class StatusReporterGithubStatuses(StatusReporter):
         description: str,
         check_name: str,
         url: str = "",
+        links_to_external_services: Optional[Dict[str, str]] = None,
     ):
         state_to_set = self.get_commit_status(state)
         logger.debug(
@@ -300,23 +325,45 @@ class StatusReporterGithubStatuses(StatusReporter):
 class StatusReporterGithubChecks(StatusReporterGithubStatuses):
     project_with_commit: GithubProject
 
+    @staticmethod
+    def _create_table(
+        url: str, links_to_external_services: Optional[Dict[str, str]]
+    ) -> str:
+        table_content = []
+        if url:
+            table_content.append(f"| Dashboard | {url} |\n")
+        if links_to_external_services is not None:
+            table_content += [
+                f"| {name} | {link} |\n"
+                for name, link in links_to_external_services.items()
+            ]
+
+        return (
+            MSG_TABLE_HEADER_WITH_DETAILS + "".join(table_content)
+            if table_content
+            else ""
+        )
+
     def set_status(
         self,
         state: BaseCommitStatus,
         description: str,
         check_name: str,
         url: str = "",
+        links_to_external_services: Optional[Dict[str, str]] = None,
     ):
         state_to_set = self.get_check_run(state)
         logger.debug(
             f"Setting Github status check '{state_to_set.name}' for check '{check_name}':"
             f" {description}"
         )
-        summary = (MSG_MORE_DETAILS.format(url=url) if url else "") + (
+
+        summary = self._create_table(url, links_to_external_services) + (
             MSG_RERUN_NOT_SUPPORTED
             if state_to_set == GithubCheckRunResult.failure
             else ""
         )
+
         try:
             status = (
                 state_to_set
