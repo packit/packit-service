@@ -9,6 +9,7 @@ from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerTyp
 from packit.config.job_config import JobMetadataConfig
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
+from packit_service.worker.build import copr_build
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 
@@ -389,6 +390,128 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
 
     assert copr_build_helper.configured_build_targets == build_chroots
     assert copr_build_helper.configured_tests_targets == test_chroots
+
+
+@pytest.mark.parametrize(
+    "jobs,job_config_trigger_type,targets_override,build_targets,test_targets",
+    [
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            JobConfigTriggerType.pull_request,
+            {"fedora-32-x86_64"},
+            {"fedora-32-x86_64"},
+            {"fedora-32-x86_64"},
+            id="target_in_config_for_both",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            {"fedora-32-x86_64"},
+            {"fedora-32-x86_64"},
+            set(),
+            id="target_in_config",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            {"fedora-33-x86_64"},
+            set(),
+            set(),
+            id="target_not_in_config",
+        ),
+    ],
+)
+def test_copr_targets_overrides(
+    jobs, job_config_trigger_type, targets_override, build_targets, test_targets
+):
+    copr_build_helper = CoprBuildJobHelper(
+        service_config=flexmock(),
+        package_config=PackageConfig(jobs=jobs),
+        job_config=jobs[0],  # BuildHelper looks at all jobs in the end
+        project=flexmock(),
+        metadata=flexmock(pr_id=None),
+        db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
+        targets_override=targets_override,
+    )
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        "fedora-31", "fedora-32", default=None
+    ).and_return(STABLE_CHROOTS)
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        "fedora-32", "fedora-31", default=None
+    ).and_return(STABLE_CHROOTS)
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        default=None
+    ).and_return(set())
+    assert copr_build_helper.build_targets == build_targets
+    assert copr_build_helper.tests_targets == test_targets
+
+
+@pytest.mark.parametrize(
+    "jobs,job_config_trigger_type,targets_override,build_targets",
+    [
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            {"f32"},
+            {"f32"},
+            id="target_in_config",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            {"f33"},
+            set(),
+            id="target_not_in_config",
+        ),
+    ],
+)
+def test_koji_targets_overrides(
+    jobs, job_config_trigger_type, targets_override, build_targets
+):
+    koji_build_helper = KojiBuildJobHelper(
+        service_config=flexmock(),
+        package_config=PackageConfig(jobs=jobs),
+        job_config=jobs[0],
+        project=flexmock(),
+        metadata=flexmock(),
+        db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
+        targets_override=targets_override,
+    )
+    assert koji_build_helper.build_targets == build_targets
 
 
 @pytest.mark.parametrize(
@@ -1064,7 +1187,7 @@ def test_targets_for_koji_build(
     jobs, job_config_trigger_type, build_targets, koji_targets
 ):
     pr_id = 41 if job_config_trigger_type == JobConfigTriggerType.pull_request else None
-    koji_build_handler = KojiBuildJobHelper(
+    koji_build_helper = KojiBuildJobHelper(
         service_config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],
@@ -1073,11 +1196,11 @@ def test_targets_for_koji_build(
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
     )
 
-    assert koji_build_handler.package_config.jobs
-    assert [j.type for j in koji_build_handler.package_config.jobs]
+    assert koji_build_helper.package_config.jobs
+    assert [j.type for j in koji_build_helper.package_config.jobs]
 
-    assert koji_build_handler.configured_build_targets == build_targets
-    assert koji_build_handler.build_targets == koji_targets
+    assert koji_build_helper.configured_build_targets == build_targets
+    assert koji_build_helper.build_targets == koji_targets
 
 
 def test_repository_cache_invocation():
@@ -1134,7 +1257,7 @@ def test_local_project_not_called_when_initializing_api():
             metadata=JobMetadataConfig(),
         )
     ]
-    copr_build_handler = CoprBuildJobHelper(
+    copr_build_helper = CoprBuildJobHelper(
         service_config=flexmock(use_stage=lambda: False),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],
@@ -1143,5 +1266,5 @@ def test_local_project_not_called_when_initializing_api():
         db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
     )
     flexmock(LocalProject).should_receive("__init__").never()
-    assert copr_build_handler.api
-    assert copr_build_handler.api.copr_helper
+    assert copr_build_helper.api
+    assert copr_build_helper.api.copr_helper

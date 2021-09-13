@@ -40,6 +40,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         metadata: EventData,
         db_trigger,
         job_config: JobConfig,
+        targets_override: Optional[Set[str]] = None,
     ):
         super().__init__(
             service_config=service_config,
@@ -48,6 +49,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             metadata=metadata,
             db_trigger=db_trigger,
             job_config=job_config,
+            targets_override=targets_override,
         )
         self.msg_retrigger: str = MSG_RETRIGGER.format(
             job="build", command="production-build", place="pull request"
@@ -61,32 +63,17 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         return self.job_build and self.job_build.metadata.scratch
 
     @property
-    def build_targets(self) -> Set[str]:
+    def build_targets_all(self) -> Set[str]:
         """
-        Return the targets/chroots to build.
-
-        (Used when submitting the koji/copr build and as a part of the commit status name.)
-
-        1. If the job is not defined, use the test chroots.
-        2. If the job is defined without targets, use "fedora-stable".
+        Return all valid Koji targets/chroots from config.
         """
         return get_koji_targets(*self.configured_build_targets)
 
     @property
-    def tests_targets(self) -> Set[str]:
+    def tests_targets_all(self) -> Set[str]:
         """
         [not used now]
-
-        Return the list of targets/chroots used in testing farm.
-        Has to be a sub-set of the `build_targets`.
-
-        (Used when submitting the koji/copr build and as a part of the commit status name.)
-
-        Return an empty list if there is no job configured.
-
-        If not defined:
-        1. use the build_targets if the job si configured
-        2. use "fedora-stable" alias otherwise
+        Return all valid test targets/chroots from config.
         """
         return get_koji_targets(*self.configured_tests_targets)
 

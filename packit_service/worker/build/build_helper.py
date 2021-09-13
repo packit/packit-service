@@ -48,6 +48,7 @@ class BaseBuildJobHelper:
         metadata: EventData,
         db_trigger,
         job_config: JobConfig,
+        targets_override: Optional[Set[str]] = None,
     ):
         self.service_config: ServiceConfig = service_config
         self.job_config = job_config
@@ -57,6 +58,7 @@ class BaseBuildJobHelper:
         self.msg_retrigger: Optional[str] = ""
         self.metadata: EventData = metadata
         self.run_model: Optional[RunModel] = None
+        self.targets_override: Optional[Set[str]] = targets_override
 
         # lazy properties
         self._api = None
@@ -154,7 +156,7 @@ class BaseBuildJobHelper:
     @property
     def configured_build_targets(self) -> Set[str]:
         """
-        Return the targets to build.
+        Return the configured targets for build job.
 
         1. Use targets defined for build job and targets defined for test job.
         2. Use "fedora-stable" alias if neither defined.
@@ -171,7 +173,7 @@ class BaseBuildJobHelper:
     @property
     def configured_tests_targets(self) -> Set[str]:
         """
-        Return the targets used in the testing farm.
+        Return the configured targets for test job.
         Has to be a sub-set of the `configured_build_targets`.
 
         Return an empty set if there is no test job configured.
@@ -246,32 +248,49 @@ class BaseBuildJobHelper:
         return self._status_reporter
 
     @property
-    def build_targets(self) -> Set[str]:
+    def build_targets_all(self) -> Set[str]:
         """
-        Return the targets/chroots to build.
-
-        (Used when submitting the koji/copr build and as a part of the commit status name.)
-
-        1. If the job is not defined, use the test chroots.
-        2. If the job is defined without targets, use "fedora-stable".
+        Return all valid build targets/chroots from config.
         """
         raise NotImplementedError("Use subclass instead.")
 
     @property
-    def tests_targets(self) -> Set[str]:
+    def tests_targets_all(self) -> Set[str]:
         """
-        Return the list of targets/chroots used in testing farm.
-        Has to be a sub-set of the `build_targets`.
+        Return all valid test targets/chroots from config.
+        Has to be a sub-set of the `build_targets_all`.
 
-        (Used when submitting the koji/copr build and as a part of the commit status name.)
-
-        Return an empty list if there is no job configured.
-
-        If not defined:
-        1. use the build_targets if the job si configured
-        2. use "fedora-stable" alias otherwise
+        Return an empty set if there is no job configured.
         """
         raise NotImplementedError("Use subclass instead.")
+
+    @property
+    def build_targets(self) -> Set[str]:
+        """
+        Return valid targets/chroots to build.
+
+        (Used when submitting the koji/copr build and as a part of the commit status name.)
+        """
+        configured_targets = self.build_targets_all
+
+        if self.targets_override:
+            return self.targets_override & configured_targets
+
+        return configured_targets
+
+    @property
+    def tests_targets(self) -> Set[str]:
+        """
+        Return valid targets/chroots to use in testing farm.
+
+        (Used when submitting the tests and as a part of the commit status name.)
+        """
+        configured_targets = self.tests_targets_all
+
+        if self.targets_override:
+            return self.targets_override & configured_targets
+
+        return configured_targets
 
     @property
     def test_check_names(self) -> List[str]:

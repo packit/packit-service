@@ -182,7 +182,7 @@ def test_pr_comment_copr_build_handler(
         "https://github.com/the-namespace/the-repo"
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return([])
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_all").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -220,7 +220,7 @@ def test_pr_comment_build_handler(
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return([])
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_all").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -366,7 +366,7 @@ def test_pr_embedded_command_handler(
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return([])
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_all").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -466,7 +466,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(copr_build).should_receive("get_valid_build_targets").twice().and_return(
-        ["test-target"]
+        {"test-target"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
         flexmock(status=PG_COPR_BUILD_STATUS_SUCCESS)
@@ -541,7 +541,7 @@ def test_pr_test_command_handler_no_build(pr_embedded_command_comment_event):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").twice()
     flexmock(copr_build).should_receive("get_valid_build_targets").twice().and_return(
-        ["test-target"]
+        {"test-target"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return()
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("owner")

@@ -3,6 +3,7 @@
 
 import json
 from datetime import datetime
+from pathlib import Path
 from typing import Type
 
 import pytest
@@ -91,6 +92,7 @@ def build_helper(
     db_trigger=None,
     selected_job=None,
     project_type: Type[GitProject] = GithubProject,
+    targets_override=None,
 ):
     if jobs and metadata:
         raise Exception("Only one of jobs and metadata can be used.")
@@ -128,6 +130,7 @@ def build_helper(
             task_accepted_time=datetime.now(),
         ),
         db_trigger=db_trigger,
+        targets_override=targets_override,
     )
     handler._api = PackitAPI(ServiceConfig(), pkg_conf)
     return handler
@@ -1577,6 +1580,80 @@ def test_copr_build_no_targets_gitlab(gitlab_mr_event):
             .and_return(
                 {target: "" for target in {"fedora-32-x86_64", "fedora-31-x86_64"}}
             )
+            .mock(),
+        )
+    )
+
+    flexmock(Celery).should_receive("send_task").once()
+    assert helper.run_copr_build()["success"]
+
+
+def test_copr_build_targets_override(github_pr_event):
+    # status is set for only one test-target defined in targets_override (2x):
+    #  - Building SRPM ...
+    #  - Starting RPM build...
+    test_job = JobConfig(
+        type=JobType.tests,
+        trigger=JobConfigTriggerType.pull_request,
+        metadata=JobMetadataConfig(
+            owner="nobody", targets=["bright-future-x86_64", "brightest-future-x86_64"]
+        ),
+    )
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    helper = build_helper(
+        jobs=[test_job],
+        event=github_pr_event,
+        db_trigger=trigger,
+        targets_override={"bright-future-x86_64"},
+    )
+    flexmock(GithubProject).should_receive("create_check_run").and_return().times(2)
+    flexmock(GithubProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
+    flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
+        (
+            flexmock(success=True)
+            .should_receive("set_url")
+            .with_args("https://some.host/my.srpm")
+            .mock(),
+            flexmock(),
+        )
+    )
+    flexmock(CoprBuildModel).should_receive("create").and_return(flexmock(id=1))
+
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+
+    # copr build
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
+        None
+    )
+    flexmock(Client).should_receive("create_from_config_file").and_return(
+        flexmock(
+            config={"copr_url": "https://copr.fedorainfracloud.org/"},
+            build_proxy=flexmock()
+            .should_receive("create_from_file")
+            .with_args(
+                ownername="nobody",
+                projectname="the-example-namespace-the-example-repo-342-stg",
+                path=Path("my.srpm"),
+                buildopts={
+                    "chroots": ["bright-future-x86_64"],
+                },
+            )
+            .and_return(
+                flexmock(
+                    id=2,
+                    projectname="the-example-namespace-the-example-repo-342-stg",
+                    ownername="nobody",
+                )
+            )
+            .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({"bright-future-x86_64": ""})
             .mock(),
         )
     )

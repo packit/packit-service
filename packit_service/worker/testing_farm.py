@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, Set
 
 import requests
 from ogr.abstract import GitProject
@@ -38,6 +38,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         metadata: EventData,
         db_trigger,
         job_config: JobConfig,
+        targets_override: Optional[Set[str]] = None,
     ):
         super().__init__(
             service_config=service_config,
@@ -46,6 +47,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             metadata=metadata,
             db_trigger=db_trigger,
             job_config=job_config,
+            targets_override=targets_override,
         )
 
         self.session = requests.session()
