@@ -31,7 +31,7 @@ from packit.copr_helper import CoprHelper
 from packit.exceptions import FailedCreateSRPM, PackitCoprSettingsException
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
-from packit_service.constants import MSG_MORE_DETAILS, MSG_RERUN_NOT_SUPPORTED
+from packit_service.constants import MSG_RERUN_NOT_SUPPORTED
 from packit_service.models import CoprBuildModel, SRPMBuildModel
 from packit_service.service.db_triggers import (
     AddPullRequestDbTrigger,
@@ -70,6 +70,7 @@ CACHE_CLEAR = [
 ]
 
 pytestmark = pytest.mark.usefixtures("cache_clear", "mock_get_aliases")
+create_table_content = StatusReporterGithubChecks._create_table
 
 
 @pytest.fixture(scope="module")
@@ -158,12 +159,14 @@ def test_copr_build_check_names(github_pr_event):
         description="Building SRPM ...",
         check_name="packit-stg/rpm-build-bright-future-x86_64",
         url="",
+        links_to_external_services=None,
     ).and_return()
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Starting RPM build...",
         check_name="packit-stg/rpm-build-bright-future-x86_64",
         url="https://test.url",
+        links_to_external_services=None,
     ).and_return()
 
     flexmock(GithubProject).should_receive("get_pr").and_return(
@@ -255,6 +258,7 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
             description="Building SRPM ...",
             check_name=f"packit-stg/rpm-build-{target}",
             url="",
+            links_to_external_services=None,
         ).and_return()
 
     for not_supported_target in ("bright-future-x86_64", "fedora-32-x86_64"):
@@ -263,6 +267,7 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
             description=f"Not supported target: {not_supported_target}",
             check_name=f"packit-stg/rpm-build-{not_supported_target}",
             url="https://test.url",
+            links_to_external_services=None,
         ).and_return()
 
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
@@ -270,6 +275,7 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
         description="Starting RPM build...",
         check_name="packit-stg/rpm-build-even-brighter-one-aarch64",
         url="https://test.url",
+        links_to_external_services=None,
     ).and_return()
 
     flexmock(GithubProject).should_receive("get_pr").and_return(
@@ -387,12 +393,14 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
         description="Building SRPM ...",
         check_name="packit-stg/rpm-build-fedora-32-x86_64",
         url="",
+        links_to_external_services=None,
     ).and_return().once()
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Starting RPM build...",
         check_name="packit-stg/rpm-build-fedora-32-x86_64",
         url="https://test.url",
+        links_to_external_services=None,
     ).and_return().once()
 
     flexmock(GithubProject).should_receive("get_pr").and_return(
@@ -472,12 +480,14 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
         description="Building SRPM ...",
         check_name="packit-stg/rpm-build-bright-future-x86_64",
         url="",
+        links_to_external_services=None,
     ).and_return()
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Starting RPM build...",
         check_name="packit-stg/rpm-build-bright-future-x86_64",
         url="https://test.url",
+        links_to_external_services=None,
     ).and_return()
 
     flexmock(GithubProject).should_receive("get_pr").and_return(
@@ -884,7 +894,9 @@ def test_copr_build_fails_in_packit(github_pr_event):
             conclusion=GithubCheckRunResult.failure,
             output=create_github_check_run_output(
                 "SRPM build failed, check the logs for details.",
-                MSG_MORE_DETAILS.format(url="https://test.url")
+                create_table_content(
+                    url="https://test.url", links_to_external_services=None
+                )
                 + MSG_RERUN_NOT_SUPPORTED,
             ),
         ).and_return().once()
@@ -1109,12 +1121,14 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
         description="Building SRPM ...",
         check_name="packit-stg/rpm-build-bright-future-x86_64",
         url="",
+        links_to_external_services=None,
     ).and_return()
     flexmock(StatusReporterGitlab).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Starting RPM build...",
         check_name="packit-stg/rpm-build-bright-future-x86_64",
         url="https://test.url",
+        links_to_external_services=None,
     ).and_return()
 
     mr = flexmock(source_project=flexmock())

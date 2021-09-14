@@ -259,6 +259,7 @@ class TestingFarmResultsHandler(JobHandler):
             url=get_testing_farm_info_url(test_run_model.id)
             if test_run_model
             else self.log_url,
+            links_to_external_services={"Testing Farm": self.log_url},
             check_names=TestingFarmJobHelper.get_test_check(self.copr_chroot),
         )
 

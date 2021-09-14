@@ -108,12 +108,14 @@ def test_koji_build_check_names(github_pr_event):
         description="Building SRPM ...",
         check_name="packit-stg/production-build-bright-future",
         url="",
+        links_to_external_services=None,
     ).and_return()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Building RPM ...",
         check_name="packit-stg/production-build-bright-future",
         url=koji_build_url,
+        links_to_external_services=None,
     ).and_return()
 
     flexmock(GitProject).should_receive("get_pr").and_return(
@@ -159,12 +161,14 @@ def test_koji_build_failed_kerberos(github_pr_event):
         description="Building SRPM ...",
         check_name="packit-stg/production-build-bright-future",
         url="",
+        links_to_external_services=None,
     ).and_return()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.error,
         description="Kerberos authentication error: the bad authentication error",
         check_name="packit-stg/production-build-bright-future",
         url=get_srpm_build_info_url(1),
+        links_to_external_services=None,
     ).and_return()
 
     flexmock(GitProject).should_receive("get_pr").and_return(
@@ -211,12 +215,14 @@ def test_koji_build_target_not_supported(github_pr_event):
         description="Building SRPM ...",
         check_name="packit-stg/production-build-nonexisting-target",
         url="",
+        links_to_external_services=None,
     ).and_return()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.error,
         description="Target not supported: nonexisting-target",
         check_name="packit-stg/production-build-nonexisting-target",
         url=get_srpm_build_info_url(1),
+        links_to_external_services=None,
     ).and_return()
 
     flexmock(GitProject).should_receive("get_pr").and_return(
@@ -305,6 +311,7 @@ def test_koji_build_failed(github_pr_event):
         description="Building SRPM ...",
         check_name="packit-stg/production-build-bright-future",
         url="",
+        links_to_external_services=None,
     ).and_return()
 
     srpm_build_url = get_srpm_build_info_url(2)
@@ -313,6 +320,7 @@ def test_koji_build_failed(github_pr_event):
         description="Submit of the build failed: some error",
         check_name="packit-stg/production-build-bright-future",
         url=srpm_build_url,
+        links_to_external_services=None,
     ).and_return()
 
     flexmock(GitProject).should_receive("get_pr").and_return(
@@ -351,12 +359,14 @@ def test_koji_build_failed_srpm(github_pr_event):
         description="Building SRPM ...",
         check_name="packit-stg/production-build-bright-future",
         url="",
+        links_to_external_services=None,
     ).and_return()
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.failure,
         description="SRPM build failed, check the logs for details.",
         check_name="packit-stg/production-build-bright-future",
         url=srpm_build_url,
+        links_to_external_services=None,
     ).and_return()
 
     flexmock(GitProject).should_receive("get_pr").and_return(

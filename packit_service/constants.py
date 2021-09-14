@@ -66,6 +66,8 @@ MSG_RERUN_NOT_SUPPORTED = (
     "please don't click it.*"
 )
 
+MSG_TABLE_HEADER_WITH_DETAILS = "| Name/Job | URL |\n" "| --- | --- |\n"
+
 
 class KojiBuildState(Enum):
     """
