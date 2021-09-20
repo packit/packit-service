@@ -14,11 +14,6 @@ from packit.sync import SyncFilesItem
 from packit_service.config import ServiceConfig, Deployment, PackageConfigGetter
 from packit_service.constants import TESTING_FARM_API_URL
 
-try:
-    from packit.config import SyncFilesConfig
-except ImportError:
-    pass
-
 
 @pytest.fixture(scope="module")
 def service_config_valid():
@@ -149,10 +144,6 @@ def test_config_opts(sc):
     assert sc.gitlab_token_secret is not None
 
 
-@pytest.mark.skipif(
-    "SyncFilesConfig" not in globals(),
-    reason="Remove after braking change in Packit is released.",
-)
 @pytest.mark.parametrize(
     "content,project,mock_spec_search,spec_path_option,spec_path,reference",
     [
@@ -227,6 +218,9 @@ def test_get_package_config_from_repo(
     gp = flexmock(GitProject)
     gp.should_receive("full_repo_name").and_return("a/b")
     gp.should_receive("get_file_content").with_args(
+        path=".distro/source-git.yaml", ref=reference
+    ).and_raise(FileNotFoundError, "not found")
+    gp.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref=reference
     ).and_return(content)
     if mock_spec_search:
@@ -236,13 +230,11 @@ def test_get_package_config_from_repo(
     )
     assert isinstance(config, PackageConfig)
     assert config.specfile_path == spec_path
-    assert set(config.get_all_files_to_sync().files_to_sync) == set(
-        SyncFilesConfig(
-            files_to_sync=[
-                SyncFilesItem(src="packit.spec", dest="packit.spec"),
-                SyncFilesItem(src=".packit.yaml", dest=".packit2.yaml"),
-            ]
-        ).files_to_sync
+    assert sorted(config.get_all_files_to_sync()) == sorted(
+        [
+            SyncFilesItem(src=["packit.spec"], dest="packit.spec"),
+            SyncFilesItem(src=[".packit.yaml"], dest=".packit2.yaml"),
+        ]
     )
     assert config.create_pr
     for j in config.jobs:
@@ -251,18 +243,14 @@ def test_get_package_config_from_repo(
         assert j.upstream_package_name == config.upstream_package_name
 
 
-@pytest.mark.skipif(
-    "SyncFilesConfig" not in globals(),
-    reason="Remove after braking change in Packit is released.",
-)
 def test_get_package_config_from_repo_alternative_config_name():
     gp = flexmock(GitProject)
     gp.should_receive("full_repo_name").and_return("a/b")
     gp.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref=None
+        path=".distro/source-git.yaml", ref=None
     ).and_raise(FileNotFoundError, "not found")
     gp.should_receive("get_file_content").with_args(
-        path=".packit.yml", ref=None
+        path=".packit.yaml", ref=None
     ).and_return(
         "---\nspecfile_path: packit.spec\n"
         "synced_files:\n"
@@ -277,12 +265,10 @@ def test_get_package_config_from_repo_alternative_config_name():
     )
     assert isinstance(config, PackageConfig)
     assert config.specfile_path == "packit.spec"
-    assert config.synced_files == SyncFilesConfig(
-        files_to_sync=[
-            SyncFilesItem(src="packit.spec", dest="packit.spec"),
-            SyncFilesItem(src=".packit.yaml", dest=".packit2.yaml"),
-        ]
-    )
+    assert config.synced_files == [
+        SyncFilesItem(src=["packit.spec"], dest="packit.spec"),
+        SyncFilesItem(src=[".packit.yaml"], dest=".packit2.yaml"),
+    ]
     assert config.create_pr
 
 
