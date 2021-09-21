@@ -24,7 +24,6 @@ from packit_service.models import (
     TFTTestRunModel,
     AllowlistStatus,
 )
-from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.events import (
     EventData,
     KojiBuildEvent,
@@ -1215,7 +1214,10 @@ class TestCentOSEventParser:
 
 
 def test_event_data_parse_pr(github_pr_event):
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(None)
+    # A db_trigger would be created in the get_dict() call bellow.
+    # We don't need that in this test, so let's mock it out.
+    flexmock(PullRequestGithubEvent)
+    PullRequestGithubEvent.db_trigger = None
     data = EventData.from_event_dict(github_pr_event.get_dict())
     assert data.event_type == "PullRequestGithubEvent"
     assert data.user_login == "lbarcziova"
