@@ -2,6 +2,7 @@ BASE_IMAGE ?= quay.io/packit/base
 SERVICE_IMAGE ?= quay.io/packit/packit-service:dev
 WORKER_IMAGE ?= quay.io/packit/packit-worker:dev
 TEST_IMAGE ?= quay.io/packit/packit-service-tests:stg
+PULL_TEST_IMAGE ?= missing
 TEST_TARGET ?= ./tests/unit ./tests/integration/
 CONTAINER_ENGINE ?= $(shell command -v podman 2> /dev/null || echo docker)
 ANSIBLE_PYTHON ?= /usr/bin/python3
@@ -24,15 +25,13 @@ check:
 	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=$(COLOR) --verbose --showlocals --cov=packit_service --cov-report=$(COV_REPORT) $(TEST_TARGET)
 
 # In most cases you don't need to build your test-image, the one in registry should be all you need.
-# But if you think you need your (because of some new dependency, for example),
-# remove the '--pull=always' in check-in-container target before running it.
 build-test-image: files/install-deps-worker.yaml files/install-deps.yaml files/recipe-tests.yaml
 	$(CONTAINER_ENGINE) build --rm -t $(TEST_IMAGE) -f files/docker/Dockerfile.tests --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
 
 check-in-container:
 	@# don't use -ti here in CI, TTY is not allocated in zuul
 	echo $(SOURCE_BRANCH)
-	$(CONTAINER_ENGINE) run --rm --pull=always \
+	$(CONTAINER_ENGINE) run --rm --pull="$(PULL_TEST_IMAGE)" \
 		--env COV_REPORT \
 		--env TEST_TARGET \
 		--env COLOR \
