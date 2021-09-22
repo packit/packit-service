@@ -99,6 +99,11 @@ def get_handlers_for_event(
     ):
         handlers_triggered_by_comment = get_handlers_for_comment(event.comment)
 
+        if handlers_triggered_by_comment and not isinstance(
+            event, PullRequestCommentPagureEvent
+        ):
+            event.comment_object.add_reaction("+1")
+
     if isinstance(
         event,
         CheckRerunEvent,
