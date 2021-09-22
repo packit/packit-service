@@ -16,3 +16,4 @@
       environment:
         COLOR: "no"
         SOURCE_BRANCH: "{{ zuul.branch }}"
+        CONTAINER_RUN_INTERACTIVE: ""
