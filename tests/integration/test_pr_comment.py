@@ -11,6 +11,7 @@ from github import Github
 from packit_service.worker.monitoring import Pushgateway
 
 from ogr.services.github import GithubProject
+
 from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
@@ -130,13 +131,13 @@ def mock_pr_comment_functionality(request):
         + str(request.param)
         + "}"
     )
+
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
         get_file_content=lambda path, ref: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
-        get_pr=lambda pr_id: flexmock(head_commit="12345"),
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
@@ -190,6 +191,11 @@ def test_pr_comment_copr_build_handler(
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
 
     processing_results = SteveJobs().process_message(pr_copr_build_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -228,6 +234,11 @@ def test_pr_comment_build_handler(
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
 
     processing_results = SteveJobs().process_message(pr_build_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -256,13 +267,16 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
             ],
         }
     )
+    comment = flexmock(add_reaction=lambda reaction: None)
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
         get_file_content=lambda path, ref: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
-        get_pr=lambda pr_id: flexmock(head_commit="12345"),
+        get_pr=lambda pr_id: flexmock(
+            head_commit="12345", get_comment=lambda comment_id: comment
+        ),
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
@@ -299,6 +313,11 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
 
     processing_results = SteveJobs().process_message(pr_production_build_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -366,6 +385,11 @@ def test_pr_embedded_command_handler(
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_all").with_args(
         description=TASK_ACCEPTED,
@@ -393,6 +417,8 @@ def test_pr_comment_empty_handler(
 ):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
 
     results = SteveJobs().process_message(pr_empty_comment_event)
     assert results == []
@@ -403,6 +429,8 @@ def test_pr_comment_packit_only_handler(
 ):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
 
     results = SteveJobs().process_message(pr_packit_only_comment_event)
     assert results == []
@@ -413,6 +441,8 @@ def test_pr_comment_wrong_packit_command_handler(
 ):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
 
     results = SteveJobs().process_message(pr_wrong_packit_comment_event)
     assert results == []
@@ -431,13 +461,17 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
         + str(jobs)
         + "}"
     )
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
         get_file_content=lambda path, ref: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
-        get_pr=lambda pr_id: flexmock(head_commit="12345"),
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
@@ -506,13 +540,17 @@ def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event
         + str(jobs)
         + "}"
     )
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
         get_file_content=lambda path, ref: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
-        get_pr=lambda pr_id: flexmock(head_commit="12345"),
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 

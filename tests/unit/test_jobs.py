@@ -896,6 +896,10 @@ def test_get_handlers_for_comment_event(event_cls, comment, db_trigger, jobs, re
             return db_trigger
 
     event = Event()
+    if comment:
+        comment_object = flexmock()
+        event._comment_object = comment_object
+        flexmock(comment_object).should_receive("add_reaction").with_args("+1").once()
 
     event_handlers = set(
         get_handlers_for_event(

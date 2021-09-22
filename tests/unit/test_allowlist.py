@@ -247,6 +247,7 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 project_url="https://github.com/foo/bar",
                 user_login="bar",
                 comment="",
+                comment_id=0,
             ),
             ("github.com/foo/bar.git", "github.com/foo", "github.com"),
             False,
@@ -261,6 +262,7 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 project_url="https://github.com/foo/bar",
                 user_login="baz",
                 comment="",
+                comment_id=0,
             ),
             ("github.com/foo/bar.git", "github.com/foo", "github.com"),
             False,
@@ -277,6 +279,7 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 project_url="https://github.com/fero/dwm",
                 user_login="lojzo",
                 comment="",
+                comment_id=0,
             ),
             ("github.com/fero/dwm.git", "github.com/fero"),
             True,
@@ -291,6 +294,7 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 project_url="https://gitlab.com/packit-service/src/glibc",
                 user_login="lojzo",
                 comment="",
+                comment_id=0,
             ),
             (
                 "gitlab.com/packit-service/src/glibc.git",
@@ -310,6 +314,7 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 project_url="https://github.com/banned_namespace_again/some_repo",
                 user_login="admin",
                 comment="",
+                comment_id=0,
             ),
             [],
             True,
@@ -388,6 +393,7 @@ def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]
                 "project_url": f"https://{forge}/{namespace}/{repository}",
                 "user_login": "login",
                 "comment": "",
+                "comment_id": 1,
             },
         ),
         "issue_comment": (
@@ -401,6 +407,7 @@ def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]
                 "project_url": f"https://{forge}/{namespace}/{repository}",
                 "user_login": "login",
                 "comment": "",
+                "comment_id": 1,
             },
         ),
         "admin": (
@@ -416,6 +423,7 @@ def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]
                 "project_url": f"https://{forge}/{namespace}/{repository}",
                 "user_login": "admin",
                 "comment": "",
+                "comment_id": 1,
             },
         ),
     }
