@@ -14,7 +14,6 @@ from packit_service.config import ServiceConfig
 from packit_service.log_versions import log_service_versions
 from packit_service.sentry_integration import configure_sentry
 from packit_service.service.api import blueprint
-from packit_service.service.views import builds_blueprint
 
 set_logging(logger_name="packit_service", level=logging.DEBUG)
 
@@ -28,7 +27,6 @@ def get_flask_application():
     )
     app = Flask(__name__)
     app.register_blueprint(blueprint)
-    app.register_blueprint(builds_blueprint)
     service_config = ServiceConfig.get_service_config()
     # https://flask.palletsprojects.com/en/1.1.x/config/#SERVER_NAME
     # also needs to contain port if it's not 443
