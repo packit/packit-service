@@ -11,6 +11,7 @@ PATH_TO_SECRETS ?= $(CURDIR)/secrets/
 COV_REPORT ?= term-missing
 COLOR ?= yes
 SOURCE_BRANCH ?= $(shell git branch --show-current)
+CONTAINER_RUN_INTERACTIVE ?= -it
 
 service: files/install-deps.yaml files/recipe.yaml
 	$(CONTAINER_ENGINE) pull $(BASE_IMAGE)
@@ -31,7 +32,8 @@ build-test-image: files/install-deps-worker.yaml files/install-deps.yaml files/r
 check-in-container:
 	@# don't use -ti here in CI, TTY is not allocated in zuul
 	echo $(SOURCE_BRANCH)
-	$(CONTAINER_ENGINE) run --rm --pull="$(PULL_TEST_IMAGE)" \
+	$(CONTAINER_ENGINE) run --rm $(CONTAINER_RUN_INTERACTIVE) \
+		--pull="$(PULL_TEST_IMAGE)" \
 		--env COV_REPORT \
 		--env TEST_TARGET \
 		--env COLOR \
