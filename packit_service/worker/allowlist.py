@@ -281,7 +281,7 @@ class Allowlist:
         if isinstance(
             event, (PullRequestCommentGithubEvent, MergeRequestCommentGitlabEvent)
         ):
-            project.pr_comment(event.pr_id, msg)
+            project.get_pr(event.pr_id).comment(msg)
         else:
             for job_config in job_configs:
                 job_helper = CoprBuildJobHelper(
@@ -327,7 +327,7 @@ class Allowlist:
             else f"Account {actor_name} has no write access!"
         )
         logger.debug(msg)
-        project.issue_comment(event.issue_id, msg)
+        project.get_issue(event.issue_id).comment(msg)
         return False
 
     def check_and_report(

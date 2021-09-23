@@ -231,7 +231,7 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
 
 
 @pytest.mark.parametrize(
-    "event, method, mocked_model, approved",
+    "event, mocked_model, approved",
     [
         (
             PullRequestCommentGithubEvent(
@@ -246,7 +246,6 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 user_login="bar",
                 comment="",
             ),
-            "pr_comment",
             ("github.com/foo/bar.git", "github.com/foo", "github.com"),
             False,
         ),
@@ -261,7 +260,6 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 user_login="baz",
                 comment="",
             ),
-            "issue_comment",
             ("github.com/foo/bar.git", "github.com/foo", "github.com"),
             False,
         ),
@@ -278,7 +276,6 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 user_login="lojzo",
                 comment="",
             ),
-            "pr_comment",
             ("github.com/fero/dwm.git", "github.com/fero"),
             True,
         ),
@@ -293,7 +290,6 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 user_login="lojzo",
                 comment="",
             ),
-            "issue_comment",
             (
                 "gitlab.com/packit-service/src/glibc.git",
                 "gitlab.com/packit-service/src",
@@ -313,27 +309,28 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 user_login="admin",
                 comment="",
             ),
-            "pr_comment",
             [],
             True,
         ),
     ],
     indirect=["mocked_model"],
 )
-def test_check_and_report_calls_method(
-    allowlist, event, method, mocked_model, approved
-):
+def test_check_and_report_calls_method(allowlist, event, mocked_model, approved):
     gp = GitProject("", GitService(), "")
-    mocked_gp = (
-        flexmock(gp)
-        .should_receive(method)
-        .with_args(0, "Project github.com/foo/bar.git is not on our allowlist!")
-    )
-    mocked_gp.never() if approved else mocked_gp.once()
+
     flexmock(gp).should_receive("can_merge_pr").with_args(event.user_login).and_return(
         approved
     )
-    flexmock(gp).should_receive("get_pr").and_return(flexmock(author=None))
+    mocked_pr_or_issue = flexmock(author=None)
+    if isinstance(event, IssueCommentEvent):
+        flexmock(gp).should_receive("get_issue").and_return(mocked_pr_or_issue)
+    else:
+        flexmock(gp).should_receive("get_pr").and_return(mocked_pr_or_issue)
+    expectation = mocked_pr_or_issue.should_receive("comment").with_args(
+        "Project github.com/foo/bar.git is not on our allowlist!"
+    )
+    expectation.never() if approved else expectation.once()
+
     assert (
         allowlist.check_and_report(
             event,
@@ -489,10 +486,13 @@ def test_check_and_report(
     """
     flexmock(
         GithubProject,
-        pr_comment=lambda *args, **kwargs: None,
         create_check_run=lambda *args, **kwargs: None,
-        issue_comment=lambda *args, **kwargs: None,
-        get_pr=lambda *args, **kwargs: flexmock(source_project=flexmock(), author=None),
+        get_issue=lambda *args, **kwargs: flexmock(
+            comment=lambda *args, **kwargs: None
+        ),
+        get_pr=lambda *args, **kwargs: flexmock(
+            source_project=flexmock(), author=None, comment=lambda *args, **kwargs: None
+        ),
     )
     job_configs = [
         JobConfig(

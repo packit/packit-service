@@ -143,13 +143,13 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
         BUILD_ID, "fedora-rawhide-x86_64"
     ).and_return(chroot_response)
 
+    pr = flexmock(source_project=flexmock(), target_branch="main")
+    pr.should_receive("get_comments").and_return([])
+    pr.should_receive("comment").and_return()
+
     # Reporting
-    flexmock(GithubProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock(), target_branch="main")
-    )
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     flexmock(GithubProject).should_receive("create_check_run").and_return().once()
-    flexmock(GithubProject).should_receive("get_pr_comments").and_return([])
-    flexmock(GithubProject).should_receive("pr_comment").and_return()
     flexmock(GithubProject).should_receive("get_git_urls").and_return(
         {"git": "https://github.com/packit-service/packit.git"}
     )
