@@ -42,6 +42,7 @@ from packit_service.worker.events import (
     PushGitHubEvent,
     ReleaseEvent,
     PullRequestCommentPagureEvent,
+    PipelineGitlabEvent,
 )
 from packit_service.worker.events.enums import (
     PullRequestAction,
@@ -157,6 +158,11 @@ class TestEvents:
     @pytest.fixture()
     def gitlab_mr_comment(self):
         with open(DATA_DIR / "webhooks" / "gitlab" / "mr_comment.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def gitlab_pipeline_passed(self):
+        with open(DATA_DIR / "webhooks" / "gitlab" / "pipeline_passed.json") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -619,6 +625,39 @@ class TestEvents:
             flexmock()
         ).once()
 
+        assert event_object.package_config
+
+    def test_parse_gitlab_pipeline(self, gitlab_pipeline_passed):
+        event_object = Parser.parse_event(gitlab_pipeline_passed)
+
+        assert isinstance(event_object, PipelineGitlabEvent)
+        assert (
+            event_object.project_url
+            == "https://gitlab.com/packit-as-a-service-stg/luksmeta"
+        )
+        assert event_object.project_name == "luksmeta"
+        assert event_object.pipeline_id == 366710665
+        assert event_object.git_ref == "9-c9s-src-2"
+        assert event_object.status == "success"
+        assert event_object.detailed_status == "passed"
+        assert event_object.commit_sha == "e5b31b67c9f8fe9e1b907fce8f005bca718bb9dd"
+
+        assert isinstance(event_object.project, GitlabProject)
+        assert event_object.project.full_repo_name == "packit-as-a-service-stg/luksmeta"
+        assert not event_object.base_project
+
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=event_object.base_project,
+            project=event_object.project,
+            pr_id=None,
+            reference="e5b31b67c9f8fe9e1b907fce8f005bca718bb9dd",
+            fail_when_missing=False,
+            spec_file_path=None,
+        ).and_return(
+            flexmock()
+        ).once()
         assert event_object.package_config
 
     def test_parse_testing_farm_notification(

@@ -5,6 +5,7 @@ from typing import Dict, Optional
 
 from ogr.abstract import GitProject
 
+from packit_service.models import AbstractTriggerDbType
 from packit_service.service.db_triggers import (
     AddIssueDbTrigger,
     AddPullRequestDbTrigger,
@@ -181,3 +182,29 @@ class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
         result["tag_name"] = self.tag_name
         result["issue_id"] = self.issue_id
         return result
+
+
+class PipelineGitlabEvent(AbstractGitlabEvent):
+    def __init__(
+        self,
+        project_url: str,
+        project_name: str,
+        pipeline_id: int,
+        git_ref: str,
+        status: str,
+        detailed_status: str,
+        commit_sha: str,
+    ):
+        super().__init__(project_url=project_url)
+        self.project_name = project_name
+        self.pipeline_id = pipeline_id
+        self.git_ref = git_ref
+        self.status = status
+        self.detailed_status = detailed_status
+        self.commit_sha = commit_sha
+
+    @property
+    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        # Trigger could be a dist-git MR but info about the MR doesn't seem to be sent in the event
+        # (despite what docs suggest)
+        return None

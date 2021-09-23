@@ -40,6 +40,7 @@ from packit_service.worker.events import (
     ReleaseEvent,
     TestingFarmResultsEvent,
     PullRequestCommentPagureEvent,
+    PipelineGitlabEvent,
 )
 from packit_service.worker.events.enums import (
     GitlabEventAction,
@@ -80,6 +81,7 @@ class Parser:
             MergeRequestCommentGitlabEvent,
             IssueCommentGitlabEvent,
             PushGitlabEvent,
+            PipelineGitlabEvent,
         ]
     ]:
         """
@@ -109,6 +111,7 @@ class Parser:
                 Parser.parse_merge_request_comment_event,
                 Parser.parse_gitlab_issue_comment_event,
                 Parser.parse_gitlab_push_event,
+                Parser.parse_pipeline_event,
             ),
         ):
             if response:
@@ -603,7 +606,7 @@ class Parser:
 
     @staticmethod
     def parse_installation_event(event) -> Optional[InstallationEvent]:
-        """Look into the provided event and see Github App installation details."""
+        """Look into the provided event and see if it is Github App installation details."""
         # Check if installation key in JSON isn't enough, we have to check the account as well
         if not nested_get(event, "installation", "account"):
             return None
@@ -887,6 +890,41 @@ class Parser:
             start_time=start_time,
             completion_time=completion_time,
             rpm_build_task_id=rpm_build_task_id,
+        )
+
+    @staticmethod
+    def parse_pipeline_event(event) -> Optional[PipelineGitlabEvent]:
+        """
+        Look into the provided event and see if it is Gitlab Pipeline event.
+        https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#pipeline-events
+        """
+
+        if event.get("object_kind") != "pipeline":
+            return None
+
+        project_url = nested_get(event, "project", "web_url")
+        project_name = nested_get(event, "project", "name")
+
+        pipeline_id = nested_get(event, "object_attributes", "id")
+
+        # source branch name
+        git_ref = nested_get(event, "object_attributes", "ref")
+        # source commit sha
+        commit_sha = nested_get(event, "object_attributes", "sha")
+        status = nested_get(event, "object_attributes", "status")
+        detailed_status = nested_get(event, "object_attributes", "detailed_status")
+
+        # There's also a "merge_request" key which should (according to docs) contain info
+        # about related MR but from what I've seen it was always null, so we haven't used it yet.
+
+        return PipelineGitlabEvent(
+            project_url=project_url,
+            project_name=project_name,
+            pipeline_id=pipeline_id,
+            git_ref=git_ref,
+            status=status,
+            detailed_status=detailed_status,
+            commit_sha=commit_sha,
         )
 
 
