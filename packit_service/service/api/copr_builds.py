@@ -6,7 +6,7 @@ from logging import getLogger
 
 from flask_restx import Namespace, Resource
 
-from packit_service.models import CoprBuildModel, optional_time
+from packit_service.models import CoprBuildModel, optional_timestamp
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import get_project_info_from_build, response_maker
 
@@ -37,7 +37,9 @@ class CoprBuildsList(Resource):
                 "build_id": build.build_id,
                 "status_per_chroot": {},
                 "packit_id_per_chroot": {},
-                "build_submitted_time": optional_time(build_info.build_submitted_time),
+                "build_submitted_time": optional_timestamp(
+                    build_info.build_submitted_time
+                ),
                 "web_url": build_info.web_url,
                 "ref": build_info.commit_sha,
                 "pr_id": build_info.get_pr_id(),
@@ -82,9 +84,9 @@ class CoprBuildItem(Resource):
             "build_id": build.build_id,
             "status": build.status,
             "chroot": build.target,
-            "build_submitted_time": optional_time(build.build_submitted_time),
-            "build_start_time": optional_time(build.build_start_time),
-            "build_finished_time": optional_time(build.build_finished_time),
+            "build_submitted_time": optional_timestamp(build.build_submitted_time),
+            "build_start_time": optional_timestamp(build.build_start_time),
+            "build_finished_time": optional_timestamp(build.build_finished_time),
             "commit_sha": build.commit_sha,
             "web_url": build.web_url,
             "build_logs_url": build.build_logs_url,

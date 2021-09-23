@@ -78,15 +78,36 @@ def get_sa_session() -> Session:
 def optional_time(
     datetime_object: Union[datetime, None], fmt: str = "%d/%m/%Y %H:%M:%S"
 ) -> Union[str, None]:
-    """Returns a formatted date-time string if argument is a datetime object
+    """
+    Returns a formatted date-time string if argument is a datetime object.
 
-    :param datetime_object: datatime to be converted to string
-    :param fmt: format string to be used to produce the string
-    :return: formatted string or None
+    Args:
+        datetime_object: date-time to be converted to string
+        fmt: format string to be used to produce the string.
+
+            Defaults to `"%d/%m/%Y %H:%M:%S"`.
+
+    Returns:
+        Formatted date-time or `None` if no datetime is provided.
     """
     if datetime_object is None:
         return None
     return datetime_object.strftime(fmt)
+
+
+def optional_timestamp(datetime_object: Optional[datetime]) -> Optional[int]:
+    """
+    Returns a UNIX timestamp if argument is a datetime object.
+
+    Args:
+        datetime_object: Date-time to be converted to timestamp.
+
+    Returns:
+        UNIX timestamp or `None` if no datetime object is provided.
+    """
+    if datetime_object is None:
+        return None
+    return int(datetime_object.timestamp())
 
 
 # https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
@@ -1537,6 +1558,8 @@ class InstallationModel(Base):
             "account_url": self.account_url,
             "sender_login": self.sender_login,
             "sender_id": self.sender_id,
+            # Inconsistent with other API endpoints, kept for readability for
+            # internal use, if necessary
             "created_at": optional_time(self.created_at),
         }
 
