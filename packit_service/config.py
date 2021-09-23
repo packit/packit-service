@@ -329,7 +329,7 @@ class PackageConfigGetter:
             )
 
             if pr_id:
-                project.pr_comment(pr_id, message)
+                project.get_pr(pr_id).comment(message)
             elif created_issue := PackageConfigGetter.create_issue_if_needed(
                 project, title="Invalid config", message=message
             ):

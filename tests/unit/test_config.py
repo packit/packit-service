@@ -276,7 +276,9 @@ def test_get_package_config_from_repo_not_found_exception_pr():
     gp = flexmock(GitProject)
     gp.should_receive("full_repo_name").and_return("a/b")
     gp.should_receive("get_file_content").and_raise(FileNotFoundError, "not found")
-    gp.should_receive("pr_comment").and_return(None).once()
+    gp.should_receive("get_pr").and_return(
+        flexmock().should_receive("comment").and_return(None).once().mock()
+    )
     with pytest.raises(PackitConfigException):
         PackageConfigGetter.get_package_config_from_repo(
             project=GitProject(repo="", service=GitService(), namespace=""),

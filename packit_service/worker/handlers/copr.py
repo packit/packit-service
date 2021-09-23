@@ -223,9 +223,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
 
         :return: bool
         """
-        comments = self.project.get_pr_comments(
-            pr_id=self.copr_event.pr_id, reverse=True
-        )
+        comments = self.project.get_pr(self.copr_event.pr_id).get_comments(reverse=True)
         for comment in comments:
             if comment.author.startswith("packit-as-a-service"):
                 return "Congratulations!" in comment.comment
@@ -330,7 +328,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 "* And now you can install the packages.\n"
                 "\nPlease note that the RPMs should be used only in a testing environment."
             )
-            self.project.pr_comment(pr_id=self.copr_event.pr_id, body=msg)
+            self.project.get_pr(self.copr_event.pr_id).comment(msg)
 
         build_job_helper.report_status_to_build_for_chroot(
             state=BaseCommitStatus.success,

@@ -280,22 +280,24 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
 
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
+        .should_receive("comment")
+        .with_args(
+            pr_id=342,
+            body="There are build targets that are not supported by COPR.\n"
+            "<details>\n<summary>Unprocessed build targets</summary>\n\n"
+            "```\n"
+            "bright-future-x86_64\n"
+            "fedora-32-x86_64\n"
+            "```\n</details>\n<details>\n"
+            "<summary>Available build targets</summary>\n\n"
+            "```\n"
+            "even-brighter-one-aarch64\n"
+            "not-so-bright-future-x86_64\n"
+            "```\n</details>",
+        )
+        .and_return()
     )
     flexmock(GithubProject).should_receive("create_check_run").and_return().never()
-    flexmock(GithubProject).should_receive("pr_comment").with_args(
-        pr_id=342,
-        body="There are build targets that are not supported by COPR.\n"
-        "<details>\n<summary>Unprocessed build targets</summary>\n\n"
-        "```\n"
-        "bright-future-x86_64\n"
-        "fedora-32-x86_64\n"
-        "```\n</details>\n<details>\n"
-        "<summary>Available build targets</summary>\n\n"
-        "```\n"
-        "even-brighter-one-aarch64\n"
-        "not-so-bright-future-x86_64\n"
-        "```\n</details>",
-    ).and_return()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
             flexmock(success=True)

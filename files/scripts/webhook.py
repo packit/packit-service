@@ -32,7 +32,7 @@ class PRWebhookPayload:
     def generate(self) -> Dict:
         s = ogr.GithubService(token=self.github_token)
         project = s.get_project(namespace=self.namespace, repo=self.project_name)
-        pr_info = project.get_pr_info(self.pr_id)
+        pr_info = project.get_pr(self.pr_id)
         github_pr: PullRequest = project.github_repo.get_pull(number=self.pr_id)
         full_repository_name = github_pr.base.repo.full_name
         target_namespace = github_pr.base.repo.owner.login
