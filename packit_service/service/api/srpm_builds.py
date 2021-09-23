@@ -7,7 +7,7 @@ from logging import getLogger
 from packit_service.service.urls import get_srpm_build_info_url
 from flask_restx import Namespace, Resource
 
-from packit_service.models import SRPMBuildModel, optional_time
+from packit_service.models import SRPMBuildModel, optional_timestamp
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import get_project_info_from_build, response_maker
 
@@ -31,7 +31,7 @@ class SRPMBuildsList(Resource):
                 "srpm_build_id": build.id,
                 "success": build.success,
                 "log_url": get_srpm_build_info_url(build.id),
-                "build_submitted_time": optional_time(build.build_submitted_time),
+                "build_submitted_time": optional_timestamp(build.build_submitted_time),
             }
             project = build.get_project()
 
@@ -69,7 +69,7 @@ class SRPMBuildItem(Resource):
 
         build_dict = {
             "success": build.success,
-            "build_submitted_time": optional_time(build.build_submitted_time),
+            "build_submitted_time": optional_timestamp(build.build_submitted_time),
             "url": build.url,
             "logs": build.logs,
             "run_ids": sorted(run.id for run in build.runs),

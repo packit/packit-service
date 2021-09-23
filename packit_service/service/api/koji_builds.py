@@ -6,7 +6,7 @@ from logging import getLogger
 
 from flask_restx import Namespace, Resource
 
-from packit_service.models import KojiBuildModel, optional_time
+from packit_service.models import KojiBuildModel, optional_timestamp
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import get_project_info_from_build, response_maker
 
@@ -30,7 +30,7 @@ class KojiBuildsList(Resource):
                 "packit_id": build.id,
                 "build_id": build.build_id,
                 "status": build.status,
-                "build_submitted_time": optional_time(build.build_submitted_time),
+                "build_submitted_time": optional_timestamp(build.build_submitted_time),
                 "chroot": build.target,
                 "web_url": build.web_url,
                 # from old data, sometimes build_logs_url is same and sometimes different to web_url
@@ -77,9 +77,9 @@ class KojiBuildItem(Resource):
             "build_id": build.build_id,
             "status": build.status,
             "chroot": build.target,
-            "build_start_time": optional_time(build.build_start_time),
-            "build_finished_time": optional_time(build.build_finished_time),
-            "build_submitted_time": optional_time(build.build_submitted_time),
+            "build_start_time": optional_timestamp(build.build_start_time),
+            "build_finished_time": optional_timestamp(build.build_finished_time),
+            "build_submitted_time": optional_timestamp(build.build_submitted_time),
             "commit_sha": build.commit_sha,
             "web_url": build.web_url,
             # from old data, sometimes build_logs_url is same and sometimes different to web_url

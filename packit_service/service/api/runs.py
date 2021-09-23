@@ -12,7 +12,7 @@ from packit_service.models import (
     RunModel,
     SRPMBuildModel,
     TFTTestRunModel,
-    optional_time,
+    optional_timestamp,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import get_project_info_from_build, response_maker
@@ -39,7 +39,7 @@ def process_runs(runs):
         srpm_build = SRPMBuildModel.get_by_id(pipeline.srpm_build_id)
         response_dict = {
             "merged_run_id": pipeline.merged_id,
-            "time_submitted": optional_time(srpm_build.build_submitted_time),
+            "time_submitted": optional_timestamp(srpm_build.build_submitted_time),
             "trigger": get_project_info_from_build(srpm_build),
             "srpm": {
                 "packit_id": srpm_build.id,
