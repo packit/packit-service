@@ -1,7 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from packit_service.service.api.copr_builds import optional_time
+from packit_service.models import optional_time
 from datetime import datetime
 import pytest
 
