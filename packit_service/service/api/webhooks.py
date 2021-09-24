@@ -80,6 +80,10 @@ class GithubWebhook(Resource):
             github_webhook_calls.labels(result="invalid_signature").inc()
             return str(exc), HTTPStatus.UNAUTHORIZED
 
+        if not self.interested():
+            github_webhook_calls.labels(result="not_interested").inc()
+            return "Thanks but we don't care about this event", HTTPStatus.ACCEPTED
+
         celery_app.send_task(
             name=getenv("CELERY_MAIN_TASK_NAME") or CELERY_DEFAULT_MAIN_TASK_NAME,
             kwargs={"event": msg},
@@ -87,6 +91,26 @@ class GithubWebhook(Resource):
         github_webhook_calls.labels(result="accepted").inc()
 
         return "Webhook accepted. We thank you, Github.", HTTPStatus.ACCEPTED
+
+    @staticmethod
+    def interested():
+        """
+        Check whether we want to process this event.
+        Returns:
+             `False` if we are not interested in this kind of event
+        """
+        event_type = request.headers.get("X-GitHub-Event")
+        # we want to prefilter only check runs
+        if event_type != "check_run":
+            return True
+
+        uuid = request.headers.get("X-GitHub-Delivery")
+        # we don't care about created or completed check runs
+        _interested = request.json.get("action") == "rerequested"
+        logger.debug(
+            f"{event_type} {uuid}{' (not interested)' if not _interested else ''}"
+        )
+        return _interested
 
     @staticmethod
     def validate_signature():
@@ -282,7 +306,8 @@ class GitlabWebhook(Resource):
         """
         Check object_kind in request body for events we know we give a f...
         ...finely prepared response to.
-        :return: False if we are not interested in this kind of event
+        Returns:
+             `False` if we are not interested in this kind of event
         """
 
         interesting_events = {
