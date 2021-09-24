@@ -7,7 +7,7 @@ Generic/abstract event classes.
 import copy
 from datetime import datetime, timezone
 from logging import getLogger
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, Set, List
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
@@ -44,6 +44,7 @@ class EventData:
         event_dict: Optional[dict],
         issue_id: Optional[int],
         task_accepted_time: Optional[datetime],
+        targets_override: Optional[List[str]],
     ):
         self.event_type = event_type
         self.user_login = user_login
@@ -57,6 +58,7 @@ class EventData:
         self.event_dict = event_dict
         self.issue_id = issue_id
         self.task_accepted_time = task_accepted_time
+        self.targets_override = set(targets_override) if targets_override else None
 
         # lazy attributes
         self._project = None
@@ -80,6 +82,7 @@ class EventData:
             if event.get("task_accepted_time")
             else None
         )
+        targets_override = event.get("targets_override")
 
         return EventData(
             event_type=event_type,
@@ -94,6 +97,7 @@ class EventData:
             event_dict=event,
             issue_id=issue_id,
             task_accepted_time=task_accepted_time,
+            targets_override=targets_override,
         )
 
     @property
@@ -115,6 +119,7 @@ class EventData:
                 "PullRequestCommentGithubEvent",
                 "MergeRequestCommentGitlabEvent",
                 "PullRequestCommentPagureEvent",
+                "CheckRerunPullRequestEvent",
             }:
                 self._db_trigger = PullRequestModel.get_or_create(
                     pr_id=self.pr_id,
@@ -126,6 +131,7 @@ class EventData:
                 "PushGitHubEvent",
                 "PushGitlabEvent",
                 "PushPagureEvent",
+                "CheckRerunCommitEvent",
             }:
                 self._db_trigger = GitBranchModel.get_or_create(
                     branch_name=self.git_ref,
@@ -134,9 +140,7 @@ class EventData:
                     project_url=self.project_url,
                 )
 
-            elif self.event_type in {
-                "ReleaseEvent",
-            }:
+            elif self.event_type in {"ReleaseEvent", "CheckRerunReleaseEvent"}:
                 self._db_trigger = ProjectReleaseModel.get_or_create(
                     tag_name=self.tag_name,
                     namespace=self.project.namespace,
@@ -168,6 +172,9 @@ class EventData:
         d["task_accepted_time"] = (
             int(task_accepted_time.timestamp()) if task_accepted_time else None
         )
+        targets_override = self.targets_override
+        if targets_override:
+            d["targets_override"] = list(targets_override)
         d.pop("_project", None)
         d.pop("_db_trigger", None)
         return d
@@ -223,6 +230,9 @@ class Event:
         d["project_url"] = d.get("project_url") or (
             self.db_trigger.project.project_url if self.db_trigger else None
         )
+        targets_override = self.targets_override
+        if targets_override:
+            d["targets_override"] = list(targets_override)
         return d
 
     @property
@@ -240,6 +250,14 @@ class Event:
     @property
     def package_config(self):
         raise NotImplementedError("Please implement me!")
+
+    @property
+    def targets_override(self) -> Optional[Set[str]]:
+        """
+        Return the targets to use for building/testing instead of the all targets from config
+        for the relevant events (e.g.rerunning of a single check).
+        """
+        return None
 
     def get_package_config(self):
         raise NotImplementedError("Please implement me!")

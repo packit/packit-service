@@ -16,6 +16,10 @@ from packit_service.worker.events.github import (
     PushGitHubEvent,
     ReleaseEvent,
     AbstractGithubEvent,
+    CheckRerunCommitEvent,
+    CheckRerunPullRequestEvent,
+    CheckRerunReleaseEvent,
+    CheckRerunEvent,
 )
 from packit_service.worker.events.gitlab import (
     IssueCommentGitlabEvent,
@@ -58,4 +62,8 @@ __all__ = [
     PullRequestPagureEvent.__name__,
     TestingFarmResultsEvent.__name__,
     PipelineGitlabEvent.__name__,
+    CheckRerunCommitEvent.__name__,
+    CheckRerunPullRequestEvent.__name__,
+    CheckRerunReleaseEvent.__name__,
+    CheckRerunEvent.__name__,
 ]
