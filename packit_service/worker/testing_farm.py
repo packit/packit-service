@@ -198,8 +198,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         if self.job_config.metadata.use_internal_tf:
             epel_mapping = {
-                "epel-7": "rhel-7",
-                "epel-8": "rhel-8",
+                "epel-7": "centos-7",
+                "epel-8": "centos-8",
             }
         else:
             epel_mapping = {
