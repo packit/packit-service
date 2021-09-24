@@ -684,6 +684,11 @@ class JobTriggerModel(Base):
                 session.add(trigger)
             return trigger
 
+    @classmethod
+    def get_by_id(cls, id_: int) -> "JobTriggerModel":
+        with get_sa_session() as session:
+            return session.query(JobTriggerModel).filter_by(id=id_).first()
+
     def get_trigger_object(self) -> Optional[AbstractTriggerDbType]:
         with get_sa_session() as session:
             return (
