@@ -32,6 +32,7 @@ from packit_service.worker.events import (
     PushPagureEvent,
     ReleaseEvent,
     TestingFarmResultsEvent,
+    CheckRerunEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
@@ -47,6 +48,7 @@ UncheckedEvent = Union[
     InstallationEvent,
     KojiBuildEvent,
     DistGitCommitEvent,
+    CheckRerunEvent,
 ]
 
 
@@ -291,6 +293,7 @@ class Allowlist:
                     metadata=EventData.from_event_dict(event.get_dict()),
                     db_trigger=event.db_trigger,
                     job_config=job_config,
+                    targets_override=event.targets_override,
                 )
                 msg = (
                     "Namespace is not allowed!"
@@ -357,6 +360,7 @@ class Allowlist:
                 InstallationEvent,
                 KojiBuildEvent,
                 DistGitCommitEvent,
+                CheckRerunEvent,
             ): self._check_unchecked_event,
             (
                 ReleaseEvent,
