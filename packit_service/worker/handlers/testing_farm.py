@@ -17,12 +17,15 @@ from packit_service.models import (
     TFTTestRunModel,
     CoprBuildModel,
     TestingFarmResult,
+    JobTriggerModel,
 )
 from packit_service.worker.events import (
     TestingFarmResultsEvent,
     PullRequestCommentGithubEvent,
     MergeRequestCommentGitlabEvent,
     PullRequestCommentPagureEvent,
+    CheckRerunCommitEvent,
+    CheckRerunPullRequestEvent,
 )
 from packit_service.service.urls import (
     get_testing_farm_info_url,
@@ -34,6 +37,7 @@ from packit_service.worker.handlers.abstract import (
     configured_as,
     reacts_to,
     run_for_comment,
+    run_for_check_rerun,
 )
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.result import TaskResults
@@ -45,9 +49,12 @@ logger = logging.getLogger(__name__)
 
 
 @run_for_comment(command="test")
+@run_for_check_rerun(prefix="testing-farm")
 @reacts_to(PullRequestCommentGithubEvent)
 @reacts_to(MergeRequestCommentGitlabEvent)
 @reacts_to(PullRequestCommentPagureEvent)
+@reacts_to(CheckRerunPullRequestEvent)
+@reacts_to(CheckRerunCommitEvent)
 @configured_as(job_type=JobType.tests)
 class TestingFarmHandler(JobHandler):
     """
@@ -96,7 +103,9 @@ class TestingFarmHandler(JobHandler):
             metadata=self.data,
             db_trigger=self.db_trigger,
             job_config=self.job_config,
-            targets_override={self.chroot} if self.chroot else None,
+            targets_override={self.chroot}
+            if self.chroot
+            else self.data.targets_override,
         )
 
         logger.debug(f"Test job config: {testing_farm_helper.job_tests}")
@@ -250,8 +259,16 @@ class TestingFarmResultsHandler(JobHandler):
 
         if test_run_model:
             test_run_model.set_web_url(self.log_url)
+
+        trigger = JobTriggerModel.get_or_create(
+            type=self.db_trigger.job_trigger_model_type,
+            trigger_id=self.db_trigger.id,
+        )
         status_reporter = StatusReporter.get_instance(
-            project=self.project, commit_sha=self.data.commit_sha, pr_id=self.data.pr_id
+            project=self.project,
+            commit_sha=self.data.commit_sha,
+            trigger_id=trigger.id if trigger else None,
+            pr_id=self.data.pr_id,
         )
         status_reporter.report(
             state=status,

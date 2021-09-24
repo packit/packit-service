@@ -25,6 +25,7 @@ from packit_service.worker.events import (
     InstallationEvent,
     IssueCommentEvent,
     PullRequestCommentGithubEvent,
+    CheckRerunEvent,
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.build import CoprBuildJobHelper, KojiBuildJobHelper
@@ -44,6 +45,7 @@ from packit_service.worker.handlers.abstract import (
     MAP_JOB_TYPE_TO_HANDLER,
     MAP_REQUIRED_JOB_TYPE_TO_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER,
+    MAP_CHECK_PREFIX_TO_HANDLER,
 )
 
 from packit_service.worker.monitoring import Pushgateway
@@ -82,6 +84,9 @@ def get_handlers_for_event(
         ):
             jobs_matching_trigger.append(job)
 
+    handlers_triggered_by_comment = None
+    handlers_triggered_by_check_rerun = None
+
     if isinstance(
         event,
         (
@@ -93,8 +98,14 @@ def get_handlers_for_event(
         ),
     ):
         handlers_triggered_by_comment = get_handlers_for_comment(event.comment)
-    else:
-        handlers_triggered_by_comment = None
+
+    if isinstance(
+        event,
+        CheckRerunEvent,
+    ):
+        handlers_triggered_by_check_rerun = get_handlers_for_check_rerun(
+            event.check_name_job
+        )
 
     matching_handlers: Set[Type["JobHandler"]] = set()
     for job in jobs_matching_trigger:
@@ -102,9 +113,16 @@ def get_handlers_for_event(
             MAP_JOB_TYPE_TO_HANDLER[job.type]
             | MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job.type]
         ):
-            if isinstance(event, tuple(SUPPORTED_EVENTS_FOR_HANDLER[handler])) and (
-                handlers_triggered_by_comment is None
-                or handler in handlers_triggered_by_comment
+            if (
+                isinstance(event, tuple(SUPPORTED_EVENTS_FOR_HANDLER[handler]))
+                and (
+                    handlers_triggered_by_comment is None
+                    or handler in handlers_triggered_by_comment
+                )
+                and (
+                    handlers_triggered_by_check_rerun is None
+                    or handler in handlers_triggered_by_check_rerun
+                )
             ):
                 matching_handlers.add(handler)
 
@@ -144,6 +162,15 @@ def get_handlers_for_comment(comment: str) -> Set[Type[JobHandler]]:
     handlers = MAP_COMMENT_TO_HANDLER[commands[0]]
     if not handlers:
         logger.debug(f"Command {commands[0]} not supported by packit.")
+    return handlers
+
+
+def get_handlers_for_check_rerun(check_name_job: str) -> Set[Type[JobHandler]]:
+    handlers = MAP_CHECK_PREFIX_TO_HANDLER[check_name_job]
+    if not handlers:
+        logger.debug(
+            f"Rerun for check with {check_name_job} prefix not supported by packit."
+        )
     return handlers
 
 
@@ -305,6 +332,7 @@ class SteveJobs:
                         if isinstance(handler, (CoprBuildHandler, TestingFarmHandler))
                         else KojiBuildJobHelper
                     )
+
                     job_helper = helper(
                         service_config=self.service_config,
                         package_config=event.package_config,
@@ -312,6 +340,7 @@ class SteveJobs:
                         metadata=EventData.from_event_dict(event.get_dict()),
                         db_trigger=event.db_trigger,
                         job_config=job_config,
+                        targets_override=event.targets_override,
                     )
 
                     reporting_method = (

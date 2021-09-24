@@ -61,6 +61,7 @@ class StatusReporter:
         self,
         project: GitProject,
         commit_sha: str,
+        trigger_id: int = None,
         pr_id: Optional[int] = None,
     ):
         logger.debug(
@@ -68,12 +69,18 @@ class StatusReporter:
         )
         self.project: GitProject = project
         self._project_with_commit: Optional[GitProject] = None
+
         self.commit_sha: str = commit_sha
+        self.trigger_id: int = trigger_id
         self.pr_id: Optional[int] = pr_id
 
     @classmethod
     def get_instance(
-        cls, project: GitProject, commit_sha: str, pr_id: Optional[int] = None
+        cls,
+        project: GitProject,
+        commit_sha: str,
+        trigger_id: Optional[int] = None,
+        pr_id: Optional[int] = None,
     ) -> "StatusReporter":
         """
         Get the StatusReporter instance.
@@ -85,7 +92,7 @@ class StatusReporter:
             reporter = StatusReporterGitlab
         elif isinstance(project, PagureProject):
             reporter = StatusReporterPagure
-        return reporter(project, commit_sha, pr_id)
+        return reporter(project, commit_sha, trigger_id, pr_id)
 
     @property
     def project_with_commit(self) -> GitProject:
@@ -373,10 +380,14 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
             conclusion = (
                 state_to_set if isinstance(state_to_set, GithubCheckRunResult) else None
             )
+
+            external_id = str(self.trigger_id) if self.trigger_id else None
+
             self.project_with_commit.create_check_run(
                 name=check_name,
                 commit_sha=self.commit_sha,
                 url=url or None,  # must use the http or https scheme, cannot be ""
+                external_id=external_id,
                 status=status,
                 conclusion=conclusion,
                 output=create_github_check_run_output(description, summary),
