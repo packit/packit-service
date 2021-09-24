@@ -22,6 +22,9 @@ from packit_service.worker.events import (
     PushGitlabEvent,
     ReleaseEvent,
     TestingFarmResultsEvent,
+    CheckRerunCommitEvent,
+    CheckRerunPullRequestEvent,
+    CheckRerunReleaseEvent,
 )
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
@@ -887,6 +890,127 @@ def test_get_handlers_for_comment_event(event_cls, comment, db_trigger, jobs, re
     class Event(event_cls):
         def __init__(self):
             self.comment = comment
+
+        @property
+        def db_trigger(self):
+            return db_trigger
+
+    event = Event()
+
+    event_handlers = set(
+        get_handlers_for_event(
+            event=event,
+            package_config=flexmock(jobs=jobs),
+        )
+    )
+    assert event_handlers == result
+
+
+@pytest.mark.parametrize(
+    "event_cls,check_name_job, db_trigger,jobs,result",
+    [
+        pytest.param(
+            CheckRerunPullRequestEvent,
+            "rpm-build",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=build_for_pr&pull_request&CheckRerunPullRequestEvent",
+        ),
+        pytest.param(
+            CheckRerunPullRequestEvent,
+            "testing-farm",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {TestingFarmHandler},
+            id="config=tests_for_pr&pull_request&CheckRerunPullRequestEvent",
+        ),
+        pytest.param(
+            CheckRerunPullRequestEvent,
+            "production-build",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {KojiBuildHandler},
+            id="config=production_build_for_pr&pull_request&CheckRerunPullRequestEvent",
+        ),
+        pytest.param(
+            CheckRerunCommitEvent,
+            "rpm-build",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=build_for_pr&pull_request&CheckRerunCommitEvent",
+        ),
+        pytest.param(
+            CheckRerunCommitEvent,
+            "testing-farm",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            {TestingFarmHandler},
+            id="config=tests_for_pr&pull_request&CheckRerunCommitEvent",
+        ),
+        pytest.param(
+            CheckRerunReleaseEvent,
+            "production-build",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            {KojiBuildHandler},
+            id="config=production_build_for_release&pull_request&CheckRerunCommitEvent",
+        ),
+        pytest.param(
+            CheckRerunReleaseEvent,
+            "production-build",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            [
+                JobConfig(
+                    type=JobType.production_build,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            {KojiBuildHandler},
+            id="config=production_build_for_release&pull_request&CheckRerunCommitEvent",
+        ),
+    ],
+)
+def test_get_handlers_for_check_rerun_event(
+    event_cls, check_name_job, db_trigger, jobs, result
+):
+    # We are using isinstance for matching event to handlers
+    # and flexmock can't do this for us so we need a subclass to test it.
+    # (And real event classes have a lot of __init__ arguments.)
+    class Event(event_cls):
+        def __init__(self):
+            self.check_name_job = check_name_job
 
         @property
         def db_trigger(self):
