@@ -12,7 +12,7 @@ from flexmock import flexmock
 from ogr import GithubService, GitlabService
 from packit.config import JobConfigTriggerType
 from packit_service.config import ServiceConfig
-from packit_service.models import JobTriggerModelType
+from packit_service.models import JobTriggerModelType, JobTriggerModel
 from packit_service.worker.events import (
     PullRequestGithubEvent,
     PushGitHubEvent,
@@ -118,6 +118,10 @@ def copr_build_model(
         task_accepted_time=datetime.now(),
     )
 
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=pr_model.job_trigger_model_type, trigger_id=pr_model.id
+    ).and_return(trigger_model)
+
     def mock_set_status(status):
         copr_build.status = status
 
@@ -152,6 +156,7 @@ def koji_build_pr():
         pr_id=123,
         project=project_model,
         job_config_trigger_type=JobConfigTriggerType.pull_request,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
     )
     trigger_model = flexmock(
         id=2,
@@ -175,6 +180,10 @@ def koji_build_pr():
     koji_build_model._srpm_build_for_mocking = srpm_build
     koji_build_model.get_trigger_object = lambda: pr_model
     koji_build_model.get_srpm_build = lambda: srpm_build
+
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=pr_model.job_trigger_model_type, trigger_id=pr_model.id
+    ).and_return(trigger_model)
 
     run_model = flexmock(
         id=3,

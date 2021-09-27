@@ -18,6 +18,7 @@ from packit_service.models import TFTTestRunModel
 from packit_service.worker.events import (
     TestingFarmResultsEvent as TFResultsEvent,
 )
+from packit_service.models import JobTriggerModel, JobTriggerModelType
 from packit_service.models import TestingFarmResult as TFResult
 
 from packit_service.worker.build import copr_build as cb
@@ -113,7 +114,15 @@ def test_testing_farm_response(
     )
 
     urls.DASHBOARD_URL = "https://dashboard.localhost"
-    tft_test_run_model = flexmock(id=123, submitted_time=datetime.now())
+    tft_test_run_model = flexmock(
+        id=123,
+        submitted_time=datetime.now(),
+        get_trigger_object=lambda: flexmock(
+            id=12,
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
+        ),
+    )
     tft_test_run_model.should_receive("set_status").with_args(
         tests_result
     ).and_return().once()
@@ -123,6 +132,9 @@ def test_testing_farm_response(
 
     flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
         tft_test_run_model
+    )
+    flexmock(JobTriggerModel).should_receive("get_or_create").and_return(
+        flexmock(id=1, type=JobTriggerModelType.pull_request)
     )
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)

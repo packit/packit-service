@@ -22,6 +22,8 @@ from packit_service.models import (
     AllowlistModel as DBAllowlist,
     AllowlistStatus,
     PullRequestModel,
+    JobTriggerModel,
+    JobTriggerModelType,
 )
 from packit_service.worker.events import (
     EventData,
@@ -507,8 +509,16 @@ def test_check_and_report(
         )
     )
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(
-        flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request)
+        flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
+        )
     )
+
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
 
     git_project = GithubProject("", GithubService(), "")
     for event, is_valid, resolved_through in events:

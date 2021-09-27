@@ -19,7 +19,12 @@ from packit.exceptions import PackitCommandFailedError
 from packit.upstream import Upstream
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
-from packit_service.models import SRPMBuildModel, KojiBuildModel
+from packit_service.models import (
+    SRPMBuildModel,
+    KojiBuildModel,
+    JobTriggerModel,
+    JobTriggerModelType,
+)
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.events import (
     PullRequestGithubEvent,
@@ -90,8 +95,13 @@ def build_helper(
 
 def test_koji_build_check_names(github_pr_event):
     trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobConfigTriggerType.pull_request))
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
@@ -144,8 +154,13 @@ def test_koji_build_check_names(github_pr_event):
 
 def test_koji_build_failed_kerberos(github_pr_event):
     trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
@@ -198,8 +213,13 @@ def test_koji_build_failed_kerberos(github_pr_event):
 
 def test_koji_build_target_not_supported(github_pr_event):
     trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
@@ -245,8 +265,13 @@ def test_koji_build_target_not_supported(github_pr_event):
 
 def test_koji_build_with_multiple_targets(github_pr_event):
     trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
@@ -294,8 +319,13 @@ def test_koji_build_with_multiple_targets(github_pr_event):
 
 def test_koji_build_failed(github_pr_event):
     trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
@@ -345,8 +375,13 @@ def test_koji_build_failed(github_pr_event):
 
 def test_koji_build_failed_srpm(github_pr_event):
     trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
@@ -387,8 +422,13 @@ def test_koji_build_failed_srpm(github_pr_event):
 
 def test_koji_build_targets_override(github_pr_event):
     trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,

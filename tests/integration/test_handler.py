@@ -11,7 +11,12 @@ from packit.config import JobConfig, JobConfigTriggerType, JobType, PackageConfi
 from packit.config.job_config import JobMetadataConfig
 from packit_service.config import ServiceConfig
 from packit_service.constants import KOJI_PRODUCTION_BUILDS_ISSUE
-from packit_service.models import GitBranchModel, PullRequestModel
+from packit_service.models import (
+    GitBranchModel,
+    PullRequestModel,
+    JobTriggerModel,
+    JobTriggerModelType,
+)
 from packit_service.worker.handlers import (
     JobHandler,
     CoprBuildHandler,
@@ -148,8 +153,15 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
         repo_name="packit",
         project_url="https://github.com/packit-service/packit",
     ).and_return(
-        flexmock(id=342, job_config_trigger_type=JobConfigTriggerType.pull_request)
+        flexmock(
+            id=342,
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
+        )
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=342
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.neutral,
         description="Non-scratch builds not possible from upstream.",

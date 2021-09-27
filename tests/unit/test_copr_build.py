@@ -32,7 +32,12 @@ from packit.exceptions import FailedCreateSRPM, PackitCoprSettingsException
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import MSG_RERUN_NOT_SUPPORTED
-from packit_service.models import CoprBuildModel, SRPMBuildModel
+from packit_service.models import (
+    CoprBuildModel,
+    SRPMBuildModel,
+    JobTriggerModel,
+    JobTriggerModelType,
+)
 from packit_service.service.db_triggers import (
     AddPullRequestDbTrigger,
     AddBranchPushDbTrigger,
@@ -139,8 +144,13 @@ def build_helper(
 
 def test_copr_build_check_names(github_pr_event):
     trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
@@ -233,8 +243,13 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
     # packit.config.aliases.get_aliases.cache_clear()
     # packit.copr_helper.CoprHelper.get_available_chroots.cache_clear()
     trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
@@ -350,8 +365,13 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
 
 def test_copr_build_check_names_multiple_jobs(github_pr_event):
     trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
@@ -462,8 +482,13 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
 
 def test_copr_build_check_names_custom_owner(github_pr_event):
     trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
@@ -559,8 +584,13 @@ def test_copr_build_success_set_test_check(github_pr_event):
         ),
     )
     trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         jobs=[test_job],
@@ -625,7 +655,14 @@ def test_copr_build_for_branch(branch_push_event):
             dist_git_branches=["build-branch"],
         ),
     )
-    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.commit, id=123)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.branch_push,
+    )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.branch_push, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.branch_push))
     flexmock(AddBranchPushDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         jobs=[branch_build_job],
@@ -691,7 +728,14 @@ def test_copr_build_for_branch_failed(branch_push_event):
             dist_git_branches=["build-branch"],
         ),
     )
-    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.commit, id=123)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.branch_push,
+    )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.branch_push, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.branch_push))
     flexmock(AddBranchPushDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         jobs=[branch_build_job],
@@ -748,7 +792,14 @@ def test_copr_build_for_release(release_event):
             dist_git_branches=["build-branch"],
         ),
     )
-    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.release,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.release,
+    )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.release, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.release))
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(trigger)
     flexmock(release_event.project).should_receive("get_sha_from_tag").and_return(
         "123456"
@@ -811,9 +862,14 @@ def test_copr_build_success(github_pr_event):
     helper = build_helper(
         event=github_pr_event,
         db_trigger=flexmock(
-            job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
         ),
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(GithubProject).should_receive("create_check_run").and_return().times(8)
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
@@ -867,9 +923,14 @@ def test_copr_build_fails_in_packit(github_pr_event):
     helper = build_helper(
         event=github_pr_event,
         db_trigger=flexmock(
-            job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
         ),
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
 
     flexmock(packit_service.worker.build.copr_build).should_receive(
         "get_valid_build_targets"
@@ -883,6 +944,7 @@ def test_copr_build_fails_in_packit(github_pr_event):
             name=templ.format(ver=v),
             commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
             url=None,
+            external_id="2",
             status=GithubCheckRunStatus.in_progress,
             conclusion=None,
             output=create_github_check_run_output("Building SRPM ...", ""),
@@ -892,6 +954,7 @@ def test_copr_build_fails_in_packit(github_pr_event):
             name=templ.format(ver=v),
             commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
             url="https://test.url",
+            external_id="2",
             status=GithubCheckRunStatus.completed,
             conclusion=GithubCheckRunResult.failure,
             output=create_github_check_run_output(
@@ -927,9 +990,14 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
     helper = build_helper(
         event=github_pr_event,
         db_trigger=flexmock(
-            job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
         ),
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
     flexmock(copr_build).should_receive("get_srpm_build_info_url").and_return(
         "https://test.url"
@@ -942,6 +1010,7 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
             name=templ.format(ver=v),
             commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
             url=None,
+            external_id="2",
             status=GithubCheckRunStatus.in_progress,
             conclusion=None,
             output=create_github_check_run_output("Building SRPM ...", ""),
@@ -951,6 +1020,7 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
             name=templ.format(ver=v),
             commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
             url=None,
+            external_id="2",
             status=GithubCheckRunStatus.completed,
             conclusion=GithubCheckRunResult.failure,
             output=create_github_check_run_output(
@@ -1042,9 +1112,14 @@ def test_copr_build_no_targets(github_pr_event):
         event=github_pr_event,
         metadata=JobMetadataConfig(owner="nobody"),
         db_trigger=flexmock(
-            job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
         ),
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
 
     flexmock(copr_build).should_receive("get_srpm_build_info_url").and_return(
         "https://test.url"
@@ -1103,8 +1178,13 @@ def test_copr_build_no_targets(github_pr_event):
 
 def test_copr_build_check_names_gitlab(gitlab_mr_event):
     trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(CoprBuildJobHelper).should_receive("is_reporting_allowed").and_return(True)
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
@@ -1206,11 +1286,18 @@ def test_copr_build_success_set_test_check_gitlab(gitlab_mr_event):
             owner="nobody", targets=["bright-future-x86_64", "brightest-future-x86_64"]
         ),
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(CoprBuildJobHelper).should_receive("is_reporting_allowed").and_return(True)
     flexmock(packit_service.worker.build.copr_build).should_receive(
         "get_valid_build_targets"
     ).and_return(["bright-future-x86_64", "brightest-future-x86_64"])
-    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+    )
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         jobs=[test_job],
@@ -1279,7 +1366,14 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
         ),
     )
     flexmock(CoprBuildJobHelper).should_receive("is_reporting_allowed").and_return(True)
-    trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.commit)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.branch_push,
+    )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.branch_push, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.branch_push))
     flexmock(AddBranchPushDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         jobs=[branch_build_job],
@@ -1340,10 +1434,15 @@ def test_copr_build_success_gitlab(gitlab_mr_event):
     helper = build_helper(
         event=gitlab_mr_event,
         db_trigger=flexmock(
-            job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
         ),
         project_type=GitlabProject,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(CoprBuildJobHelper).should_receive("is_reporting_allowed").and_return(True)
     mr = flexmock(source_project=flexmock())
     flexmock(GitlabProject).should_receive("get_pr").and_return(mr)
@@ -1405,10 +1504,15 @@ def test_copr_build_fails_in_packit_gitlab(gitlab_mr_event):
     helper = build_helper(
         event=gitlab_mr_event,
         db_trigger=flexmock(
-            job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
         ),
         project_type=GitlabProject,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(CoprBuildJobHelper).should_receive("is_reporting_allowed").and_return(True)
     templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
     flexmock(copr_build).should_receive("get_srpm_build_info_url").and_return(
@@ -1458,10 +1562,15 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
     helper = build_helper(
         event=gitlab_mr_event,
         db_trigger=flexmock(
-            job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
         ),
         project_type=GitlabProject,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(BaseBuildJobHelper).should_receive("is_gitlab_instance").and_return(True)
     flexmock(BaseBuildJobHelper).should_receive("base_project").and_return(
         GitlabProject(
@@ -1545,10 +1654,15 @@ def test_copr_build_no_targets_gitlab(gitlab_mr_event):
         event=gitlab_mr_event,
         metadata=JobMetadataConfig(owner="nobody"),
         db_trigger=flexmock(
-            job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
         ),
         project_type=GitlabProject,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(CoprBuildJobHelper).should_receive("is_reporting_allowed").and_return(True)
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
         {"fedora-32-x86_64", "fedora-31-x86_64"}
@@ -1616,8 +1730,13 @@ def test_copr_build_targets_override(github_pr_event):
         ),
     )
     trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         jobs=[test_job],
