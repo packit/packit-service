@@ -323,7 +323,7 @@ class PackageConfigGetter:
             message = (
                 f"Failed to load packit config file:\n```\n{str(ex)}\n```\n"
                 "For more info, please check out the documentation: "
-                "https://packit.dev/packit-as-a-service/ or contact us - "
+                "https://packit.dev/docs/packit-service or contact us - "
                 "[Packit team]"
                 "(https://github.com/orgs/packit/teams/the-packit-team)"
             )

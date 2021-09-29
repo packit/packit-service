@@ -286,10 +286,11 @@ class GitlabWebhook(Resource):
         """
 
         interesting_events = {
-            "Note Hook",
-            "Merge Request Hook",
-            "Push Hook",
             "Issue Hook",
+            "Merge Request Hook",
+            "Note Hook",
+            "Pipeline Hook",
+            "Push Hook",
         }
         event_type = request.headers.get("X-Gitlab-Event")
         if not event_type and not config.validate_webhooks:
