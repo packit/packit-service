@@ -21,6 +21,9 @@ from packit_service.worker.events import (
     KojiBuildEvent,
     MergeRequestCommentGitlabEvent,
     PushGitlabEvent,
+    CheckRerunCommitEvent,
+    CheckRerunPullRequestEvent,
+    CheckRerunReleaseEvent,
 )
 from packit_service.worker.parser import Parser
 from packit_service.worker.testing_farm import TestingFarmJobHelper
@@ -356,3 +359,82 @@ def test_koji_build_scratch_end(
     assert isinstance(event_object.db_trigger.project, GitProjectModel)
     assert event_object.db_trigger.project.namespace == "the-namespace"
     assert event_object.db_trigger.project.repo_name == "the-repo-name"
+
+
+def test_parse_check_rerun_commit(
+    clean_before_and_after,
+    branch_model,
+    branch_trigger_model,
+    check_rerun_event_dict_commit,
+):
+    check_rerun_event_dict_commit["check_run"]["external_id"] = str(
+        branch_trigger_model.id
+    )
+    event_object = Parser.parse_event(check_rerun_event_dict_commit)
+
+    assert isinstance(event_object, CheckRerunCommitEvent)
+    assert event_object.repo_namespace == "packit"
+    assert event_object.repo_name == "hello-world"
+    assert event_object.commit_sha == "0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd"
+    assert event_object.project_url == "https://github.com/packit/hello-world"
+    assert event_object.git_ref == branch_model.name
+    assert event_object.identifier == branch_model.name
+    assert event_object.check_name_job == "testing-farm"
+    assert event_object.check_name_target == "fedora-rawhide-x86_64"
+
+    assert isinstance(event_object.project, GithubProject)
+    assert event_object.project.full_repo_name == "packit/hello-world"
+    assert not event_object.base_project
+    assert event_object.targets_override == {"fedora-rawhide-x86_64"}
+
+
+def test_parse_check_rerun_pull_request(
+    clean_before_and_after, pr_model, pr_trigger_model, check_rerun_event_dict_commit
+):
+    check_rerun_event_dict_commit["check_run"]["external_id"] = str(pr_trigger_model.id)
+    event_object = Parser.parse_event(check_rerun_event_dict_commit)
+
+    assert isinstance(event_object, CheckRerunPullRequestEvent)
+    assert event_object.repo_namespace == "packit"
+    assert event_object.repo_name == "hello-world"
+    assert event_object.commit_sha == "0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd"
+    assert event_object.project_url == "https://github.com/packit/hello-world"
+    assert event_object.pr_id == pr_model.pr_id
+    assert event_object.identifier == str(pr_model.pr_id)
+    assert isinstance(event_object.project, GithubProject)
+    assert event_object.project.full_repo_name == "packit/hello-world"
+    assert (
+        not event_object.base_project  # With Github app, we cannot work with fork repo
+    )
+    assert event_object.check_name_job == "testing-farm"
+    assert event_object.check_name_target == "fedora-rawhide-x86_64"
+    assert event_object.targets_override == {"fedora-rawhide-x86_64"}
+
+
+def test_parse_check_rerun_release(
+    clean_before_and_after,
+    release_model,
+    release_trigger_model,
+    check_rerun_event_dict_commit,
+):
+    check_rerun_event_dict_commit["check_run"]["external_id"] = str(
+        release_trigger_model.id
+    )
+    event_object = Parser.parse_event(check_rerun_event_dict_commit)
+
+    assert isinstance(event_object, CheckRerunReleaseEvent)
+    assert event_object.repo_namespace == "packit"
+    assert event_object.repo_name == "hello-world"
+    assert event_object.commit_sha == "0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd"
+    assert event_object.project_url == "https://github.com/packit/hello-world"
+    assert event_object.tag_name == release_model.tag_name
+    assert event_object.git_ref == release_model.tag_name
+    assert event_object.identifier == release_model.tag_name
+    assert isinstance(event_object.project, GithubProject)
+    assert event_object.project.full_repo_name == "packit/hello-world"
+    assert (
+        not event_object.base_project  # With Github app, we cannot work with fork repo
+    )
+    assert event_object.check_name_job == "testing-farm"
+    assert event_object.check_name_target == "fedora-rawhide-x86_64"
+    assert event_object.targets_override == {"fedora-rawhide-x86_64"}

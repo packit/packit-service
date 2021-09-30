@@ -680,50 +680,49 @@ class Parser:
             logger.warning("No external_id to identify the original trigger provided.")
             return None
 
-        job_trigger = JobTriggerModel.get_by_id(int(external_id)).get_trigger_object()
+        job_trigger = JobTriggerModel.get_by_id(int(external_id))
         if not job_trigger:
-            logger.warning(
-                f"We were not able to get the original trigger from trigger ID {external_id}."
-            )
+            logger.warning(f"Job trigger with ID {external_id} not found.")
             return None
 
-        logger.info(f"Original trigger:{job_trigger}")
+        db_trigger = job_trigger.get_trigger_object()
+        logger.info(f"Original trigger: {db_trigger}")
 
         event = None
-        if isinstance(job_trigger, PullRequestModel):
+        if isinstance(db_trigger, PullRequestModel):
             event = CheckRerunPullRequestEvent(
                 repo_namespace=repo_namespace,
                 repo_name=repo_name,
                 project_url=https_url,
                 commit_sha=commit_sha,
-                pr_id=job_trigger.pr_id,
+                pr_id=db_trigger.pr_id,
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
-                db_trigger=job_trigger,
+                db_trigger=db_trigger,
             )
 
-        elif isinstance(job_trigger, ProjectReleaseModel):
+        elif isinstance(db_trigger, ProjectReleaseModel):
             event = CheckRerunReleaseEvent(
                 repo_namespace=repo_namespace,
                 repo_name=repo_name,
                 project_url=https_url,
                 commit_sha=commit_sha,
-                tag_name=job_trigger.tag_name,
+                tag_name=db_trigger.tag_name,
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
-                db_trigger=job_trigger,
+                db_trigger=db_trigger,
             )
 
-        elif isinstance(job_trigger, GitBranchModel):
+        elif isinstance(db_trigger, GitBranchModel):
             event = CheckRerunCommitEvent(
                 repo_namespace=repo_namespace,
                 repo_name=repo_name,
                 project_url=https_url,
                 commit_sha=commit_sha,
-                git_ref=job_trigger.name,
+                git_ref=db_trigger.name,
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
-                db_trigger=job_trigger,
+                db_trigger=db_trigger,
             )
 
         return event
