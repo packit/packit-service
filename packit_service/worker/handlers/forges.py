@@ -79,7 +79,7 @@ class GithubAppInstallationHandler(JobHandler):
                     "order to start using Packit-as-a-Service. Someone from our team will "
                     "get back to you shortly.\n\n"
                     "For more info, please check out the documentation: "
-                    "http://packit.dev/packit-as-a-service/"
+                    "https://packit.dev/docs/packit-service"
                 ),
             )
             msg = f"{self.account_type} {self.account_login} needs to be approved manually!"
