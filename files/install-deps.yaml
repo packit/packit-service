@@ -29,8 +29,6 @@
           - python3-psycopg2
           - python3-celery
           - python3-redis # celery[redis]
-          - python3-boto3 # celery[sqs]
-          - python3-pycurl # celery[sqs]
           - python3-lazy-object-proxy
           - python3-flask-restx
           - python3-flexmock # because of the hack during the alembic upgrade

@@ -61,9 +61,6 @@ services:
       REDIS_SERVICE_HOST: redis
       APP: packit_service.worker.tasks
       KRB5CCNAME: FILE:/tmp/krb5cc_packit
-      AWS_ACCESS_KEY_ID: ""
-      AWS_SECRET_ACCESS_KEY: ""
-      QUEUE_NAME_PREFIX: packit-dev-
       POSTGRESQL_USER: packit
       POSTGRESQL_PASSWORD: secret-password
       POSTGRESQL_HOST: postgres
@@ -98,9 +95,6 @@ services:
     environment:
       DEPLOYMENT: dev
       REDIS_SERVICE_HOST: redis
-      AWS_ACCESS_KEY_ID: ""
-      AWS_SECRET_ACCESS_KEY: ""
-      QUEUE_NAME_PREFIX: packit-dev-
       POSTGRESQL_USER: packit
       POSTGRESQL_PASSWORD: secret-password
       POSTGRESQL_HOST: postgres
