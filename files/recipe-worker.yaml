@@ -6,11 +6,11 @@
     packit_service_path: /src
   tasks:
     - import_tasks: tasks/common.yaml
-    - name: Create /sandcastle
+    - name: Create /tmp/sandcastle
       # working dir for the upstream git which is mapped to the sandbox pod
       file:
         state: directory
-        path: /sandcastle
+        path: /tmp/sandcastle
         mode: 0777
     - name: Copy gitconfig
       copy:

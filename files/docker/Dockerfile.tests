@@ -13,7 +13,7 @@ ENV USER=packit \
     HOME=/home/packit
 
 RUN set -ex; \
-    mkdir -m 0777 /sandcastle && \
+    mkdir -m 0777 /tmp/sandcastle && \
     mkdir -m 0776 -p ${HOME} && \
     mkdir -p ${HOME}/.config
 
