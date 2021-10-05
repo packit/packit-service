@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Dict, Any, Optional, Tuple, Set
+from typing import Dict, Any, Optional, Tuple, Set, List, Union
 
 import requests
 from ogr.abstract import GitProject
@@ -96,7 +96,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         return self.metadata.commit_sha
 
-    def _payload(self, build_id: int, chroot: str) -> dict:
+    def _payload(
+        self, build_id: int, chroot: str, built_packages: Optional[List[Dict]]
+    ) -> dict:
         """
         Testing Farm API: https://testing-farm.gitlab.io/api/
 
@@ -112,6 +114,20 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if self.fmf_ref:
             fmf["ref"] = self.fmf_ref
 
+        artifact: Dict[str, Union[List[str], str]] = {
+            "id": f"{build_id}:{chroot}",
+            "type": "fedora-copr-build",
+        }
+
+        if built_packages:
+            packages = [
+                f"{package['name']}-{package['epoch']}:{package['version']}-"
+                f"{package['release']}.{package['arch']}"
+                for package in built_packages
+                if package["arch"] != "src"
+            ]
+            artifact["packages"] = packages
+
         return {
             "api_key": self.tft_token,
             "test": {
@@ -121,12 +137,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 {
                     "arch": arch,
                     "os": {"compose": compose},
-                    "artifacts": [
-                        {
-                            "id": f"{build_id}:{chroot}",
-                            "type": "fedora-copr-build",
-                        }
-                    ],
+                    "artifacts": [artifact],
                     "tmt": {
                         "context": {"distro": distro, "arch": arch, "trigger": "commit"}
                     },
@@ -328,7 +339,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         logger.info("Sending testing farm request...")
         if self.is_fmf_configured():
-            payload = self._payload(int(build.build_id), chroot)
+            payload = self._payload(int(build.build_id), chroot, build.built_packages)
         else:
             payload = self._payload_install_test(int(build.build_id), chroot)
         endpoint = "requests"

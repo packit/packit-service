@@ -816,7 +816,24 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
     # metadata is reserved to sqlalch
     data = Column(JSON)
 
+    # info about built packages we get from Copr, e.g.
+    # [
+    #   {
+    #       "arch": "noarch",
+    #       "epoch": 0,
+    #       "name": "python3-packit",
+    #       "release": "1.20210930124525726166.main.0.g0b7b36b.fc36",
+    #       "version": "0.38.0",
+    #   }
+    # ]
+    built_packages = Column(JSON)
+
     runs = relationship("RunModel", back_populates="copr_build")
+
+    def set_built_packages(self, built_packages):
+        with get_sa_session() as session:
+            self.built_packages = built_packages
+            session.add(self)
 
     def set_start_time(self, start_time: DateTime):
         with get_sa_session() as session:
