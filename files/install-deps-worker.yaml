@@ -24,8 +24,6 @@
           - python3-psycopg2
           - python3-celery # unfortunately, the probes don't work with this
           - python3-redis # celery[redis]
-          - python3-boto3 # celery[sqs]
-          - python3-pycurl # celery[sqs]
           - python3-lazy-object-proxy
           - python3-bugzilla # python-bugzilla (not bugzilla) on PyPI
           - python3-backoff # Bugzilla class
