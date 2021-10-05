@@ -35,6 +35,9 @@ from packit_service.worker.events import (
     PushGitlabEvent,
     PushPagureEvent,
     ReleaseEvent,
+    CheckRerunCommitEvent,
+    CheckRerunPullRequestEvent,
+    CheckRerunReleaseEvent,
 )
 from packit_service.service.urls import (
     get_koji_build_info_url,
@@ -46,6 +49,7 @@ from packit_service.worker.handlers.abstract import (
     configured_as,
     reacts_to,
     run_for_comment,
+    run_for_check_rerun,
     add_topic,
     FedmsgHandler,
 )
@@ -57,6 +61,7 @@ logger = logging.getLogger(__name__)
 
 @configured_as(job_type=JobType.production_build)
 @run_for_comment(command="production-build")
+@run_for_check_rerun(prefix="production-build")
 @reacts_to(ReleaseEvent)
 @reacts_to(PullRequestGithubEvent)
 @reacts_to(PushGitHubEvent)
@@ -65,6 +70,9 @@ logger = logging.getLogger(__name__)
 @reacts_to(PullRequestCommentGithubEvent)
 @reacts_to(MergeRequestCommentGitlabEvent)
 @reacts_to(PullRequestCommentPagureEvent)
+@reacts_to(CheckRerunPullRequestEvent)
+@reacts_to(CheckRerunCommitEvent)
+@reacts_to(CheckRerunReleaseEvent)
 class KojiBuildHandler(JobHandler):
     task_name = TaskName.koji_build
 
@@ -94,6 +102,7 @@ class KojiBuildHandler(JobHandler):
                 metadata=self.data,
                 db_trigger=self.data.db_trigger,
                 job_config=self.job_config,
+                targets_override=self.data.targets_override,
             )
         return self._koji_build_helper
 

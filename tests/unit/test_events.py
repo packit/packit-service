@@ -4,7 +4,6 @@
 """
 Tests for events parsing
 """
-
 import json
 from datetime import datetime, timezone
 
@@ -23,6 +22,10 @@ from packit_service.models import (
     TestingFarmResult,
     TFTTestRunModel,
     AllowlistStatus,
+    JobTriggerModel,
+    GitBranchModel,
+    ProjectReleaseModel,
+    PullRequestModel,
 )
 from packit_service.worker.events import (
     EventData,
@@ -43,6 +46,9 @@ from packit_service.worker.events import (
     ReleaseEvent,
     PullRequestCommentPagureEvent,
     PipelineGitlabEvent,
+    CheckRerunCommitEvent,
+    CheckRerunPullRequestEvent,
+    CheckRerunReleaseEvent,
 )
 from packit_service.worker.events.enums import (
     PullRequestAction,
@@ -180,6 +186,13 @@ class TestEvents:
     @pytest.fixture()
     def koji_build_scratch_end(self):
         with open(DATA_DIR / "fedmsg" / "koji_build_scratch_end.json", "r") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def check_rerun(self):
+        with open(
+            DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json"
+        ) as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -973,6 +986,105 @@ class TestEvents:
         )
         event_object = Parser.parse_event(testing_farm_notification)
         assert json.dumps(event_object.pipeline_id)
+
+    def test_parse_check_rerun_commit(self, check_rerun):
+        trigger = flexmock(JobTriggerModel, trigger_id=123)
+        branch_model = GitBranchModel(name="main")
+        flexmock(JobTriggerModel).should_receive("get_by_id").with_args(
+            123456
+        ).and_return(trigger)
+        flexmock(trigger).should_receive("get_trigger_object").and_return(branch_model)
+        event_object = Parser.parse_event(check_rerun)
+
+        assert isinstance(event_object, CheckRerunCommitEvent)
+        assert event_object.repo_namespace == "packit"
+        assert event_object.repo_name == "hello-world"
+        assert event_object.commit_sha == "0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd"
+        assert event_object.project_url == "https://github.com/packit/hello-world"
+        assert event_object.git_ref == "main"
+        assert event_object.identifier == "main"
+        assert event_object.check_name_job == "testing-farm"
+        assert event_object.check_name_target == "fedora-rawhide-x86_64"
+
+        assert isinstance(event_object.project, GithubProject)
+        assert event_object.project.full_repo_name == "packit/hello-world"
+        assert not event_object.base_project
+
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=event_object.base_project,
+            project=event_object.project,
+            pr_id=None,
+            reference="0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd",
+            fail_when_missing=False,
+            spec_file_path=None,
+        ).and_return(
+            flexmock()
+        ).once()
+        assert event_object.package_config
+        assert event_object.targets_override == {"fedora-rawhide-x86_64"}
+
+    def test_parse_check_rerun_pull_request(self, check_rerun):
+        trigger = flexmock(JobTriggerModel, trigger_id=1234)
+        pr_model = PullRequestModel(pr_id=12)
+        flexmock(JobTriggerModel).should_receive("get_by_id").with_args(
+            123456
+        ).and_return(trigger)
+        flexmock(trigger).should_receive("get_trigger_object").and_return(pr_model)
+        event_object = Parser.parse_event(check_rerun)
+
+        assert isinstance(event_object, CheckRerunPullRequestEvent)
+        assert event_object.repo_namespace == "packit"
+        assert event_object.repo_name == "hello-world"
+        assert event_object.commit_sha == "0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd"
+        assert event_object.project_url == "https://github.com/packit/hello-world"
+        assert event_object.pr_id == 12
+        assert event_object.identifier == "12"
+        assert isinstance(event_object.project, GithubProject)
+        assert event_object.project.full_repo_name == "packit/hello-world"
+        assert (
+            not event_object.base_project  # With Github app, we cannot work with fork repo
+        )
+        assert event_object.check_name_job == "testing-farm"
+        assert event_object.check_name_target == "fedora-rawhide-x86_64"
+
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=None,
+            project=event_object.project,
+            pr_id=12,
+            reference="0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd",
+            fail_when_missing=False,
+            spec_file_path=None,
+        ).and_return(
+            flexmock()
+        ).once()
+        assert event_object.package_config
+        assert event_object.targets_override == {"fedora-rawhide-x86_64"}
+
+    def test_parse_check_rerun_release(self, check_rerun):
+        trigger = flexmock(JobTriggerModel, trigger_id=123)
+        release_model = ProjectReleaseModel(tag_name="0.1.0")
+        flexmock(JobTriggerModel).should_receive("get_by_id").with_args(
+            123456
+        ).and_return(trigger)
+        flexmock(trigger).should_receive("get_trigger_object").and_return(release_model)
+
+        event_object = Parser.parse_event(check_rerun)
+
+        assert isinstance(event_object, CheckRerunReleaseEvent)
+        assert event_object.repo_namespace == "packit"
+        assert event_object.repo_name == "hello-world"
+        assert event_object.commit_sha == "0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd"
+        assert event_object.project_url == "https://github.com/packit/hello-world"
+        assert event_object.tag_name == "0.1.0"
+        assert event_object.git_ref == "0.1.0"
+        assert event_object.identifier == "0.1.0"
+        assert event_object.check_name_job == "testing-farm"
+        assert event_object.check_name_target == "fedora-rawhide-x86_64"
+        assert event_object.targets_override == {"fedora-rawhide-x86_64"}
 
 
 class TestCentOSEventParser:

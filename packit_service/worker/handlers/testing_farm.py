@@ -17,12 +17,15 @@ from packit_service.models import (
     TFTTestRunModel,
     CoprBuildModel,
     TestingFarmResult,
+    JobTriggerModel,
 )
 from packit_service.worker.events import (
     TestingFarmResultsEvent,
     PullRequestCommentGithubEvent,
     MergeRequestCommentGitlabEvent,
     PullRequestCommentPagureEvent,
+    CheckRerunCommitEvent,
+    CheckRerunPullRequestEvent,
 )
 from packit_service.service.urls import (
     get_testing_farm_info_url,
@@ -34,6 +37,7 @@ from packit_service.worker.handlers.abstract import (
     configured_as,
     reacts_to,
     run_for_comment,
+    run_for_check_rerun,
 )
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.result import TaskResults
@@ -45,9 +49,12 @@ logger = logging.getLogger(__name__)
 
 
 @run_for_comment(command="test")
+@run_for_check_rerun(prefix="testing-farm")
 @reacts_to(PullRequestCommentGithubEvent)
 @reacts_to(MergeRequestCommentGitlabEvent)
 @reacts_to(PullRequestCommentPagureEvent)
+@reacts_to(CheckRerunPullRequestEvent)
+@reacts_to(CheckRerunCommitEvent)
 @configured_as(job_type=JobType.tests)
 class TestingFarmHandler(JobHandler):
     """
@@ -96,13 +103,18 @@ class TestingFarmHandler(JobHandler):
             metadata=self.data,
             db_trigger=self.db_trigger,
             job_config=self.job_config,
-            targets_override={self.chroot} if self.chroot else None,
+            targets_override={self.chroot}
+            if self.chroot
+            else self.data.targets_override,
         )
 
         logger.debug(f"Test job config: {testing_farm_helper.job_tests}")
         targets = list(testing_farm_helper.tests_targets)
         logger.debug(f"Targets to run the tests: {targets}")
+
+        targets_without_build = []
         targets_with_builds = {}
+
         for target in targets:
             if self.build_id:
                 copr_build = CoprBuildModel.get_by_id(self.build_id)
@@ -110,39 +122,49 @@ class TestingFarmHandler(JobHandler):
                 copr_build = testing_farm_helper.get_latest_copr_build(
                     target=target, commit_sha=self.data.commit_sha
                 )
+
             if copr_build:
                 targets_with_builds[target] = copr_build
+            else:
+                targets_without_build.append(target)
 
-        # If there is missing build for some target, trigger copr build for everything
-        if len(targets) != len(targets_with_builds):
+        result_details = {}
+
+        # Trigger copr build for targets missing build
+        if targets_without_build:
             logger.info(
-                f"Missing Copr build for some target in {testing_farm_helper.job_owner}/"
-                f"{testing_farm_helper.job_project}"
+                f"Missing Copr build for targets {targets_without_build} in "
+                f"{testing_farm_helper.job_owner}/{testing_farm_helper.job_project}"
                 f" and commit:{self.data.commit_sha}, running a new Copr build."
             )
-            testing_farm_helper.report_status_to_tests(
-                state=BaseCommitStatus.pending,
-                description="Missing Copr build for some target, running a new Copr build.",
-                url="",
-            )
+
+            for missing_target in targets_without_build:
+                testing_farm_helper.report_status_to_test_for_chroot(
+                    state=BaseCommitStatus.pending,
+                    description="Missing Copr build for this target, running a new Copr build.",
+                    url="",
+                    chroot=missing_target,
+                )
 
             # monitor queued builds
-            for _ in range(len(targets)):
+            for _ in range(len(targets_without_build)):
                 self.pushgateway.copr_builds_queued.inc()
+
+            event_data = self.data.get_dict()
+            event_data["targets_override"] = targets_without_build
 
             signature(
                 TaskName.copr_build.value,
                 kwargs={
                     "package_config": dump_package_config(self.package_config),
                     "job_config": dump_job_config(self.job_config),
-                    "event": self.data.get_dict(),
+                    "event": event_data,
                 },
             ).apply_async()
 
-            return TaskResults(
-                success=True,
-                details={"msg": "Build required, triggering copr build"},
-            )
+            result_details[
+                "msg"
+            ] = f"Build triggered for targets {targets_without_build} missing a Copr build. "
 
         failed = {}
         for target, copr_build in targets_with_builds.items():
@@ -167,15 +189,15 @@ class TestingFarmHandler(JobHandler):
                 failed[target] = result.get("details")
 
         if not failed:
-            return TaskResults(success=True, details={})
+            return TaskResults(success=True, details=result_details)
 
-        return TaskResults(
-            success=False,
-            details={
-                "msg": f"Failed testing farm targets: '{failed.keys()}'.",
-                **failed,
-            },
+        result_details["msg"] = (
+            result_details.setdefault("msg", "")
+            + f"Failed testing farm targets: '{failed.keys()}'."
         )
+        result_details.update(failed)
+
+        return TaskResults(success=False, details=result_details)
 
 
 @configured_as(job_type=JobType.tests)
@@ -250,8 +272,16 @@ class TestingFarmResultsHandler(JobHandler):
 
         if test_run_model:
             test_run_model.set_web_url(self.log_url)
+
+        trigger = JobTriggerModel.get_or_create(
+            type=self.db_trigger.job_trigger_model_type,
+            trigger_id=self.db_trigger.id,
+        )
         status_reporter = StatusReporter.get_instance(
-            project=self.project, commit_sha=self.data.commit_sha, pr_id=self.data.pr_id
+            project=self.project,
+            commit_sha=self.data.commit_sha,
+            trigger_id=trigger.id if trigger else None,
+            pr_id=self.data.pr_id,
         )
         status_reporter.report(
             state=status,

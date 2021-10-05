@@ -19,7 +19,7 @@ from packit_service.constants import (
     TASK_ACCEPTED,
     PG_COPR_BUILD_STATUS_SUCCESS,
 )
-from packit_service.models import PullRequestModel
+from packit_service.models import PullRequestModel, JobTriggerModelType, JobTriggerModel
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.build import copr_build
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
@@ -493,7 +493,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     )
 
 
-def test_pr_test_command_handler_no_build(pr_embedded_command_comment_event):
+def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event):
     jobs = [
         {
             "trigger": "pull_request",
@@ -534,20 +534,36 @@ def test_pr_test_command_handler_no_build(pr_embedded_command_comment_event):
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(
-        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+        flexmock(
+            id=9,
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
+        )
     )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=9
+    ).and_return(trigger)
+
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").twice()
-    flexmock(copr_build).should_receive("get_valid_build_targets").twice().and_return(
-        {"test-target"}
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+        {"test-target", "test-target-without-build"}
     )
-    flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return()
+    flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
+        flexmock(status=PG_COPR_BUILD_STATUS_SUCCESS)
+    ).and_return()
+
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("owner")
     flexmock(TestingFarmJobHelper).should_receive("job_project").and_return("project")
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").twice()
-    flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").never()
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").once()
+    flexmock(CoprBuildJobHelper).should_receive(
+        "report_status_to_test_for_chroot"
+    ).once()
+    flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
+        TaskResults(success=False, details={})
+    )
     flexmock(Pushgateway).should_receive("push").twice().and_return()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)

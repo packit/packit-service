@@ -41,7 +41,7 @@ SUPPORTED_EVENTS_FOR_HANDLER: Dict[
     Type["JobHandler"], Set[Type["Event"]]
 ] = defaultdict(set)
 MAP_COMMENT_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
-
+MAP_CHECK_PREFIX_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
 PROCESSED_FEDMSG_TOPICS = []
 
 
@@ -157,6 +157,34 @@ def run_for_comment(command: str):
 
     def _add_to_mapping(kls: Type["JobHandler"]):
         MAP_COMMENT_TO_HANDLER[command].add(kls)
+        return kls
+
+    return _add_to_mapping
+
+
+def run_for_check_rerun(prefix: str):
+    """
+    [class decorator]
+    Specify a check prefix for which we want to run a handler.
+
+    Multiple decorators are allowed.
+
+    Don't forget to specify valid check rerun events
+    using @reacts_to decorator.
+
+    Example:
+    ```
+    @configured_as(job_type=JobType.copr_build)
+    @configured_as(job_type=JobType.build)
+    @run_for_check_rerun(prefix="rpm-build")
+    @reacts_to(CheckRerunPullRequestEvent)
+    @reacts_to(CheckRerunCommitEvent)
+    @reacts_to(CheckRerunReleaseEvent)
+    ```
+    """
+
+    def _add_to_mapping(kls: Type["JobHandler"]):
+        MAP_CHECK_PREFIX_TO_HANDLER[prefix].add(kls)
         return kls
 
     return _add_to_mapping

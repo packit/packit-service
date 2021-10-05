@@ -79,7 +79,9 @@ def test_set_status_pagure(
     uid,
 ):
     project = PagureProject(None, None, PagureService())
-    reporter = StatusReporter.get_instance(project, commit_sha, pr_id)
+    reporter = StatusReporter.get_instance(
+        project=project, commit_sha=commit_sha, pr_id=pr_id
+    )
     act_upon = flexmock(pr_object.source_project) if pr_id else flexmock(PagureProject)
 
     act_upon.should_receive("set_commit_status").with_args(
@@ -125,7 +127,9 @@ def test_set_status_gitlab(
     commit_sha, pr_id, pr_object, state, description, check_name, url, state_to_set
 ):
     project = GitlabProject(None, None, None)
-    reporter = StatusReporter.get_instance(project, commit_sha, pr_id)
+    reporter = StatusReporter.get_instance(
+        project=project, commit_sha=commit_sha, pr_id=pr_id
+    )
     act_upon = flexmock(pr_object.source_project) if pr_id else flexmock(GitlabProject)
 
     act_upon.should_receive("set_commit_status").with_args(
@@ -143,7 +147,7 @@ def test_set_status_gitlab(
 @pytest.mark.parametrize(
     (
         "project,commit_sha,pr_id,pr_object,state,title,summary,"
-        "check_name,url,check_status,check_conclusion"
+        "check_name,url,check_status,check_conclusion,trigger_id"
     ),
     [
         pytest.param(
@@ -161,6 +165,7 @@ def test_set_status_gitlab(
             "https://api.packit.dev/build/111/logs",
             GithubCheckRunStatus.completed,
             GithubCheckRunResult.success,
+            1,
             id="GitHub PR",
         ),
         pytest.param(
@@ -178,6 +183,7 @@ def test_set_status_gitlab(
             "https://api.packit.dev/build/111/logs",
             GithubCheckRunStatus.in_progress,
             None,
+            1,
             id="GitHub PR",
         ),
         pytest.param(
@@ -196,6 +202,7 @@ def test_set_status_gitlab(
             "https://api.packit.dev/build/112/logs",
             GithubCheckRunStatus.completed,
             GithubCheckRunResult.failure,
+            1,
             id="branch push",
         ),
     ],
@@ -212,15 +219,19 @@ def test_set_status_github_check(
     url,
     check_status,
     check_conclusion,
+    trigger_id,
 ):
     project = GithubProject(None, None, None)
-    reporter = StatusReporter.get_instance(project, commit_sha, pr_id)
+    reporter = StatusReporter.get_instance(
+        project=project, commit_sha=commit_sha, pr_id=pr_id, trigger_id=trigger_id
+    )
     act_upon = flexmock(GithubProject)
 
     act_upon.should_receive("create_check_run").with_args(
         name=check_name,
         commit_sha=commit_sha,
         url=url,
+        external_id=str(trigger_id),
         status=check_status,
         conclusion=check_conclusion,
         output=create_github_check_run_output(title, summary),
@@ -352,7 +363,9 @@ def test_report_status_by_comment(
     result,
 ):
     project = GitlabProject(None, None, None)
-    reporter = StatusReporter.get_instance(project, commit_sha, pr_id)
+    reporter = StatusReporter.get_instance(
+        project=project, commit_sha=commit_sha, pr_id=pr_id
+    )
     act_upon = flexmock(GitlabProject)
 
     comment_body = "\n".join(
@@ -384,7 +397,7 @@ def test_report_status_by_comment(
         "pr_id,pr_object,"
         "state,title,summary,"
         "check_name,url,check_status,"
-        "check_conclusion,commit_state_to_set,exception_mock"
+        "check_conclusion,commit_state_to_set,exception_mock,trigger_id"
     ),
     [
         pytest.param(
@@ -418,6 +431,7 @@ def test_report_status_by_comment(
                 ],
                 dict(),
             ),
+            1,
             id="GitHub PR",
         ),
     ],
@@ -436,9 +450,12 @@ def test_status_instead_check(
     check_conclusion,
     commit_state_to_set,
     exception_mock,
+    trigger_id,
 ):
     project = GithubProject(None, None, None)
-    reporter = StatusReporter.get_instance(project, commit_sha, pr_id)
+    reporter = StatusReporter.get_instance(
+        project=project, commit_sha=commit_sha, trigger_id=trigger_id, pr_id=pr_id
+    )
     act_upon = flexmock(GithubProject)
 
     exception, exception_args, exception_kwargs = exception_mock
@@ -446,6 +463,7 @@ def test_status_instead_check(
         name=check_name,
         commit_sha=commit_sha,
         url=url,
+        external_id=str(trigger_id),
         status=check_status,
         conclusion=check_conclusion,
         output=create_github_check_run_output(title, summary),

@@ -1,11 +1,16 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from typing import Dict, Optional, Union, List
+from typing import Dict, Optional, Union, List, Set
 
 from ogr.abstract import GitProject
 
-from packit_service.models import AllowlistStatus
+from packit_service.models import (
+    AllowlistStatus,
+    PullRequestModel,
+    GitBranchModel,
+    ProjectReleaseModel,
+)
 from packit_service.service.db_triggers import (
     AddIssueDbTrigger,
     AddPullRequestDbTrigger,
@@ -203,6 +208,125 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
         result["tag_name"] = self.tag_name
         result["issue_id"] = self.issue_id
         return result
+
+
+class CheckRerunEvent(AbstractGithubEvent):
+    def __init__(
+        self,
+        check_name_job: str,
+        check_name_target: str,
+        project_url: str,
+        repo_namespace: str,
+        repo_name: str,
+        db_trigger: Union[PullRequestModel, GitBranchModel, ProjectReleaseModel],
+        commit_sha: str,
+        pr_id: Optional[int] = None,
+    ):
+        super().__init__(project_url=project_url, pr_id=pr_id)
+        self.check_name_job = check_name_job
+        self.check_name_target = check_name_target
+        self.repo_namespace = repo_namespace
+        self.repo_name = repo_name
+        self.commit_sha = commit_sha
+        self._db_trigger = db_trigger
+
+    @property
+    def targets_override(self) -> Optional[Set[str]]:
+        return {self.check_name_target}
+
+    @property
+    def db_trigger(
+        self,
+    ) -> Union[PullRequestModel, GitBranchModel, ProjectReleaseModel]:
+        return self._db_trigger
+
+    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
+        result = super().get_dict()
+        result.pop("_db_trigger")
+        return result
+
+
+class CheckRerunCommitEvent(CheckRerunEvent):
+    _db_trigger: GitBranchModel
+
+    def __init__(
+        self,
+        project_url: str,
+        repo_namespace: str,
+        repo_name: str,
+        commit_sha: str,
+        git_ref: str,
+        check_name_job: str,
+        check_name_target: str,
+        db_trigger,
+    ):
+        super().__init__(
+            check_name_job=check_name_job,
+            check_name_target=check_name_target,
+            project_url=project_url,
+            repo_namespace=repo_namespace,
+            repo_name=repo_name,
+            db_trigger=db_trigger,
+            commit_sha=commit_sha,
+        )
+        self.identifier = git_ref
+        self.git_ref = git_ref
+
+
+class CheckRerunPullRequestEvent(CheckRerunEvent):
+    _db_trigger: PullRequestModel
+
+    def __init__(
+        self,
+        pr_id: int,
+        repo_namespace: str,
+        repo_name: str,
+        project_url: str,
+        commit_sha: str,
+        check_name_job: str,
+        check_name_target: str,
+        db_trigger,
+    ):
+        super().__init__(
+            check_name_job=check_name_job,
+            check_name_target=check_name_target,
+            project_url=project_url,
+            repo_namespace=repo_namespace,
+            repo_name=repo_name,
+            db_trigger=db_trigger,
+            commit_sha=commit_sha,
+            pr_id=pr_id,
+        )
+        self.identifier = str(pr_id)
+        self.git_ref = None
+
+
+class CheckRerunReleaseEvent(CheckRerunEvent):
+    _db_trigger: ProjectReleaseModel
+
+    def __init__(
+        self,
+        repo_namespace: str,
+        repo_name: str,
+        tag_name: str,
+        project_url: str,
+        commit_sha: str,
+        check_name_job: str,
+        check_name_target: str,
+        db_trigger,
+    ):
+        super().__init__(
+            check_name_job=check_name_job,
+            check_name_target=check_name_target,
+            project_url=project_url,
+            repo_namespace=repo_namespace,
+            repo_name=repo_name,
+            db_trigger=db_trigger,
+            commit_sha=commit_sha,
+        )
+        self.tag_name = tag_name
+        self.git_ref = tag_name
+        self.identifier = tag_name
 
 
 class InstallationEvent(Event):

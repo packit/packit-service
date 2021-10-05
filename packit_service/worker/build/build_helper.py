@@ -26,7 +26,7 @@ from sandcastle import SandcastleTimeoutReached
 
 from packit_service import sentry_integration
 from packit_service.config import Deployment, ServiceConfig
-from packit_service.models import RunModel, SRPMBuildModel
+from packit_service.models import RunModel, SRPMBuildModel, JobTriggerModel
 from packit_service.worker.events import EventData
 from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
@@ -240,9 +240,14 @@ class BaseBuildJobHelper:
     @property
     def status_reporter(self) -> StatusReporter:
         if not self._status_reporter:
+            trigger = JobTriggerModel.get_or_create(
+                type=self.db_trigger.job_trigger_model_type,
+                trigger_id=self.db_trigger.id,
+            )
             self._status_reporter = StatusReporter.get_instance(
                 project=self.project,
                 commit_sha=self.metadata.commit_sha,
+                trigger_id=trigger.id if trigger else None,
                 pr_id=self.metadata.pr_id,
             )
         return self._status_reporter

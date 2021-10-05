@@ -13,12 +13,19 @@ from ogr.parsing import parse_git_repo
 from packit.constants import PROD_DISTGIT_URL
 from packit.utils import nested_get
 
-from packit_service.config import ServiceConfig
+from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import (
     KojiBuildState,
     TESTING_FARM_INSTALLABILITY_TEST_URL,
 )
-from packit_service.models import TFTTestRunModel, TestingFarmResult
+from packit_service.models import (
+    TFTTestRunModel,
+    TestingFarmResult,
+    ProjectReleaseModel,
+    GitBranchModel,
+    PullRequestModel,
+    JobTriggerModel,
+)
 from packit_service.worker.events import (
     AbstractCoprBuildEvent,
     KojiBuildEvent,
@@ -41,6 +48,9 @@ from packit_service.worker.events import (
     TestingFarmResultsEvent,
     PullRequestCommentPagureEvent,
     PipelineGitlabEvent,
+    CheckRerunCommitEvent,
+    CheckRerunPullRequestEvent,
+    CheckRerunReleaseEvent,
 )
 from packit_service.worker.events.enums import (
     GitlabEventAction,
@@ -51,7 +61,9 @@ from packit_service.worker.events.enums import (
 from packit_service.worker.handlers import (
     DistGitCommitHandler,
 )
+from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.testing_farm import TestingFarmJobHelper
+
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +94,9 @@ class Parser:
             IssueCommentGitlabEvent,
             PushGitlabEvent,
             PipelineGitlabEvent,
+            CheckRerunCommitEvent,
+            CheckRerunPullRequestEvent,
+            CheckRerunReleaseEvent,
         ]
     ]:
         """
@@ -102,6 +117,7 @@ class Parser:
                 Parser.parse_issue_comment_event,
                 Parser.parse_release_event,
                 Parser.parse_push_event,
+                Parser.parse_check_rerun_event,
                 Parser.parse_installation_event,
                 Parser.parse_distgit_commit_event,
                 Parser.parse_testing_farm_results_event,
@@ -603,6 +619,113 @@ class Parser:
             user_login=user_login,
             comment=comment,
         )
+
+    @staticmethod
+    def parse_check_rerun_event(
+        event,
+    ) -> Optional[
+        Union[CheckRerunCommitEvent, CheckRerunPullRequestEvent, CheckRerunReleaseEvent]
+    ]:
+        """Look into the provided event and see if it is Github check rerun event."""
+        if not (
+            nested_get(event, "check_run")
+            and nested_get(event, "action") == "rerequested"
+        ):
+            return None
+
+        check_name = nested_get(event, "check_run", "name")
+        logger.info(f"Github check run {check_name} rerun event.")
+
+        deployment = ServiceConfig.get_service_config().deployment
+        app = nested_get(event, "check_run", "app", "slug")
+        if (deployment == Deployment.prod and app != "packit-as-a-service") or (
+            deployment == Deployment.stg and app != "packit-as-a-service-stg"
+        ):
+            logger.warning(f"Check run created by {app} and not us.")
+            return None
+
+        check_name_job, check_name_target = None, None
+        # e.g. packit/rpm-build-fedora-34-x86_64
+        check_name_split = check_name.split("/", maxsplit=2)
+        if len(check_name_split) == 2:
+            check_name_job_info = check_name_split[1]
+            for job_name in MAP_CHECK_PREFIX_TO_HANDLER.keys():
+                if check_name_job_info.startswith(job_name):
+                    check_name_job = job_name
+                    # e.g. [rpm-build-]fedora-34-x86_64
+                    check_name_target = check_name_job_info[
+                        (len(job_name) + 1) :  # noqa
+                    ]
+
+        if not (check_name_job and check_name_target):
+            logger.warning(
+                f"We were not able to parse the job and target "
+                f"from the check run name {check_name}."
+            )
+            return None
+
+        repo_namespace = nested_get(event, "repository", "owner", "login")
+        repo_name = nested_get(event, "repository", "name")
+
+        if not (repo_namespace and repo_name):
+            logger.warning("No full name of the repository.")
+            return None
+
+        https_url = event["repository"]["html_url"]
+
+        commit_sha = nested_get(event, "check_run", "head_sha")
+        external_id = nested_get(event, "check_run", "external_id")
+
+        if not external_id:
+            logger.warning("No external_id to identify the original trigger provided.")
+            return None
+
+        job_trigger = JobTriggerModel.get_by_id(int(external_id))
+        if not job_trigger:
+            logger.warning(f"Job trigger with ID {external_id} not found.")
+            return None
+
+        db_trigger = job_trigger.get_trigger_object()
+        logger.info(f"Original trigger: {db_trigger}")
+
+        event = None
+        if isinstance(db_trigger, PullRequestModel):
+            event = CheckRerunPullRequestEvent(
+                repo_namespace=repo_namespace,
+                repo_name=repo_name,
+                project_url=https_url,
+                commit_sha=commit_sha,
+                pr_id=db_trigger.pr_id,
+                check_name_job=check_name_job,
+                check_name_target=check_name_target,
+                db_trigger=db_trigger,
+            )
+
+        elif isinstance(db_trigger, ProjectReleaseModel):
+            event = CheckRerunReleaseEvent(
+                repo_namespace=repo_namespace,
+                repo_name=repo_name,
+                project_url=https_url,
+                commit_sha=commit_sha,
+                tag_name=db_trigger.tag_name,
+                check_name_job=check_name_job,
+                check_name_target=check_name_target,
+                db_trigger=db_trigger,
+            )
+
+        elif isinstance(db_trigger, GitBranchModel):
+            event = CheckRerunCommitEvent(
+                repo_namespace=repo_namespace,
+                repo_name=repo_name,
+                project_url=https_url,
+                commit_sha=commit_sha,
+                git_ref=db_trigger.name,
+                check_name_job=check_name_job,
+                check_name_target=check_name_target,
+                db_trigger=db_trigger,
+            )
+
+        return event
 
     @staticmethod
     def parse_installation_event(event) -> Optional[InstallationEvent]:

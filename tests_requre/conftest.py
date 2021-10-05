@@ -1648,3 +1648,76 @@ def few_runs(pr_model, different_pr_model):
         )
 
     yield run_model_for_pr.id, run_model_for_different_pr.id
+
+
+@pytest.fixture()
+def check_rerun_event_dict_commit():
+    """
+    Cleared version of the check rerequested webhook content.
+    """
+    return {
+        "action": "rerequested",
+        "check_run": {
+            "id": 3659360488,
+            "name": "packit-stg/testing-farm-fedora-rawhide-x86_64",
+            "node_id": "CR_kwDOCwFO9M7aHWjo",
+            "head_sha": "0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd",
+            "external_id": "123456",
+            "url": "https://api.github.com/repos/packit/hello-world/check-runs/3659360488",
+            "html_url": "https://github.com/packit/hello-world/runs/3659360488",
+            "details_url": "https://dashboard.stg.packit.dev/results/testing-farm/10523",
+            "status": "completed",
+            "conclusion": "failure",
+            "started_at": "2021-09-21T04:37:53Z",
+            "completed_at": "2021-09-21T04:37:53Z",
+            "output": {
+                "title": "Test environment installation failed: reason unknown, please escalate",
+                "summary": "",
+                "text": None,
+            },
+            "check_suite": {
+                "id": 3359488643,
+                "node_id": "MDEwOkNoZWNrU3VpdGUzMzU5NDg4NjQz",
+                "head_branch": None,
+                "head_sha": "0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd",
+                "status": "queued",
+                "conclusion": None,
+                "url": "https://api.github.com/repos/packit/hello-world/check-suites/3359488643",
+                "before": None,
+                "after": None,
+                "pull_requests": [],
+                "app": {
+                    "id": 29180,
+                    "slug": "packit-as-a-service-stg",
+                    "node_id": "MDM6QXBwMjkxODA=",
+                    "owner": {
+                        "login": "packit",
+                    },
+                },
+                "created_at": "2021-07-29T09:09:27Z",
+                "updated_at": "2021-09-21T09:22:45Z",
+            },
+            "app": {
+                "id": 29180,
+                "slug": "packit-as-a-service-stg",
+            },
+            "pull_requests": [],
+        },
+        "repository": {
+            "id": 184635124,
+            "node_id": "MDEwOlJlcG9zaXRvcnkxODQ2MzUxMjQ=",
+            "name": "hello-world",
+            "full_name": "packit/hello-world",
+            "private": False,
+            "owner": {
+                "login": "packit",
+            },
+            "html_url": "https://github.com/packit/hello-world",
+        },
+        "organization": {
+            "login": "packit",
+        },
+        "sender": {
+            "login": "lbarcziova",
+        },
+    }
