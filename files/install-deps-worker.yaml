@@ -36,7 +36,7 @@
           - make
           # provides dnf builddep, required for packit dep installation from spec file
           - dnf-plugins-core
-          # oc rsync /sandcastle -> sandcastle pod
+          # oc rsync /tmp/sandcastle -> sandcastle pod
           - rsync
           - fedpkg-stage
         state: present

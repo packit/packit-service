@@ -41,7 +41,7 @@ def service_config_valid():
         "bugz_namespaces": ["^magic/namespace"],
         "bugz_branches": ["^onlythis$"],
         "command_handler": "sandcastle",
-        "command_handler_work_dir": "/sandcastle",
+        "command_handler_work_dir": "/tmp/sandcastle",
         "command_handler_image_reference": "quay.io/packit/sandcastle",
         "command_handler_k8s_namespace": "packit-test-sandbox",
         "admins": ["Dasher", "Dancer", "Vixen", "Comet", "Blitzen"],
@@ -69,7 +69,7 @@ def test_parse_valid(service_config_valid):
     assert config.bugzilla_api_key == "ratamahatta"
     assert config.bugz_namespaces == {"^magic/namespace"}
     assert config.bugz_branches == {"^onlythis$"}
-    assert config.command_handler_work_dir == "/sandcastle"
+    assert config.command_handler_work_dir == "/tmp/sandcastle"
     assert config.admins == {"Dasher", "Dancer", "Vixen", "Comet", "Blitzen"}
     assert config.server_name == "hub.packit.org"
     assert config.gitlab_token_secret == "jwt_secret"
