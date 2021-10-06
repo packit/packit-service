@@ -401,8 +401,13 @@ class Parser:
 
         issue_id = nested_get(event, "issue", "number")
         action = event.get("action")
+        if action != "created" or not issue_id:
+            return None
+
         comment = nested_get(event, "comment", "body")
-        if action != "created" or not issue_id or not comment:
+        comment_id = nested_get(event, "comment", "id")
+        if not (comment and comment_id):
+            logger.warning("No comment or comment id from the event.")
             return None
 
         logger.info(f"Github issue#{issue_id} comment: {comment!r} {action!r} event.")
@@ -429,6 +434,7 @@ class Parser:
             https_url,
             user_login,
             comment,
+            comment_id,
         )
 
     @staticmethod
@@ -446,8 +452,9 @@ class Parser:
             logger.warning("No issue id from the event.")
             return None
         comment = nested_get(event, "object_attributes", "note")
-        if not comment:
-            logger.warning("No note from the event.")
+        comment_id = nested_get(event, "object_attributes", "id")
+        if not (comment and comment_id):
+            logger.warning("No note or note id from the event.")
             return None
 
         state = nested_get(event, "issue", "state")
@@ -489,6 +496,7 @@ class Parser:
             project_url=project_url,
             username=username,
             comment=comment,
+            comment_id=comment_id,
         )
 
     @staticmethod
@@ -520,8 +528,10 @@ class Parser:
             logger.warning("No object id from the event.")
 
         comment = nested_get(event, "object_attributes", "note")
+        comment_id = nested_get(event, "object_attributes", "id")
         logger.info(
-            f"Gitlab MR id#{object_id} iid#{object_iid} comment: {comment!r} {action!r} event."
+            f"Gitlab MR id#{object_id} iid#{object_iid} comment: {comment!r} id#{comment_id} "
+            f"{action!r} event."
         )
 
         source_project_url = nested_get(event, "merge_request", "source", "web_url")
@@ -570,6 +580,7 @@ class Parser:
             username=username,
             comment=comment,
             commit_sha=commit_sha,
+            comment_id=comment_id,
         )
 
     @staticmethod
@@ -586,7 +597,10 @@ class Parser:
             return None
 
         comment = nested_get(event, "comment", "body")
-        logger.info(f"Github PR#{pr_id} comment: {comment!r} {action!r} event.")
+        comment_id = nested_get(event, "comment", "id")
+        logger.info(
+            f"Github PR#{pr_id} comment: {comment!r} id#{comment_id} {action!r} event."
+        )
 
         base_repo_namespace = nested_get(event, "issue", "user", "login")
         base_repo_name = nested_get(event, "repository", "name")
@@ -618,6 +632,7 @@ class Parser:
             project_url=https_url,
             user_login=user_login,
             comment=comment,
+            comment_id=comment_id,
         )
 
     @staticmethod

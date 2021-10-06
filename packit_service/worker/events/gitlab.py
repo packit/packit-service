@@ -3,7 +3,7 @@
 
 from typing import Dict, Optional
 
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, PRComment, IssueComment
 
 from packit_service.models import AbstractTriggerDbType
 from packit_service.service.db_triggers import (
@@ -113,6 +113,8 @@ class MergeRequestCommentGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEven
         username: str,
         comment: str,
         commit_sha: str,
+        comment_id: int,
+        comment_object: Optional[PRComment] = None,
     ):
         super().__init__(
             project_url=project_url,
@@ -130,10 +132,15 @@ class MergeRequestCommentGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEven
         self.comment = comment
         self.commit_sha = commit_sha
         self.identifier = str(object_iid)
+        self.comment_id = comment_id
+
+        # Lazy properties
+        self._comment_object = comment_object
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
+        result.pop("_comment_object")
         return result
 
     def get_base_project(self) -> GitProject:
@@ -141,6 +148,14 @@ class MergeRequestCommentGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEven
             namespace=self.source_repo_namespace,
             repo=self.source_repo_name,
         )
+
+    @property
+    def comment_object(self) -> Optional[PRComment]:
+        if not self._comment_object:
+            self._comment_object = self.project.get_pr(self.object_id).get_comment(
+                self.comment_id
+            )
+        return self._comment_object
 
 
 class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
@@ -153,6 +168,8 @@ class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
         project_url: str,
         username: str,
         comment: str,
+        comment_id: int,
+        comment_object: Optional[IssueComment] = None,
     ):
         super().__init__(project_url=project_url)
         self.action = action
@@ -162,7 +179,11 @@ class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
         self.project_url = project_url
         self.user_login = username
         self.comment = comment
+        self.comment_id = comment_id
         self._tag_name = None
+
+        # Lazy properties
+        self._comment_object = comment_object
 
     @property
     def tag_name(self):
@@ -181,7 +202,16 @@ class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
         result["action"] = result["action"].value
         result["tag_name"] = self.tag_name
         result["issue_id"] = self.issue_id
+        result.pop("_comment_object")
         return result
+
+    @property
+    def comment_object(self) -> Optional[IssueComment]:
+        if not self._comment_object:
+            self._comment_object = self.project.get_issue(self.issue_id).get_comment(
+                self.comment_id
+            )
+        return self._comment_object
 
 
 class PipelineGitlabEvent(AbstractGitlabEvent):

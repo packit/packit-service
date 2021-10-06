@@ -3,7 +3,7 @@
 
 from typing import Dict, Optional, Union, List, Set
 
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, PRComment, IssueComment
 
 from packit_service.models import (
     AllowlistStatus,
@@ -128,7 +128,9 @@ class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent
         project_url: str,
         user_login: str,
         comment: str,
+        comment_id: int,
         commit_sha: Optional[str] = None,
+        comment_object: Optional[PRComment] = None,
     ):
         super().__init__(project_url=project_url, pr_id=pr_id)
         self.action = action
@@ -139,11 +141,13 @@ class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent
         self.target_repo_name = target_repo_name
         self.user_login = user_login
         self.comment = comment
+        self.comment_id = comment_id
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
 
         # Lazy properties
         self._commit_sha = commit_sha
+        self._comment_object = comment_object
 
     @property
     def commit_sha(self) -> Optional[str]:  # type:ignore
@@ -156,10 +160,19 @@ class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent
         result = super().get_dict()
         result["action"] = result["action"].value
         result["commit_sha"] = self.commit_sha
+        result.pop("_comment_object")
         return result
 
     def get_base_project(self) -> Optional[GitProject]:
         return None  # With Github app, we cannot work with fork repo
+
+    @property
+    def comment_object(self) -> Optional[PRComment]:
+        if not self._comment_object:
+            self._comment_object = self.project.get_pr(self.pr_id).get_comment(
+                self.comment_id
+            )
+        return self._comment_object
 
 
 class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
@@ -173,10 +186,12 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
         project_url: str,
         user_login: str,
         comment: str,
+        comment_id: int,
         tag_name: str = "",
         base_ref: Optional[
             str
         ] = "master",  # default is master when working with issues
+        comment_object: Optional[IssueComment] = None,
     ):
         super().__init__(project_url=project_url)
         self.action = action
@@ -188,7 +203,11 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
         self.target_repo = target_repo
         self.user_login = user_login
         self.comment = comment
+        self.comment_id = comment_id
         self.identifier = str(issue_id)
+
+        # Lazy properties
+        self._comment_object = comment_object
 
     @property
     def tag_name(self):
@@ -207,7 +226,16 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
         result["action"] = result["action"].value
         result["tag_name"] = self.tag_name
         result["issue_id"] = self.issue_id
+        result.pop("_comment_object")
         return result
+
+    @property
+    def comment_object(self) -> Optional[IssueComment]:
+        if not self._comment_object:
+            self._comment_object = self.project.get_issue(self.issue_id).get_comment(
+                self.comment_id
+            )
+        return self._comment_object
 
 
 class CheckRerunEvent(AbstractGithubEvent):
