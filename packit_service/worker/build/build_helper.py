@@ -279,6 +279,7 @@ class BaseBuildJobHelper:
         configured_targets = self.build_targets_all
 
         if self.targets_override:
+            logger.debug(f"Targets override: {self.targets_override}")
             return self.targets_override & configured_targets
 
         return configured_targets
@@ -293,6 +294,7 @@ class BaseBuildJobHelper:
         configured_targets = self.tests_targets_all
 
         if self.targets_override:
+            logger.debug(f"Targets override: {self.targets_override}")
             return self.targets_override & configured_targets
 
         return configured_targets
