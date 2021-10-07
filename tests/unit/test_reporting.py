@@ -25,7 +25,6 @@ from packit_service.worker.reporting import (
     StatusReporterGitlab,
     StatusReporterGithubChecks,
 )
-from packit_service.constants import MSG_RERUN_NOT_SUPPORTED
 
 create_table_content = StatusReporterGithubChecks._create_table
 
@@ -196,8 +195,7 @@ def test_set_status_gitlab(
             create_table_content(
                 url="https://api.packit.dev/build/112/logs",
                 links_to_external_services=None,
-            )
-            + MSG_RERUN_NOT_SUPPORTED,
+            ),
             "packit/branch-rpm-build",
             "https://api.packit.dev/build/112/logs",
             GithubCheckRunStatus.completed,

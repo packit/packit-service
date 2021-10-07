@@ -19,7 +19,6 @@ from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
 
 from packit_service.constants import (
-    MSG_RERUN_NOT_SUPPORTED,
     MSG_TABLE_HEADER_WITH_DETAILS,
 )
 
@@ -365,11 +364,7 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
             f" {description}"
         )
 
-        summary = self._create_table(url, links_to_external_services) + (
-            MSG_RERUN_NOT_SUPPORTED
-            if state_to_set == GithubCheckRunResult.failure
-            else ""
-        )
+        summary = self._create_table(url, links_to_external_services)
 
         try:
             status = (
