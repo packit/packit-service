@@ -66,18 +66,37 @@ class Pushgateway:
             "initial_status_time",
             "Time it takes to set the initial status",
             registry=self.registry,
+            buckets=(5, 15, 30, float("inf")),
         )
 
         self.copr_build_finished_time = Histogram(
             "copr_build_finished_time",
             "Time it takes from setting accepted status for Copr build to finished",
             registry=self.registry,
+            buckets=(
+                1800,
+                3600,
+                3 * 3600,
+                6 * 3600,
+                12 * 3600,
+                24 * 3600,
+                float("inf"),
+            ),
         )
 
         self.test_run_finished_time = Histogram(
             "test_run_finished_time",
             "Time it takes from submitting the test run to set finished status",
             registry=self.registry,
+            buckets=(
+                1800,
+                3600,
+                3 * 3600,
+                6 * 3600,
+                12 * 3600,
+                24 * 3600,
+                float("inf"),
+            ),
         )
 
     def push(self):
