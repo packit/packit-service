@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import pytest
+import shutil
 from celery.app.task import Task, Context
 from celery.canvas import Signature
 from flexmock import flexmock
@@ -49,6 +50,7 @@ def test_dist_git_push_release_handle(github_release_webhook):
         default_branch="main",
     )
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    lp.working_dir = ""
     lp.git_project = project
     flexmock(DistGit).should_receive("local_project").and_return(lp)
     # reset of the upstream repo
@@ -63,12 +65,14 @@ def test_dist_git_push_release_handle(github_release_webhook):
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main", tag="0.3.0"
     ).once()
+    flexmock(PackitAPI).should_receive("clean")
 
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
     )
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(shutil).should_receive("rmtree").with_args("")
 
     processing_results = SteveJobs().process_message(github_release_webhook)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -246,6 +250,7 @@ def test_dist_git_push_release_handle_all_failed(
     )
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
     lp.git_project = project
+    lp.working_dir = ""
     flexmock(DistGit).should_receive("local_project").and_return(lp)
     # reset of the upstream repo
     flexmock(LocalProject).should_receive("reset").with_args("HEAD").times(
@@ -268,6 +273,7 @@ def test_dist_git_push_release_handle_all_failed(
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().times(
         len(fedora_branches)
     )
+    flexmock(shutil).should_receive("rmtree").with_args("")
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()
 
@@ -304,6 +310,7 @@ def test_retry_propose_downstream_task(github_release_webhook):
 
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
     lp.git_project = project
+    lp.working_dir = ""
     flexmock(DistGit).should_receive("local_project").and_return(lp)
     # reset of the upstream repo
     flexmock(LocalProject).should_receive("reset").with_args("HEAD").once()
@@ -325,6 +332,7 @@ def test_retry_propose_downstream_task(github_release_webhook):
     ).and_raise(
         RebaseHelperError, "Failed to download file from URL example.com"
     ).once()
+    flexmock(shutil).should_receive("rmtree").with_args("")
     flexmock(Task).should_receive("retry").once().and_return()
     flexmock(Pushgateway).should_receive("push").once().and_return()
 
@@ -359,6 +367,7 @@ def test_dont_retry_propose_downstream_task(github_release_webhook):
 
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
     lp.git_project = project
+    lp.working_dir = ""
     flexmock(DistGit).should_receive("local_project").and_return(lp)
 
     flexmock(Allowlist, check_and_report=True)
@@ -380,6 +389,7 @@ def test_dont_retry_propose_downstream_task(github_release_webhook):
     ).once()
     flexmock(LocalProject).should_receive("reset").with_args("HEAD").once()
     flexmock(Context, retries=2)
+    flexmock(shutil).should_receive("rmtree").with_args("")
     flexmock(Task).should_receive("retry").never()
     flexmock(project).should_receive("create_issue").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()

@@ -8,6 +8,7 @@ This file defines classes for job handlers specific for Fedmsg events
 import logging
 from os import getenv
 
+import shutil
 from celery import Task
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobType
@@ -93,6 +94,10 @@ class DistGitCommitHandler(FedmsgHandler):
         return TaskResults(success=True, details={})
 
 
+class AbortProposeDownstream(Exception):
+    """Abort propose-downstream process"""
+
+
 @configured_as(job_type=JobType.propose_downstream)
 @run_for_comment(command="propose-downstream")
 @run_for_comment(command="propose-update")  # deprecated
@@ -115,6 +120,29 @@ class ProposeDownstreamHandler(JobHandler):
             event=event,
         )
         self.task = task
+
+    def sync_branch(self, branch: str):
+        try:
+            self.api.sync_release(dist_git_branch=branch, tag=self.data.tag_name)
+        except Exception as ex:
+            # the archive has not been uploaded to PyPI yet
+            if FILE_DOWNLOAD_FAILURE in str(ex):
+                # retry for the archive to become available
+                logger.info(f"We were not able to download the archive: {ex}")
+                # when the task hits max_retries, it raises MaxRetriesExceededError
+                # and the error handling code would be never executed
+                retries = self.task.request.retries
+                if retries < int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT)):
+                    # will retry in: 1m and then again in another 2m
+                    delay = 60 * 2 ** retries
+                    logger.info(f"Will retry for the {retries + 1}. time in {delay}s.")
+                    # throw=False so that exception is not raised and task
+                    # is not retried also automatically
+                    self.task.retry(exc=ex, countdown=delay, throw=False)
+                    raise AbortProposeDownstream()
+            raise ex
+        finally:
+            self.api.up.local_project.reset("HEAD")
 
     def run(self) -> TaskResults:
         """
@@ -141,38 +169,29 @@ class ProposeDownstreamHandler(JobHandler):
 
         errors = {}
         default_dg_branch = self.api.dg.local_project.git_project.default_branch
-        for branch in get_branches(
-            *self.job_config.metadata.dist_git_branches, default=default_dg_branch
-        ):
-            try:
-                self.api.sync_release(dist_git_branch=branch, tag=self.data.tag_name)
-            except Exception as ex:
-                # the archive has not been uploaded to PyPI yet
-                if FILE_DOWNLOAD_FAILURE in str(ex):
-                    # retry for the archive to become available
-                    logger.info(f"We were not able to download the archive: {ex}")
-                    # when the task hits max_retries, it raises MaxRetriesExceededError
-                    # and the error handling code would be never executed
-                    retries = self.task.request.retries
-                    if retries < int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT)):
-                        # will retry in: 1m and then again in another 2m
-                        delay = 60 * 2 ** retries
-                        logger.info(
-                            f"Will retry for the {retries + 1}. time in {delay}s."
-                        )
-                        # throw=False so that exception is not raised and task
-                        # is not retried also automatically
-                        self.task.retry(exc=ex, countdown=delay, throw=False)
-                        return TaskResults(
-                            success=True,  # do not create a Sentry issue
-                            details={
-                                "msg": "Not able to download archive. Task will be retried."
-                            },
-                        )
-                sentry_integration.send_to_sentry(ex)
-                errors[branch] = str(ex)
-            finally:
-                self.api.up.local_project.reset("HEAD")
+        try:
+            for branch in get_branches(
+                *self.job_config.metadata.dist_git_branches, default=default_dg_branch
+            ):
+                try:
+                    self.sync_branch(branch=branch)
+                except AbortProposeDownstream:
+                    return TaskResults(
+                        success=True,  # do not create a Sentry issue
+                        details={
+                            "msg": "Not able to download archive. Task will be retried."
+                        },
+                    )
+                except Exception as ex:
+                    # eat the exception and continue with the execution
+                    errors[branch] = str(ex)
+                    sentry_integration.send_to_sentry(ex)
+        finally:
+            # remove temporary dist-git clone after we're done here - context:
+            # 1. the dist-git repo is cloned on worker, not sandbox
+            # 2. it's stored in /tmp, not in the mirrored sandbox PV
+            # 3. it's not being cleaned up and it wastes pod's filesystem space
+            shutil.rmtree(self.api.dg.local_project.working_dir)
 
         if errors:
             branch_errors = ""

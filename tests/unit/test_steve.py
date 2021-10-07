@@ -7,6 +7,7 @@ Let's test that Steve's as awesome as we think he is.
 from json import dumps, load
 
 import pytest
+import shutil
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
@@ -64,6 +65,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
 
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
     lp.git_project = gh_project
+    lp.working_dir = ""
     flexmock(DistGit).should_receive("local_project").and_return(lp)
     # reset of the upstream repo
     flexmock(LocalProject).should_receive("reset").with_args("HEAD").times(
@@ -77,6 +79,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main", tag="1.2.3"
     ).times(1 if success else 0)
+    flexmock(shutil).should_receive("rmtree").with_args("")
 
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=1)

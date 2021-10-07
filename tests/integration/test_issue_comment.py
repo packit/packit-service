@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 
 import pytest
+import shutil
 from celery.canvas import Signature
 from flexmock import flexmock
 
@@ -77,9 +78,9 @@ def mock_comment(request):
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(DistGit).should_receive("local_project").and_return(
-        flexmock(git_project=flexmock(default_branch="main"))
-    )
+    lp = flexmock(git_project=flexmock(default_branch="main"))
+    lp.working_dir = ""
+    flexmock(DistGit).should_receive("local_project").and_return(lp)
     flexmock(Allowlist, check_and_report=True)
 
     yield project_class, issue_comment_propose_downstream_event(forge)
@@ -136,6 +137,7 @@ def test_issue_comment_propose_downstream_handler(
     )
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(shutil).should_receive("rmtree").with_args("")
 
     processing_results = SteveJobs().process_message(comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
