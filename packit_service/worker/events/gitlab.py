@@ -1,11 +1,12 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-
+from re import fullmatch
 from typing import Dict, Optional
 
 from ogr.abstract import GitProject, PRComment, IssueComment
 
-from packit_service.models import AbstractTriggerDbType
+from packit_service.config import ServiceConfig
+from packit_service.models import AbstractTriggerDbType, PullRequestModel
 from packit_service.service.db_triggers import (
     AddIssueDbTrigger,
     AddPullRequestDbTrigger,
@@ -224,6 +225,8 @@ class PipelineGitlabEvent(AbstractGitlabEvent):
         status: str,
         detailed_status: str,
         commit_sha: str,
+        source: str,
+        merge_request_url: Optional[str],
     ):
         super().__init__(project_url=project_url)
         self.project_name = project_name
@@ -232,9 +235,23 @@ class PipelineGitlabEvent(AbstractGitlabEvent):
         self.status = status
         self.detailed_status = detailed_status
         self.commit_sha = commit_sha
+        self.source = source
+        self.merge_request_url = merge_request_url
+
+        self._db_trigger: Optional[AbstractTriggerDbType] = None
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        # Trigger could be a dist-git MR but info about the MR doesn't seem to be sent in the event
-        # (despite what docs suggest)
-        return None
+        if not self._db_trigger and self.source == "merge_request_event":
+            # Can't use self.project because that can be either source or target project.
+            # We need target project here. Let's derive it from self.merge_request_url
+            m = fullmatch(r"(\S+)/-/merge_requests/(\d+)", self.merge_request_url)
+            if m:
+                project = ServiceConfig.get_service_config().get_project(url=m[1])
+                self._db_trigger = PullRequestModel.get_or_create(
+                    pr_id=int(m[2]),
+                    namespace=project.namespace,
+                    repo_name=project.repo,
+                    project_url=m[1],
+                )
+        return self._db_trigger
