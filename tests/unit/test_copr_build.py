@@ -31,7 +31,6 @@ from packit.copr_helper import CoprHelper
 from packit.exceptions import FailedCreateSRPM, PackitCoprSettingsException
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
-from packit_service.constants import MSG_RERUN_NOT_SUPPORTED
 from packit_service.models import (
     CoprBuildModel,
     SRPMBuildModel,
@@ -961,8 +960,7 @@ def test_copr_build_fails_in_packit(github_pr_event):
                 "SRPM build failed, check the logs for details.",
                 create_table_content(
                     url="https://test.url", links_to_external_services=None
-                )
-                + MSG_RERUN_NOT_SUPPORTED,
+                ),
             ),
         ).and_return().once()
     flexmock(GithubProject).should_receive("get_pr").and_return(
@@ -1024,8 +1022,7 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
             status=GithubCheckRunStatus.completed,
             conclusion=GithubCheckRunResult.failure,
             output=create_github_check_run_output(
-                "Submit of the build failed: Copr project update failed.",
-                MSG_RERUN_NOT_SUPPORTED,
+                "Submit of the build failed: Copr project update failed.", ""
             ),
         ).and_return().once()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
