@@ -1,0 +1,99 @@
+{
+  "object_kind": "pipeline",
+  "object_attributes": {
+    "id": 384095584,
+    "ref": "9-c9s-src-5",
+    "tag": false,
+    "sha": "ee58e259da263ecb4c1f0129be7aef8cfd4dedd6",
+    "before_sha": "ee58e259da263ecb4c1f0129be7aef8cfd4dedd6",
+    "source": "merge_request_event",
+    "status": "failed",
+    "detailed_status": "failed",
+    "stages": ["test"],
+    "created_at": "2021-10-07 08:18:36 UTC",
+    "finished_at": "2021-10-07 08:18:59 UTC",
+    "duration": 14,
+    "queued_duration": 8,
+    "variables": []
+  },
+  "merge_request": {
+    "id": 120019625,
+    "iid": 4,
+    "title": "Testing contribution",
+    "source_branch": "9-c9s-src-5",
+    "source_project_id": 28917856,
+    "target_branch": "c9s",
+    "target_project_id": 23680558,
+    "state": "opened",
+    "merge_status": "can_be_merged",
+    "url": "https://gitlab.com/redhat/centos-stream/rpms/luksmeta/-/merge_requests/4"
+  },
+  "user": {
+    "id": 2952463,
+    "name": "Jiri Popelka",
+    "username": "jpopelka",
+    "avatar_url": "https://secure.gravatar.com/avatar/eff1ae69a40d35559a382d36b53b72d2?s=80&d=identicon",
+    "email": "jpopelka@redhat.com"
+  },
+  "project": {
+    "id": 23680558,
+    "name": "luksmeta",
+    "description": "The luksmeta rpms",
+    "web_url": "https://gitlab.com/redhat/centos-stream/rpms/luksmeta",
+    "avatar_url": null,
+    "git_ssh_url": "git@gitlab.com:redhat/centos-stream/rpms/luksmeta.git",
+    "git_http_url": "https://gitlab.com/redhat/centos-stream/rpms/luksmeta.git",
+    "namespace": "rpms",
+    "visibility_level": 20,
+    "path_with_namespace": "redhat/centos-stream/rpms/luksmeta",
+    "default_branch": "c9s",
+    "ci_config_path": "global-tasks.yml@redhat/centos-stream/ci-cd/dist-git-gating-tests"
+  },
+  "commit": {
+    "id": "ee58e259da263ecb4c1f0129be7aef8cfd4dedd6",
+    "message": "Merge branch '9-c9s-src-5' into 'c9s'\n\nTesting contribution\n\nSee merge request redhat/centos-stream/rpms/luksmeta!4",
+    "title": "Merge branch '9-c9s-src-5' into 'c9s'",
+    "timestamp": "2021-10-06T11:35:47+00:00",
+    "url": "https://gitlab.com/redhat/centos-stream/rpms/luksmeta/-/commit/ee58e259da263ecb4c1f0129be7aef8cfd4dedd6",
+    "author": {
+      "name": "Packit Bot",
+      "email": "packit+centos-stream-packit@redhat.com"
+    }
+  },
+  "builds": [
+    {
+      "id": 1657491692,
+      "stage": "test",
+      "name": "check-gitbz",
+      "status": "failed",
+      "created_at": "2021-10-07 08:18:36 UTC",
+      "started_at": "2021-10-07 08:18:45 UTC",
+      "finished_at": "2021-10-07 08:18:59 UTC",
+      "duration": 14.148346,
+      "queued_duration": 7.953985,
+      "when": "on_success",
+      "manual": false,
+      "allow_failure": false,
+      "user": {
+        "id": 2952463,
+        "name": "Jiri Popelka",
+        "username": "jpopelka",
+        "avatar_url": "https://secure.gravatar.com/avatar/eff1ae69a40d35559a382d36b53b72d2?s=80&d=identicon",
+        "email": "jpopelka@redhat.com"
+      },
+      "runner": {
+        "id": 10266297,
+        "description": "gitlab-runner-runner-844985cd4f-ftgr5",
+        "runner_type": "group_type",
+        "active": true,
+        "is_shared": false,
+        "tags": ["openshift", "gitbz"]
+      },
+      "artifacts_file": {
+        "filename": "artifacts.zip",
+        "size": 1366
+      },
+      "environment": null
+    }
+  ]
+}

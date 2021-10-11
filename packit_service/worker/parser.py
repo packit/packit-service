@@ -1040,6 +1040,8 @@ class Parser:
         if event.get("object_kind") != "pipeline":
             return None
 
+        # Project where the pipeline runs. In case of MR pipeline this can be
+        # either source project or target project depending on pipeline type.
         project_url = nested_get(event, "project", "web_url")
         project_name = nested_get(event, "project", "name")
 
@@ -1051,9 +1053,10 @@ class Parser:
         commit_sha = nested_get(event, "object_attributes", "sha")
         status = nested_get(event, "object_attributes", "status")
         detailed_status = nested_get(event, "object_attributes", "detailed_status")
-
-        # There's also a "merge_request" key which should (according to docs) contain info
-        # about related MR but from what I've seen it was always null, so we haven't used it yet.
+        # merge_request_event or push
+        source = nested_get(event, "object_attributes", "source")
+        # merge_request is null if source == "push"
+        merge_request_url = nested_get(event, "merge_request", "url")
 
         return PipelineGitlabEvent(
             project_url=project_url,
@@ -1063,6 +1066,8 @@ class Parser:
             status=status,
             detailed_status=detailed_status,
             commit_sha=commit_sha,
+            source=source,
+            merge_request_url=merge_request_url,
         )
 
 

@@ -167,8 +167,8 @@ class TestEvents:
             return json.load(outfile)
 
     @pytest.fixture()
-    def gitlab_pipeline_passed(self):
-        with open(DATA_DIR / "webhooks" / "gitlab" / "pipeline_passed.json") as outfile:
+    def gitlab_mr_pipeline(self):
+        with open(DATA_DIR / "webhooks" / "gitlab" / "mr_pipeline.json") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -640,23 +640,34 @@ class TestEvents:
 
         assert event_object.package_config
 
-    def test_parse_gitlab_pipeline(self, gitlab_pipeline_passed):
-        event_object = Parser.parse_event(gitlab_pipeline_passed)
+    def test_parse_gitlab_pipeline(self, gitlab_mr_pipeline):
+        event_object = Parser.parse_event(gitlab_mr_pipeline)
 
         assert isinstance(event_object, PipelineGitlabEvent)
         assert (
             event_object.project_url
-            == "https://gitlab.com/packit-as-a-service-stg/luksmeta"
+            == "https://gitlab.com/redhat/centos-stream/rpms/luksmeta"
         )
         assert event_object.project_name == "luksmeta"
-        assert event_object.pipeline_id == 366710665
-        assert event_object.git_ref == "9-c9s-src-2"
-        assert event_object.status == "success"
-        assert event_object.detailed_status == "passed"
-        assert event_object.commit_sha == "e5b31b67c9f8fe9e1b907fce8f005bca718bb9dd"
+        assert event_object.pipeline_id == 384095584
+        assert event_object.git_ref == "9-c9s-src-5"
+        assert event_object.status == "failed"
+        assert event_object.detailed_status == "failed"
+        assert event_object.source == "merge_request_event"
+        assert event_object.commit_sha == "ee58e259da263ecb4c1f0129be7aef8cfd4dedd6"
+        assert (
+            event_object.merge_request_url
+            == "https://gitlab.com/redhat/centos-stream/rpms/luksmeta/-/merge_requests/4"
+        )
 
+        flexmock(PullRequestModel).should_receive("get_or_create").and_return(
+            flexmock()
+        )
+        assert event_object.db_trigger
         assert isinstance(event_object.project, GitlabProject)
-        assert event_object.project.full_repo_name == "packit-as-a-service-stg/luksmeta"
+        assert (
+            event_object.project.full_repo_name == "redhat/centos-stream/rpms/luksmeta"
+        )
         assert not event_object.base_project
 
         flexmock(PackageConfigGetter).should_receive(
@@ -665,7 +676,7 @@ class TestEvents:
             base_project=event_object.base_project,
             project=event_object.project,
             pr_id=None,
-            reference="e5b31b67c9f8fe9e1b907fce8f005bca718bb9dd",
+            reference="ee58e259da263ecb4c1f0129be7aef8cfd4dedd6",
             fail_when_missing=False,
             spec_file_path=None,
         ).and_return(
