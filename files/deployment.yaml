@@ -7,14 +7,23 @@
     as_root: true # needs to run as root in zuul
   tasks:
     - name: Install packages for deployment
-      dnf:
+      package:
         name:
           - git
           - ansible
-          - python3-openshift
+          - python-openshift
+          - python-pip
           - make
           - skopeo
       become: true
+
+    # For "equalto" test in set-facts.yml we need Jinja2>=2.8.x, there's 2.7.2 in centos7
+    # Needs to be installed before running the set-facts.yml playbook
+    - name: Install Jinja-2.8.1
+      pip:
+        name: Jinja2==2.8.1
+      become: true
+      when: (ansible_facts['distribution'] == "CentOS" and ansible_facts['distribution_major_version'] == "7")
 
     - name: clone deployment repo when not running in zuul
       block:

@@ -5,7 +5,7 @@ TEST_IMAGE ?= quay.io/packit/packit-service-tests:stg
 PULL_TEST_IMAGE ?= missing
 TEST_TARGET ?= ./tests/unit ./tests/integration/
 CONTAINER_ENGINE ?= $(shell command -v podman 2> /dev/null || echo docker)
-ANSIBLE_PYTHON ?= /usr/bin/python3
+ANSIBLE_PYTHON ?= $(shell command -v /usr/bin/python3 2> /dev/null || echo /usr/bin/python2)
 AP ?= ansible-playbook -vv -c local -i localhost, -e ansible_python_interpreter=$(ANSIBLE_PYTHON)
 PATH_TO_SECRETS ?= $(CURDIR)/secrets/
 COV_REPORT ?= term-missing
