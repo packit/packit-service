@@ -1,5 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+import json
 
 import pytest
 import shutil
@@ -78,6 +79,7 @@ def test_dist_git_push_release_handle(github_release_webhook):
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
 
     results = run_propose_downstream_handler(
         package_config=package_config,
@@ -135,6 +137,7 @@ def test_dist_git_push_release_handle_multiple_branches(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
 
     results = run_propose_downstream_handler(
         package_config=package_config,
@@ -202,6 +205,7 @@ def test_dist_git_push_release_handle_one_failed(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
 
     results = run_propose_downstream_handler(
         package_config=package_config,
@@ -281,6 +285,7 @@ def test_dist_git_push_release_handle_all_failed(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
 
     results = run_propose_downstream_handler(
         package_config=package_config,
@@ -340,6 +345,7 @@ def test_retry_propose_downstream_task(github_release_webhook):
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
 
     results = run_propose_downstream_handler(event_dict, package_config, job_config)
 
@@ -398,6 +404,7 @@ def test_dont_retry_propose_downstream_task(github_release_webhook):
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
 
     results = run_propose_downstream_handler(event_dict, package_config, job_config)
 

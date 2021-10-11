@@ -42,6 +42,7 @@ def test_installation():
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
 
     results = run_installation_handler(
         package_config=package_config,

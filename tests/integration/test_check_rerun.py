@@ -247,6 +247,7 @@ def test_check_rerun_pr_copr_build_handler(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
     assert event_dict["targets_override"] == ["fedora-rawhide-x86_64"]
 
     results = run_copr_build_handler(
@@ -304,6 +305,7 @@ def test_check_rerun_pr_testing_farm_handler(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
     assert event_dict["targets_override"] == ["fedora-rawhide-x86_64"]
     results = run_testing_farm_handler(
         package_config=package_config,
@@ -356,6 +358,7 @@ def test_check_rerun_pr_koji_build_handler(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
     assert event_dict["targets_override"] == ["f34"]
 
     results = run_koji_build_handler(
@@ -409,6 +412,7 @@ def test_check_rerun_push_copr_build_handler(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
     assert event_dict["targets_override"] == ["fedora-rawhide-x86_64"]
 
     results = run_copr_build_handler(
@@ -467,6 +471,7 @@ def test_check_rerun_push_testing_farm_handler(
         processing_results
     )
     assert event_dict["targets_override"] == ["fedora-rawhide-x86_64"]
+    assert json.dumps(event_dict)
     results = run_testing_farm_handler(
         package_config=package_config,
         event=event_dict,
@@ -519,6 +524,7 @@ def test_check_rerun_push_koji_build_handler(
         processing_results
     )
     assert event_dict["targets_override"] == ["f34"]
+    assert json.dumps(event_dict)
 
     results = run_koji_build_handler(
         package_config=package_config,
@@ -572,6 +578,7 @@ def test_check_rerun_release_copr_build_handler(
         processing_results
     )
     assert event_dict["targets_override"] == ["fedora-rawhide-x86_64"]
+    assert json.dumps(event_dict)
 
     results = run_copr_build_handler(
         package_config=package_config,
@@ -625,6 +632,7 @@ def test_check_rerun_release_koji_build_handler(
         processing_results
     )
     assert event_dict["targets_override"] == ["f34"]
+    assert json.dumps(event_dict)
 
     results = run_koji_build_handler(
         package_config=package_config,

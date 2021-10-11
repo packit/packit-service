@@ -4,6 +4,7 @@
 """
 Let's test that Steve's as awesome as we think he is.
 """
+import json
 from json import dumps, load
 
 import pytest
@@ -96,6 +97,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
 
     results = run_propose_downstream_handler(
         package_config=package_config,
