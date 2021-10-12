@@ -65,6 +65,8 @@ services:
       POSTGRESQL_PASSWORD: secret-password
       POSTGRESQL_HOST: postgres
       POSTGRESQL_DATABASE: packit
+      CELERY_RETRY_LIMIT: 0
+      PUSHGATEWAY_ADDRESS: ""
     volumes:
       - ./packit_service:/usr/local/lib/python3.9/site-packages/packit_service:ro,z
       # worker should not require packit-service.yaml
