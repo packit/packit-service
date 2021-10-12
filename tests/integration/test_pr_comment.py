@@ -201,6 +201,7 @@ def test_pr_comment_copr_build_handler(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
 
     results = run_copr_build_handler(
         package_config=package_config,
@@ -244,6 +245,7 @@ def test_pr_comment_build_handler(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
 
     results = run_copr_build_handler(
         package_config=package_config,
@@ -323,6 +325,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
 
     results = run_koji_build_handler(
         package_config=package_config,
@@ -403,6 +406,7 @@ def test_pr_embedded_command_handler(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
 
     results = run_copr_build_handler(
         package_config=package_config,
@@ -519,6 +523,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
 
     run_testing_farm_handler(
         package_config=package_config,
@@ -608,6 +613,7 @@ def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
 
     run_testing_farm_handler(
         package_config=package_config,

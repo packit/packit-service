@@ -143,6 +143,7 @@ def test_issue_comment_propose_downstream_handler(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
+    assert json.dumps(event_dict)
 
     results = run_propose_downstream_handler(
         package_config=package_config,
