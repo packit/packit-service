@@ -84,6 +84,22 @@ class Pushgateway:
             ),
         )
 
+        self.copr_build_not_submitted_time = Histogram(
+            "copr_build_not_submitted_time",
+            "Time it takes from setting accepted status for Copr build to failed status "
+            "for an event that prevents submitting of Copr build",
+            registry=self.registry,
+            buckets=(
+                1800,
+                3600,
+                3 * 3600,
+                6 * 3600,
+                12 * 3600,
+                24 * 3600,
+                float("inf"),
+            ),
+        )
+
         self.test_run_finished_time = Histogram(
             "test_run_finished_time",
             "Time it takes from submitting the test run to set finished status",

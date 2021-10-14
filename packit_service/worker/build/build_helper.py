@@ -29,6 +29,7 @@ from packit_service.config import Deployment, ServiceConfig
 from packit_service.models import RunModel, SRPMBuildModel, JobTriggerModel
 from packit_service.worker.events import EventData
 from packit_service.trigger_mapping import are_job_types_same
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ class BaseBuildJobHelper:
         db_trigger,
         job_config: JobConfig,
         targets_override: Optional[Set[str]] = None,
+        pushgateway: Optional[Pushgateway] = None,
     ):
         self.service_config: ServiceConfig = service_config
         self.job_config = job_config
@@ -59,6 +61,7 @@ class BaseBuildJobHelper:
         self.metadata: EventData = metadata
         self.run_model: Optional[RunModel] = None
         self.targets_override: Optional[Set[str]] = targets_override
+        self.pushgateway = pushgateway
 
         # lazy properties
         self._api = None

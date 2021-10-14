@@ -105,6 +105,7 @@ class CoprBuildHandler(JobHandler):
                 db_trigger=self.data.db_trigger,
                 job_config=self.job_config,
                 targets_override=self.data.targets_override,
+                pushgateway=self.pushgateway,
             )
         return self._copr_build_helper
 
@@ -181,6 +182,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
             metadata=self.data,
             db_trigger=self.db_trigger,
             job_config=self.job_config,
+            pushgateway=self.pushgateway,
         )
 
         if self.copr_event.chroot == "srpm-builds":
@@ -259,6 +261,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             metadata=self.data,
             db_trigger=self.db_trigger,
             job_config=self.job_config,
+            pushgateway=self.pushgateway,
         )
 
         if self.copr_event.chroot == "srpm-builds":
