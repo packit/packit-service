@@ -109,7 +109,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         """
         distro, arch = self.chroot2distro_arch(chroot)
-        compose = self.distro2compose(distro)
+        compose = self.distro2compose(distro, arch)
         fmf = {"url": self.fmf_url}
         if self.fmf_ref:
             fmf["ref"] = self.fmf_ref
@@ -163,7 +163,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """
         copr_build = CoprBuildModel.get_by_build_id(build_id)
         distro, arch = self.chroot2distro_arch(chroot)
-        compose = self.distro2compose(distro)
+        compose = self.distro2compose(distro, arch)
         return {
             "api_key": self.service_config.testing_farm_secret,
             "test": {
@@ -220,7 +220,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         distro = epel_mapping.get(distro, distro)
         return distro, arch
 
-    def distro2compose(self, distro: str) -> str:
+    def distro2compose(self, distro: str, arch: str) -> str:
         """
         Create a compose string from distro, e.g. fedora-33 -> Fedora-33
         https://api.dev.testing-farm.io/v0.1/composes
@@ -238,6 +238,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
         if compose == "CentOS-Stream":
             compose = "CentOS-Stream-8"
+
+        if arch == "aarch64":
+            # TF has separate composes for aarch64 architecture
+            compose += "-aarch64"
 
         if self.job_config.metadata.use_internal_tf:
             # Internal TF does not have own endpoint for composes
