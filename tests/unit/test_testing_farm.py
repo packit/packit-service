@@ -148,6 +148,7 @@ def test_testing_farm_response(
         ("fedora-33-x86_64", "fedora-33", "x86_64", False),
         ("fedora-rawhide-aarch64", "fedora-rawhide", "aarch64", False),
         ("centos-stream-x86_64", "centos-stream", "x86_64", False),
+        ("epel-6-x86_64", "centos-6", "x86_64", False),
         ("epel-7-x86_64", "centos-7", "x86_64", False),
         ("epel-8-x86_64", "centos-stream-8", "x86_64", False),
         ("fedora-33-x86_64", "fedora-33", "x86_64", True),
