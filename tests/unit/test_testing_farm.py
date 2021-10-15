@@ -225,7 +225,41 @@ def test_distro2compose(distro, compose, use_internal_tf):
         0 if use_internal_tf else 1
     )
 
-    assert job_helper.distro2compose(distro) == compose
+    assert job_helper.distro2compose(distro, arch="x86_64") == compose
+
+
+@pytest.mark.parametrize(
+    "distro,arch,compose,use_internal_tf",
+    [
+        ("fedora-33", "x86_64", "Fedora-33", False),
+        ("fedora-33", "aarch64", "Fedora-33-aarch64", False),
+    ],
+)
+def test_distro2compose_for_aarch64(distro, arch, compose, use_internal_tf):
+    job_helper = TFJobHelper(
+        service_config=flexmock(
+            testing_farm_api_url="xyz",
+        ),
+        package_config=flexmock(jobs=[]),
+        project=flexmock(),
+        metadata=flexmock(),
+        db_trigger=flexmock(),
+        job_config=JobConfig(
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.pull_request,
+            metadata=JobMetadataConfig(use_internal_tf=use_internal_tf),
+        ),
+    )
+    job_helper = flexmock(job_helper)
+
+    response = flexmock(
+        status_code=200, json=lambda: {"composes": [{"name": "Fedora-33"}]}
+    )
+    job_helper.should_receive("send_testing_farm_request").and_return(response).times(
+        0 if use_internal_tf else 1
+    )
+
+    assert job_helper.distro2compose(distro, arch=arch) == compose
 
 
 @pytest.mark.parametrize(
