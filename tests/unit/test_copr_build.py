@@ -54,6 +54,7 @@ from packit_service.worker.build.copr_build import (
     CoprBuildJobHelper,
     BaseBuildJobHelper,
 )
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.parser import Parser
 from packit_service.worker.reporting import (
     BaseCommitStatus,
@@ -136,6 +137,7 @@ def build_helper(
         ),
         db_trigger=db_trigger,
         targets_override=targets_override,
+        pushgateway=Pushgateway(),
     )
     handler._api = PackitAPI(ServiceConfig(), pkg_conf)
     return handler

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+from datetime import datetime
 from typing import List, Optional, Set, Tuple
 
 from copr.v3 import CoprRequestException
@@ -24,6 +25,7 @@ from packit_service.service.urls import (
     get_srpm_build_info_url,
 )
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.result import TaskResults
 from packit_service.worker.reporting import BaseCommitStatus
 
@@ -45,6 +47,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         db_trigger: AbstractTriggerDbType,
         job_config: JobConfig,
         targets_override: Optional[Set[str]] = None,
+        pushgateway: Optional[Pushgateway] = None,
     ):
         super().__init__(
             service_config=service_config,
@@ -54,6 +57,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             db_trigger=db_trigger,
             job_config=job_config,
             targets_override=targets_override,
+            pushgateway=pushgateway,
         )
 
         self.msg_retrigger: str = MSG_RETRIGGER.format(
@@ -168,6 +172,17 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
     def get_build(self, build_id: int):
         return self.api.copr_helper.copr_client.build_proxy.get(build_id)
 
+    def monitor_not_submitted_copr_builds(self, number_of_builds: int, reason: str):
+        """
+        Measure the time it took to set the failed status in case of event (e.g. failed SRPM)
+        that prevents Copr build to be submitted.
+        """
+        time = (datetime.now() - self.metadata.task_accepted_time).total_seconds()
+        for _ in range(number_of_builds):
+            self.pushgateway.copr_build_not_submitted_time.labels(
+                reason=reason
+            ).observe(time)
+
     def run_copr_build(self) -> TaskResults:
         self.report_status_to_all(
             description="Building SRPM ...",
@@ -185,6 +200,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 description=msg,
                 url=get_srpm_build_info_url(self.srpm_model.id),
             )
+            self.monitor_not_submitted_copr_builds(
+                len(self.build_targets), "srpm_failure"
+            )
             return TaskResults(success=False, details={"msg": msg})
 
         try:
@@ -196,6 +214,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             self.report_status_to_all(
                 state=BaseCommitStatus.error,
                 description=f"Submit of the build failed: {ex}",
+            )
+            self.monitor_not_submitted_copr_builds(
+                len(self.build_targets), "submit_failure"
             )
             return TaskResults(
                 success=False,
@@ -211,6 +232,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     url=get_srpm_build_info_url(self.srpm_model.id),
                     chroot=chroot,
                 )
+                self.monitor_not_submitted_copr_builds(1, "not_supported_target")
                 unprocessed_chroots.append(chroot)
                 continue
 
