@@ -88,6 +88,7 @@ class Pushgateway:
             "copr_build_not_submitted_time",
             "Time it takes from setting accepted status for Copr build to failed status "
             "for an event that prevents submitting of Copr build",
+            ["reason"],
             registry=self.registry,
             buckets=(
                 1800,

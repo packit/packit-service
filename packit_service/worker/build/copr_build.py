@@ -172,14 +172,16 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
     def get_build(self, build_id: int):
         return self.api.copr_helper.copr_client.build_proxy.get(build_id)
 
-    def monitor_not_submitted_copr_builds(self, number_of_builds: int):
+    def monitor_not_submitted_copr_builds(self, number_of_builds: int, reason: str):
         """
         Measure the time it took to set the failed status in case of event (e.g. failed SRPM)
         that prevents Copr build to be submitted.
         """
         time = (datetime.now() - self.metadata.task_accepted_time).total_seconds()
         for _ in range(number_of_builds):
-            self.pushgateway.copr_build_not_submitted_time.observe(time)
+            self.pushgateway.copr_build_not_submitted_time.labels(
+                reason=reason
+            ).observe(time)
 
     def run_copr_build(self) -> TaskResults:
         self.report_status_to_all(
@@ -198,7 +200,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 description=msg,
                 url=get_srpm_build_info_url(self.srpm_model.id),
             )
-            self.monitor_not_submitted_copr_builds(len(self.build_targets))
+            self.monitor_not_submitted_copr_builds(
+                len(self.build_targets), "srpm_failure"
+            )
             return TaskResults(success=False, details={"msg": msg})
 
         try:
@@ -211,7 +215,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 state=BaseCommitStatus.error,
                 description=f"Submit of the build failed: {ex}",
             )
-            self.monitor_not_submitted_copr_builds(len(self.build_targets))
+            self.monitor_not_submitted_copr_builds(
+                len(self.build_targets), "submit_failure"
+            )
             return TaskResults(
                 success=False,
                 details={"msg": "Submit of the Copr build failed.", "error": str(ex)},
@@ -226,7 +232,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     url=get_srpm_build_info_url(self.srpm_model.id),
                     chroot=chroot,
                 )
-                self.monitor_not_submitted_copr_builds(1)
+                self.monitor_not_submitted_copr_builds(1, "not_supported_target")
                 unprocessed_chroots.append(chroot)
                 continue
 
