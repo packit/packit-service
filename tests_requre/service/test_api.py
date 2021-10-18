@@ -86,6 +86,7 @@ def test_detailed_copr_build_info(client, clean_before_and_after, a_copr_build_f
     assert response_dict["repo_name"] == SampleValues.repo_name
     assert response_dict["git_repo"] == SampleValues.project_url
     assert response_dict["pr_id"] == SampleValues.pr_id
+    assert response_dict["built_packages"] == SampleValues.built_packages
     assert "branch_name" in response_dict
     assert "release" in response_dict
 
