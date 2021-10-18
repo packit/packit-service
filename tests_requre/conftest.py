@@ -98,6 +98,29 @@ class SampleValues:
 
     # Issues
     issue_id = 2020
+    built_packages = [
+        {
+            "arch": "noarch",
+            "epoch": 0,
+            "name": "python3-packit",
+            "release": "1.20210930124525726166.main.0.g0b7b36b.fc36",
+            "version": "0.38.0",
+        },
+        {
+            "arch": "src",
+            "epoch": 0,
+            "name": "packit",
+            "release": "1.20210930124525726166.main.0.g0b7b36b.fc36",
+            "version": "0.38.0",
+        },
+        {
+            "arch": "noarch",
+            "epoch": 0,
+            "name": "packit",
+            "release": "1.20210930124525726166.main.0.g0b7b36b.fc36",
+            "version": "0.38.0",
+        },
+    ]
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -308,6 +331,7 @@ def a_copr_build_for_pr(srpm_build_model_with_new_run_for_pr):
     copr_build_model.set_build_logs_url(
         "https://copr.somewhere/results/owner/package/target/build.logs"
     )
+    copr_build_model.set_built_packages(SampleValues.built_packages)
     yield copr_build_model
 
 
