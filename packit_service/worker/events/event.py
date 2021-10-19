@@ -200,7 +200,7 @@ class Event:
                 created_at = created_at.replace("Z", "+00:00")
                 self.created_at = datetime.fromisoformat(created_at)
         else:
-            self.created_at = datetime.now()
+            self.created_at = datetime.now(timezone.utc)
 
     @staticmethod
     def ts2str(event: dict):

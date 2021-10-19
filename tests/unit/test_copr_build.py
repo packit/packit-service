@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Type
 
@@ -133,7 +133,7 @@ def build_helper(
             commit_sha=event.commit_sha,
             identifier=event.identifier,
             tag_name=None,
-            task_accepted_time=datetime.now(),
+            task_accepted_time=datetime.now(timezone.utc),
         ),
         db_trigger=db_trigger,
         targets_override=targets_override,
