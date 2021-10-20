@@ -1,13 +1,11 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from datetime import timedelta
 from os import getenv
 
 from celery import Celery
 from lazy_object_proxy import Proxy
 
-from packit_service.constants import CELERY_DEFAULT_QUEUE_NAME
 from packit_service.models import get_pg_url
 from packit_service.sentry_integration import configure_sentry
 
@@ -31,15 +29,8 @@ class Celerizer:
             # http://docs.celeryproject.org/en/latest/reference/celery.html#celery.Celery
             self._celery_app = Celery(backend=postgres_url, broker=broker_url)
 
-            # https://docs.celeryproject.org/en/stable/userguide/tasks.html#ignore-results-you-don-t-want
-            self._celery_app.conf.task_ignore_result = True
-
-            days = int(getenv("CELERY_RESULT_EXPIRES", "30"))
-            # https://docs.celeryproject.org/en/latest/userguide/configuration.html#result-expires
-            self._celery_app.conf.result_expires = timedelta(days=days)
-
-            # https://docs.celeryproject.org/en/latest/userguide/configuration.html#std-setting-task_default_queue
-            self._celery_app.conf.task_default_queue = CELERY_DEFAULT_QUEUE_NAME
+            # https://docs.celeryproject.org/en/stable/getting-started/first-steps-with-celery.html#configuration
+            self._celery_app.config_from_object("packit_service.celery_config")
 
         return self._celery_app
 

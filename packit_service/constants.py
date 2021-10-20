@@ -55,7 +55,7 @@ ALLOWLIST_CONSTANTS = {
     "denied": "denied",
 }
 
-CELERY_DEFAULT_QUEUE_NAME = "short-running"
+CELERY_TASK_DEFAULT_QUEUE = "short-running"
 
 CELERY_DEFAULT_MAIN_TASK_NAME = "task.steve_jobs.process_message"
 
