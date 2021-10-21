@@ -5,7 +5,7 @@
 We love you, Steve Jobs.
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from typing import List, Set, Type, Union
 
@@ -48,7 +48,7 @@ from packit_service.worker.handlers.abstract import (
     MAP_CHECK_PREFIX_TO_HANDLER,
 )
 
-from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.monitoring import Pushgateway, measure_time
 from packit_service.worker.parser import CentosEventParser, Parser
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
@@ -229,8 +229,8 @@ def get_config_for_handler_kls(
 def push_initial_metrics(event: Event, handler: JobHandler, build_targets_len: int):
     pushgateway = Pushgateway()
 
-    task_accepted_time = datetime.now()
-    response_time = (task_accepted_time - event.created_at).total_seconds()
+    task_accepted_time = datetime.now(timezone.utc)
+    response_time = measure_time(end=task_accepted_time, begin=event.created_at)
     pushgateway.initial_status_time.observe(response_time)
     if response_time > 15:
         pushgateway.no_status_after_15_s.inc()

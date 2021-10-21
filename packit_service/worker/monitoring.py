@@ -3,10 +3,27 @@
 
 import logging
 import os
+from datetime import datetime, timezone
 
 from prometheus_client import CollectorRegistry, Counter, push_to_gateway, Histogram
 
 logger = logging.getLogger(__name__)
+
+
+def measure_time(begin: datetime, end: datetime) -> float:
+    """
+    Make the datetime objects timezone aware (utc) if needed
+    and measure time between them in seconds.
+
+    Returns:
+        float seconds between begin and end
+    """
+    if begin.tzinfo is None or begin.tzinfo.utcoffset(begin) is None:
+        begin = begin.replace(tzinfo=timezone.utc)
+    if end.tzinfo is None or end.tzinfo.utcoffset(end) is None:
+        end = end.replace(tzinfo=timezone.utc)
+
+    return (end - begin).total_seconds()
 
 
 class Pushgateway:

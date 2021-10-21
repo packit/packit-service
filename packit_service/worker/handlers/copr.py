@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from celery import signature
@@ -54,6 +54,7 @@ from packit_service.worker.handlers.abstract import (
     add_topic,
     FedmsgHandler,
 )
+from packit_service.worker.monitoring import measure_time
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 
@@ -290,9 +291,9 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
 
         # if the build is needed only for test, it doesn't have the task_accepted_time
         if self.build.task_accepted_time:
-            copr_build_time = (
-                datetime.now() - self.build.task_accepted_time
-            ).total_seconds()
+            copr_build_time = measure_time(
+                end=datetime.now(timezone.utc), begin=self.build.task_accepted_time
+            )
             self.pushgateway.copr_build_finished_time.observe(copr_build_time)
 
         end_time = (

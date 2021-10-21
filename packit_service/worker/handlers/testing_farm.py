@@ -5,7 +5,7 @@
 This file defines classes for job handlers specific for Testing farm
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from celery import signature
@@ -39,6 +39,7 @@ from packit_service.worker.handlers.abstract import (
     run_for_comment,
     run_for_check_rerun,
 )
+from packit_service.worker.monitoring import measure_time
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
@@ -265,9 +266,9 @@ class TestingFarmResultsHandler(JobHandler):
             self.pushgateway.test_runs_started.inc()
         else:
             self.pushgateway.test_runs_finished.inc()
-            test_run_time = (
-                datetime.now() - test_run_model.submitted_time
-            ).total_seconds()
+            test_run_time = measure_time(
+                end=datetime.now(timezone.utc), begin=test_run_model.submitted_time
+            )
             self.pushgateway.test_run_finished_time.observe(test_run_time)
 
         if test_run_model:

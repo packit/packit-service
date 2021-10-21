@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Set, Tuple
 
 from copr.v3 import CoprRequestException
@@ -25,7 +25,7 @@ from packit_service.service.urls import (
     get_srpm_build_info_url,
 )
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
-from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.monitoring import Pushgateway, measure_time
 from packit_service.worker.result import TaskResults
 from packit_service.worker.reporting import BaseCommitStatus
 
@@ -177,7 +177,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         Measure the time it took to set the failed status in case of event (e.g. failed SRPM)
         that prevents Copr build to be submitted.
         """
-        time = (datetime.now() - self.metadata.task_accepted_time).total_seconds()
+        time = measure_time(
+            end=datetime.now(timezone.utc), begin=self.metadata.task_accepted_time
+        )
         for _ in range(number_of_builds):
             self.pushgateway.copr_build_not_submitted_time.labels(
                 reason=reason
