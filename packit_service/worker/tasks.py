@@ -16,6 +16,7 @@ from packit_service.utils import load_job_config, load_package_config
 from packit_service.worker.build.babysit import (
     check_copr_build,
     check_pending_copr_builds,
+    check_pending_testing_farm_runs,
 )
 from packit_service.worker.handlers.abstract import TaskName
 from packit_service.worker.handlers import (
@@ -232,3 +233,8 @@ def get_handlers_task_results(results: dict, event: dict) -> dict:
 @celery_app.task
 def babysit_pending_copr_builds() -> None:
     check_pending_copr_builds()
+
+
+@celery_app.task
+def babysit_pending_tft_runs() -> None:
+    check_pending_testing_farm_runs()

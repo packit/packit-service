@@ -1448,6 +1448,14 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
             )
 
     @classmethod
+    def get_all_by_status(
+        cls, status: TestingFarmResult
+    ) -> Optional[Iterable["TFTTestRunModel"]]:
+        """Returns all runs which currently have the given status"""
+        with get_sa_session() as session:
+            return session.query(TFTTestRunModel).filter_by(status=status)
+
+    @classmethod
     def get_by_id(cls, id: int) -> Optional["TFTTestRunModel"]:
         with get_sa_session() as session:
             return session.query(TFTTestRunModel).filter_by(id=id).first()

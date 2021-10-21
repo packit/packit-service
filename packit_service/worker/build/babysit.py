@@ -5,20 +5,86 @@ import collections
 import logging
 from typing import Iterable
 
+import requests
 from copr.v3 import Client as CoprClient
 
 from packit_service.constants import (
     COPR_API_FAIL_STATE,
     COPR_API_SUCC_STATE,
     COPR_SUCC_STATE,
+    TESTING_FARM_API_URL,
 )
-from packit_service.models import CoprBuildModel
-from packit_service.worker.events import AbstractCoprBuildEvent
+from packit_service.worker.parser import Parser
+from packit_service.models import CoprBuildModel, TFTTestRunModel, TestingFarmResult
+from packit_service.worker.events import AbstractCoprBuildEvent, TestingFarmResultsEvent
 from packit_service.worker.events.enums import FedmsgTopic
-from packit_service.worker.handlers import CoprBuildEndHandler
+from packit_service.worker.handlers import (
+    CoprBuildEndHandler,
+    TestingFarmResultsHandler,
+)
 from packit_service.worker.jobs import get_config_for_handler_kls
 
 logger = logging.getLogger(__name__)
+
+
+def check_pending_testing_farm_runs() -> None:
+    """Checks the status of pending TFT runs and updates it if needed."""
+    logger.debug("Getting pending TFT runs from DB")
+    pending_test_runs = TFTTestRunModel.get_all_by_status(TestingFarmResult.running)
+    for run in pending_test_runs:
+        logger.info(f"Checking status of pipeline with id {run.pipeline_id}")
+        endpoint = "requests/"
+        run_url = f"{TESTING_FARM_API_URL}{endpoint}{run.pipeline_id}"
+        response = requests.get(run_url)
+        if not response.ok:
+            logger.error(
+                f"Failed to obtain state of testing farm pipeline "
+                f"id {run.pipeline_id} (status code {response.status_code}. "
+                f"Reason: {response.reason}."
+            )
+            continue
+        details = response.json()
+        status = TestingFarmResult(details.get("state"))
+        logger.info(f"The status is {status}")
+        if status == TestingFarmResult.running:
+            logger.info(f"Pipeline {run.pipeline_id} is still running")
+            continue
+
+        (
+            project_url,
+            ref,
+            result,
+            summary,
+            copr_build_id,
+            copr_chroot,
+            compose,
+            log_url,
+        ) = Parser.parse_data_from_testing_farm(run, details)
+
+        event = TestingFarmResultsEvent(
+            pipeline_id=details["id"],
+            result=result,
+            compose=compose,
+            summary=summary,
+            log_url=log_url,
+            copr_build_id=copr_build_id,
+            copr_chroot=copr_chroot,
+            commit_sha=ref,
+            project_url=project_url,
+        )
+
+        job_configs = get_config_for_handler_kls(
+            handler_kls=TestingFarmResultsHandler,
+            event=event,
+            package_config=event.get_package_config(),
+        )
+
+        for job_config in job_configs:
+            TestingFarmResultsHandler(
+                package_config=event.package_config,
+                job_config=job_config,
+                event=event.get_dict(),
+            ).run()
 
 
 def check_pending_copr_builds() -> None:

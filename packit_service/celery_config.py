@@ -14,5 +14,9 @@ beat_schedule = {
     "update-pending-copr-builds": {
         "task": "packit_service.worker.tasks.babysit_pending_copr_builds",
         "schedule": 3600.0,
-    }
+    },
+    "update-pending-tft-runs": {
+        "task": "packit_service.worker.tasks.babysit_pending_tft_runs",
+        "schedule": 600.0,
+    },
 }
