@@ -1,6 +1,8 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import datetime
+
 import requests
 from copr.v3 import Client
 from flexmock import flexmock
@@ -16,6 +18,7 @@ from packit_service.models import (
 from packit_service.worker.events import AbstractCoprBuildEvent, TestingFarmResultsEvent
 from packit_service.worker.build.babysit import (
     check_copr_build,
+    update_copr_builds,
     check_pending_copr_builds,
     check_pending_testing_farm_runs,
 )
@@ -51,7 +54,9 @@ def test_check_copr_build_not_ended():
 def test_check_copr_build_already_successful():
     flexmock(CoprBuildModel).should_receive("get_all_by_build_id").with_args(
         1
-    ).and_return([flexmock(status="success")])
+    ).and_return(
+        [flexmock(status="success", build_submitted_time=datetime.datetime.utcnow())]
+    )
     flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
             build_proxy=flexmock()
@@ -72,6 +77,7 @@ def test_check_copr_build_updated():
         [
             flexmock(
                 status="pending",
+                build_submitted_time=datetime.datetime.utcnow(),
                 target="the-target",
                 owner="the-owner",
                 project_name="the-project-name",
@@ -133,6 +139,43 @@ def test_check_copr_build_updated():
     assert check_copr_build(build_id=1)
 
 
+def test_check_update_copr_builds_timeout():
+    flexmock(Client).should_receive("create_from_config_file").and_return(
+        flexmock(
+            build_proxy=flexmock()
+            .should_receive("get")
+            .with_args(1)
+            .and_return(
+                flexmock(
+                    ended_on=True,
+                    state="completed",
+                    source_package={
+                        "name": "source_package_name",
+                        "url": "https://some.host/my.srpm",
+                    },
+                )
+            )
+            .mock(),
+            build_chroot_proxy=flexmock()
+            .should_receive("get")
+            .with_args(1, "the-target")
+            .and_return(flexmock(ended_on="timestamp", state="succeeded"))
+            .mock(),
+        )
+    )
+    build = flexmock(
+        status="pending",
+        build_id=1,
+        build_submitted_time=datetime.datetime.utcnow() - datetime.timedelta(weeks=2),
+    )
+    build.should_receive("set_status").with_args("error").once()
+
+    flexmock(CoprBuildModel).should_receive("get_all_by_status").with_args(
+        "pending"
+    ).and_return([build])
+    update_copr_builds(1, [build])
+
+
 def test_check_pending_copr_builds_no_builds():
     flexmock(CoprBuildModel).should_receive("get_all_by_status").with_args(
         "pending"
@@ -173,6 +216,7 @@ def test_check_pending_testing_farm_runs():
     run = (
         flexmock(
             pipeline_id=pipeline_id,
+            submitted_time=datetime.datetime.utcnow(),
             commit_sha="123456",
             target="fedora-rawhide-x86_64",
             data={},
@@ -218,4 +262,17 @@ def test_check_pending_testing_farm_runs():
         )
     )
     flexmock(TestingFarmResultsHandler).should_receive("run").and_return().once()
+    check_pending_testing_farm_runs()
+
+
+def test_check_pending_testing_farm_runs_timeout():
+    run = flexmock(
+        pipeline_id=1,
+        status=TestingFarmResult.running,
+        submitted_time=datetime.datetime.utcnow() - datetime.timedelta(weeks=2),
+    )
+    run.should_receive("set_status").with_args(TestingFarmResult.error).once()
+    flexmock(TFTTestRunModel).should_receive("get_all_by_status").with_args(
+        TestingFarmResult.running
+    ).and_return([run]).once()
     check_pending_testing_farm_runs()

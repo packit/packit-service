@@ -48,6 +48,10 @@ DEFAULT_RETRY_LIMIT = 2
 # retry in 3s, 6s
 DEFAULT_RETRY_BACKOFF = 3
 
+# Time after which we no longer check the status of jobs and consider it as
+# timeout/internal error. Nothing should hopefully run for 7 days.
+DEFAULT_JOB_TIMEOUT = 7 * 24 * 3600
+
 ALLOWLIST_CONSTANTS = {
     "approved_automatically": "approved_automatically",
     "waiting": "waiting",

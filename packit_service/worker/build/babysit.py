@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import collections
+import datetime
 import logging
 from typing import Iterable
 
@@ -13,6 +14,7 @@ from packit_service.constants import (
     COPR_API_SUCC_STATE,
     COPR_SUCC_STATE,
     TESTING_FARM_API_URL,
+    DEFAULT_JOB_TIMEOUT,
 )
 from packit_service.worker.parser import Parser
 from packit_service.models import CoprBuildModel, TFTTestRunModel, TestingFarmResult
@@ -30,9 +32,18 @@ logger = logging.getLogger(__name__)
 def check_pending_testing_farm_runs() -> None:
     """Checks the status of pending TFT runs and updates it if needed."""
     logger.debug("Getting pending TFT runs from DB")
+    current_time = datetime.datetime.utcnow()
     pending_test_runs = TFTTestRunModel.get_all_by_status(TestingFarmResult.running)
     for run in pending_test_runs:
         logger.info(f"Checking status of pipeline with id {run.pipeline_id}")
+        elapsed = current_time - run.submitted_time
+        if elapsed.total_seconds() > DEFAULT_JOB_TIMEOUT:
+            logger.info(
+                f"Pipeline has been running for {elapsed.total_seconds()},"
+                f"probably an internal error occurred. Not checking it anymore."
+            )
+            run.set_status(TestingFarmResult.error)
+            continue
         endpoint = "requests/"
         run_url = f"{TESTING_FARM_API_URL}{endpoint}{run.pipeline_id}"
         response = requests.get(run_url)
@@ -139,7 +150,17 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildModel"]) -> boo
 
     logger.info(f"The status is {build_copr.state!r}.")
 
+    current_time = datetime.datetime.utcnow()
     for build in builds:
+        elapsed = current_time - build.build_submitted_time
+        if elapsed.total_seconds() > DEFAULT_JOB_TIMEOUT:
+            logger.info(
+                f"The build {build_id} has been running for "
+                f"{elapsed.total_seconds()}, probably an internal error"
+                f"occurred. Not checking it anymore."
+            )
+            build.set_status("error")
+            continue
         if build.status != "pending":
             logger.info(
                 f"DB state says {build.status!r}, "
