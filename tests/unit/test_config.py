@@ -11,7 +11,12 @@ from ogr.abstract import GitProject, GitService
 from packit.config import PackageConfig
 from packit.exceptions import PackitConfigException
 from packit.sync import SyncFilesItem
-from packit_service.config import ServiceConfig, Deployment, PackageConfigGetter
+from packit_service.config import (
+    ServiceConfig,
+    Deployment,
+    PackageConfigGetter,
+    MRTarget,
+)
 from packit_service.constants import TESTING_FARM_API_URL
 
 
@@ -47,6 +52,11 @@ def service_config_valid():
         "admins": ["Dasher", "Dancer", "Vixen", "Comet", "Blitzen"],
         "server_name": "hub.packit.org",
         "gitlab_token_secret": "jwt_secret",
+        "gitlab_mr_targets_handled": [
+            {"repo": "redhat/centos-stream/src/.+", "branch": "c9s"},
+            {"repo": "packit-service/src/.+"},
+            {"branch": "rawhide"},
+        ],
         "enabled_private_namespaces": [
             "gitlab.com/private/namespace",
             "github.com/other-private-namespace",
@@ -73,6 +83,13 @@ def test_parse_valid(service_config_valid):
     assert config.admins == {"Dasher", "Dancer", "Vixen", "Comet", "Blitzen"}
     assert config.server_name == "hub.packit.org"
     assert config.gitlab_token_secret == "jwt_secret"
+    assert len(config.gitlab_mr_targets_handled) == 3
+    assert (
+        MRTarget("redhat/centos-stream/src/.+", "c9s")
+        in config.gitlab_mr_targets_handled
+    )
+    assert MRTarget("packit-service/src/.+", None) in config.gitlab_mr_targets_handled
+    assert MRTarget(None, "rawhide") in config.gitlab_mr_targets_handled
     assert config.enabled_private_namespaces == {
         "gitlab.com/private/namespace",
         "github.com/other-private-namespace",
