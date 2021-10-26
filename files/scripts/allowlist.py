@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+"""
+CLI script to interact with our allowlist.
+"""
+
 from urllib.parse import urlparse
 from typing import Optional
 
@@ -11,11 +15,6 @@ PATH_HELP = (
     "Full path to be {} must be in the following format: github.com/packit or "
     "github.com/packit/packit.git for repository only"
 )
-
-
-"""
-This is a CLI script to interact with our allowlist.
-"""
 
 
 class RepoUrl(click.types.ParamType):
