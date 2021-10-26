@@ -6,7 +6,7 @@ This file defines classes for job handlers specific for Testing farm
 """
 import logging
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Dict, List
 
 from celery import signature
 from packit.config import JobConfig, JobType
@@ -81,6 +81,7 @@ class TestingFarmHandler(JobHandler):
         self.chroot = chroot
         self.build_id = build_id
         self._db_trigger: Optional[AbstractTriggerDbType] = None
+        self._testing_farm_job_helper: Optional[TestingFarmJobHelper] = None
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
@@ -89,113 +90,129 @@ class TestingFarmHandler(JobHandler):
             if self.build_id:
                 build = CoprBuildModel.get_by_id(self.build_id)
                 self._db_trigger = build.get_trigger_object()
-            # '/packit test' comment
+            # other events
             else:
                 self._db_trigger = self.data.db_trigger
         return self._db_trigger
 
-    def run(self) -> TaskResults:
-        # TODO: once we turn handlers into respective celery tasks, we should iterate
-        #       here over *all* matching jobs and do them all, not just the first one
-        testing_farm_helper = TestingFarmJobHelper(
-            service_config=self.service_config,
-            package_config=self.package_config,
-            project=self.project,
-            metadata=self.data,
-            db_trigger=self.db_trigger,
-            job_config=self.job_config,
-            targets_override={self.chroot}
-            if self.chroot
-            else self.data.targets_override,
-        )
+    @property
+    def testing_farm_job_helper(self) -> TestingFarmJobHelper:
+        if not self._testing_farm_job_helper:
+            self._testing_farm_job_helper = TestingFarmJobHelper(
+                service_config=self.service_config,
+                package_config=self.package_config,
+                project=self.project,
+                metadata=self.data,
+                db_trigger=self.db_trigger,
+                job_config=self.job_config,
+                targets_override={self.chroot}
+                if self.chroot
+                else self.data.targets_override,
+            )
+        return self._testing_farm_job_helper
 
-        logger.debug(f"Test job config: {testing_farm_helper.job_tests}")
-        targets = list(testing_farm_helper.tests_targets)
-        logger.debug(f"Targets to run the tests: {targets}")
+    def run_copr_build_handler(self, event_data, number_of_builds: int):
+        for _ in range(number_of_builds):
+            self.pushgateway.copr_builds_queued.inc()
 
-        targets_without_build = []
+        signature(
+            TaskName.copr_build.value,
+            kwargs={
+                "package_config": dump_package_config(self.package_config),
+                "job_config": dump_job_config(self.job_config),
+                "event": event_data,
+            },
+        ).apply_async()
+
+    def run_with_copr_builds(self, targets: List[str], failed: Dict):
+        targets_without_builds = []
         targets_with_builds = {}
 
         for target in targets:
             if self.build_id:
                 copr_build = CoprBuildModel.get_by_id(self.build_id)
             else:
-                copr_build = testing_farm_helper.get_latest_copr_build(
+                copr_build = self.testing_farm_job_helper.get_latest_copr_build(
                     target=target, commit_sha=self.data.commit_sha
                 )
 
             if copr_build:
                 targets_with_builds[target] = copr_build
             else:
-                targets_without_build.append(target)
-
-        result_details = {}
+                targets_without_builds.append(target)
 
         # Trigger copr build for targets missing build
-        if targets_without_build:
+        if targets_without_builds:
             logger.info(
-                f"Missing Copr build for targets {targets_without_build} in "
-                f"{testing_farm_helper.job_owner}/{testing_farm_helper.job_project}"
+                f"Missing Copr build for targets {targets_without_builds} in "
+                f"{self.testing_farm_job_helper.job_owner}/"
+                f"{self.testing_farm_job_helper.job_project}"
                 f" and commit:{self.data.commit_sha}, running a new Copr build."
             )
 
-            for missing_target in targets_without_build:
-                testing_farm_helper.report_status_to_test_for_chroot(
+            for missing_target in targets_without_builds:
+                self.testing_farm_job_helper.report_status_to_test_for_chroot(
                     state=BaseCommitStatus.pending,
-                    description="Missing Copr build for this target, running a new Copr build.",
+                    description="Missing Copr build for this target, "
+                    "running a new Copr build.",
                     url="",
                     chroot=missing_target,
                 )
 
-            # monitor queued builds
-            for _ in range(len(targets_without_build)):
-                self.pushgateway.copr_builds_queued.inc()
-
             event_data = self.data.get_dict()
-            event_data["targets_override"] = targets_without_build
+            event_data["targets_override"] = targets_without_builds
+            self.run_copr_build_handler(event_data, len(targets_without_builds))
 
-            signature(
-                TaskName.copr_build.value,
-                kwargs={
-                    "package_config": dump_package_config(self.package_config),
-                    "job_config": dump_job_config(self.job_config),
-                    "event": event_data,
-                },
-            ).apply_async()
-
-            result_details[
-                "msg"
-            ] = f"Build triggered for targets {targets_without_build} missing a Copr build. "
-
-        failed = {}
         for target, copr_build in targets_with_builds.items():
             if copr_build.status != PG_COPR_BUILD_STATUS_SUCCESS:
                 logger.info(
                     "The latest build was not successful, not running tests for it."
                 )
-                testing_farm_helper.report_status_to_test_for_chroot(
+                self.testing_farm_job_helper.report_status_to_test_for_chroot(
                     state=BaseCommitStatus.failure,
-                    description="The latest build was not successful, not running tests for it.",
+                    description="The latest build was not successful, "
+                    "not running tests for it.",
                     chroot=target,
                     url=get_copr_build_info_url(copr_build.id),
                 )
                 continue
 
             logger.info(f"Running testing farm for {copr_build}:{target}.")
-            self.pushgateway.test_runs_queued.inc()
-            result = testing_farm_helper.run_testing_farm(
-                build=copr_build, chroot=target
-            )
-            if not result["success"]:
-                failed[target] = result.get("details")
+            self.run_for_target(target=target, build=copr_build, failed=failed)
+
+    def run_for_target(
+        self,
+        target: str,
+        failed: Dict,
+        build: Optional[CoprBuildModel] = None,
+    ):
+        self.pushgateway.test_runs_queued.inc()
+        result = self.testing_farm_job_helper.run_testing_farm(
+            build=build, chroot=target
+        )
+        if not result["success"]:
+            failed[target] = result.get("details")
+
+    def run(self) -> TaskResults:
+        # TODO: once we turn handlers into respective celery tasks, we should iterate
+        #       here over *all* matching jobs and do them all, not just the first one
+        logger.debug(f"Test job config: {self.testing_farm_job_helper.job_tests}")
+        targets = list(self.testing_farm_job_helper.tests_targets)
+        logger.debug(f"Targets to run the tests: {targets}")
+
+        failed: Dict[str, str] = {}
+
+        if self.testing_farm_job_helper.skip_build:
+            for target in targets:
+                self.run_for_target(target=target, failed=failed)
+
+        else:
+            self.run_with_copr_builds(targets=targets, failed=failed)
 
         if not failed:
-            return TaskResults(success=True, details=result_details)
+            return TaskResults(success=True, details={})
 
-        result_details["msg"] = (
-            result_details.setdefault("msg", "")
-            + f"Failed testing farm targets: '{failed.keys()}'."
-        )
+        result_details = {"msg": f"Failed testing farm targets: '{failed.keys()}'."}
         result_details.update(failed)
 
         return TaskResults(success=False, details=result_details)
