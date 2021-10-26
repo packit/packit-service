@@ -283,42 +283,6 @@ class PackageConfigGetter:
                     f"No config file found in {project_to_search_in.full_repo_name} "
                     "on ref '{reference}'"
                 )
-
-            if package_config and (
-                package_config.current_version_command
-                or package_config.create_tarball_command
-            ):
-                # TODO: Remove once the commands are removed from packit tooling.
-                current_version_set = (
-                    "- `current_version_command`\n"
-                    if package_config.current_version_command
-                    else ""
-                )
-                create_tarball_set = (
-                    "- `create_tarball_command`\n"
-                    if package_config.create_tarball_command
-                    else ""
-                )
-                message = (
-                    "Your config appears to use:\n"
-                    f"{current_version_set}{create_tarball_set}"
-                    "Those options will soon be deprecated and superseded by actions, "
-                    "please adjust you packit configuration.\n\n"
-                    "For more info, please check out the documentation: "
-                    "https://packit.dev/docs/actions/ or contact us - "
-                    "[Packit team]"
-                    "(https://github.com/orgs/packit/teams/the-packit-team)"
-                )
-
-                if created_issue := PackageConfigGetter.create_issue_if_needed(
-                    project,
-                    title="Deprecated options used in configuration",
-                    message=message,
-                ):
-                    logger.debug(
-                        "Created issue for soon-to-be-deprecated packit config: "
-                        f"{created_issue.url}"
-                    )
         except PackitConfigException as ex:
             message = (
                 f"Failed to load packit config file:\n```\n{str(ex)}\n```\n"
