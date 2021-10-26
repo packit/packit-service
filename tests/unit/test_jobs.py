@@ -452,6 +452,37 @@ from packit_service.worker.jobs import (
             "&pull_request&PullRequestGithubEvent",
         ),
         pytest.param(
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(skip_build=True),
+                ),
+            ],
+            {TestingFarmHandler},
+            id="config=test_for_pr_skip_build" "&pull_request&PullRequestGithubEvent",
+        ),
+        pytest.param(
+            PullRequestGithubEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(skip_build=True),
+                ),
+            ],
+            {CoprBuildHandler, TestingFarmHandler},
+            id="config=copr_build_for_pr+test_for_pr_skip_build"
+            "&pull_request&PullRequestGithubEvent",
+        ),
+        pytest.param(
             PushGitHubEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
             [
@@ -880,6 +911,36 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
             {KojiBuildHandler},
             id="config=production_build_for_pr&pull_request&PullRequestCommentGithubEvent"
             "&packit_production-build",
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            "/packit build",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(skip_build=True),
+                ),
+            ],
+            set(),
+            id="config=test_for_pr_skip_build&pull_request&PullRequestCommentGithubEvent"
+            "&packit_build",
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            "/packit test",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(skip_build=True),
+                ),
+            ],
+            {TestingFarmHandler},
+            id="config=test_for_pr_skip_build&pull_request&PullRequestCommentGithubEvent"
+            "&packit_test",
         ),
     ],
 )
