@@ -172,7 +172,7 @@ class BaseBuildJobHelper:
         if self.job_build:
             targets.update(self.job_build.metadata.targets)
 
-        if self.job_tests:
+        if self.job_tests and not self.job_tests.metadata.skip_build:
             targets.update(self.job_tests.metadata.targets)
 
         return targets or {DEFAULT_VERSION}

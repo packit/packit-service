@@ -88,18 +88,18 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return self._tft_token
 
     @property
-    def skip_build(self):
+    def skip_build(self) -> bool:
         return self.job_config.metadata.skip_build
 
     @property
-    def fmf_url(self):
+    def fmf_url(self) -> str:
         return (
             self.job_config.metadata.fmf_url
             or self.project.get_pr(self.metadata.pr_id).source_project.get_web_url()
         )
 
     @property
-    def fmf_ref(self):
+    def fmf_ref(self) -> str:
         if self.job_config.metadata.fmf_url:
             return self.job_config.metadata.fmf_ref
 

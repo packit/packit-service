@@ -63,7 +63,6 @@ logger = logging.getLogger(__name__)
 
 @configured_as(job_type=JobType.copr_build)
 @configured_as(job_type=JobType.build)
-@required_for(job_type=JobType.tests)
 @run_for_comment(command="build")
 @run_for_comment(command="copr-build")
 @run_for_check_rerun(prefix="rpm-build")

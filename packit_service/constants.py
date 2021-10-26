@@ -67,6 +67,8 @@ MSG_MORE_DETAILS = "You can find more details about the job [here]({url}).\n\n"
 
 MSG_TABLE_HEADER_WITH_DETAILS = "| Name/Job | URL |\n" "| --- | --- |\n"
 
+REQUESTED_PULL_REQUEST_COMMENT = "/packit"
+
 
 class KojiBuildState(Enum):
     """

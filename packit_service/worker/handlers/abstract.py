@@ -11,7 +11,7 @@ from collections import defaultdict
 from datetime import datetime
 from os import getenv
 from pathlib import Path
-from typing import Dict, Optional, Set, Type
+from typing import Dict, Optional, Set, Type, List
 
 from celery import signature
 from celery.canvas import Signature
@@ -22,6 +22,7 @@ from packit.constants import DATETIME_FORMAT
 from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
+from packit_service.constants import REQUESTED_PULL_REQUEST_COMMENT
 from packit_service.models import (
     AbstractTriggerDbType,
 )
@@ -194,6 +195,25 @@ def add_topic(kls: Type["FedmsgHandler"]):
     if issubclass(kls, FedmsgHandler):
         PROCESSED_FEDMSG_TOPICS.append(kls.topic)
     return kls
+
+
+def get_packit_commands_from_comment(comment: str) -> List[str]:
+    comment_parts = comment.strip()
+
+    if not comment_parts:
+        logger.debug("Empty comment, nothing to do.")
+        return []
+
+    comment_lines = comment_parts.split("\n")
+
+    for line in filter(None, map(str.strip, comment_lines)):
+        (packit_mark, *packit_command) = line.split(maxsplit=3)
+        # packit_command[0] has the first cmd and [1] has the second, if needed.
+
+        if packit_mark == REQUESTED_PULL_REQUEST_COMMENT and packit_command:
+            return packit_command
+
+    return []
 
 
 class TaskName(str, enum.Enum):

@@ -26,6 +26,10 @@ from packit_service.worker.events import (
     PullRequestCommentPagureEvent,
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
+    PullRequestGithubEvent,
+    PushGitHubEvent,
+    PushGitlabEvent,
+    MergeRequestGitlabEvent,
 )
 from packit_service.service.urls import (
     get_testing_farm_info_url,
@@ -38,6 +42,7 @@ from packit_service.worker.handlers.abstract import (
     reacts_to,
     run_for_comment,
     run_for_check_rerun,
+    get_packit_commands_from_comment,
 )
 from packit_service.worker.monitoring import measure_time
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
@@ -50,7 +55,13 @@ logger = logging.getLogger(__name__)
 
 
 @run_for_comment(command="test")
+@run_for_comment(command="build")
+@run_for_comment(command="copr-build")
 @run_for_check_rerun(prefix="testing-farm")
+@reacts_to(PullRequestGithubEvent)
+@reacts_to(PushGitHubEvent)
+@reacts_to(PushGitlabEvent)
+@reacts_to(MergeRequestGitlabEvent)
 @reacts_to(PullRequestCommentGithubEvent)
 @reacts_to(MergeRequestCommentGitlabEvent)
 @reacts_to(PullRequestCommentPagureEvent)
@@ -83,6 +94,11 @@ class TestingFarmHandler(JobHandler):
         self._db_trigger: Optional[AbstractTriggerDbType] = None
         self._testing_farm_job_helper: Optional[TestingFarmJobHelper] = None
 
+    def pre_check(self) -> bool:
+        return not (
+            self.testing_farm_job_helper.skip_build and self.copr_build_comment_event()
+        )
+
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         if not self._db_trigger:
@@ -111,7 +127,31 @@ class TestingFarmHandler(JobHandler):
             )
         return self._testing_farm_job_helper
 
-    def run_copr_build_handler(self, event_data, number_of_builds: int):
+    def build_required(self) -> bool:
+        return not self.testing_farm_job_helper.skip_build and (
+            self.data.event_type
+            in (
+                PushGitHubEvent.__name__,
+                PushGitlabEvent.__name__,
+                PullRequestGithubEvent.__name__,
+                MergeRequestGitlabEvent.__name__,
+            )
+            or self.copr_build_comment_event()
+        )
+
+    def comment_event(self) -> bool:
+        return self.data.event_type in (
+            PullRequestCommentGithubEvent.__name__,
+            MergeRequestCommentGitlabEvent.__name__,
+            PullRequestCommentPagureEvent.__name__,
+        )
+
+    def copr_build_comment_event(self) -> bool:
+        return self.comment_event() and get_packit_commands_from_comment(
+            self.data.event_dict.get("comment")
+        )[0] in ("build", "copr-build")
+
+    def run_copr_build_handler(self, event_data: dict, number_of_builds: int):
         for _ in range(number_of_builds):
             self.pushgateway.copr_builds_queued.inc()
 
@@ -199,6 +239,21 @@ class TestingFarmHandler(JobHandler):
         logger.debug(f"Test job config: {self.testing_farm_job_helper.job_tests}")
         targets = list(self.testing_farm_job_helper.tests_targets)
         logger.debug(f"Targets to run the tests: {targets}")
+
+        if self.build_required():
+            if self.testing_farm_job_helper.job_build:
+                msg = "Build required, already handled by build job."
+            else:
+                msg = "Build required, CoprBuildHandler task sent."
+                self.run_copr_build_handler(
+                    self.data.get_dict(),
+                    len(self.testing_farm_job_helper.build_targets),
+                )
+            logger.info(msg)
+            return TaskResults(
+                success=True,
+                details={"msg": msg},
+            )
 
         failed: Dict[str, str] = {}
 

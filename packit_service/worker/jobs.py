@@ -46,6 +46,7 @@ from packit_service.worker.handlers.abstract import (
     MAP_REQUIRED_JOB_TYPE_TO_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER,
     MAP_CHECK_PREFIX_TO_HANDLER,
+    get_packit_commands_from_comment,
 )
 
 from packit_service.worker.monitoring import Pushgateway, measure_time
@@ -53,7 +54,6 @@ from packit_service.worker.parser import CentosEventParser, Parser
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 
-REQUESTED_PULL_REQUEST_COMMENT = "/packit"
 
 logger = logging.getLogger(__name__)
 
@@ -137,26 +137,6 @@ def get_handlers_for_event(
         )
 
     return matching_handlers
-
-
-def get_packit_commands_from_comment(comment: str) -> List[str]:
-    comment_parts = comment.strip()
-
-    if not comment_parts:
-        logger.debug("Empty comment, nothing to do.")
-        return []
-
-    comment_lines = comment_parts.split("\n")
-
-    for line in filter(None, map(str.strip, comment_lines)):
-        (packit_mark, *packit_command) = line.split(maxsplit=3)
-        # packit_command[0] has the first cmd and [1] has the second, if needed.
-
-        if packit_mark == REQUESTED_PULL_REQUEST_COMMENT:
-            if packit_command:
-                return packit_command
-
-    return []
 
 
 def get_handlers_for_comment(comment: str) -> Set[Type[JobHandler]]:
@@ -351,7 +331,7 @@ class SteveJobs:
                     reporting_method = (
                         job_helper.report_status_to_tests
                         if isinstance(handler, TestingFarmHandler)
-                        else job_helper.report_status_to_all
+                        else job_helper.report_status_to_build
                     )
 
                     reporting_method(
