@@ -80,7 +80,7 @@ from packit_service.worker.jobs import (
                     trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
-            {CoprBuildHandler},
+            {TestingFarmHandler},
             id="config=test_for_pr&pull_request&PullRequestGithubEvent",
         ),
         # Not matching event:
@@ -295,7 +295,7 @@ from packit_service.worker.jobs import (
                     trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
-            {CoprBuildHandler},
+            {CoprBuildHandler, TestingFarmHandler},
             id="config=build_for_pr+test_for_pr&pull_request&PullRequestGithubEvent",
         ),
         pytest.param(
@@ -447,7 +447,7 @@ from packit_service.worker.jobs import (
                     trigger=JobConfigTriggerType.release,
                 ),
             ],
-            {CoprBuildHandler},
+            {CoprBuildHandler, TestingFarmHandler},
             id="config=build_for_pr+test_for_pr+build_for_commit+build_for_release"
             "&pull_request&PullRequestGithubEvent",
         ),
@@ -625,7 +625,7 @@ from packit_service.worker.jobs import (
                     trigger=JobConfigTriggerType.release,
                 ),
             ],
-            {CoprBuildHandler},
+            {TestingFarmHandler},
             id="config=test_for_pr+build_for_commit+build_for_release"
             "&pull_request&PullRequestGithubEvent",
         ),
@@ -880,7 +880,7 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
                     trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
-            {CoprBuildHandler},
+            {TestingFarmHandler},
             id="config=test_for_pr&pull_request&PullRequestCommentGithubEvent"
             "&packit_build",
         ),
@@ -923,7 +923,7 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
                     metadata=JobMetadataConfig(skip_build=True),
                 ),
             ],
-            set(),
+            {TestingFarmHandler},
             id="config=test_for_pr_skip_build&pull_request&PullRequestCommentGithubEvent"
             "&packit_build",
         ),
@@ -1146,7 +1146,7 @@ def test_get_handlers_for_check_rerun_event(
                     trigger=JobConfigTriggerType.pull_request,
                 )
             ],
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
+            [],
             id="tests_for_pr&CoprBuildHandler&PullRequestGithubEvent",
         ),
         # Both test and build for pr:
@@ -1243,7 +1243,7 @@ def test_get_handlers_for_check_rerun_event(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
                     metadata=JobMetadataConfig(project="project1"),
-                ),
+                )
             ],
             id="build_for_pr+build_for_commit+build_for_release"
             "&CoprBuildHandler&PullRequestGithubEvent",
@@ -1332,13 +1332,7 @@ def test_get_handlers_for_check_rerun_event(
                     metadata=JobMetadataConfig(project="project3"),
                 ),
             ],
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
-                ),
-            ],
+            [],
             id="tests_for_pr+build_for_commit+build_for_release"
             "&CoprBuildHandler&PullRequestGithubEvent",
         ),
@@ -1827,7 +1821,7 @@ def test_get_handlers_for_check_rerun_event(
                     trigger=JobConfigTriggerType.pull_request,
                 )
             ],
-            [JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)],
+            [],
             id="tests_for_pr&CoprBuildHandler&PullRequestCommentGithubEvent",
         ),
         # Testing farm on comment:
