@@ -13,7 +13,11 @@ from packit_service.constants import (
     CELERY_DEFAULT_MAIN_TASK_NAME,
 )
 from packit_service.utils import load_job_config, load_package_config
-from packit_service.worker.build.babysit import check_copr_build
+from packit_service.worker.build.babysit import (
+    check_copr_build,
+    check_pending_copr_builds,
+    check_pending_testing_farm_runs,
+)
 from packit_service.worker.handlers.abstract import TaskName
 from packit_service.worker.handlers import (
     BugzillaHandler,
@@ -221,3 +225,16 @@ def run_koji_build_report_handler(event: dict, package_config: dict, job_config:
 def get_handlers_task_results(results: dict, event: dict) -> dict:
     # include original event to provide more info
     return {"job": results, "event": event}
+
+
+# Periodic tasks
+
+
+@celery_app.task
+def babysit_pending_copr_builds() -> None:
+    check_pending_copr_builds()
+
+
+@celery_app.task
+def babysit_pending_tft_runs() -> None:
+    check_pending_testing_farm_runs()

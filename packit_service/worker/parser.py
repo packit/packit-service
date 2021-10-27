@@ -7,7 +7,7 @@ Parser is transforming github JSONs into `events` objects
 import logging
 from functools import partial
 from os import getenv
-from typing import Optional, Type, Union
+from typing import Optional, Type, Union, Dict, Any, Tuple
 
 from ogr.parsing import parse_git_repo
 from packit.constants import PROD_DISTGIT_URL
@@ -877,28 +877,21 @@ class Parser:
         )
 
     @staticmethod
-    def parse_testing_farm_results_event(
-        event: dict,
-    ) -> Optional[TestingFarmResultsEvent]:
-        """this corresponds to testing farm results event"""
-        if event.get("source") != "testing-farm" or not event.get("request_id"):
-            return None
+    def parse_data_from_testing_farm(
+        tft_test_run: TFTTestRunModel, event: Dict[Any, Any]
+    ) -> Tuple[str, str, TestingFarmResult, str, str, str, str, str]:
+        """Parses common data from testing farm response.
 
-        request_id: str = event["request_id"]
-        logger.info(f"Testing farm notification event. Request ID: {request_id}")
+        Such common data is environment, os, summary and others.
 
-        tft_test_run = TFTTestRunModel.get_by_pipeline_id(request_id)
+        Args:
+            tft_test_run (TFTTestRunModel): Entry of the related test run in DB.
+            event (dict): Response from testing farm converted to a dict.
 
-        # Testing Farm sends only request/pipeline id in a notification.
-        # We need to get more details ourselves.
-        # It'd be much better to do this in TestingFarmResultsHandler.run(),
-        # but all the code along the way to get there expects we already know the details.
-        # TODO: Get missing info from db instead of querying TF
-        event = TestingFarmJobHelper.get_request_details(request_id)
-        if not event:
-            # Something's wrong with TF, raise exception so that we can re-try later.
-            raise Exception(f"Failed to get {request_id} details from TF.")
-
+        Returns:
+            tuple: project_url, ref, result, summary, copr_build_id,
+                copr_chroot, compose, log_url
+        """
         result: TestingFarmResult = TestingFarmResult(
             nested_get(event, "result", "overall") or event.get("state") or "unknown"
         )
@@ -948,6 +941,51 @@ class Parser:
             )
 
         log_url: str = nested_get(event, "run", "artifacts")
+
+        return (
+            project_url,
+            ref,
+            result,
+            summary,
+            copr_build_id,
+            copr_chroot,
+            compose,
+            log_url,
+        )
+
+    @staticmethod
+    def parse_testing_farm_results_event(
+        event: dict,
+    ) -> Optional[TestingFarmResultsEvent]:
+        """this corresponds to testing farm results event"""
+        if event.get("source") != "testing-farm" or not event.get("request_id"):
+            return None
+
+        request_id: str = event["request_id"]
+        logger.info(f"Testing farm notification event. Request ID: {request_id}")
+
+        tft_test_run = TFTTestRunModel.get_by_pipeline_id(request_id)
+
+        # Testing Farm sends only request/pipeline id in a notification.
+        # We need to get more details ourselves.
+        # It'd be much better to do this in TestingFarmResultsHandler.run(),
+        # but all the code along the way to get there expects we already know the details.
+        # TODO: Get missing info from db instead of querying TF
+        event = TestingFarmJobHelper.get_request_details(request_id)
+        if not event:
+            # Something's wrong with TF, raise exception so that we can re-try later.
+            raise Exception(f"Failed to get {request_id} details from TF.")
+
+        (
+            project_url,
+            ref,
+            result,
+            summary,
+            copr_build_id,
+            copr_chroot,
+            compose,
+            log_url,
+        ) = Parser.parse_data_from_testing_farm(tft_test_run, event)
 
         logger.debug(
             f"project_url: {project_url}, ref: {ref}, result: {result}, "
