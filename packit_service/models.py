@@ -916,6 +916,12 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
         with get_sa_session() as session:
             return session.query(CoprBuildModel).filter_by(build_id=build_id)
 
+    @classmethod
+    def get_all_by_status(cls, status: str) -> Optional[Iterable["CoprBuildModel"]]:
+        """Returns all builds which currently have the given status."""
+        with get_sa_session() as session:
+            return session.query(CoprBuildModel).filter_by(status=status)
+
     # returns the build matching the build_id and the target
     @classmethod
     def get_by_build_id(

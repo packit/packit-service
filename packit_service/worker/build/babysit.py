@@ -1,7 +1,9 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import collections
 import logging
+from typing import Iterable
 
 from copr.v3 import Client as CoprClient
 
@@ -19,21 +21,49 @@ from packit_service.worker.jobs import get_config_for_handler_kls
 logger = logging.getLogger(__name__)
 
 
+def check_pending_copr_builds() -> None:
+    """Checks the status of pending copr builds and updates it if needed."""
+    pending_copr_builds = CoprBuildModel.get_all_by_status("pending")
+    builds_grouped_by_id = collections.defaultdict(list)
+    for build in pending_copr_builds:
+        builds_grouped_by_id[build.build_id].append(build)
+
+    for build_id, builds in builds_grouped_by_id.items():
+        update_copr_builds(build_id, builds)
+
+
 def check_copr_build(build_id: int) -> bool:
     """
     Check the copr_build with given id and refresh the status if needed.
 
     Used in the babysit task.
 
-    :param build_id: id of the copr_build (CoprBuildModel.build.id)
-    :return: True if in case of successful run, False when we need to retry
+    Args:
+        build_id (int): ID of the copr build to check.
+
+    Returns:
+        bool: Whether the run was successful, False signals the need to retry.
     """
     logger.debug(f"Getting copr build ID {build_id} from DB.")
     builds = CoprBuildModel.get_all_by_build_id(build_id)
     if not builds:
         logger.warning(f"Copr build {build_id} not in DB.")
         return True
+    return update_copr_builds(build_id, builds)
 
+
+def update_copr_builds(build_id: int, builds: Iterable["CoprBuildModel"]) -> bool:
+    """
+    Updates the state of copr builds if they have ended.
+
+    Args:
+        build_id (int): ID of the copr build to update.
+        builds (Iterable[CoprBuildModel]): List of builds corresponding to
+            the given ``build_id``.
+
+    Returns:
+        bool: Whether the run was successful, False signals the need to retry.
+    """
     copr_client = CoprClient.create_from_config_file()
     build_copr = copr_client.build_proxy.get(build_id)
 

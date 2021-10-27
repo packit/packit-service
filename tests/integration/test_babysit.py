@@ -4,10 +4,14 @@
 from copr.v3 import Client
 from flexmock import flexmock
 
+import packit_service.worker.build.babysit
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit_service.models import CoprBuildModel, JobTriggerModelType
 from packit_service.worker.events import AbstractCoprBuildEvent
-from packit_service.worker.build.babysit import check_copr_build
+from packit_service.worker.build.babysit import (
+    check_copr_build,
+    check_pending_copr_builds,
+)
 from packit_service.worker.handlers import CoprBuildEndHandler
 
 
@@ -104,7 +108,7 @@ def test_check_copr_build_updated():
             build_chroot_proxy=flexmock()
             .should_receive("get")
             .with_args(1, "the-target")
-            .and_return(flexmock(ended_on="timestamp", state="completed"))
+            .and_return(flexmock(ended_on="timestamp", state="succeeded"))
             .mock(),
         )
     )
@@ -117,3 +121,29 @@ def test_check_copr_build_updated():
     )
     flexmock(CoprBuildEndHandler).should_receive("run").and_return().once()
     assert check_copr_build(build_id=1)
+
+
+def test_check_pending_copr_builds_no_builds():
+    flexmock(CoprBuildModel).should_receive("get_all_by_status").with_args(
+        "pending"
+    ).and_return([])
+    flexmock(packit_service.worker.build.babysit).should_receive(
+        "update_copr_builds"
+    ).never()
+    check_pending_copr_builds()
+
+
+def test_check_pending_copr_builds():
+    build1 = flexmock(status="pending", build_id=1)
+    build2 = flexmock(status="pending", build_id=2)
+    build3 = flexmock(status="pending", build_id=1)
+    flexmock(CoprBuildModel).should_receive("get_all_by_status").with_args(
+        "pending"
+    ).and_return([build1, build2, build3])
+    flexmock(packit_service.worker.build.babysit).should_receive(
+        "update_copr_builds"
+    ).with_args(1, [build1, build3]).once()
+    flexmock(packit_service.worker.build.babysit).should_receive(
+        "update_copr_builds"
+    ).with_args(2, [build2]).once()
+    check_pending_copr_builds()
