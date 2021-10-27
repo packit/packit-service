@@ -150,3 +150,37 @@ services:
     ports:
       - 8082:8080
     user: "123123"
+  beat:
+    container_name: beat
+    build:
+      context: .
+      dockerfile: files/docker/Dockerfile.worker
+      args:
+        SOURCE_BRANCH: main
+    image: quay.io/packit/packit-worker:dev
+    command: /usr/bin/run_worker.sh
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      CELERY_COMMAND: beat
+      DEPLOYMENT: dev
+      REDIS_SERVICE_HOST: redis
+      APP: packit_service.worker.tasks
+      KRB5CCNAME: FILE:/tmp/krb5cc_packit
+      POSTGRESQL_USER: packit
+      POSTGRESQL_PASSWORD: secret-password
+      POSTGRESQL_HOST: postgres
+      POSTGRESQL_DATABASE: packit
+      CELERY_RETRY_LIMIT: 0
+      PUSHGATEWAY_ADDRESS: ""
+    volumes:
+      - ./packit_service:/usr/local/lib/python3.9/site-packages/packit_service:ro,z
+      - ./secrets/packit/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
+      - ./secrets/packit/dev/copr:/home/packit/.config/copr:ro,z
+      - ./secrets/packit/dev/ssh_config:/packit-ssh/config:ro,z
+      - ./secrets/packit/dev/id_rsa.pub:/packit-ssh/id_rsa.pub:ro,z
+      - ./secrets/packit/dev/id_rsa:/packit-ssh/id_rsa:ro,z
+      - ./secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
+      - ./secrets/packit/dev/private-key.pem:/secrets/private-key.pem:ro,z
+    user: "123123"
