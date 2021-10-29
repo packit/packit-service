@@ -92,6 +92,7 @@ class BaseBuildJobHelper:
                 )
                 if self.service_config.repository_cache
                 else None,
+                merge_pr=self.package_config.merge_pr_in_ci,
             )
         return self._local_project
 
