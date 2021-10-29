@@ -63,7 +63,7 @@ def mock_comment(request):
     comment = flexmock()
     flexmock(issue).should_receive("get_comment").and_return(comment)
     flexmock(comment).should_receive("add_reaction").with_args("+1").once()
-    flexmock(project_class).should_receive("issue_close").and_return(None)
+    flexmock(issue).should_receive("close").and_return(issue)
     gr = release_class(
         tag_name="0.5.1",
         url="packit-service/packit",

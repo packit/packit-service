@@ -59,7 +59,7 @@ def test_get_logs(client):
     pr_mock = flexmock()
     pr_mock.job_trigger_model_type = JobTriggerModelType.pull_request
     pr_mock.pr_id = 234
-    pr_mock.project = project_mock
+    pr_mock.target_project = project_mock
 
     srpm_build_mock = flexmock()
     srpm_build_mock.id = 11
