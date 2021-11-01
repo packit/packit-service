@@ -6,7 +6,7 @@ import typing
 from marshmallow import ValidationError, fields, post_load, Schema
 
 from packit.schema import UserConfigSchema
-from packit_service.config import Deployment, ServiceConfig, ProjectToSync
+from packit_service.config import Deployment, ServiceConfig, ProjectToSync, MRTarget
 
 
 class DeploymentField(fields.Field):
@@ -43,6 +43,22 @@ class ProjectToSyncSchema(Schema):
         return ProjectToSync(**data)
 
 
+class MRTargetSchema(Schema):
+    """
+    Schema for MR targets to handle.
+
+    repo: Regex string to be matched against the slug of a repo.
+    branch: Regex string to be matched against the branch name.
+    """
+
+    repo = fields.String(missing=None)
+    branch = fields.String(missing=None)
+
+    @post_load
+    def make_instance(self, data, **_):
+        return MRTarget(**data)
+
+
 class ServiceConfigSchema(UserConfigSchema):
     deployment = DeploymentField(required=True)
     webhook_secret = fields.String()
@@ -58,6 +74,7 @@ class ServiceConfigSchema(UserConfigSchema):
     admins = fields.List(fields.String())
     server_name = fields.String()
     gitlab_token_secret = fields.String()
+    gitlab_mr_targets_handled = fields.List(fields.Nested(MRTargetSchema), missing=None)
     enabled_private_namespaces = fields.List(fields.String())
     enabled_projects_for_internal_tf = fields.List(fields.String())
     projects_to_sync = fields.List(fields.Nested(ProjectToSyncSchema), missing=None)

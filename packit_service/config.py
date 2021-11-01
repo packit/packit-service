@@ -67,6 +67,24 @@ class ProjectToSync(NamedTuple):
         )
 
 
+class MRTarget(NamedTuple):
+    """
+    A pair of repo and branch regexes.
+    """
+
+    repo: str
+    branch: str
+
+    def __repr__(self):
+        return f"MRTarget(repo={self.repo}, branch={self.branch})"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, MRTarget):
+            raise NotImplementedError()
+
+        return self.repo == other.repo and self.branch == self.branch
+
+
 class ServiceConfig(Config):
     def __init__(
         self,
@@ -84,6 +102,7 @@ class ServiceConfig(Config):
         bugz_branches: List[str] = None,
         enabled_private_namespaces: Union[Set[str], List[str]] = None,
         gitlab_token_secret: str = "",
+        gitlab_mr_targets_handled: List[MRTarget] = None,
         projects_to_sync: List[ProjectToSync] = None,
         enabled_projects_for_internal_tf: Union[Set[str], List[str]] = None,
         dashboard_url: str = "",
@@ -124,6 +143,8 @@ class ServiceConfig(Config):
 
         # Gitlab token secret to decode JWT tokens
         self.gitlab_token_secret: str = gitlab_token_secret
+
+        self.gitlab_mr_targets_handled: List[MRTarget] = gitlab_mr_targets_handled
 
         # Explicit list of private namespaces we work with
         # e.g.:
@@ -167,8 +188,9 @@ class ServiceConfig(Config):
             f"bugzilla_url='{self.bugzilla_url}', "
             f"bugzilla_api_key='{hide(self.bugzilla_api_key)}', "
             f"gitlab_token_secret='{hide(self.gitlab_token_secret)}',"
-            f"enabled_private_namespaces='{self.enabled_private_namespaces}',"
-            f"enabled_projects_for_internal_tf='{self.enabled_projects_for_internal_tf}',"
+            f"gitlab_mr_targets_handled='{self.gitlab_mr_targets_handled}', "
+            f"enabled_private_namespaces='{self.enabled_private_namespaces}', "
+            f"enabled_projects_for_internal_tf='{self.enabled_projects_for_internal_tf}', "
             f"server_name='{self.server_name}', "
             f"dashboard_url='{self.dashboard_url}', "
             f"koji_logs_url='{self.koji_logs_url}', "
