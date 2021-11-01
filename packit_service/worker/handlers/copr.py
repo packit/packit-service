@@ -238,7 +238,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         comments = self.project.get_pr(self.copr_event.pr_id).get_comments(reverse=True)
         for comment in comments:
             if comment.author.startswith("packit-as-a-service"):
-                return "Congratulations!" in comment.comment
+                return "Congratulations!" in comment.body
         # if there is no comment from p-s
         return False
 
