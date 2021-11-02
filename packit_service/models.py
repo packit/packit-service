@@ -1391,9 +1391,14 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
 
     runs = relationship("RunModel", back_populates="test_run")
 
-    def set_status(self, status: TestingFarmResult):
+    def set_status(self, status: TestingFarmResult, created: Optional[DateTime] = None):
+        """
+        set status of the TF run and optionally set the created datetime as well
+        """
         with get_sa_session() as session:
             self.status = status
+            if created and not self.submitted_time:
+                self.submitted_time = created
             session.add(self)
 
     def set_web_url(self, web_url: str):

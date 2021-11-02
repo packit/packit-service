@@ -58,7 +58,7 @@ repos:
     hooks:
       - id: check-rebase
         args:
-          - git://github.com/packit-service/packit-service.git
+          - https://github.com/packit/packit-service.git
         stages: [manual, push]
   - repo: https://github.com/packit/requre
     rev: 0.8.1
