@@ -10,7 +10,8 @@ from celery.canvas import Signature
 from flexmock import flexmock
 
 from ogr.abstract import GitTag
-from ogr.abstract import PullRequest, PRStatus
+from ogr.abstract import PRStatus
+from ogr.read_only import PullRequestReadOnly
 from ogr.services.github import GithubProject, GithubRelease
 from ogr.services.gitlab import GitlabProject, GitlabRelease
 from packit.api import PackitAPI
@@ -109,7 +110,7 @@ def test_issue_comment_propose_downstream_handler(
     project_class, comment_event = mock_comment
 
     flexmock(PackitAPI).should_receive("sync_release").and_return(
-        PullRequest(
+        PullRequestReadOnly(
             title="foo",
             description="bar",
             target_branch="baz",
