@@ -5,7 +5,7 @@ import datetime
 
 import pytest
 import requests
-from copr.v3 import Client
+from copr.v3 import Client, CoprNoResultException
 from flexmock import flexmock
 
 import packit_service.worker.build.babysit
@@ -138,6 +138,26 @@ def test_check_copr_build_updated():
     )
     flexmock(CoprBuildEndHandler).should_receive("run").and_return().once()
     assert check_copr_build(build_id=1)
+
+
+def test_check_copr_build_not_exists():
+    flexmock(Client).should_receive("create_from_config_file").and_return(
+        flexmock(
+            build_proxy=flexmock()
+            .should_receive("get")
+            .with_args(1)
+            .and_raise(CoprNoResultException, "Build 1 does not exist")
+            .mock()
+        )
+    )
+    builds = []
+    for i in range(2):
+        builds.append(flexmock(status="pending", build_id=1))
+        builds[i].should_receive("set_status").with_args("error").once()
+    flexmock(CoprBuildModel).should_receive("get_all_by_status").with_args(
+        "pending"
+    ).and_return(builds)
+    check_pending_copr_builds()
 
 
 def test_check_update_copr_builds_timeout():
