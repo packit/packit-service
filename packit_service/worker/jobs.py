@@ -15,16 +15,13 @@ from packit.config import JobConfig, PackageConfig
 from packit_service.config import ServiceConfig
 from packit_service.constants import TASK_ACCEPTED
 from packit_service.log_versions import log_job_versions
+from packit_service.worker.events.event import AbstractCommentEvent
 from packit_service.worker.events import (
     Event,
     EventData,
     PullRequestCommentPagureEvent,
-    IssueCommentGitlabEvent,
-    MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
     InstallationEvent,
-    IssueCommentEvent,
-    PullRequestCommentGithubEvent,
     CheckRerunEvent,
 )
 from packit_service.worker.allowlist import Allowlist
@@ -87,16 +84,7 @@ def get_handlers_for_event(
     handlers_triggered_by_comment = None
     handlers_triggered_by_check_rerun = None
 
-    if isinstance(
-        event,
-        (
-            PullRequestCommentGithubEvent,
-            PullRequestCommentPagureEvent,
-            IssueCommentEvent,
-            MergeRequestCommentGitlabEvent,
-            IssueCommentGitlabEvent,
-        ),
-    ):
+    if isinstance(event, AbstractCommentEvent):
         handlers_triggered_by_comment = get_handlers_for_comment(event.comment)
 
         if handlers_triggered_by_comment and not isinstance(
@@ -104,10 +92,7 @@ def get_handlers_for_event(
         ):
             event.comment_object.add_reaction("+1")
 
-    if isinstance(
-        event,
-        CheckRerunEvent,
-    ):
+    if isinstance(event, CheckRerunEvent):
         handlers_triggered_by_check_rerun = get_handlers_for_check_rerun(
             event.check_name_job
         )
@@ -244,6 +229,11 @@ class SteveJobs:
         """
         Create a Celery task for a job handler (if trigger matches) for every job defined in config.
         """
+        if isinstance(event, AbstractCommentEvent) and get_packit_commands_from_comment(
+            event.comment
+        ):
+            # we require packit config file when event is triggered by /packit command
+            event.fail_when_config_file_missing = True
 
         if not event.package_config:
             # this happens when service receives events for repos which don't have packit config

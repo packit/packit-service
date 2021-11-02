@@ -294,6 +294,7 @@ class AbstractForgeIndependentEvent(Event):
         super().__init__(created_at)
         self.project_url = project_url
         self._pr_id = pr_id
+        self.fail_when_config_file_missing = False
 
         # Lazy properties
         self._project: Optional[GitProject] = None
@@ -359,7 +360,7 @@ class AbstractForgeIndependentEvent(Event):
             project=self.project,
             reference=self.commit_sha,
             pr_id=self.pr_id,
-            fail_when_missing=False,
+            fail_when_missing=self.fail_when_config_file_missing,
             spec_file_path=spec_path,
         )
 
