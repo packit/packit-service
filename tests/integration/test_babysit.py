@@ -3,6 +3,7 @@
 
 import datetime
 
+import pytest
 import requests
 from copr.v3 import Client
 from flexmock import flexmock
@@ -211,12 +212,20 @@ def test_check_pending_testing_farm_runs_no_runs():
     check_pending_testing_farm_runs()
 
 
-def test_check_pending_testing_farm_runs():
+@pytest.mark.parametrize(
+    "created",
+    (
+        # I don't think it matters that this is evaluated before running the test
+        datetime.datetime.utcnow(),
+        None,
+    ),
+)
+def test_check_pending_testing_farm_runs(created):
     pipeline_id = 1
     run = (
         flexmock(
             pipeline_id=pipeline_id,
-            submitted_time=datetime.datetime.utcnow(),
+            submitted_time=created,
             commit_sha="123456",
             target="fedora-rawhide-x86_64",
             data={},
@@ -250,6 +259,7 @@ def test_check_pending_testing_farm_runs():
             json=lambda: {
                 "id": pipeline_id,
                 "state": TestingFarmResult.passed,
+                "created": "2021-11-01 17:22:36.061250",
             },
             ok=lambda: True,
         )

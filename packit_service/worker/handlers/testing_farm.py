@@ -225,6 +225,7 @@ class TestingFarmResultsHandler(JobHandler):
         self.copr_chroot = event.get("copr_chroot")
         self.summary = event.get("summary")
         self._db_trigger: Optional[AbstractTriggerDbType] = None
+        self.created = event.get("created")
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
@@ -247,7 +248,7 @@ class TestingFarmResultsHandler(JobHandler):
             )
 
         if test_run_model:
-            test_run_model.set_status(self.result)
+            test_run_model.set_status(self.result, created=self.created)
 
         if self.result == TestingFarmResult.running:
             status = BaseCommitStatus.running

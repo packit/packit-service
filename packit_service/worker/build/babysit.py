@@ -36,14 +36,16 @@ def check_pending_testing_farm_runs() -> None:
     pending_test_runs = TFTTestRunModel.get_all_by_status(TestingFarmResult.running)
     for run in pending_test_runs:
         logger.info(f"Checking status of pipeline with id {run.pipeline_id}")
-        elapsed = current_time - run.submitted_time
-        if elapsed.total_seconds() > DEFAULT_JOB_TIMEOUT:
-            logger.info(
-                f"Pipeline has been running for {elapsed.total_seconds()},"
-                f"probably an internal error occurred. Not checking it anymore."
-            )
-            run.set_status(TestingFarmResult.error)
-            continue
+        # .submitted_time can be None, we'll set it later
+        if run.submitted_time:
+            elapsed = current_time - run.submitted_time
+            if elapsed.total_seconds() > DEFAULT_JOB_TIMEOUT:
+                logger.info(
+                    f"Pipeline has been running for {elapsed.total_seconds()},"
+                    f"probably an internal error occurred. Not checking it anymore."
+                )
+                run.set_status(TestingFarmResult.error)
+                continue
         endpoint = "requests/"
         run_url = f"{TESTING_FARM_API_URL}{endpoint}{run.pipeline_id}"
         response = requests.get(run_url)
@@ -70,6 +72,7 @@ def check_pending_testing_farm_runs() -> None:
             copr_chroot,
             compose,
             log_url,
+            created,
         ) = Parser.parse_data_from_testing_farm(run, details)
 
         event = TestingFarmResultsEvent(
@@ -82,6 +85,7 @@ def check_pending_testing_farm_runs() -> None:
             copr_chroot=copr_chroot,
             commit_sha=ref,
             project_url=project_url,
+            created=created,
         )
 
         job_configs = get_config_for_handler_kls(

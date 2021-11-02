@@ -5,6 +5,7 @@
 Parser is transforming github JSONs into `events` objects
 """
 import logging
+from datetime import datetime, timezone
 from functools import partial
 from os import getenv
 from typing import Optional, Type, Union, Dict, Any, Tuple
@@ -879,7 +880,7 @@ class Parser:
     @staticmethod
     def parse_data_from_testing_farm(
         tft_test_run: TFTTestRunModel, event: Dict[Any, Any]
-    ) -> Tuple[str, str, TestingFarmResult, str, str, str, str, str]:
+    ) -> Tuple[str, str, TestingFarmResult, str, str, str, str, str, datetime]:
         """Parses common data from testing farm response.
 
         Such common data is environment, os, summary and others.
@@ -898,6 +899,11 @@ class Parser:
         summary: str = nested_get(event, "result", "summary") or ""
         env: dict = nested_get(event, "environments_requested", 0, default={})
         compose: str = nested_get(env, "os", "compose")
+        created: str = event.get("created")
+        created_dt: Optional[datetime] = None
+        if created:
+            created_dt = datetime.fromisoformat(created)
+            created_dt = created_dt.replace(tzinfo=timezone.utc)
 
         ref: str = nested_get(event, "test", "fmf", "ref")
         fmf_url: str = nested_get(event, "test", "fmf", "url")
@@ -951,6 +957,7 @@ class Parser:
             copr_chroot,
             compose,
             log_url,
+            created_dt,
         )
 
     @staticmethod
@@ -985,6 +992,7 @@ class Parser:
             copr_chroot,
             compose,
             log_url,
+            created,
         ) = Parser.parse_data_from_testing_farm(tft_test_run, event)
 
         logger.debug(
@@ -1003,6 +1011,7 @@ class Parser:
             copr_chroot=copr_chroot,
             commit_sha=ref,
             project_url=project_url,
+            created=created,
         )
 
     @staticmethod

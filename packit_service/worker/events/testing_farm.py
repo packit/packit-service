@@ -1,6 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-
+from datetime import datetime
 from typing import Optional, Dict
 
 from ogr.abstract import GitProject
@@ -27,6 +27,7 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
         copr_chroot: str,
         commit_sha: str,
         project_url: str,
+        created: datetime,
     ):
         super().__init__(project_url=project_url)
         self.pipeline_id = pipeline_id
@@ -37,6 +38,7 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
         self.copr_build_id = copr_build_id
         self.copr_chroot = copr_chroot
         self.commit_sha: str = commit_sha
+        self.created: datetime = created
 
         # Lazy properties
         self._pr_id: Optional[int] = None
