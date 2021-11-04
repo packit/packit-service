@@ -207,15 +207,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """Get distro and arch from chroot."""
         distro, arch = chroot.rsplit("-", 1)
 
-        epel_mapping = {
-            "epel-6": "centos-6",
-            "epel-7": "centos-7",
-        }
-
         if self.job_config.metadata.use_internal_tf:
-            epel_mapping["epel-8"] = "centos-8"
+            epel_mapping = {"epel-6": "rhel-6", "epel-7": "rhel-7", "epel-8": "rhel-8"}
         else:
-            epel_mapping["epel-8"] = "centos-stream-8"
+            epel_mapping = {
+                "epel-6": "centos-6",
+                "epel-7": "centos-7",
+                "epel-8": "centos-stream-8",
+            }
 
         distro = epel_mapping.get(distro, distro)
         return distro, arch
@@ -254,6 +253,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 return "RHEL-8.5.0-Nightly"
             if compose.startswith("CentOS"):
                 return f"{compose}-latest"
+            if compose == "RHEL-6":
+                return "RHEL-6-LatestReleased"
             if compose == "RHEL-7":
                 return "RHEL-7-LatestReleased"
             if compose == "RHEL-8":
