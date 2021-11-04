@@ -6,6 +6,7 @@ import datetime
 import logging
 from typing import Iterable
 
+import copr.v3
 import requests
 from copr.v3 import Client as CoprClient
 
@@ -146,7 +147,16 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildModel"]) -> boo
         bool: Whether the run was successful, False signals the need to retry.
     """
     copr_client = CoprClient.create_from_config_file()
-    build_copr = copr_client.build_proxy.get(build_id)
+    try:
+        build_copr = copr_client.build_proxy.get(build_id)
+    except copr.v3.CoprNoResultException:
+        logger.info(
+            f"Copr build {build_id} no longer available. Setting it to error status and "
+            f"not checking it anymore."
+        )
+        for build in builds:
+            build.set_status("error")
+        return True
 
     if not build_copr.ended_on:
         logger.info("The copr build is still in progress.")
