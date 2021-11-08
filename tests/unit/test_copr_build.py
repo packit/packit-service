@@ -105,7 +105,7 @@ def build_helper(
 
     if not metadata:
         metadata = JobMetadataConfig(
-            targets=DEFAULT_TARGETS,
+            _targets=DEFAULT_TARGETS,
             owner="nobody",
         )
 
@@ -155,7 +155,7 @@ def test_copr_build_check_names(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="packit"),
+        metadata=JobMetadataConfig(_targets=["bright-future-x86_64"], owner="packit"),
         db_trigger=trigger,
     )
     # we need to make sure that pr_id is set
@@ -254,7 +254,7 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(targets=build_targets, owner="packit"),
+        metadata=JobMetadataConfig(_targets=build_targets, owner="packit"),
         db_trigger=trigger,
     )
     # we need to make sure that pr_id is set
@@ -383,7 +383,7 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
                 metadata=JobMetadataConfig(
-                    targets=["fedora-rawhide-x86_64"], owner="nobody"
+                    _targets=["fedora-rawhide-x86_64"], owner="nobody"
                 ),
                 actions={ActionName.post_upstream_clone: "ls /*"},
             ),
@@ -391,7 +391,7 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
                 metadata=JobMetadataConfig(
-                    targets=["fedora-32-x86_64"], owner="nobody"
+                    _targets=["fedora-32-x86_64"], owner="nobody"
                 ),
                 actions={ActionName.post_upstream_clone: 'bash -c "ls /*"'},
             ),
@@ -400,7 +400,7 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
         selected_job=JobConfig(
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(targets=["fedora-32-x86_64"], owner="nobody"),
+            metadata=JobMetadataConfig(_targets=["fedora-32-x86_64"], owner="nobody"),
             actions={ActionName.post_upstream_clone: 'bash -c "ls /*"'},
         ),
     )
@@ -493,7 +493,7 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="nobody"),
+        metadata=JobMetadataConfig(_targets=["bright-future-x86_64"], owner="nobody"),
         db_trigger=trigger,
     )
     # we need to make sure that pr_id is set
@@ -581,7 +581,7 @@ def test_copr_build_success_set_test_check(github_pr_event):
         type=JobType.tests,
         trigger=JobConfigTriggerType.pull_request,
         metadata=JobMetadataConfig(
-            owner="nobody", targets=["bright-future-x86_64", "brightest-future-x86_64"]
+            owner="nobody", _targets=["bright-future-x86_64", "brightest-future-x86_64"]
         ),
     )
     trigger = flexmock(
@@ -651,7 +651,7 @@ def test_copr_build_for_branch(branch_push_event):
         type=JobType.build,
         trigger=JobConfigTriggerType.commit,
         metadata=JobMetadataConfig(
-            targets=DEFAULT_TARGETS,
+            _targets=DEFAULT_TARGETS,
             owner="nobody",
             dist_git_branches=["build-branch"],
         ),
@@ -724,7 +724,7 @@ def test_copr_build_for_branch_failed(branch_push_event):
         type=JobType.build,
         trigger=JobConfigTriggerType.commit,
         metadata=JobMetadataConfig(
-            targets=DEFAULT_TARGETS,
+            _targets=DEFAULT_TARGETS,
             owner="nobody",
             dist_git_branches=["build-branch"],
         ),
@@ -788,7 +788,7 @@ def test_copr_build_for_release(release_event):
         type=JobType.build,
         trigger=JobConfigTriggerType.release,
         metadata=JobMetadataConfig(
-            targets=DEFAULT_TARGETS,
+            _targets=DEFAULT_TARGETS,
             owner="nobody",
             dist_git_branches=["build-branch"],
         ),
@@ -1188,7 +1188,7 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=gitlab_mr_event,
-        metadata=JobMetadataConfig(targets=["bright-future-x86_64"], owner="nobody"),
+        metadata=JobMetadataConfig(_targets=["bright-future-x86_64"], owner="nobody"),
         db_trigger=trigger,
         project_type=GitlabProject,
     )
@@ -1282,7 +1282,7 @@ def test_copr_build_success_set_test_check_gitlab(gitlab_mr_event):
         type=JobType.tests,
         trigger=JobConfigTriggerType.pull_request,
         metadata=JobMetadataConfig(
-            owner="nobody", targets=["bright-future-x86_64", "brightest-future-x86_64"]
+            owner="nobody", _targets=["bright-future-x86_64", "brightest-future-x86_64"]
         ),
     )
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
@@ -1359,7 +1359,7 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
         type=JobType.build,
         trigger=JobConfigTriggerType.commit,
         metadata=JobMetadataConfig(
-            targets=DEFAULT_TARGETS,
+            _targets=DEFAULT_TARGETS,
             owner="nobody",
             dist_git_branches=["build-branch"],
         ),
@@ -1725,7 +1725,7 @@ def test_copr_build_targets_override(github_pr_event):
         type=JobType.tests,
         trigger=JobConfigTriggerType.pull_request,
         metadata=JobMetadataConfig(
-            owner="nobody", targets=["bright-future-x86_64", "brightest-future-x86_64"]
+            owner="nobody", _targets=["bright-future-x86_64", "brightest-future-x86_64"]
         ),
     )
     trigger = flexmock(

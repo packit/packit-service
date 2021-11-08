@@ -83,7 +83,7 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
                     metadata=JobMetadataConfig(
-                        targets=[
+                        _targets=[
                             "fedora-30-x86_64",
                             "fedora-rawhide-x86_64",
                             "fedora-31-x86_64",

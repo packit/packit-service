@@ -4,6 +4,9 @@
 import logging
 from functools import partial
 from io import StringIO
+
+from packit.config.aliases import DEFAULT_VERSION
+
 from packit_service.service.urls import get_srpm_build_info_url
 from packit_service.worker.result import TaskResults
 from pathlib import Path
@@ -172,7 +175,7 @@ class BaseBuildJobHelper:
         if self.job_tests:
             targets.update(self.job_tests.metadata.targets)
 
-        return targets or {"fedora-stable"}
+        return targets or {DEFAULT_VERSION}
 
     @property
     def configured_tests_targets(self) -> Set[str]:
@@ -192,7 +195,7 @@ class BaseBuildJobHelper:
         if not self.job_tests.metadata.targets and self.job_build:
             return self.configured_build_targets
 
-        return self.job_tests.metadata.targets or {"fedora-stable"}
+        return self.job_tests.metadata.targets or {DEFAULT_VERSION}
 
     @property
     def job_build(self) -> Optional[JobConfig]:

@@ -177,7 +177,7 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
                     metadata=JobMetadataConfig(
-                        targets=["bright-future"], scratch=False
+                        _targets=["bright-future"], scratch=False
                     ),
                 ),
             ]
@@ -185,7 +185,7 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
         job_config=JobConfig(
             type=JobType.production_build,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(targets=["bright-future"], scratch=False),
+            metadata=JobMetadataConfig(_targets=["bright-future"], scratch=False),
         ),
         event=github_pr_event.get_dict(),
     )
