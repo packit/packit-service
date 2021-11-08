@@ -207,6 +207,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """Get distro and arch from chroot."""
         distro, arch = chroot.rsplit("-", 1)
 
+        distros = self.job_config.metadata.targets_dict.get(chroot, {}).get("distros")
+        if distros:
+            # For now take just the first one
+            return distros[0], arch
+
         if self.job_config.metadata.use_internal_tf:
             epel_mapping = {"epel-6": "rhel-6", "epel-7": "rhel-7", "epel-8": "rhel-8"}
         else:
