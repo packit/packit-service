@@ -508,7 +508,7 @@ def test_check_and_report(
         JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(targets=["fedora-rawhide"]),
+            metadata=JobMetadataConfig(_targets=["fedora-rawhide"]),
         )
     ]
     flexmock(PullRequestGithubEvent).should_receive("get_package_config").and_return(

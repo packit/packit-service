@@ -36,7 +36,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -49,7 +49,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -62,7 +62,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 )
             ],
             JobConfigTriggerType.release,
@@ -75,7 +75,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 )
             ],
             JobConfigTriggerType.commit,
@@ -88,12 +88,12 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(targets=["different", "os", "target"]),
+                    metadata=JobMetadataConfig(_targets=["different", "os", "target"]),
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -106,12 +106,12 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(targets=["different", "os", "target"]),
+                    metadata=JobMetadataConfig(_targets=["different", "os", "target"]),
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -124,12 +124,12 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=["different", "os", "target"]),
+                    metadata=JobMetadataConfig(_targets=["different", "os", "target"]),
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 ),
             ],
             JobConfigTriggerType.commit,
@@ -166,7 +166,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -195,7 +195,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 ),
                 JobConfig(
                     type=JobType.tests,
@@ -216,7 +216,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -233,7 +233,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=list(ONE_CHROOT_SET)),
+                    metadata=JobMetadataConfig(_targets=list(ONE_CHROOT_SET)),
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -347,7 +347,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=list(ONE_CHROOT_SET)),
+                    metadata=JobMetadataConfig(_targets=list(ONE_CHROOT_SET)),
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -360,12 +360,12 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=["fedora-rawhide"]),
+                    metadata=JobMetadataConfig(_targets=["fedora-rawhide"]),
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -400,7 +400,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 ),
                 JobConfig(
                     type=JobType.tests,
@@ -418,7 +418,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -432,7 +432,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -476,7 +476,7 @@ def test_copr_targets_overrides(
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -489,7 +489,7 @@ def test_copr_targets_overrides(
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1143,7 +1143,7 @@ def test_copr_project_and_namespace(
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1157,7 +1157,7 @@ def test_copr_project_and_namespace(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.commit,
                     metadata=JobMetadataConfig(
-                        targets=STABLE_VERSIONS, branch="build-branch"
+                        _targets=STABLE_VERSIONS, branch="build-branch"
                     ),
                 )
             ],
@@ -1172,7 +1172,7 @@ def test_copr_project_and_namespace(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.release,
                     metadata=JobMetadataConfig(
-                        targets=STABLE_VERSIONS, branch="build-branch"
+                        _targets=STABLE_VERSIONS, branch="build-branch"
                     ),
                 )
             ],
@@ -1215,14 +1215,14 @@ def test_repository_cache_invocation():
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
                 )
             ],
         ),
         job_config=JobConfig(
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(targets=STABLE_VERSIONS),
+            metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
         ),
         project=flexmock(
             service=flexmock(),

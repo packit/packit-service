@@ -106,7 +106,7 @@ def test_build_srpm_log_format(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(targets=["bright-future"], scratch=True),
+        metadata=JobMetadataConfig(_targets=["bright-future"], scratch=True),
         db_trigger=trigger,
     )
 
