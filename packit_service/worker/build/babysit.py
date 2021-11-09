@@ -58,13 +58,8 @@ def check_pending_testing_farm_runs() -> None:
             )
             run.set_status(TestingFarmResult.error)
             continue
-        details = response.json()
-        status = TestingFarmResult(details.get("state"))
-        logger.info(f"The status is {status}")
-        if status == TestingFarmResult.running:
-            logger.info(f"Pipeline {run.pipeline_id} is still running")
-            continue
 
+        details = response.json()
         (
             project_url,
             ref,
@@ -76,6 +71,13 @@ def check_pending_testing_farm_runs() -> None:
             log_url,
             created,
         ) = Parser.parse_data_from_testing_farm(run, details)
+
+        logger.info(
+            f"Result for the testing farm pipeline {run.pipeline_id} is {result}."
+        )
+        if result == TestingFarmResult.running:
+            logger.info("Skip updating a running pipeline.")
+            continue
 
         event = TestingFarmResultsEvent(
             pipeline_id=details["id"],
