@@ -51,11 +51,12 @@ def check_pending_testing_farm_runs() -> None:
         run_url = f"{TESTING_FARM_API_URL}{endpoint}{run.pipeline_id}"
         response = requests.get(run_url)
         if not response.ok:
-            logger.error(
+            logger.info(
                 f"Failed to obtain state of testing farm pipeline "
                 f"id {run.pipeline_id} (status code {response.status_code}. "
                 f"Reason: {response.reason}."
             )
+            run.set_status(TestingFarmResult.error)
             continue
         details = response.json()
         status = TestingFarmResult(details.get("state"))
