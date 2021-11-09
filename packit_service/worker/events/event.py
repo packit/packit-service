@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from logging import getLogger
 from typing import Dict, Optional, Union, Set, List
 
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, Comment
 from ogr.services.pagure import PagureProject
 from packit.config import PackageConfig
 
@@ -376,3 +376,22 @@ class AbstractForgeIndependentEvent(Event):
         result.pop("_base_project")
         result.pop("_package_config")
         return result
+
+
+class AbstractCommentEvent(AbstractForgeIndependentEvent):
+    def __init__(
+        self,
+        project_url: str,
+        comment: str,
+        pr_id: Optional[int] = None,
+        comment_object: Optional[Comment] = None,
+    ) -> None:
+        super().__init__(project_url=project_url, pr_id=pr_id)
+        self.comment = comment
+
+        # Lazy properties
+        self._comment_object = comment_object
+
+    @property
+    def comment_object(self) -> Optional[Comment]:
+        raise NotImplementedError()

@@ -11,13 +11,16 @@ from packit_service.worker.events.enums import (
     PullRequestAction,
     PullRequestCommentAction,
 )
-from packit_service.worker.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.events.event import (
+    AbstractForgeIndependentEvent,
+    AbstractCommentEvent,
+)
 
 logger = getLogger(__name__)
 
 
 class AbstractPagureEvent(AbstractForgeIndependentEvent):
-    def __init__(self, project_url: str, pr_id: Optional[int] = None):
+    def __init__(self, project_url: str, pr_id: Optional[int] = None, **kwargs):
         super().__init__(pr_id=pr_id)
         self.project_url: str = project_url
         self.git_ref: Optional[str] = None  # git ref that can be 'git checkout'-ed
@@ -43,7 +46,9 @@ class PushPagureEvent(AbstractPagureEvent):
         self.identifier = git_ref
 
 
-class PullRequestCommentPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
+class PullRequestCommentPagureEvent(
+    AddPullRequestDbTrigger, AbstractCommentEvent, AbstractPagureEvent
+):
     def __init__(
         self,
         action: PullRequestCommentAction,
@@ -58,7 +63,7 @@ class PullRequestCommentPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent
         comment: str,
         commit_sha: str = "",
     ):
-        super().__init__(project_url=project_url, pr_id=pr_id)
+        super().__init__(project_url=project_url, pr_id=pr_id, comment=comment)
         self.action = action
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
