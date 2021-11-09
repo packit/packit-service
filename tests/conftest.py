@@ -114,8 +114,17 @@ def copr_build_model(
         runs=runs,
         set_status=lambda x: None,
         set_built_packages=lambda x: None,
-        built_packages=None,
+        built_packages=[
+            {
+                "name": repo_name,
+                "version": "0.1",
+                "release": "1",
+                "arch": "noarch",
+                "epoch": 0,
+            }
+        ],
         task_accepted_time=datetime.now(),
+        build_logs_url="https://log-url",
     )
 
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(

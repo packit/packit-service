@@ -18,7 +18,7 @@ from packit_service.models import TFTTestRunModel
 from packit_service.worker.events import (
     TestingFarmResultsEvent as TFResultsEvent,
 )
-from packit_service.models import JobTriggerModel, JobTriggerModelType
+from packit_service.models import JobTriggerModel, JobTriggerModelType, CoprBuildModel
 from packit_service.models import TestingFarmResult as TFResult
 
 from packit_service.worker.build import copr_build as cb
@@ -475,6 +475,7 @@ def test_payload(
         service="GitHub",
         get_git_urls=lambda: {"git": f"{project_url}.git"},
         get_pr=lambda id_: pr,
+        full_repo_name=f"{namespace}/{repo}",
     )
     metadata = flexmock(
         trigger=flexmock(),
@@ -511,7 +512,30 @@ def test_payload(
     if packages_to_send:
         artifact["packages"] = packages_to_send
 
-    payload = job_helper._payload(chroot, artifact)
+    # URLs shortened for clarity
+    log_url = "https://copr-be.cloud.fedoraproject.org/results/.../builder-live.log.gz"
+    srpm_url = (
+        f"https://download.copr.fedorainfracloud.org/results/.../{repo}-0.1-1.src.rpm"
+    )
+    copr_build = flexmock(
+        id=build_id,
+        built_packages=[
+            {
+                "name": repo,
+                "version": "0.1",
+                "release": "1",
+                "arch": "noarch",
+                "epoch": "0",
+            }
+        ],
+        build_logs_url=log_url,
+    )
+    copr_build.should_receive("get_srpm_build").and_return(flexmock(url=srpm_url))
+    flexmock(CoprBuildModel).should_receive("get_by_build_id").with_args(
+        build_id
+    ).and_return(copr_build)
+
+    payload = job_helper._payload(chroot, artifact, build_id)
 
     assert payload["api_key"] == token_to_use
     assert payload["test"]["fmf"] == {
@@ -525,6 +549,13 @@ def test_payload(
             "os": {"compose": compose},
             "artifacts": [artifact],
             "tmt": {"context": {"distro": distro, "arch": arch, "trigger": "commit"}},
+            "variables": {
+                "PACKIT_FULL_REPO_NAME": f"{namespace}/{repo}",
+                "PACKIT_COMMIT_SHA": commit_sha,
+                "PACKIT_PACKAGE_NVR": f"{repo}-0.1-1",
+                "PACKIT_BUILD_LOG_URL": log_url,
+                "PACKIT_SRPM_URL": srpm_url,
+            },
         }
     ]
     assert payload["notification"]["webhook"]["url"].endswith("/testing-farm/results")
@@ -587,6 +618,7 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
         service="GitHub",
         get_git_urls=lambda: {"git": f"{project_url}.git"},
         get_pr=lambda id_: pr,
+        full_repo_name=f"{namespace}/{repo}",
     )
     metadata = flexmock(
         trigger=flexmock(),
@@ -615,7 +647,31 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
     job_helper.should_receive("job_project").and_return(copr_project)
     job_helper.should_receive("distro2compose").and_return(compose)
 
-    payload = job_helper._payload(chroot)
+    build_id = 1
+    # URLs shortened for clarity
+    log_url = "https://copr-be.cloud.fedoraproject.org/results/.../builder-live.log.gz"
+    srpm_url = (
+        f"https://download.copr.fedorainfracloud.org/results/.../{repo}-0.1-1.src.rpm"
+    )
+    copr_build = flexmock(
+        id=build_id,
+        built_packages=[
+            {
+                "name": repo,
+                "version": "0.1",
+                "release": "1",
+                "arch": "noarch",
+                "epoch": "0",
+            }
+        ],
+        build_logs_url=log_url,
+    )
+    copr_build.should_receive("get_srpm_build").and_return(flexmock(url=srpm_url))
+    flexmock(CoprBuildModel).should_receive("get_by_build_id").with_args(
+        build_id
+    ).and_return(copr_build)
+
+    payload = job_helper._payload(chroot, build_id=build_id)
     assert payload.get("test")
     assert payload["test"].get("fmf")
     assert payload["test"]["fmf"].get("url") == result_url

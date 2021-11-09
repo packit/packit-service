@@ -458,8 +458,15 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
                     {
                         "id": "1:fedora-rawhide-x86_64",
                         "type": "fedora-copr-build",
+                        "packages": ["bar-0:0.1-1.noarch"],
                     },
                 ],
+                "variables": {
+                    "PACKIT_FULL_REPO_NAME": "foo/bar",
+                    "PACKIT_COMMIT_SHA": "0011223344",
+                    "PACKIT_PACKAGE_NVR": "bar-0.1-1",
+                    "PACKIT_BUILD_LOG_URL": "https://log-url",
+                },
             }
         ],
         "notification": {
