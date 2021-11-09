@@ -20,7 +20,6 @@ def first_dict_value(a_dict: dict) -> Any:
 def get_parameters_from_results(
     results: List[TaskResults],
 ) -> Tuple[dict, str, dict, dict]:
-
     assert len(results) == 1
 
     event_dict = results[0]["details"]["event"]

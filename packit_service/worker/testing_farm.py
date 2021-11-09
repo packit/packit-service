@@ -18,7 +18,12 @@ from packit_service.constants import (
     TESTING_FARM_INSTALLABILITY_TEST_URL,
     TESTING_FARM_INSTALLABILITY_TEST_REF,
 )
-from packit_service.models import CoprBuildModel, TFTTestRunModel, TestingFarmResult
+from packit_service.models import (
+    CoprBuildModel,
+    TFTTestRunModel,
+    TestingFarmResult,
+    RunModel,
+)
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.worker.events import EventData
 from packit_service.service.urls import get_testing_farm_info_url
@@ -83,21 +88,45 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return self._tft_token
 
     @property
-    def fmf_url(self):
+    def skip_build(self) -> bool:
+        return self.job_config.metadata.skip_build
+
+    @property
+    def fmf_url(self) -> str:
         return (
             self.job_config.metadata.fmf_url
             or self.project.get_pr(self.metadata.pr_id).source_project.get_web_url()
         )
 
     @property
-    def fmf_ref(self):
+    def fmf_ref(self) -> str:
         if self.job_config.metadata.fmf_url:
             return self.job_config.metadata.fmf_ref
 
         return self.metadata.commit_sha
 
+    @staticmethod
+    def _artifact(
+        chroot: str, build_id: Optional[int], built_packages: Optional[List[Dict]]
+    ) -> Dict[str, Union[List[str], str]]:
+        artifact: Dict[str, Union[List[str], str]] = {
+            "id": f"{build_id}:{chroot}",
+            "type": "fedora-copr-build",
+        }
+
+        if built_packages:
+            packages = [
+                f"{package['name']}-{package['epoch']}:{package['version']}-"
+                f"{package['release']}.{package['arch']}"
+                for package in built_packages
+                if package["arch"] != "src"
+            ]
+            artifact["packages"] = packages
+
+        return artifact
+
     def _payload(
-        self, build_id: int, chroot: str, built_packages: Optional[List[Dict]]
+        self, chroot: str, artifact: Optional[Dict[str, Union[List[str], str]]] = None
     ) -> dict:
         """
         Testing Farm API: https://testing-farm.gitlab.io/api/
@@ -114,35 +143,20 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if self.fmf_ref:
             fmf["ref"] = self.fmf_ref
 
-        artifact: Dict[str, Union[List[str], str]] = {
-            "id": f"{build_id}:{chroot}",
-            "type": "fedora-copr-build",
+        environment: Dict[str, Any] = {
+            "arch": arch,
+            "os": {"compose": compose},
+            "tmt": {"context": {"distro": distro, "arch": arch, "trigger": "commit"}},
         }
-
-        if built_packages:
-            packages = [
-                f"{package['name']}-{package['epoch']}:{package['version']}-"
-                f"{package['release']}.{package['arch']}"
-                for package in built_packages
-                if package["arch"] != "src"
-            ]
-            artifact["packages"] = packages
+        if artifact:
+            environment["artifacts"] = [artifact]
 
         return {
             "api_key": self.tft_token,
             "test": {
                 "fmf": fmf,
             },
-            "environments": [
-                {
-                    "arch": arch,
-                    "os": {"compose": compose},
-                    "artifacts": [artifact],
-                    "tmt": {
-                        "context": {"distro": distro, "arch": arch, "trigger": "commit"}
-                    },
-                }
-            ],
+            "environments": [environment],
             "notification": {
                 "webhook": {
                     "url": f"{self.api_url}/testing-farm/results",
@@ -302,7 +316,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         return list(copr_builds)[0]
 
-    def run_testing_farm(self, build: "CoprBuildModel", chroot: str) -> TaskResults:
+    def run_testing_farm(
+        self, chroot: str, build: Optional["CoprBuildModel"]
+    ) -> TaskResults:
         if chroot not in self.tests_targets:
             # Leaving here just to be sure that we will discover this situation if it occurs.
             # Currently not possible to trigger this situation.
@@ -314,7 +330,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 details={"msg": msg},
             )
 
-        if chroot not in self.build_targets:
+        if not self.skip_build and chroot not in self.build_targets:
             self.report_missing_build_chroot(chroot)
             return TaskResults(
                 success=False,
@@ -342,15 +358,26 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         self.report_status_to_test_for_chroot(
             state=BaseCommitStatus.running,
-            description="Build succeeded. Submitting the tests ...",
+            description=f"{'Build succeeded. ' if not self.skip_build else ''}"
+            f"Submitting the tests ...",
             chroot=chroot,
         )
 
         logger.info("Sending testing farm request...")
+
         if self.is_fmf_configured():
-            payload = self._payload(int(build.build_id), chroot, build.built_packages)
-        else:
+            artifact = (
+                self._artifact(chroot, int(build.build_id), build.built_packages)
+                if not self.skip_build
+                else None
+            )
+            payload = self._payload(chroot, artifact)
+        elif not self.is_fmf_configured() and not self.skip_build:
             payload = self._payload_install_test(int(build.build_id), chroot)
+        else:
+            return TaskResults(
+                success=True, details={"msg": "No actions for TestingFarmHandler."}
+            )
         endpoint = "requests"
         logger.debug(f"POSTing {payload} to {self.tft_api_url}{endpoint}")
         req = self.send_testing_farm_request(
@@ -395,13 +422,22 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             f"Submitted ({req.status_code}) to testing farm as request {pipeline_id}"
         )
 
+        run_model = (
+            RunModel.create(
+                type=self.db_trigger.job_trigger_model_type,
+                trigger_id=self.db_trigger.id,
+            )
+            if self.skip_build
+            else build.runs[-1]
+        )
+
         created_model = TFTTestRunModel.create(
             pipeline_id=pipeline_id,
             commit_sha=self.metadata.commit_sha,
             status=TestingFarmResult.new,
             target=chroot,
             web_url=None,
-            run_model=build.runs[-1],
+            run_model=run_model,
             # In _payload() we ask TF to test commit_sha of fork (PR's source).
             # Store original url. If this proves to work, make it a separate column.
             data={"base_project_url": self.project.get_web_url()},

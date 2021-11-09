@@ -10,6 +10,7 @@ from flexmock import flexmock
 from github import Github
 from packit_service.worker.monitoring import Pushgateway
 
+from ogr.utils import RequestResponse
 from ogr.services.github import GithubProject
 
 from packit.config import JobConfigTriggerType
@@ -20,12 +21,20 @@ from packit_service.constants import (
     TASK_ACCEPTED,
     PG_COPR_BUILD_STATUS_SUCCESS,
 )
-from packit_service.models import PullRequestModel, JobTriggerModelType, JobTriggerModel
+from packit_service.models import (
+    PullRequestModel,
+    JobTriggerModelType,
+    JobTriggerModel,
+    TFTTestRunModel,
+    TestingFarmResult,
+    RunModel,
+)
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.build import copr_build
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.jobs import SteveJobs, get_packit_commands_from_comment
+from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import TaskResults
 from packit_service.worker.tasks import (
     run_copr_build_handler,
@@ -95,36 +104,7 @@ def pr_wrong_packit_comment_event():
     )
 
 
-@pytest.fixture(
-    params=[
-        [
-            {
-                "trigger": "pull_request",
-                "job": "copr_build",
-                "metadata": {"targets": "fedora-rawhide-x86_64"},
-            }
-        ],
-        [
-            {
-                "trigger": "pull_request",
-                "job": "tests",
-                "metadata": {"targets": "fedora-rawhide-x86_64"},
-            }
-        ],
-        [
-            {
-                "trigger": "pull_request",
-                "job": "copr_build",
-                "metadata": {"targets": "fedora-rawhide-x86_64"},
-            },
-            {
-                "trigger": "pull_request",
-                "job": "tests",
-                "metadata": {"targets": "fedora-rawhide-x86_64"},
-            },
-        ],
-    ]
-)
+@pytest.fixture
 def mock_pr_comment_functionality(request):
     packit_yaml = (
         "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
@@ -164,6 +144,21 @@ def one_job_finished_with_msg(results: List[TaskResults], msg: str):
         raise AssertionError(f"None of the jobs finished with {msg!r}")
 
 
+@pytest.mark.parametrize(
+    "mock_pr_comment_functionality",
+    (
+        [
+            [
+                {
+                    "trigger": "pull_request",
+                    "job": "copr_build",
+                    "metadata": {"targets": "fedora-rawhide-x86_64"},
+                }
+            ]
+        ]
+    ),
+    indirect=True,
+)
 def test_pr_comment_copr_build_handler(
     mock_pr_comment_functionality, pr_copr_build_comment_event
 ):
@@ -184,7 +179,7 @@ def test_pr_comment_copr_build_handler(
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_all").with_args(
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
@@ -211,6 +206,21 @@ def test_pr_comment_copr_build_handler(
     assert first_dict_value(results["job"])["success"]
 
 
+@pytest.mark.parametrize(
+    "mock_pr_comment_functionality",
+    (
+        [
+            [
+                {
+                    "trigger": "pull_request",
+                    "job": "copr_build",
+                    "metadata": {"targets": "fedora-rawhide-x86_64"},
+                }
+            ]
+        ]
+    ),
+    indirect=True,
+)
 def test_pr_comment_build_handler(
     mock_pr_comment_functionality, pr_build_comment_event
 ):
@@ -228,7 +238,7 @@ def test_pr_comment_build_handler(
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_all").with_args(
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
@@ -253,6 +263,144 @@ def test_pr_comment_build_handler(
         job_config=job_config,
     )
     assert first_dict_value(results["job"])["success"]
+
+
+@pytest.mark.parametrize(
+    "mock_pr_comment_functionality",
+    (
+        [
+            [
+                {
+                    "trigger": "pull_request",
+                    "job": "tests",
+                    "metadata": {"targets": "fedora-rawhide-x86_64"},
+                }
+            ]
+        ]
+    ),
+    indirect=True,
+)
+def test_pr_comment_build_test_handler(
+    mock_pr_comment_functionality, pr_build_comment_event
+):
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(
+        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
+    flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
+        TaskResults(success=True, details={})
+    )
+    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+        description=TASK_ACCEPTED,
+        state=BaseCommitStatus.pending,
+        url="",
+    ).once()
+    flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+
+    processing_results = SteveJobs().process_message(pr_build_comment_event)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+    results = run_testing_farm_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+    assert first_dict_value(results["job"])["success"]
+    assert (
+        "CoprBuildHandler task sent"
+        in first_dict_value(results["job"])["details"]["msg"]
+    )
+
+
+@pytest.mark.parametrize(
+    "mock_pr_comment_functionality",
+    (
+        [
+            [
+                {
+                    "trigger": "pull_request",
+                    "job": "copr_build",
+                    "metadata": {"targets": "fedora-rawhide-x86_64"},
+                },
+                {
+                    "trigger": "pull_request",
+                    "job": "tests",
+                    "metadata": {"targets": "fedora-rawhide-x86_64"},
+                },
+            ]
+        ]
+    ),
+    indirect=True,
+)
+def test_pr_comment_build_build_and_test_handler(
+    mock_pr_comment_functionality, pr_build_comment_event
+):
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(
+        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
+    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
+        description=TASK_ACCEPTED,
+        state=BaseCommitStatus.pending,
+        url="",
+    ).once()
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+        description=TASK_ACCEPTED,
+        state=BaseCommitStatus.pending,
+        url="",
+    ).once()
+    flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+
+    processing_results = SteveJobs().process_message(pr_build_comment_event)
+    assert len(processing_results) == 2
+
+    copr_build_job = [
+        item for item in processing_results if item["details"]["job"] == "copr_build"
+    ]
+    assert copr_build_job
+
+    test_job = [
+        item for item in processing_results if item["details"]["job"] == "tests"
+    ]
+    assert test_job
+
+    event_dict, job, job_config, package_config = get_parameters_from_results(test_job)
+    assert json.dumps(event_dict)
+    results = run_testing_farm_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+    assert first_dict_value(results["job"])["success"]
+    assert "already handled" in first_dict_value(results["job"])["details"]["msg"]
 
 
 def test_pr_comment_production_build_handler(pr_production_build_comment_event):
@@ -308,7 +456,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(KojiBuildJobHelper).should_receive("report_status_to_all").with_args(
+    flexmock(KojiBuildJobHelper).should_receive("report_status_to_build").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
@@ -371,6 +519,21 @@ def test_pr_comment_invalid(comment):
         "Should be fixed now, let's\n /packit build\n it.",
     ),
 )
+@pytest.mark.parametrize(
+    "mock_pr_comment_functionality",
+    (
+        [
+            [
+                {
+                    "trigger": "pull_request",
+                    "job": "copr_build",
+                    "metadata": {"targets": "fedora-rawhide-x86_64"},
+                }
+            ]
+        ]
+    ),
+    indirect=True,
+)
 def test_pr_embedded_command_handler(
     mock_pr_comment_functionality, pr_embedded_command_comment_event, comments_list
 ):
@@ -394,7 +557,7 @@ def test_pr_embedded_command_handler(
     flexmock(pr).should_receive("get_comment").and_return(comment)
     flexmock(comment).should_receive("add_reaction").with_args("+1").once()
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_all").with_args(
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
@@ -416,6 +579,21 @@ def test_pr_embedded_command_handler(
     assert first_dict_value(results["job"])["success"]
 
 
+@pytest.mark.parametrize(
+    "mock_pr_comment_functionality",
+    (
+        [
+            [
+                {
+                    "trigger": "pull_request",
+                    "job": "copr_build",
+                    "metadata": {"targets": "fedora-rawhide-x86_64"},
+                }
+            ]
+        ]
+    ),
+    indirect=True,
+)
 def test_pr_comment_empty_handler(
     mock_pr_comment_functionality, pr_empty_comment_event
 ):
@@ -428,6 +606,21 @@ def test_pr_comment_empty_handler(
     assert results == []
 
 
+@pytest.mark.parametrize(
+    "mock_pr_comment_functionality",
+    (
+        [
+            [
+                {
+                    "trigger": "pull_request",
+                    "job": "copr_build",
+                    "metadata": {"targets": "fedora-rawhide-x86_64"},
+                }
+            ]
+        ]
+    ),
+    indirect=True,
+)
 def test_pr_comment_packit_only_handler(
     mock_pr_comment_functionality, pr_packit_only_comment_event
 ):
@@ -440,6 +633,21 @@ def test_pr_comment_packit_only_handler(
     assert results == []
 
 
+@pytest.mark.parametrize(
+    "mock_pr_comment_functionality",
+    (
+        [
+            [
+                {
+                    "trigger": "pull_request",
+                    "job": "copr_build",
+                    "metadata": {"targets": "fedora-rawhide-x86_64"},
+                }
+            ]
+        ]
+    ),
+    indirect=True,
+)
 def test_pr_comment_wrong_packit_command_handler(
     mock_pr_comment_functionality, pr_wrong_packit_comment_event
 ):
@@ -518,6 +726,172 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
         state=BaseCommitStatus.pending,
         url="",
     ).once()
+
+    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    run_testing_farm_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+
+def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_event):
+    jobs = [
+        {
+            "trigger": "pull_request",
+            "job": "tests",
+            "metadata": {"targets": "fedora-rawhide-x86_64", "skip_build": True},
+        }
+    ]
+    packit_yaml = (
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
+        + str(jobs)
+        + "}"
+    )
+    pr = flexmock(
+        head_commit="12345",
+        source_project=flexmock(get_web_url=lambda: "https://github.com/foo/bar"),
+    )
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+    flexmock(
+        GithubProject,
+        full_repo_name="packit-service/hello-world",
+        get_file_content=lambda path, ref: packit_yaml,
+        get_files=lambda ref, filter_regex: ["the-specfile.spec"],
+        get_web_url=lambda: "https://github.com/the-namespace/the-repo",
+    )
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+
+    tft_api_url = "https://api.dev.testing-farm.io/v0.1/"
+    config = ServiceConfig(
+        command_handler_work_dir=SANDCASTLE_WORK_DIR,
+        testing_farm_api_url=tft_api_url,
+        testing_farm_secret="secret token",
+    )
+
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
+        trigger
+    )
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(Allowlist, check_and_report=True)
+    pr_model = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+    )
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(pr_model)
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=9
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
+    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+        {"fedora-rawhide-x86_64"}
+    )
+    flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
+    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+        description=TASK_ACCEPTED,
+        state=BaseCommitStatus.pending,
+        url="",
+    ).once()
+
+    payload = {
+        "api_key": "secret token",
+        "test": {
+            "fmf": {
+                "url": "https://github.com/foo/bar",
+                "ref": "12345",
+            },
+        },
+        "environments": [
+            {
+                "arch": "x86_64",
+                "os": {"compose": "Fedora-Rawhide"},
+                "tmt": {
+                    "context": {
+                        "distro": "fedora-rawhide",
+                        "arch": "x86_64",
+                        "trigger": "commit",
+                    }
+                },
+            }
+        ],
+        "notification": {
+            "webhook": {
+                "url": "https://stg.packit.dev/api/testing-farm/results",
+                "token": "secret token",
+            }
+        },
+    }
+
+    flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
+    flexmock(TestingFarmJobHelper).should_receive("distro2compose").and_return(
+        "Fedora-Rawhide"
+    )
+
+    pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
+    flexmock(TestingFarmJobHelper).should_receive(
+        "send_testing_farm_request"
+    ).with_args(endpoint="requests", method="POST", data=payload).and_return(
+        RequestResponse(
+            status_code=200,
+            ok=True,
+            content=json.dumps({"id": pipeline_id}).encode(),
+            json={"id": pipeline_id},
+        )
+    )
+
+    flexmock(StatusReporter).should_receive("report").with_args(
+        state=BaseCommitStatus.running,
+        description="Submitting the tests ...",
+        check_names="packit-stg/testing-farm-fedora-rawhide-x86_64",
+        url="",
+    ).once()
+
+    flexmock(GithubProject).should_receive("get_web_url").and_return(
+        "https://github.com/foo/bar"
+    )
+
+    tft_test_run_model = flexmock(id=5)
+    run_model = flexmock()
+    flexmock(RunModel).should_receive("create").and_return(run_model)
+    flexmock(TFTTestRunModel).should_receive("create").with_args(
+        pipeline_id=pipeline_id,
+        commit_sha="12345",
+        status=TestingFarmResult.new,
+        target="fedora-rawhide-x86_64",
+        web_url=None,
+        run_model=run_model,
+        data={"base_project_url": "https://github.com/foo/bar"},
+    ).and_return(tft_test_run_model)
+
+    flexmock(StatusReporter).should_receive("report").with_args(
+        description="Tests have been submitted ...",
+        state=BaseCommitStatus.running,
+        url="https://dashboard.localhost/results/testing-farm/5",
+        check_names="packit-stg/testing-farm-fedora-rawhide-x86_64",
+    ).once()
+    flexmock(Signature).should_receive("apply_async").once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(

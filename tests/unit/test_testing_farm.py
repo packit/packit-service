@@ -265,6 +265,55 @@ def test_distro2compose_for_aarch64(distro, arch, compose, use_internal_tf):
 
 
 @pytest.mark.parametrize(
+    ("build_id," "chroot," "built_packages," "packages_to_send"),
+    [
+        (
+            "123456",
+            "centos-stream-x86_64",
+            None,
+            None,
+        ),
+        (
+            "123456",
+            "centos-stream-x86_64",
+            [
+                {
+                    "arch": "x86_64",
+                    "epoch": 0,
+                    "name": "cool-project",
+                    "release": "2.el8",
+                    "version": "0.1.0",
+                },
+                {
+                    "arch": "src",
+                    "epoch": 0,
+                    "name": "cool-project",
+                    "release": "2.el8",
+                    "version": "0.1.0",
+                },
+            ],
+            ["cool-project-0:0.1.0-2.el8.x86_64"],
+        ),
+    ],
+)
+def test_artifact(
+    build_id,
+    chroot,
+    built_packages,
+    packages_to_send,
+):
+
+    result = TFJobHelper._artifact(chroot, build_id, built_packages)
+
+    artifact = {"id": f"{build_id}:{chroot}", "type": "fedora-copr-build"}
+
+    if packages_to_send:
+        artifact["packages"] = packages_to_send
+
+    assert result == artifact
+
+
+@pytest.mark.parametrize(
     (
         "tf_api,"
         "tf_token,"
@@ -457,18 +506,18 @@ def test_payload(
     job_helper.should_receive("job_owner").and_return(copr_owner)
     job_helper.should_receive("job_project").and_return(copr_project)
     job_helper.should_receive("distro2compose").and_return(compose)
-    payload = job_helper._payload(build_id, chroot, built_packages)
+    artifact = {"id": f"{build_id}:{chroot}", "type": "fedora-copr-build"}
+
+    if packages_to_send:
+        artifact["packages"] = packages_to_send
+
+    payload = job_helper._payload(chroot, artifact)
 
     assert payload["api_key"] == token_to_use
     assert payload["test"]["fmf"] == {
         "url": project_url,
         "ref": commit_sha,
     }
-
-    artifact = {"id": f"{build_id}:{chroot}", "type": "fedora-copr-build"}
-
-    if packages_to_send:
-        artifact["packages"] = packages_to_send
 
     assert payload["environments"] == [
         {
@@ -521,7 +570,6 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
     commit_sha = "feb41e5"
     copr_owner = "me"
     copr_project = "cool-project"
-    build_id = "123456"
     chroot = "centos-stream-x86_64"
     compose = "Fedora-Rawhide"
 
@@ -567,7 +615,7 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
     job_helper.should_receive("job_project").and_return(copr_project)
     job_helper.should_receive("distro2compose").and_return(compose)
 
-    payload = job_helper._payload(build_id, chroot, None)
+    payload = job_helper._payload(chroot)
     assert payload.get("test")
     assert payload["test"].get("fmf")
     assert payload["test"]["fmf"].get("url") == result_url
@@ -620,6 +668,7 @@ def test_trigger_build(copr_build, run_new_build):
     job_config = flexmock()
     job_config.type = JobType.build
     job_config.spec_source_id = 1
+    job_config.metadata = JobMetadataConfig()
 
     event = {
         "event_type": "CoprBuileEndEvent",

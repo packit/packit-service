@@ -447,12 +447,6 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
             {
                 "arch": "x86_64",
                 "os": {"compose": "Fedora-Rawhide"},
-                "artifacts": [
-                    {
-                        "id": "1:fedora-rawhide-x86_64",
-                        "type": "fedora-copr-build",
-                    },
-                ],
                 "tmt": {
                     "context": {
                         "distro": "fedora-rawhide",
@@ -460,6 +454,12 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
                         "trigger": "commit",
                     }
                 },
+                "artifacts": [
+                    {
+                        "id": "1:fedora-rawhide-x86_64",
+                        "type": "fedora-copr-build",
+                    },
+                ],
             }
         ],
         "notification": {
@@ -504,8 +504,8 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         commit_sha="0011223344",
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
-        run_model=copr_build_pr.runs[0],
         web_url=None,
+        run_model=copr_build_pr.runs[0],
         data={"base_project_url": "https://github.com/foo/bar"},
     ).and_return(tft_test_run_model)
 
