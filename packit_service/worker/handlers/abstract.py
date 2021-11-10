@@ -225,7 +225,7 @@ class TaskName(str, enum.Enum):
     testing_farm_results = "task.run_testing_farm_results_handler"
     propose_downstream = "task.run_propose_downstream_handler"
     koji_build = "task.run_koji_build_handler"
-    distgit_commit = "task.run_distgit_commit_handler"
+    sync_from_downstream = "task.run_sync_from_downstream_handler"
     bugzilla = "task.run_bugzilla_handler"
     koji_build_report = "task.run_koji_build_report_handler"
 

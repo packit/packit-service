@@ -16,7 +16,7 @@ from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import GitBranchModel
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.tasks import run_distgit_commit_handler
+from packit_service.worker.tasks import run_sync_from_downstream_handler
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
@@ -82,7 +82,7 @@ def test_distgit_commit_handler():
         processing_results
     )
     assert json.dumps(event_dict)
-    results = run_distgit_commit_handler(
+    results = run_sync_from_downstream_handler(
         package_config=package_config,
         event=event_dict,
         job_config=job_config,

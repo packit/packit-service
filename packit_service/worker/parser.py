@@ -60,7 +60,7 @@ from packit_service.worker.events.enums import (
     PullRequestCommentAction,
 )
 from packit_service.worker.handlers import (
-    DistGitCommitHandler,
+    SyncFromDownstream,
 )
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.testing_farm import TestingFarmJobHelper
@@ -835,7 +835,7 @@ class Parser:
     def parse_distgit_commit_event(event) -> Optional[DistGitCommitEvent]:
         """this corresponds to dist-git event when someone pushes new commits"""
         topic = event.get("topic")
-        if topic != DistGitCommitHandler.topic:
+        if topic != SyncFromDownstream.topic:
             return None
 
         logger.info(f"Dist-git commit event, topic: {topic}")

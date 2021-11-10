@@ -24,7 +24,7 @@ from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
     KojiBuildReportHandler,
-    DistGitCommitHandler,
+    SyncFromDownstream,
     CoprBuildHandler,
     GithubAppInstallationHandler,
     KojiBuildHandler,
@@ -191,10 +191,12 @@ def run_koji_build_handler(event: dict, package_config: dict, job_config: dict):
 
 
 @celery_app.task(
-    name=TaskName.distgit_commit, base=HandlerTaskWithRetry, queue="long-running"
+    name=TaskName.sync_from_downstream, base=HandlerTaskWithRetry, queue="long-running"
 )
-def run_distgit_commit_handler(event: dict, package_config: dict, job_config: dict):
-    handler = DistGitCommitHandler(
+def run_sync_from_downstream_handler(
+    event: dict, package_config: dict, job_config: dict
+):
+    handler = SyncFromDownstream(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,

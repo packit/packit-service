@@ -46,11 +46,11 @@ logger = logging.getLogger(__name__)
 @add_topic
 @configured_as(job_type=JobType.sync_from_downstream)
 @reacts_to(event=DistGitCommitEvent)
-class DistGitCommitHandler(FedmsgHandler):
+class SyncFromDownstream(FedmsgHandler):
     """Sync new specfile changes to upstream after a new git push in the dist-git."""
 
     topic = "org.fedoraproject.prod.git.receive"
-    task_name = TaskName.distgit_commit
+    task_name = TaskName.sync_from_downstream
 
     def __init__(
         self,

@@ -23,7 +23,7 @@ from packit_service.worker.handlers.copr import (
     CoprBuildStartHandler,
 )
 from packit_service.worker.handlers.distgit import (
-    DistGitCommitHandler,
+    SyncFromDownstream,
     ProposeDownstreamHandler,
 )
 from packit_service.worker.handlers.forges import (
@@ -47,7 +47,7 @@ __all__ = [
     CoprBuildEndHandler.__name__,
     CoprBuildStartHandler.__name__,
     GithubAppInstallationHandler.__name__,
-    DistGitCommitHandler.__name__,
+    SyncFromDownstream.__name__,
     ProposeDownstreamHandler.__name__,
     KojiBuildHandler.__name__,
     KojiBuildReportHandler.__name__,
