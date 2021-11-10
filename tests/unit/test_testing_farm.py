@@ -112,7 +112,7 @@ def test_testing_farm_response(
         description=status_message,
         links_to_external_services={"Testing Farm": "some url"},
         url="https://dashboard.localhost/results/testing-farm/123",
-        check_names="packit-stg/testing-farm-fedora-rawhide-x86_64",
+        check_names="testing-farm:fedora-rawhide-x86_64",
     )
 
     urls.DASHBOARD_URL = "https://dashboard.localhost"

@@ -311,8 +311,7 @@ class BaseBuildJobHelper:
         """
         List of full names of the commit statuses.
 
-        e.g. ["packit/copr-build-fedora-rawhide-x86_64"]
-        or ["packit-stg/production-build-f31", "packit-stg/production-build-f32"]
+        e.g. ["testing-farm:fedora-rawhide-x86_64"]
         """
         if not self._test_check_names:
             self._test_check_names = [
@@ -325,8 +324,8 @@ class BaseBuildJobHelper:
         """
         List of full names of the commit statuses.
 
-        e.g. ["packit/copr-build-fedora-rawhide-x86_64"]
-        or ["packit-stg/production-build-f31", "packit-stg/production-build-f32"]
+        e.g. ["copr-build:fedora-rawhide-x86_64"]
+        or ["production-build:f31", "production-build:f32"]
         """
         if not self._build_check_names:
             self._build_check_names = [
@@ -347,21 +346,13 @@ class BaseBuildJobHelper:
 
     @classmethod
     def get_build_check(cls, chroot: str = None) -> str:
-        config = ServiceConfig.get_service_config()
-        deployment_str = (
-            "packit" if config.deployment == Deployment.prod else "packit-stg"
-        )
-        chroot_str = f"-{chroot}" if chroot else ""
-        return f"{deployment_str}/{cls.status_name_build}{chroot_str}"
+        chroot_str = f":{chroot}" if chroot else ""
+        return f"{cls.status_name_build}{chroot_str}"
 
     @classmethod
     def get_test_check(cls, chroot: str = None) -> str:
-        config = ServiceConfig.get_service_config()
-        deployment_str = (
-            "packit" if config.deployment == Deployment.prod else "packit-stg"
-        )
-        chroot_str = f"-{chroot}" if chroot else ""
-        return f"{deployment_str}/{cls.status_name_test}{chroot_str}"
+        chroot_str = f":{chroot}" if chroot else ""
+        return f"{cls.status_name_test}{chroot_str}"
 
     def create_srpm_if_needed(self) -> Optional[TaskResults]:
         """

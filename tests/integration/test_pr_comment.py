@@ -865,7 +865,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     flexmock(StatusReporter).should_receive("report").with_args(
         state=BaseCommitStatus.running,
         description="Submitting the tests ...",
-        check_names="packit-stg/testing-farm-fedora-rawhide-x86_64",
+        check_names="testing-farm:fedora-rawhide-x86_64",
         url="",
     ).once()
 
@@ -890,7 +890,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         description="Tests have been submitted ...",
         state=BaseCommitStatus.running,
         url="https://dashboard.localhost/results/testing-farm/5",
-        check_names="packit-stg/testing-farm-fedora-rawhide-x86_64",
+        check_names="testing-farm:fedora-rawhide-x86_64",
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
 

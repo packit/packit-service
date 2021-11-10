@@ -168,14 +168,14 @@ def test_copr_build_check_names(github_pr_event):
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Building SRPM ...",
-        check_name="packit-stg/rpm-build-bright-future-x86_64",
+        check_name="rpm-build:bright-future-x86_64",
         url="",
         links_to_external_services=None,
     ).and_return()
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Starting RPM build...",
-        check_name="packit-stg/rpm-build-bright-future-x86_64",
+        check_name="rpm-build:bright-future-x86_64",
         url="https://test.url",
         links_to_external_services=None,
     ).and_return()
@@ -272,7 +272,7 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
         flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
             state=BaseCommitStatus.running,
             description="Building SRPM ...",
-            check_name=f"packit-stg/rpm-build-{target}",
+            check_name=f"rpm-build:{target}",
             url="",
             links_to_external_services=None,
         ).and_return()
@@ -281,7 +281,7 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
         flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
             state=BaseCommitStatus.error,
             description=f"Not supported target: {not_supported_target}",
-            check_name=f"packit-stg/rpm-build-{not_supported_target}",
+            check_name=f"rpm-build:{not_supported_target}",
             url="https://test.url",
             links_to_external_services=None,
         ).and_return()
@@ -289,7 +289,7 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Starting RPM build...",
-        check_name="packit-stg/rpm-build-even-brighter-one-aarch64",
+        check_name="rpm-build:even-brighter-one-aarch64",
         url="https://test.url",
         links_to_external_services=None,
     ).and_return()
@@ -414,14 +414,14 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Building SRPM ...",
-        check_name="packit-stg/rpm-build-fedora-32-x86_64",
+        check_name="rpm-build:fedora-32-x86_64",
         url="",
         links_to_external_services=None,
     ).and_return().once()
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Starting RPM build...",
-        check_name="packit-stg/rpm-build-fedora-32-x86_64",
+        check_name="rpm-build:fedora-32-x86_64",
         url="https://test.url",
         links_to_external_services=None,
     ).and_return().once()
@@ -506,14 +506,14 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Building SRPM ...",
-        check_name="packit-stg/rpm-build-bright-future-x86_64",
+        check_name="rpm-build:bright-future-x86_64",
         url="",
         links_to_external_services=None,
     ).and_return()
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Starting RPM build...",
-        check_name="packit-stg/rpm-build-bright-future-x86_64",
+        check_name="rpm-build:bright-future-x86_64",
         url="https://test.url",
         links_to_external_services=None,
     ).and_return()
@@ -936,7 +936,7 @@ def test_copr_build_fails_in_packit(github_pr_event):
     flexmock(packit_service.worker.build.copr_build).should_receive(
         "get_valid_build_targets"
     ).and_return({"fedora-31-x86_64", "fedora-rawhide-x86_64"})
-    templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
+    templ = "rpm-build:fedora-{ver}-x86_64"
     flexmock(copr_build).should_receive("get_srpm_build_info_url").and_return(
         "https://test.url"
     )
@@ -998,7 +998,7 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
         type=JobTriggerModelType.pull_request, trigger_id=123
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
-    templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
+    templ = "rpm-build:fedora-{ver}-x86_64"
     flexmock(copr_build).should_receive("get_srpm_build_info_url").and_return(
         "https://test.url"
     )
@@ -1200,14 +1200,14 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
     flexmock(StatusReporterGitlab).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Building SRPM ...",
-        check_name="packit-stg/rpm-build-bright-future-x86_64",
+        check_name="rpm-build:bright-future-x86_64",
         url="",
         links_to_external_services=None,
     ).and_return()
     flexmock(StatusReporterGitlab).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Starting RPM build...",
-        check_name="packit-stg/rpm-build-bright-future-x86_64",
+        check_name="rpm-build:bright-future-x86_64",
         url="https://test.url",
         links_to_external_services=None,
     ).and_return()
@@ -1513,7 +1513,7 @@ def test_copr_build_fails_in_packit_gitlab(gitlab_mr_event):
         type=JobTriggerModelType.pull_request, trigger_id=123
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(CoprBuildJobHelper).should_receive("is_reporting_allowed").and_return(True)
-    templ = "packit-stg/rpm-build-fedora-{ver}-x86_64"
+    templ = "rpm-build:fedora-{ver}-x86_64"
     flexmock(copr_build).should_receive("get_srpm_build_info_url").and_return(
         "https://test.url"
     )

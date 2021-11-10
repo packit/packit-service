@@ -46,8 +46,8 @@ from tests.conftest import copr_build_model
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 CHROOT = "fedora-rawhide-x86_64"
-EXPECTED_BUILD_CHECK_NAME = f"packit-stg/rpm-build-{CHROOT}"
-EXPECTED_TESTING_FARM_CHECK_NAME = f"packit-stg/testing-farm-{CHROOT}"
+EXPECTED_BUILD_CHECK_NAME = f"rpm-build:{CHROOT}"
+EXPECTED_TESTING_FARM_CHECK_NAME = f"testing-farm:{CHROOT}"
 
 pytestmark = pytest.mark.usefixtures("mock_get_valid_build_targets")
 
@@ -967,7 +967,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
         state=BaseCommitStatus.running,
         description="RPM build is in progress...",
         url=url,
-        check_names="packit-stg/production-build-rawhide",
+        check_names="production-build:rawhide",
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()
@@ -1026,7 +1026,7 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
         state=BaseCommitStatus.success,
         description="RPMs were built successfully.",
         url=url,
-        check_names="packit-stg/production-build-rawhide",
+        check_names="production-build:rawhide",
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()

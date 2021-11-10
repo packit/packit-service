@@ -41,7 +41,7 @@ from packit_service.worker.events.enums import (
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 
-EXPECTED_TESTING_FARM_CHECK_NAME = "packit-stg/testing-farm-fedora-rawhide-x86_64"
+EXPECTED_TESTING_FARM_CHECK_NAME = "testing-farm:fedora-rawhide-x86_64"
 
 
 @pytest.fixture()
