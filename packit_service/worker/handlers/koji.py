@@ -50,7 +50,6 @@ from packit_service.worker.handlers.abstract import (
     reacts_to,
     run_for_comment,
     run_for_check_rerun,
-    add_topic,
     FedmsgHandler,
 )
 from packit_service.worker.reporting import BaseCommitStatus
@@ -146,11 +145,9 @@ class KojiBuildHandler(JobHandler):
         return True
 
 
-@add_topic
 @configured_as(job_type=JobType.production_build)
 @reacts_to(event=KojiBuildEvent)
 class KojiBuildReportHandler(FedmsgHandler):
-    topic = "org.fedoraproject.prod.buildsys.task.state.change"
     task_name = TaskName.koji_build_report
 
     def __init__(

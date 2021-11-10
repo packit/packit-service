@@ -51,7 +51,6 @@ from packit_service.worker.handlers.abstract import (
     required_for,
     run_for_comment,
     run_for_check_rerun,
-    add_topic,
     FedmsgHandler,
 )
 from packit_service.worker.monitoring import measure_time
@@ -165,7 +164,6 @@ class AbstractCoprBuildReportHandler(FedmsgHandler):
         return self._db_trigger
 
 
-@add_topic
 @configured_as(job_type=JobType.copr_build)
 @configured_as(job_type=JobType.build)
 @required_for(job_type=JobType.tests)
@@ -218,7 +216,6 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
         return TaskResults(success=True, details={"msg": msg})
 
 
-@add_topic
 @configured_as(job_type=JobType.copr_build)
 @configured_as(job_type=JobType.build)
 @required_for(job_type=JobType.tests)

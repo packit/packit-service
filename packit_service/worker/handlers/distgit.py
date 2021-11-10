@@ -34,7 +34,6 @@ from packit_service.worker.handlers.abstract import (
     TaskName,
     configured_as,
     reacts_to,
-    add_topic,
     FedmsgHandler,
     run_for_comment,
 )
@@ -43,13 +42,11 @@ from packit_service.worker.result import TaskResults
 logger = logging.getLogger(__name__)
 
 
-@add_topic
 @configured_as(job_type=JobType.sync_from_downstream)
 @reacts_to(event=DistGitCommitEvent)
 class SyncFromDownstream(FedmsgHandler):
     """Sync new specfile changes to upstream after a new git push in the dist-git."""
 
-    topic = "org.fedoraproject.prod.git.receive"
     task_name = TaskName.sync_from_downstream
 
     def __init__(

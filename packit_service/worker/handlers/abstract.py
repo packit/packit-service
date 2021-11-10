@@ -43,7 +43,6 @@ SUPPORTED_EVENTS_FOR_HANDLER: Dict[
 ] = defaultdict(set)
 MAP_COMMENT_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
 MAP_CHECK_PREFIX_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
-PROCESSED_FEDMSG_TOPICS = []
 
 
 def configured_as(job_type: JobType):
@@ -189,12 +188,6 @@ def run_for_check_rerun(prefix: str):
         return kls
 
     return _add_to_mapping
-
-
-def add_topic(kls: Type["FedmsgHandler"]):
-    if issubclass(kls, FedmsgHandler):
-        PROCESSED_FEDMSG_TOPICS.append(kls.topic)
-    return kls
 
 
 def get_packit_commands_from_comment(comment: str) -> List[str]:
@@ -394,8 +387,6 @@ class JobHandler(Handler):
 
 class FedmsgHandler(JobHandler):
     """Handlers for events from fedmsg"""
-
-    topic: str
 
     def __init__(
         self,
