@@ -225,7 +225,7 @@ def test_check_pending_copr_builds():
 
 def test_check_pending_testing_farm_runs_no_runs():
     flexmock(TFTTestRunModel).should_receive("get_all_by_status").with_args(
-        TestingFarmResult.running
+        TestingFarmResult.new, TestingFarmResult.queued, TestingFarmResult.running
     ).and_return([])
     # No request should be performed
     flexmock(requests).should_receive("get").never()
@@ -268,7 +268,7 @@ def test_check_pending_testing_farm_runs(created):
         .mock()
     )
     flexmock(TFTTestRunModel).should_receive("get_all_by_status").with_args(
-        TestingFarmResult.running
+        TestingFarmResult.new, TestingFarmResult.queued, TestingFarmResult.running
     ).and_return([run]).once()
     flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").with_args(
         pipeline_id=pipeline_id
@@ -295,14 +295,18 @@ def test_check_pending_testing_farm_runs(created):
     check_pending_testing_farm_runs()
 
 
-def test_check_pending_testing_farm_runs_timeout():
+@pytest.mark.parametrize(
+    "status",
+    [TestingFarmResult.new, TestingFarmResult.queued, TestingFarmResult.running],
+)
+def test_check_pending_testing_farm_runs_timeout(status):
     run = flexmock(
         pipeline_id=1,
-        status=TestingFarmResult.running,
+        status=status,
         submitted_time=datetime.datetime.utcnow() - datetime.timedelta(weeks=2),
     )
     run.should_receive("set_status").with_args(TestingFarmResult.error).once()
     flexmock(TFTTestRunModel).should_receive("get_all_by_status").with_args(
-        TestingFarmResult.running
+        TestingFarmResult.new, TestingFarmResult.queued, TestingFarmResult.running
     ).and_return([run]).once()
     check_pending_testing_farm_runs()

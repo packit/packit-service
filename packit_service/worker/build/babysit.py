@@ -34,7 +34,12 @@ def check_pending_testing_farm_runs() -> None:
     """Checks the status of pending TFT runs and updates it if needed."""
     logger.debug("Getting pending TFT runs from DB")
     current_time = datetime.datetime.utcnow()
-    pending_test_runs = TFTTestRunModel.get_all_by_status(TestingFarmResult.running)
+    not_completed = (
+        TestingFarmResult.new,
+        TestingFarmResult.queued,
+        TestingFarmResult.running,
+    )
+    pending_test_runs = TFTTestRunModel.get_all_by_status(*not_completed)
     for run in pending_test_runs:
         logger.info(f"Checking status of pipeline with id {run.pipeline_id}")
         # .submitted_time can be None, we'll set it later
@@ -58,13 +63,8 @@ def check_pending_testing_farm_runs() -> None:
             )
             run.set_status(TestingFarmResult.error)
             continue
-        details = response.json()
-        status = TestingFarmResult(details.get("state"))
-        logger.info(f"The status is {status}")
-        if status == TestingFarmResult.running:
-            logger.info(f"Pipeline {run.pipeline_id} is still running")
-            continue
 
+        details = response.json()
         (
             project_url,
             ref,
@@ -76,6 +76,13 @@ def check_pending_testing_farm_runs() -> None:
             log_url,
             created,
         ) = Parser.parse_data_from_testing_farm(run, details)
+
+        logger.info(
+            f"Result for the testing farm pipeline {run.pipeline_id} is {result}."
+        )
+        if result in not_completed:
+            logger.info("Skip updating a pipeline which is not yet completed.")
+            continue
 
         event = TestingFarmResultsEvent(
             pipeline_id=details["id"],
