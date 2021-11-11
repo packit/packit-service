@@ -764,3 +764,12 @@ def test_merged_runs(clean_before_and_after, few_runs):
             assert copr_build.get_srpm_build().id == srpm_build_id
 
         assert len(merged_run.test_run_id) == 2 * i
+
+
+def test_merged_chroots_on_tests_without_build(
+    clean_before_and_after, runs_without_build
+):
+    result = RunModel.get_merged_chroots(0, 10)
+    assert len(result) == 2
+    for item in result:
+        assert len(item.test_run_id[0]) == 1

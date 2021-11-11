@@ -3,7 +3,7 @@
 
 from flask import url_for
 
-from packit_service.models import TestingFarmResult, RunModel, optional_timestamp
+from packit_service.models import TestingFarmResult, RunModel
 from packit_service.service.api.runs import process_runs
 from tests_requre.conftest import SampleValues
 
@@ -428,12 +428,11 @@ def test_meta(client, clean_before_and_after, a_copr_build_for_pr):
     assert response.headers["Access-Control-Allow-Origin"] == "*"
 
 
-def test_process_run_without_build(clean_before_and_after, run_without_build):
-    merged_run = RunModel.get_merged_run(run_without_build.id)
-    result = process_runs([merged_run])[0]
-    assert not result["srpm"]
-    assert result["time_submitted"] == optional_timestamp(
-        run_without_build.test_run.submitted_time
-    )
-    assert len(result["test_run"]) == 1
-    assert result["trigger"]
+def test_process_runs_without_build(clean_before_and_after, runs_without_build):
+    merged_runs = RunModel.get_merged_chroots(0, 10)
+    result = process_runs(merged_runs)
+    for item in result:
+        assert not item["srpm"]
+        assert item["time_submitted"]
+        assert len(item["test_run"]) == 1
+        assert item["trigger"]
