@@ -10,7 +10,7 @@ from logging import getLogger
 from typing import Dict, Optional, Union, Set, List
 
 from ogr.abstract import GitProject, Comment
-from ogr.services.pagure import PagureProject
+from ogr.parsing import RepoUrl
 from packit.config import PackageConfig
 
 from packit_service.config import PackageConfigGetter, ServiceConfig
@@ -349,11 +349,14 @@ class AbstractForgeIndependentEvent(Event):
         )
 
         spec_path = None
-        if isinstance(self.base_project, PagureProject):
+        if self.project_url and RepoUrl.parse(self.project_url).hostname in [
+            "git.centos.org",
+            "git.stg.centos.org",
+        ]:
             spec_path = f"SPECS/{self.project.repo}.spec"
             logger.debug(
-                f"Getting package_config from Pagure. "
-                f"(Spec-file is expected to be in {spec_path})"
+                f"Getting package_config from CentOS dist-git. "
+                f"(Spec-file is expected to be in {spec_path}.)"
             )
         package_config = PackageConfigGetter.get_package_config_from_repo(
             base_project=self.base_project,

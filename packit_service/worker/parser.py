@@ -92,6 +92,7 @@ class Parser:
             IssueCommentGitlabEvent,
             PushGitlabEvent,
             PipelineGitlabEvent,
+            PushPagureEvent,
             CheckRerunCommitEvent,
             CheckRerunPullRequestEvent,
             CheckRerunReleaseEvent,
@@ -114,10 +115,11 @@ class Parser:
                 Parser.parse_pull_request_comment_event,
                 Parser.parse_issue_comment_event,
                 Parser.parse_release_event,
-                Parser.parse_push_event,
+                Parser.parse_github_push_event,
                 Parser.parse_check_rerun_event,
                 Parser.parse_installation_event,
-                Parser.parse_distgit_commit_event,
+                Parser.parse_push_pagure_event,
+                Parser.parse_distgit_commit_event_for_project_sync,
                 Parser.parse_testing_farm_results_event,
                 Parser.parse_copr_event,
                 Parser.parse_mr_event,
@@ -339,7 +341,7 @@ class Parser:
         )
 
     @staticmethod
-    def parse_push_event(event) -> Optional[PushGitHubEvent]:
+    def parse_github_push_event(event) -> Optional[PushGitHubEvent]:
         """
         Look into the provided event and see if it's one for a new push to the github branch.
         """
@@ -829,8 +831,53 @@ class Parser:
         return ReleaseEvent(repo_namespace, repo_name, release_ref, https_url)
 
     @staticmethod
-    def parse_distgit_commit_event(event) -> Optional[DistGitCommitEvent]:
+    def parse_push_pagure_event(event) -> Optional[PushPagureEvent]:
         """this corresponds to dist-git event when someone pushes new commits"""
+        topic = event.get("topic")
+        if topic != "org.fedoraproject.prod.git.receive":
+            return None
+
+        logger.info(f"Dist-git commit event, topic: {topic}")
+
+        dg_repo_namespace = nested_get(event, "commit", "namespace")
+        dg_repo_name = nested_get(event, "commit", "repo")
+
+        if not (dg_repo_namespace and dg_repo_name):
+            logger.warning("No full name of the repository.")
+            return None
+
+        dg_branch = nested_get(event, "commit", "branch")
+        dg_commit = nested_get(event, "commit", "rev")
+        if not (dg_branch and dg_commit):
+            logger.warning("Target branch/rev for the new commits is not set.")
+            return None
+
+        logger.info(
+            f"New commits added to dist-git repo {dg_repo_namespace}/{dg_repo_name},"
+            f"rev: {dg_commit}, branch: {dg_branch}"
+        )
+
+        dg_base_url = getenv("DISTGIT_URL", PROD_DISTGIT_URL)
+        dg_project_url = f"{dg_base_url}{dg_repo_namespace}/{dg_repo_name}"
+
+        return PushPagureEvent(
+            repo_namespace=dg_repo_namespace,
+            repo_name=dg_repo_name,
+            git_ref=dg_branch,
+            project_url=dg_project_url,
+            commit_sha=dg_commit,
+        )
+
+    @staticmethod
+    def parse_distgit_commit_event_for_project_sync(
+        event,
+    ) -> Optional[DistGitCommitEvent]:
+        """
+        This corresponds to dist-git event when someone pushes new commits
+        and filter out not configured projects.
+
+        TODO: Do the filtering in handler and use `parse_pagure_push_event` instead.
+        """
         topic = event.get("topic")
         if topic != "org.fedoraproject.prod.git.receive":
             return None

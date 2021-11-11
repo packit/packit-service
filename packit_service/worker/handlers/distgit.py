@@ -10,6 +10,8 @@ from os import getenv
 
 import shutil
 from celery import Task
+from packit.exceptions import PackitException
+
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobType
 from packit.config.aliases import get_branches
@@ -19,12 +21,14 @@ from packit.utils.repo import RepositoryCache
 
 from packit_service import sentry_integration
 from packit_service.constants import (
+    CONTACTS_URL,
     DEFAULT_RETRY_LIMIT,
     FILE_DOWNLOAD_FAILURE,
     MSG_RETRIGGER,
 )
 from packit_service.worker.events import (
     DistGitCommitEvent,
+    PushPagureEvent,
     ReleaseEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
@@ -219,4 +223,75 @@ class ProposeDownstreamHandler(JobHandler):
                 details={"msg": "Propose downstream failed.", "errors": errors},
             )
 
+        return TaskResults(success=True, details={})
+
+
+@configured_as(job_type=JobType.koji_build)
+@reacts_to(event=PushPagureEvent)
+class DownstreamKojiBuildHandler(JobHandler):
+    """
+    This handler can submit a build in Koji from a dist-git.
+    """
+
+    task_name = TaskName.downstream_koji_build
+
+    def __init__(
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        event: dict,
+    ):
+        super().__init__(
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
+        )
+        self.dg_branch = event.get("git_ref")
+
+    def pre_check(self) -> bool:
+        if self.data.event_type in (PushPagureEvent.__name__,):
+            if self.data.git_ref != (
+                configured_branch := self.job_config.metadata.branch or "main"
+            ):
+                logger.info(
+                    f"Skipping build on '{self.data.git_ref}'. "
+                    f"Koji build configured only for '{configured_branch}'."
+                )
+                return False
+        return True
+
+    def run(self) -> TaskResults:
+        self.local_project = LocalProject(
+            git_project=self.project,
+            working_dir=self.service_config.command_handler_work_dir,
+            cache=RepositoryCache(
+                cache_path=self.service_config.repository_cache,
+                add_new=self.service_config.add_repositories_to_repository_cache,
+            )
+            if self.service_config.repository_cache
+            else None,
+        )
+        packit_api = PackitAPI(
+            self.service_config,
+            self.job_config,
+            downstream_local_project=self.local_project,
+            stage=self.service_config.use_stage(),
+        )
+        try:
+            packit_api.build(
+                dist_git_branch=self.dg_branch,
+                scratch=self.job_config.metadata.scratch,
+                nowait=True,
+                from_upstream=False,
+            )
+        except PackitException as ex:
+            packit_api.downstream_local_project.git_project.commit_comment(
+                commit=packit_api.downstream_local_project.commit_hexsha,
+                body="Koji build failed:\n"
+                "```\n"
+                "{ex}\n"
+                "```\n\n"
+                f"*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
+            )
+            raise ex
         return TaskResults(success=True, details={})

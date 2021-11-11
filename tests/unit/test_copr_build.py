@@ -81,7 +81,7 @@ create_table_content = StatusReporterGithubChecks._create_table
 @pytest.fixture(scope="module")
 def branch_push_event() -> PushGitHubEvent:
     file_content = (DATA_DIR / "webhooks" / "github" / "push_branch.json").read_text()
-    return Parser.parse_push_event(json.loads(file_content))
+    return Parser.parse_github_push_event(json.loads(file_content))
 
 
 @pytest.fixture(scope="module")

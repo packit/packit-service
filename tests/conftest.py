@@ -235,7 +235,7 @@ def github_pr_event(github_pr_webhook) -> PullRequestGithubEvent:
 
 @pytest.fixture(scope="module")
 def github_push_event(github_push_webhook) -> PushGitHubEvent:
-    return Parser.parse_push_event(github_push_webhook)
+    return Parser.parse_github_push_event(github_push_webhook)
 
 
 @pytest.fixture(scope="module")

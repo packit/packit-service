@@ -32,6 +32,7 @@ from packit_service.worker.handlers import (
     TestingFarmHandler,
     TestingFarmResultsHandler,
 )
+from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import TaskResults
 
@@ -197,6 +198,18 @@ def run_sync_from_downstream_handler(
     event: dict, package_config: dict, job_config: dict
 ):
     handler = SyncFromDownstream(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(
+    name=TaskName.downstream_koji_build, base=HandlerTaskWithRetry, queue="long-running"
+)
+def run_downstream_koji_build(event: dict, package_config: dict, job_config: dict):
+    handler = DownstreamKojiBuildHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
