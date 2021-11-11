@@ -34,6 +34,8 @@ from sqlalchemy import (
     create_engine,
     desc,
     func,
+    null,
+    case,
 )
 from sqlalchemy.dialects.postgresql import array as psql_array
 from sqlalchemy.ext.declarative import declarative_base
@@ -766,7 +768,12 @@ class RunModel(Base):
         with get_sa_session() as session:
             return (
                 cls.__query_merged_runs(session)
-                .group_by(RunModel.srpm_build_id)
+                .group_by(
+                    RunModel.srpm_build_id,
+                    case(
+                        [(RunModel.srpm_build_id.isnot(null()), 0)], else_=RunModel.id
+                    ),
+                )
                 .order_by(desc("merged_id"))[first:last]
             )
 
@@ -776,7 +783,12 @@ class RunModel(Base):
             return (
                 cls.__query_merged_runs(session)
                 .filter(RunModel.id >= first_id, RunModel.id <= first_id + 100)
-                .group_by(RunModel.srpm_build_id)
+                .group_by(
+                    RunModel.srpm_build_id,
+                    case(
+                        [(RunModel.srpm_build_id.isnot(null()), 0)], else_=RunModel.id
+                    ),
+                )
                 .first()
             )
 
