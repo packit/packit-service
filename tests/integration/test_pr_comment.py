@@ -14,6 +14,7 @@ from ogr.utils import RequestResponse
 from ogr.services.github import GithubProject
 
 from packit.config import JobConfigTriggerType
+from packit.exceptions import PackitConfigException
 from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
@@ -994,3 +995,40 @@ def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event
         event=event_dict,
         job_config=job_config,
     )
+
+
+@pytest.mark.parametrize(
+    "comments",
+    [
+        "/packit build",
+        "Should be fixed now, let's\n /packit build\n it.",
+    ],
+)
+def test_trigger_packit_command_without_config(
+    pr_embedded_command_comment_event, comments
+):
+    flexmock(
+        GithubProject,
+        full_repo_name="namespace/repo",
+        # just throwing an exception
+        get_file_content=lambda path, ref: (_ for _ in ()).throw(FileNotFoundError),
+        get_files=lambda ref, filter_regex: ["specfile.spec"],
+        get_web_url=lambda: "https://github.com/namespace/repo",
+    )
+
+    pr_embedded_command_comment_event["comment"]["body"] = comments
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    err_msg = (
+        "Failed to load packit config file:\n```\n"
+        "No config file found in namespace/repo on ref '{reference}'\n```\n"
+        "For more info, please check out the documentation: "
+        "https://packit.dev/docs/packit-service or contact us - [Packit team]"
+        "(https://github.com/orgs/packit/teams/the-packit-team)"
+    )
+    flexmock(pr).should_receive("comment").with_args(err_msg)
+
+    with pytest.raises(PackitConfigException) as exc:
+        SteveJobs().process_message(pr_embedded_command_comment_event)
+        assert "No config file found in " in exc.value

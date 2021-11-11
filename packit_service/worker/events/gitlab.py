@@ -3,7 +3,7 @@
 from re import fullmatch
 from typing import Dict, Optional
 
-from ogr.abstract import GitProject, PRComment, IssueComment
+from ogr.abstract import GitProject, Comment
 
 from packit_service.config import ServiceConfig
 from packit_service.models import AbstractTriggerDbType, PullRequestModel
@@ -13,15 +13,14 @@ from packit_service.service.db_triggers import (
     AddBranchPushDbTrigger,
 )
 from packit_service.worker.events.enums import GitlabEventAction
-from packit_service.worker.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.events.event import (
+    AbstractForgeIndependentEvent,
+    AbstractCommentEvent,
+)
 
 
 class AbstractGitlabEvent(AbstractForgeIndependentEvent):
-    def __init__(
-        self,
-        project_url: str,
-        pr_id: Optional[int] = None,
-    ):
+    def __init__(self, project_url: str, pr_id: Optional[int] = None, **kwargs):
         super().__init__(pr_id=pr_id)
         self.project_url: str = project_url
         self.git_ref: Optional[str] = None
@@ -100,7 +99,9 @@ class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
         )
 
 
-class MergeRequestCommentGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
+class MergeRequestCommentGitlabEvent(
+    AddPullRequestDbTrigger, AbstractCommentEvent, AbstractGitlabEvent
+):
     def __init__(
         self,
         action: GitlabEventAction,
@@ -115,11 +116,13 @@ class MergeRequestCommentGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEven
         comment: str,
         commit_sha: str,
         comment_id: int,
-        comment_object: Optional[PRComment] = None,
+        comment_object: Optional[Comment] = None,
     ):
         super().__init__(
             project_url=project_url,
             pr_id=object_iid,
+            comment=comment,
+            comment_object=comment_object,
         )
         self.action = action
         self.object_id = object_id
@@ -151,7 +154,7 @@ class MergeRequestCommentGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEven
         )
 
     @property
-    def comment_object(self) -> Optional[PRComment]:
+    def comment_object(self) -> Optional[Comment]:
         if not self._comment_object:
             self._comment_object = self.project.get_pr(self.object_id).get_comment(
                 self.comment_id
@@ -159,7 +162,9 @@ class MergeRequestCommentGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEven
         return self._comment_object
 
 
-class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
+class IssueCommentGitlabEvent(
+    AddIssueDbTrigger, AbstractCommentEvent, AbstractGitlabEvent
+):
     def __init__(
         self,
         action: GitlabEventAction,
@@ -170,9 +175,11 @@ class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
         username: str,
         comment: str,
         comment_id: int,
-        comment_object: Optional[IssueComment] = None,
+        comment_object: Optional[Comment] = None,
     ):
-        super().__init__(project_url=project_url)
+        super().__init__(
+            project_url=project_url, comment=comment, comment_object=comment_object
+        )
         self.action = action
         self.issue_id = issue_id
         self.repo_namespace = repo_namespace
@@ -207,7 +214,7 @@ class IssueCommentGitlabEvent(AddIssueDbTrigger, AbstractGitlabEvent):
         return result
 
     @property
-    def comment_object(self) -> Optional[IssueComment]:
+    def comment_object(self) -> Optional[Comment]:
         if not self._comment_object:
             self._comment_object = self.project.get_issue(self.issue_id).get_comment(
                 self.comment_id

@@ -3,7 +3,7 @@
 
 from typing import Dict, Optional, Union, List, Set
 
-from ogr.abstract import GitProject, PRComment, IssueComment
+from ogr.abstract import GitProject, Comment
 
 from packit_service.models import (
     AllowlistStatus,
@@ -17,6 +17,7 @@ from packit_service.service.db_triggers import (
     AddBranchPushDbTrigger,
     AddReleaseDbTrigger,
 )
+from packit_service.worker.events.event import AbstractCommentEvent
 from packit_service.worker.events.enums import (
     IssueCommentAction,
     PullRequestCommentAction,
@@ -29,7 +30,7 @@ from packit_service.worker.events.event import (
 
 
 class AbstractGithubEvent(AbstractForgeIndependentEvent):
-    def __init__(self, project_url: str, pr_id: Optional[int] = None):
+    def __init__(self, project_url: str, pr_id: Optional[int] = None, **kwargs):
         super().__init__(pr_id=pr_id)
         self.project_url: str = project_url
         self.git_ref: Optional[str] = None  # git ref that can be 'git checkout'-ed
@@ -115,7 +116,9 @@ class PullRequestGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         return None  # With Github app, we cannot work with fork repo
 
 
-class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
+class PullRequestCommentGithubEvent(
+    AddPullRequestDbTrigger, AbstractCommentEvent, AbstractGithubEvent
+):
     def __init__(
         self,
         action: PullRequestCommentAction,
@@ -130,9 +133,14 @@ class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent
         comment: str,
         comment_id: int,
         commit_sha: Optional[str] = None,
-        comment_object: Optional[PRComment] = None,
+        comment_object: Optional[Comment] = None,
     ):
-        super().__init__(project_url=project_url, pr_id=pr_id)
+        super().__init__(
+            project_url=project_url,
+            pr_id=pr_id,
+            comment=comment,
+            comment_object=comment_object,
+        )
         self.action = action
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
@@ -167,7 +175,7 @@ class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent
         return None  # With Github app, we cannot work with fork repo
 
     @property
-    def comment_object(self) -> Optional[PRComment]:
+    def comment_object(self) -> Optional[Comment]:
         if not self._comment_object:
             self._comment_object = self.project.get_pr(self.pr_id).get_comment(
                 self.comment_id
@@ -175,7 +183,7 @@ class PullRequestCommentGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent
         return self._comment_object
 
 
-class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
+class IssueCommentEvent(AddIssueDbTrigger, AbstractCommentEvent, AbstractGithubEvent):
     def __init__(
         self,
         action: IssueCommentAction,
@@ -191,9 +199,11 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
         base_ref: Optional[
             str
         ] = "master",  # default is master when working with issues
-        comment_object: Optional[IssueComment] = None,
+        comment_object: Optional[Comment] = None,
     ):
-        super().__init__(project_url=project_url)
+        super().__init__(
+            project_url=project_url, comment=comment, comment_object=comment_object
+        )
         self.action = action
         self.issue_id = issue_id
         self.repo_namespace = repo_namespace
@@ -230,7 +240,7 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractGithubEvent):
         return result
 
     @property
-    def comment_object(self) -> Optional[IssueComment]:
+    def comment_object(self) -> Optional[Comment]:
         if not self._comment_object:
             self._comment_object = self.project.get_issue(self.issue_id).get_comment(
                 self.comment_id
