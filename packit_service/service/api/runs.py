@@ -15,7 +15,10 @@ from packit_service.models import (
     optional_timestamp,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
-from packit_service.service.api.utils import get_project_info_from_build, response_maker
+from packit_service.service.api.utils import (
+    get_project_info_from_build,
+    response_maker,
+)
 
 logger = getLogger("packit_service")
 
@@ -36,19 +39,24 @@ def process_runs(runs):
     result = []
 
     for pipeline in runs:
-        srpm_build = SRPMBuildModel.get_by_id(pipeline.srpm_build_id)
         response_dict = {
             "merged_run_id": pipeline.merged_id,
-            "time_submitted": optional_timestamp(srpm_build.build_submitted_time),
-            "trigger": get_project_info_from_build(srpm_build),
-            "srpm": {
-                "packit_id": srpm_build.id,
-                "success": srpm_build.success,
-            },
+            "srpm": None,
             "copr": [],
             "koji": [],
             "test_run": [],
         }
+
+        srpm_build = SRPMBuildModel.get_by_id(pipeline.srpm_build_id)
+        if srpm_build:
+            response_dict["srpm"] = {
+                "packit_id": srpm_build.id,
+                "success": srpm_build.success,
+            }
+            response_dict["time_submitted"] = optional_timestamp(
+                srpm_build.build_submitted_time
+            )
+            response_dict["trigger"] = get_project_info_from_build(srpm_build)
 
         for model_type, Model, packit_ids in (
             ("copr", CoprBuildModel, pipeline.copr_build_id),
@@ -64,6 +72,14 @@ def process_runs(runs):
                         "status": row.status,
                     }
                 )
+                if "trigger" not in response_dict:
+                    submitted_time = (
+                        row.submitted_time
+                        if isinstance(row, TFTTestRunModel)
+                        else row.build_submitted_time
+                    )
+                    response_dict["time_submitted"] = optional_timestamp(submitted_time)
+                    response_dict["trigger"] = get_project_info_from_build(row)
 
         result.append(response_dict)
 
