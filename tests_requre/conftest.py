@@ -1675,10 +1675,14 @@ def few_runs(pr_model, different_pr_model):
 
 
 @pytest.fixture()
-def run_without_build(pr_model):
+def runs_without_build(pr_model, branch_model):
     run_model_for_pr_only_test = RunModel.create(
         type=pr_model.job_trigger_model_type, trigger_id=pr_model.id
     )
+    run_model_for_branch_only_test = RunModel.create(
+        type=branch_model.job_trigger_model_type, trigger_id=branch_model.id
+    )
+
     TFTTestRunModel.create(
         pipeline_id=SampleValues.pipeline_id,
         commit_sha=SampleValues.commit_sha,
@@ -1686,8 +1690,16 @@ def run_without_build(pr_model):
         target=SampleValues.target,
         status=TestingFarmResult.new,
         run_model=run_model_for_pr_only_test,
+    ),
+    TFTTestRunModel.create(
+        pipeline_id=SampleValues.pipeline_id,
+        commit_sha=SampleValues.commit_sha,
+        web_url=SampleValues.testing_farm_url,
+        target=SampleValues.target,
+        status=TestingFarmResult.new,
+        run_model=run_model_for_branch_only_test,
     )
-    yield run_model_for_pr_only_test
+    yield [run_model_for_pr_only_test, run_model_for_branch_only_test]
 
 
 @pytest.fixture()
