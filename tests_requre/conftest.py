@@ -1711,7 +1711,7 @@ def check_rerun_event_dict_commit():
         "action": "rerequested",
         "check_run": {
             "id": 3659360488,
-            "name": "packit-stg/testing-farm-fedora-rawhide-x86_64",
+            "name": "testing-farm:fedora-rawhide-x86_64",
             "node_id": "CR_kwDOCwFO9M7aHWjo",
             "head_sha": "0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd",
             "external_id": "123456",

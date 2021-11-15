@@ -661,10 +661,18 @@ class Parser:
             return None
 
         check_name_job, check_name_target = None, None
-        # e.g. packit/rpm-build-fedora-34-x86_64
-        check_name_split = check_name.split("/", maxsplit=2)
-        if len(check_name_split) == 2:
-            check_name_job_info = check_name_split[1]
+        if ":" in check_name:
+            # e.g. "rpm-build:fedora-34-x86_64"
+            check_name_job, _, check_name_target = check_name.partition(":")
+            if check_name_job not in MAP_CHECK_PREFIX_TO_HANDLER:
+                logger.warning(
+                    f"{check_name_job} not in {list(MAP_CHECK_PREFIX_TO_HANDLER.keys())}"
+                )
+                check_name_job = None
+        elif "/" in check_name:
+            # for backward compatibility, e.g. packit/rpm-build-fedora-34-x86_64
+            # TODO: remove this (whole elif) after some time
+            _, _, check_name_job_info = check_name.partition("/")
             for job_name in MAP_CHECK_PREFIX_TO_HANDLER.keys():
                 if check_name_job_info.startswith(job_name):
                     check_name_job = job_name
@@ -672,6 +680,7 @@ class Parser:
                     check_name_target = check_name_job_info[
                         (len(job_name) + 1) :  # noqa
                     ]
+                    break
 
         if not (check_name_job and check_name_target):
             logger.warning(

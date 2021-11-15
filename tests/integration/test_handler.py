@@ -165,7 +165,7 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.neutral,
         description="Non-scratch builds not possible from upstream.",
-        check_name="packit-stg/production-build-bright-future",
+        check_name="production-build:bright-future",
         url=KOJI_PRODUCTION_BUILDS_ISSUE,
         links_to_external_services=None,
     ).and_return().once()

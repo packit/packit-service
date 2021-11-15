@@ -59,7 +59,7 @@ def check_rerun_event_copr_build():
     event = json.loads(
         (DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json").read_text()
     )
-    event["check_run"]["name"] = "packit-stg/rpm-build-fedora-rawhide-x86_64"
+    event["check_run"]["name"] = "rpm-build:fedora-rawhide-x86_64"
     return event
 
 
@@ -68,7 +68,7 @@ def check_rerun_event_koji_build():
     event = json.loads(
         (DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json").read_text()
     )
-    event["check_run"]["name"] = "packit-stg/production-build-f34"
+    event["check_run"]["name"] = "production-build:f34"
     return event
 
 
@@ -236,7 +236,7 @@ def test_check_rerun_pr_copr_build_handler(
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
         description=TASK_ACCEPTED,
-        check_name="packit-stg/rpm-build-fedora-rawhide-x86_64",
+        check_name="rpm-build:fedora-rawhide-x86_64",
         url="",
         links_to_external_services=None,
     ).once()
@@ -294,7 +294,7 @@ def test_check_rerun_pr_testing_farm_handler(
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
         description=TASK_ACCEPTED,
-        check_name="packit-stg/testing-farm-fedora-rawhide-x86_64",
+        check_name="testing-farm:fedora-rawhide-x86_64",
         url="",
         links_to_external_services=None,
     ).once()
@@ -347,7 +347,7 @@ def test_check_rerun_pr_koji_build_handler(
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
         description=TASK_ACCEPTED,
-        check_name="packit-stg/production-build-f34",
+        check_name="production-build:f34",
         url="",
         links_to_external_services=None,
     ).once()
@@ -401,7 +401,7 @@ def test_check_rerun_push_copr_build_handler(
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
         description=TASK_ACCEPTED,
-        check_name="packit-stg/rpm-build-fedora-rawhide-x86_64",
+        check_name="rpm-build:fedora-rawhide-x86_64",
         url="",
         links_to_external_services=None,
     ).once()
@@ -459,7 +459,7 @@ def test_check_rerun_push_testing_farm_handler(
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
         description=TASK_ACCEPTED,
-        check_name="packit-stg/testing-farm-fedora-rawhide-x86_64",
+        check_name="testing-farm:fedora-rawhide-x86_64",
         url="",
         links_to_external_services=None,
     ).once()
@@ -512,7 +512,7 @@ def test_check_rerun_push_koji_build_handler(
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
         description=TASK_ACCEPTED,
-        check_name="packit-stg/production-build-f34",
+        check_name="production-build:f34",
         url="",
         links_to_external_services=None,
     ).once()
@@ -566,7 +566,7 @@ def test_check_rerun_release_copr_build_handler(
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
         description=TASK_ACCEPTED,
-        check_name="packit-stg/rpm-build-fedora-rawhide-x86_64",
+        check_name="rpm-build:fedora-rawhide-x86_64",
         url="",
         links_to_external_services=None,
     ).once()
@@ -620,7 +620,7 @@ def test_check_rerun_release_koji_build_handler(
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
         description=TASK_ACCEPTED,
-        check_name="packit-stg/production-build-f34",
+        check_name="production-build:f34",
         url="",
         links_to_external_services=None,
     ).once()
