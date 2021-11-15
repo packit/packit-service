@@ -58,7 +58,6 @@ def mock_comment(request):
         .with_args(author)
         .and_return(True)
     )
-    flexmock(project_class).should_receive("issue_comment").and_return(None)
     issue = flexmock()
     flexmock(project_class).should_receive("get_issue").and_return(issue)
     comment = flexmock()
