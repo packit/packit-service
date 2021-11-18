@@ -1010,6 +1010,7 @@ def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event
     [
         "/packit build",
         "Should be fixed now, let's\n /packit build\n it.",
+        "/packit test",
     ],
 )
 def test_trigger_packit_command_without_config(
@@ -1030,7 +1031,7 @@ def test_trigger_packit_command_without_config(
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     err_msg = (
         "Failed to load packit config file:\n```\n"
-        "No config file found in namespace/repo on ref '{reference}'\n```\n"
+        "No config file found in namespace/repo on ref '12345'\n```\n"
         "For more info, please check out the documentation: "
         "https://packit.dev/docs/packit-service or contact us - [Packit team]"
         "(https://github.com/orgs/packit/teams/the-packit-team)"
