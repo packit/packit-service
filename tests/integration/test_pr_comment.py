@@ -835,6 +835,14 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
                         "trigger": "commit",
                     }
                 },
+                "variables": {
+                    "PACKIT_FULL_REPO_NAME": "packit-service/hello-world",
+                    "PACKIT_UPSTREAM_NAME": "hello-world",
+                    "PACKIT_DOWNSTREAM_NAME": "hello-world",
+                    "PACKIT_DOWNSTREAM_URL": "https://src.fedoraproject.org/rpms/hello-world.git",
+                    "PACKIT_PACKAGE_NAME": "hello-world",
+                    "PACKIT_COMMIT_SHA": "12345",
+                },
             }
         ],
         "notification": {

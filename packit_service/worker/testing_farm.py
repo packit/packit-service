@@ -126,9 +126,13 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return artifact
 
     def _payload(
-        self, chroot: str, artifact: Optional[Dict[str, Union[List[str], str]]] = None
+        self,
+        chroot: str,
+        artifact: Optional[Dict[str, Union[List[str], str]]] = None,
+        build_id: Optional[int] = None,
     ) -> dict:
-        """
+        """Prepare a Testing Farm request payload.
+
         Testing Farm API: https://testing-farm.gitlab.io/api/
 
         Currently we use the same secret to authenticate both,
@@ -136,6 +140,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         and testing farm (when sending notification to packit service's webhook).
         We might later use a different secret for those use cases.
 
+        Args:
+            chroot: Target TF chroot.
+            build_id: ID of the related copr build.
+            artifact: Optional artifacts, e.g. list of package NEVRAs
         """
         distro, arch = self.chroot2distro_arch(chroot)
         compose = self.distro2compose(distro, arch)
@@ -143,10 +151,43 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if self.fmf_ref:
             fmf["ref"] = self.fmf_ref
 
+        if build_id is not None:
+            copr_build = CoprBuildModel.get_by_build_id(build_id)
+            build_log_url = copr_build.build_logs_url
+            srpm_build = copr_build.get_srpm_build()
+            srpm_url = srpm_build.url
+            nvr_data = copr_build.built_packages[0]
+            nvr = f"{nvr_data['name']}-{nvr_data['version']}-{nvr_data['release']}"
+        else:
+            build_log_url = nvr = srpm_url = None
+
+        predefined_environment = {
+            "PACKIT_FULL_REPO_NAME": self.project.full_repo_name,
+            "PACKIT_UPSTREAM_NAME": self.job_config.upstream_package_name,
+            "PACKIT_UPSTREAM_URL": self.job_config.upstream_project_url,
+            "PACKIT_DOWNSTREAM_NAME": self.job_config.downstream_package_name,
+            "PACKIT_DOWNSTREAM_URL": self.job_config.downstream_project_url
+            if self.job_config.downstream_package_name
+            else None,
+            "PACKIT_PACKAGE_NAME": self.job_config.downstream_package_name,
+            "PACKIT_PACKAGE_NVR": nvr,
+            "PACKIT_BUILD_LOG_URL": build_log_url,
+            "PACKIT_SRPM_URL": srpm_url,
+            "PACKIT_COMMIT_SHA": self.metadata.commit_sha,
+        }
+        predefined_environment = {
+            k: v for k, v in predefined_environment.items() if v is not None
+        }
+        # User-defined variables have priority
+        metadata = self.job_config.metadata
+        env_variables = metadata.env if hasattr(metadata, "env") else {}
+        predefined_environment.update(env_variables)
+
         environment: Dict[str, Any] = {
             "arch": arch,
             "os": {"compose": compose},
             "tmt": {"context": {"distro": distro, "arch": arch, "trigger": "commit"}},
+            "variables": predefined_environment,
         }
         if artifact:
             environment["artifacts"] = [artifact]
@@ -371,7 +412,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 if not self.skip_build
                 else None
             )
-            payload = self._payload(chroot, artifact)
+            payload = self._payload(
+                chroot, artifact, int(build.build_id) if build else None
+            )
         elif not self.is_fmf_configured() and not self.skip_build:
             payload = self._payload_install_test(int(build.build_id), chroot)
         else:
