@@ -303,7 +303,7 @@ class PackageConfigGetter:
             if not package_config and fail_when_missing:
                 raise PackitConfigException(
                     f"No config file found in {project_to_search_in.full_repo_name} "
-                    "on ref '{reference}'"
+                    f"on ref '{reference}'"
                 )
         except PackitConfigException as ex:
             message = (
