@@ -936,7 +936,7 @@ class Parser:
                 copr_build_id = artifact["id"].split(":")[0]
                 copr_chroot = artifact["id"].split(":")[1]
             else:
-                logger.error(f"{a_type} != fedora-copr-build")
+                logger.debug(f"{a_type} != fedora-copr-build")
                 copr_build_id = copr_chroot = ""
 
         if not copr_chroot and tft_test_run:
