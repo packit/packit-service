@@ -18,7 +18,7 @@ from packit_service.models import TFTTestRunModel
 from packit_service.worker.events import (
     TestingFarmResultsEvent as TFResultsEvent,
 )
-from packit_service.models import JobTriggerModel, JobTriggerModelType, CoprBuildModel
+from packit_service.models import JobTriggerModel, JobTriggerModelType
 from packit_service.models import TestingFarmResult as TFResult
 
 from packit_service.worker.build import copr_build as cb
@@ -531,11 +531,8 @@ def test_payload(
         build_logs_url=log_url,
     )
     copr_build.should_receive("get_srpm_build").and_return(flexmock(url=srpm_url))
-    flexmock(CoprBuildModel).should_receive("get_by_build_id").with_args(
-        build_id
-    ).and_return(copr_build)
 
-    payload = job_helper._payload(chroot, artifact, build_id)
+    payload = job_helper._payload(chroot, artifact, copr_build)
 
     assert payload["api_key"] == token_to_use
     assert payload["test"]["fmf"] == {
@@ -667,11 +664,8 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
         build_logs_url=log_url,
     )
     copr_build.should_receive("get_srpm_build").and_return(flexmock(url=srpm_url))
-    flexmock(CoprBuildModel).should_receive("get_by_build_id").with_args(
-        build_id
-    ).and_return(copr_build)
 
-    payload = job_helper._payload(chroot, build_id=build_id)
+    payload = job_helper._payload(chroot, build=copr_build)
     assert payload.get("test")
     assert payload["test"].get("fmf")
     assert payload["test"]["fmf"].get("url") == result_url

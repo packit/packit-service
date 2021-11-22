@@ -129,7 +129,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self,
         chroot: str,
         artifact: Optional[Dict[str, Union[List[str], str]]] = None,
-        build_id: Optional[int] = None,
+        build: Optional["CoprBuildModel"] = None,
     ) -> dict:
         """Prepare a Testing Farm request payload.
 
@@ -142,8 +142,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         Args:
             chroot: Target TF chroot.
-            build_id: ID of the related copr build.
             artifact: Optional artifacts, e.g. list of package NEVRAs
+            build: The related copr build.
         """
         distro, arch = self.chroot2distro_arch(chroot)
         compose = self.distro2compose(distro, arch)
@@ -151,13 +151,15 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if self.fmf_ref:
             fmf["ref"] = self.fmf_ref
 
-        if build_id is not None:
-            copr_build = CoprBuildModel.get_by_build_id(build_id)
-            build_log_url = copr_build.build_logs_url
-            srpm_build = copr_build.get_srpm_build()
+        if build is not None:
+            build_log_url = build.build_logs_url
+            srpm_build = build.get_srpm_build()
             srpm_url = srpm_build.url
-            nvr_data = copr_build.built_packages[0]
-            nvr = f"{nvr_data['name']}-{nvr_data['version']}-{nvr_data['release']}"
+            if build.built_packages:
+                nvr_data = build.built_packages[0]
+                nvr = f"{nvr_data['name']}-{nvr_data['version']}-{nvr_data['release']}"
+            else:
+                nvr = None
         else:
             build_log_url = nvr = srpm_url = None
 
@@ -412,9 +414,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 if not self.skip_build
                 else None
             )
-            payload = self._payload(
-                chroot, artifact, int(build.build_id) if build else None
-            )
+            payload = self._payload(chroot, artifact, build)
         elif not self.is_fmf_configured() and not self.skip_build:
             payload = self._payload_install_test(int(build.build_id), chroot)
         else:
