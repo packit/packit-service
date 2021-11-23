@@ -12,7 +12,6 @@
 from packit_service.worker.handlers.abstract import (
     Handler,
     JobHandler,
-    FedmsgHandler,
 )
 from packit_service.worker.handlers.bugzilla import (
     BugzillaHandler,
@@ -41,7 +40,6 @@ from packit_service.worker.handlers.testing_farm import (
 __all__ = [
     Handler.__name__,
     JobHandler.__name__,
-    FedmsgHandler.__name__,
     BugzillaHandler.__name__,
     CoprBuildHandler.__name__,
     CoprBuildEndHandler.__name__,

@@ -30,7 +30,6 @@ from packit_service.models import (
 from packit_service.worker.events import (
     AbstractCoprBuildEvent,
     KojiBuildEvent,
-    DistGitCommitEvent,
     CoprBuildStartEvent,
     CoprBuildEndEvent,
     PullRequestPagureEvent,
@@ -80,7 +79,6 @@ class Parser:
             PullRequestGithubEvent,
             InstallationEvent,
             ReleaseEvent,
-            DistGitCommitEvent,
             TestingFarmResultsEvent,
             PullRequestCommentGithubEvent,
             IssueCommentEvent,
@@ -119,7 +117,6 @@ class Parser:
                 Parser.parse_check_rerun_event,
                 Parser.parse_installation_event,
                 Parser.parse_push_pagure_event,
-                Parser.parse_distgit_commit_event_for_project_sync,
                 Parser.parse_testing_farm_results_event,
                 Parser.parse_copr_event,
                 Parser.parse_mr_event,
@@ -866,68 +863,6 @@ class Parser:
             git_ref=dg_branch,
             project_url=dg_project_url,
             commit_sha=dg_commit,
-        )
-
-    @staticmethod
-    def parse_distgit_commit_event_for_project_sync(
-        event,
-    ) -> Optional[DistGitCommitEvent]:
-        """
-        This corresponds to dist-git event when someone pushes new commits
-        and filter out not configured projects.
-
-        TODO: Do the filtering in handler and use `parse_pagure_push_event` instead.
-        """
-        topic = event.get("topic")
-        if topic != "org.fedoraproject.prod.git.receive":
-            return None
-
-        logger.info(f"Dist-git commit event, topic: {topic}")
-
-        dg_repo_namespace = nested_get(event, "commit", "namespace")
-        dg_repo_name = nested_get(event, "commit", "repo")
-
-        if not (dg_repo_namespace and dg_repo_name):
-            logger.warning("No full name of the repository.")
-            return None
-
-        dg_branch = nested_get(event, "commit", "branch")
-        dg_rev = nested_get(event, "commit", "rev")
-        if not (dg_branch and dg_rev):
-            logger.warning("Target branch/rev for the new commits is not set.")
-            return None
-
-        logger.info(
-            f"New commits added to dist-git repo {dg_repo_namespace}/{dg_repo_name},"
-            f"rev: {dg_rev}, branch: {dg_branch}"
-        )
-
-        project_to_sync = ServiceConfig.get_service_config().get_project_to_sync(
-            dg_repo_name, dg_branch
-        )
-        if not project_to_sync:
-            logger.info("No matching upstream repo for syncing found.")
-            return None
-
-        upstream_project_url = (
-            f"{project_to_sync.forge}/{project_to_sync.repo_namespace}/"
-            f"{project_to_sync.repo_name}"
-        )
-
-        dg_base_url = getenv("DISTGIT_URL", PROD_DISTGIT_URL)
-        dg_project_url = f"{dg_base_url}{dg_repo_namespace}/{dg_repo_name}"
-
-        return DistGitCommitEvent(
-            topic=topic,
-            repo_namespace=project_to_sync.repo_namespace,
-            repo_name=project_to_sync.repo_name,
-            branch=project_to_sync.branch,
-            project_url=upstream_project_url,
-            dg_repo_namespace=dg_repo_namespace,
-            dg_repo_name=dg_repo_name,
-            dg_branch=dg_branch,
-            dg_rev=dg_rev,
-            dg_project_url=dg_project_url,
         )
 
     @staticmethod

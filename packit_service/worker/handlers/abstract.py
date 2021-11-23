@@ -386,23 +386,3 @@ class JobHandler(Handler):
 
     def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")
-
-
-class FedmsgHandler(JobHandler):
-    """Handlers for events from fedmsg"""
-
-    def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        event: dict,
-    ):
-        super().__init__(
-            package_config=package_config,
-            job_config=job_config,
-            event=event,
-        )
-        self._pagure_service = None
-
-    def run(self) -> TaskResults:
-        raise NotImplementedError("This should have been implemented.")

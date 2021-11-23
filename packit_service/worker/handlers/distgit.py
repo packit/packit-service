@@ -9,6 +9,8 @@ import logging
 from os import getenv
 
 import shutil
+from typing import Optional
+
 from celery import Task
 from packit.exceptions import PackitException
 
@@ -20,6 +22,7 @@ from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 
 from packit_service import sentry_integration
+from packit_service.config import ProjectToSync
 from packit_service.constants import (
     CONTACTS_URL,
     DEFAULT_RETRY_LIMIT,
@@ -27,7 +30,6 @@ from packit_service.constants import (
     MSG_RETRIGGER,
 )
 from packit_service.worker.events import (
-    DistGitCommitEvent,
     PushPagureEvent,
     ReleaseEvent,
     IssueCommentEvent,
@@ -38,7 +40,6 @@ from packit_service.worker.handlers.abstract import (
     TaskName,
     configured_as,
     reacts_to,
-    FedmsgHandler,
     run_for_comment,
 )
 from packit_service.worker.result import TaskResults
@@ -47,8 +48,8 @@ logger = logging.getLogger(__name__)
 
 
 @configured_as(job_type=JobType.sync_from_downstream)
-@reacts_to(event=DistGitCommitEvent)
-class SyncFromDownstream(FedmsgHandler):
+@reacts_to(event=PushPagureEvent)
+class SyncFromDownstream(JobHandler):
     """Sync new specfile changes to upstream after a new git push in the dist-git."""
 
     task_name = TaskName.sync_from_downstream
@@ -64,12 +65,29 @@ class SyncFromDownstream(FedmsgHandler):
             job_config=job_config,
             event=event,
         )
-        self.branch = event.get("branch")
-        self.dg_branch = event.get("dg_branch")
+        self.dg_repo_name = event.get("repo_name")
+        self.dg_branch = event.get("git_ref")
+        self._project_to_sync: Optional[ProjectToSync] = None
+
+    @property
+    def project_to_sync(self) -> Optional[ProjectToSync]:
+        if self._project_to_sync is None:
+            if project_to_sync := self.service_config.get_project_to_sync(
+                dg_repo_name=self.dg_repo_name, dg_branch=self.dg_branch
+            ):
+                self._project_to_sync = project_to_sync
+        return self._project_to_sync
+
+    def pre_check(self) -> bool:
+        return self.project_to_sync is not None
 
     def run(self) -> TaskResults:
-        self.local_project = LocalProject(
-            git_project=self.project,
+        ogr_project_to_sync = self.service_config.get_project(
+            url=f"{self.project_to_sync.forge}/"
+            f"{self.project_to_sync.repo_namespace}/{self.project_to_sync.repo_name}"
+        )
+        upstream_local_project = LocalProject(
+            git_project=ogr_project_to_sync,
             working_dir=self.service_config.command_handler_work_dir,
             cache=RepositoryCache(
                 cache_path=self.service_config.repository_cache,
@@ -78,18 +96,18 @@ class SyncFromDownstream(FedmsgHandler):
             if self.service_config.repository_cache
             else None,
         )
-        self.api = PackitAPI(
+        packit_api = PackitAPI(
             self.service_config,
             self.job_config,
-            upstream_local_project=self.local_project,
+            upstream_local_project=upstream_local_project,
             stage=self.service_config.use_stage(),
         )
         # rev is a commit
         # we use branch on purpose so we get the latest thing
         # TODO: check if rev is HEAD on {branch}, warn then?
-        self.api.sync_from_downstream(
+        packit_api.sync_from_downstream(
             dist_git_branch=self.dg_branch,
-            upstream_branch=self.branch,
+            upstream_branch=self.project_to_sync.branch,
             sync_only_specfile=True,
         )
         return TaskResults(success=True, details={})
@@ -106,6 +124,7 @@ class AbortProposeDownstream(Exception):
 @reacts_to(event=IssueCommentEvent)
 @reacts_to(event=IssueCommentGitlabEvent)
 class ProposeDownstreamHandler(JobHandler):
+    topic = "org.fedoraproject.prod.git.receive"
     task_name = TaskName.propose_downstream
 
     def __init__(
@@ -233,6 +252,7 @@ class DownstreamKojiBuildHandler(JobHandler):
     This handler can submit a build in Koji from a dist-git.
     """
 
+    topic = "org.fedoraproject.prod.git.receive"
     task_name = TaskName.downstream_koji_build
 
     def __init__(

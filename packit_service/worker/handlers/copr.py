@@ -51,7 +51,6 @@ from packit_service.worker.handlers.abstract import (
     required_for,
     run_for_comment,
     run_for_check_rerun,
-    FedmsgHandler,
 )
 from packit_service.worker.monitoring import measure_time
 from packit_service.worker.reporting import BaseCommitStatus
@@ -133,7 +132,7 @@ class CoprBuildHandler(JobHandler):
         return True
 
 
-class AbstractCoprBuildReportHandler(FedmsgHandler):
+class AbstractCoprBuildReportHandler(JobHandler):
     def __init__(
         self,
         package_config: PackageConfig,

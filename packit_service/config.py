@@ -251,6 +251,7 @@ class ServiceConfig(Config):
         return cls.service_config
 
     def get_project_to_sync(self, dg_repo_name, dg_branch) -> Optional[ProjectToSync]:
+        # TODO: Is it ok that we don't check namespace? Can't this be misused from a fork?
         projects = [
             project
             for project in self.projects_to_sync

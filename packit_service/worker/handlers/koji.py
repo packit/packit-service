@@ -50,7 +50,6 @@ from packit_service.worker.handlers.abstract import (
     reacts_to,
     run_for_comment,
     run_for_check_rerun,
-    FedmsgHandler,
 )
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
@@ -147,7 +146,7 @@ class KojiBuildHandler(JobHandler):
 
 @configured_as(job_type=JobType.production_build)
 @reacts_to(event=KojiBuildEvent)
-class KojiBuildReportHandler(FedmsgHandler):
+class KojiBuildReportHandler(JobHandler):
     task_name = TaskName.koji_build_report
 
     def __init__(
