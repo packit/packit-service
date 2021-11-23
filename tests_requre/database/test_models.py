@@ -268,8 +268,8 @@ def test_errors_while_doing_db(clean_before_and_after):
 def test_get_srpm_builds_in_give_range(
     clean_before_and_after, srpm_build_model_with_new_run_for_pr
 ):
-    builds_list = SRPMBuildModel.get(0, 10)
-    assert len(list(builds_list)) == 1
+    builds_list = list(SRPMBuildModel.get(0, 10))
+    assert len(builds_list) == 1
     assert builds_list[0].success is True
 
 
@@ -522,7 +522,7 @@ def test_tmt_test_get_by_pipeline_id_pr(
 def test_tmt_test_get_range(clean_before_and_after, multiple_new_test_runs):
     assert multiple_new_test_runs
     results = TFTTestRunModel.get_range(0, 10)
-    assert len(results) == 4
+    assert len(list(results)) == 4
 
 
 def test_tmt_test_get_by_pipeline_id_branch_push(
@@ -604,14 +604,14 @@ def test_get_project(clean_before_and_after, a_copr_build_for_pr):
 
 
 def test_get_forge(clean_before_and_after, multiple_forge_projects):
-    projects = GitProjectModel.get_forge(0, 10, "github.com")
+    projects = list(GitProjectModel.get_forge(0, 10, "github.com"))
     assert projects
     assert len(projects) == 2
 
-    projects = GitProjectModel.get_forge(0, 10, "gitlab.com")
+    projects = list(GitProjectModel.get_forge(0, 10, "gitlab.com"))
     assert len(projects) == 1
 
-    projects = GitProjectModel.get_forge(0, 10, "git.stg.centos.org")
+    projects = list(GitProjectModel.get_forge(0, 10, "git.stg.centos.org"))
     assert len(projects) == 1
 
 
@@ -622,18 +622,24 @@ def test_get_namespace(clean_before_and_after, multiple_copr_builds):
 
 
 def test_get_project_prs(clean_before_and_after, a_copr_build_for_pr):
-    prs_a = GitProjectModel.get_project_prs(
-        0, 10, "github.com", "the-namespace", "the-repo-name"
+    prs_a = list(
+        GitProjectModel.get_project_prs(
+            0, 10, "github.com", "the-namespace", "the-repo-name"
+        )
     )
-    assert prs_a is not None
+    assert prs_a
     assert len(prs_a) == 1
     assert prs_a[0].id is not None  # cant explicitly check because its random like
-    prs_b = GitProjectModel.get_project_prs(
-        0, 10, "gitlab.com", "the-namespace", "the-repo-name"
+    prs_b = list(
+        GitProjectModel.get_project_prs(
+            0, 10, "gitlab.com", "the-namespace", "the-repo-name"
+        )
     )
     assert prs_b == []
-    prs_c = GitProjectModel.get_project_prs(
-        0, 10, "github", "the-namespace", "the-repo-name"
+    prs_c = list(
+        GitProjectModel.get_project_prs(
+            0, 10, "github", "the-namespace", "the-repo-name"
+        )
     )
     assert prs_c == []
 
@@ -769,7 +775,7 @@ def test_merged_runs(clean_before_and_after, few_runs):
 def test_merged_chroots_on_tests_without_build(
     clean_before_and_after, runs_without_build
 ):
-    result = RunModel.get_merged_chroots(0, 10)
+    result = list(RunModel.get_merged_chroots(0, 10))
     assert len(result) == 2
     for item in result:
         assert len(item.test_run_id[0]) == 1
