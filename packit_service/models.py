@@ -276,10 +276,11 @@ class GitProjectModel(Base):
     @classmethod
     def get_projects(cls, first: int, last: int) -> Iterable["GitProjectModel"]:
         with get_sa_session() as session:
-            projects = session.query(GitProjectModel).order_by(
-                GitProjectModel.namespace
-            )[first:last]
-            return projects
+            return (
+                session.query(GitProjectModel)
+                .order_by(GitProjectModel.namespace)
+                .slice(first, last)
+            )
 
     @classmethod
     def get_forge(
@@ -287,12 +288,12 @@ class GitProjectModel(Base):
     ) -> Iterable["GitProjectModel"]:
         """Return projects of given forge"""
         with get_sa_session() as session:
-            projects = (
+            return (
                 session.query(GitProjectModel)
                 .filter_by(instance_url=forge)
-                .order_by(GitProjectModel.namespace)[first:last]
+                .order_by(GitProjectModel.namespace)
+                .slice(first, last)
             )
-            return projects
 
     @classmethod
     def get_namespace(cls, forge: str, namespace: str) -> Iterable["GitProjectModel"]:
@@ -324,9 +325,9 @@ class GitProjectModel(Base):
     @classmethod
     def get_project_prs(
         cls, first: int, last: int, forge: str, namespace: str, repo_name: str
-    ) -> Optional[Iterable["PullRequestModel"]]:
+    ) -> Iterable["PullRequestModel"]:
         with get_sa_session() as session:
-            pull_requests = (
+            return (
                 session.query(PullRequestModel)
                 .join(GitProjectModel)
                 .filter(
@@ -335,9 +336,9 @@ class GitProjectModel(Base):
                     GitProjectModel.namespace == namespace,
                     GitProjectModel.repo_name == repo_name,
                 )
-                .order_by(desc(PullRequestModel.pr_id))[first:last]
+                .order_by(desc(PullRequestModel.pr_id))
+                .slice(first, last)
             )
-            return pull_requests
 
     @classmethod
     def get_project_issues(
@@ -762,9 +763,7 @@ class RunModel(Base):
         )
 
     @classmethod
-    def get_merged_chroots(
-        cls, first: int, last: int
-    ) -> Optional[Iterable["RunModel"]]:
+    def get_merged_chroots(cls, first: int, last: int) -> Iterable["RunModel"]:
         with get_sa_session() as session:
             return (
                 cls.__query_merged_runs(session)
@@ -774,7 +773,8 @@ class RunModel(Base):
                         [(RunModel.srpm_build_id.isnot(null()), 0)], else_=RunModel.id
                     ),
                 )
-                .order_by(desc("merged_id"))[first:last]
+                .order_by(desc("merged_id"))
+                .slice(first, last)
             )
 
     @classmethod
@@ -889,15 +889,13 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
             return session.query(CoprBuildModel).order_by(desc(CoprBuildModel.id)).all()
 
     @classmethod
-    def get_merged_chroots(
-        cls, first: int, last: int
-    ) -> Optional[Iterable["CoprBuildModel"]]:
+    def get_merged_chroots(cls, first: int, last: int) -> Iterable["CoprBuildModel"]:
         """Returns a list of unique build ids with merged status, chroots
         Details:
         https://github.com/packit/packit-service/pull/674#discussion_r439819852
         """
         with get_sa_session() as session:
-            builds = (
+            return (
                 session.query(
                     # We need something to order our merged builds by,
                     # so set new_id to be min(ids of to-be-merged rows)
@@ -912,10 +910,9 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
                     ),
                 )
                 .group_by(CoprBuildModel.build_id)  # Group by identical element(s)
-                .order_by(desc("new_id"))[first:last]
+                .order_by(desc("new_id"))
+                .slice(first, last)
             )
-
-            return builds
 
     # Returns all builds with that build_id, irrespective of target
     @classmethod
@@ -1104,11 +1101,13 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
             return session.query(KojiBuildModel).all()
 
     @classmethod
-    def get_range(cls, first: int, last: int) -> Optional[Iterable["KojiBuildModel"]]:
+    def get_range(cls, first: int, last: int) -> Iterable["KojiBuildModel"]:
         with get_sa_session() as session:
-            return session.query(KojiBuildModel).order_by(desc(KojiBuildModel.id))[
-                first:last
-            ]
+            return (
+                session.query(KojiBuildModel)
+                .order_by(desc(KojiBuildModel.id))
+                .slice(first, last)
+            )
 
     # Returns all builds with that build_id, irrespective of target
     @classmethod
@@ -1253,11 +1252,13 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
             return session.query(SRPMBuildModel).filter_by(id=id_).first()
 
     @classmethod
-    def get(cls, first: int, last: int) -> Optional[Iterable["SRPMBuildModel"]]:
+    def get(cls, first: int, last: int) -> Iterable["SRPMBuildModel"]:
         with get_sa_session() as session:
-            return session.query(SRPMBuildModel).order_by(desc(SRPMBuildModel.id))[
-                first:last
-            ]
+            return (
+                session.query(SRPMBuildModel)
+                .order_by(desc(SRPMBuildModel.id))
+                .slice(first, last)
+            )
 
     def set_url(self, url: str) -> None:
         with get_sa_session() as session:
@@ -1481,11 +1482,13 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
             return session.query(TFTTestRunModel).filter_by(id=id).first()
 
     @classmethod
-    def get_range(cls, first: int, last: int) -> Optional[Iterable["TFTTestRunModel"]]:
+    def get_range(cls, first: int, last: int) -> Iterable["TFTTestRunModel"]:
         with get_sa_session() as session:
-            return session.query(TFTTestRunModel).order_by(desc(TFTTestRunModel.id))[
-                first:last
-            ]
+            return (
+                session.query(TFTTestRunModel)
+                .order_by(desc(TFTTestRunModel.id))
+                .slice(first, last)
+            )
 
     def __repr__(self):
         return f"TFTTestRunModel(id={self.id}, pipeline_id={self.pipeline_id})"

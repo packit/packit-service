@@ -29,10 +29,7 @@ class ProjectsList(Resource):
         result = []
         first, last = indices()
 
-        projects_list = GitProjectModel.get_projects(first, last)
-        if not projects_list:
-            return response_maker([])
-        for project in projects_list:
+        for project in GitProjectModel.get_projects(first, last):
             project_info = {
                 "namespace": project.namespace,
                 "repo_name": project.repo_name,
@@ -43,6 +40,9 @@ class ProjectsList(Resource):
                 "issues_handled": len(project.issues),
             }
             result.append(project_info)
+
+        if not result:
+            return response_maker([])
 
         resp = response_maker(
             result,
@@ -90,10 +90,7 @@ class ProjectsForge(Resource):
         result = []
         first, last = indices()
 
-        projects_list = GitProjectModel.get_forge(first, last, forge)
-        if not projects_list:
-            return response_maker([])
-        for project in projects_list:
+        for project in GitProjectModel.get_forge(first, last, forge):
             project_info = {
                 "namespace": project.namespace,
                 "repo_name": project.repo_name,
@@ -104,6 +101,9 @@ class ProjectsForge(Resource):
                 "issues_handled": len(project.issues),
             }
             result.append(project_info)
+
+        if not result:
+            return response_maker([])
 
         resp = response_maker(
             result,
@@ -154,12 +154,9 @@ class ProjectsPRs(Resource):
         result = []
         first, last = indices()
 
-        pr_list = GitProjectModel.get_project_prs(
+        for pr in GitProjectModel.get_project_prs(
             first, last, forge, namespace, repo_name
-        )
-        if not pr_list:
-            return response_maker([])
-        for pr in pr_list:
+        ):
             pr_info = {
                 "pr_id": pr.pr_id,
                 "builds": [],
@@ -212,6 +209,9 @@ class ProjectsPRs(Resource):
             pr_info["tests"] = test_runs
 
             result.append(pr_info)
+
+        if not result:
+            return response_maker([])
 
         resp = response_maker(
             result,
