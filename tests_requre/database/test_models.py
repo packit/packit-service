@@ -309,11 +309,11 @@ def test_get_by_build_id(clean_before_and_after, multiple_copr_builds):
     assert build_c.project_name == "different-project-name"
 
 
-def test_get_all_by_owner_project_target_commit(
+def test_copr_get_all_by_owner_project_commit_target(
     clean_before_and_after, multiple_copr_builds
 ):
     builds_list = list(
-        CoprBuildModel.get_all_by_owner_project_target_commit(
+        CoprBuildModel.get_all_by(
             owner=SampleValues.owner,
             project_name=SampleValues.project,
             target=SampleValues.target,
@@ -326,6 +326,21 @@ def test_get_all_by_owner_project_target_commit(
         builds_list[1].project_name
         == builds_list[0].project_name
         == SampleValues.project
+    )
+
+    # test without target and owner
+    builds_list_without_target = list(
+        CoprBuildModel.get_all_by(
+            project_name=SampleValues.project,
+            commit_sha=SampleValues.ref,
+        )
+    )
+    assert len(builds_list_without_target) == 3
+    assert (
+        builds_list_without_target[0].commit_sha
+        == builds_list_without_target[1].commit_sha
+        == builds_list_without_target[2].commit_sha
+        == SampleValues.ref
     )
 
 
@@ -785,3 +800,27 @@ def test_merged_chroots_on_tests_without_build(
     assert len(result) == 2
     for item in result:
         assert len(item.test_run_id[0]) == 1
+
+
+def test_tf_get_all_by_commit_target(clean_before_and_after, multiple_new_test_runs):
+    test_list = list(
+        TFTTestRunModel.get_all_by_commit_target(
+            commit_sha=SampleValues.commit_sha, target=SampleValues.target
+        )
+    )
+    assert len(test_list) == 1
+    assert test_list[0].commit_sha == SampleValues.commit_sha
+
+    # test without target
+    test_list = list(
+        TFTTestRunModel.get_all_by_commit_target(
+            commit_sha=SampleValues.commit_sha,
+        )
+    )
+    assert len(test_list) == 3
+    assert (
+        test_list[0].commit_sha
+        == test_list[1].commit_sha
+        == test_list[2].commit_sha
+        == SampleValues.commit_sha
+    )
