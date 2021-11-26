@@ -3,6 +3,7 @@
 
 import json
 
+import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 from ogr.services.pagure import PagureProject
@@ -211,14 +212,137 @@ def test_downstream_koji_build():
     assert first_dict_value(results["job"])["success"]
 
 
-def test_do_not_run_downstream_koji_build_for_a_different_branch():
+@pytest.mark.parametrize(
+    "jobs_config",
+    [
+        pytest.param(
+            "["
+            "{'trigger': 'commit', 'job': 'koji_build', "
+            "'metadata': {'dist_git_branches': ['a-different-branch']}},"
+            "{'trigger': 'commit', 'job': 'koji_build', "
+            "'metadata': {'dist_git_branches': ['main']}}"
+            "]",
+            id="multiple_jobs",
+        ),
+        pytest.param(
+            "["
+            "{'trigger': 'commit', 'job': 'koji_build', "
+            "'metadata': {'dist_git_branches': ['a-different-branch', 'main', 'other_branch']}}"
+            "]",
+            id="multiple_branches",
+        ),
+        pytest.param(
+            "["
+            "{'trigger': 'commit', 'job': 'koji_build', "
+            "'metadata': {'dist_git_branches': ['fedora-all']}}"
+            "]",
+            id="aliases",
+        ),
+    ],
+)
+def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
 
     packit_yaml = (
         "{'specfile_path': 'buildah.spec', 'synced_files': [],"
-        "'jobs': ["
-        "{'trigger': 'commit', 'job': 'koji_build', "
-        "'metadata': {'branch': 'a-different-branch'}}"
-        "],"
+        f"'jobs': {jobs_config},"
+        "'downstream_package_name': 'buildah'}"
+    )
+    pagure_project = flexmock(
+        PagureProject,
+        full_repo_name="rpms/buildah",
+        get_web_url=lambda: "https://src.fedoraproject.org/rpms/buildah",
+        default_branch="main",
+    )
+    pagure_project.should_receive("get_files").with_args(
+        ref="abcd", filter_regex=r".+\.spec$"
+    ).and_return(["buildah.spec"])
+    pagure_project.should_receive("get_file_content").with_args(
+        path=".distro/source-git.yaml", ref="abcd"
+    ).and_raise(FileNotFoundError, "Not found.")
+    pagure_project.should_receive("get_file_content").with_args(
+        path=".packit.yaml", ref="abcd"
+    ).and_return(packit_yaml)
+
+    flexmock(GitBranchModel).should_receive("get_or_create").with_args(
+        branch_name="main",
+        namespace="rpms",
+        repo_name="buildah",
+        project_url="https://src.fedoraproject.org/rpms/buildah",
+    ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
+
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
+        ServiceConfig(
+            command_handler_work_dir=SANDCASTLE_WORK_DIR,
+            repository_cache="/tmp/repository-cache",
+            add_repositories_to_repository_cache=False,
+        )
+    )
+
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(RepositoryCache).should_call("__init__").once()
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(PackitAPI).should_receive("build").with_args(
+        dist_git_branch="a-different-branch",
+        scratch=False,
+        nowait=True,
+        from_upstream=False,
+    ).times(0)
+    flexmock(PackitAPI).should_receive("build").with_args(
+        dist_git_branch="main",
+        scratch=False,
+        nowait=True,
+        from_upstream=False,
+    ).once()
+
+    processing_results = SteveJobs().process_message(distgit_commit_event())
+    assert len(processing_results) == 1
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+    results = run_downstream_koji_build(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+
+@pytest.mark.parametrize(
+    "jobs_config",
+    [
+        pytest.param(
+            "["
+            "{'trigger': 'commit', 'job': 'koji_build', "
+            "'metadata': {'dist_git_branches': ['a-different-branch']}},"
+            "{'trigger': 'commit', 'job': 'koji_build', "
+            "'metadata': {'dist_git_branches': ['other_branch']}}"
+            "]",
+            id="multiple_jobs",
+        ),
+        pytest.param(
+            "["
+            "{'trigger': 'commit', 'job': 'koji_build', "
+            "'metadata': {'dist_git_branches': ['a-different-branch', 'other_branch']}}"
+            "]",
+            id="multiple_branches",
+        ),
+        pytest.param(
+            "["
+            "{'trigger': 'commit', 'job': 'koji_build', "
+            "'metadata': {'dist_git_branches': ['fedora-stable']}}"
+            "]",
+            id="aliases",
+        ),
+    ],
+)
+def test_do_not_run_downstream_koji_build_for_a_different_branch(jobs_config):
+
+    packit_yaml = (
+        "{'specfile_path': 'buildah.spec', 'synced_files': [],"
+        f"'jobs': {jobs_config},"
         "'downstream_package_name': 'buildah'}"
     )
     pagure_project = flexmock(

@@ -270,12 +270,14 @@ class DownstreamKojiBuildHandler(JobHandler):
 
     def pre_check(self) -> bool:
         if self.data.event_type in (PushPagureEvent.__name__,):
-            if self.data.git_ref != (
-                configured_branch := self.job_config.metadata.branch or "main"
+            if self.data.git_ref not in (
+                configured_branches := get_branches(
+                    *self.job_config.metadata.dist_git_branches, default="main"
+                )
             ):
                 logger.info(
                     f"Skipping build on '{self.data.git_ref}'. "
-                    f"Koji build configured only for '{configured_branch}'."
+                    f"Koji build configured only for '{configured_branches}'."
                 )
                 return False
         return True
