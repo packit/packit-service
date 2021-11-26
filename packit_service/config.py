@@ -15,7 +15,11 @@ from packit.config import (
     RunCommandType,
     get_package_config_from_repo,
 )
-from packit.exceptions import PackitConfigException, PackitException
+from packit.exceptions import (
+    PackitException,
+    PackitConfigException,
+    PackitMissingConfigException,
+)
 from packit_service.constants import (
     CONFIG_FILE_NAME,
     SANDCASTLE_DEFAULT_PROJECT,
@@ -302,13 +306,17 @@ class PackageConfigGetter:
                 spec_file_path=spec_file_path,
             )
             if not package_config and fail_when_missing:
-                raise PackitConfigException(
-                    f"No config file found in {project_to_search_in.full_repo_name} "
-                    f"on ref '{reference}'"
+                raise PackitMissingConfigException(
+                    f"No config file for packit (e.g. `.packit.yaml`) found in "
+                    f"{project_to_search_in.full_repo_name} on commit '{reference}'"
                 )
         except PackitConfigException as ex:
             message = (
-                f"Failed to load packit config file:\n```\n{str(ex)}\n```\n"
+                f"{str(ex)}\n\n"
+                if isinstance(ex, PackitMissingConfigException)
+                else f"Failed to load packit config file:\n```\n{str(ex)}\n```\n"
+            )
+            message += (
                 "For more info, please check out the documentation: "
                 "https://packit.dev/docs/packit-service or contact us - "
                 "[Packit team]"
@@ -324,4 +332,5 @@ class PackageConfigGetter:
                     f"Created issue for invalid packit config: {created_issue.url}"
                 )
             raise ex
+
         return package_config
