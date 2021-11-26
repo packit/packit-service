@@ -43,7 +43,6 @@ SUPPORTED_EVENTS_FOR_HANDLER: Dict[
 ] = defaultdict(set)
 MAP_COMMENT_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
 MAP_CHECK_PREFIX_TO_HANDLER: Dict[str, Set[Type["JobHandler"]]] = defaultdict(set)
-PROCESSED_FEDMSG_TOPICS = []
 
 
 def configured_as(job_type: JobType):
@@ -191,12 +190,6 @@ def run_for_check_rerun(prefix: str):
     return _add_to_mapping
 
 
-def add_topic(kls: Type["FedmsgHandler"]):
-    if issubclass(kls, FedmsgHandler):
-        PROCESSED_FEDMSG_TOPICS.append(kls.topic)
-    return kls
-
-
 def get_packit_commands_from_comment(comment: str) -> List[str]:
     comment_parts = comment.strip()
 
@@ -225,9 +218,12 @@ class TaskName(str, enum.Enum):
     testing_farm_results = "task.run_testing_farm_results_handler"
     propose_downstream = "task.run_propose_downstream_handler"
     koji_build = "task.run_koji_build_handler"
-    distgit_commit = "task.run_distgit_commit_handler"
-    bugzilla = "task.run_bugzilla_handler"
     koji_build_report = "task.run_koji_build_report_handler"
+    downstream_koji_build = "task.run_downstream_koji_build_handler"
+    # Fedora notification is ok for now
+    # downstream_koji_build_report = "task.run_downstream_koji_build_report_handler"
+    sync_from_downstream = "task.run_sync_from_downstream_handler"
+    bugzilla = "task.run_bugzilla_handler"
 
 
 class Handler:
@@ -387,28 +383,6 @@ class JobHandler(Handler):
                 "event": event.get_dict(),
             },
         )
-
-    def run(self) -> TaskResults:
-        raise NotImplementedError("This should have been implemented.")
-
-
-class FedmsgHandler(JobHandler):
-    """Handlers for events from fedmsg"""
-
-    topic: str
-
-    def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        event: dict,
-    ):
-        super().__init__(
-            package_config=package_config,
-            job_config=job_config,
-            event=event,
-        )
-        self._pagure_service = None
 
     def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")

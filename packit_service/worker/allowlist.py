@@ -16,7 +16,6 @@ from packit_service.models import AllowlistModel, AllowlistStatus
 from packit_service.worker.events import (
     EventData,
     AbstractCoprBuildEvent,
-    DistGitCommitEvent,
     InstallationEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
@@ -47,7 +46,6 @@ UncheckedEvent = Union[
     TestingFarmResultsEvent,
     InstallationEvent,
     KojiBuildEvent,
-    DistGitCommitEvent,
     CheckRerunEvent,
 ]
 
@@ -359,7 +357,6 @@ class Allowlist:
                 TestingFarmResultsEvent,
                 InstallationEvent,
                 KojiBuildEvent,
-                DistGitCommitEvent,
                 CheckRerunEvent,
             ): self._check_unchecked_event,
             (

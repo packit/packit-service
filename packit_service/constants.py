@@ -4,6 +4,7 @@
 from enum import Enum
 
 DOCS_URL = "https://packit.dev/docs"
+CONTACTS_URL = "https://packit.dev/#contact"
 FAQ_URL = f"{DOCS_URL}/faq"
 FAQ_URL_HOW_TO_RETRIGGER = (
     f"{DOCS_URL}/packit-as-a-service/"

@@ -6,7 +6,10 @@ from typing import Dict, Optional
 
 from ogr.abstract import GitProject
 
-from packit_service.service.db_triggers import AddPullRequestDbTrigger
+from packit_service.service.db_triggers import (
+    AddBranchPushDbTrigger,
+    AddPullRequestDbTrigger,
+)
 from packit_service.worker.events.enums import (
     PullRequestAction,
     PullRequestCommentAction,
@@ -29,7 +32,7 @@ class AbstractPagureEvent(AbstractForgeIndependentEvent):
         ] = None  # will be shown to users -- e.g. in logs or in the copr-project name
 
 
-class PushPagureEvent(AbstractPagureEvent):
+class PushPagureEvent(AddBranchPushDbTrigger, AbstractPagureEvent):
     def __init__(
         self,
         repo_namespace: str,

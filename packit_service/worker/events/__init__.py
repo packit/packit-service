@@ -6,7 +6,6 @@ from packit_service.worker.events.copr import (
     CoprBuildStartEvent,
     CoprBuildEndEvent,
 )
-from packit_service.worker.events.distgit import DistGitCommitEvent
 from packit_service.worker.events.event import EventData, Event
 from packit_service.worker.events.github import (
     InstallationEvent,
@@ -43,7 +42,6 @@ __all__ = [
     AbstractCoprBuildEvent.__name__,
     CoprBuildStartEvent.__name__,
     CoprBuildEndEvent.__name__,
-    DistGitCommitEvent.__name__,
     AbstractGithubEvent.__name__,
     PushGitHubEvent.__name__,
     PullRequestGithubEvent.__name__,

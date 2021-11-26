@@ -12,7 +12,6 @@
 from packit_service.worker.handlers.abstract import (
     Handler,
     JobHandler,
-    FedmsgHandler,
 )
 from packit_service.worker.handlers.bugzilla import (
     BugzillaHandler,
@@ -23,7 +22,7 @@ from packit_service.worker.handlers.copr import (
     CoprBuildStartHandler,
 )
 from packit_service.worker.handlers.distgit import (
-    DistGitCommitHandler,
+    SyncFromDownstream,
     ProposeDownstreamHandler,
 )
 from packit_service.worker.handlers.forges import (
@@ -41,13 +40,12 @@ from packit_service.worker.handlers.testing_farm import (
 __all__ = [
     Handler.__name__,
     JobHandler.__name__,
-    FedmsgHandler.__name__,
     BugzillaHandler.__name__,
     CoprBuildHandler.__name__,
     CoprBuildEndHandler.__name__,
     CoprBuildStartHandler.__name__,
     GithubAppInstallationHandler.__name__,
-    DistGitCommitHandler.__name__,
+    SyncFromDownstream.__name__,
     ProposeDownstreamHandler.__name__,
     KojiBuildHandler.__name__,
     KojiBuildReportHandler.__name__,

@@ -30,7 +30,6 @@ from packit_service.models import (
 from packit_service.worker.events import (
     AbstractCoprBuildEvent,
     KojiBuildEvent,
-    DistGitCommitEvent,
     CoprBuildStartEvent,
     CoprBuildEndEvent,
     PullRequestPagureEvent,
@@ -59,9 +58,6 @@ from packit_service.worker.events.enums import (
     PullRequestAction,
     PullRequestCommentAction,
 )
-from packit_service.worker.handlers import (
-    DistGitCommitHandler,
-)
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 
@@ -83,7 +79,6 @@ class Parser:
             PullRequestGithubEvent,
             InstallationEvent,
             ReleaseEvent,
-            DistGitCommitEvent,
             TestingFarmResultsEvent,
             PullRequestCommentGithubEvent,
             IssueCommentEvent,
@@ -95,6 +90,7 @@ class Parser:
             IssueCommentGitlabEvent,
             PushGitlabEvent,
             PipelineGitlabEvent,
+            PushPagureEvent,
             CheckRerunCommitEvent,
             CheckRerunPullRequestEvent,
             CheckRerunReleaseEvent,
@@ -117,10 +113,10 @@ class Parser:
                 Parser.parse_pull_request_comment_event,
                 Parser.parse_issue_comment_event,
                 Parser.parse_release_event,
-                Parser.parse_push_event,
+                Parser.parse_github_push_event,
                 Parser.parse_check_rerun_event,
                 Parser.parse_installation_event,
-                Parser.parse_distgit_commit_event,
+                Parser.parse_push_pagure_event,
                 Parser.parse_testing_farm_results_event,
                 Parser.parse_copr_event,
                 Parser.parse_mr_event,
@@ -342,7 +338,7 @@ class Parser:
         )
 
     @staticmethod
-    def parse_push_event(event) -> Optional[PushGitHubEvent]:
+    def parse_github_push_event(event) -> Optional[PushGitHubEvent]:
         """
         Look into the provided event and see if it's one for a new push to the github branch.
         """
@@ -832,10 +828,10 @@ class Parser:
         return ReleaseEvent(repo_namespace, repo_name, release_ref, https_url)
 
     @staticmethod
-    def parse_distgit_commit_event(event) -> Optional[DistGitCommitEvent]:
+    def parse_push_pagure_event(event) -> Optional[PushPagureEvent]:
         """this corresponds to dist-git event when someone pushes new commits"""
         topic = event.get("topic")
-        if topic != DistGitCommitHandler.topic:
+        if topic != "org.fedoraproject.prod.git.receive":
             return None
 
         logger.info(f"Dist-git commit event, topic: {topic}")
@@ -848,42 +844,25 @@ class Parser:
             return None
 
         dg_branch = nested_get(event, "commit", "branch")
-        dg_rev = nested_get(event, "commit", "rev")
-        if not (dg_branch and dg_rev):
+        dg_commit = nested_get(event, "commit", "rev")
+        if not (dg_branch and dg_commit):
             logger.warning("Target branch/rev for the new commits is not set.")
             return None
 
         logger.info(
             f"New commits added to dist-git repo {dg_repo_namespace}/{dg_repo_name},"
-            f"rev: {dg_rev}, branch: {dg_branch}"
-        )
-
-        project_to_sync = ServiceConfig.get_service_config().get_project_to_sync(
-            dg_repo_name, dg_branch
-        )
-        if not project_to_sync:
-            logger.info("No matching upstream repo for syncing found.")
-            return None
-
-        upstream_project_url = (
-            f"{project_to_sync.forge}/{project_to_sync.repo_namespace}/"
-            f"{project_to_sync.repo_name}"
+            f"rev: {dg_commit}, branch: {dg_branch}"
         )
 
         dg_base_url = getenv("DISTGIT_URL", PROD_DISTGIT_URL)
         dg_project_url = f"{dg_base_url}{dg_repo_namespace}/{dg_repo_name}"
 
-        return DistGitCommitEvent(
-            topic=topic,
-            repo_namespace=project_to_sync.repo_namespace,
-            repo_name=project_to_sync.repo_name,
-            branch=project_to_sync.branch,
-            project_url=upstream_project_url,
-            dg_repo_namespace=dg_repo_namespace,
-            dg_repo_name=dg_repo_name,
-            dg_branch=dg_branch,
-            dg_rev=dg_rev,
-            dg_project_url=dg_project_url,
+        return PushPagureEvent(
+            repo_namespace=dg_repo_namespace,
+            repo_name=dg_repo_name,
+            git_ref=dg_branch,
+            project_url=dg_project_url,
+            commit_sha=dg_commit,
         )
 
     @staticmethod

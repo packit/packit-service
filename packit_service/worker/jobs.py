@@ -359,6 +359,9 @@ class SteveJobs:
         """
 
         if topic:
+            # TODO: Check if we really use it.
+            #  Ideally, we don't want to mix implementation and events
+            #  (topics are related to events).
             # let's pre-filter messages: we don't need to get debug logs from processing
             # messages when we know beforehand that we are not interested in messages for such topic
             topics = [
