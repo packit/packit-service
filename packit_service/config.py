@@ -308,7 +308,7 @@ class PackageConfigGetter:
             if not package_config and fail_when_missing:
                 raise PackitMissingConfigException(
                     f"No config file for packit (e.g. `.packit.yaml`) found in "
-                    f"{project_to_search_in.full_repo_name} on commit '{reference}'"
+                    f"{project_to_search_in.full_repo_name} on commit {reference}"
                 )
         except PackitConfigException as ex:
             message = (

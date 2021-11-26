@@ -1030,7 +1030,7 @@ def test_trigger_packit_command_without_config(
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     err_msg = (
-        "No config file for packit (e.g. `.packit.yaml`) found in namespace/repo on commit '12345'"
+        "No config file for packit (e.g. `.packit.yaml`) found in namespace/repo on commit 12345"
         "\n\nFor more info, please check out the documentation: "
         "https://packit.dev/docs/packit-service or contact us - [Packit team]"
         "(https://github.com/orgs/packit/teams/the-packit-team)"
