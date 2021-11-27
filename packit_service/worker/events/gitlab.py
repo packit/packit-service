@@ -156,7 +156,7 @@ class MergeRequestCommentGitlabEvent(
     @property
     def comment_object(self) -> Optional[Comment]:
         if not self._comment_object:
-            self._comment_object = self.project.get_pr(self.object_id).get_comment(
+            self._comment_object = self.project.get_pr(self.object_iid).get_comment(
                 self.comment_id
             )
         return self._comment_object
