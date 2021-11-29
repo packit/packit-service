@@ -5,25 +5,36 @@
 Generic/abstract event classes.
 """
 import copy
+import inspect
 from datetime import datetime, timezone
 from logging import getLogger
-from typing import Dict, Iterable, Optional, Type, Union, Set, List
+from typing import Dict, Iterable, Optional, Type, Union, Set, List, Any
 
 from ogr.abstract import GitProject
 from packit.config import JobConfigTriggerType, PackageConfig
 
+import packit_service.worker.events
 from packit_service.config import PackageConfigGetter, ServiceConfig
-from packit_service.models import (
-    AbstractTriggerDbType,
-    CoprBuildTargetModel,
-    GitBranchModel,
-    IssueModel,
-    ProjectReleaseModel,
-    PullRequestModel,
-    TFTTestRunTargetModel,
+from packit_service.models import CoprBuildTargetModel, TFTTestRunTargetModel
+
+from packit_service.service.db_triggers import (
+    _AddDbTrigger,
+    AddReleaseDbTrigger,
+    AddPullRequestDbTrigger,
+    AddBranchPushDbTrigger,
+    AddIssueDbTrigger,
 )
+from packit_service.models import AbstractTriggerDbType
 
 logger = getLogger(__name__)
+
+
+AbstractAddDbTrigger = Union[
+    AddReleaseDbTrigger,
+    AddPullRequestDbTrigger,
+    AddIssueDbTrigger,
+    AddBranchPushDbTrigger,
+]
 
 
 MAP_EVENT_TO_JOB_CONFIG_TRIGGER_TYPE: Dict[Type["Event"], JobConfigTriggerType] = {}
@@ -97,6 +108,8 @@ class EventData:
 
         # lazy attributes
         self._project = None
+        self._repo_namespace = ""
+        self._repo_name = ""
         self._db_trigger: Optional[AbstractTriggerDbType] = None
 
     @classmethod
@@ -141,70 +154,83 @@ class EventData:
         )
 
     @property
-    def project(self):
+    def project(self) -> Optional[GitProject]:
         if not self._project:
             self._project = self.get_project()
         return self._project
 
     @property
+    def repo_namespace(self) -> str:
+        if not self._repo_namespace:
+            self._repo_namespace = self.project.namespace
+
+        return self._repo_namespace
+
+    @property
+    def repo_name(self) -> str:
+        if not self._repo_name:
+            self._repo_name = self.project.repo
+
+        return self._repo_name
+
+    @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         if not self._db_trigger:
-
-            # TODO, do a better job
-            # Probably, try to recreate original classes.
-            if self.event_type in {
-                "PullRequestGithubEvent",
-                "PullRequestPagureEvent",
-                "MergeRequestGitlabEvent",
-                "PullRequestCommentGithubEvent",
-                "MergeRequestCommentGitlabEvent",
-                "PullRequestCommentPagureEvent",
-                "PullRequestFlagPagureEvent",
-                "CheckRerunPullRequestEvent",
-            }:
-                self._db_trigger = PullRequestModel.get_or_create(
-                    pr_id=self.pr_id,
-                    namespace=self.project.namespace,
-                    repo_name=self.project.repo,
-                    project_url=self.project_url,
-                )
-            elif self.event_type in {
-                "PushGitHubEvent",
-                "PushGitlabEvent",
-                "PushPagureEvent",
-                "CheckRerunCommitEvent",
-            }:
-                self._db_trigger = GitBranchModel.get_or_create(
-                    branch_name=self.git_ref,
-                    namespace=self.project.namespace,
-                    repo_name=self.project.repo,
-                    project_url=self.project_url,
-                )
-
-            elif self.event_type in {"ReleaseEvent", "CheckRerunReleaseEvent"}:
-                self._db_trigger = ProjectReleaseModel.get_or_create(
-                    tag_name=self.tag_name,
-                    namespace=self.project.namespace,
-                    repo_name=self.project.repo,
-                    project_url=self.project_url,
-                    commit_hash=self.commit_sha,
-                )
-            elif self.event_type in {
-                "IssueCommentEvent",
-                "IssueCommentGitlabEvent",
-            }:
-                self._db_trigger = IssueModel.get_or_create(
-                    issue_id=self.issue_id,
-                    namespace=self.project.namespace,
-                    repo_name=self.project.repo,
-                    project_url=self.project_url,
-                )
-            else:
-                logger.warning(
-                    "We don't know, what to search in the database for this event data."
-                )
+            # if new event is created and db_trigger needed - add Add*DbTrigger mixin to your class
+            self._db_trigger = self._recreate_original_db_trigger()
 
         return self._db_trigger
+
+    def _get_db_trigger_class(self) -> Optional[AbstractAddDbTrigger]:
+        if not hasattr(packit_service.worker.events, self.event_type):
+            logger.warning(
+                f"We don't know, what to search in the database for this event type:"
+                f" {self.event_type}"
+            )
+            return None
+
+        logger.debug(f"Trying to get event type class: {self.event_type}")
+        # when creating a new event - just add a class to packit_service.worker.events.__init__
+        event_cls = getattr(packit_service.worker.events, self.event_type)
+
+        # first object in list is class itself and last is `object` - let's skip it
+        for superclass in event_cls.mro()[1:-1]:
+            if _AddDbTrigger in superclass.__bases__:
+                logger.debug(
+                    f"AddDbTrigger class found: {superclass.__name__} in {event_cls.mro()}"
+                )
+                return superclass
+
+        logger.debug(f"No AddDbTrigger class found in {event_cls.mro()}")
+        return None
+
+    def _recreate_arguments_of_get_or_create_staticmethod(
+        self, db_trigger_cls: AbstractAddDbTrigger
+    ) -> Dict[str, Any]:
+        result = {}
+        args_of_get_or_create = inspect.getfullargspec(
+            db_trigger_cls.get_or_create
+        ).args
+        for arg in args_of_get_or_create:
+            result[arg] = getattr(self, arg)
+
+        return result
+
+    def _recreate_original_db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        db_trigger_cls = self._get_db_trigger_class()
+        if db_trigger_cls is None:
+            return None
+
+        arguments_of_get_or_create_staticmethod = (
+            self._recreate_arguments_of_get_or_create_staticmethod(db_trigger_cls)
+        )
+
+        logger.debug(
+            f"Staticmethod `get_or_create` created for AddDbTrigger class: "
+            f"{db_trigger_cls.__class__.__name__} "
+            f"with arguments: {arguments_of_get_or_create_staticmethod}"
+        )
+        return db_trigger_cls.get_or_create(**arguments_of_get_or_create_staticmethod)
 
     def get_dict(self) -> dict:
         d = self.__dict__

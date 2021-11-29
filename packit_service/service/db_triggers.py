@@ -16,72 +16,130 @@ from packit_service.models import (
 )
 
 
-class AddReleaseDbTrigger:
+class _AddDbTrigger:
+    # This is a private common supertype for Add*DbTrigger classes. Use it only as a superclass in
+    # this file as a superclass of Add*DbTrigger classes.
+    pass
+
+
+class AddReleaseDbTrigger(_AddDbTrigger):
     tag_name: str
     repo_namespace: str
     repo_name: str
     project_url: str
+    commit_sha: Optional[str]
 
-    @property
-    def commit_sha(self):
-        """
-        To please the mypy.
-        """
-        raise NotImplementedError()
+    @staticmethod
+    def get_or_create(
+        tag_name: str,
+        repo_namespace: str,
+        repo_name: str,
+        project_url: str,
+        commit_sha: Optional[str],
+    ) -> Optional[AbstractTriggerDbType]:
+        return ProjectReleaseModel.get_or_create(
+            tag_name=tag_name,
+            namespace=repo_namespace,
+            repo_name=repo_name,
+            project_url=project_url,
+            commit_hash=commit_sha,
+        )
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        return ProjectReleaseModel.get_or_create(
+        return self.get_or_create(
             tag_name=self.tag_name,
-            namespace=self.repo_namespace,
+            repo_namespace=self.repo_namespace,
             repo_name=self.repo_name,
             project_url=self.project_url,
-            commit_hash=self.commit_sha,
+            commit_sha=self.commit_sha,
         )
 
 
-class AddPullRequestDbTrigger:
+class AddPullRequestDbTrigger(_AddDbTrigger):
     pr_id: int
     project: GitProject
     project_url: str
 
+    @staticmethod
+    def get_or_create(
+        pr_id: int,
+        repo_namespace: str,
+        repo_name: str,
+        project_url: str,
+    ) -> Optional[AbstractTriggerDbType]:
+        return PullRequestModel.get_or_create(
+            pr_id=pr_id,
+            namespace=repo_namespace,
+            repo_name=repo_name,
+            project_url=project_url,
+        )
+
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        return PullRequestModel.get_or_create(
+        return self.get_or_create(
             pr_id=self.pr_id,
-            namespace=self.project.namespace,
+            repo_namespace=self.project.namespace,
             repo_name=self.project.repo,
             project_url=self.project_url,
         )
 
 
-class AddIssueDbTrigger:
+class AddIssueDbTrigger(_AddDbTrigger):
     issue_id: int
     repo_namespace: str
     repo_name: str
     project_url: str
 
+    @staticmethod
+    def get_or_create(
+        issue_id: int,
+        repo_namespace: str,
+        repo_name: str,
+        project_url: str,
+    ) -> Optional[AbstractTriggerDbType]:
+        return IssueModel.get_or_create(
+            issue_id=issue_id,
+            namespace=repo_namespace,
+            repo_name=repo_name,
+            project_url=project_url,
+        )
+
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        return IssueModel.get_or_create(
+        return self.get_or_create(
             issue_id=self.issue_id,
-            namespace=self.repo_namespace,
+            repo_namespace=self.repo_namespace,
             repo_name=self.repo_name,
             project_url=self.project_url,
         )
 
 
-class AddBranchPushDbTrigger:
+class AddBranchPushDbTrigger(_AddDbTrigger):
     git_ref: str
     repo_namespace: str
     repo_name: str
     project_url: str
 
+    @staticmethod
+    def get_or_create(
+        git_ref: str,
+        repo_namespace: str,
+        repo_name: str,
+        project_url: str,
+    ) -> Optional[AbstractTriggerDbType]:
+        return GitBranchModel.get_or_create(
+            branch_name=git_ref,
+            namespace=repo_namespace,
+            repo_name=repo_name,
+            project_url=project_url,
+        )
+
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        return GitBranchModel.get_or_create(
-            branch_name=self.git_ref,
-            namespace=self.repo_namespace,
+        return self.get_or_create(
+            git_ref=self.git_ref,
+            repo_namespace=self.repo_namespace,
             repo_name=self.repo_name,
             project_url=self.project_url,
         )
