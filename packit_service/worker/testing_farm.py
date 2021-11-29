@@ -324,7 +324,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             if compose == "Oracle-Linux-7":
                 return "Oracle-Linux-7.9"
             if compose == "Oracle-Linux-8":
-                return "Oracle-Linux-8.4"
+                return "Oracle-Linux-8.5"
         else:
             response = self.send_testing_farm_request(endpoint="composes")
             if response.status_code == 200:
