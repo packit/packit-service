@@ -17,6 +17,7 @@ from packit_service.models import (
     JobTriggerModel,
     ProjectReleaseModel,
     PullRequestModel,
+    JobTriggerModelType,
 )
 from packit_service.service.db_triggers import (
     AddBranchPushDbTrigger,
@@ -95,7 +96,11 @@ def mock_pr_functionality(request):
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    trigger = JobTriggerModel(type=JobConfigTriggerType.pull_request, id=123)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+        id=123,
+    )
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
         trigger
@@ -137,7 +142,11 @@ def mock_push_functionality(request):
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    trigger = JobTriggerModel(type=JobConfigTriggerType.commit, id=123)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        job_trigger_model_type=JobTriggerModelType.branch_push,
+        id=123,
+    )
     flexmock(AddBranchPushDbTrigger).should_receive("db_trigger").and_return(trigger)
     flexmock(GitBranchModel).should_receive("get_by_id").with_args(123).and_return(
         trigger
@@ -177,7 +186,11 @@ def mock_release_functionality(request):
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    trigger = JobTriggerModel(type=JobConfigTriggerType.release, id=123)
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.release,
+        job_trigger_model_type=JobTriggerModelType.release,
+        id=123,
+    )
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(trigger)
     flexmock(ProjectReleaseModel).should_receive("get_by_id").with_args(123).and_return(
         trigger

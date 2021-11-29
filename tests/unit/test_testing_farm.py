@@ -719,7 +719,7 @@ def test_trigger_build(copr_build, run_new_build):
     package_config.spec_source_id = 1
 
     event = {
-        "event_type": "CoprBuileEndEvent",
+        "event_type": "CoprBuildEndEvent",
         "commit_sha": valid_commit_sha,
         "targets_override": ["target-x86_64"],
     }

@@ -5,7 +5,9 @@
 Tests for events parsing
 """
 import json
+
 from datetime import datetime, timezone, timedelta
+from inspect import getfullargspec, getmembers, ismethod, isfunction
 
 import pytest
 from flexmock import flexmock
@@ -26,6 +28,13 @@ from packit_service.models import (
     GitBranchModel,
     ProjectReleaseModel,
     PullRequestModel,
+)
+from packit_service.service.db_triggers import (
+    _AddDbTrigger,
+    AddPullRequestDbTrigger,
+    AddBranchPushDbTrigger,
+    AddReleaseDbTrigger,
+    AddIssueDbTrigger,
 )
 from packit_service.worker.events import (
     EventData,
@@ -1767,3 +1776,268 @@ class TestCentOSEventParser:
         assert data.identifier == "1"
         assert data.pr_id == 1
         assert data.event_dict["action"] == "opened"
+
+
+class TestEventData:
+    def test_enforce_same_var_names_in_event_data_and_mixins(self):
+        # EventData should contain attributes contained in Add*DbTrigger mixins
+        # to be able to recreate `get_or_create` method with the same variables
+        all_variables_in_get_or_create = [
+            getfullargspec(cls.get_or_create).args
+            for cls in _AddDbTrigger.__subclasses__()
+        ]
+        unique_variables_in_get_or_create = set(sum(all_variables_in_get_or_create, []))
+
+        all_properties_in_event_data = {
+            key
+            for key, value in getmembers(
+                EventData, lambda member: isinstance(member, property)
+            )
+        }
+        all_attributes_of_event_data_init = set(getfullargspec(EventData.__init__).args)
+
+        all_relevant_attrs_of_event_data = (
+            all_properties_in_event_data | all_attributes_of_event_data_init
+        )
+        assert unique_variables_in_get_or_create.issubset(
+            all_relevant_attrs_of_event_data
+        )
+
+    def test_private_add_db_trigger_common_supertype_should_remain_untouched(self):
+        # it isn't good to define superclasses for mixins with some kind of real functionality
+        # the _AddDbTrigger class should remain untouched as it serves only as a common type to
+        # please mypy easily
+        assert not getmembers(
+            _AddDbTrigger, lambda member: isinstance(member, property)
+        )
+        assert not getmembers(_AddDbTrigger, ismethod)
+        assert not getmembers(_AddDbTrigger, isfunction)
+        assert _AddDbTrigger.__dict__.get("__annotations__", None) is None
+
+    @pytest.mark.parametrize(
+        "event_type,db_trigger_mixin",
+        [
+            pytest.param(
+                "PullRequestGithubEvent",
+                AddPullRequestDbTrigger,
+            ),
+            pytest.param(
+                "PullRequestPagureEvent",
+                AddPullRequestDbTrigger,
+            ),
+            pytest.param(
+                "MergeRequestGitlabEvent",
+                AddPullRequestDbTrigger,
+            ),
+            pytest.param(
+                "PullRequestCommentGithubEvent",
+                AddPullRequestDbTrigger,
+            ),
+            pytest.param(
+                "MergeRequestCommentGitlabEvent",
+                AddPullRequestDbTrigger,
+            ),
+            pytest.param(
+                "PullRequestCommentPagureEvent",
+                AddPullRequestDbTrigger,
+            ),
+            pytest.param(
+                "PullRequestFlagPagureEvent",
+                AddPullRequestDbTrigger,
+            ),
+            pytest.param(
+                "CheckRerunPullRequestEvent",
+                AddPullRequestDbTrigger,
+            ),
+            pytest.param(
+                "PushGitHubEvent",
+                AddBranchPushDbTrigger,
+            ),
+            pytest.param(
+                "PushGitlabEvent",
+                AddBranchPushDbTrigger,
+            ),
+            pytest.param(
+                "PushPagureEvent",
+                AddBranchPushDbTrigger,
+            ),
+            pytest.param(
+                "CheckRerunCommitEvent",
+                AddBranchPushDbTrigger,
+            ),
+            pytest.param(
+                "ReleaseEvent",
+                AddReleaseDbTrigger,
+            ),
+            pytest.param(
+                "CheckRerunReleaseEvent",
+                AddReleaseDbTrigger,
+            ),
+            pytest.param(
+                "IssueCommentEvent",
+                AddIssueDbTrigger,
+            ),
+            pytest.param(
+                "IssueCommentGitlabEvent",
+                AddIssueDbTrigger,
+            ),
+            pytest.param(
+                "SomeRandomNonExistingEvent",
+                None,
+            ),
+            pytest.param(
+                "Event",
+                None,
+            ),
+            pytest.param(
+                "AbstractCoprBuildEvent",
+                None,
+            ),
+            pytest.param(
+                "TestingFarmResultsEvent",
+                None,
+            ),
+            pytest.param(
+                "CheckRerunEvent",
+                None,
+            ),
+            pytest.param(
+                "AbstractKojiEvent",
+                None,
+            ),
+        ],
+    )
+    def test_get_original_add_db_trigger_mixin(self, event_type, db_trigger_mixin):
+        result = EventData._get_db_trigger_class(flexmock(event_type=event_type))
+
+        if db_trigger_mixin is None:
+            assert result is None
+        else:
+            print(result)
+            print(db_trigger_mixin)
+            assert type(result) == type(db_trigger_mixin)
+
+    @pytest.mark.parametrize(
+        "event_data_args,db_trigger_cls",
+        [
+            pytest.param(
+                {
+                    "tag_name": "tag",
+                    "repo_namespace": "namespace",
+                    "repo_name": "repo",
+                    "project_url": "some_url",
+                    "commit_sha": "12345",
+                },
+                AddReleaseDbTrigger,
+            ),
+            pytest.param(
+                {
+                    "pr_id": 123,
+                    "repo_namespace": "namespace",
+                    "repo_name": "repo",
+                    "project_url": "some_url",
+                },
+                AddPullRequestDbTrigger,
+            ),
+            pytest.param(
+                {
+                    "issue_id": 123,
+                    "repo_namespace": "namespace",
+                    "repo_name": "repo",
+                    "project_url": "some_url",
+                },
+                AddIssueDbTrigger,
+            ),
+            pytest.param(
+                {
+                    "git_ref": "ref",
+                    "repo_namespace": "namespace",
+                    "repo_name": "repo",
+                    "project_url": "some_url",
+                },
+                AddBranchPushDbTrigger,
+            ),
+        ],
+    )
+    def test_recreate_arguments_of_get_or_create_staticmethod(
+        self, event_data_args, db_trigger_cls
+    ):
+        assert (
+            EventData._recreate_arguments_of_get_or_create_staticmethod(
+                flexmock(**event_data_args), db_trigger_cls
+            )
+            == event_data_args
+        )
+
+    @pytest.mark.parametrize(
+        "db_trigger_cls,get_or_create_args",
+        [
+            pytest.param(
+                AddReleaseDbTrigger,
+                {
+                    "tag_name": "tag",
+                    "repo_namespace": "namespace",
+                    "repo_name": "repo",
+                    "project_url": "some_url",
+                    "commit_sha": "12345",
+                },
+            ),
+            pytest.param(
+                AddPullRequestDbTrigger,
+                {
+                    "pr_id": 123,
+                    "repo_namespace": "namespace",
+                    "repo_name": "repo",
+                    "project_url": "some_url",
+                },
+            ),
+            pytest.param(
+                AddIssueDbTrigger,
+                {
+                    "issue_id": 123,
+                    "repo_namespace": "namespace",
+                    "repo_name": "repo",
+                    "project_url": "some_url",
+                },
+            ),
+            pytest.param(
+                AddBranchPushDbTrigger,
+                {
+                    "git_ref": "ref",
+                    "repo_namespace": "namespace",
+                    "repo_name": "repo",
+                    "project_url": "some_url",
+                },
+            ),
+        ],
+    )
+    def test_recreate_original_db_trigger(self, db_trigger_cls, get_or_create_args):
+        mock_event_data_self = flexmock(
+            _get_db_trigger_class=lambda: db_trigger_cls,
+            _recreate_arguments_of_get_or_create_staticmethod=lambda x: get_or_create_args,
+        )
+
+        mock_event_data_self.should_receive("_get_db_trigger_class").and_return(
+            db_trigger_cls
+        )
+        mock_event_data_self.should_receive(
+            "_recreate_arguments_of_get_or_create_staticmethod"
+        ).with_args(db_trigger_cls).and_return(get_or_create_args)
+
+        flexmock(db_trigger_cls)
+        db_trigger_cls.should_receive("get_or_create").with_args(**get_or_create_args)
+
+        EventData._recreate_original_db_trigger(mock_event_data_self)
+
+    def test_event_data_parse_pr(self, github_pr_event):
+        # A db_trigger would be created in the get_dict() call bellow.
+        # We don't need that in this test, so let's mock it out.
+        flexmock(PullRequestGithubEvent)
+        PullRequestGithubEvent.db_trigger = None
+        data = EventData.from_event_dict(github_pr_event.get_dict())
+        assert data.event_type == "PullRequestGithubEvent"
+        assert data.actor == "lbarcziova"
+        assert not data.git_ref
+        assert data.commit_sha == "528b803be6f93e19ca4130bf4976f2800a3004c4"
+        assert data.identifier == "342"
+        assert data.pr_id == 342
