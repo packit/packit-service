@@ -200,7 +200,7 @@ def test_chroot2distro_arch(chroot, distro, arch, use_internal_tf):
         ("rhel-7", "RHEL-7-LatestReleased", True),
         ("rhel-8", "RHEL-8.5.0-Nightly", True),
         ("oraclelinux-7", "Oracle-Linux-7.9", True),
-        ("oraclelinux-8", "Oracle-Linux-8.4", True),
+        ("oraclelinux-8", "Oracle-Linux-8.5", True),
     ],
 )
 def test_distro2compose(distro, compose, use_internal_tf):
