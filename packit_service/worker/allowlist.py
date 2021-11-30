@@ -256,7 +256,7 @@ class Allowlist:
         service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
     ) -> bool:
-        actor_name = event.user_login
+        actor_name = event.actor
         if not actor_name:
             raise KeyError(f"Failed to get login of the actor from {type(event)}")
 
@@ -311,7 +311,7 @@ class Allowlist:
         service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
     ) -> bool:
-        actor_name = event.user_login
+        actor_name = event.actor
         if not actor_name:
             raise KeyError(f"Failed to get login of the actor from {type(event)}")
         project_url = self._strip_protocol_and_add_git(event.project_url)
@@ -377,7 +377,10 @@ class Allowlist:
         }
 
         # Administrators
-        user_login = getattr(event, "user_login", None)
+        user_login = getattr(  # some old events with user_login can still be there
+            event, "user_login", None
+        ) or getattr(event, "actor", None)
+
         if user_login and user_login in service_config.admins:
             logger.info(f"{user_login} is admin, you shall pass.")
             return True

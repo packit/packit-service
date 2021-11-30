@@ -19,14 +19,10 @@ from packit_service.worker.events.event import AbstractCommentEvent
 from packit_service.worker.events import (
     Event,
     EventData,
-    MergeRequestCommentGitlabEvent,
-    PullRequestCommentGithubEvent,
     PullRequestCommentPagureEvent,
     MergeRequestGitlabEvent,
     InstallationEvent,
     CheckRerunEvent,
-    PullRequestGithubEvent,
-    PullRequestPagureEvent,
 )
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.build import CoprBuildJobHelper, KojiBuildJobHelper
@@ -303,18 +299,8 @@ class SteveJobs:
                 if not handler.pre_check():
                     continue
 
-                if isinstance(
-                    event,
-                    (
-                        PullRequestGithubEvent,
-                        PullRequestCommentGithubEvent,
-                        MergeRequestGitlabEvent,
-                        MergeRequestCommentGitlabEvent,
-                        PullRequestCommentPagureEvent,
-                        PullRequestPagureEvent,
-                    ),
-                ) and not handler.check_if_actor_can_run_job_and_report(
-                    actor=event.user_login
+                if event.actor and not handler.check_if_actor_can_run_job_and_report(
+                    actor=event.actor
                 ):
                     # For external contributors, we need to be more careful when running jobs.
                     # This is a handler-specific permission check

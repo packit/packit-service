@@ -267,7 +267,7 @@ class Parser:
             target_repo_name=target_repo_name,
             project_url=https_url,
             commit_sha=commit_sha,
-            user_login=user_login,
+            actor=user_login,
         )
 
     @staticmethod
@@ -627,7 +627,7 @@ class Parser:
             target_repo_namespace=target_repo_namespace,
             target_repo_name=target_repo_name,
             project_url=https_url,
-            user_login=user_login,
+            actor=user_login,
             comment=comment,
             comment_id=comment_id,
         )
@@ -687,6 +687,7 @@ class Parser:
 
         repo_namespace = nested_get(event, "repository", "owner", "login")
         repo_name = nested_get(event, "repository", "name")
+        actor = nested_get(event, "sender", "login")
 
         if not (repo_namespace and repo_name):
             logger.warning("No full name of the repository.")
@@ -720,6 +721,7 @@ class Parser:
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
                 db_trigger=db_trigger,
+                actor=actor,
             )
 
         elif isinstance(db_trigger, ProjectReleaseModel):
@@ -732,6 +734,7 @@ class Parser:
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
                 db_trigger=db_trigger,
+                actor=actor,
             )
 
         elif isinstance(db_trigger, GitBranchModel):
@@ -744,6 +747,7 @@ class Parser:
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
                 db_trigger=db_trigger,
+                actor=actor,
             )
 
         return event

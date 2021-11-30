@@ -33,7 +33,7 @@ class EventData:
     def __init__(
         self,
         event_type: str,
-        user_login: str,
+        actor: str,
         trigger_id: int,
         project_url: str,
         tag_name: Optional[str],
@@ -47,7 +47,7 @@ class EventData:
         targets_override: Optional[List[str]],
     ):
         self.event_type = event_type
-        self.user_login = user_login
+        self.actor = actor
         self.trigger_id = trigger_id
         self.project_url = project_url
         self.tag_name = tag_name
@@ -67,7 +67,8 @@ class EventData:
     @classmethod
     def from_event_dict(cls, event: dict):
         event_type = event.get("event_type")
-        user_login = event.get("user_login")
+        # We used `user_login` in the past.
+        actor = event.get("user_login") or event.get("actor")
         trigger_id = event.get("trigger_id")
         project_url = event.get("project_url")
         tag_name = event.get("tag_name")
@@ -86,7 +87,7 @@ class EventData:
 
         return EventData(
             event_type=event_type,
-            user_login=user_login,
+            actor=actor,
             trigger_id=trigger_id,
             project_url=project_url,
             tag_name=tag_name,
@@ -189,6 +190,7 @@ class EventData:
 
 class Event:
     task_accepted_time: Optional[datetime] = None
+    actor: Optional[str]
 
     def __init__(self, created_at: Union[int, float, str] = None):
         self.created_at: datetime
@@ -290,11 +292,13 @@ class AbstractForgeIndependentEvent(Event):
         created_at: Union[int, float, str] = None,
         project_url=None,
         pr_id: Optional[int] = None,
+        actor: Optional[str] = None,
     ):
         super().__init__(created_at)
         self.project_url = project_url
         self._pr_id = pr_id
         self.fail_when_config_file_missing = False
+        self.actor = actor
 
         # Lazy properties
         self._project: Optional[GitProject] = None
