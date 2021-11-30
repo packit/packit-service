@@ -96,7 +96,8 @@ class TestingFarmHandler(JobHandler):
 
     def pre_check(self) -> bool:
         return not (
-            self.testing_farm_job_helper.skip_build and self.copr_build_comment_event()
+            self.testing_farm_job_helper.skip_build
+            and self.is_copr_build_comment_event()
         )
 
     @property
@@ -136,18 +137,18 @@ class TestingFarmHandler(JobHandler):
                 PullRequestGithubEvent.__name__,
                 MergeRequestGitlabEvent.__name__,
             )
-            or self.copr_build_comment_event()
+            or self.is_copr_build_comment_event()
         )
 
-    def comment_event(self) -> bool:
+    def is_comment_event(self) -> bool:
         return self.data.event_type in (
             PullRequestCommentGithubEvent.__name__,
             MergeRequestCommentGitlabEvent.__name__,
             PullRequestCommentPagureEvent.__name__,
         )
 
-    def copr_build_comment_event(self) -> bool:
-        return self.comment_event() and get_packit_commands_from_comment(
+    def is_copr_build_comment_event(self) -> bool:
+        return self.is_comment_event() and get_packit_commands_from_comment(
             self.data.event_dict.get("comment")
         )[0] in ("build", "copr-build")
 
