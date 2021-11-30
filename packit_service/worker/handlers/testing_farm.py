@@ -94,6 +94,20 @@ class TestingFarmHandler(JobHandler):
         self._db_trigger: Optional[AbstractTriggerDbType] = None
         self._testing_farm_job_helper: Optional[TestingFarmJobHelper] = None
 
+    def check_if_actor_can_run_job_and_report(self, actor: str) -> bool:
+        """
+        The job is not allowed for external contributors when using internal TF.
+        """
+        if self.job_config.metadata.use_internal_tf and not self.project.can_merge_pr(
+            actor
+        ):
+            self.testing_farm_job_helper.report_status_to_tests(
+                description=f"{actor} can't run tests internally",
+                state=BaseCommitStatus.neutral,
+            )
+            return False
+        return True
+
     def pre_check(self) -> bool:
         return not (
             self.testing_farm_job_helper.skip_build
@@ -235,6 +249,7 @@ class TestingFarmHandler(JobHandler):
             failed[target] = result.get("details")
 
     def run(self) -> TaskResults:
+
         # TODO: once we turn handlers into respective celery tasks, we should iterate
         #       here over *all* matching jobs and do them all, not just the first one
         logger.debug(f"Test job config: {self.testing_farm_job_helper.job_tests}")
