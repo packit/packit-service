@@ -343,7 +343,7 @@ class TestEvents:
         assert (
             event_object.project_url == "https://github.com/packit-service/hello-world"
         )
-        assert event_object.user_login == "phracek"
+        assert event_object.actor == "phracek"
         assert event_object.comment == "/packit copr-build"
 
         assert isinstance(event_object.project, GithubProject)
@@ -420,7 +420,7 @@ class TestEvents:
         assert (
             event_object.project_url == "https://github.com/packit-service/hello-world"
         )
-        assert event_object.user_login == "phracek"
+        assert event_object.actor == "phracek"
         assert event_object.comment == ""
 
         assert isinstance(event_object.project, GithubProject)
@@ -462,7 +462,7 @@ class TestEvents:
         )
         assert event_object.base_ref == "master"
         assert event_object.project_url == "https://github.com/packit-service/packit"
-        assert event_object.user_login == "phracek"
+        assert event_object.actor == "phracek"
         assert event_object.comment == "/packit propose-downstream"
 
         assert isinstance(event_object.project, GithubProject)
@@ -1014,6 +1014,7 @@ class TestEvents:
         ).once()
         assert event_object.package_config
         assert event_object.targets_override == {"fedora-rawhide-x86_64"}
+        assert event_object.actor == "lbarcziova"
 
     def test_parse_check_rerun_pull_request(self, check_rerun):
         trigger = flexmock(JobTriggerModel, trigger_id=1234)
@@ -1038,6 +1039,7 @@ class TestEvents:
         )
         assert event_object.check_name_job == "testing-farm"
         assert event_object.check_name_target == "fedora-rawhide-x86_64"
+        assert event_object.actor == "lbarcziova"
 
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
@@ -1075,6 +1077,7 @@ class TestEvents:
         assert event_object.check_name_job == "testing-farm"
         assert event_object.check_name_target == "fedora-rawhide-x86_64"
         assert event_object.targets_override == {"fedora-rawhide-x86_64"}
+        assert event_object.actor == "lbarcziova"
 
 
 class TestCentOSEventParser:
@@ -1361,7 +1364,7 @@ def test_event_data_parse_pr(github_pr_event):
     PullRequestGithubEvent.db_trigger = None
     data = EventData.from_event_dict(github_pr_event.get_dict())
     assert data.event_type == "PullRequestGithubEvent"
-    assert data.user_login == "lbarcziova"
+    assert data.actor == "lbarcziova"
     assert not data.git_ref
     assert data.commit_sha == "528b803be6f93e19ca4130bf4976f2800a3004c4"
     assert data.identifier == "342"

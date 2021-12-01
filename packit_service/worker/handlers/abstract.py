@@ -342,6 +342,15 @@ class JobHandler(Handler):
             [s for c in cls.__subclasses__() for s in c.get_all_subclasses()]
         )
 
+    def check_if_actor_can_run_job_and_report(self, actor: str) -> bool:
+        """
+        Here, handlers can specify additional check of permissions for a given user
+        by overriding this method.
+
+        In case of False, we expect the method provides a feedback to the user.
+        """
+        return True
+
     def run_job(self):
         """
         If pre-check succeeds, run the job for the specific handler.

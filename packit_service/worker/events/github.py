@@ -93,7 +93,7 @@ class PullRequestGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         target_repo_name: str,
         project_url: str,
         commit_sha: str,
-        user_login: str,
+        actor: str,
     ):
         super().__init__(project_url=project_url, pr_id=pr_id)
         self.action = action
@@ -103,7 +103,7 @@ class PullRequestGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         self.target_repo_namespace = target_repo_namespace
         self.target_repo_name = target_repo_name
         self.commit_sha = commit_sha
-        self.user_login = user_login
+        self.actor = actor
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
 
@@ -129,7 +129,7 @@ class PullRequestCommentGithubEvent(
         target_repo_namespace: str,
         target_repo_name: str,
         project_url: str,
-        user_login: str,
+        actor: str,
         comment: str,
         comment_id: int,
         commit_sha: Optional[str] = None,
@@ -147,7 +147,7 @@ class PullRequestCommentGithubEvent(
         self.base_ref = base_ref
         self.target_repo_namespace = target_repo_namespace
         self.target_repo_name = target_repo_name
-        self.user_login = user_login
+        self.actor = actor
         self.comment = comment
         self.comment_id = comment_id
         self.identifier = str(pr_id)
@@ -192,7 +192,7 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractCommentEvent, AbstractGithubE
         repo_name: str,
         target_repo: str,
         project_url: str,
-        user_login: str,
+        actor: str,
         comment: str,
         comment_id: int,
         tag_name: str = "",
@@ -211,7 +211,7 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractCommentEvent, AbstractGithubE
         self.base_ref = base_ref
         self._tag_name = tag_name
         self.target_repo = target_repo
-        self.user_login = user_login
+        self.actor = actor
         self.comment = comment
         self.comment_id = comment_id
         self.identifier = str(issue_id)
@@ -258,6 +258,7 @@ class CheckRerunEvent(AbstractGithubEvent):
         repo_name: str,
         db_trigger: Union[PullRequestModel, GitBranchModel, ProjectReleaseModel],
         commit_sha: str,
+        actor: str,
         pr_id: Optional[int] = None,
     ):
         super().__init__(project_url=project_url, pr_id=pr_id)
@@ -266,6 +267,7 @@ class CheckRerunEvent(AbstractGithubEvent):
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
         self.commit_sha = commit_sha
+        self.actor = actor
         self._db_trigger = db_trigger
 
     @property
@@ -297,6 +299,7 @@ class CheckRerunCommitEvent(CheckRerunEvent):
         check_name_job: str,
         check_name_target: str,
         db_trigger,
+        actor: str,
     ):
         super().__init__(
             check_name_job=check_name_job,
@@ -306,6 +309,7 @@ class CheckRerunCommitEvent(CheckRerunEvent):
             repo_name=repo_name,
             db_trigger=db_trigger,
             commit_sha=commit_sha,
+            actor=actor,
         )
         self.identifier = git_ref
         self.git_ref = git_ref
@@ -324,6 +328,7 @@ class CheckRerunPullRequestEvent(CheckRerunEvent):
         check_name_job: str,
         check_name_target: str,
         db_trigger,
+        actor: str,
     ):
         super().__init__(
             check_name_job=check_name_job,
@@ -334,6 +339,7 @@ class CheckRerunPullRequestEvent(CheckRerunEvent):
             db_trigger=db_trigger,
             commit_sha=commit_sha,
             pr_id=pr_id,
+            actor=actor,
         )
         self.identifier = str(pr_id)
         self.git_ref = None
@@ -352,6 +358,7 @@ class CheckRerunReleaseEvent(CheckRerunEvent):
         check_name_job: str,
         check_name_target: str,
         db_trigger,
+        actor: str,
     ):
         super().__init__(
             check_name_job=check_name_job,
@@ -361,6 +368,7 @@ class CheckRerunReleaseEvent(CheckRerunEvent):
             repo_name=repo_name,
             db_trigger=db_trigger,
             commit_sha=commit_sha,
+            actor=actor,
         )
         self.tag_name = tag_name
         self.git_ref = tag_name
@@ -383,6 +391,7 @@ class InstallationEvent(Event):
     ):
         super().__init__(created_at)
         self.installation_id = installation_id
+        self.actor = account_login
         # account == namespace (user/organization) into which the app has been installed
         self.account_login = account_login
         self.account_id = account_id

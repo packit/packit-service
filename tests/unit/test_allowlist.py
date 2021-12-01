@@ -245,7 +245,7 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 target_repo_namespace="foo",
                 target_repo_name="bar",
                 project_url="https://github.com/foo/bar",
-                user_login="bar",
+                actor="bar",
                 comment="",
                 comment_id=0,
             ),
@@ -260,7 +260,7 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 repo_name="bar",
                 target_repo="",
                 project_url="https://github.com/foo/bar",
-                user_login="baz",
+                actor="baz",
                 comment="",
                 comment_id=0,
             ),
@@ -277,7 +277,7 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 target_repo_namespace="fero",
                 target_repo_name="dwm.git",
                 project_url="https://github.com/fero/dwm",
-                user_login="lojzo",
+                actor="lojzo",
                 comment="",
                 comment_id=0,
             ),
@@ -292,7 +292,7 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 repo_name="glibc",
                 target_repo="",
                 project_url="https://gitlab.com/packit-service/src/glibc",
-                user_login="lojzo",
+                actor="lojzo",
                 comment="",
                 comment_id=0,
             ),
@@ -312,7 +312,7 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
                 target_repo_namespace="banned_namespace_again",
                 target_repo_name="some_repo",
                 project_url="https://github.com/banned_namespace_again/some_repo",
-                user_login="admin",
+                actor="admin",
                 comment="",
                 comment_id=0,
             ),
@@ -325,7 +325,7 @@ def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca
 def test_check_and_report_calls_method(allowlist, event, mocked_model, approved):
     gp = GitProject("", GitService(), "")
 
-    flexmock(gp).should_receive("can_merge_pr").with_args(event.user_login).and_return(
+    flexmock(gp).should_receive("can_merge_pr").with_args(event.actor).and_return(
         approved
     )
     mocked_pr_or_issue = flexmock(author=None)
@@ -376,7 +376,7 @@ def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]
                 "target_repo_name": repository,
                 "project_url": f"https://{forge}/{namespace}/{repository}",
                 "commit_sha": "",
-                "user_login": "login",
+                "actor": "login",
                 "base_ref": "",
             },
         ),
@@ -391,7 +391,7 @@ def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]
                 "target_repo_namespace": namespace,
                 "target_repo_name": repository,
                 "project_url": f"https://{forge}/{namespace}/{repository}",
-                "user_login": "login",
+                "actor": "login",
                 "comment": "",
                 "comment_id": 1,
             },
@@ -405,7 +405,7 @@ def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]
                 "repo_name": repository,
                 "target_repo": "",
                 "project_url": f"https://{forge}/{namespace}/{repository}",
-                "user_login": "login",
+                "actor": "login",
                 "comment": "",
                 "comment_id": 1,
             },
@@ -421,7 +421,7 @@ def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]
                 "target_repo_namespace": namespace,
                 "target_repo_name": repository,
                 "project_url": f"https://{forge}/{namespace}/{repository}",
-                "user_login": "admin",
+                "actor": "admin",
                 "comment": "",
                 "comment_id": 1,
             },

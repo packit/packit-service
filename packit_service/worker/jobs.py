@@ -299,6 +299,15 @@ class SteveJobs:
                 if not handler.pre_check():
                     continue
 
+                if event.actor and not handler.check_if_actor_can_run_job_and_report(
+                    actor=event.actor
+                ):
+                    # For external contributors, we need to be more careful when running jobs.
+                    # This is a handler-specific permission check
+                    # for a user who trigger the action on a PR.
+                    # e.g. We don't allow using internal TF for external contributors.
+                    continue
+
                 if isinstance(
                     handler, (CoprBuildHandler, KojiBuildHandler, TestingFarmHandler)
                 ):

@@ -122,10 +122,8 @@ class KojiBuildHandler(JobHandler):
                 return False
 
         if self.data.event_type == PullRequestGithubEvent.__name__:
-            user_can_merge_pr = self.project.can_merge_pr(self.data.user_login)
-            if not (
-                user_can_merge_pr or self.data.user_login in self.service_config.admins
-            ):
+            user_can_merge_pr = self.project.can_merge_pr(self.data.actor)
+            if not (user_can_merge_pr or self.data.actor in self.service_config.admins):
                 self.koji_build_helper.report_status_to_all(
                     description=PERMISSIONS_ERROR_WRITE_OR_ADMIN,
                     state=BaseCommitStatus.neutral,
