@@ -215,6 +215,7 @@ def test_copr_build_end(
         description="RPMs were built successfully.",
         url=url,
         check_names=CoprBuildJobHelper.get_build_check(copr_build_end["chroot"]),
+        markdown_content=None,
     ).once()
 
     # no test job defined => testing farm should be skipped
@@ -282,6 +283,7 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
         description="RPMs were built successfully.",
         url=url,
         check_names=CoprBuildJobHelper.get_build_check(copr_build_end["chroot"]),
+        markdown_content=None,
     ).once()
 
     # skip testing farm
@@ -338,6 +340,7 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
         description="RPMs were built successfully.",
         url=url,
         check_names=CoprBuildJobHelper.get_build_check(copr_build_end["chroot"]),
+        markdown_content=None,
     ).once()
 
     # skip testing farm
@@ -426,6 +429,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         description="RPMs were built successfully.",
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
+        markdown_content=None,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -433,6 +437,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         description="RPMs were built successfully.",
         url=url,
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
+        markdown_content=None,
     ).once()
 
     payload = {
@@ -499,6 +504,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         description="Build succeeded. Submitting the tests ...",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
+        markdown_content=None,
     ).once()
 
     flexmock(GithubProject).should_receive("get_web_url").and_return(
@@ -521,6 +527,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         description="Tests have been submitted ...",
         url="https://dashboard.localhost/results/testing-farm/5",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").twice()
 
@@ -612,6 +619,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         description="RPMs were built successfully.",
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
+        markdown_content=None,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -619,6 +627,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         description="RPMs were built successfully.",
         url=url,
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
+        markdown_content=None,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
@@ -638,12 +647,14 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         description="Build succeeded. Submitting the tests ...",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(StatusReporter).should_receive("report").with_args(
         state=BaseCommitStatus.failure,
         description="some error",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
+        markdown_content=None,
     ).once()
 
     flexmock(Signature).should_receive("apply_async").twice()
@@ -731,6 +742,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         description="RPMs were built successfully.",
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
+        markdown_content=None,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -738,6 +750,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         description="RPMs were built successfully.",
         url=url,
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
+        markdown_content=None,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
@@ -759,12 +772,14 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         description="Build succeeded. Submitting the tests ...",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(StatusReporter).should_receive("report").with_args(
         state=BaseCommitStatus.failure,
         description="Failed to submit tests: some text error",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
+        markdown_content=None,
     ).once()
 
     flexmock(Signature).should_receive("apply_async").twice()
@@ -827,6 +842,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
         description="RPM build is in progress...",
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
+        markdown_content=None,
     ).once()
 
     flexmock(Signature).should_receive("apply_async").once()
@@ -874,6 +890,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
         description="RPM build is in progress...",
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
+        markdown_content=None,
     ).never()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -881,6 +898,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
         description="RPM build is in progress...",
         url=url,
         check_names=TestingFarmJobHelper.get_test_check(copr_build_start["chroot"]),
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()
@@ -927,6 +945,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
         description="RPMs were built successfully.",
         url=url,
         check_names=CoprBuildJobHelper.get_build_check(copr_build_end["chroot"]),
+        markdown_content=None,
     ).once()
 
     # skip testing farm
@@ -975,6 +994,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
         description="RPM build is in progress...",
         url=url,
         check_names="production-build:rawhide",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()
@@ -1034,6 +1054,7 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
         description="RPMs were built successfully.",
         url=url,
         check_names="production-build:rawhide",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()

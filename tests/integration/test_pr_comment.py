@@ -875,6 +875,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         description="Submitting the tests ...",
         check_names="testing-farm:fedora-rawhide-x86_64",
         url="",
+        markdown_content=None,
     ).once()
 
     flexmock(GithubProject).should_receive("get_web_url").and_return(
@@ -899,6 +900,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         state=BaseCommitStatus.running,
         url="https://dashboard.localhost/results/testing-farm/5",
         check_names="testing-farm:fedora-rawhide-x86_64",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
 

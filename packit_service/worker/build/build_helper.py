@@ -464,6 +464,7 @@ class BaseBuildJobHelper:
         description: str,
         url: str = "",
         check_names: Union[str, list, None] = None,
+        markdown_content: str = None,
     ) -> None:
         """
         The status reporting should be done through this method
@@ -492,34 +493,60 @@ class BaseBuildJobHelper:
             state=state,
             url=url,
             check_names=check_names,
+            markdown_content=markdown_content,
         )
 
     def report_status_to_all(
-        self, description: str, state: BaseCommitStatus, url: str = ""
+        self,
+        description: str,
+        state: BaseCommitStatus,
+        url: str = "",
+        markdown_content: str = None,
     ) -> None:
-        self.report_status_to_build(description, state, url)
-        self.report_status_to_tests(description, state, url)
+        self.report_status_to_build(
+            description=description,
+            state=state,
+            url=url,
+            markdown_content=markdown_content,
+        )
+        self.report_status_to_tests(
+            description=description,
+            state=state,
+            url=url,
+            markdown_content=markdown_content,
+        )
 
-    def report_status_to_build(self, description, state, url: str = "") -> None:
+    def report_status_to_build(
+        self, description, state, url: str = "", markdown_content: str = None
+    ) -> None:
         if self.job_build:
             self._report(
                 description=description,
                 state=state,
                 url=url,
                 check_names=self.build_check_names,
+                markdown_content=markdown_content,
             )
 
-    def report_status_to_tests(self, description, state, url: str = "") -> None:
+    def report_status_to_tests(
+        self, description, state, url: str = "", markdown_content: str = None
+    ) -> None:
         if self.job_tests:
             self._report(
                 description=description,
                 state=state,
                 url=url,
                 check_names=self.test_check_names,
+                markdown_content=markdown_content,
             )
 
     def report_status_to_build_for_chroot(
-        self, description, state, url: str = "", chroot: str = ""
+        self,
+        description,
+        state,
+        url: str = "",
+        chroot: str = "",
+        markdown_content: str = None,
     ) -> None:
         if self.job_build and chroot in self.build_targets:
             cs = self.get_build_check(chroot)
@@ -528,10 +555,16 @@ class BaseBuildJobHelper:
                 state=state,
                 url=url,
                 check_names=cs,
+                markdown_content=markdown_content,
             )
 
     def report_status_to_test_for_chroot(
-        self, description, state, url: str = "", chroot: str = ""
+        self,
+        description,
+        state,
+        url: str = "",
+        chroot: str = "",
+        markdown_content: str = None,
     ) -> None:
         if self.job_tests and chroot in self.tests_targets:
             self._report(
@@ -539,13 +572,31 @@ class BaseBuildJobHelper:
                 state=state,
                 url=url,
                 check_names=self.get_test_check(chroot),
+                markdown_content=markdown_content,
             )
 
     def report_status_to_all_for_chroot(
-        self, description, state, url: str = "", chroot: str = ""
+        self,
+        description,
+        state,
+        url: str = "",
+        chroot: str = "",
+        markdown_content: str = None,
     ):
-        self.report_status_to_build_for_chroot(description, state, url, chroot)
-        self.report_status_to_test_for_chroot(description, state, url, chroot)
+        self.report_status_to_build_for_chroot(
+            description=description,
+            state=state,
+            url=url,
+            chroot=chroot,
+            markdown_content=markdown_content,
+        )
+        self.report_status_to_test_for_chroot(
+            description=description,
+            state=state,
+            url=url,
+            chroot=chroot,
+            markdown_content=markdown_content,
+        )
 
     def run_build(
         self, target: Optional[str] = None

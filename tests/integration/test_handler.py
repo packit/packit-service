@@ -168,6 +168,7 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
         check_name="production-build:bright-future",
         url=KOJI_PRODUCTION_BUILDS_ISSUE,
         links_to_external_services=None,
+        markdown_content=None,
     ).and_return().once()
     flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
     koji_build_handler = KojiBuildHandler(

@@ -239,6 +239,7 @@ def test_check_rerun_pr_copr_build_handler(
         check_name="rpm-build:fedora-rawhide-x86_64",
         url="",
         links_to_external_services=None,
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -297,6 +298,7 @@ def test_check_rerun_pr_testing_farm_handler(
         check_name="testing-farm:fedora-rawhide-x86_64",
         url="",
         links_to_external_services=None,
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -350,6 +352,7 @@ def test_check_rerun_pr_koji_build_handler(
         check_name="production-build:f34",
         url="",
         links_to_external_services=None,
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -404,6 +407,7 @@ def test_check_rerun_push_copr_build_handler(
         check_name="rpm-build:fedora-rawhide-x86_64",
         url="",
         links_to_external_services=None,
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -462,6 +466,7 @@ def test_check_rerun_push_testing_farm_handler(
         check_name="testing-farm:fedora-rawhide-x86_64",
         url="",
         links_to_external_services=None,
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -515,6 +520,7 @@ def test_check_rerun_push_koji_build_handler(
         check_name="production-build:f34",
         url="",
         links_to_external_services=None,
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -569,6 +575,7 @@ def test_check_rerun_release_copr_build_handler(
         check_name="rpm-build:fedora-rawhide-x86_64",
         url="",
         links_to_external_services=None,
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -623,6 +630,7 @@ def test_check_rerun_release_koji_build_handler(
         check_name="production-build:f34",
         url="",
         links_to_external_services=None,
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()

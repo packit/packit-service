@@ -559,6 +559,7 @@ def test_check_and_report(
                 state=BaseCommitStatus.neutral,
                 url=FAQ_URL,
                 check_names=[EXPECTED_TESTING_FARM_CHECK_NAME],
+                markdown_content=None,
             ).once()
         flexmock(packit_service.worker.build.copr_build).should_receive(
             "get_valid_build_targets"
