@@ -122,6 +122,7 @@ class StatusReporter:
         check_name: str,
         url: str = "",
         links_to_external_services: Optional[Dict[str, str]] = None,
+        markdown_content: str = None,
     ):
         raise NotImplementedError()
 
@@ -132,6 +133,7 @@ class StatusReporter:
         url: str = "",
         links_to_external_services: Optional[Dict[str, str]] = None,
         check_names: Union[str, list, None] = None,
+        markdown_content: str = None,
     ) -> None:
         """
         Set commit check status.
@@ -147,6 +149,9 @@ class StatusReporter:
 
                 Defaults to None
             check_names: Those in bold.
+
+                Defaults to None
+            markdown_content: In GitHub checks, we can provide a markdown content.
 
                 Defaults to None
 
@@ -169,6 +174,7 @@ class StatusReporter:
                 check_name=check,
                 url=url,
                 links_to_external_services=links_to_external_services,
+                markdown_content=markdown_content,
             )
 
     def _add_commit_comment_with_status(
@@ -238,11 +244,16 @@ class StatusReporterPagure(StatusReporter):
         check_name: str,
         url: str = "",
         links_to_external_services: Optional[Dict[str, str]] = None,
+        markdown_content: str = None,
     ):
         state_to_set = self.get_commit_status(state)
         logger.debug(
             f"Setting Pagure status '{state_to_set.name}' for check '{check_name}': {description}"
         )
+        if markdown_content:
+            logger.debug(
+                f"Markdown content not supported in {self.__class__.__name__} and is ignored."
+            )
 
         # Required because Pagure API doesn't accept empty url.
         if not url:
@@ -269,11 +280,17 @@ class StatusReporterGitlab(StatusReporter):
         check_name: str,
         url: str = "",
         links_to_external_services: Optional[Dict[str, str]] = None,
+        markdown_content: str = None,
     ):
         state_to_set = self.get_commit_status(state)
         logger.debug(
             f"Setting Gitlab status '{state_to_set.name}' for check '{check_name}': {description}"
         )
+        if markdown_content:
+            logger.debug(
+                f"Markdown content not supported in {self.__class__.__name__} and is ignored."
+            )
+
         try:
             self.project_with_commit.set_commit_status(
                 self.commit_sha, state_to_set, url, description, check_name, trim=True
@@ -311,11 +328,16 @@ class StatusReporterGithubStatuses(StatusReporter):
         check_name: str,
         url: str = "",
         links_to_external_services: Optional[Dict[str, str]] = None,
+        markdown_content: str = None,
     ):
         state_to_set = self.get_commit_status(state)
         logger.debug(
             f"Setting Github status '{state_to_set.name}' for check '{check_name}': {description}"
         )
+        if markdown_content:
+            logger.debug(
+                f"Markdown content not supported in {self.__class__.__name__} and is ignored."
+            )
         try:
             self.project_with_commit.set_commit_status(
                 self.commit_sha, state_to_set, url, description, check_name, trim=True
@@ -357,14 +379,16 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
         check_name: str,
         url: str = "",
         links_to_external_services: Optional[Dict[str, str]] = None,
+        markdown_content: str = None,
     ):
+        markdown_content = markdown_content or ""
         state_to_set = self.get_check_run(state)
         logger.debug(
             f"Setting Github status check '{state_to_set.name}' for check '{check_name}':"
             f" {description}"
         )
 
-        summary = self._create_table(url, links_to_external_services)
+        summary = self._create_table(url, links_to_external_services) + markdown_content
 
         try:
             status = (
