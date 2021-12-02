@@ -4,7 +4,7 @@
 from logging import getLogger
 from typing import Dict, Optional
 
-from ogr.abstract import GitProject
+from ogr.abstract import Comment, GitProject
 
 from packit_service.service.db_triggers import (
     AddBranchPushDbTrigger,
@@ -64,9 +64,16 @@ class PullRequestCommentPagureEvent(
         project_url: str,
         user_login: str,
         comment: str,
+        comment_id: int,
         commit_sha: str = "",
+        comment_object: Optional[Comment] = None,
     ):
-        super().__init__(project_url=project_url, pr_id=pr_id, comment=comment)
+        super().__init__(
+            pr_id=pr_id,
+            project_url=project_url,
+            comment=comment,
+            comment_object=comment_object,
+        )
         self.action = action
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name

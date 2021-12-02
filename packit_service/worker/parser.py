@@ -1277,8 +1277,10 @@ class CentosEventParser:
         # location differs based on topic (pull-request.comment.edited/pull-request.comment.added)
         if "edited" in event["git_topic"]:
             comment = event["comment"]["comment"]
+            comment_id = event["comment"]["id"]
         elif "added" in event["git_topic"]:
             comment = event["pullrequest"]["comments"][-1]["comment"]
+            comment_id = event["pullrequest"]["comments"][-1]["id"]
         else:
             raise ValueError(
                 f"Unknown comment location in response for {event['git_topic']}"
@@ -1296,6 +1298,7 @@ class CentosEventParser:
             commit_sha=commit_sha,
             user_login=pagure_login,
             comment=comment,
+            comment_id=comment_id,
         )
 
     @staticmethod
