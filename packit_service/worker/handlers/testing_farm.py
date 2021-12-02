@@ -104,6 +104,8 @@ class TestingFarmHandler(JobHandler):
             self.testing_farm_job_helper.report_status_to_tests(
                 description=f"{actor} can't run tests internally",
                 state=BaseCommitStatus.neutral,
+                markdown_content="*As a project maintainer, you can trigger the test job manually "
+                "via `/packit test` comment.*",
             )
             return False
         return True

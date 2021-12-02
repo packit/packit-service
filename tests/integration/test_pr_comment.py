@@ -1062,6 +1062,8 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
         description="phracek can't run tests internally",
         state=BaseCommitStatus.neutral,
+        markdown_content="*As a project maintainer, "
+        "you can trigger the test job manually via `/packit test` comment.*",
     ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
