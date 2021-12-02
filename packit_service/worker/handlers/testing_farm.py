@@ -30,6 +30,7 @@ from packit_service.worker.events import (
     PushGitHubEvent,
     PushGitlabEvent,
     MergeRequestGitlabEvent,
+    AbstractPRCommentEvent,
 )
 from packit_service.service.urls import (
     get_testing_farm_info_url,
@@ -62,9 +63,7 @@ logger = logging.getLogger(__name__)
 @reacts_to(PushGitHubEvent)
 @reacts_to(PushGitlabEvent)
 @reacts_to(MergeRequestGitlabEvent)
-@reacts_to(PullRequestCommentGithubEvent)
-@reacts_to(MergeRequestCommentGitlabEvent)
-@reacts_to(PullRequestCommentPagureEvent)
+@reacts_to(AbstractPRCommentEvent)
 @reacts_to(CheckRerunPullRequestEvent)
 @reacts_to(CheckRerunCommitEvent)
 @configured_as(job_type=JobType.tests)

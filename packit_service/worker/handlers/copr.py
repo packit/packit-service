@@ -26,10 +26,7 @@ from packit_service.worker.events import (
     CoprBuildEndEvent,
     AbstractCoprBuildEvent,
     CoprBuildStartEvent,
-    MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
-    PullRequestCommentGithubEvent,
-    PullRequestCommentPagureEvent,
     PullRequestGithubEvent,
     PushGitHubEvent,
     PushGitlabEvent,
@@ -38,6 +35,7 @@ from packit_service.worker.events import (
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
+    AbstractPRCommentEvent,
 )
 from packit_service.service.urls import get_copr_build_info_url, get_srpm_build_info_url
 from packit_service.utils import dump_job_config, dump_package_config
@@ -68,9 +66,7 @@ logger = logging.getLogger(__name__)
 @reacts_to(PushGitHubEvent)
 @reacts_to(PushGitlabEvent)
 @reacts_to(MergeRequestGitlabEvent)
-@reacts_to(PullRequestCommentGithubEvent)
-@reacts_to(MergeRequestCommentGitlabEvent)
-@reacts_to(PullRequestCommentPagureEvent)
+@reacts_to(AbstractPRCommentEvent)
 @reacts_to(CheckRerunPullRequestEvent)
 @reacts_to(CheckRerunCommitEvent)
 @reacts_to(CheckRerunReleaseEvent)

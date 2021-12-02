@@ -8,15 +8,15 @@ from ogr.abstract import GitProject, Comment
 from packit_service.config import ServiceConfig
 from packit_service.models import AbstractTriggerDbType, PullRequestModel
 from packit_service.service.db_triggers import (
-    AddIssueDbTrigger,
     AddPullRequestDbTrigger,
     AddBranchPushDbTrigger,
 )
 from packit_service.worker.events.enums import GitlabEventAction
-from packit_service.worker.events.event import (
-    AbstractForgeIndependentEvent,
-    AbstractCommentEvent,
+from packit_service.worker.events.comment import (
+    AbstractIssueCommentEvent,
+    AbstractPRCommentEvent,
 )
+from packit_service.worker.events.event import AbstractForgeIndependentEvent
 
 
 class AbstractGitlabEvent(AbstractForgeIndependentEvent):
@@ -99,9 +99,7 @@ class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
         )
 
 
-class MergeRequestCommentGitlabEvent(
-    AddPullRequestDbTrigger, AbstractCommentEvent, AbstractGitlabEvent
-):
+class MergeRequestCommentGitlabEvent(AbstractPRCommentEvent, AbstractGitlabEvent):
     def __init__(
         self,
         action: GitlabEventAction,
@@ -114,37 +112,30 @@ class MergeRequestCommentGitlabEvent(
         project_url: str,
         username: str,
         comment: str,
-        commit_sha: str,
         comment_id: int,
+        commit_sha: str,
         comment_object: Optional[Comment] = None,
     ):
         super().__init__(
             project_url=project_url,
             pr_id=object_iid,
             comment=comment,
+            comment_id=comment_id,
+            commit_sha=commit_sha,
             comment_object=comment_object,
         )
         self.action = action
         self.object_id = object_id
-        self.object_iid = object_iid
-        self.source_repo_namespace = source_repo_namespace
         self.source_repo_name = source_repo_name
+        self.source_repo_namespace = source_repo_namespace
         self.target_repo_namespace = target_repo_namespace
         self.target_repo_name = target_repo_name
-        self.project_url = project_url
         self.user_login = username
-        self.comment = comment
-        self.commit_sha = commit_sha
         self.identifier = str(object_iid)
-        self.comment_id = comment_id
-
-        # Lazy properties
-        self._comment_object = comment_object
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
-        result.pop("_comment_object")
         return result
 
     def get_base_project(self) -> GitProject:
@@ -153,18 +144,8 @@ class MergeRequestCommentGitlabEvent(
             repo=self.source_repo_name,
         )
 
-    @property
-    def comment_object(self) -> Optional[Comment]:
-        if not self._comment_object:
-            self._comment_object = self.project.get_pr(self.object_iid).get_comment(
-                self.comment_id
-            )
-        return self._comment_object
 
-
-class IssueCommentGitlabEvent(
-    AddIssueDbTrigger, AbstractCommentEvent, AbstractGitlabEvent
-):
+class IssueCommentGitlabEvent(AbstractIssueCommentEvent, AbstractGitlabEvent):
     def __init__(
         self,
         action: GitlabEventAction,
@@ -175,51 +156,26 @@ class IssueCommentGitlabEvent(
         username: str,
         comment: str,
         comment_id: int,
+        tag_name: str = "",
         comment_object: Optional[Comment] = None,
     ):
         super().__init__(
-            project_url=project_url, comment=comment, comment_object=comment_object
+            issue_id=issue_id,
+            repo_namespace=repo_namespace,
+            repo_name=repo_name,
+            project_url=project_url,
+            comment=comment,
+            comment_id=comment_id,
+            tag_name=tag_name,
+            comment_object=comment_object,
         )
         self.action = action
-        self.issue_id = issue_id
-        self.repo_namespace = repo_namespace
-        self.repo_name = repo_name
-        self.project_url = project_url
         self.user_login = username
-        self.comment = comment
-        self.comment_id = comment_id
-        self._tag_name = None
-
-        # Lazy properties
-        self._comment_object = comment_object
-
-    @property
-    def tag_name(self):
-        if not self._tag_name:
-            self._tag_name = ""
-            if latest_release := self.project.get_latest_release():
-                self._tag_name = latest_release.tag_name
-        return self._tag_name
-
-    @property
-    def commit_sha(self):
-        return self.tag_name
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
-        result["tag_name"] = self.tag_name
-        result["issue_id"] = self.issue_id
-        result.pop("_comment_object")
         return result
-
-    @property
-    def comment_object(self) -> Optional[Comment]:
-        if not self._comment_object:
-            self._comment_object = self.project.get_issue(self.issue_id).get_comment(
-                self.comment_id
-            )
-        return self._comment_object
 
 
 class PipelineGitlabEvent(AbstractGitlabEvent):

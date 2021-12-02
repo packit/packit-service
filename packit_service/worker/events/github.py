@@ -7,17 +7,19 @@ from ogr.abstract import GitProject, Comment
 
 from packit_service.models import (
     AllowlistStatus,
-    PullRequestModel,
     GitBranchModel,
     ProjectReleaseModel,
+    PullRequestModel,
 )
 from packit_service.service.db_triggers import (
-    AddIssueDbTrigger,
     AddPullRequestDbTrigger,
     AddBranchPushDbTrigger,
     AddReleaseDbTrigger,
 )
-from packit_service.worker.events.event import AbstractCommentEvent
+from packit_service.worker.events.comment import (
+    AbstractPRCommentEvent,
+    AbstractIssueCommentEvent,
+)
 from packit_service.worker.events.enums import (
     IssueCommentAction,
     PullRequestCommentAction,
@@ -94,7 +96,7 @@ class PullRequestGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         project_url: str,
         commit_sha: str,
         actor: str,
-    ):
+    ) -> None:
         super().__init__(project_url=project_url, pr_id=pr_id)
         self.action = action
         self.base_repo_namespace = base_repo_namespace
@@ -116,9 +118,7 @@ class PullRequestGithubEvent(AddPullRequestDbTrigger, AbstractGithubEvent):
         return None  # With Github app, we cannot work with fork repo
 
 
-class PullRequestCommentGithubEvent(
-    AddPullRequestDbTrigger, AbstractCommentEvent, AbstractGithubEvent
-):
+class PullRequestCommentGithubEvent(AbstractPRCommentEvent, AbstractGithubEvent):
     def __init__(
         self,
         action: PullRequestCommentAction,
@@ -134,11 +134,13 @@ class PullRequestCommentGithubEvent(
         comment_id: int,
         commit_sha: Optional[str] = None,
         comment_object: Optional[Comment] = None,
-    ):
+    ) -> None:
         super().__init__(
-            project_url=project_url,
             pr_id=pr_id,
+            project_url=project_url,
             comment=comment,
+            comment_id=comment_id,
+            commit_sha=commit_sha,
             comment_object=comment_object,
         )
         self.action = action
@@ -148,42 +150,19 @@ class PullRequestCommentGithubEvent(
         self.target_repo_namespace = target_repo_namespace
         self.target_repo_name = target_repo_name
         self.actor = actor
-        self.comment = comment
-        self.comment_id = comment_id
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
-
-        # Lazy properties
-        self._commit_sha = commit_sha
-        self._comment_object = comment_object
-
-    @property
-    def commit_sha(self) -> Optional[str]:  # type:ignore
-        # mypy does not like properties
-        if not self._commit_sha:
-            self._commit_sha = self.project.get_pr(pr_id=self.pr_id).head_commit
-        return self._commit_sha
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
-        result["commit_sha"] = self.commit_sha
-        result.pop("_comment_object")
         return result
 
     def get_base_project(self) -> Optional[GitProject]:
         return None  # With Github app, we cannot work with fork repo
 
-    @property
-    def comment_object(self) -> Optional[Comment]:
-        if not self._comment_object:
-            self._comment_object = self.project.get_pr(self.pr_id).get_comment(
-                self.comment_id
-            )
-        return self._comment_object
 
-
-class IssueCommentEvent(AddIssueDbTrigger, AbstractCommentEvent, AbstractGithubEvent):
+class IssueCommentEvent(AbstractIssueCommentEvent, AbstractGithubEvent):
     def __init__(
         self,
         action: IssueCommentAction,
@@ -200,52 +179,27 @@ class IssueCommentEvent(AddIssueDbTrigger, AbstractCommentEvent, AbstractGithubE
             str
         ] = "master",  # default is master when working with issues
         comment_object: Optional[Comment] = None,
-    ):
+    ) -> None:
         super().__init__(
-            project_url=project_url, comment=comment, comment_object=comment_object
+            issue_id=issue_id,
+            repo_namespace=repo_namespace,
+            repo_name=repo_name,
+            project_url=project_url,
+            comment=comment,
+            comment_id=comment_id,
+            tag_name=tag_name,
+            comment_object=comment_object,
         )
         self.action = action
-        self.issue_id = issue_id
-        self.repo_namespace = repo_namespace
-        self.repo_name = repo_name
-        self.base_ref = base_ref
-        self._tag_name = tag_name
-        self.target_repo = target_repo
         self.actor = actor
-        self.comment = comment
-        self.comment_id = comment_id
+        self.base_ref = base_ref
+        self.target_repo = target_repo
         self.identifier = str(issue_id)
-
-        # Lazy properties
-        self._comment_object = comment_object
-
-    @property
-    def tag_name(self):
-        if not self._tag_name:
-            self._tag_name = ""
-            if latest_release := self.project.get_latest_release():
-                self._tag_name = latest_release.tag_name
-        return self._tag_name
-
-    @property
-    def commit_sha(self):
-        return self.tag_name
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["action"] = result["action"].value
-        result["tag_name"] = self.tag_name
-        result["issue_id"] = self.issue_id
-        result.pop("_comment_object")
         return result
-
-    @property
-    def comment_object(self) -> Optional[Comment]:
-        if not self._comment_object:
-            self._comment_object = self.project.get_issue(self.issue_id).get_comment(
-                self.comment_id
-            )
-        return self._comment_object
 
 
 class CheckRerunEvent(AbstractGithubEvent):
