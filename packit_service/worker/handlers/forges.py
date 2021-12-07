@@ -76,8 +76,14 @@ class GithubAppInstallationHandler(JobHandler):
                 title=f"{self.account_type} {self.account_login} needs to be approved.",
                 body=(
                     f"Hi @{self.sender_login}, we need to approve you in "
-                    "order to start using Packit-as-a-Service. Someone from our team will "
-                    "get back to you shortly.\n\n"
+                    "order to start using Packit-as-a-Service. "
+                    "We are now onboarding Fedora contributors who have a valid "
+                    "[Fedora Account System](https://fedoraproject.org/wiki/Account_System) "
+                    "account and have signed "
+                    "[FPCA](https://fedoraproject.org/wiki/Legal"
+                    ":Fedora_Project_Contributor_Agreement). "
+                    "If you have such an account, please, provide it in a comment and "
+                    "we'd be glad to approve you for using the service.\n\n"
                     "For more info, please check out the documentation: "
                     "https://packit.dev/docs/packit-service"
                 ),
