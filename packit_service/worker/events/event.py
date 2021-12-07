@@ -304,6 +304,7 @@ class AbstractForgeIndependentEvent(Event):
         self._project: Optional[GitProject] = None
         self._base_project: Optional[GitProject] = None
         self._package_config: Optional[PackageConfig] = None
+        self._package_config_searched: bool = False
 
     @property
     def project(self):
@@ -319,8 +320,9 @@ class AbstractForgeIndependentEvent(Event):
 
     @property
     def package_config(self):
-        if not self._package_config:
+        if not self._package_config_searched and not self._package_config:
             self._package_config = self.get_package_config()
+            self._package_config_searched = True
         return self._package_config
 
     @property
