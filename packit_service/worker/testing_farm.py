@@ -447,7 +447,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 msg = req.json()["errors"]
                 # specific case, unsupported arch
                 if nested_get(req.json(), "errors", "environments", "0", "arch"):
-                    msg = req.json()["errors"]["environments"][0]["arch"]
+                    msg = req.json()["errors"]["environments"]["0"]["arch"]
             else:
                 msg = f"Failed to submit tests: {req.reason}"
             logger.error(msg)
