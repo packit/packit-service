@@ -18,7 +18,7 @@ from packit_service.worker.events import (
     PullRequestCommentGithubEvent,
     TestingFarmResultsEvent,
     MergeRequestGitlabEvent,
-    KojiBuildEvent,
+    KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     PushGitlabEvent,
     CheckRerunCommitEvent,
@@ -329,7 +329,7 @@ def test_koji_build_scratch_start(
     clean_before_and_after, pr_model, a_koji_build_for_pr, koji_build_scratch_start_dict
 ):
     event_object = Parser.parse_event(koji_build_scratch_start_dict)
-    assert isinstance(event_object, KojiBuildEvent)
+    assert isinstance(event_object, KojiTaskEvent)
 
     assert event_object.build_id == SampleValues.build_id
     assert event_object.state == KojiBuildState.open
@@ -347,7 +347,7 @@ def test_koji_build_scratch_end(
     clean_before_and_after, pr_model, a_koji_build_for_pr, koji_build_scratch_end_dict
 ):
     event_object = Parser.parse_event(koji_build_scratch_end_dict)
-    assert isinstance(event_object, KojiBuildEvent)
+    assert isinstance(event_object, KojiTaskEvent)
 
     assert event_object.build_id == SampleValues.build_id
     assert event_object.state == KojiBuildState.closed

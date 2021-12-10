@@ -17,7 +17,7 @@ from packit_service.models import (
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
 
 
-class KojiBuildEvent(AbstractForgeIndependentEvent):
+class KojiTaskEvent(AbstractForgeIndependentEvent):
     def __init__(
         self,
         build_id: int,
@@ -99,7 +99,7 @@ class KojiBuildEvent(AbstractForgeIndependentEvent):
 
     @classmethod
     def from_event_dict(cls, event: dict):
-        return KojiBuildEvent(
+        return KojiTaskEvent(
             build_id=event.get("build_id"),
             state=KojiBuildState(event.get("state")) if event.get("state") else None,
             old_state=(

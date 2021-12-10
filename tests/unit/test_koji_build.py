@@ -31,7 +31,7 @@ from packit_service.worker.events import (
     PullRequestCommentGithubEvent,
     PushGitHubEvent,
     ReleaseEvent,
-    KojiBuildEvent,
+    KojiTaskEvent,
 )
 from packit_service.service.urls import (
     get_koji_build_info_url,
@@ -596,7 +596,7 @@ def test_koji_build_targets_override(github_pr_event):
     ],
 )
 def test_get_koji_build_logs_url(id_, result):
-    event = KojiBuildEvent(build_id=flexmock(), state=flexmock(), rpm_build_task_id=id_)
+    event = KojiTaskEvent(build_id=flexmock(), state=flexmock(), rpm_build_task_id=id_)
     assert event.get_koji_build_logs_url() == result
 
 
@@ -614,5 +614,5 @@ def test_get_koji_build_logs_url(id_, result):
     ],
 )
 def test_get_koji_rpm_build_web_url(id_, result):
-    event = KojiBuildEvent(build_id=flexmock(), state=flexmock(), rpm_build_task_id=id_)
+    event = KojiTaskEvent(build_id=flexmock(), state=flexmock(), rpm_build_task_id=id_)
     assert event.get_koji_rpm_build_web_url() == result

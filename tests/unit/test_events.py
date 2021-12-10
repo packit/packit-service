@@ -29,7 +29,7 @@ from packit_service.models import (
 )
 from packit_service.worker.events import (
     EventData,
-    KojiBuildEvent,
+    KojiTaskEvent,
     PushPagureEvent,
     TestingFarmResultsEvent,
     AbstractCoprBuildEvent,
@@ -846,7 +846,7 @@ class TestEvents:
 
         event_object = Parser.parse_event(koji_build_scratch_start)
 
-        assert isinstance(event_object, KojiBuildEvent)
+        assert isinstance(event_object, KojiTaskEvent)
         assert event_object.build_id == 45270170
         assert event_object.state == KojiBuildState.open
         assert not event_object.rpm_build_task_id
@@ -884,7 +884,7 @@ class TestEvents:
 
         event_object = Parser.parse_event(koji_build_scratch_end)
 
-        assert isinstance(event_object, KojiBuildEvent)
+        assert isinstance(event_object, KojiTaskEvent)
         assert event_object.build_id == 45270170
         assert event_object.state == KojiBuildState.closed
         assert event_object.rpm_build_task_id == 45270227

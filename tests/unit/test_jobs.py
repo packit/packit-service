@@ -12,7 +12,7 @@ from packit_service.worker.events import (
     CoprBuildEndEvent,
     CoprBuildStartEvent,
     IssueCommentEvent,
-    KojiBuildEvent,
+    KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
     PullRequestCommentGithubEvent,
@@ -270,7 +270,7 @@ from packit_service.worker.jobs import (
             id="config=production_build_for_release&commit&ReleaseEvent",
         ),
         pytest.param(
-            KojiBuildEvent,
+            KojiTaskEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -770,7 +770,7 @@ from packit_service.worker.jobs import (
             "&pull_request&CoprBuildStartEvent",
         ),
         pytest.param(
-            KojiBuildEvent,
+            KojiTaskEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -1750,7 +1750,7 @@ def test_get_handlers_for_check_rerun_event(
         ),
         pytest.param(
             KojiBuildReportHandler,
-            KojiBuildEvent,
+            KojiTaskEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(

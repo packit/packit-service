@@ -19,7 +19,7 @@ from packit_service.worker.events import (
     InstallationEvent,
     IssueCommentEvent,
     IssueCommentGitlabEvent,
-    KojiBuildEvent,
+    KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
     PullRequestCommentGithubEvent,
@@ -45,7 +45,7 @@ UncheckedEvent = Union[
     AbstractCoprBuildEvent,
     TestingFarmResultsEvent,
     InstallationEvent,
-    KojiBuildEvent,
+    KojiTaskEvent,
     CheckRerunEvent,
 ]
 
@@ -356,7 +356,7 @@ class Allowlist:
                 AbstractCoprBuildEvent,
                 TestingFarmResultsEvent,
                 InstallationEvent,
-                KojiBuildEvent,
+                KojiTaskEvent,
                 CheckRerunEvent,
             ): self._check_unchecked_event,
             (

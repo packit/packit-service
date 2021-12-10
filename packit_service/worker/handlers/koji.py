@@ -25,7 +25,7 @@ from packit_service.constants import (
 )
 from packit_service.models import AbstractTriggerDbType, KojiBuildModel
 from packit_service.worker.events import (
-    KojiBuildEvent,
+    KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
     PullRequestCommentGithubEvent,
@@ -143,7 +143,7 @@ class KojiBuildHandler(JobHandler):
 
 
 @configured_as(job_type=JobType.production_build)
-@reacts_to(event=KojiBuildEvent)
+@reacts_to(event=KojiTaskEvent)
 class KojiBuildReportHandler(JobHandler):
     task_name = TaskName.koji_build_report
 
@@ -155,7 +155,7 @@ class KojiBuildReportHandler(JobHandler):
             job_config=job_config,
             event=event,
         )
-        self.koji_event: KojiBuildEvent = KojiBuildEvent.from_event_dict(event)
+        self.koji_event: KojiTaskEvent = KojiTaskEvent.from_event_dict(event)
         self._db_trigger: Optional[AbstractTriggerDbType] = None
         self._build: Optional[KojiBuildModel] = None
 

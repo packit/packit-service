@@ -29,7 +29,7 @@ from packit_service.models import (
 )
 from packit_service.worker.events import (
     AbstractCoprBuildEvent,
-    KojiBuildEvent,
+    KojiTaskEvent,
     CoprBuildStartEvent,
     CoprBuildEndEvent,
     PullRequestPagureEvent,
@@ -85,7 +85,7 @@ class Parser:
             AbstractCoprBuildEvent,
             PushGitHubEvent,
             MergeRequestGitlabEvent,
-            KojiBuildEvent,
+            KojiTaskEvent,
             MergeRequestCommentGitlabEvent,
             IssueCommentGitlabEvent,
             PushGitlabEvent,
@@ -1035,7 +1035,7 @@ class Parser:
         )
 
     @staticmethod
-    def parse_koji_event(event) -> Optional[KojiBuildEvent]:
+    def parse_koji_event(event) -> Optional[KojiTaskEvent]:
         if event.get("topic") != "org.fedoraproject.prod.buildsys.task.state.change":
             return None
 
@@ -1060,7 +1060,7 @@ class Parser:
                 rpm_build_task_id = children.get("id")
                 break
 
-        return KojiBuildEvent(
+        return KojiTaskEvent(
             build_id=build_id,
             state=state_enum,
             old_state=old_state,
