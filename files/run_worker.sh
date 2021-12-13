@@ -12,7 +12,7 @@ mkdir --mode=0700 -p "${PACKIT_HOME}/.ssh"
 pushd "${PACKIT_HOME}/.ssh"
 install -m 0400 /packit-ssh/id_rsa .
 install -m 0400 /packit-ssh/id_rsa.pub .
-install -m 0400 /packit-ssh/config .
+if [[ -f /packit-ssh/config ]]; then install -m 0400 /packit-ssh/config .; fi
 grep -q pkgs.fedoraproject.org known_hosts || ssh-keyscan pkgs.fedoraproject.org >>known_hosts
 popd
 
