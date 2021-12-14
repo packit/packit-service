@@ -11,7 +11,11 @@ from packit_service.worker.events.comment import (
     AbstractPRCommentEvent,
     AbstractIssueCommentEvent,
 )
-from packit_service.worker.events.event import EventData, Event
+from packit_service.worker.events.event import (
+    EventData,
+    Event,
+    AbstractForgeIndependentEvent,
+)
 from packit_service.worker.events.github import (
     InstallationEvent,
     IssueCommentEvent,
@@ -72,4 +76,5 @@ __all__ = [
     AbstractCommentEvent.__name__,
     AbstractPRCommentEvent.__name__,
     AbstractIssueCommentEvent.__name__,
+    AbstractForgeIndependentEvent.__name__,
 ]

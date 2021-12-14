@@ -382,32 +382,33 @@ class AbstractForgeIndependentEvent(Event):
         return package_config
 
     @staticmethod
-    def _filter_failed_models_target(
+    def _filter_failed_models_targets(
         models: Union[
             Optional[Iterable[CoprBuildModel]], Optional[Iterable[TFTTestRunModel]]
         ],
     ) -> Optional[Set[str]]:
-        failed_models_target = set()
+        failed_models_targets = set()
         for model in models:
             if model.status in ["failed", "error"]:
-                failed_models_target.add(model.target)
+                failed_models_targets.add(model.target)
 
-        return failed_models_target if failed_models_target else None
+        return failed_models_targets if failed_models_targets else None
 
     def get_all_tf_failed_targets(self) -> Optional[Set[str]]:
         if self.commit_sha is None:
             return None
 
-        return self._filter_failed_models_target(
+        return self._filter_failed_models_targets(
             models=TFTTestRunModel.get_all_by_commit_target(commit_sha=self.commit_sha)
         )
 
     def get_all_build_failed_targets(self) -> Optional[Set[str]]:
-        # TODO: get rid of project.repo
+        # TODO: get rid of project.repo which is mandatory in `CoprBuildModel.get_all_by`
+        # in this case relevant for us is only commit_sha
         if self.commit_sha is None or self.project.repo is None:
             return None
 
-        return self._filter_failed_models_target(
+        return self._filter_failed_models_targets(
             models=CoprBuildModel.get_all_by(
                 project_name=self.project.repo, commit_sha=self.commit_sha
             )
