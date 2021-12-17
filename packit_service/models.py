@@ -8,7 +8,7 @@ import enum
 import logging
 import os
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import (
     Dict,
     Iterable,
@@ -1260,9 +1260,24 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
                 .slice(first, last)
             )
 
-    def set_url(self, url: str) -> None:
+    @classmethod
+    def get_older_than(cls, delta: timedelta) -> Iterable["SRPMBuildModel"]:
+        """Return builds older than delta, whose logs/artifacts haven't been discarded yet."""
+        delta_ago = datetime.utcnow() - delta
         with get_sa_session() as session:
-            self.url = url
+            return session.query(SRPMBuildModel).filter(
+                SRPMBuildModel.build_submitted_time < delta_ago,
+                SRPMBuildModel.logs.isnot(None),
+            )
+
+    def set_url(self, url: Optional[str]) -> None:
+        with get_sa_session() as session:
+            self.url = null() if url is None else url
+            session.add(self)
+
+    def set_logs(self, logs: Optional[str]) -> None:
+        with get_sa_session() as session:
+            self.logs = null() if logs is None else logs
             session.add(self)
 
     def __repr__(self):

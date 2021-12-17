@@ -1,5 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+from celery.schedules import crontab
 
 import packit_service.constants
 
@@ -18,5 +19,9 @@ beat_schedule = {
     "update-pending-tft-runs": {
         "task": "packit_service.worker.tasks.babysit_pending_tft_runs",
         "schedule": 600.0,
+    },
+    "database-discard-old-stuff": {
+        "task": "packit_service.worker.tasks.periodic_database_cleanup",
+        "schedule": crontab(minute=0, hour=1),  # daily at 1AM
     },
 }
