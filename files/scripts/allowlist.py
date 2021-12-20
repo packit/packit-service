@@ -55,7 +55,7 @@ class RepoUrl(click.types.ParamType):
 
         parsed_path = urlparse(value)
         if parsed_path.scheme:
-            click.secho("Protocol ignored when allowlisting.", fg="gray")
+            click.secho("Protocol ignored when allowlisting.", fg="yellow")
         result = f"{parsed_path.netloc}{parsed_path.path}"
 
         if not self.__verify(result):
@@ -118,7 +118,13 @@ def approve(full_path: Optional[str]):
     if full_path is None:
         full_path = RepoUrl().convert(construct_path())
 
+    is_approved_before = Allowlist.is_approved(full_path)
+
     Allowlist().approve_namespace(full_path)
+    if Allowlist.is_approved(full_path) != is_approved_before:
+        click.secho(f"Namespace ‹{full_path}› has been approved.", fg="green")
+    else:
+        click.secho(f"Status of namespace ‹{full_path}› has not changed.", fg="yellow")
 
 
 @cli.command(
