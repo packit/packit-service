@@ -53,6 +53,10 @@ DEFAULT_RETRY_BACKOFF = 3
 # timeout/internal error. Nothing should hopefully run for 7 days.
 DEFAULT_JOB_TIMEOUT = 7 * 24 * 3600
 
+# SRPM builds older than this number of days are considered
+# outdated and their logs can be discarded.
+SRPMBUILDS_OUTDATED_AFTER_DAYS = 90
+
 ALLOWLIST_CONSTANTS = {
     "approved_automatically": "approved_automatically",
     "waiting": "waiting",

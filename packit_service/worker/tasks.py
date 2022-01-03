@@ -6,6 +6,7 @@ from os import getenv
 from typing import List, Optional
 
 from celery import Task
+
 from packit_service.celerizer import celery_app
 from packit_service.constants import (
     DEFAULT_RETRY_LIMIT,
@@ -18,7 +19,7 @@ from packit_service.worker.build.babysit import (
     check_pending_copr_builds,
     check_pending_testing_farm_runs,
 )
-from packit_service.worker.handlers.abstract import TaskName
+from packit_service.worker.database import discard_old_srpm_build_logs
 from packit_service.worker.handlers import (
     BugzillaHandler,
     CoprBuildEndHandler,
@@ -32,6 +33,7 @@ from packit_service.worker.handlers import (
     TestingFarmHandler,
     TestingFarmResultsHandler,
 )
+from packit_service.worker.handlers.abstract import TaskName
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import TaskResults
@@ -253,3 +255,8 @@ def babysit_pending_copr_builds() -> None:
 @celery_app.task
 def babysit_pending_tft_runs() -> None:
     check_pending_testing_farm_runs()
+
+
+@celery_app.task
+def periodic_database_cleanup() -> None:
+    discard_old_srpm_build_logs()

@@ -35,7 +35,7 @@ services:
 
   postgres:
     container_name: postgres
-    image: quay.io/centos7/postgresql-12-centos7
+    image: quay.io/centos7/postgresql-13-centos7
     environment:
       POSTGRESQL_USER: packit
       POSTGRESQL_PASSWORD: secret-password
@@ -150,6 +150,7 @@ services:
     ports:
       - 8082:8080
     user: "123123"
+
   beat:
     container_name: beat
     build:
