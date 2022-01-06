@@ -378,7 +378,8 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(
-            source_project=flexmock(get_web_url=lambda: "https://github.com/foo/bar")
+            source_project=flexmock(get_web_url=lambda: "https://github.com/foo/bar"),
+            target_branch_head_commit="deadbeef",
         )
         .should_receive("comment")
         .mock()
@@ -471,6 +472,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
                     "PACKIT_COMMIT_SHA": "0011223344",
                     "PACKIT_PACKAGE_NVR": "bar-0.1-1",
                     "PACKIT_BUILD_LOG_URL": "https://log-url",
+                    "PACKIT_TARGET_SHA": "deadbeef",
                 },
             }
         ],
@@ -570,7 +572,10 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
 def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock(get_web_url=lambda: "abc"))
+        flexmock(
+            source_project=flexmock(get_web_url=lambda: "abc"),
+            target_branch_head_commit="deadbeef",
+        )
         .should_receive("comment")
         .mock()
     )
@@ -693,7 +698,10 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
 def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock(get_web_url=lambda: "abc"))
+        flexmock(
+            source_project=flexmock(get_web_url=lambda: "abc"),
+            target_branch_head_commit="deadbeef",
+        )
         .should_receive("comment")
         .mock()
     )

@@ -468,7 +468,10 @@ def test_payload(
         command_handler_work_dir="/tmp",
     )
     package_config = flexmock(jobs=[])
-    pr = flexmock(source_project=flexmock(get_web_url=lambda: project_url))
+    pr = flexmock(
+        source_project=flexmock(get_web_url=lambda: project_url),
+        target_branch_head_commit="deadbeef",
+    )
     project = flexmock(
         repo=repo,
         namespace=namespace,
@@ -552,6 +555,7 @@ def test_payload(
                 "PACKIT_PACKAGE_NVR": f"{repo}-0.1-1",
                 "PACKIT_BUILD_LOG_URL": log_url,
                 "PACKIT_SRPM_URL": srpm_url,
+                "PACKIT_TARGET_SHA": "deadbeef",
             },
         }
     ]
@@ -608,7 +612,10 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
         command_handler_work_dir="/tmp",
     )
     package_config = flexmock(jobs=[])
-    pr = flexmock(source_project=flexmock(get_web_url=lambda: project_url))
+    pr = flexmock(
+        source_project=flexmock(get_web_url=lambda: project_url),
+        target_branch_head_commit="deadbeef",
+    )
     project = flexmock(
         repo=repo,
         namespace=namespace,
