@@ -757,6 +757,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     pr = flexmock(
         head_commit="12345",
         source_project=flexmock(get_web_url=lambda: "https://github.com/foo/bar"),
+        target_branch_head_commit="6789a",
     )
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
@@ -842,6 +843,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
                     "PACKIT_DOWNSTREAM_URL": "https://src.fedoraproject.org/rpms/hello-world.git",
                     "PACKIT_PACKAGE_NAME": "hello-world",
                     "PACKIT_COMMIT_SHA": "12345",
+                    "PACKIT_TARGET_SHA": "6789a",
                 },
             }
         ],

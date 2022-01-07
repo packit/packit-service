@@ -105,6 +105,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         return self.metadata.commit_sha
 
+    @property
+    def target_branch_sha(self) -> Optional[str]:
+        if not self.metadata.pr_id:
+            return None
+        return self.project.get_pr(int(self.metadata.pr_id)).target_branch_head_commit
+
     @staticmethod
     def _artifact(
         chroot: str, build_id: Optional[int], built_packages: Optional[List[Dict]]
@@ -176,6 +182,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "PACKIT_BUILD_LOG_URL": build_log_url,
             "PACKIT_SRPM_URL": srpm_url,
             "PACKIT_COMMIT_SHA": self.metadata.commit_sha,
+            "PACKIT_TARGET_SHA": self.target_branch_sha,
         }
         predefined_environment = {
             k: v for k, v in predefined_environment.items() if v is not None
