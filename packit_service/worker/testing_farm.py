@@ -277,12 +277,18 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             return distros[0], arch
 
         if self.job_config.metadata.use_internal_tf:
-            epel_mapping = {"epel-6": "rhel-6", "epel-7": "rhel-7", "epel-8": "rhel-8"}
+            epel_mapping = {
+                "epel-6": "rhel-6",
+                "epel-7": "rhel-7",
+                "epel-8": "rhel-8",
+                "epel-9": "centos-stream-9",
+            }
         else:
             epel_mapping = {
                 "epel-6": "centos-6",
                 "epel-7": "centos-7",
                 "epel-8": "centos-stream-8",
+                "epel-9": "centos-stream-9",
             }
 
         distro = epel_mapping.get(distro, distro)
