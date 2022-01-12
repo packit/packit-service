@@ -15,13 +15,16 @@ beat_schedule = {
     "update-pending-copr-builds": {
         "task": "packit_service.worker.tasks.babysit_pending_copr_builds",
         "schedule": 3600.0,
+        "options": {"queue": "long-running"},
     },
     "update-pending-tft-runs": {
         "task": "packit_service.worker.tasks.babysit_pending_tft_runs",
         "schedule": 600.0,
+        "options": {"queue": "long-running"},
     },
     "database-discard-old-stuff": {
         "task": "packit_service.worker.tasks.periodic_database_cleanup",
         "schedule": crontab(minute=0, hour=1),  # daily at 1AM
+        "options": {"queue": "long-running"},
     },
 }
