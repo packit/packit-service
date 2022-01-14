@@ -25,6 +25,7 @@ from packit_service.models import (
     RunModel,
 )
 from packit_service.sentry_integration import send_to_sentry
+from packit_service.utils import get_package_nvrs
 from packit_service.worker.events import EventData
 from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.worker.build import CoprBuildJobHelper
@@ -121,13 +122,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         }
 
         if built_packages:
-            packages = [
-                f"{package['name']}-{package['epoch']}:{package['version']}-"
-                f"{package['release']}.{package['arch']}"
-                for package in built_packages
-                if package["arch"] != "src"
-            ]
-            artifact["packages"] = packages
+            artifact["packages"] = get_package_nvrs(built_packages)
 
         return artifact
 
