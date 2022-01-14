@@ -852,12 +852,12 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
             self.built_packages = built_packages
             session.add(self)
 
-    def set_start_time(self, start_time: DateTime):
+    def set_start_time(self, start_time: datetime):
         with get_sa_session() as session:
             self.build_start_time = start_time
             session.add(self)
 
-    def set_end_time(self, end_time: DateTime):
+    def set_end_time(self, end_time: datetime):
         with get_sa_session() as session:
             self.build_finished_time = end_time
             session.add(self)
@@ -1191,20 +1191,29 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
 class SRPMBuildModel(ProjectAndTriggersConnector, Base):
     __tablename__ = "srpm_builds"
     id = Column(Integer, primary_key=True)
+    status = Column(String)
     # our logs we want to show to the user
     logs = Column(Text)
-    success = Column(Boolean)
     build_submitted_time = Column(DateTime, default=datetime.utcnow)
+    build_start_time = Column(DateTime)
+    build_finished_time = Column(DateTime)
+    commit_sha = Column(String)
+    # url for downloading the SRPM
     url = Column(Text)
+    # attributes for SRPM built by Copr
+    logs_url = Column(Text)
+    copr_build_id = Column(String, index=True)
+    copr_web_url = Column(Text)
 
     runs = relationship("RunModel", back_populates="srpm_build")
 
     @classmethod
     def create_with_new_run(
         cls,
-        logs: str,
-        success: bool,
         trigger_model: AbstractTriggerDbType,
+        commit_sha: str,
+        copr_build_id: Optional[str] = None,
+        copr_web_url: Optional[str] = None,
     ) -> Tuple["SRPMBuildModel", "RunModel"]:
         """
         Create a new model for SRPM and connect it to the RunModel.
@@ -1230,8 +1239,10 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
         """
         with get_sa_session() as session:
             srpm_build = cls()
-            srpm_build.logs = logs
-            srpm_build.success = success
+            srpm_build.status = "pending"
+            srpm_build.commit_sha = commit_sha
+            srpm_build.copr_build_id = copr_build_id
+            srpm_build.copr_web_url = copr_web_url
             session.add(srpm_build)
 
             # Create a new run model, reuse trigger_model if it exists:
@@ -1261,6 +1272,19 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
             )
 
     @classmethod
+    def get_by_copr_build_id(
+        cls, copr_build_id: Union[str, int]
+    ) -> Optional["SRPMBuildModel"]:
+        if isinstance(copr_build_id, int):
+            copr_build_id = str(copr_build_id)
+        with get_sa_session() as session:
+            return (
+                session.query(SRPMBuildModel)
+                .filter_by(copr_build_id=copr_build_id)
+                .first()
+            )
+
+    @classmethod
     def get_older_than(cls, delta: timedelta) -> Iterable["SRPMBuildModel"]:
         """Return builds older than delta, whose logs/artifacts haven't been discarded yet."""
         delta_ago = datetime.utcnow() - delta
@@ -1278,6 +1302,26 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
     def set_logs(self, logs: Optional[str]) -> None:
         with get_sa_session() as session:
             self.logs = null() if logs is None else logs
+            session.add(self)
+
+    def set_start_time(self, start_time: datetime) -> None:
+        with get_sa_session() as session:
+            self.build_start_time = start_time
+            session.add(self)
+
+    def set_end_time(self, end_time: datetime) -> None:
+        with get_sa_session() as session:
+            self.build_finished_time = end_time
+            session.add(self)
+
+    def set_build_logs_url(self, logs_url: str) -> None:
+        with get_sa_session() as session:
+            self.logs_url = logs_url
+            session.add(self)
+
+    def set_status(self, status: str) -> None:
+        with get_sa_session() as session:
+            self.status = status
             session.add(self)
 
     def __repr__(self):
