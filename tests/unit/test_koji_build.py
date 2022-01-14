@@ -135,7 +135,21 @@ def test_koji_build_check_names(github_pr_event):
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
-        (flexmock(id=1, success=True), flexmock())
+        (
+            flexmock(status="success", id=1)
+            .should_receive("set_url")
+            .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
+            .mock(),
+            flexmock(),
+        )
     )
     flexmock(KojiBuildModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
@@ -195,7 +209,21 @@ def test_koji_build_failed_kerberos(github_pr_event):
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
-        (flexmock(id=1, success=True), flexmock())
+        (
+            flexmock(status="success", id=1)
+            .should_receive("set_url")
+            .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
+            .mock(),
+            flexmock(),
+        )
     )
     flexmock(KojiBuildModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
@@ -256,7 +284,21 @@ def test_koji_build_target_not_supported(github_pr_event):
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
-        (flexmock(id=1, success=True), flexmock())
+        (
+            flexmock(status="success", id=1)
+            .should_receive("set_url")
+            .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
+            .mock(),
+            flexmock(),
+        )
     )
     flexmock(KojiBuildModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
@@ -298,7 +340,21 @@ def test_koji_build_with_multiple_targets(github_pr_event):
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
-        (flexmock(id=1, success=True), flexmock())
+        (
+            flexmock(status="success", id=1)
+            .should_receive("set_url")
+            .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
+            .mock(),
+            flexmock(),
+        )
     )
     flexmock(KojiBuildModel).should_receive("create").and_return(
         flexmock(id=1)
@@ -366,7 +422,21 @@ def test_koji_build_failed(github_pr_event):
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
-        (flexmock(id=2, success=True), flexmock())
+        (
+            flexmock(status="success", id=2)
+            .should_receive("set_url")
+            .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
+            .mock(),
+            flexmock(),
+        )
     )
     flexmock(KojiBuildModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
@@ -420,7 +490,21 @@ def test_koji_build_failed_srpm(github_pr_event):
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(PackitAPI).should_receive("create_srpm").and_raise(Exception, "some error")
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
-        (flexmock(id=2, success=False), flexmock())
+        (
+            flexmock(status="failure", id=2)
+            .should_receive("set_url")
+            .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
+            .mock(),
+            flexmock(),
+        )
     )
     flexmock(KojiBuildModel).should_receive("create").never()
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
@@ -460,7 +544,21 @@ def test_koji_build_targets_override(github_pr_event):
     )
     flexmock(GitProject).should_receive("set_commit_status").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
-        (flexmock(id=1, success=True), flexmock())
+        (
+            flexmock(status="success", id=1)
+            .should_receive("set_url")
+            .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
+            .mock(),
+            flexmock(),
+        )
     )
     flexmock(KojiBuildModel).should_receive("create").and_return(
         flexmock(id=1)

@@ -1,0 +1,15 @@
+{
+  "topic": "org.fedoraproject.prod.copr.build.end",
+  "status": 1,
+  "what": "build end: user:lbarczio copr:ogr-custom-source build:3122876 pkg:None version:None ip:2620:52:3:1:dead:beef:cafe:c195 pid:2810668 status:1",
+  "chroot": "srpm-builds",
+  "ip": "2620:52:3:1:dead:beef:cafe:c195",
+  "user": "lbarczio",
+  "who": "backend.worker-rpm_build_worker:3122876",
+  "pid": 2810668,
+  "copr": "ogr-custom-source",
+  "version": null,
+  "build": 3122876,
+  "owner": "lbarczio",
+  "pkg": null
+}

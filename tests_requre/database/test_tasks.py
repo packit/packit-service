@@ -10,7 +10,7 @@ import packit_service
 from ogr.services.github import GithubProject
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
-from packit_service.constants import PG_COPR_BUILD_STATUS_SUCCESS
+from packit_service.constants import PG_BUILD_STATUS_SUCCESS
 from packit_service.models import (
     CoprBuildModel,
     SRPMBuildModel,
@@ -196,4 +196,4 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
     )
 
     check_copr_build(BUILD_ID)
-    assert packit_build_752.status == PG_COPR_BUILD_STATUS_SUCCESS
+    assert packit_build_752.status == PG_BUILD_STATUS_SUCCESS

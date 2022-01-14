@@ -73,6 +73,7 @@ class SampleValues:
     another_different_build_id = "78912"
     status_success = "success"
     status_pending = "pending"
+    status_waiting_for_srpm = "waiting_for_srpm"
     target = "fedora-42-x86_64"
     different_target = "fedora-43-x86_64"
     chroots = ["fedora-43-x86_64", "fedora-42-x86_64"]
@@ -294,6 +295,18 @@ def srpm_build_model_with_new_run_for_release(release_model):
 
 
 @pytest.fixture()
+def srpm_build_in_copr_model(pr_model):
+    srpm_model, run_model = SRPMBuildModel.create_with_new_run(
+        trigger_model=pr_model,
+        commit_sha=SampleValues.commit_sha,
+        copr_build_id="123",
+        copr_web_url="example-url",
+    )
+    srpm_model.set_status("success")
+    yield srpm_model, run_model
+
+
+@pytest.fixture()
 def bugzilla_model():
     yield BugzillaModel.get_or_create(
         pr_id=SampleValues.pr_id,
@@ -370,6 +383,26 @@ def a_copr_build_for_release(srpm_build_model_with_new_run_for_release):
     copr_build_model.set_build_logs_url(
         "https://copr.somewhere/results/owner/package/target/build.logs"
     )
+    yield copr_build_model
+
+
+@pytest.fixture()
+def a_copr_build_waiting_for_srpm(srpm_build_in_copr_model):
+    _, run_model = srpm_build_in_copr_model
+    copr_build_model = CoprBuildModel.create(
+        build_id=SampleValues.build_id,
+        commit_sha=SampleValues.commit_sha,
+        project_name=SampleValues.project,
+        owner=SampleValues.owner,
+        web_url=SampleValues.copr_web_url,
+        target=SampleValues.target,
+        status=SampleValues.status_waiting_for_srpm,
+        run_model=run_model,
+    )
+    copr_build_model.set_build_logs_url(
+        "https://copr.somewhere/results/owner/package/target/build.logs"
+    )
+    copr_build_model.set_built_packages(SampleValues.built_packages)
     yield copr_build_model
 
 
