@@ -48,7 +48,7 @@ from packit_service.worker.monitoring import measure_time
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
-from packit_service.constants import PG_COPR_BUILD_STATUS_SUCCESS
+from packit_service.constants import PG_BUILD_STATUS_SUCCESS
 from packit_service.utils import dump_job_config, dump_package_config
 
 logger = logging.getLogger(__name__)
@@ -221,7 +221,7 @@ class TestingFarmHandler(JobHandler):
             self.run_copr_build_handler(event_data, len(targets_without_builds))
 
         for target, copr_build in targets_with_builds.items():
-            if copr_build.status != PG_COPR_BUILD_STATUS_SUCCESS:
+            if copr_build.status != PG_BUILD_STATUS_SUCCESS:
                 logger.info(
                     "The latest build was not successful, not running tests for it."
                 )
