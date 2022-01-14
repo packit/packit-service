@@ -17,8 +17,13 @@ from packit.exceptions import PackitCoprException, PackitCoprSettingsException
 from packit_service import sentry_integration
 from packit_service.celerizer import celery_app
 from packit_service.config import Deployment, ServiceConfig
-from packit_service.constants import MSG_RETRIGGER
-from packit_service.models import AbstractTriggerDbType, CoprBuildModel
+from packit_service.constants import (
+    MSG_RETRIGGER,
+    SRPM_BUILD_DEPS,
+    PG_BUILD_STATUS_SUCCESS,
+)
+from packit_service.models import AbstractTriggerDbType, CoprBuildModel, SRPMBuildModel
+from packit_service.utils import get_package_nvrs
 from packit_service.worker.events import EventData
 from packit_service.service.urls import (
     get_copr_build_info_url,
@@ -28,6 +33,8 @@ from packit_service.worker.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.monitoring import Pushgateway, measure_time
 from packit_service.worker.result import TaskResults
 from packit_service.worker.reporting import BaseCommitStatus
+
+from packit.utils.source_script import create_source_script
 
 logger = logging.getLogger(__name__)
 
@@ -185,7 +192,140 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 reason=reason
             ).observe(time)
 
+    def get_packit_copr_download_urls(self) -> List[str]:
+        """
+        Get packit package download urls for latest succeeded build in Copr project for the given
+        environment (for production packit/packit-stable, else packit/packit-dev,
+        e.g https://download.copr.fedorainfracloud.org/results/packit/
+        packit-stable/fedora-35-x86_64/03247833-packit/
+        packit-0.44.1.dev4+g5ec2bd1-1.20220124144110935127.stable.4.g5ec2bd1.fc35.noarch.rpm)
+
+        Returns: list of urls
+        """
+        try:
+            latest_successful_build_id = (
+                self.api.copr_helper.copr_client.package_proxy.get(
+                    ownername="packit",
+                    projectname="packit-stable"
+                    if self.service_config.deployment == Deployment.prod
+                    else "packit-dev",
+                    packagename="packit",
+                    with_latest_succeeded_build=True,
+                ).builds["latest_succeeded"]["id"]
+            )
+            result_url = self.api.copr_helper.copr_client.build_chroot_proxy.get(
+                latest_successful_build_id, "fedora-35-x86_64"
+            ).result_url
+            package_nvrs = self.get_built_packages(
+                latest_successful_build_id, "fedora-35-x86_64"
+            )
+            built_packages = get_package_nvrs(package_nvrs)
+            return [f"{result_url}{package}.rpm" for package in built_packages]
+        except Exception as ex:
+            logger.debug(
+                f"Getting download urls for latest packit/packit-stable "
+                f"build was not successful: {ex}"
+            )
+            raise ex
+
+    def run_copr_build_from_source_script(self) -> TaskResults:
+        """
+        Run copr build using custom source method.
+        """
+        try:
+            script = create_source_script(
+                url=self.metadata.project_url,
+                ref=self.metadata.git_ref,
+                pr_id=str(self.metadata.pr_id),
+                merge_pr=self.package_config.merge_pr_in_ci,
+                job_config=self.job_config,
+            )
+            build_id, web_url = self.submit_copr_build(script=script)
+        except Exception as ex:
+            self.handle_build_submit_error(ex)
+            return TaskResults(
+                success=False,
+                details={"msg": "Submit of the Copr build failed.", "error": str(ex)},
+            )
+
+        self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
+            copr_build_id=str(build_id),
+            commit_sha=self.metadata.commit_sha,
+            trigger_model=self.db_trigger,
+            copr_web_url=web_url,
+        )
+
+        self.report_status_to_all(
+            description="SRPM build in Copr was submitted...",
+            state=BaseCommitStatus.pending,
+            url=get_srpm_build_info_url(self.srpm_model.id),
+        )
+
+        self.handle_rpm_build_start(build_id, web_url, waiting_for_srpm=True)
+
+        return TaskResults(success=True, details={})
+
+    def submit_copr_build(self, script: Optional[str] = None) -> Tuple[int, str]:
+        """
+        Create the project in Copr if not exists and submit a new build using
+        source script method
+        Return:
+            tuple of build ID and web url
+        """
+        owner = self.create_copr_project_if_not_exists()
+        try:
+            if script:
+                build = self.api.copr_helper.copr_client.build_proxy.create_from_custom(
+                    ownername=owner,
+                    projectname=self.job_project,
+                    script=script,
+                    script_builddeps=self.get_packit_copr_download_urls()
+                    + SRPM_BUILD_DEPS,
+                    buildopts={
+                        "chroots": list(self.build_targets),
+                    },
+                )
+            else:
+                build = self.api.copr_helper.copr_client.build_proxy.create_from_file(
+                    ownername=owner,
+                    projectname=self.job_project,
+                    path=self.srpm_path,
+                    buildopts={
+                        "chroots": list(self.build_targets),
+                    },
+                )
+
+        except CoprRequestException as ex:
+            if "You don't have permissions to build in this copr." in str(
+                ex
+            ) or "is not allowed to build in the copr" in str(ex):
+                self.api.copr_helper.copr_client.project_proxy.request_permissions(
+                    ownername=owner,
+                    projectname=self.job_project,
+                    permissions={"builder": True},
+                )
+
+                # notify user, PR if exists, commit comment otherwise
+                permissions_url = self.api.copr_helper.get_copr_settings_url(
+                    owner, self.job_project, section="permissions"
+                )
+                self.status_reporter.comment(
+                    body="We have requested the `builder` permissions "
+                    f"for the {owner}/{self.job_project} Copr project.\n"
+                    "\n"
+                    "Please confirm the request on the "
+                    f"[{owner}/{self.job_project} Copr project permissions page]"
+                    f"({permissions_url})"
+                    " and retrigger the build.",
+                )
+            raise ex
+
+        return build.id, self.api.copr_helper.copr_web_build_url(build)
+
     def run_copr_build(self) -> TaskResults:
+        """
+        Run copr build using SRPM built by us.
+        """
         self.report_status_to_all(
             description="Building SRPM ...",
             state=BaseCommitStatus.running,
@@ -195,7 +335,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         if results := self.create_srpm_if_needed():
             return results
 
-        if not self.srpm_model.success:
+        if self.srpm_model.status != PG_BUILD_STATUS_SUCCESS:
             msg = "SRPM build failed, check the logs for details."
             self.report_status_to_all(
                 state=BaseCommitStatus.failure,
@@ -208,23 +348,39 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             return TaskResults(success=False, details={"msg": msg})
 
         try:
-            build_id, web_url = self.run_build()
+            build_id, web_url = self.submit_copr_build()
         except Exception as ex:
-            sentry_integration.send_to_sentry(ex)
-            # TODO: Where can we show more info about failure?
-            # TODO: Retry
-            self.report_status_to_all(
-                state=BaseCommitStatus.error,
-                description=f"Submit of the build failed: {ex}",
-            )
-            self.monitor_not_submitted_copr_builds(
-                len(self.build_targets), "submit_failure"
-            )
+            self.handle_build_submit_error(ex)
             return TaskResults(
                 success=False,
                 details={"msg": "Submit of the Copr build failed.", "error": str(ex)},
             )
 
+        self.handle_rpm_build_start(build_id, web_url)
+        return TaskResults(success=True, details={})
+
+    def handle_build_submit_error(self, ex):
+        """
+        Handle errors when submitting Copr build.
+        """
+        sentry_integration.send_to_sentry(ex)
+        # TODO: Where can we show more info about failure?
+        # TODO: Retry
+        self.report_status_to_all(
+            state=BaseCommitStatus.error,
+            description=f"Submit of the build failed: {ex}",
+        )
+        self.monitor_not_submitted_copr_builds(
+            len(self.build_targets), "submit_failure"
+        )
+
+    def handle_rpm_build_start(
+        self, build_id: int, web_url: str, waiting_for_srpm: bool = False
+    ):
+        """
+        Create models for Copr build chroots and report start of RPM build
+        if the SRPM is already built.
+        """
         unprocessed_chroots = []
         for chroot in self.build_targets:
             if chroot not in self.available_chroots:
@@ -245,17 +401,18 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 owner=self.job_owner,
                 web_url=web_url,
                 target=chroot,
-                status="pending",
+                status="waiting_for_srpm" if waiting_for_srpm else "pending",
                 run_model=self.run_model,
                 task_accepted_time=self.metadata.task_accepted_time,
             )
-            url = get_copr_build_info_url(id_=copr_build.id)
-            self.report_status_to_all_for_chroot(
-                state=BaseCommitStatus.running,
-                description="Starting RPM build...",
-                url=url,
-                chroot=chroot,
-            )
+            if not waiting_for_srpm:
+                url = get_copr_build_info_url(id_=copr_build.id)
+                self.report_status_to_all_for_chroot(
+                    state=BaseCommitStatus.running,
+                    description="Starting RPM build...",
+                    url=url,
+                    chroot=chroot,
+                )
 
         if unprocessed_chroots:
             unprocessed = "\n".join(sorted(unprocessed_chroots))
@@ -275,17 +432,13 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             countdown=120,  # do the first check in 120s
         )
 
-        return TaskResults(success=True, details={})
-
-    def run_build(
-        self, target: Optional[str] = None
-    ) -> Tuple[Optional[int], Optional[str]]:
+    def create_copr_project_if_not_exists(self) -> str:
         """
-        Trigger the build and return id and web_url
-        :param target: str, run for all if not set
-        :return: task_id, task_url
-        """
+        Create project in Copr.
 
+        Returns:
+            str owner
+        """
         owner = self.job_owner or self.api.copr_helper.configured_owner
         if not owner:
             raise PackitCoprException(
@@ -363,42 +516,4 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             self.status_reporter.comment(body=msg)
             raise ex
 
-        logger.debug(
-            f"owner={owner}, project={self.job_project}, path={self.srpm_path}"
-        )
-
-        try:
-            build = self.api.copr_helper.copr_client.build_proxy.create_from_file(
-                ownername=owner,
-                projectname=self.job_project,
-                path=self.srpm_path,
-                buildopts={
-                    "chroots": list(self.build_targets),
-                },
-            )
-        except CoprRequestException as ex:
-            if "You don't have permissions to build in this copr." in str(
-                ex
-            ) or "is not allowed to build in the copr" in str(ex):
-                self.api.copr_helper.copr_client.project_proxy.request_permissions(
-                    ownername=owner,
-                    projectname=self.job_project,
-                    permissions={"builder": True},
-                )
-
-                # notify user, PR if exists, commit comment otherwise
-                permissions_url = self.api.copr_helper.get_copr_settings_url(
-                    owner, self.job_project, section="permissions"
-                )
-                self.status_reporter.comment(
-                    body="We have requested the `builder` permissions "
-                    f"for the {owner}/{self.job_project} Copr project.\n"
-                    "\n"
-                    "Please confirm the request on the "
-                    f"[{owner}/{self.job_project} Copr project permissions page]"
-                    f"({permissions_url})"
-                    " and retrigger the build.",
-                )
-            raise ex
-
-        return build.id, self.api.copr_helper.copr_web_build_url(build)
+        return owner
