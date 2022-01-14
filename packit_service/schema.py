@@ -81,6 +81,7 @@ class ServiceConfigSchema(UserConfigSchema):
     dashboard_url = fields.String()
     koji_logs_url = fields.String()
     koji_web_url = fields.String()
+    enabled_projects_for_srpm_in_copr = fields.List(fields.String())
 
     @post_load
     def make_instance(self, data, **kwargs):
