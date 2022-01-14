@@ -192,7 +192,7 @@ class ProjectsPRs(Resource):
             for build in pr.get_srpm_builds():
                 build_info = {
                     "srpm_build_id": build.id,
-                    "success": build.success,
+                    "status": build.status,
                     "log_url": get_srpm_build_info_url(build.id),
                 }
                 srpm_builds.append(build_info)
@@ -309,7 +309,7 @@ class ProjectBranches(Resource):
             for build in branch.get_srpm_builds():
                 build_info = {
                     "srpm_build_id": build.id,
-                    "success": build.success,
+                    "status": build.status,
                     "log_url": get_srpm_build_info_url(build.id),
                 }
                 branch_info["srpm_builds"].append(build_info)

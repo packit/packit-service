@@ -27,9 +27,10 @@ class SRPMBuildsList(Resource):
 
         first, last = indices()
         for build in SRPMBuildModel.get(first, last):
+
             build_dict = {
                 "srpm_build_id": build.id,
-                "success": build.success,
+                "status": build.status,
                 "log_url": get_srpm_build_info_url(build.id),
                 "build_submitted_time": optional_timestamp(build.build_submitted_time),
             }
@@ -68,10 +69,15 @@ class SRPMBuildItem(Resource):
             )
 
         build_dict = {
-            "success": build.success,
+            "status": build.status,
             "build_submitted_time": optional_timestamp(build.build_submitted_time),
+            "build_start_time": optional_timestamp(build.build_start_time),
+            "build_finished_time": optional_timestamp(build.build_finished_time),
             "url": build.url,
             "logs": build.logs,
+            "logs_url": build.logs_url,
+            "copr_build_id": build.copr_build_id,
+            "copr_web_url": build.copr_web_url,
             "run_ids": sorted(run.id for run in build.runs),
         }
 
