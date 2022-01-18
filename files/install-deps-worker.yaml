@@ -37,6 +37,8 @@
           # oc rsync /tmp/sandcastle -> sandcastle pod
           - rsync
           - fedpkg-stage
+          - postgresql # pg_dump
+          - python3-boto3 # AWS (S3)
         state: present
     - import_tasks: tasks/install-packit-deps.yaml
     - import_tasks: tasks/install-ogr-deps.yaml

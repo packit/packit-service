@@ -22,9 +22,9 @@ beat_schedule = {
         "schedule": 600.0,
         "options": {"queue": "long-running"},
     },
-    "database-discard-old-stuff": {
-        "task": "packit_service.worker.tasks.periodic_database_cleanup",
-        "schedule": crontab(minute=0, hour=1),  # daily at 1AM
+    "database-maintenance": {
+        "task": "packit_service.worker.tasks.database_maintenance",
+        "schedule": crontab(minute=0, hour=1),  # nightly at 1AM
         "options": {"queue": "long-running"},
     },
 }
