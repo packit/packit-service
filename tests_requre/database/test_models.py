@@ -270,7 +270,7 @@ def test_get_srpm_builds_in_give_range(
 ):
     builds_list = list(SRPMBuildModel.get(0, 10))
     assert len(builds_list) == 1
-    assert builds_list[0].success is True
+    assert builds_list[0].status == "success"
 
 
 def test_get_all_builds(clean_before_and_after, multiple_copr_builds):
@@ -372,11 +372,17 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
     )
     # SRPMBuildModel is (sadly) not shared between Koji and Copr builds.
     srpm_build_for_copr, run_model_for_copr = SRPMBuildModel.create_with_new_run(
-        "asd\nqwe\n", success=True, trigger_model=pr1
+        trigger_model=pr1, commit_sha="687abc76d67d"
     )
+    srpm_build_for_copr.set_logs("asd\nqwe\n")
+    srpm_build_for_copr.set_status("success")
+
     srpm_build_for_koji, run_model_for_koji = SRPMBuildModel.create_with_new_run(
-        "asd\nqwe\n", success=True, trigger_model=pr1
+        trigger_model=pr1, commit_sha="687abc76d67d"
     )
+    srpm_build_for_copr.set_logs("asd\nqwe\n")
+    srpm_build_for_copr.set_status("success")
+
     copr_build = CoprBuildModel.create(
         build_id="123456",
         commit_sha="687abc76d67d",

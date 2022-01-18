@@ -275,23 +275,32 @@ def branch_trigger_model(branch_model):
 
 @pytest.fixture()
 def srpm_build_model_with_new_run_for_pr(pr_model):
-    yield SRPMBuildModel.create_with_new_run(
-        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+    srpm_model, run_model = SRPMBuildModel.create_with_new_run(
+        trigger_model=pr_model, commit_sha=SampleValues.commit_sha
     )
+    srpm_model.set_logs(SampleValues.srpm_logs)
+    srpm_model.set_status("success")
+    yield srpm_model, run_model
 
 
 @pytest.fixture()
 def srpm_build_model_with_new_run_for_branch(branch_model):
-    yield SRPMBuildModel.create_with_new_run(
-        SampleValues.srpm_logs, success=True, trigger_model=branch_model
+    srpm_model, run_model = SRPMBuildModel.create_with_new_run(
+        trigger_model=branch_model, commit_sha=SampleValues.commit_sha
     )
+    srpm_model.set_logs(SampleValues.srpm_logs)
+    srpm_model.set_status("success")
+    yield srpm_model, run_model
 
 
 @pytest.fixture()
 def srpm_build_model_with_new_run_for_release(release_model):
-    yield SRPMBuildModel.create_with_new_run(
-        SampleValues.srpm_logs, success=True, trigger_model=release_model
+    srpm_model, run_model = SRPMBuildModel.create_with_new_run(
+        trigger_model=release_model, commit_sha=SampleValues.commit_sha
     )
+    srpm_model.set_logs(SampleValues.srpm_logs)
+    srpm_model.set_status("success")
+    yield srpm_model, run_model
 
 
 @pytest.fixture()
@@ -409,13 +418,13 @@ def a_copr_build_waiting_for_srpm(srpm_build_in_copr_model):
 @pytest.fixture()
 def multiple_copr_builds(pr_model, different_pr_model):
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
-        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+        trigger_model=pr_model, commit_sha=SampleValues.commit_sha
     )
     _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
-        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+        trigger_model=pr_model, commit_sha=SampleValues.commit_sha
     )
     _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
-        SampleValues.srpm_logs, success=True, trigger_model=different_pr_model
+        trigger_model=different_pr_model, commit_sha=SampleValues.commit_sha
     )
 
     yield [
@@ -472,13 +481,13 @@ def too_many_copr_builds(pr_model, different_pr_model):
     builds_list = []
     for i in range(20):
         _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
-            SampleValues.srpm_logs, success=True, trigger_model=pr_model
+            trigger_model=pr_model, commit_sha=SampleValues.commit_sha
         )
         _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
-            SampleValues.srpm_logs, success=True, trigger_model=pr_model
+            trigger_model=pr_model, commit_sha=SampleValues.commit_sha
         )
         _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
-            SampleValues.srpm_logs, success=True, trigger_model=different_pr_model
+            trigger_model=different_pr_model, commit_sha=SampleValues.commit_sha
         )
 
         builds_list += [
@@ -624,13 +633,13 @@ def a_koji_build_for_release(srpm_build_model_with_new_run_for_release):
 @pytest.fixture()
 def multiple_koji_builds(pr_model, different_pr_model):
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
-        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+        trigger_model=pr_model, commit_sha=SampleValues.commit_sha
     )
     _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
-        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+        trigger_model=pr_model, commit_sha=SampleValues.commit_sha
     )
     _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
-        SampleValues.srpm_logs, success=True, trigger_model=different_pr_model
+        trigger_model=different_pr_model, commit_sha=SampleValues.commit_sha
     )
 
     yield [
@@ -703,13 +712,13 @@ def a_new_test_run_branch_push(
 @pytest.fixture()
 def multiple_new_test_runs(pr_model, different_pr_model):
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
-        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+        trigger_model=pr_model, commit_sha=SampleValues.commit_sha
     )
     _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
-        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+        trigger_model=pr_model, commit_sha=SampleValues.commit_sha
     )
     _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
-        SampleValues.srpm_logs, success=True, trigger_model=different_pr_model
+        trigger_model=different_pr_model, commit_sha=SampleValues.commit_sha
     )
 
     CoprBuildModel.create(
@@ -1643,7 +1652,7 @@ def koji_build_scratch_end_dict():
 @pytest.fixture()
 def few_runs(pr_model, different_pr_model):
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
-        SampleValues.srpm_logs, success=True, trigger_model=pr_model
+        trigger_model=pr_model, commit_sha=SampleValues.commit_sha
     )
 
     for target in (SampleValues.target, SampleValues.different_target):
@@ -1668,7 +1677,7 @@ def few_runs(pr_model, different_pr_model):
         )
 
     _, run_model_for_different_pr = SRPMBuildModel.create_with_new_run(
-        SampleValues.srpm_logs, success=True, trigger_model=different_pr_model
+        trigger_model=different_pr_model, commit_sha=SampleValues.commit_sha
     )
 
     runs = []

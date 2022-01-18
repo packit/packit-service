@@ -57,8 +57,10 @@ def packit_build_752():
     )
 
     srpm_build, run_model = SRPMBuildModel.create_with_new_run(
-        "asd\nqwe\n", success=True, trigger_model=pr_model
+        trigger_model=pr_model, commit_sha="687abc76d67d"
     )
+    srpm_build.set_logs("asd\nqwe\n")
+    srpm_build.set_status("success")
     yield CoprBuildModel.create(
         build_id=str(BUILD_ID),
         commit_sha="687abc76d67d",
