@@ -19,7 +19,7 @@ from packit_service.worker.build.babysit import (
     check_pending_copr_builds,
     check_pending_testing_farm_runs,
 )
-from packit_service.worker.database import discard_old_srpm_build_logs
+from packit_service.worker.database import discard_old_srpm_build_logs, backup
 from packit_service.worker.handlers import (
     BugzillaHandler,
     CoprBuildEndHandler,
@@ -46,6 +46,7 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("github").setLevel(logging.WARNING)
 logging.getLogger("kubernetes").setLevel(logging.WARNING)
 logging.getLogger("botocore").setLevel(logging.WARNING)
+logging.getLogger("s3transfer").setLevel(logging.WARNING)
 # info is just enough
 logging.getLogger("ogr").setLevel(logging.INFO)
 # easier debugging
@@ -258,5 +259,6 @@ def babysit_pending_tft_runs() -> None:
 
 
 @celery_app.task
-def periodic_database_cleanup() -> None:
+def database_maintenance() -> None:
     discard_old_srpm_build_logs()
+    backup()

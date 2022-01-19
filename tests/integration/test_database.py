@@ -1,9 +1,14 @@
-from datetime import datetime
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
 
+from datetime import datetime
+from pathlib import Path
+
+from boto3.s3.transfer import S3Transfer
 from flexmock import flexmock
 
 from packit_service.models import SRPMBuildModel
-from packit_service.worker.database import discard_old_srpm_build_logs
+from packit_service.worker import database
 
 
 def test_cleanup_old_srpm_build_logs():
@@ -13,4 +18,13 @@ def test_cleanup_old_srpm_build_logs():
     flexmock(SRPMBuildModel).should_receive("get_older_than").and_return(
         [srpm_build]
     ).once()
-    discard_old_srpm_build_logs()
+    database.discard_old_srpm_build_logs()
+
+
+def test_backup():
+    flexmock(database).should_receive("is_aws_configured").once().and_return(True)
+    flexmock(database).should_receive("dump_to").once()
+    flexmock(database).should_receive("gzip_file").once().and_return(Path("xyz"))
+    flexmock(S3Transfer).should_receive("upload_file").once()
+    flexmock(Path).should_receive("unlink").twice()
+    database.backup()
