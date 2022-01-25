@@ -34,6 +34,7 @@ from packit_service.worker.handlers import (
     TestingFarmResultsHandler,
 )
 from packit_service.worker.handlers.abstract import TaskName
+from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import TaskResults
@@ -213,6 +214,18 @@ def run_sync_from_downstream_handler(
 )
 def run_downstream_koji_build(event: dict, package_config: dict, job_config: dict):
     handler = DownstreamKojiBuildHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(
+    name=TaskName.bodhi_update, base=HandlerTaskWithRetry, queue="long-running"
+)
+def run_bodhi_update(event: dict, package_config: dict, job_config: dict):
+    handler = CreateBodhiUpdateHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,

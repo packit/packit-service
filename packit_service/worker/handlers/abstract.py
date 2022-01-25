@@ -224,6 +224,7 @@ class TaskName(str, enum.Enum):
     # downstream_koji_build_report = "task.run_downstream_koji_build_report_handler"
     sync_from_downstream = "task.run_sync_from_downstream_handler"
     bugzilla = "task.run_bugzilla_handler"
+    bodhi_update = "task.bodhi_update"
 
 
 class Handler:

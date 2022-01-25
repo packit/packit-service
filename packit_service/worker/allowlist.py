@@ -34,6 +34,7 @@ from packit_service.worker.events import (
     CheckRerunEvent,
 )
 from packit_service.worker.build import CoprBuildJobHelper
+from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,7 @@ UncheckedEvent = Union[
     TestingFarmResultsEvent,
     InstallationEvent,
     KojiTaskEvent,
+    KojiBuildEvent,
     CheckRerunEvent,
 ]
 
@@ -357,6 +359,7 @@ class Allowlist:
                 TestingFarmResultsEvent,
                 InstallationEvent,
                 KojiTaskEvent,
+                KojiBuildEvent,
                 CheckRerunEvent,
             ): self._check_unchecked_event,
             (
