@@ -596,8 +596,7 @@ def test_koji_build_targets_override(github_pr_event):
     ],
 )
 def test_get_koji_build_logs_url(id_, result):
-    event = KojiTaskEvent(build_id=flexmock(), state=flexmock(), rpm_build_task_id=id_)
-    assert event.get_koji_build_logs_url() == result
+    assert KojiTaskEvent.get_koji_build_logs_url(rpm_build_task_id=id_) == result
 
 
 @pytest.mark.parametrize(
@@ -614,5 +613,4 @@ def test_get_koji_build_logs_url(id_, result):
     ],
 )
 def test_get_koji_rpm_build_web_url(id_, result):
-    event = KojiTaskEvent(build_id=flexmock(), state=flexmock(), rpm_build_task_id=id_)
-    assert event.get_koji_rpm_build_web_url() == result
+    assert KojiTaskEvent.get_koji_rpm_build_web_url(rpm_build_task_id=id_) == result

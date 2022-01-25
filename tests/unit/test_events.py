@@ -57,6 +57,7 @@ from packit_service.worker.events.enums import (
     FedmsgTopic,
     GitlabEventAction,
 )
+from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.parser import Parser, CentosEventParser
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 from tests.conftest import copr_build_model
@@ -189,6 +190,16 @@ class TestEvents:
             return json.load(outfile)
 
     @pytest.fixture()
+    def koji_build_start(self):
+        with open(DATA_DIR / "fedmsg" / "koji_build_start.json", "r") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def koji_build_completed(self):
+        with open(DATA_DIR / "fedmsg" / "koji_build_completed.json", "r") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
     def check_rerun(self):
         with open(
             DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json"
@@ -201,6 +212,7 @@ class TestEvents:
         service_config.services = {
             GithubService(token="token"),
             GitlabService(token="token"),
+            PagureService(instance_url="https://src.fedoraproject.org", token="1234"),
         }
         service_config.github_requests_log_path = "/path"
         ServiceConfig.service_config = service_config
@@ -854,27 +866,6 @@ class TestEvents:
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "foo/bar"
 
-        """
-        assert (
-            not event_object.base_project  # With Github app, we cannot work with fork repo
-        )
-
-        flexmock(PackageConfigGetter).should_receive(
-            "get_package_config_from_repo"
-        ).with_args(
-            base_project=None,
-            project=event_object.project,
-            pr_id=123,
-            reference="0011223344",
-            fail_when_missing=False,
-            spec_file_path=None,
-        ).and_return(
-            flexmock()
-        ).once()
-
-        assert event_object.package_config
-        """
-
     def test_parse_koji_build_scratch_event_end(
         self, koji_build_scratch_end, koji_build_pr
     ):
@@ -895,26 +886,74 @@ class TestEvents:
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "foo/bar"
 
-        """
-        assert (
-            not event_object.base_project  # With Github app, we cannot work with fork repo
-        )
+    def test_parse_koji_build_event_start(self, koji_build_start, mock_config):
+        event_object = Parser.parse_event(koji_build_start)
 
-        flexmock(PackageConfigGetter).should_receive(
-            "get_package_config_from_repo"
-        ).with_args(
-            base_project=None,
-            project=event_object.project,
-            pr_id=123,
-            reference="0011223344",
-            fail_when_missing=False,
-            spec_file_path=None,
-        ).and_return(
-            flexmock()
-        ).once()
+        assert isinstance(event_object, KojiBuildEvent)
+        assert event_object.build_id == 1864700
+        assert event_object.state == KojiBuildState.free
+        assert event_object.rpm_build_task_id == 79721403
+        assert event_object.package_name == "packit"
+        assert event_object.commit_sha == "0eb3e12005cb18f15d3054020f7ac934c01eae08"
+        assert event_object.branch_name == "rawhide"
+        assert event_object.git_ref == "rawhide"
+        assert event_object.epoch is None
+        assert event_object.version == "0.43.0"
+        assert event_object.release == "1"
+        assert event_object.project_url == "https://src.fedoraproject.org/rpms/packit"
+
+        assert isinstance(event_object.project, PagureProject)
+        assert event_object.project.full_repo_name == "rpms/packit"
+
+        packit_yaml = (
+            "{'specfile_path': 'packit.spec', 'synced_files': [],"
+            "'jobs': [{'trigger': 'commit', 'job': 'sync_from_downstream'}],"
+            "'downstream_package_name': 'packit'}"
+        )
+        flexmock(PagureProject).should_receive("get_file_content").with_args(
+            path=".distro/source-git.yaml",
+            ref="0eb3e12005cb18f15d3054020f7ac934c01eae08",
+        ).and_raise(FileNotFoundError, "Not found.")
+        flexmock(PagureProject).should_receive("get_file_content").with_args(
+            path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
+        ).and_return(packit_yaml)
 
         assert event_object.package_config
-        """
+
+    def test_parse_koji_build_event_completed(self, koji_build_completed, mock_config):
+        event_object = Parser.parse_event(koji_build_completed)
+
+        assert isinstance(event_object, KojiBuildEvent)
+        assert event_object.build_id == 1864700
+        assert event_object.state == KojiBuildState.open
+        assert event_object.old_state == KojiBuildState.free
+        assert event_object.rpm_build_task_id == 79721403
+        assert event_object.package_name == "packit"
+        assert event_object.commit_sha == "0eb3e12005cb18f15d3054020f7ac934c01eae08"
+        assert event_object.branch_name == "rawhide"
+        assert event_object.git_ref == "rawhide"
+        assert event_object.epoch is None
+        assert event_object.version == "0.43.0"
+        assert event_object.release == "1"
+        assert event_object.project_url == "https://src.fedoraproject.org/rpms/packit"
+
+        assert isinstance(event_object.project, PagureProject)
+        assert event_object.project.full_repo_name == "rpms/packit"
+
+        packit_yaml = (
+            "{'specfile_path': 'packit.spec', 'synced_files': [],"
+            "'jobs': [{'trigger': 'commit', 'job': 'sync_from_downstream'}],"
+            "'downstream_package_name': 'packit'}"
+        )
+        flexmock(PagureProject).should_receive("get_file_content").with_args(
+            path=".distro/source-git.yaml",
+            ref="0eb3e12005cb18f15d3054020f7ac934c01eae08",
+        ).and_raise(FileNotFoundError, "Not found.")
+        flexmock(PagureProject).should_receive("get_file_content").with_args(
+            path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
+        ).and_return(packit_yaml)
+
+        assert event_object.package_config
 
     def test_get_project_pr(self, github_pr_webhook, mock_config):
         event_object = Parser.parse_event(github_pr_webhook)

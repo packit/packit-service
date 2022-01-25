@@ -138,3 +138,14 @@ class KojiBuildState(Enum):
     canceled = "CANCELED"  # 3
     assigned = "ASSIGNED"  # 4
     failed = "FAILED"  # 5
+
+    @staticmethod
+    def from_number(number: int):
+        return {
+            0: KojiBuildState.free,
+            1: KojiBuildState.open,
+            2: KojiBuildState.closed,
+            3: KojiBuildState.canceled,
+            4: KojiBuildState.assigned,
+            5: KojiBuildState.failed,
+        }.get(number)

@@ -43,6 +43,7 @@ from packit_service.service.urls import (
     get_koji_build_info_url,
 )
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
+from packit_service.worker.events.koji import AbstractKojiEvent
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,
@@ -245,12 +246,14 @@ class KojiBuildReportHandler(JobHandler):
                 f"We don't react to this koji build state change: {self.koji_event.state}"
             )
 
-        koji_build_logs = self.koji_event.get_koji_build_logs_url(
-            koji_logs_url=self.service_config.koji_logs_url
+        koji_build_logs = AbstractKojiEvent.get_koji_build_logs_url(
+            rpm_build_task_id=int(build.build_id),
+            koji_logs_url=self.service_config.koji_logs_url,
         )
         build.set_build_logs_url(koji_build_logs)
-        koji_rpm_task_web_url = self.koji_event.get_koji_rpm_build_web_url(
-            koji_web_url=self.service_config.koji_web_url
+        koji_rpm_task_web_url = AbstractKojiEvent.get_koji_rpm_build_web_url(
+            rpm_build_task_id=int(build.build_id),
+            koji_web_url=self.service_config.koji_web_url,
         )
         build.set_web_url(koji_rpm_task_web_url)
 
