@@ -43,8 +43,9 @@ Since packit-service is already a fairly complex system, it's not trivial to
 run it locally. This is why we run everything in containers.
 
 This repository contains [docker-compose.yml](./docker-compose.yml) for
-[docker-compose](https://github.com/docker/compose). Before you run it, we
-suggest that you open the file and read all the comments.
+[docker-compose](https://github.com/docker/compose)
+(can be also [used with podman](https://fedoramagazine.org/use-docker-compose-with-podman-to-orchestrate-containers-on-fedora)).
+Before you run it, we suggest that you open the file and read all the comments.
 You can also run only certain pieces of packit-service for local development
 (e.g. worker, database or service/httpd).
 
@@ -104,18 +105,21 @@ the project which handles migrations and schema versioning for SQLAlchemy.
 
 To generate a migration script for your recent change you can do:
 
-    $ podman-compose up service
+    $ docker-compose up service
     $ podman exec -ti service bash -c 'cd /src/; alembic revision -m "My change" --autogenerate'
     $ podman cp service:/src/alembic/versions/123456789abc_my_change.py .
 
+The above expects that you
+[use podman with docker-compose](https://fedoramagazine.org/use-docker-compose-with-podman-to-orchestrate-containers-on-fedora).
+Otherwise you have to run `docker` instead of `podman` in the 2. and 3. command.
 The `alembic upgrade head` is run in [run_httpd.sh](files/run_httpd.sh)
 during (packit-)service pod/container start.
 
 ### How to check what's inside postgres?
 
-Get shell inside the container (or pod). E.g. with podman-compose:
+Get shell inside the container (or pod). E.g. with docker-compose:
 
-    $ podman-compose exec -ti postgres bash
+    $ docker-compose exec -ti postgres bash
     bash-4.2$
 
 Invoke psql interactive shell:
