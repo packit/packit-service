@@ -51,7 +51,7 @@ def process_runs(runs):
         if srpm_build:
             response_dict["srpm"] = {
                 "packit_id": srpm_build.id,
-                "success": srpm_build.success,
+                "status": srpm_build.status,
             }
             response_dict["time_submitted"] = optional_timestamp(
                 srpm_build.build_submitted_time
@@ -65,6 +65,8 @@ def process_runs(runs):
         ):
             for packit_id in set(filter(None, map(lambda ids: ids[0], packit_ids))):
                 row = Model.get_by_id(packit_id)
+                if row.status == "waiting_for_srpm":
+                    continue
                 response_dict[model_type].append(
                     {
                         "packit_id": packit_id,

@@ -2,15 +2,17 @@
 # SPDX-License-Identifier: MIT
 
 from logging import getLogger
-from typing import Optional, Dict
+from typing import Optional, Dict, Union
 
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
 
+from packit_service.constants import COPR_SRPM_CHROOT
 from packit_service.models import (
     CoprBuildModel,
     JobTriggerModelType,
     AbstractTriggerDbType,
+    SRPMBuildModel,
 )
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
 from packit_service.worker.events.enums import FedmsgTopic
@@ -19,13 +21,13 @@ logger = getLogger(__name__)
 
 
 class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):
-    build: Optional[CoprBuildModel]
+    build: Optional[Union[SRPMBuildModel, CoprBuildModel]]
 
     def __init__(
         self,
         topic: str,
         build_id: int,
-        build: CoprBuildModel,
+        build: Union[CoprBuildModel, SRPMBuildModel],
         chroot: str,
         status: int,
         owner: str,
@@ -95,9 +97,17 @@ class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):
         timestamp,
     ) -> Optional["AbstractCoprBuildEvent"]:
         """Return cls instance or None if build_id not in CoprBuildDB"""
-        build = CoprBuildModel.get_by_build_id(str(build_id), chroot)
+        build: Optional[Union[SRPMBuildModel, CoprBuildModel]]
+        if chroot == COPR_SRPM_CHROOT:
+            build = SRPMBuildModel.get_by_copr_build_id(str(build_id))
+        else:
+            build = CoprBuildModel.get_by_build_id(str(build_id), chroot)
+
         if not build:
-            logger.warning(f"Build id {build_id} not in CoprBuildDB.")
+            logger.warning(
+                f"Build id {build_id} not in "
+                f"{'SRPMBuildDB' if chroot == COPR_SRPM_CHROOT else 'CoprBuildDB'}."
+            )
             return None
 
         return cls(
@@ -137,10 +147,11 @@ class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):
         )
 
     def get_copr_build_logs_url(self) -> str:
+        pkg = "" if self.chroot == COPR_SRPM_CHROOT else f"-{self.pkg}"
         return (
             f"https://copr-be.cloud.fedoraproject.org/results/{self.owner}/"
             f"{self.project_name}/{self.chroot}/"
-            f"{self.build_id:08d}-{self.pkg}/builder-live.log.gz"
+            f"{self.build_id:08d}{pkg}/builder-live.log.gz"
         )
 
 

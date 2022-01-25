@@ -16,6 +16,7 @@ from packit.config.package_config import PackageConfig
 from packit.local_project import LocalProject
 
 import packit_service
+from packit_service.constants import COPR_API_FAIL_STATE
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.models import (
     CoprBuildModel,
@@ -23,12 +24,14 @@ from packit_service.models import (
     TFTTestRunModel,
     JobTriggerModelType,
     KojiBuildModel,
+    SRPMBuildModel,
 )
 from packit_service.worker.events import AbstractCoprBuildEvent, KojiBuildEvent
 import packit_service.service.urls as urls
 from packit_service.service.urls import (
     get_copr_build_info_url,
     get_koji_build_info_url,
+    get_srpm_build_info_url,
 )
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.handlers import CoprBuildEndHandler, TestingFarmHandler
@@ -74,6 +77,16 @@ def copr_build_start():
 @pytest.fixture(scope="module")
 def copr_build_end():
     return json.loads((DATA_DIR / "fedmsg" / "copr_build_end.json").read_text())
+
+
+@pytest.fixture(scope="module")
+def srpm_build_start():
+    return json.loads((DATA_DIR / "fedmsg" / "srpm_build_start.json").read_text())
+
+
+@pytest.fixture(scope="module")
+def srpm_build_end():
+    return json.loads((DATA_DIR / "fedmsg" / "srpm_build_end.json").read_text())
 
 
 @pytest.fixture(scope="module")
@@ -464,7 +477,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
                     {
                         "id": "1:fedora-rawhide-x86_64",
                         "type": "fedora-copr-build",
-                        "packages": ["bar-0:0.1-1.noarch"],
+                        "packages": ["bar-0.1-1.noarch"],
                     },
                 ],
                 "variables": {
@@ -1079,4 +1092,166 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
         job_config=job_config,
     )
 
+    assert first_dict_value(results["job"])["success"]
+
+
+def test_srpm_build_end(srpm_build_end, pc_build_pr, srpm_build_model):
+    pr = flexmock(source_project=flexmock())
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
+        pc_build_pr
+    )
+    flexmock(CoprBuildModel).should_receive("get_all_by_build_id").and_return(
+        [
+            flexmock(target="fedora-33-x86_64")
+            .should_receive("set_status")
+            .with_args("pending")
+            .mock()
+        ]
+    )
+    (
+        flexmock(CoprBuildJobHelper)
+        .should_receive("get_build")
+        .with_args(3122876)
+        .and_return(flexmock(source_package={"url": "https://my.host/my.srpm"}))
+        .at_least()
+        .once()
+    )
+    flexmock(Pushgateway).should_receive("push").once().and_return()
+
+    flexmock(SRPMBuildModel).should_receive("get_by_copr_build_id").and_return(
+        srpm_build_model
+    )
+    srpm_build_model.should_call("set_status").with_args("success").once()
+    srpm_build_model.should_receive("set_end_time").once()
+
+    url = get_srpm_build_info_url(1)
+    flexmock(StatusReporter).should_receive("report").with_args(
+        state=BaseCommitStatus.running,
+        description="SRPM build succeeded. Waiting for RPM build to start...",
+        url=url,
+        check_names=["rpm-build:fedora-33-x86_64"],
+        markdown_content=None,
+    ).once()
+
+    flexmock(Signature).should_receive("apply_async").once()
+
+    flexmock(srpm_build_model).should_receive("set_url").with_args(
+        "https://my.host/my.srpm"
+    ).mock()
+
+    processing_results = SteveJobs().process_message(srpm_build_end)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    results = run_copr_build_end_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+
+def test_srpm_build_end_failure(srpm_build_end, pc_build_pr, srpm_build_model):
+    srpm_build_end["status"] = COPR_API_FAIL_STATE
+    pr = flexmock(source_project=flexmock())
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
+        pc_build_pr
+    )
+    flexmock(CoprBuildModel).should_receive("get_all_by_build_id").and_return(
+        [flexmock(target="fedora-33-x86_64")]
+    )
+    (
+        flexmock(CoprBuildJobHelper)
+        .should_receive("get_build")
+        .with_args(3122876)
+        .and_return(flexmock(source_package={"url": "https://my.host/my.srpm"}))
+        .at_least()
+        .once()
+    )
+    flexmock(Pushgateway).should_receive("push").once().and_return()
+    flexmock(CoprBuildJobHelper).should_receive("monitor_not_submitted_copr_builds")
+
+    flexmock(SRPMBuildModel).should_receive("get_by_copr_build_id").and_return(
+        srpm_build_model
+    )
+    srpm_build_model.should_call("set_status").with_args("failure").once()
+    srpm_build_model.should_receive("set_end_time").once()
+
+    url = get_srpm_build_info_url(1)
+    flexmock(StatusReporter).should_receive("report").with_args(
+        state=BaseCommitStatus.failure,
+        description="SRPM build failed, check the logs for details.",
+        url=url,
+        check_names=["rpm-build:fedora-33-x86_64"],
+        markdown_content=None,
+    ).once()
+
+    flexmock(Signature).should_receive("apply_async").once()
+
+    flexmock(srpm_build_model).should_receive("set_url").with_args(
+        "https://my.host/my.srpm"
+    ).mock()
+
+    processing_results = SteveJobs().process_message(srpm_build_end)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    results = run_copr_build_end_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert not first_dict_value(results["job"])["success"]
+
+
+def test_srpm_build_start(srpm_build_start, pc_build_pr, srpm_build_model):
+    pr = flexmock(source_project=flexmock())
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
+        pc_build_pr
+    )
+    flexmock(CoprBuildModel).should_receive("get_all_by_build_id").and_return(
+        [flexmock(target="fedora-33-x86_64")]
+    )
+    flexmock(Pushgateway).should_receive("push").once().and_return()
+
+    flexmock(SRPMBuildModel).should_receive("get_by_copr_build_id").and_return(
+        srpm_build_model
+    )
+    flexmock(SRPMBuildModel).should_receive("set_start_time")
+    flexmock(SRPMBuildModel).should_receive("set_build_logs_url")
+
+    url = get_srpm_build_info_url(1)
+    flexmock(StatusReporter).should_receive("report").with_args(
+        state=BaseCommitStatus.running,
+        description="SRPM build is in progress...",
+        url=url,
+        check_names=["rpm-build:fedora-33-x86_64"],
+        markdown_content=None,
+    ).once()
+
+    flexmock(Signature).should_receive("apply_async").once()
+
+    processing_results = SteveJobs().process_message(srpm_build_start)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    results = run_copr_build_start_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
     assert first_dict_value(results["job"])["success"]

@@ -119,7 +119,19 @@ def test_build_srpm_log_format(github_pr_event):
 
     # flexmock(PackitAPI).should_receive("up").and_return()
     flexmock(PackitAPI).should_receive("create_srpm").replace_with(mock_packit_log)
-    flexmock(SRPMBuildModel).should_receive("create_with_new_run").replace_with(
-        inspect_log_date_format
+    srpm_model_mock = (
+        flexmock(SRPMBuildModel)
+        .should_receive("set_start_time")
+        .mock()
+        .should_receive("set_logs")
+        .replace_with(inspect_log_date_format)
+        .mock()
+        .should_receive("set_status")
+        .mock()
+        .should_receive("set_end_time")
+        .mock()
+    )
+    flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
+        (srpm_model_mock, None)
     )
     helper._create_srpm()

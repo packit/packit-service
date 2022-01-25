@@ -1,6 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-
+import datetime
 import logging
 from functools import partial
 from io import StringIO
@@ -29,6 +29,7 @@ from sandcastle import SandcastleTimeoutReached
 
 from packit_service import sentry_integration
 from packit_service.config import Deployment, ServiceConfig
+from packit_service.constants import PG_BUILD_STATUS_SUCCESS, PG_BUILD_STATUS_FAILURE
 from packit_service.models import RunModel, SRPMBuildModel, JobTriggerModel
 from packit_service.worker.events import EventData
 from packit_service.trigger_mapping import are_job_types_same
@@ -398,6 +399,11 @@ class BaseBuildJobHelper:
         extra_logs: str = ""
         results: Optional[TaskResults] = None
 
+        self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
+            trigger_model=self.db_trigger, commit_sha=self.metadata.commit_sha
+        )
+        self._srpm_model.set_start_time(datetime.datetime.utcnow())
+
         try:
             self._srpm_path = Path(
                 self.api.create_srpm(srpm_dir=self.api.up.local_project.working_dir)
@@ -450,12 +456,12 @@ class BaseBuildJobHelper:
                 f"\nMessage: {exception}\nException: {exception!r}\n{self.msg_retrigger}"
                 "\nPlease join #packit on irc.libera.chat if you need help with the error above.\n"
             )
+        pg_status = PG_BUILD_STATUS_SUCCESS if srpm_success else PG_BUILD_STATUS_FAILURE
+        self._srpm_model.set_status(pg_status)
 
-        self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
-            logs=srpm_logs,
-            success=srpm_success,
-            trigger_model=self.db_trigger,
-        )
+        self._srpm_model.set_logs(srpm_logs)
+        self._srpm_model.set_end_time(datetime.datetime.utcnow())
+
         return results
 
     def _report(

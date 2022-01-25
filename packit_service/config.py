@@ -112,6 +112,7 @@ class ServiceConfig(Config):
         dashboard_url: str = "",
         koji_logs_url: str = "https://kojipkgs.fedoraproject.org",
         koji_web_url: str = "https://koji.fedoraproject.org",
+        enabled_projects_for_srpm_in_copr: Union[Set[str], List[str]] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -172,6 +173,10 @@ class ServiceConfig(Config):
         self.koji_logs_url = koji_logs_url
         self.koji_web_url = koji_web_url
 
+        self.enabled_projects_for_srpm_in_copr: Set[str] = set(
+            enabled_projects_for_srpm_in_copr or []
+        )
+
     service_config = None
 
     def __repr__(self):
@@ -198,7 +203,8 @@ class ServiceConfig(Config):
             f"server_name='{self.server_name}', "
             f"dashboard_url='{self.dashboard_url}', "
             f"koji_logs_url='{self.koji_logs_url}', "
-            f"koji_web_url='{self.koji_web_url}')"
+            f"koji_web_url='{self.koji_web_url}', "
+            f"enabled_projects_for_srpm_in_copr= '{self.enabled_projects_for_srpm_in_copr}')"
         )
 
     def use_stage(self) -> bool:

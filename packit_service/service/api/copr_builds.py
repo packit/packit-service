@@ -30,6 +30,8 @@ class CoprBuildsList(Resource):
         first, last = indices()
         for build in CoprBuildModel.get_merged_chroots(first, last):
             build_info = CoprBuildModel.get_by_build_id(build.build_id, None)
+            if build_info.status == "waiting_for_srpm":
+                continue
             project_info = build_info.get_project()
             build_dict = {
                 "packit_id": build_info.id,

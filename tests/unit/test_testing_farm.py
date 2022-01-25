@@ -29,7 +29,7 @@ from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import (
     TestingFarmJobHelper as TFJobHelper,
 )
-from packit_service.constants import PG_COPR_BUILD_STATUS_SUCCESS
+from packit_service.constants import PG_BUILD_STATUS_SUCCESS
 from packit.config.package_config import PackageConfig
 from celery import Signature
 
@@ -292,7 +292,7 @@ def test_distro2compose_for_aarch64(distro, arch, compose, use_internal_tf):
                     "version": "0.1.0",
                 },
             ],
-            ["cool-project-0:0.1.0-2.el8.x86_64"],
+            ["cool-project-0.1.0-2.el8.x86_64"],
         ),
     ],
 )
@@ -709,7 +709,7 @@ def test_get_request_details():
         (
             flexmock(
                 commit_sha="1111111111111111111111111111111111111111",
-                status=PG_COPR_BUILD_STATUS_SUCCESS,
+                status=PG_BUILD_STATUS_SUCCESS,
             ),
             False,
         ),

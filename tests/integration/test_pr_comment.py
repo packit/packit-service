@@ -20,7 +20,7 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import (
     SANDCASTLE_WORK_DIR,
     TASK_ACCEPTED,
-    PG_COPR_BUILD_STATUS_SUCCESS,
+    PG_BUILD_STATUS_SUCCESS,
 )
 from packit_service.models import (
     PullRequestModel,
@@ -716,7 +716,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
         {"test-target"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=PG_COPR_BUILD_STATUS_SUCCESS)
+        flexmock(status=PG_BUILD_STATUS_SUCCESS)
     )
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})
@@ -982,7 +982,7 @@ def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event
         {"test-target", "test-target-without-build"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=PG_COPR_BUILD_STATUS_SUCCESS)
+        flexmock(status=PG_BUILD_STATUS_SUCCESS)
     ).and_return()
 
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("owner")

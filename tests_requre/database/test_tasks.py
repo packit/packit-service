@@ -10,7 +10,7 @@ import packit_service
 from ogr.services.github import GithubProject
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import JobMetadataConfig
-from packit_service.constants import PG_COPR_BUILD_STATUS_SUCCESS
+from packit_service.constants import PG_BUILD_STATUS_SUCCESS
 from packit_service.models import (
     CoprBuildModel,
     SRPMBuildModel,
@@ -57,8 +57,10 @@ def packit_build_752():
     )
 
     srpm_build, run_model = SRPMBuildModel.create_with_new_run(
-        "asd\nqwe\n", success=True, trigger_model=pr_model
+        trigger_model=pr_model, commit_sha="687abc76d67d"
     )
+    srpm_build.set_logs("asd\nqwe\n")
+    srpm_build.set_status("success")
     yield CoprBuildModel.create(
         build_id=str(BUILD_ID),
         commit_sha="687abc76d67d",
@@ -196,4 +198,4 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
     )
 
     check_copr_build(BUILD_ID)
-    assert packit_build_752.status == PG_COPR_BUILD_STATUS_SUCCESS
+    assert packit_build_752.status == PG_BUILD_STATUS_SUCCESS

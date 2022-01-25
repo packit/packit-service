@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+from typing import List
 
 from packit.config import JobConfig, PackageConfig
 from packit.schema import JobConfigSchema, PackageConfigSchema
@@ -46,3 +47,22 @@ def load_job_config(job_config: JobConfig):
 
 def dump_job_config(job_config: JobConfig):
     return JobConfigSchema().dump(job_config) if job_config else None
+
+
+def get_package_nvrs(built_packages: List[dict]) -> List[str]:
+    """
+    Construct package NVRs for built packages except the SRPM.
+
+    Returns:
+        list of nvrs
+    """
+    packages = []
+    for package in built_packages:
+        if package["arch"] == "src":
+            continue
+
+        epoch = f"{package['epoch']}:" if package["epoch"] != 0 else ""
+        packages.append(
+            f"{package['name']}-{epoch}{package['version']}-{package['release']}.{package['arch']}"
+        )
+    return packages

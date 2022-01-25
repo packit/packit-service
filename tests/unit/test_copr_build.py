@@ -12,6 +12,8 @@ from copr.v3 import Client
 from flexmock import flexmock
 
 import gitlab
+from munch import Munch
+
 import packit
 import packit_service
 
@@ -30,7 +32,7 @@ from packit.config.job_config import JobMetadataConfig
 from packit.copr_helper import CoprHelper
 from packit.exceptions import FailedCreateSRPM, PackitCoprSettingsException
 from packit_service import sentry_integration
-from packit_service.config import ServiceConfig
+from packit_service.config import ServiceConfig, Deployment
 from packit_service.models import (
     CoprBuildModel,
     SRPMBuildModel,
@@ -62,7 +64,6 @@ from packit_service.worker.reporting import (
     StatusReporterGithubChecks,
 )
 from tests.spellbook import DATA_DIR
-
 
 DEFAULT_TARGETS = [
     "fedora-29-x86_64",
@@ -124,7 +125,9 @@ def build_helper(
         job_config=selected_job or jobs[0],
         project=project_type(
             repo="the-example-repo",
-            service=flexmock(instance_url="git.instance.io"),
+            service=flexmock(
+                instance_url="git.instance.io", hostname="git.instance.io"
+            ),
             namespace="the/example/namespace",
         ),
         metadata=flexmock(
@@ -134,6 +137,7 @@ def build_helper(
             identifier=event.identifier,
             tag_name=None,
             task_accepted_time=datetime.now(timezone.utc),
+            project_url="https://git.instance.io/the/example/namespace/the-example-repo",
         ),
         db_trigger=db_trigger,
         targets_override=targets_override,
@@ -188,9 +192,17 @@ def test_copr_build_check_names(github_pr_event):
     flexmock(GithubProject).should_receive("create_check_run").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True)
+            flexmock(status="success")
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -318,12 +330,19 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
         )
         .and_return()
     )
-    flexmock(GithubProject).should_receive("create_check_run").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True)
+            flexmock(status="success")
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -439,9 +458,17 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
     flexmock(GithubProject).should_receive("create_check_run").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True)
+            flexmock(status="success")
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -533,9 +560,17 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
     flexmock(GithubProject).should_receive("create_check_run").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True)
+            flexmock(status="success")
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -613,9 +648,17 @@ def test_copr_build_success_set_test_check(github_pr_event):
     )
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True)
+            flexmock(status="success")
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -685,9 +728,17 @@ def test_copr_build_for_branch(branch_push_event):
     flexmock(GithubProject).should_receive("create_check_run").and_return().times(8)
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True)
+            flexmock(status="success")
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -758,7 +809,21 @@ def test_copr_build_for_branch_failed(branch_push_event):
     flexmock(GithubProject).should_receive("create_check_run").and_return().times(8)
     flexmock(GithubProject).should_receive("commit_comment").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
-        (flexmock(success=False, id=2), flexmock())
+        (
+            flexmock(status="failure", id=2)
+            .should_receive("set_url")
+            .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
+            .mock(),
+            flexmock(),
+        )
     )
     flexmock(CoprBuildModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(PushGitHubEvent).should_receive("db_trigger").and_raise(flexmock())
@@ -826,9 +891,17 @@ def test_copr_build_for_release(release_event):
     flexmock(GithubProject).should_receive("create_check_run").and_return().times(8)
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True)
+            flexmock(status="success")
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -886,9 +959,17 @@ def test_copr_build_success(github_pr_event):
     )
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True)
+            flexmock(status="success")
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -978,7 +1059,21 @@ def test_copr_build_fails_in_packit(github_pr_event):
         flexmock(source_project=flexmock())
     )
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
-        (flexmock(success=False, id=2), flexmock())
+        (
+            flexmock(status="failure", id=2)
+            .should_receive("set_url")
+            .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
+            .mock(),
+            flexmock(),
+        )
     )
     flexmock(CoprBuildModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
@@ -1037,8 +1132,23 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
             ),
         ).and_return().once()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
-        (flexmock(success=True, id=2), flexmock())
+        (
+            flexmock(status="success", id=2)
+            .should_receive("set_url")
+            .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
+            .mock(),
+            flexmock(),
+        )
     )
+
     flexmock(CoprBuildModel).should_receive("create").and_return(flexmock(id=1))
 
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
@@ -1141,9 +1251,17 @@ def test_copr_build_no_targets(github_pr_event):
     )
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True)
+            flexmock(status="success")
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -1229,9 +1347,17 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
 
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True)
+            flexmock(status="success")
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -1323,9 +1449,17 @@ def test_copr_build_success_set_test_check_gitlab(gitlab_mr_event):
 
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True)
+            flexmock(status="success")
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -1394,9 +1528,17 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
     flexmock(GitlabProject).should_receive("set_commit_status").and_return().times(8)
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True)
+            flexmock(status="success")
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -1462,9 +1604,17 @@ def test_copr_build_success_gitlab(gitlab_mr_event):
 
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True)
+            flexmock(status="success")
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -1554,7 +1704,21 @@ def test_copr_build_fails_in_packit_gitlab(gitlab_mr_event):
             trim=True,
         ).and_return().once()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
-        (flexmock(success=False, id=2), flexmock())
+        (
+            flexmock(status="failure", id=2)
+            .should_receive("set_url")
+            .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
+            .mock(),
+            flexmock(),
+        )
     )
     flexmock(CoprBuildModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
@@ -1604,9 +1768,17 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
     flexmock(GitlabProject).should_receive("commit_comment").and_return()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True, id=42)
+            flexmock(status="success", id=42)
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -1684,9 +1856,17 @@ def test_copr_build_no_targets_gitlab(gitlab_mr_event):
     )
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True)
+            flexmock(status="success")
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -1760,9 +1940,17 @@ def test_copr_build_targets_override(github_pr_event):
     )
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(success=True)
+            flexmock(status="success")
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
             .mock(),
             flexmock(),
         )
@@ -1805,3 +1993,122 @@ def test_copr_build_targets_override(github_pr_event):
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
+
+
+def test_run_copr_build_from_source_script(github_pr_event):
+    helper = build_helper(
+        event=github_pr_event,
+        db_trigger=flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
+        ),
+    )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    flexmock(GithubProject).should_receive("create_check_run").and_return().times(4)
+    flexmock(GithubProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
+    flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
+        (
+            flexmock(status="success", id=1),
+            flexmock(),
+        )
+    )
+    flexmock(CoprBuildModel).should_receive("create").and_return(flexmock(id=1)).times(
+        4
+    )
+    flexmock(PullRequestGithubEvent).should_receive("db_trigger").and_return(flexmock())
+
+    # copr build
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
+        None
+    )
+    flexmock(helper).should_receive("get_packit_copr_download_urls").and_return([])
+    flexmock(Client).should_receive("create_from_config_file").and_return(
+        flexmock(
+            config={"copr_url": "https://copr.fedorainfracloud.org/"},
+            build_proxy=flexmock()
+            .should_receive("create_from_custom")
+            .and_return(
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="the-owner",
+                )
+            )
+            .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({target: "" for target in DEFAULT_TARGETS})
+            .mock(),
+        )
+    )
+
+    flexmock(Celery).should_receive("send_task").once()
+    assert helper.run_copr_build_from_source_script()["success"]
+
+
+def test_get_packit_copr_download_urls(github_pr_event):
+    copr_response_built_packages = Munch(
+        {
+            "packages": [
+                {
+                    "arch": "noarch",
+                    "epoch": 0,
+                    "name": "python3-packit",
+                    "release": "1.2",
+                    "version": "0.38.0",
+                },
+                {
+                    "arch": "src",
+                    "epoch": 0,
+                    "name": "packit",
+                    "release": "1.2",
+                    "version": "0.38.0",
+                },
+                {
+                    "arch": "noarch",
+                    "epoch": 0,
+                    "name": "packit",
+                    "release": "1.2",
+                    "version": "0.38.0",
+                },
+            ],
+        }
+    )
+
+    flexmock(Client).should_receive("create_from_config_file").and_return(
+        flexmock(
+            config={"copr_url": "https://copr.fedorainfracloud.org/"},
+            package_proxy=flexmock()
+            .should_receive("get")
+            .with_args(
+                ownername="packit",
+                projectname="packit-stable",
+                packagename="packit",
+                with_latest_succeeded_build=True,
+            )
+            .and_return(Munch({"builds": {"latest_succeeded": {"id": 123}}}))
+            .mock(),
+            build_chroot_proxy=flexmock()
+            .should_receive("get")
+            .with_args(123, "fedora-35-x86_64")
+            .and_return(Munch({"result_url": "https://results/"}))
+            .mock()
+            .should_receive("get_built_packages")
+            .with_args(123, "fedora-35-x86_64")
+            .and_return(copr_response_built_packages)
+            .mock(),
+        )
+    )
+    urls = [
+        "https://results/python3-packit-0.38.0-1.2.noarch.rpm",
+        "https://results/packit-0.38.0-1.2.noarch.rpm",
+    ]
+    helper = build_helper(event=github_pr_event)
+    helper.service_config.deployment = Deployment.prod
+
+    assert helper.get_packit_copr_download_urls() == urls

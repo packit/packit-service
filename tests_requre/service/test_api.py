@@ -44,6 +44,15 @@ def test_copr_builds_list(client, clean_before_and_after, multiple_copr_builds):
     }
 
 
+#  Test Copr Builds with status waiting_for_srpm
+def test_copr_builds_list_waiting_for_srpm(
+    client, clean_before_and_after, a_copr_build_waiting_for_srpm
+):
+    response = client.get(url_for("api.copr-builds_copr_builds_list"))
+    response_dict = response.json
+    assert response_dict == []
+
+
 #  Test Pagination
 def test_pagination(client, clean_before_and_after, too_many_copr_builds):
     response_1 = client.get(
@@ -172,7 +181,7 @@ def test_srpm_builds_list(client, clean_before_and_after, a_copr_build_for_pr):
         url_for("api.srpm-builds_srpm_builds_list", id=a_copr_build_for_pr.id)
     )
     response_dict = response.json
-    assert response_dict[0]["success"] is True
+    assert response_dict[0]["status"] == "success"
     assert type(response_dict[0]["srpm_build_id"]) is int
     assert response_dict[0]["log_url"] is not None
     assert response_dict[0]["repo_namespace"] == SampleValues.repo_namespace
@@ -192,7 +201,7 @@ def test_srpm_build_info(
     )
     response_dict = response.json
 
-    assert response_dict["success"] is True
+    assert response_dict["status"] == "success"
     assert response_dict["build_submitted_time"] is not None
     assert "url" in response_dict
     assert response_dict["logs"] is not None
@@ -204,6 +213,23 @@ def test_srpm_build_info(
     assert response_dict["pr_id"] == SampleValues.pr_id
     assert "branch_name" in response_dict
     assert "release" in response_dict
+
+
+def test_srpm_build_in_copr_info(
+    client, clean_before_and_after, srpm_build_in_copr_model
+):
+    srpm_build_model, _ = srpm_build_in_copr_model
+    response = client.get(
+        url_for("api.srpm-builds_srpm_build_item", id=srpm_build_model.id)
+    )
+    response_dict = response.json
+
+    assert response_dict["status"] == "success"
+    assert response_dict["build_submitted_time"] is not None
+    assert "url" in response_dict
+    assert response_dict["logs"] is None
+    assert response_dict["copr_build_id"] is not None
+    assert response_dict["copr_web_url"] is not None
 
 
 def test_allowlist_all(client, clean_before_and_after, new_allowlist_entry):
@@ -352,7 +378,7 @@ def test_get_projects_prs(client, clean_before_and_after, a_copr_build_for_pr):
     assert response_dict[0]["pr_id"] is not None
     assert response_dict[0]["builds"][0]["build_id"] == SampleValues.build_id
     assert response_dict[0]["builds"][0]["status"] == "pending"
-    assert response_dict[0]["srpm_builds"][0]["success"] is True
+    assert response_dict[0]["srpm_builds"][0]["status"] == "success"
 
 
 def test_get_projects_prs_koji(client, clean_before_and_after, a_koji_build_for_pr):
@@ -368,7 +394,7 @@ def test_get_projects_prs_koji(client, clean_before_and_after, a_koji_build_for_
     response_dict = response.json
     assert len(response_dict) == 1
     assert response_dict[0]["pr_id"] is not None
-    assert response_dict[0]["srpm_builds"][0]["success"] is True
+    assert response_dict[0]["srpm_builds"][0]["status"] == "success"
     assert response_dict[0]["koji_builds"][0]["status"] == "pending"
 
 
