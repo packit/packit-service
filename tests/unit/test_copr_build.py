@@ -2009,7 +2009,7 @@ def test_run_copr_build_from_source_script(github_pr_event):
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(GithubProject).should_receive("create_check_run").and_return().times(4)
     flexmock(GithubProject).should_receive("get_pr").and_return(
-        flexmock(source_project=flexmock())
+        flexmock(source_project=flexmock(), target_branch="main")
     )
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
