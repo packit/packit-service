@@ -12,6 +12,7 @@ from packit_service.models import (
     KojiBuildTargetModel,
     SRPMBuildModel,
     TFTTestRunTargetModel,
+    ProposeDownstreamModel,
 )
 
 
@@ -29,6 +30,7 @@ def get_project_info_from_build(
         CoprBuildTargetModel,
         KojiBuildTargetModel,
         TFTTestRunTargetModel,
+        ProposeDownstreamModel,
     ]
 ) -> Dict[str, Any]:
     project = build.get_project()
@@ -40,6 +42,7 @@ def get_project_info_from_build(
         "repo_name": project.repo_name,
         "git_repo": project.project_url,
         "pr_id": build.get_pr_id(),
+        "issue_id": build.get_issue_id(),
         "branch_name": build.get_branch_name(),
         "release": build.get_release_tag(),
     }
