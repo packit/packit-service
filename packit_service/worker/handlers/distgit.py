@@ -4,14 +4,15 @@
 """
 This file defines classes for job handlers specific for distgit
 """
-
 import logging
+from datetime import datetime
 from os import getenv
 
 import shutil
-from typing import Optional
+from typing import Optional, Dict
 
 from celery import Task
+from ogr.abstract import PullRequest
 from packit.exceptions import PackitException
 
 from packit.api import PackitAPI
@@ -29,6 +30,13 @@ from packit_service.constants import (
     FILE_DOWNLOAD_FAILURE,
     MSG_RETRIGGER,
 )
+from packit_service.models import (
+    ProposeDownstreamTargetStatus,
+    ProposeDownstreamTargetModel,
+    ProposeDownstreamModel,
+    ProposeDownstreamStatus,
+)
+from packit_service.utils import gather_packit_logs_to_buffer, collect_packit_logs
 from packit_service.worker.events import (
     PushPagureEvent,
     ReleaseEvent,
@@ -139,9 +147,11 @@ class ProposeDownstreamHandler(JobHandler):
         )
         self.task = task
 
-    def sync_branch(self, branch: str):
+    def sync_branch(self, branch: str) -> Optional[PullRequest]:
         try:
-            self.api.sync_release(dist_git_branch=branch, tag=self.data.tag_name)
+            downstream_pr = self.api.sync_release(
+                dist_git_branch=branch, tag=self.data.tag_name
+            )
         except Exception as ex:
             # the archive has not been uploaded to PyPI yet
             if FILE_DOWNLOAD_FAILURE in str(ex):
@@ -161,6 +171,43 @@ class ProposeDownstreamHandler(JobHandler):
             raise ex
         finally:
             self.api.up.local_project.reset("HEAD")
+
+        return downstream_pr
+
+    @staticmethod
+    def _create_new_propose_for_each_branch(
+        propose_downstream_model: ProposeDownstreamModel, branches_count: int
+    ) -> None:
+        for _ in range(branches_count):
+            propose_downstream_model.propose_downstream_targets.append(
+                ProposeDownstreamTargetModel.create(
+                    status=ProposeDownstreamTargetStatus.queued
+                )
+            )
+
+    def _report_errors_for_each_branch(self, errors: Dict[str, str]) -> None:
+        branch_errors = ""
+        for branch, err in sorted(
+            errors.items(), key=lambda branch_error: branch_error[0]
+        ):
+            err_without_new_lines = err.replace("\n", " ")
+            branch_errors += f"| `{branch}` | `{err_without_new_lines}` |\n"
+
+        msg_retrigger = MSG_RETRIGGER.format(
+            job="update", command="propose-downstream", place="issue"
+        )
+        body_msg = (
+            f"Packit failed on creating pull-requests in dist-git:\n\n"
+            f"| dist-git branch | error |\n"
+            f"| --------------- | ----- |\n"
+            f"{branch_errors}\n\n"
+            f"{msg_retrigger}\n"
+        )
+
+        self.project.create_issue(
+            title=f"[packit] Propose downstream failed for release {self.data.tag_name}",
+            body=body_msg,
+        )
 
     def run(self) -> TaskResults:
         """
@@ -185,15 +232,39 @@ class ProposeDownstreamHandler(JobHandler):
             stage=self.service_config.use_stage(),
         )
 
+        propose_downstream_model, _ = ProposeDownstreamModel.create_with_new_run(
+            status=ProposeDownstreamStatus.running,
+            trigger_model=self.data.db_trigger,
+        )
+
         errors = {}
         default_dg_branch = self.api.dg.local_project.git_project.default_branch
+
         try:
-            for branch in get_branches(
+            branches = get_branches(
                 *self.job_config.metadata.dist_git_branches, default=default_dg_branch
+            )
+            self._create_new_propose_for_each_branch(
+                propose_downstream_model, len(branches)
+            )
+
+            for branch, model in zip(
+                branches, propose_downstream_model.propose_downstream_targets
             ):
+                model.set_status(status=ProposeDownstreamTargetStatus.running)
+                model.set_branch(branch=branch)
+                buffer, handler = gather_packit_logs_to_buffer(
+                    logging_level=logging.DEBUG
+                )
+
                 try:
-                    self.sync_branch(branch=branch)
+                    model.set_start_time(start_time=datetime.utcnow())
+                    downstream_pr = self.sync_branch(branch=branch)
+                    if downstream_pr is not None:
+                        model.set_downstream_pr_url(downstream_pr_url=downstream_pr.url)
+                        model.set_status(status=ProposeDownstreamTargetStatus.submitted)
                 except AbortProposeDownstream:
+                    model.set_status(staus=ProposeDownstreamTargetStatus.retry)
                     return TaskResults(
                         success=True,  # do not create a Sentry issue
                         details={
@@ -202,8 +273,13 @@ class ProposeDownstreamHandler(JobHandler):
                     )
                 except Exception as ex:
                     # eat the exception and continue with the execution
+                    model.set_status(status=ProposeDownstreamTargetStatus.error)
                     errors[branch] = str(ex)
                     sentry_integration.send_to_sentry(ex)
+                finally:
+                    model.set_finished_time(finished_time=datetime.utcnow())
+                    model.set_logs(collect_packit_logs(buffer=buffer, handler=handler))
+
         finally:
             # remove temporary dist-git clone after we're done here - context:
             # 1. the dist-git repo is cloned on worker, not sandbox
@@ -212,34 +288,14 @@ class ProposeDownstreamHandler(JobHandler):
             shutil.rmtree(self.api.dg.local_project.working_dir)
 
         if errors:
-            branch_errors = ""
-            for branch, err in sorted(
-                errors.items(), key=lambda branch_error: branch_error[0]
-            ):
-                err_without_new_lines = err.replace("\n", " ")
-                branch_errors += f"| `{branch}` | `{err_without_new_lines}` |\n"
-
-            msg_retrigger = MSG_RETRIGGER.format(
-                job="update", command="propose-downstream", place="issue"
-            )
-            body_msg = (
-                f"Packit failed on creating pull-requests in dist-git:\n\n"
-                f"| dist-git branch | error |\n"
-                f"| --------------- | ----- |\n"
-                f"{branch_errors}\n\n"
-                f"{msg_retrigger}\n"
-            )
-
-            self.project.create_issue(
-                title=f"[packit] Propose downstream failed for release {self.data.tag_name}",
-                body=body_msg,
-            )
-
+            self._report_errors_for_each_branch(errors)
+            propose_downstream_model.set_status(status=ProposeDownstreamStatus.error)
             return TaskResults(
                 success=False,
                 details={"msg": "Propose downstream failed.", "errors": errors},
             )
 
+        propose_downstream_model.set_status(status=ProposeDownstreamStatus.finished)
         return TaskResults(success=True, details={})
 
 
