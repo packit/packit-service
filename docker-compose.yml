@@ -11,7 +11,7 @@ services:
   redis-commander:
     container_name: redis-commander
     hostname: redis-commander
-    image: rediscommander/redis-commander:latest
+    image: docker.io/rediscommander/redis-commander
     environment:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
@@ -22,7 +22,7 @@ services:
     user: "123123"
 
   flower:
-    image: mher/flower
+    image: docker.io/mher/flower
     container_name: flower
     ports:
       - 5555:5555
@@ -145,7 +145,7 @@ services:
     user: "123123"
 
   adminer:
-    image: adminer
+    image: docker.io/adminer
     container_name: adminer
     depends_on:
       - postgres
