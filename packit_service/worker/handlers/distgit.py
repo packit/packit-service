@@ -154,7 +154,7 @@ class ProposeDownstreamHandler(JobHandler):
                 retries = self.task.request.retries
                 if retries < int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT)):
                     # will retry in: 1m and then again in another 2m
-                    delay = 60 * 2 ** retries
+                    delay = 60 * 2**retries
                     logger.info(f"Will retry for the {retries + 1}. time in {delay}s.")
                     # throw=False so that exception is not raised and task
                     # is not retried also automatically
