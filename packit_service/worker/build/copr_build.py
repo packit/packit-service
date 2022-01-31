@@ -233,11 +233,15 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         Run copr build using custom source method.
         """
         try:
+            pr_id = self.metadata.pr_id
             script = create_source_script(
                 url=self.metadata.project_url,
                 ref=self.metadata.git_ref,
-                pr_id=str(self.metadata.pr_id),
+                pr_id=str(pr_id) if pr_id else None,
                 merge_pr=self.package_config.merge_pr_in_ci,
+                target_branch=self.project.get_pr(pr_id).target_branch
+                if pr_id
+                else None,
                 job_config=self.job_config,
             )
             build_id, web_url = self.submit_copr_build(script=script)
