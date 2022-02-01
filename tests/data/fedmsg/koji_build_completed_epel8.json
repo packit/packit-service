@@ -1,0 +1,26 @@
+{
+  "body": {
+    "attribute": "state",
+    "build_id": 1874072,
+    "epoch": null,
+    "instance": "primary",
+    "name": "python-ogr",
+    "new": 1,
+    "old": 0,
+    "owner": "packit",
+    "release": "1.el8",
+    "request": [
+      "git+https://src.fedoraproject.org/rpms/python-ogr.git#23806a208e32cc937f3a6eb151c62cbbc10d8f96",
+      "epel8-candidate",
+      {}
+    ],
+    "task_id": 80860791,
+    "version": "0.34.0"
+  },
+  "headers": {
+    "sent-at": "2022-01-05T09:41:27+00:00"
+  },
+  "id": "2022-066ad373-95a4-4ac1-a86a-aeb315f62f4f",
+  "queue": null,
+  "topic": "org.fedoraproject.prod.buildsys.build.state.change"
+}

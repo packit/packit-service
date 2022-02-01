@@ -158,7 +158,7 @@ class KojiBuildEvent(AbstractKojiEvent):
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["state"] = result["state"].value
-        result["old_state"] = result["old_state"].value
+        result["old_state"] = result["old_state"].value if self.old_state else None
         result["commit_sha"] = result.pop("_commit_sha")  # commit_sha is a property
         return result
 

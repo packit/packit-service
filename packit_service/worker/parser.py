@@ -1077,33 +1077,38 @@ class Parser:
         if event.get("topic") != "org.fedoraproject.prod.buildsys.build.state.change":
             return None
 
-        build_id = nested_get(event, "msg", "build_id")
-        task_id = nested_get(event, "msg", "task_id")
+        # Some older messages had a different structure
+        content = event.get("body") or event.get("msg")
+        if not content:
+            return None
+
+        build_id = content.get("build_id")
+        task_id = content.get("task_id")
         logger.info(f"Koji event: build_id={build_id} task_id={task_id}")
 
         new_state = (
             KojiBuildState.from_number(raw_new)
-            if (raw_new := nested_get(event, "msg", "new")) is not None
+            if (raw_new := content.get("new")) is not None
             else None
         )
         old_state = (
             KojiBuildState.from_number(raw_old)
-            if (raw_old := nested_get(event, "msg", "old")) is not None
+            if (raw_old := content.get("old")) is not None
             else None
         )
 
-        version = nested_get(event, "msg", "version")
-        epoch = nested_get(event, "msg", "epoch")
+        version = content.get("version")
+        epoch = content.get("epoch")
 
         # "release": "1.fc36"
-        release, _ = nested_get(event, "msg", "release").split(".")
+        release, _ = content.get("release").split(".")
 
         # "request": [
         #       "git+https://src.fedoraproject.org/rpms/packit.git#0eb3e12005cb18f15d3054020f7ac934c01eae08",
         #       "rawhide",
         #       {}
         #     ],
-        raw_git_ref, fedora_target, _ = nested_get(event, "msg", "request")
+        raw_git_ref, fedora_target, _ = content.get("request")
         project_url = (
             raw_git_ref.split("#")[0].removeprefix("git+").removesuffix(".git")
         )
