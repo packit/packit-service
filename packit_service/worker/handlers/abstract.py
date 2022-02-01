@@ -220,6 +220,7 @@ class TaskName(str, enum.Enum):
     koji_build = "task.run_koji_build_handler"
     koji_build_report = "task.run_koji_build_report_handler"
     downstream_koji_build = "task.run_downstream_koji_build_handler"
+    downstream_koji_build_report = "task.run_downstream_koji_build_report_handler"
     # Fedora notification is ok for now
     # downstream_koji_build_report = "task.run_downstream_koji_build_report_handler"
     sync_from_downstream = "task.run_sync_from_downstream_handler"

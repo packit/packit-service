@@ -323,3 +323,55 @@ def cache_clear(request):
 
     if getattr(request.module, "CACHE_CLEAR", None):
         [f.cache_clear() for f in getattr(request.module, "CACHE_CLEAR")]
+
+
+@pytest.fixture()
+def koji_build_start_old_format():
+    with open(DATA_DIR / "fedmsg" / "koji_build_start_old_format.json", "r") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def koji_build_start_rawhide():
+    with open(DATA_DIR / "fedmsg" / "koji_build_start_rawhide.json", "r") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def koji_build_start_f35():
+    with open(DATA_DIR / "fedmsg" / "koji_build_start_f35.json", "r") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def koji_build_start_epel8():
+    with open(DATA_DIR / "fedmsg" / "koji_build_start_epel8.json", "r") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def koji_build_completed_old_format():
+    with open(
+        DATA_DIR / "fedmsg" / "koji_build_completed_old_format.json", "r"
+    ) as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def koji_build_completed_rawhide():
+    with open(
+        DATA_DIR / "fedmsg" / "koji_build_completed_rawhide.json", "r"
+    ) as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def koji_build_completed_f35():
+    with open(DATA_DIR / "fedmsg" / "koji_build_completed_f35.json", "r") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def koji_build_completed_epel8():
+    with open(DATA_DIR / "fedmsg" / "koji_build_completed_epel8.json", "r") as outfile:
+        return json.load(outfile)

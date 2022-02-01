@@ -3,7 +3,6 @@
 
 import json
 
-import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 
@@ -21,59 +20,7 @@ from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
     run_bodhi_update,
 )
-from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
-
-
-@pytest.fixture()
-def koji_build_start_old_format():
-    with open(DATA_DIR / "fedmsg" / "koji_build_start_old_format.json", "r") as outfile:
-        return json.load(outfile)
-
-
-@pytest.fixture()
-def koji_build_start_rawhide():
-    with open(DATA_DIR / "fedmsg" / "koji_build_start_rawhide.json", "r") as outfile:
-        return json.load(outfile)
-
-
-@pytest.fixture()
-def koji_build_start_f35():
-    with open(DATA_DIR / "fedmsg" / "koji_build_start_f35.json", "r") as outfile:
-        return json.load(outfile)
-
-
-@pytest.fixture()
-def koji_build_start_epel8():
-    with open(DATA_DIR / "fedmsg" / "koji_build_start_epel8.json", "r") as outfile:
-        return json.load(outfile)
-
-
-@pytest.fixture()
-def koji_build_completed_old_format():
-    with open(
-        DATA_DIR / "fedmsg" / "koji_build_completed_old_format.json", "r"
-    ) as outfile:
-        return json.load(outfile)
-
-
-@pytest.fixture()
-def koji_build_completed_rawhide():
-    with open(
-        DATA_DIR / "fedmsg" / "koji_build_completed_rawhide.json", "r"
-    ) as outfile:
-        return json.load(outfile)
-
-
-@pytest.fixture()
-def koji_build_completed_f35():
-    with open(DATA_DIR / "fedmsg" / "koji_build_completed_f35.json", "r") as outfile:
-        return json.load(outfile)
-
-
-@pytest.fixture()
-def koji_build_completed_epel8():
-    with open(DATA_DIR / "fedmsg" / "koji_build_completed_epel8.json", "r") as outfile:
-        return json.load(outfile)
+from tests.spellbook import first_dict_value, get_parameters_from_results
 
 
 def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
@@ -110,7 +57,8 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(RepositoryCache).should_call("__init__").once()
-    flexmock(Signature).should_receive("apply_async").once()
+    # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
+    flexmock(Signature).should_receive("apply_async").times(2)
     flexmock(Pushgateway).should_receive("push").once().and_return()
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="rawhide",
@@ -141,6 +89,9 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
     ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
 
     processing_results = SteveJobs().process_message(koji_build_completed_old_format)
+    # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
+    assert len(processing_results) == 2
+    processing_results.pop()
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
@@ -190,7 +141,8 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(RepositoryCache).should_call("__init__").times(0)
-    flexmock(Signature).should_receive("apply_async").times(0)
+    # 0*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
+    flexmock(Signature).should_receive("apply_async").times(1)
     flexmock(Pushgateway).should_receive("push").times(0)
     flexmock(PackitAPI).should_receive("create_update").times(0)
 
@@ -216,7 +168,8 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
     ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
 
     processing_results = SteveJobs().process_message(koji_build_start_old_format)
-    assert not processing_results
+    # 0*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
+    assert len(processing_results) == 1
 
 
 def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
@@ -253,7 +206,8 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(RepositoryCache).should_call("__init__").once()
-    flexmock(Signature).should_receive("apply_async").once()
+    # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
+    flexmock(Signature).should_receive("apply_async").times(2)
     flexmock(Pushgateway).should_receive("push").once().and_return()
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="rawhide",
@@ -274,6 +228,9 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
     )
 
     processing_results = SteveJobs().process_message(koji_build_completed_old_format)
+    # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
+    assert len(processing_results) == 2
+    processing_results.pop()
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
@@ -320,7 +277,8 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(RepositoryCache).should_call("__init__").times(0)
-    flexmock(Signature).should_receive("apply_async").times(0)
+    # 0*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
+    flexmock(Signature).should_receive("apply_async").times(1)
     flexmock(Pushgateway).should_receive("push").times(0)
     flexmock(PackitAPI).should_receive("create_update").times(0)
 
@@ -346,7 +304,8 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
     ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
 
     processing_results = SteveJobs().process_message(koji_build_completed_old_format)
-    assert not processing_results
+    # 0*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
+    assert len(processing_results)
 
 
 def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f35):
@@ -382,7 +341,8 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f35):
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(RepositoryCache).should_call("__init__").once()
-    flexmock(Signature).should_receive("apply_async").once()
+    # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
+    flexmock(Signature).should_receive("apply_async").times(2)
     flexmock(Pushgateway).should_receive("push").once().and_return()
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="f35",
@@ -403,6 +363,9 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f35):
     ).once()
 
     processing_results = SteveJobs().process_message(koji_build_completed_f35)
+    # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
+    assert len(processing_results) == 2
+    processing_results.pop()
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
