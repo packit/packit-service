@@ -36,7 +36,7 @@ from packit_service.worker.handlers import (
     TestingFarmResultsHandler,
     CoprBuildHandler,
     KojiBuildHandler,
-    KojiBuildReportHandler,
+    KojiTaskReportHandler,
     ProposeDownstreamHandler,
 )
 from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
@@ -282,7 +282,7 @@ from packit_service.worker.jobs import (
                     trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
-            {KojiBuildReportHandler},
+            {KojiTaskReportHandler},
             id="config=production_build_for_pr&pull_request&KojiBuildEvent",
         ),
         # Build and test:
@@ -786,7 +786,7 @@ from packit_service.worker.jobs import (
                     trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
-            {KojiBuildReportHandler},
+            {KojiTaskReportHandler},
             id="config=build_for_pr+production_build_for_pr"
             "&pull_request&KojiBuildEvent",
         ),
@@ -1777,7 +1777,7 @@ def test_get_handlers_for_check_rerun_event(
             id="build_for_pr+production_build_for_pr&KojiBuildHandler&PullRequestGithubEvent",
         ),
         pytest.param(
-            KojiBuildReportHandler,
+            KojiTaskReportHandler,
             KojiTaskEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [

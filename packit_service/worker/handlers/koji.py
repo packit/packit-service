@@ -143,7 +143,7 @@ class KojiBuildHandler(JobHandler):
 
 @configured_as(job_type=JobType.production_build)
 @reacts_to(event=KojiTaskEvent)
-class KojiBuildReportHandler(JobHandler):
+class KojiTaskReportHandler(JobHandler):
     task_name = TaskName.koji_build_report
 
     def __init__(

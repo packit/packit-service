@@ -30,7 +30,7 @@ from packit_service.worker.handlers.forges import (
 )
 from packit_service.worker.handlers.koji import (
     KojiBuildHandler,
-    KojiBuildReportHandler,
+    KojiTaskReportHandler,
 )
 from packit_service.worker.handlers.testing_farm import (
     TestingFarmHandler,
@@ -48,7 +48,7 @@ __all__ = [
     SyncFromDownstream.__name__,
     ProposeDownstreamHandler.__name__,
     KojiBuildHandler.__name__,
-    KojiBuildReportHandler.__name__,
+    KojiTaskReportHandler.__name__,
     TestingFarmHandler.__name__,
     TestingFarmResultsHandler.__name__,
 ]
