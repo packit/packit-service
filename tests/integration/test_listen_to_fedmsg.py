@@ -1005,7 +1005,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
 
     koji_build_pr.should_receive("set_build_start_time").once()
     koji_build_pr.should_receive("set_build_finished_time").with_args(None).once()
-    koji_build_pr.should_receive("set_status").with_args("pending").once()
+    koji_build_pr.should_receive("set_status").with_args("running").once()
     koji_build_pr.should_receive("set_build_logs_url")
     koji_build_pr.should_receive("set_web_url")
 
@@ -1072,7 +1072,7 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
     # check if packit-service set correct PR status
     flexmock(StatusReporter).should_receive("report").with_args(
         state=BaseCommitStatus.success,
-        description="RPMs were built successfully.",
+        description="RPM build succeeded.",
         url=url,
         check_names="production-build:rawhide",
         markdown_content=None,

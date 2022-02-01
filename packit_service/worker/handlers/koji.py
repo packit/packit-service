@@ -211,41 +211,35 @@ class KojiTaskReportHandler(JobHandler):
             job_config=self.job_config,
         )
 
-        if self.koji_task_event.state == KojiTaskState.open:
-            build.set_status("pending")
-            build_job_helper.report_status_to_all_for_chroot(
-                description="RPM build is in progress...",
-                state=BaseCommitStatus.running,
-                url=url,
-                chroot=build.target,
-            )
-        elif self.koji_task_event.state == KojiTaskState.closed:
-            build.set_status("success")
-            build_job_helper.report_status_to_all_for_chroot(
-                description="RPMs were built successfully.",
-                state=BaseCommitStatus.success,
-                url=url,
-                chroot=build.target,
-            )
-        elif self.koji_task_event.state == KojiTaskState.failed:
-            build.set_status("failed")
-            build_job_helper.report_status_to_all_for_chroot(
-                description="RPMs failed to be built.",
-                state=BaseCommitStatus.failure,
-                url=url,
-                chroot=build.target,
-            )
-        elif self.koji_task_event.state == KojiTaskState.canceled:
-            build.set_status("error")
-            build_job_helper.report_status_to_all_for_chroot(
-                description="RPMs build was canceled.",
-                state=BaseCommitStatus.error,
-                url=url,
-                chroot=build.target,
-            )
-        else:
+        new_commit_status = {
+            KojiTaskState.free: BaseCommitStatus.pending,
+            KojiTaskState.open: BaseCommitStatus.running,
+            KojiTaskState.closed: BaseCommitStatus.success,
+            KojiTaskState.canceled: BaseCommitStatus.error,
+            KojiTaskState.assigned: None,
+            KojiTaskState.failed: BaseCommitStatus.failure,
+        }.get(self.koji_task_event.state)
+
+        description = {
+            KojiTaskState.free: "RPM build has been submitted...",
+            KojiTaskState.open: "RPM build is in progress...",
+            KojiTaskState.closed: "RPM build succeeded.",
+            KojiTaskState.canceled: "RPM build was canceled.",
+            KojiTaskState.assigned: None,
+            KojiTaskState.failed: "RPM build failed.",
+        }.get(self.koji_task_event.state)
+
+        if not (new_commit_status and description):
             logger.debug(
                 f"We don't react to this koji build state change: {self.koji_task_event.state}"
+            )
+        else:
+            build.set_status(new_commit_status.value)
+            build_job_helper.report_status_to_all_for_chroot(
+                description=description,
+                state=new_commit_status,
+                url=url,
+                chroot=build.target,
             )
 
         koji_build_logs = AbstractKojiEvent.get_koji_build_logs_url(
