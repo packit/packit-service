@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 """
-This file defines classes for job handlers specific for Fedmsg events
+This file defines classes for job handlers specific for distgit
 """
 
 import logging

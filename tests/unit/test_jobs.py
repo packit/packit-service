@@ -12,7 +12,7 @@ from packit_service.worker.events import (
     CoprBuildEndEvent,
     CoprBuildStartEvent,
     IssueCommentEvent,
-    KojiBuildEvent,
+    KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
     PullRequestCommentGithubEvent,
@@ -20,12 +20,14 @@ from packit_service.worker.events import (
     PullRequestGithubEvent,
     PushGitHubEvent,
     PushGitlabEvent,
+    PushPagureEvent,
     ReleaseEvent,
     TestingFarmResultsEvent,
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
 )
+from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -37,6 +39,8 @@ from packit_service.worker.handlers import (
     KojiBuildReportHandler,
     ProposeDownstreamHandler,
 )
+from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
+from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.jobs import (
     get_config_for_handler_kls,
     get_handlers_for_event,
@@ -270,7 +274,7 @@ from packit_service.worker.jobs import (
             id="config=production_build_for_release&commit&ReleaseEvent",
         ),
         pytest.param(
-            KojiBuildEvent,
+            KojiTaskEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -770,7 +774,7 @@ from packit_service.worker.jobs import (
             "&pull_request&CoprBuildStartEvent",
         ),
         pytest.param(
-            KojiBuildEvent,
+            KojiTaskEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -785,6 +789,30 @@ from packit_service.worker.jobs import (
             {KojiBuildReportHandler},
             id="config=build_for_pr+production_build_for_pr"
             "&pull_request&KojiBuildEvent",
+        ),
+        pytest.param(
+            PushPagureEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.koji_build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            {DownstreamKojiBuildHandler},
+            id="config=koji_build_for_commit&commit&DownstreamKojiBuildHandler",
+        ),
+        pytest.param(
+            KojiBuildEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            {CreateBodhiUpdateHandler},
+            id="config=bodhi_update_for_commit&commit&CreateBodhiUpdateHandler",
         ),
     ],
 )
@@ -1750,7 +1778,7 @@ def test_get_handlers_for_check_rerun_event(
         ),
         pytest.param(
             KojiBuildReportHandler,
-            KojiBuildEvent,
+            KojiTaskEvent,
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -1856,6 +1884,42 @@ def test_get_handlers_for_check_rerun_event(
                 )
             ],
             id="propose_downstream_for_release&TestingFarmHandler&PullRequestCommentGithubEvent",
+        ),
+        pytest.param(
+            DownstreamKojiBuildHandler,
+            PushPagureEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.koji_build,
+                    trigger=JobConfigTriggerType.commit,
+                )
+            ],
+            [
+                JobConfig(
+                    type=JobType.koji_build,
+                    trigger=JobConfigTriggerType.commit,
+                )
+            ],
+            id="koji_build_for_commit&DownstreamKojiBuildHandler&PushPagureEvent",
+        ),
+        pytest.param(
+            CreateBodhiUpdateHandler,
+            KojiBuildEvent,
+            flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.commit,
+                )
+            ],
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.commit,
+                )
+            ],
+            id="bodhi_update_for_commit&CreateBodhiUpdateHandler&KojiBuildEvent",
         ),
     ],
 )

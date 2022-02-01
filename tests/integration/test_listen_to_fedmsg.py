@@ -26,7 +26,7 @@ from packit_service.models import (
     KojiBuildModel,
     SRPMBuildModel,
 )
-from packit_service.worker.events import AbstractCoprBuildEvent, KojiBuildEvent
+from packit_service.worker.events import AbstractCoprBuildEvent, KojiTaskEvent
 import packit_service.service.urls as urls
 from packit_service.service.urls import (
     get_copr_build_info_url,
@@ -994,7 +994,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
 def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build_pr):
     koji_build_pr.target = "rawhide"
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(KojiBuildEvent).should_receive("get_package_config").and_return(
+    flexmock(KojiTaskEvent).should_receive("get_package_config").and_return(
         pc_koji_build_pr
     )
 
@@ -1054,7 +1054,7 @@ def test_koji_build_start_build_not_found(koji_build_scratch_start):
 def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr):
     koji_build_pr.target = "rawhide"
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(KojiBuildEvent).should_receive("get_package_config").and_return(
+    flexmock(KojiTaskEvent).should_receive("get_package_config").and_return(
         pc_koji_build_pr
     )
 

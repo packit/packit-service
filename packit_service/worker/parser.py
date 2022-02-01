@@ -17,6 +17,7 @@ from packit.utils import nested_get
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import (
     KojiBuildState,
+    KojiTaskState,
     TESTING_FARM_INSTALLABILITY_TEST_URL,
 )
 from packit_service.models import (
@@ -29,7 +30,7 @@ from packit_service.models import (
 )
 from packit_service.worker.events import (
     AbstractCoprBuildEvent,
-    KojiBuildEvent,
+    KojiTaskEvent,
     CoprBuildStartEvent,
     CoprBuildEndEvent,
     PullRequestPagureEvent,
@@ -58,6 +59,7 @@ from packit_service.worker.events.enums import (
     PullRequestAction,
     PullRequestCommentAction,
 )
+from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 
@@ -85,6 +87,7 @@ class Parser:
             AbstractCoprBuildEvent,
             PushGitHubEvent,
             MergeRequestGitlabEvent,
+            KojiTaskEvent,
             KojiBuildEvent,
             MergeRequestCommentGitlabEvent,
             IssueCommentGitlabEvent,
@@ -120,7 +123,8 @@ class Parser:
                 Parser.parse_testing_farm_results_event,
                 Parser.parse_copr_event,
                 Parser.parse_mr_event,
-                Parser.parse_koji_event,
+                Parser.parse_koji_task_event,
+                Parser.parse_koji_build_event,
                 Parser.parse_merge_request_comment_event,
                 Parser.parse_gitlab_issue_comment_event,
                 Parser.parse_gitlab_push_event,
@@ -1035,7 +1039,7 @@ class Parser:
         )
 
     @staticmethod
-    def parse_koji_event(event) -> Optional[KojiBuildEvent]:
+    def parse_koji_task_event(event) -> Optional[KojiTaskEvent]:
         if event.get("topic") != "org.fedoraproject.prod.buildsys.task.state.change":
             return None
 
@@ -1048,8 +1052,8 @@ class Parser:
             logger.debug("Cannot find build state.")
             return None
 
-        state_enum = KojiBuildState(event.get("new")) if "new" in event else None
-        old_state = KojiBuildState(event.get("old")) if "old" in event else None
+        state_enum = KojiTaskState(event.get("new")) if "new" in event else None
+        old_state = KojiTaskState(event.get("old")) if "old" in event else None
 
         start_time = nested_get(event, "info", "start_time")
         completion_time = nested_get(event, "info", "completion_time")
@@ -1060,13 +1064,76 @@ class Parser:
                 rpm_build_task_id = children.get("id")
                 break
 
-        return KojiBuildEvent(
+        return KojiTaskEvent(
             build_id=build_id,
             state=state_enum,
             old_state=old_state,
             start_time=start_time,
             completion_time=completion_time,
             rpm_build_task_id=rpm_build_task_id,
+        )
+
+    @staticmethod
+    def parse_koji_build_event(event) -> Optional[KojiBuildEvent]:
+        if event.get("topic") != "org.fedoraproject.prod.buildsys.build.state.change":
+            return None
+
+        # Some older messages had a different structure
+        content = event.get("body") or event.get("msg")
+        if not content:
+            return None
+
+        build_id = content.get("build_id")
+        task_id = content.get("task_id")
+        logger.info(f"Koji event: build_id={build_id} task_id={task_id}")
+
+        new_state = (
+            KojiBuildState.from_number(raw_new)
+            if (raw_new := content.get("new")) is not None
+            else None
+        )
+        old_state = (
+            KojiBuildState.from_number(raw_old)
+            if (raw_old := content.get("old")) is not None
+            else None
+        )
+
+        version = content.get("version")
+        epoch = content.get("epoch")
+
+        # "release": "1.fc36"
+        release, _ = content.get("release").split(".")
+
+        # "request": [
+        #       "git+https://src.fedoraproject.org/rpms/packit.git#0eb3e12005cb18f15d3054020f7ac934c01eae08",
+        #       "rawhide",
+        #       {}
+        #     ],
+        raw_git_ref, fedora_target, _ = content.get("request")
+        project_url = (
+            raw_git_ref.split("#")[0].removeprefix("git+").removesuffix(".git")
+        )
+        package_name, commit_hash = raw_git_ref.split("/")[-1].split(".git#")
+        branch_name = fedora_target.removesuffix("-candidate")
+
+        return KojiBuildEvent(
+            build_id=build_id,
+            state=new_state,
+            package_name=package_name,
+            branch_name=branch_name,
+            commit_sha=commit_hash,
+            namespace="rmps",
+            repo_name=package_name,
+            project_url=project_url,
+            epoch=epoch,
+            version=version,
+            release=release,
+            rpm_build_task_id=task_id,
+            web_url=KojiBuildEvent.get_koji_rpm_build_web_url(
+                rpm_build_task_id=task_id,
+                koji_web_url=ServiceConfig.get_service_config().koji_web_url,
+            ),
+            old_state=old_state,
         )
 
     @staticmethod

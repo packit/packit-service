@@ -1,0 +1,26 @@
+{
+  "body": {
+    "attribute": "state",
+    "build_id": 1874074,
+    "epoch": null,
+    "instance": "primary",
+    "name": "python-ogr",
+    "new": 1,
+    "old": 0,
+    "owner": "packit",
+    "release": "1.fc36",
+    "request": [
+      "git+https://src.fedoraproject.org/rpms/python-ogr.git#e029dd5250dde9a37a2cdddb6d822d973b09e5da",
+      "rawhide",
+      {}
+    ],
+    "task_id": 80860894,
+    "version": "0.34.0"
+  },
+  "headers": {
+    "sent-at": "2022-01-05T09:48:38+00:00"
+  },
+  "id": "2022-09064250-b627-4873-8a86-db52e097e652",
+  "queue": null,
+  "topic": "org.fedoraproject.prod.buildsys.build.state.change"
+}

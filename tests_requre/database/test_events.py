@@ -4,7 +4,7 @@
 from flexmock import flexmock
 from ogr.services.github import GithubProject
 
-from packit_service.constants import KojiBuildState
+from packit_service.constants import KojiTaskState
 from packit_service.models import (
     ProjectReleaseModel,
     GitProjectModel,
@@ -18,7 +18,7 @@ from packit_service.worker.events import (
     PullRequestCommentGithubEvent,
     TestingFarmResultsEvent,
     MergeRequestGitlabEvent,
-    KojiBuildEvent,
+    KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     PushGitlabEvent,
     CheckRerunCommitEvent,
@@ -329,10 +329,10 @@ def test_koji_build_scratch_start(
     clean_before_and_after, pr_model, a_koji_build_for_pr, koji_build_scratch_start_dict
 ):
     event_object = Parser.parse_event(koji_build_scratch_start_dict)
-    assert isinstance(event_object, KojiBuildEvent)
+    assert isinstance(event_object, KojiTaskEvent)
 
     assert event_object.build_id == SampleValues.build_id
-    assert event_object.state == KojiBuildState.open
+    assert event_object.state == KojiTaskState.open
 
     assert isinstance(event_object.db_trigger, PullRequestModel)
     assert event_object.db_trigger == pr_model
@@ -347,10 +347,10 @@ def test_koji_build_scratch_end(
     clean_before_and_after, pr_model, a_koji_build_for_pr, koji_build_scratch_end_dict
 ):
     event_object = Parser.parse_event(koji_build_scratch_end_dict)
-    assert isinstance(event_object, KojiBuildEvent)
+    assert isinstance(event_object, KojiTaskEvent)
 
     assert event_object.build_id == SampleValues.build_id
-    assert event_object.state == KojiBuildState.closed
+    assert event_object.state == KojiTaskState.closed
 
     assert isinstance(event_object.db_trigger, PullRequestModel)
     assert event_object.db_trigger == pr_model
