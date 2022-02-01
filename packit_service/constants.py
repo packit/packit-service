@@ -123,13 +123,11 @@ SRPM_BUILD_DEPS = [
 ]
 
 
-class KojiBuildState(Enum):
+class KojiTaskState(Enum):
     """
-    Koji states used in fedmsg payloads.
-
-    Sometimes, koji use numbers instead,
-    but we don't need them yet.
-    Corresponding numbers are as comments if anyone needs them.
+    Koji states used in fedmsg payloads
+    for buildsys.task.state.change
+    used for scratch builds.
     """
 
     free = "FREE"  # 0
@@ -142,10 +140,34 @@ class KojiBuildState(Enum):
     @staticmethod
     def from_number(number: int):
         return {
-            0: KojiBuildState.free,
-            1: KojiBuildState.open,
-            2: KojiBuildState.closed,
-            3: KojiBuildState.canceled,
-            4: KojiBuildState.assigned,
-            5: KojiBuildState.failed,
+            0: KojiTaskState.free,
+            1: KojiTaskState.open,
+            2: KojiTaskState.closed,
+            3: KojiTaskState.canceled,
+            4: KojiTaskState.assigned,
+            5: KojiTaskState.failed,
+        }.get(number)
+
+
+class KojiBuildState(Enum):
+    """
+    Koji states used in fedmsg payloads
+    for buildsys.build.state.change
+    used for prod (=non scratch) builds.
+    """
+
+    building = "BUILDING"  # 0
+    complete = "COMPLETE"  # 1
+    deleted = "DELETED"  # 2
+    failed = "FAILED"  # 3
+    canceled = "CANCELED"  # 4
+
+    @staticmethod
+    def from_number(number: int):
+        return {
+            0: KojiBuildState.building,
+            1: KojiBuildState.complete,
+            2: KojiBuildState.deleted,
+            3: KojiBuildState.failed,
+            4: KojiBuildState.canceled,
         }.get(number)

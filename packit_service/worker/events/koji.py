@@ -6,7 +6,7 @@ from typing import Union, Optional, Dict
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
 
-from packit_service.constants import KojiBuildState
+from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import (
     AbstractTriggerDbType,
     JobTriggerModelType,
@@ -192,8 +192,8 @@ class KojiTaskEvent(AbstractKojiEvent):
     def __init__(
         self,
         build_id: int,
-        state: KojiBuildState,
-        old_state: Optional[KojiBuildState] = None,
+        state: KojiTaskState,
+        old_state: Optional[KojiTaskState] = None,
         rpm_build_task_id: Optional[int] = None,
         start_time: Optional[Union[int, float, str]] = None,
         completion_time: Optional[Union[int, float, str]] = None,
@@ -256,9 +256,9 @@ class KojiTaskEvent(AbstractKojiEvent):
     def from_event_dict(cls, event: dict):
         return KojiTaskEvent(
             build_id=event.get("build_id"),
-            state=KojiBuildState(event.get("state")) if event.get("state") else None,
+            state=KojiTaskState(event.get("state")) if event.get("state") else None,
             old_state=(
-                KojiBuildState(event.get("old_state"))
+                KojiTaskState(event.get("old_state"))
                 if event.get("old_state")
                 else None
             ),

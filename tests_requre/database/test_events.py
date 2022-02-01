@@ -4,7 +4,7 @@
 from flexmock import flexmock
 from ogr.services.github import GithubProject
 
-from packit_service.constants import KojiBuildState
+from packit_service.constants import KojiTaskState
 from packit_service.models import (
     ProjectReleaseModel,
     GitProjectModel,
@@ -332,7 +332,7 @@ def test_koji_build_scratch_start(
     assert isinstance(event_object, KojiTaskEvent)
 
     assert event_object.build_id == SampleValues.build_id
-    assert event_object.state == KojiBuildState.open
+    assert event_object.state == KojiTaskState.open
 
     assert isinstance(event_object.db_trigger, PullRequestModel)
     assert event_object.db_trigger == pr_model
@@ -350,7 +350,7 @@ def test_koji_build_scratch_end(
     assert isinstance(event_object, KojiTaskEvent)
 
     assert event_object.build_id == SampleValues.build_id
-    assert event_object.state == KojiBuildState.closed
+    assert event_object.state == KojiTaskState.closed
 
     assert isinstance(event_object.db_trigger, PullRequestModel)
     assert event_object.db_trigger == pr_model

@@ -17,6 +17,7 @@ from packit.utils import nested_get
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import (
     KojiBuildState,
+    KojiTaskState,
     TESTING_FARM_INSTALLABILITY_TEST_URL,
 )
 from packit_service.models import (
@@ -1051,8 +1052,8 @@ class Parser:
             logger.debug("Cannot find build state.")
             return None
 
-        state_enum = KojiBuildState(event.get("new")) if "new" in event else None
-        old_state = KojiBuildState(event.get("old")) if "old" in event else None
+        state_enum = KojiTaskState(event.get("new")) if "new" in event else None
+        old_state = KojiTaskState(event.get("old")) if "old" in event else None
 
         start_time = nested_get(event, "info", "start_time")
         completion_time = nested_get(event, "info", "completion_time")

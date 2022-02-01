@@ -20,9 +20,7 @@ from packit_service.constants import (
     KOJI_PRODUCTION_BUILDS_ISSUE,
     PERMISSIONS_ERROR_WRITE_OR_ADMIN,
 )
-from packit_service.constants import (
-    KojiBuildState,
-)
+from packit_service.constants import KojiTaskState
 from packit_service.models import AbstractTriggerDbType, KojiBuildModel
 from packit_service.worker.events import (
     KojiTaskEvent,
@@ -209,7 +207,7 @@ class KojiBuildReportHandler(JobHandler):
             job_config=self.job_config,
         )
 
-        if self.koji_event.state == KojiBuildState.open:
+        if self.koji_event.state == KojiTaskState.open:
             build.set_status("pending")
             build_job_helper.report_status_to_all_for_chroot(
                 description="RPM build is in progress...",
@@ -217,7 +215,7 @@ class KojiBuildReportHandler(JobHandler):
                 url=url,
                 chroot=build.target,
             )
-        elif self.koji_event.state == KojiBuildState.closed:
+        elif self.koji_event.state == KojiTaskState.closed:
             build.set_status("success")
             build_job_helper.report_status_to_all_for_chroot(
                 description="RPMs were built successfully.",
@@ -225,7 +223,7 @@ class KojiBuildReportHandler(JobHandler):
                 url=url,
                 chroot=build.target,
             )
-        elif self.koji_event.state == KojiBuildState.failed:
+        elif self.koji_event.state == KojiTaskState.failed:
             build.set_status("failed")
             build_job_helper.report_status_to_all_for_chroot(
                 description="RPMs failed to be built.",
@@ -233,7 +231,7 @@ class KojiBuildReportHandler(JobHandler):
                 url=url,
                 chroot=build.target,
             )
-        elif self.koji_event.state == KojiBuildState.canceled:
+        elif self.koji_event.state == KojiTaskState.canceled:
             build.set_status("error")
             build_job_helper.report_status_to_all_for_chroot(
                 description="RPMs build was canceled.",

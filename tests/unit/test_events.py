@@ -15,7 +15,7 @@ from ogr.services.gitlab import GitlabProject, GitlabService
 from ogr.services.pagure import PagureProject
 
 from packit_service.config import ServiceConfig, PackageConfigGetter
-from packit_service.constants import KojiBuildState
+from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import (
     CoprBuildModel,
     KojiBuildModel,
@@ -902,7 +902,7 @@ class TestEvents:
 
         assert isinstance(event_object, KojiTaskEvent)
         assert event_object.build_id == 45270170
-        assert event_object.state == KojiBuildState.open
+        assert event_object.state == KojiTaskState.open
         assert not event_object.rpm_build_task_id
 
         assert isinstance(event_object.project, GithubProject)
@@ -919,7 +919,7 @@ class TestEvents:
 
         assert isinstance(event_object, KojiTaskEvent)
         assert event_object.build_id == 45270170
-        assert event_object.state == KojiBuildState.closed
+        assert event_object.state == KojiTaskState.closed
         assert event_object.rpm_build_task_id == 45270227
 
         flexmock(GithubProject).should_receive("get_pr").with_args(
@@ -935,7 +935,7 @@ class TestEvents:
 
         assert isinstance(event_object, KojiBuildEvent)
         assert event_object.build_id == 1864700
-        assert event_object.state == KojiBuildState.free
+        assert event_object.state == KojiBuildState.building
         assert not event_object.old_state
         assert event_object.rpm_build_task_id == 79721403
         assert event_object.package_name == "packit"
@@ -972,7 +972,7 @@ class TestEvents:
 
         assert isinstance(event_object, KojiBuildEvent)
         assert event_object.build_id == 1874074
-        assert event_object.state == KojiBuildState.free
+        assert event_object.state == KojiBuildState.building
         assert not event_object.old_state
         assert event_object.rpm_build_task_id == 80860894
         assert event_object.package_name == "python-ogr"
@@ -1009,7 +1009,7 @@ class TestEvents:
 
         assert isinstance(event_object, KojiBuildEvent)
         assert event_object.build_id == 1874070
-        assert event_object.state == KojiBuildState.free
+        assert event_object.state == KojiBuildState.building
         assert not event_object.old_state
         assert event_object.rpm_build_task_id == 80860789
         assert event_object.package_name == "python-ogr"
@@ -1048,7 +1048,7 @@ class TestEvents:
 
         assert isinstance(event_object, KojiBuildEvent)
         assert event_object.build_id == 1874072
-        assert event_object.state == KojiBuildState.free
+        assert event_object.state == KojiBuildState.building
         assert not event_object.old_state
         assert event_object.rpm_build_task_id == 80860791
         assert event_object.package_name == "python-ogr"
@@ -1087,8 +1087,8 @@ class TestEvents:
 
         assert isinstance(event_object, KojiBuildEvent)
         assert event_object.build_id == 1864700
-        assert event_object.state == KojiBuildState.open
-        assert event_object.old_state == KojiBuildState.free
+        assert event_object.state == KojiBuildState.complete
+        assert event_object.old_state == KojiBuildState.building
         assert event_object.rpm_build_task_id == 79721403
         assert event_object.package_name == "packit"
         assert event_object.commit_sha == "0eb3e12005cb18f15d3054020f7ac934c01eae08"
@@ -1124,8 +1124,8 @@ class TestEvents:
 
         assert isinstance(event_object, KojiBuildEvent)
         assert event_object.build_id == 1874074
-        assert event_object.state == KojiBuildState.open
-        assert event_object.old_state == KojiBuildState.free
+        assert event_object.state == KojiBuildState.complete
+        assert event_object.old_state == KojiBuildState.building
         assert event_object.rpm_build_task_id == 80860894
         assert event_object.package_name == "python-ogr"
         assert event_object.commit_sha == "e029dd5250dde9a37a2cdddb6d822d973b09e5da"
@@ -1163,8 +1163,8 @@ class TestEvents:
 
         assert isinstance(event_object, KojiBuildEvent)
         assert event_object.build_id == 1874070
-        assert event_object.state == KojiBuildState.open
-        assert event_object.old_state == KojiBuildState.free
+        assert event_object.state == KojiBuildState.complete
+        assert event_object.old_state == KojiBuildState.building
         assert event_object.rpm_build_task_id == 80860789
         assert event_object.package_name == "python-ogr"
         assert event_object.commit_sha == "51b57ec04f5e6e9066ac859a1408cfbf1ead307e"
@@ -1202,8 +1202,8 @@ class TestEvents:
 
         assert isinstance(event_object, KojiBuildEvent)
         assert event_object.build_id == 1874072
-        assert event_object.state == KojiBuildState.open
-        assert event_object.old_state == KojiBuildState.free
+        assert event_object.state == KojiBuildState.complete
+        assert event_object.old_state == KojiBuildState.building
         assert event_object.rpm_build_task_id == 80860791
         assert event_object.package_name == "python-ogr"
         assert event_object.commit_sha == "23806a208e32cc937f3a6eb151c62cbbc10d8f96"

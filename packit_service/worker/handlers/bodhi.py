@@ -65,12 +65,12 @@ class CreateBodhiUpdateHandler(JobHandler):
 
     def pre_check(self) -> bool:
         """
-        We react only on finished builds (=KojiBuildState.open state)
+        We react only on finished builds (=KojiBuildState.complete)
         and configured branches.
         By default, we use `fedora-stable` alias.
         (Rawhide updates are already created automatically.)
         """
-        if self.koji_build_event.state != KojiBuildState.open:
+        if self.koji_build_event.state != KojiBuildState.complete:
             logger.debug(
                 f"Skipping build '{self.koji_build_event.build_id}' "
                 f"on '{self.koji_build_event.git_ref}'. "

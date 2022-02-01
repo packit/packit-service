@@ -136,7 +136,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
         commit_sha="0eb3e12005cb18f15d3054020f7ac934c01eae08",
         web_url="https://koji.fedoraproject.org/koji/taskinfo?taskID=79721403",
         target="noarch",
-        status="OPEN",
+        status="COMPLETE",
         run_model=run_model_flexmock,
     ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
 
@@ -211,7 +211,7 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
         commit_sha="0eb3e12005cb18f15d3054020f7ac934c01eae08",
         web_url="https://koji.fedoraproject.org/koji/taskinfo?taskID=79721403",
         target="noarch",
-        status="FREE",
+        status="BUILDING",
         run_model=run_model_flexmock,
     ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
 
@@ -341,7 +341,7 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
         commit_sha="0eb3e12005cb18f15d3054020f7ac934c01eae08",
         web_url="https://koji.fedoraproject.org/koji/taskinfo?taskID=79721403",
         target="noarch",
-        status="OPEN",
+        status="COMPLETE",
         run_model=run_model_flexmock,
     ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
 
