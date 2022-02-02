@@ -663,7 +663,7 @@ class JobTriggerModel(Base):
       (e.g. For each push to PR, there will be new PipelineModel, but same JobTriggerModel.)
     """
 
-    __tablename__ = "build_triggers"
+    __tablename__ = "job_triggers"
     id = Column(Integer, primary_key=True)  # our database PK
     type = Column(Enum(JobTriggerModelType))
     trigger_id = Column(Integer)
@@ -719,22 +719,22 @@ class PipelineModel(Base):
       (e.g. For each push to PR, there will be new PipelineModel, but same JobTriggerModel.)
     """
 
-    __tablename__ = "runs"
+    __tablename__ = "pipelines"
     id = Column(Integer, primary_key=True)  # our database PK
     # datetime.utcnow instead of datetime.utcnow() because its an argument to the function
     # so it will run when the model is initiated, not when the table is made
     datetime = Column(DateTime, default=datetime.utcnow)
 
-    job_trigger_id = Column(Integer, ForeignKey("build_triggers.id"))
+    job_trigger_id = Column(Integer, ForeignKey("job_triggers.id"))
     job_trigger = relationship("JobTriggerModel", back_populates="runs")
 
     srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"))
     srpm_build = relationship("SRPMBuildModel", back_populates="runs")
-    copr_build_id = Column(Integer, ForeignKey("copr_builds.id"))
+    copr_build_id = Column(Integer, ForeignKey("copr_build_targets.id"))
     copr_build = relationship("CoprBuildTargetModel", back_populates="runs")
-    koji_build_id = Column(Integer, ForeignKey("koji_builds.id"))
+    koji_build_id = Column(Integer, ForeignKey("koji_build_targets.id"))
     koji_build = relationship("KojiBuildTargetModel", back_populates="runs")
-    test_run_id = Column(Integer, ForeignKey("tft_test_runs.id"))
+    test_run_id = Column(Integer, ForeignKey("tft_test_run_targets.id"))
     test_run = relationship("TFTTestRunTargetModel", back_populates="runs")
 
     @classmethod
@@ -814,7 +814,7 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
     Representation of Copr build for one target.
     """
 
-    __tablename__ = "copr_builds"
+    __tablename__ = "copr_build_targets"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # copr build id
 
@@ -1051,7 +1051,7 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
 class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
     """we create an entry for every target"""
 
-    __tablename__ = "koji_builds"
+    __tablename__ = "koji_build_targets"
     id = Column(Integer, primary_key=True)
     build_id = Column(String, index=True)  # koji build id
 
@@ -1478,7 +1478,7 @@ class TestingFarmResult(str, enum.Enum):
 
 
 class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
-    __tablename__ = "tft_test_runs"
+    __tablename__ = "tft_test_run_targets"
     id = Column(Integer, primary_key=True)
     pipeline_id = Column(String, index=True)
     commit_sha = Column(String)
