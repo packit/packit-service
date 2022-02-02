@@ -293,17 +293,16 @@ class KojiBuildReportHandler(JobHandler):
         return self._db_trigger
 
     def run(self):
-        build = KojiBuildModel.get_by_build_id(build_id=self.koji_build_event.build_id)
-
-        if not build:
+        if not self.build:
             msg = f"Koji build {self.koji_build_event.build_id} not found in the database."
             logger.debug(msg)
             return TaskResults(success=True, details={"msg": msg})
 
-        logger.debug(
-            f"Build on {build.target} in koji changed state "
+        msg = (
+            f"Build on {self.build.target} in koji changed state "
             f"from {self.koji_build_event.old_state} to {self.koji_build_event.state}."
         )
+        logger.debug(msg)
 
         new_commit_status = {
             KojiBuildState.building: BaseCommitStatus.running,
@@ -315,23 +314,23 @@ class KojiBuildReportHandler(JobHandler):
 
         if (
             new_commit_status
-            and build.status
-            and build.status != KojiBuildState.building
+            and self.build.status
+            and self.build.status != KojiBuildState.building
         ):
             logger.warning(
-                f"We should not overwrite the final state {build.status} "
+                f"We should not overwrite the final state {self.build.status} "
                 f"to {self.koji_build_event.state}. "
                 f"Not updating the status."
             )
         elif new_commit_status:
-            build.set_status(new_commit_status.value)
+            self.build.set_status(new_commit_status.value)
         else:
             logger.debug(
                 f"We don't react to this koji build state change: {self.koji_task_event.state}"
             )
 
-        if not build.web_url:
-            build.set_web_url(
+        if not self.build.web_url:
+            self.build.set_web_url(
                 KojiBuildEvent.get_koji_rpm_build_web_url(
                     rpm_build_task_id=self.koji_build_event.rpm_build_task_id,
                     koji_web_url=self.service_config.koji_web_url,
@@ -339,8 +338,4 @@ class KojiBuildReportHandler(JobHandler):
             )
         # TODO: update logs URL (the access via task number dos not work for non-scratch builds)
 
-        msg = (
-            f"Build on {build.target} in koji changed state "
-            f"from {self.koji_build_event.old_state} to {self.koji_build_event.state}."
-        )
         return TaskResults(success=True, details={"msg": msg})
