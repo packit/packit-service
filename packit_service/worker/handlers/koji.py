@@ -15,7 +15,6 @@ from packit.config import (
     JobType,
 )
 from packit.config.package_config import PackageConfig
-
 from packit_service.constants import (
     KOJI_PRODUCTION_BUILDS_ISSUE,
     KojiBuildState,
@@ -23,7 +22,14 @@ from packit_service.constants import (
 )
 from packit_service.constants import KojiTaskState
 from packit_service.models import AbstractTriggerDbType, KojiBuildModel
+from packit_service.service.urls import (
+    get_koji_build_info_url,
+)
+from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.events import (
+    CheckRerunCommitEvent,
+    CheckRerunPullRequestEvent,
+    CheckRerunReleaseEvent,
     KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
@@ -34,22 +40,15 @@ from packit_service.worker.events import (
     PushGitlabEvent,
     PushPagureEvent,
     ReleaseEvent,
-    CheckRerunCommitEvent,
-    CheckRerunPullRequestEvent,
-    CheckRerunReleaseEvent,
 )
-from packit_service.service.urls import (
-    get_koji_build_info_url,
-)
-from packit_service.worker.build.koji_build import KojiBuildJobHelper
-from packit_service.worker.events.koji import AbstractKojiEvent, KojiBuildEvent
+from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,
     configured_as,
     reacts_to,
-    run_for_comment,
     run_for_check_rerun,
+    run_for_comment,
 )
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
@@ -243,12 +242,12 @@ class KojiTaskReportHandler(JobHandler):
                 chroot=build.target,
             )
 
-        koji_build_logs = AbstractKojiEvent.get_koji_build_logs_url(
+        koji_build_logs = KojiTaskEvent.get_koji_build_logs_url(
             rpm_build_task_id=int(build.build_id),
             koji_logs_url=self.service_config.koji_logs_url,
         )
         build.set_build_logs_url(koji_build_logs)
-        koji_rpm_task_web_url = AbstractKojiEvent.get_koji_rpm_build_web_url(
+        koji_rpm_task_web_url = KojiTaskEvent.get_koji_rpm_build_web_url(
             rpm_build_task_id=int(build.build_id),
             koji_web_url=self.service_config.koji_web_url,
         )
@@ -331,21 +330,14 @@ class KojiBuildReportHandler(JobHandler):
                 f"We don't react to this koji build state change: {self.koji_task_event.state}"
             )
 
-        if not build.build_logs_url:
-            build.set_build_logs_url(
-                AbstractKojiEvent.get_koji_build_logs_url(
-                    rpm_build_task_id=int(build.build_id),
-                    koji_logs_url=self.service_config.koji_logs_url,
-                )
-            )
-
         if not build.web_url:
             build.set_web_url(
-                AbstractKojiEvent.get_koji_rpm_build_web_url(
-                    rpm_build_task_id=int(build.build_id),
+                KojiBuildEvent.get_koji_rpm_build_web_url(
+                    rpm_build_task_id=self.koji_build_event.rpm_build_task_id,
                     koji_web_url=self.service_config.koji_web_url,
                 )
             )
+        # TODO: update logs URL (the access via task number dos not work for non-scratch builds)
 
         msg = (
             f"Build on {build.target} in koji changed state "
