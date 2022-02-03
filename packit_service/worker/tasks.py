@@ -24,7 +24,7 @@ from packit_service.worker.handlers import (
     BugzillaHandler,
     CoprBuildEndHandler,
     CoprBuildStartHandler,
-    KojiBuildReportHandler,
+    KojiTaskReportHandler,
     SyncFromDownstream,
     CoprBuildHandler,
     GithubAppInstallationHandler,
@@ -36,6 +36,7 @@ from packit_service.worker.handlers import (
 from packit_service.worker.handlers.abstract import TaskName
 from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
+from packit_service.worker.handlers.koji import KojiBuildReportHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import TaskResults
 
@@ -195,6 +196,16 @@ def run_koji_build_handler(event: dict, package_config: dict, job_config: dict):
     return get_handlers_task_results(handler.run_job(), event)
 
 
+@celery_app.task(name=TaskName.koji_build_report, base=HandlerTaskWithRetry)
+def run_koji_build_report_handler(event: dict, package_config: dict, job_config: dict):
+    handler = KojiTaskReportHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
 @celery_app.task(
     name=TaskName.sync_from_downstream, base=HandlerTaskWithRetry, queue="long-running"
 )
@@ -221,6 +232,18 @@ def run_downstream_koji_build(event: dict, package_config: dict, job_config: dic
     return get_handlers_task_results(handler.run_job(), event)
 
 
+@celery_app.task(name=TaskName.downstream_koji_build_report, base=HandlerTaskWithRetry)
+def run_downstream_koji_build_report(
+    event: dict, package_config: dict, job_config: dict
+):
+    handler = KojiBuildReportHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
 @celery_app.task(
     name=TaskName.bodhi_update, base=HandlerTaskWithRetry, queue="long-running"
 )
@@ -236,16 +259,6 @@ def run_bodhi_update(event: dict, package_config: dict, job_config: dict):
 @celery_app.task(name=TaskName.bugzilla, base=HandlerTaskWithRetry)
 def run_bugzilla_handler(event: dict, package_config: dict, job_config: dict):
     handler = BugzillaHandler(
-        package_config=load_package_config(package_config),
-        job_config=load_job_config(job_config),
-        event=event,
-    )
-    return get_handlers_task_results(handler.run_job(), event)
-
-
-@celery_app.task(name=TaskName.koji_build_report, base=HandlerTaskWithRetry)
-def run_koji_build_report_handler(event: dict, package_config: dict, job_config: dict):
-    handler = KojiBuildReportHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,

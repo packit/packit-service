@@ -15,14 +15,21 @@ from packit.config import (
     JobType,
 )
 from packit.config.package_config import PackageConfig
-
 from packit_service.constants import (
     KOJI_PRODUCTION_BUILDS_ISSUE,
+    KojiBuildState,
     PERMISSIONS_ERROR_WRITE_OR_ADMIN,
 )
 from packit_service.constants import KojiTaskState
 from packit_service.models import AbstractTriggerDbType, KojiBuildModel
+from packit_service.service.urls import (
+    get_koji_build_info_url,
+)
+from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.events import (
+    CheckRerunCommitEvent,
+    CheckRerunPullRequestEvent,
+    CheckRerunReleaseEvent,
     KojiTaskEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
@@ -33,22 +40,15 @@ from packit_service.worker.events import (
     PushGitlabEvent,
     PushPagureEvent,
     ReleaseEvent,
-    CheckRerunCommitEvent,
-    CheckRerunPullRequestEvent,
-    CheckRerunReleaseEvent,
 )
-from packit_service.service.urls import (
-    get_koji_build_info_url,
-)
-from packit_service.worker.build.koji_build import KojiBuildJobHelper
-from packit_service.worker.events.koji import AbstractKojiEvent
+from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,
     configured_as,
     reacts_to,
-    run_for_comment,
     run_for_check_rerun,
+    run_for_comment,
 )
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
@@ -143,7 +143,7 @@ class KojiBuildHandler(JobHandler):
 
 @configured_as(job_type=JobType.production_build)
 @reacts_to(event=KojiTaskEvent)
-class KojiBuildReportHandler(JobHandler):
+class KojiTaskReportHandler(JobHandler):
     task_name = TaskName.koji_build_report
 
     def __init__(
@@ -211,49 +211,43 @@ class KojiBuildReportHandler(JobHandler):
             job_config=self.job_config,
         )
 
-        if self.koji_task_event.state == KojiTaskState.open:
-            build.set_status("pending")
-            build_job_helper.report_status_to_all_for_chroot(
-                description="RPM build is in progress...",
-                state=BaseCommitStatus.running,
-                url=url,
-                chroot=build.target,
-            )
-        elif self.koji_task_event.state == KojiTaskState.closed:
-            build.set_status("success")
-            build_job_helper.report_status_to_all_for_chroot(
-                description="RPMs were built successfully.",
-                state=BaseCommitStatus.success,
-                url=url,
-                chroot=build.target,
-            )
-        elif self.koji_task_event.state == KojiTaskState.failed:
-            build.set_status("failed")
-            build_job_helper.report_status_to_all_for_chroot(
-                description="RPMs failed to be built.",
-                state=BaseCommitStatus.failure,
-                url=url,
-                chroot=build.target,
-            )
-        elif self.koji_task_event.state == KojiTaskState.canceled:
-            build.set_status("error")
-            build_job_helper.report_status_to_all_for_chroot(
-                description="RPMs build was canceled.",
-                state=BaseCommitStatus.error,
-                url=url,
-                chroot=build.target,
-            )
-        else:
+        new_commit_status = {
+            KojiTaskState.free: BaseCommitStatus.pending,
+            KojiTaskState.open: BaseCommitStatus.running,
+            KojiTaskState.closed: BaseCommitStatus.success,
+            KojiTaskState.canceled: BaseCommitStatus.error,
+            KojiTaskState.assigned: None,
+            KojiTaskState.failed: BaseCommitStatus.failure,
+        }.get(self.koji_task_event.state)
+
+        description = {
+            KojiTaskState.free: "RPM build has been submitted...",
+            KojiTaskState.open: "RPM build is in progress...",
+            KojiTaskState.closed: "RPM build succeeded.",
+            KojiTaskState.canceled: "RPM build was canceled.",
+            KojiTaskState.assigned: None,
+            KojiTaskState.failed: "RPM build failed.",
+        }.get(self.koji_task_event.state)
+
+        if not (new_commit_status and description):
             logger.debug(
                 f"We don't react to this koji build state change: {self.koji_task_event.state}"
             )
+        else:
+            build.set_status(new_commit_status.value)
+            build_job_helper.report_status_to_all_for_chroot(
+                description=description,
+                state=new_commit_status,
+                url=url,
+                chroot=build.target,
+            )
 
-        koji_build_logs = AbstractKojiEvent.get_koji_build_logs_url(
+        koji_build_logs = KojiTaskEvent.get_koji_build_logs_url(
             rpm_build_task_id=int(build.build_id),
             koji_logs_url=self.service_config.koji_logs_url,
         )
         build.set_build_logs_url(koji_build_logs)
-        koji_rpm_task_web_url = AbstractKojiEvent.get_koji_rpm_build_web_url(
+        koji_rpm_task_web_url = KojiTaskEvent.get_koji_rpm_build_web_url(
             rpm_build_task_id=int(build.build_id),
             koji_web_url=self.service_config.koji_web_url,
         )
@@ -263,4 +257,85 @@ class KojiBuildReportHandler(JobHandler):
             f"Build on {build.target} in koji changed state "
             f"from {self.koji_task_event.old_state} to {self.koji_task_event.state}."
         )
+        return TaskResults(success=True, details={"msg": msg})
+
+
+@configured_as(job_type=JobType.koji_build)
+@configured_as(job_type=JobType.bodhi_update)
+@reacts_to(event=KojiBuildEvent)
+class KojiBuildReportHandler(JobHandler):
+    task_name = TaskName.koji_build_report
+
+    def __init__(
+        self, package_config: PackageConfig, job_config: JobConfig, event: dict
+    ):
+        super().__init__(
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
+        )
+        self.koji_build_event: KojiBuildEvent = KojiBuildEvent.from_event_dict(event)
+        self._db_trigger: Optional[AbstractTriggerDbType] = None
+        self._build: Optional[KojiBuildModel] = None
+
+    @property
+    def build(self) -> Optional[KojiBuildModel]:
+        if not self._build:
+            self._build = KojiBuildModel.get_by_build_id(
+                build_id=self.koji_build_event.build_id
+            )
+        return self._build
+
+    @property
+    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        if not self._db_trigger and self.build:
+            self._db_trigger = self.build.get_trigger_object()
+        return self._db_trigger
+
+    def run(self):
+        if not self.build:
+            msg = f"Koji build {self.koji_build_event.build_id} not found in the database."
+            logger.debug(msg)
+            return TaskResults(success=True, details={"msg": msg})
+
+        msg = (
+            f"Build on {self.build.target} in koji changed state "
+            f"from {self.koji_build_event.old_state} to {self.koji_build_event.state}."
+        )
+        logger.debug(msg)
+
+        new_commit_status = {
+            KojiBuildState.building: BaseCommitStatus.running,
+            KojiBuildState.complete: BaseCommitStatus.success,
+            KojiBuildState.deleted: BaseCommitStatus.error,
+            KojiBuildState.failed: BaseCommitStatus.failure,
+            KojiBuildState.canceled: BaseCommitStatus.error,
+        }.get(self.koji_build_event.state)
+
+        if (
+            new_commit_status
+            and self.build.status
+            and self.build.status != KojiBuildState.building
+        ):
+            logger.warning(
+                f"We should not overwrite the final state {self.build.status} "
+                f"to {self.koji_build_event.state}. "
+                f"Not updating the status."
+            )
+        elif new_commit_status:
+            self.build.set_status(new_commit_status.value)
+        else:
+            logger.debug(
+                f"We don't react to this koji build state change: {self.koji_task_event.state}"
+            )
+
+        if not self.build.web_url:
+            self.build.set_web_url(
+                KojiBuildEvent.get_koji_rpm_build_web_url(
+                    rpm_build_task_id=self.koji_build_event.rpm_build_task_id,
+                    koji_web_url=self.service_config.koji_web_url,
+                )
+            )
+        # TODO: update logs URL (the access via task number dos not work for non-scratch builds)
+
         return TaskResults(success=True, details={"msg": msg})

@@ -55,20 +55,6 @@ class AbstractKojiEvent(AbstractForgeIndependentEvent):
         return self._target
 
     @staticmethod
-    def get_koji_build_logs_url(
-        rpm_build_task_id: int,
-        koji_logs_url: str = "https://kojipkgs.fedoraproject.org",
-    ) -> str:
-        """
-        Constructs the log URL for the given Koji task.
-        You can redefine the Koji instance using the one defined in the service config.
-        """
-        return (
-            f"{koji_logs_url}//work/tasks/"
-            f"{rpm_build_task_id % 10000}/{rpm_build_task_id}/build.log"
-        )
-
-    @staticmethod
     def get_koji_rpm_build_web_url(
         rpm_build_task_id: int,
         koji_web_url: str = "https://koji.fedoraproject.org",
@@ -290,3 +276,18 @@ class KojiTaskEvent(AbstractKojiEvent):
         result["git_ref"] = self.git_ref
         result["identifier"] = self.identifier
         return result
+
+    @staticmethod
+    def get_koji_build_logs_url(
+        rpm_build_task_id: int,
+        koji_logs_url: str = "https://kojipkgs.fedoraproject.org",
+    ) -> str:
+        """
+        Constructs the log URL for the given Koji task.
+        You can redefine the Koji instance using the one defined in the service config.
+        TODO: this does not work for non-scratch builds
+        """
+        return (
+            f"{koji_logs_url}//work/tasks/"
+            f"{rpm_build_task_id % 10000}/{rpm_build_task_id}/build.log"
+        )
