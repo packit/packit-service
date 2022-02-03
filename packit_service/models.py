@@ -948,27 +948,25 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
                 query = query.filter_by(target=target)
             return query.first()
 
-    @classmethod
-    def get_all_by_owner_project_target_commit(
-        cls,
-        owner: str,
+    @staticmethod
+    def get_all_by(
         project_name: str,
-        target: str,
         commit_sha: str,
+        owner: str = None,
+        target: str = None,
     ) -> Optional[Iterable["CoprBuildModel"]]:
         """
         All owner/project_name builds sorted from latest to oldest
-        with the given target and commit_sha.
+        with the given commit_sha and optional target.
         """
+        non_none_args = {
+            arg: value for arg, value in locals().items() if value is not None
+        }
+
         with get_sa_session() as session:
             query = (
                 session.query(CoprBuildModel)
-                .filter_by(
-                    owner=owner,
-                    project_name=project_name,
-                    target=target,
-                    commit_sha=commit_sha,
-                )
+                .filter_by(**non_none_args)
                 .order_by(CoprBuildModel.build_id.desc())
             )
             return query.all()
@@ -1540,8 +1538,24 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
         with get_sa_session() as session:
             return session.query(TFTTestRunModel).filter_by(id=id).first()
 
+    @staticmethod
+    def get_all_by_commit_target(
+        commit_sha: str,
+        target: str = None,
+    ) -> Optional[Iterable["TFTTestRunModel"]]:
+        """
+        All tests with the given commit_sha and optional target.
+        """
+        non_none_args = {
+            arg: value for arg, value in locals().items() if value is not None
+        }
+
+        with get_sa_session() as session:
+            query = session.query(TFTTestRunModel).filter_by(**non_none_args)
+            return query.all()
+
     @classmethod
-    def get_range(cls, first: int, last: int) -> Iterable["TFTTestRunModel"]:
+    def get_range(cls, first: int, last: int) -> Optional[Iterable["TFTTestRunModel"]]:
         with get_sa_session() as session:
             return (
                 session.query(TFTTestRunModel)

@@ -30,6 +30,7 @@ from packit_service.worker.events import (
     PushGitHubEvent,
     PushGitlabEvent,
     MergeRequestGitlabEvent,
+    AbstractPRCommentEvent,
 )
 from packit_service.service.urls import (
     get_testing_farm_info_url,
@@ -57,14 +58,13 @@ logger = logging.getLogger(__name__)
 @run_for_comment(command="test")
 @run_for_comment(command="build")
 @run_for_comment(command="copr-build")
+@run_for_comment(command="retest-failed")
 @run_for_check_rerun(prefix="testing-farm")
 @reacts_to(PullRequestGithubEvent)
 @reacts_to(PushGitHubEvent)
 @reacts_to(PushGitlabEvent)
 @reacts_to(MergeRequestGitlabEvent)
-@reacts_to(PullRequestCommentGithubEvent)
-@reacts_to(MergeRequestCommentGitlabEvent)
-@reacts_to(PullRequestCommentPagureEvent)
+@reacts_to(AbstractPRCommentEvent)
 @reacts_to(CheckRerunPullRequestEvent)
 @reacts_to(CheckRerunCommitEvent)
 @configured_as(job_type=JobType.tests)

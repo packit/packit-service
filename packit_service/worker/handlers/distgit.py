@@ -32,8 +32,7 @@ from packit_service.constants import (
 from packit_service.worker.events import (
     PushPagureEvent,
     ReleaseEvent,
-    IssueCommentEvent,
-    IssueCommentGitlabEvent,
+    AbstractIssueCommentEvent,
 )
 from packit_service.worker.handlers.abstract import (
     JobHandler,
@@ -121,8 +120,7 @@ class AbortProposeDownstream(Exception):
 @run_for_comment(command="propose-downstream")
 @run_for_comment(command="propose-update")  # deprecated
 @reacts_to(event=ReleaseEvent)
-@reacts_to(event=IssueCommentEvent)
-@reacts_to(event=IssueCommentGitlabEvent)
+@reacts_to(event=AbstractIssueCommentEvent)
 class ProposeDownstreamHandler(JobHandler):
     topic = "org.fedoraproject.prod.git.receive"
     task_name = TaskName.propose_downstream

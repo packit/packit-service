@@ -29,11 +29,13 @@ from packit_service.models import (
     TFTTestRunModel,
     TestingFarmResult,
     RunModel,
+    CoprBuildModel,
 )
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.build import copr_build
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
+from packit_service.worker.events.event import AbstractForgeIndependentEvent
 from packit_service.worker.jobs import SteveJobs, get_packit_commands_from_comment
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import TaskResults
@@ -1107,3 +1109,143 @@ def test_trigger_packit_command_without_config(
     with pytest.raises(PackitConfigException) as exc:
         SteveJobs().process_message(pr_embedded_command_comment_event)
         assert "No config file found in " in exc.value
+
+
+@pytest.mark.parametrize(
+    "mock_pr_comment_functionality",
+    (
+        [
+            [
+                {
+                    "trigger": "pull_request",
+                    "job": "copr_build",
+                    "metadata": {"targets": "fedora-rawhide-x86_64"},
+                }
+            ]
+        ]
+    ),
+    indirect=True,
+)
+def test_rebuild_failed(
+    mock_pr_comment_functionality, pr_embedded_command_comment_event
+):
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(
+        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
+
+    pr_embedded_command_comment_event["comment"]["body"] = "/packit rebuild-failed"
+    flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
+        TaskResults(success=True, details={})
+    )
+    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
+
+    model = flexmock(CoprBuildModel, status="failed", target="target")
+    flexmock(model).should_receive("get_all_by").and_return(flexmock())
+    flexmock(AbstractForgeIndependentEvent).should_receive(
+        "get_all_build_failed_targets"
+    ).and_return({"target"})
+
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
+        description=TASK_ACCEPTED,
+        state=BaseCommitStatus.pending,
+        url="",
+    ).once()
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").twice().and_return()
+
+    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert event_dict["targets_override"] == ["target"]
+    assert json.dumps(event_dict)
+
+    results = run_copr_build_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+    assert first_dict_value(results["job"])["success"]
+
+
+@pytest.mark.parametrize(
+    "mock_pr_comment_functionality",
+    (
+        [
+            [
+                {
+                    "trigger": "pull_request",
+                    "job": "tests",
+                    "metadata": {"targets": "fedora-rawhide-x86_64"},
+                }
+            ]
+        ]
+    ),
+    indirect=True,
+)
+def test_retest_failed(
+    mock_pr_comment_functionality, pr_embedded_command_comment_event
+):
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(
+        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
+
+    pr_embedded_command_comment_event["comment"]["body"] = "/packit retest-failed"
+    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(copr_build).should_receive("get_valid_build_targets").twice().and_return(
+        {"test-target"}
+    )
+    flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
+        flexmock(status=PG_BUILD_STATUS_SUCCESS)
+    )
+
+    model = flexmock(TFTTestRunModel, status="failed", target="tf_target")
+    flexmock(model).should_receive("get_all_by_commit_target").and_return(flexmock())
+    flexmock(AbstractForgeIndependentEvent).should_receive(
+        "get_all_tf_failed_targets"
+    ).and_return({"tf_target"})
+
+    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+        description=TASK_ACCEPTED,
+        state=BaseCommitStatus.pending,
+        url="",
+    ).once()
+
+    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert event_dict["targets_override"] == ["tf_target"]
+    assert json.dumps(event_dict)
+
+    run_testing_farm_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )

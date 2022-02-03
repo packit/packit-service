@@ -10,6 +10,8 @@ from packit_service.models import (
     GitProjectModel,
     GitBranchModel,
     PullRequestModel,
+    CoprBuildModel,
+    TFTTestRunModel,
 )
 from packit_service.worker.events import (
     ReleaseEvent,
@@ -24,6 +26,7 @@ from packit_service.worker.events import (
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
+    AbstractForgeIndependentEvent,
 )
 from packit_service.worker.parser import Parser
 from packit_service.worker.testing_farm import TestingFarmJobHelper
@@ -438,3 +441,52 @@ def test_parse_check_rerun_release(
     assert event_object.check_name_job == "testing-farm"
     assert event_object.check_name_target == "fedora-rawhide-x86_64"
     assert event_object.targets_override == {"fedora-rawhide-x86_64"}
+
+
+def test_filter_failed_models_targets_copr(
+    clean_before_and_after, multiple_copr_builds
+):
+    builds_list = list(
+        CoprBuildModel.get_all_by(
+            project_name=SampleValues.project,
+            commit_sha=SampleValues.ref,
+        )
+    )
+    assert len(builds_list) == 3
+
+    # these targets should be different
+    assert builds_list[0].target != builds_list[2].target
+    # 2 builds with failed status and one with success
+    builds_list[0].set_status(SampleValues.status_failed)
+    builds_list[2].set_status(SampleValues.status_error)
+
+    assert (
+        len(
+            AbstractForgeIndependentEvent._filter_failed_models_targets(
+                models=builds_list
+            )
+        )
+        == 2
+    )
+
+
+def test_filter_failed_models_targets_tf(
+    clean_before_and_after, multiple_new_test_runs
+):
+    test_list = list(
+        TFTTestRunModel.get_all_by_commit_target(commit_sha=SampleValues.commit_sha)
+    )
+    assert len(test_list) == 3
+
+    # 2 builds with failed status and one with success
+    test_list[0].set_status(SampleValues.status_failed)
+    test_list[1].set_status(SampleValues.status_error)
+
+    assert (
+        len(
+            AbstractForgeIndependentEvent._filter_failed_models_targets(
+                models=test_list
+            )
+        )
+        == 2
+    )

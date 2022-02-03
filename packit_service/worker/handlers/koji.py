@@ -31,15 +31,13 @@ from packit_service.worker.events import (
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
     KojiTaskEvent,
-    MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
-    PullRequestCommentGithubEvent,
-    PullRequestCommentPagureEvent,
     PullRequestGithubEvent,
     PushGitHubEvent,
     PushGitlabEvent,
     PushPagureEvent,
     ReleaseEvent,
+    AbstractPRCommentEvent,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
@@ -64,9 +62,7 @@ logger = logging.getLogger(__name__)
 @reacts_to(PushGitHubEvent)
 @reacts_to(PushGitlabEvent)
 @reacts_to(MergeRequestGitlabEvent)
-@reacts_to(PullRequestCommentGithubEvent)
-@reacts_to(MergeRequestCommentGitlabEvent)
-@reacts_to(PullRequestCommentPagureEvent)
+@reacts_to(AbstractPRCommentEvent)
 @reacts_to(CheckRerunPullRequestEvent)
 @reacts_to(CheckRerunCommitEvent)
 @reacts_to(CheckRerunReleaseEvent)

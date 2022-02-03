@@ -356,11 +356,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """
         Search a last build for the given target and commit SHA using Copr owner and project.
         """
-        copr_builds = CoprBuildModel.get_all_by_owner_project_target_commit(
-            owner=self.job_owner,
+        copr_builds = CoprBuildModel.get_all_by(
             project_name=self.job_project,
-            target=target,
             commit_sha=commit_sha,
+            owner=self.job_owner,
+            target=target,
         )
         if not copr_builds:
             return None

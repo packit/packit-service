@@ -73,6 +73,8 @@ class SampleValues:
     another_different_build_id = "78912"
     status_success = "success"
     status_pending = "pending"
+    status_error = "error"
+    status_failed = "failed"
     status_waiting_for_srpm = "waiting_for_srpm"
     target = "fedora-42-x86_64"
     different_target = "fedora-43-x86_64"

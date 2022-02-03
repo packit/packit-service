@@ -569,9 +569,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         copr_build_pr.get_trigger_object()
     )
 
-    flexmock(CoprBuildModel).should_receive(
-        "get_all_by_owner_project_target_commit"
-    ).and_return([copr_build_pr])
+    flexmock(CoprBuildModel).should_receive("get_all_by").and_return([copr_build_pr])
 
     run_testing_farm_handler(
         package_config=package_config,

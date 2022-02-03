@@ -4,7 +4,7 @@
 from logging import getLogger
 from typing import Dict, Optional
 
-from ogr.abstract import GitProject
+from ogr.abstract import Comment, GitProject
 
 from packit_service.service.db_triggers import (
     AddBranchPushDbTrigger,
@@ -14,10 +14,8 @@ from packit_service.worker.events.enums import (
     PullRequestAction,
     PullRequestCommentAction,
 )
-from packit_service.worker.events.event import (
-    AbstractForgeIndependentEvent,
-    AbstractCommentEvent,
-)
+from packit_service.worker.events.comment import AbstractPRCommentEvent
+from packit_service.worker.events.event import AbstractForgeIndependentEvent
 
 logger = getLogger(__name__)
 
@@ -49,9 +47,7 @@ class PushPagureEvent(AddBranchPushDbTrigger, AbstractPagureEvent):
         self.identifier = git_ref
 
 
-class PullRequestCommentPagureEvent(
-    AddPullRequestDbTrigger, AbstractCommentEvent, AbstractPagureEvent
-):
+class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent):
     def __init__(
         self,
         action: PullRequestCommentAction,
@@ -64,18 +60,25 @@ class PullRequestCommentPagureEvent(
         project_url: str,
         user_login: str,
         comment: str,
+        comment_id: int,
         commit_sha: str = "",
+        comment_object: Optional[Comment] = None,
     ):
-        super().__init__(project_url=project_url, pr_id=pr_id, comment=comment)
+        super().__init__(
+            pr_id=pr_id,
+            project_url=project_url,
+            comment=comment,
+            comment_id=comment_id,
+            commit_sha=commit_sha,
+            comment_object=comment_object,
+        )
         self.action = action
         self.base_repo_namespace = base_repo_namespace
         self.base_repo_name = base_repo_name
         self.base_repo_owner = base_repo_owner
         self.base_ref = base_ref
-        self.commit_sha = commit_sha
         self.target_repo = target_repo
         self.user_login = user_login
-        self.comment = comment
         self.identifier = str(pr_id)
         self.git_ref = None  # pr_id will be used for checkout
 

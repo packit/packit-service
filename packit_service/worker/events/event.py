@@ -7,19 +7,21 @@ Generic/abstract event classes.
 import copy
 from datetime import datetime, timezone
 from logging import getLogger
-from typing import Dict, Optional, Union, Set, List
+from typing import Dict, Iterable, Optional, Union, Set, List
 
-from ogr.abstract import GitProject, Comment
+from ogr.abstract import GitProject
 from ogr.parsing import RepoUrl
 from packit.config import PackageConfig
 
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.models import (
     AbstractTriggerDbType,
+    CoprBuildModel,
     GitBranchModel,
     IssueModel,
     ProjectReleaseModel,
     PullRequestModel,
+    TFTTestRunModel,
 )
 
 logger = getLogger(__name__)
@@ -379,6 +381,39 @@ class AbstractForgeIndependentEvent(Event):
             package_config.upstream_project_url = self.project_url
         return package_config
 
+    @staticmethod
+    def _filter_failed_models_targets(
+        models: Union[
+            Optional[Iterable[CoprBuildModel]], Optional[Iterable[TFTTestRunModel]]
+        ],
+    ) -> Optional[Set[str]]:
+        failed_models_targets = set()
+        for model in models:
+            if model.status in ["failed", "error"]:
+                failed_models_targets.add(model.target)
+
+        return failed_models_targets if failed_models_targets else None
+
+    def get_all_tf_failed_targets(self) -> Optional[Set[str]]:
+        if self.commit_sha is None:
+            return None
+
+        return self._filter_failed_models_targets(
+            models=TFTTestRunModel.get_all_by_commit_target(commit_sha=self.commit_sha)
+        )
+
+    def get_all_build_failed_targets(self) -> Optional[Set[str]]:
+        # TODO: get rid of project.repo which is mandatory in `CoprBuildModel.get_all_by`
+        # in this case relevant for us is only commit_sha
+        if self.commit_sha is None or self.project.repo is None:
+            return None
+
+        return self._filter_failed_models_targets(
+            models=CoprBuildModel.get_all_by(
+                project_name=self.project.repo, commit_sha=self.commit_sha
+            )
+        )
+
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         # so that it is JSON serializable (because of Celery tasks)
@@ -386,22 +421,3 @@ class AbstractForgeIndependentEvent(Event):
         result.pop("_base_project")
         result.pop("_package_config")
         return result
-
-
-class AbstractCommentEvent(AbstractForgeIndependentEvent):
-    def __init__(
-        self,
-        project_url: str,
-        comment: str,
-        pr_id: Optional[int] = None,
-        comment_object: Optional[Comment] = None,
-    ) -> None:
-        super().__init__(project_url=project_url, pr_id=pr_id)
-        self.comment = comment
-
-        # Lazy properties
-        self._comment_object = comment_object
-
-    @property
-    def comment_object(self) -> Optional[Comment]:
-        raise NotImplementedError()
