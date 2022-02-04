@@ -3,6 +3,8 @@
 
 from typing import Union, Optional, Dict
 
+from packit.config import JobConfigTriggerType
+
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
 
@@ -16,7 +18,10 @@ from packit_service.models import (
     GitBranchModel,
     RunModel,
 )
-from packit_service.worker.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.events.event import (
+    AbstractForgeIndependentEvent,
+    use_for_job_config_trigger,
+)
 
 
 class AbstractKojiEvent(AbstractForgeIndependentEvent):
@@ -68,6 +73,7 @@ class AbstractKojiEvent(AbstractForgeIndependentEvent):
         return result
 
 
+@use_for_job_config_trigger(trigger_type=JobConfigTriggerType.commit)
 class KojiBuildEvent(AbstractKojiEvent):
     def __init__(
         self,

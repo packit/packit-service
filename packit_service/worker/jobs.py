@@ -76,7 +76,7 @@ def get_handlers_for_event(
     jobs_matching_trigger = []
     for job in package_config.jobs:
         if (
-            job.trigger == event.db_trigger.job_config_trigger_type
+            job.trigger == event.job_config_trigger_type
             and job not in jobs_matching_trigger
         ):
             jobs_matching_trigger.append(job)
@@ -168,7 +168,7 @@ def get_config_for_handler_kls(
     """
     jobs_matching_trigger: List[JobConfig] = []
     for job in package_config.jobs:
-        if job.trigger == event.db_trigger.job_config_trigger_type:
+        if job.trigger == event.job_config_trigger_type:
             jobs_matching_trigger.append(job)
 
     matching_jobs: List[JobConfig] = []
