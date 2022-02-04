@@ -351,16 +351,10 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f35):
         koji_builds=["1874070"],
     ).once()
 
-    # Database structure
+    # Database not touched
     flexmock(KojiBuildModel).should_receive("get_by_build_id").with_args(
         build_id=1874070
-    ).and_return(
-        flexmock(
-            get_trigger_object=lambda: flexmock(
-                id=1, job_config_trigger_type=JobConfigTriggerType.commit
-            )
-        )
-    ).once()
+    ).times(0)
 
     processing_results = SteveJobs().process_message(koji_build_completed_f35)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler

@@ -206,6 +206,9 @@ class Event:
         else:
             self.created_at = datetime.now(timezone.utc)
 
+        # lazy properties:
+        self._db_trigger: Optional[AbstractTriggerDbType] = None
+
     @staticmethod
     def ts2str(event: dict):
         """
@@ -225,7 +228,12 @@ class Event:
         d = copy.deepcopy(d)
         # whole dict has to be JSON serializable because of redis
         d["event_type"] = self.__class__.__name__
-        d["trigger_id"] = self.db_trigger.id if self.db_trigger else None
+
+        # we are trying to be lazy => don't touch database if it is not needed
+        d["trigger_id"] = self._db_trigger.id if self._db_trigger else None
+        # we don't want to save non-serializable object
+        d.pop("_db_trigger")
+
         d["created_at"] = int(d["created_at"].timestamp())
         task_accepted_time = d.get("task_accepted_time")
         d["task_accepted_time"] = (
@@ -239,9 +247,14 @@ class Event:
             d["targets_override"] = list(targets_override)
         return d
 
+    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        return None
+
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        return None
+        if not self._db_trigger:
+            self._db_trigger = self.get_db_trigger()
+        return self._db_trigger
 
     @property
     def project(self):
@@ -327,8 +340,7 @@ class AbstractForgeIndependentEvent(Event):
             self._package_config_searched = True
         return self._package_config
 
-    @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
         raise NotImplementedError()
 
     @property

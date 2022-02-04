@@ -66,8 +66,7 @@ class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):
         self.pkg = pkg
         self.timestamp = timestamp
 
-    @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
         return self.build.get_trigger_object()
 
     def get_base_project(self) -> Optional[GitProject]:
