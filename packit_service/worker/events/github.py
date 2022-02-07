@@ -228,17 +228,6 @@ class CheckRerunEvent(AbstractGithubEvent):
     def targets_override(self) -> Optional[Set[str]]:
         return {self.check_name_target}
 
-    @property
-    def db_trigger(
-        self,
-    ) -> Union[PullRequestModel, GitBranchModel, ProjectReleaseModel]:
-        return self._db_trigger
-
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
-        result = super().get_dict()
-        result.pop("_db_trigger")
-        return result
-
 
 class CheckRerunCommitEvent(CheckRerunEvent):
     _db_trigger: GitBranchModel

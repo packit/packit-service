@@ -54,16 +54,11 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
         result = super().get_dict()
         result["result"] = result["result"].value
         result["pr_id"] = self.pr_id
-        result.pop("_db_trigger")
         return result
 
-    @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        if not self._db_trigger:
-            run_model = TFTTestRunModel.get_by_pipeline_id(pipeline_id=self.pipeline_id)
-            if run_model:
-                self._db_trigger = run_model.get_trigger_object()
-        return self._db_trigger
+    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        run_model = TFTTestRunModel.get_by_pipeline_id(pipeline_id=self.pipeline_id)
+        return run_model.get_trigger_object() if run_model else None
 
     def get_base_project(self) -> Optional[GitProject]:
         if self.pr_id is not None:

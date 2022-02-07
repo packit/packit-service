@@ -201,20 +201,17 @@ class PipelineGitlabEvent(AbstractGitlabEvent):
         self.source = source
         self.merge_request_url = merge_request_url
 
-        self._db_trigger: Optional[AbstractTriggerDbType] = None
-
-    @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        if not self._db_trigger and self.source == "merge_request_event":
+    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        if self.source == "merge_request_event":
             # Can't use self.project because that can be either source or target project.
             # We need target project here. Let's derive it from self.merge_request_url
             m = fullmatch(r"(\S+)/-/merge_requests/(\d+)", self.merge_request_url)
             if m:
                 project = ServiceConfig.get_service_config().get_project(url=m[1])
-                self._db_trigger = PullRequestModel.get_or_create(
+                return PullRequestModel.get_or_create(
                     pr_id=int(m[2]),
                     namespace=project.namespace,
                     repo_name=project.repo,
                     project_url=m[1],
                 )
-        return self._db_trigger
+        return None

@@ -83,9 +83,7 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
         .with_args()
         .and_return()
         .mock()
-    ).times(
-        2
-    )  # event during parsing + handler during run
+    ).once()  # only when running a handler
 
     processing_results = SteveJobs().process_message(koji_build_event)
     # 1*KojiBuildReportHandler
@@ -184,9 +182,7 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
         .with_args()
         .and_return()
         .mock()
-    ).times(
-        2
-    )  # event during parsing + handler during run
+    ).once()  # only when running a handler
 
     processing_results = SteveJobs().process_message(koji_build_event)
     # 1*KojiBuildReportHandler

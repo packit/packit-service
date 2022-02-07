@@ -7,11 +7,11 @@ Generic/abstract event classes.
 import copy
 from datetime import datetime, timezone
 from logging import getLogger
-from typing import Dict, Iterable, Optional, Union, Set, List
+from typing import Dict, Iterable, Optional, Type, Union, Set, List
 
 from ogr.abstract import GitProject
 from ogr.parsing import RepoUrl
-from packit.config import PackageConfig
+from packit.config import JobConfigTriggerType, PackageConfig
 
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.models import (
@@ -25,6 +25,32 @@ from packit_service.models import (
 )
 
 logger = getLogger(__name__)
+
+
+MAP_EVENT_TO_JOB_CONFIG_TRIGGER_TYPE: Dict[Type["Event"], JobConfigTriggerType] = {}
+
+
+def use_for_job_config_trigger(trigger_type: JobConfigTriggerType):
+    """
+    [class decorator]
+    Specify a trigger_type which this event class matches
+    so we don't need to search database to get that information.
+
+    In other words, what job-config in the configuration file
+    is compatible with this event.
+
+    Example:
+    ```
+    @use_for_job_config_trigger(trigger_type=JobConfigTriggerType.commit)
+    class KojiBuildEvent(AbstractKojiEvent):
+    ```
+    """
+
+    def _add_to_mapping(kls: Type["Event"]):
+        MAP_EVENT_TO_JOB_CONFIG_TRIGGER_TYPE[kls] = trigger_type
+        return kls
+
+    return _add_to_mapping
 
 
 class EventData:
@@ -206,6 +232,9 @@ class Event:
         else:
             self.created_at = datetime.now(timezone.utc)
 
+        # lazy properties:
+        self._db_trigger: Optional[AbstractTriggerDbType] = None
+
     @staticmethod
     def ts2str(event: dict):
         """
@@ -225,7 +254,12 @@ class Event:
         d = copy.deepcopy(d)
         # whole dict has to be JSON serializable because of redis
         d["event_type"] = self.__class__.__name__
-        d["trigger_id"] = self.db_trigger.id if self.db_trigger else None
+
+        # we are trying to be lazy => don't touch database if it is not needed
+        d["trigger_id"] = self._db_trigger.id if self._db_trigger else None
+        # we don't want to save non-serializable object
+        d.pop("_db_trigger")
+
         d["created_at"] = int(d["created_at"].timestamp())
         task_accepted_time = d.get("task_accepted_time")
         d["task_accepted_time"] = (
@@ -239,9 +273,31 @@ class Event:
             d["targets_override"] = list(targets_override)
         return d
 
+    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        return None
+
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        return None
+        if not self._db_trigger:
+            self._db_trigger = self.get_db_trigger()
+        return self._db_trigger
+
+    @property
+    def job_config_trigger_type(self) -> JobConfigTriggerType:
+        """
+        By default, we can use a database model related to this to get the config trigger type.
+
+        Set this for an event subclass if it is clear and
+        can be determined without any database connections
+        by using a `@use_for_job_config_trigger` decorator.
+        """
+        for (
+            event_cls,
+            job_config_trigger_type,
+        ) in MAP_EVENT_TO_JOB_CONFIG_TRIGGER_TYPE.items():
+            if isinstance(self, event_cls):
+                return job_config_trigger_type
+        return self.db_trigger.job_config_trigger_type
 
     @property
     def project(self):
@@ -327,8 +383,7 @@ class AbstractForgeIndependentEvent(Event):
             self._package_config_searched = True
         return self._package_config
 
-    @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
+    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
         raise NotImplementedError()
 
     @property

@@ -3,6 +3,8 @@
 
 from typing import Union, Optional, Dict
 
+from packit.config import JobConfigTriggerType
+
 from ogr.abstract import GitProject
 from ogr.services.pagure import PagureProject
 
@@ -16,7 +18,10 @@ from packit_service.models import (
     GitBranchModel,
     RunModel,
 )
-from packit_service.worker.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.events.event import (
+    AbstractForgeIndependentEvent,
+    use_for_job_config_trigger,
+)
 
 
 class AbstractKojiEvent(AbstractForgeIndependentEvent):
@@ -33,7 +38,6 @@ class AbstractKojiEvent(AbstractForgeIndependentEvent):
         self._target: Optional[str] = None
         self._build_model: Optional[KojiBuildModel] = None
         self._build_model_searched = False
-        self._db_trigger: Optional[AbstractTriggerDbType] = None
 
     @property
     def build_model(self) -> Optional[KojiBuildModel]:
@@ -42,11 +46,8 @@ class AbstractKojiEvent(AbstractForgeIndependentEvent):
             self._build_model_searched = True
         return self._build_model
 
-    @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        if not self._db_trigger and self.build_model:
-            self._db_trigger = self.build_model.get_trigger_object()
-        return self._db_trigger
+    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
+        return self.build_model.get_trigger_object() if self.build_model else None
 
     @property
     def target(self) -> Optional[str]:
@@ -69,10 +70,10 @@ class AbstractKojiEvent(AbstractForgeIndependentEvent):
         result = super().get_dict()
         result.pop("_build_model")
         result.pop("_build_model_searched")
-        result.pop("_db_trigger")
         return result
 
 
+@use_for_job_config_trigger(trigger_type=JobConfigTriggerType.commit)
 class KojiBuildEvent(AbstractKojiEvent):
     def __init__(
         self,
