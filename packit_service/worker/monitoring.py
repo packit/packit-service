@@ -5,7 +5,13 @@ import logging
 import os
 from datetime import datetime, timezone
 
-from prometheus_client import CollectorRegistry, Counter, push_to_gateway, Histogram
+from prometheus_client import (
+    CollectorRegistry,
+    Counter,
+    push_to_gateway,
+    Histogram,
+    Gauge,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +90,14 @@ class Pushgateway:
             "Time it takes to set the initial status",
             registry=self.registry,
             buckets=(5, 15, 30, float("inf")),
+        )
+
+        self.celery_tasks_count = (
+            Gauge(
+                "celery_task_in_queue",
+                "Number of celery tasks in the queue",
+                registry=self.registry,
+            ),
         )
 
         self.copr_build_finished_time = Histogram(

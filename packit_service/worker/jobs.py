@@ -12,6 +12,7 @@ from typing import List, Set, Type, Union
 from celery import group
 from packit.config import JobConfig, PackageConfig
 
+from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
 from packit_service.constants import TASK_ACCEPTED
 from packit_service.log_versions import log_job_versions
@@ -206,6 +207,14 @@ def push_initial_metrics(event: Event, handler: JobHandler, build_targets_len: i
     if isinstance(handler, CoprBuildHandler):
         for _ in range(build_targets_len):
             pushgateway.copr_builds_queued.inc()
+
+    # record # of tasks in the celery queue
+    i = celery_app.control.inspect()
+    # >>> i.scheduled()
+    # {'celery@packit-worker-0': [{'eta': '2022-02-11T16:22:53.954247+00:00',...
+    pushgateway.celery_tasks_count = len(
+        [item for workers_tasks in i.scheduled().values() for item in workers_tasks]
+    )
 
     pushgateway.push()
 
