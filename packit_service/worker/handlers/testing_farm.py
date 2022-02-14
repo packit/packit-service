@@ -14,8 +14,8 @@ from packit.config.package_config import PackageConfig
 
 from packit_service.models import (
     AbstractTriggerDbType,
-    TFTTestRunModel,
-    CoprBuildModel,
+    TFTTestRunTargetModel,
+    CoprBuildTargetModel,
     TestingFarmResult,
     JobTriggerModel,
 )
@@ -121,7 +121,7 @@ class TestingFarmHandler(JobHandler):
         if not self._db_trigger:
             # copr build end
             if self.build_id:
-                build = CoprBuildModel.get_by_id(self.build_id)
+                build = CoprBuildTargetModel.get_by_id(self.build_id)
                 self._db_trigger = build.get_trigger_object()
             # other events
             else:
@@ -187,7 +187,7 @@ class TestingFarmHandler(JobHandler):
 
         for target in targets:
             if self.build_id:
-                copr_build = CoprBuildModel.get_by_id(self.build_id)
+                copr_build = CoprBuildTargetModel.get_by_id(self.build_id)
             else:
                 copr_build = self.testing_farm_job_helper.get_latest_copr_build(
                     target=target, commit_sha=self.data.commit_sha
@@ -241,7 +241,7 @@ class TestingFarmHandler(JobHandler):
         self,
         target: str,
         failed: Dict,
-        build: Optional[CoprBuildModel] = None,
+        build: Optional[CoprBuildTargetModel] = None,
     ):
         self.pushgateway.test_runs_queued.inc()
         result = self.testing_farm_job_helper.run_testing_farm(
@@ -320,7 +320,9 @@ class TestingFarmResultsHandler(JobHandler):
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         if not self._db_trigger:
-            run_model = TFTTestRunModel.get_by_pipeline_id(pipeline_id=self.pipeline_id)
+            run_model = TFTTestRunTargetModel.get_by_pipeline_id(
+                pipeline_id=self.pipeline_id
+            )
             if run_model:
                 self._db_trigger = run_model.get_trigger_object()
         return self._db_trigger
@@ -328,7 +330,7 @@ class TestingFarmResultsHandler(JobHandler):
     def run(self) -> TaskResults:
         logger.debug(f"Testing farm {self.pipeline_id} result:\n{self.result}")
 
-        test_run_model = TFTTestRunModel.get_by_pipeline_id(
+        test_run_model = TFTTestRunTargetModel.get_by_pipeline_id(
             pipeline_id=self.pipeline_id
         )
         if not test_run_model:

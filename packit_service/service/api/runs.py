@@ -7,11 +7,11 @@ from logging import getLogger
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
-    CoprBuildModel,
-    KojiBuildModel,
+    CoprBuildTargetModel,
+    KojiBuildTargetModel,
     PipelineModel,
     SRPMBuildModel,
-    TFTTestRunModel,
+    TFTTestRunTargetModel,
     optional_timestamp,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
@@ -59,9 +59,9 @@ def process_runs(runs):
             response_dict["trigger"] = get_project_info_from_build(srpm_build)
 
         for model_type, Model, packit_ids in (
-            ("copr", CoprBuildModel, pipeline.copr_build_id),
-            ("koji", KojiBuildModel, pipeline.koji_build_id),
-            ("test_run", TFTTestRunModel, pipeline.test_run_id),
+            ("copr", CoprBuildTargetModel, pipeline.copr_build_id),
+            ("koji", KojiBuildTargetModel, pipeline.koji_build_id),
+            ("test_run", TFTTestRunTargetModel, pipeline.test_run_id),
         ):
             for packit_id in set(filter(None, map(lambda ids: ids[0], packit_ids))):
                 row = Model.get_by_id(packit_id)
@@ -77,7 +77,7 @@ def process_runs(runs):
                 if "trigger" not in response_dict:
                     submitted_time = (
                         row.submitted_time
-                        if isinstance(row, TFTTestRunModel)
+                        if isinstance(row, TFTTestRunTargetModel)
                         else row.build_submitted_time
                     )
                     response_dict["time_submitted"] = optional_timestamp(submitted_time)

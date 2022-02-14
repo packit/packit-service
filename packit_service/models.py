@@ -157,31 +157,31 @@ class BuildsAndTestsConnector:
         runs = self.get_runs()
         models = []
 
-        if model_type == CoprBuildModel:
+        if model_type == CoprBuildTargetModel:
             models = [run.copr_build for run in runs]
 
-        if model_type == KojiBuildModel:
+        if model_type == KojiBuildTargetModel:
             models = [run.koji_build for run in runs]
 
         if model_type == SRPMBuildModel:
             models = [run.srpm_build for run in runs]
 
-        if model_type == TFTTestRunModel:
+        if model_type == TFTTestRunTargetModel:
             models = [run.test_run for run in runs]
 
         return list({model for model in models if model is not None})
 
     def get_copr_builds(self):
-        return self._get_run_item(model_type=CoprBuildModel)
+        return self._get_run_item(model_type=CoprBuildTargetModel)
 
     def get_koji_builds(self):
-        return self._get_run_item(model_type=KojiBuildModel)
+        return self._get_run_item(model_type=KojiBuildTargetModel)
 
     def get_srpm_builds(self):
         return self._get_run_item(model_type=SRPMBuildModel)
 
     def get_test_runs(self):
-        return self._get_run_item(model_type=TFTTestRunModel)
+        return self._get_run_item(model_type=TFTTestRunTargetModel)
 
 
 class ProjectAndTriggersConnector:
@@ -709,7 +709,8 @@ class PipelineModel(Base):
     Represents one pipeline.
 
     Connects JobTriggerModel (and triggers like PullRequestModel via that model) with
-    build/test models like  SRPMBuildModel, CoprBuildModel, KojiBuildModel, and TFTTestRunModel.
+    build/test models like  SRPMBuildModel, CoprBuildTargetModel, KojiBuildTargetModel,
+    and TFTTestRunTargetModel.
 
     * One model of each build/test model can be connected.
     * Each build/test model can be connected to multiple PipelineModels (e.g. on retrigger).
@@ -730,11 +731,11 @@ class PipelineModel(Base):
     srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"))
     srpm_build = relationship("SRPMBuildModel", back_populates="runs")
     copr_build_id = Column(Integer, ForeignKey("copr_builds.id"))
-    copr_build = relationship("CoprBuildModel", back_populates="runs")
+    copr_build = relationship("CoprBuildTargetModel", back_populates="runs")
     koji_build_id = Column(Integer, ForeignKey("koji_builds.id"))
-    koji_build = relationship("KojiBuildModel", back_populates="runs")
+    koji_build = relationship("KojiBuildTargetModel", back_populates="runs")
     test_run_id = Column(Integer, ForeignKey("tft_test_runs.id"))
-    test_run = relationship("TFTTestRunModel", back_populates="runs")
+    test_run = relationship("TFTTestRunTargetModel", back_populates="runs")
 
     @classmethod
     def create(cls, type: JobTriggerModelType, trigger_id: int) -> "PipelineModel":
@@ -808,7 +809,7 @@ class PipelineModel(Base):
             return session.query(PipelineModel).filter_by(id=id_).first()
 
 
-class CoprBuildModel(ProjectAndTriggersConnector, Base):
+class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
     """
     Representation of Copr build for one target.
     """
@@ -889,17 +890,23 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
         return self.runs[0].srpm_build
 
     @classmethod
-    def get_by_id(cls, id_: int) -> Optional["CoprBuildModel"]:
+    def get_by_id(cls, id_: int) -> Optional["CoprBuildTargetModel"]:
         with get_sa_session() as session:
-            return session.query(CoprBuildModel).filter_by(id=id_).first()
+            return session.query(CoprBuildTargetModel).filter_by(id=id_).first()
 
     @classmethod
-    def get_all(cls) -> Optional[Iterable["CoprBuildModel"]]:
+    def get_all(cls) -> Optional[Iterable["CoprBuildTargetModel"]]:
         with get_sa_session() as session:
-            return session.query(CoprBuildModel).order_by(desc(CoprBuildModel.id)).all()
+            return (
+                session.query(CoprBuildTargetModel)
+                .order_by(desc(CoprBuildTargetModel.id))
+                .all()
+            )
 
     @classmethod
-    def get_merged_chroots(cls, first: int, last: int) -> Iterable["CoprBuildModel"]:
+    def get_merged_chroots(
+        cls, first: int, last: int
+    ) -> Iterable["CoprBuildTargetModel"]:
         """Returns a list of unique build ids with merged status, chroots
         Details:
         https://github.com/packit/packit-service/pull/674#discussion_r439819852
@@ -909,17 +916,23 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
                 session.query(
                     # We need something to order our merged builds by,
                     # so set new_id to be min(ids of to-be-merged rows)
-                    func.min(CoprBuildModel.id).label("new_id"),
+                    func.min(CoprBuildTargetModel.id).label("new_id"),
                     # Select identical element(s)
-                    CoprBuildModel.build_id,
+                    CoprBuildTargetModel.build_id,
                     # Merge chroots and statuses from different rows into one
-                    func.array_agg(psql_array([CoprBuildModel.target])).label("target"),
-                    func.array_agg(psql_array([CoprBuildModel.status])).label("status"),
-                    func.array_agg(psql_array([CoprBuildModel.id])).label(
+                    func.array_agg(psql_array([CoprBuildTargetModel.target])).label(
+                        "target"
+                    ),
+                    func.array_agg(psql_array([CoprBuildTargetModel.status])).label(
+                        "status"
+                    ),
+                    func.array_agg(psql_array([CoprBuildTargetModel.id])).label(
                         "packit_id_per_chroot"
                     ),
                 )
-                .group_by(CoprBuildModel.build_id)  # Group by identical element(s)
+                .group_by(
+                    CoprBuildTargetModel.build_id
+                )  # Group by identical element(s)
                 .order_by(desc("new_id"))
                 .slice(first, last)
             )
@@ -928,24 +941,26 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
     @classmethod
     def get_all_by_build_id(
         cls, build_id: Union[str, int]
-    ) -> Optional[Iterable["CoprBuildModel"]]:
+    ) -> Optional[Iterable["CoprBuildTargetModel"]]:
         if isinstance(build_id, int):
             # See the comment in get_by_build_id()
             build_id = str(build_id)
         with get_sa_session() as session:
-            return session.query(CoprBuildModel).filter_by(build_id=build_id)
+            return session.query(CoprBuildTargetModel).filter_by(build_id=build_id)
 
     @classmethod
-    def get_all_by_status(cls, status: str) -> Optional[Iterable["CoprBuildModel"]]:
+    def get_all_by_status(
+        cls, status: str
+    ) -> Optional[Iterable["CoprBuildTargetModel"]]:
         """Returns all builds which currently have the given status."""
         with get_sa_session() as session:
-            return session.query(CoprBuildModel).filter_by(status=status)
+            return session.query(CoprBuildTargetModel).filter_by(status=status)
 
     # returns the build matching the build_id and the target
     @classmethod
     def get_by_build_id(
         cls, build_id: Union[str, int], target: str = None
-    ) -> Optional["CoprBuildModel"]:
+    ) -> Optional["CoprBuildTargetModel"]:
         if isinstance(build_id, int):
             # PG is pesky about this:
             #   LINE 3: WHERE copr_builds.build_id = 1245767 AND copr_builds.target ...
@@ -953,7 +968,7 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
             #   You might need to add explicit type casts.
             build_id = str(build_id)
         with get_sa_session() as session:
-            query = session.query(CoprBuildModel).filter_by(build_id=build_id)
+            query = session.query(CoprBuildTargetModel).filter_by(build_id=build_id)
             if target:
                 query = query.filter_by(target=target)
             return query.first()
@@ -964,7 +979,7 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
         commit_sha: str,
         owner: str = None,
         target: str = None,
-    ) -> Optional[Iterable["CoprBuildModel"]]:
+    ) -> Optional[Iterable["CoprBuildTargetModel"]]:
         """
         All owner/project_name builds sorted from latest to oldest
         with the given commit_sha and optional target.
@@ -975,9 +990,9 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
 
         with get_sa_session() as session:
             query = (
-                session.query(CoprBuildModel)
+                session.query(CoprBuildTargetModel)
                 .filter_by(**non_none_args)
-                .order_by(CoprBuildModel.build_id.desc())
+                .order_by(CoprBuildTargetModel.build_id.desc())
             )
             return query.all()
 
@@ -993,7 +1008,7 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
         status: str,
         run_model: "PipelineModel",
         task_accepted_time: Optional[datetime] = None,
-    ) -> "CoprBuildModel":
+    ) -> "CoprBuildTargetModel":
         with get_sa_session() as session:
             build = cls()
             build.build_id = build_id
@@ -1026,14 +1041,14 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
         cls,
         build_id: str,
         target: str,
-    ) -> "CoprBuildModel":
+    ) -> "CoprBuildTargetModel":
         return cls.get_by_build_id(build_id, target)
 
     def __repr__(self):
         return f"COPRBuildModel(id={self.id}, build_submitted_time={self.build_submitted_time})"
 
 
-class KojiBuildModel(ProjectAndTriggersConnector, Base):
+class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
     """we create an entry for every target"""
 
     __tablename__ = "koji_builds"
@@ -1099,21 +1114,21 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
         return self.runs[0].srpm_build
 
     @classmethod
-    def get_by_id(cls, id_: int) -> Optional["KojiBuildModel"]:
+    def get_by_id(cls, id_: int) -> Optional["KojiBuildTargetModel"]:
         with get_sa_session() as session:
-            return session.query(KojiBuildModel).filter_by(id=id_).first()
+            return session.query(KojiBuildTargetModel).filter_by(id=id_).first()
 
     @classmethod
-    def get_all(cls) -> Optional[Iterable["KojiBuildModel"]]:
+    def get_all(cls) -> Optional[Iterable["KojiBuildTargetModel"]]:
         with get_sa_session() as session:
-            return session.query(KojiBuildModel).all()
+            return session.query(KojiBuildTargetModel).all()
 
     @classmethod
-    def get_range(cls, first: int, last: int) -> Iterable["KojiBuildModel"]:
+    def get_range(cls, first: int, last: int) -> Iterable["KojiBuildTargetModel"]:
         with get_sa_session() as session:
             return (
-                session.query(KojiBuildModel)
-                .order_by(desc(KojiBuildModel.id))
+                session.query(KojiBuildTargetModel)
+                .order_by(desc(KojiBuildTargetModel.id))
                 .slice(first, last)
             )
 
@@ -1121,17 +1136,17 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
     @classmethod
     def get_all_by_build_id(
         cls, build_id: Union[str, int]
-    ) -> Optional[Iterable["KojiBuildModel"]]:
+    ) -> Optional[Iterable["KojiBuildTargetModel"]]:
         if isinstance(build_id, int):
             # See the comment in get_by_build_id()
             build_id = str(build_id)
         with get_sa_session() as session:
-            return session.query(KojiBuildModel).filter_by(build_id=build_id)
+            return session.query(KojiBuildTargetModel).filter_by(build_id=build_id)
 
     @classmethod
     def get_by_build_id(
         cls, build_id: Union[str, int], target: Optional[str] = None
-    ) -> Optional["KojiBuildModel"]:
+    ) -> Optional["KojiBuildTargetModel"]:
         """
         Returns the build matching the build_id and the target.
         """
@@ -1144,11 +1159,13 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
         with get_sa_session() as session:
             if target:
                 return (
-                    session.query(KojiBuildModel)
+                    session.query(KojiBuildTargetModel)
                     .filter_by(build_id=build_id, target=target)
                     .first()
                 )
-            return session.query(KojiBuildModel).filter_by(build_id=build_id).first()
+            return (
+                session.query(KojiBuildTargetModel).filter_by(build_id=build_id).first()
+            )
 
     @classmethod
     def create(
@@ -1159,7 +1176,7 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
         target: str,
         status: str,
         run_model: "PipelineModel",
-    ) -> "KojiBuildModel":
+    ) -> "KojiBuildTargetModel":
         with get_sa_session() as session:
             build = cls()
             build.build_id = build_id
@@ -1189,11 +1206,14 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
         cls,
         build_id: str,
         target: str,
-    ) -> Optional["KojiBuildModel"]:
+    ) -> Optional["KojiBuildTargetModel"]:
         return cls.get_by_build_id(build_id, target)
 
     def __repr__(self):
-        return f"KojiBuildModel(id={self.id}, build_submitted_time={self.build_submitted_time})"
+        return (
+            f"KojiBuildTargetModel(id={self.id}, "
+            f"build_submitted_time={self.build_submitted_time})"
+        )
 
 
 class SRPMBuildModel(ProjectAndTriggersConnector, Base):
@@ -1240,10 +1260,11 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
           -> New PipelineModel is created.
           -> JobTriggerModel is reused.
         * On `/packit test` comment:
-          -> SRPMBuildModel and CoprBuildModel are reused.
-          -> New TFTTestRunModel is created.
+          -> SRPMBuildModel and CoprBuildTargetModel are reused.
+          -> New TFTTestRunTargetModel is created.
           -> New PipelineModel is created and
-             collects this new TFTTestRunModel with old SRPMBuildModel and CoprBuildModel.
+             collects this new TFTTestRunTargetModel with old SRPMBuildModel and
+             CoprBuildTargetModel.
         """
         with get_sa_session() as session:
             srpm_build = cls()
@@ -1456,7 +1477,7 @@ class TestingFarmResult(str, enum.Enum):
     needs_inspection = "needs_inspection"
 
 
-class TFTTestRunModel(ProjectAndTriggersConnector, Base):
+class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
     __tablename__ = "tft_test_runs"
     id = Column(Integer, primary_key=True)
     pipeline_id = Column(String, index=True)
@@ -1496,7 +1517,7 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
         run_model: "PipelineModel",
         web_url: Optional[str] = None,
         data: dict = None,
-    ) -> "TFTTestRunModel":
+    ) -> "TFTTestRunTargetModel":
         with get_sa_session() as session:
             test_run = cls()
             test_run.pipeline_id = pipeline_id
@@ -1524,10 +1545,10 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
             return test_run
 
     @classmethod
-    def get_by_pipeline_id(cls, pipeline_id: str) -> Optional["TFTTestRunModel"]:
+    def get_by_pipeline_id(cls, pipeline_id: str) -> Optional["TFTTestRunTargetModel"]:
         with get_sa_session() as session:
             return (
-                session.query(TFTTestRunModel)
+                session.query(TFTTestRunTargetModel)
                 .filter_by(pipeline_id=pipeline_id)
                 .first()
             )
@@ -1535,24 +1556,24 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
     @classmethod
     def get_all_by_status(
         cls, *status: TestingFarmResult
-    ) -> Optional[Iterable["TFTTestRunModel"]]:
+    ) -> Optional[Iterable["TFTTestRunTargetModel"]]:
         """Returns all runs which currently have their status set to one
         of the requested statuses."""
         with get_sa_session() as session:
-            return session.query(TFTTestRunModel).filter(
-                TFTTestRunModel.status.in_(status)
+            return session.query(TFTTestRunTargetModel).filter(
+                TFTTestRunTargetModel.status.in_(status)
             )
 
     @classmethod
-    def get_by_id(cls, id: int) -> Optional["TFTTestRunModel"]:
+    def get_by_id(cls, id: int) -> Optional["TFTTestRunTargetModel"]:
         with get_sa_session() as session:
-            return session.query(TFTTestRunModel).filter_by(id=id).first()
+            return session.query(TFTTestRunTargetModel).filter_by(id=id).first()
 
     @staticmethod
     def get_all_by_commit_target(
         commit_sha: str,
         target: str = None,
-    ) -> Optional[Iterable["TFTTestRunModel"]]:
+    ) -> Optional[Iterable["TFTTestRunTargetModel"]]:
         """
         All tests with the given commit_sha and optional target.
         """
@@ -1561,24 +1582,26 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
         }
 
         with get_sa_session() as session:
-            query = session.query(TFTTestRunModel).filter_by(**non_none_args)
+            query = session.query(TFTTestRunTargetModel).filter_by(**non_none_args)
             return query.all()
 
     @classmethod
-    def get_range(cls, first: int, last: int) -> Optional[Iterable["TFTTestRunModel"]]:
+    def get_range(
+        cls, first: int, last: int
+    ) -> Optional[Iterable["TFTTestRunTargetModel"]]:
         with get_sa_session() as session:
             return (
-                session.query(TFTTestRunModel)
-                .order_by(desc(TFTTestRunModel.id))
+                session.query(TFTTestRunTargetModel)
+                .order_by(desc(TFTTestRunTargetModel.id))
                 .slice(first, last)
             )
 
     def __repr__(self):
-        return f"TFTTestRunModel(id={self.id}, pipeline_id={self.pipeline_id})"
+        return f"TFTTestRunTargetModel(id={self.id}, pipeline_id={self.pipeline_id})"
 
 
 AbstractBuildTestDbType = Union[
-    CoprBuildModel, KojiBuildModel, SRPMBuildModel, TFTTestRunModel
+    CoprBuildTargetModel, KojiBuildTargetModel, SRPMBuildModel, TFTTestRunTargetModel
 ]
 
 

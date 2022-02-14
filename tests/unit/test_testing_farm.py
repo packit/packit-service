@@ -10,7 +10,7 @@ from packit.local_project import LocalProject
 
 import packit_service.service.urls as urls
 from packit_service.config import PackageConfigGetter
-from packit_service.models import TFTTestRunModel
+from packit_service.models import TFTTestRunTargetModel
 
 # These names are definitely not nice, still they help with making classes
 # whose names start with Testing* or Test* to become invisible for pytest,
@@ -132,7 +132,7 @@ def test_testing_farm_response(
         "some url"
     ).and_return().once()
 
-    flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
+    flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
         tft_test_run_model
     )
     flexmock(JobTriggerModel).should_receive("get_or_create").and_return(

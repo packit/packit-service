@@ -21,7 +21,7 @@ from packit_service.constants import (
     TESTING_FARM_INSTALLABILITY_TEST_URL,
 )
 from packit_service.models import (
-    TFTTestRunModel,
+    TFTTestRunTargetModel,
     TestingFarmResult,
     ProjectReleaseModel,
     GitBranchModel,
@@ -875,14 +875,14 @@ class Parser:
 
     @staticmethod
     def parse_data_from_testing_farm(
-        tft_test_run: TFTTestRunModel, event: Dict[Any, Any]
+        tft_test_run: TFTTestRunTargetModel, event: Dict[Any, Any]
     ) -> Tuple[str, str, TestingFarmResult, str, str, str, str, str, datetime]:
         """Parses common data from testing farm response.
 
         Such common data is environment, os, summary and others.
 
         Args:
-            tft_test_run (TFTTestRunModel): Entry of the related test run in DB.
+            tft_test_run (TFTTestRunTargetModel): Entry of the related test run in DB.
             event (dict): Response from testing farm converted to a dict.
 
         Returns:
@@ -967,7 +967,7 @@ class Parser:
         request_id: str = event["request_id"]
         logger.info(f"Testing farm notification event. Request ID: {request_id}")
 
-        tft_test_run = TFTTestRunModel.get_by_pipeline_id(request_id)
+        tft_test_run = TFTTestRunTargetModel.get_by_pipeline_id(request_id)
 
         # Testing Farm sends only request/pipeline id in a notification.
         # We need to get more details ourselves.

@@ -10,8 +10,8 @@ from packit_service.models import (
     GitProjectModel,
     GitBranchModel,
     PullRequestModel,
-    CoprBuildModel,
-    TFTTestRunModel,
+    CoprBuildTargetModel,
+    TFTTestRunTargetModel,
 )
 from packit_service.worker.events import (
     ReleaseEvent,
@@ -447,7 +447,7 @@ def test_filter_failed_models_targets_copr(
     clean_before_and_after, multiple_copr_builds
 ):
     builds_list = list(
-        CoprBuildModel.get_all_by(
+        CoprBuildTargetModel.get_all_by(
             project_name=SampleValues.project,
             commit_sha=SampleValues.ref,
         )
@@ -474,7 +474,9 @@ def test_filter_failed_models_targets_tf(
     clean_before_and_after, multiple_new_test_runs
 ):
     test_list = list(
-        TFTTestRunModel.get_all_by_commit_target(commit_sha=SampleValues.commit_sha)
+        TFTTestRunTargetModel.get_all_by_commit_target(
+            commit_sha=SampleValues.commit_sha
+        )
     )
     assert len(test_list) == 3
 

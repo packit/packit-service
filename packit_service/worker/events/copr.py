@@ -9,7 +9,7 @@ from ogr.services.pagure import PagureProject
 
 from packit_service.constants import COPR_SRPM_CHROOT
 from packit_service.models import (
-    CoprBuildModel,
+    CoprBuildTargetModel,
     JobTriggerModelType,
     AbstractTriggerDbType,
     SRPMBuildModel,
@@ -21,13 +21,13 @@ logger = getLogger(__name__)
 
 
 class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):
-    build: Optional[Union[SRPMBuildModel, CoprBuildModel]]
+    build: Optional[Union[SRPMBuildModel, CoprBuildTargetModel]]
 
     def __init__(
         self,
         topic: str,
         build_id: int,
-        build: Union[CoprBuildModel, SRPMBuildModel],
+        build: Union[CoprBuildTargetModel, SRPMBuildModel],
         chroot: str,
         status: int,
         owner: str,
@@ -96,11 +96,11 @@ class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):
         timestamp,
     ) -> Optional["AbstractCoprBuildEvent"]:
         """Return cls instance or None if build_id not in CoprBuildDB"""
-        build: Optional[Union[SRPMBuildModel, CoprBuildModel]]
+        build: Optional[Union[SRPMBuildModel, CoprBuildTargetModel]]
         if chroot == COPR_SRPM_CHROOT:
             build = SRPMBuildModel.get_by_copr_build_id(str(build_id))
         else:
-            build = CoprBuildModel.get_by_build_id(str(build_id), chroot)
+            build = CoprBuildTargetModel.get_by_build_id(str(build_id), chroot)
 
         if not build:
             logger.warning(

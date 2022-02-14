@@ -26,10 +26,10 @@ from packit_service.models import (
     PullRequestModel,
     JobTriggerModelType,
     JobTriggerModel,
-    TFTTestRunModel,
+    TFTTestRunTargetModel,
     TestingFarmResult,
     PipelineModel,
-    CoprBuildModel,
+    CoprBuildTargetModel,
 )
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.build import copr_build
@@ -889,7 +889,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     tft_test_run_model = flexmock(id=5)
     run_model = flexmock()
     flexmock(PipelineModel).should_receive("create").and_return(run_model)
-    flexmock(TFTTestRunModel).should_receive("create").with_args(
+    flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
         pipeline_id=pipeline_id,
         commit_sha="12345",
         status=TestingFarmResult.new,
@@ -1151,7 +1151,7 @@ def test_rebuild_failed(
     flexmock(comment).should_receive("add_reaction").with_args("+1").once()
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
 
-    model = flexmock(CoprBuildModel, status="failed", target="target")
+    model = flexmock(CoprBuildTargetModel, status="failed", target="target")
     flexmock(model).should_receive("get_all_by").and_return(flexmock())
     flexmock(AbstractForgeIndependentEvent).should_receive(
         "get_all_build_failed_targets"
@@ -1224,7 +1224,7 @@ def test_retest_failed(
         flexmock(status=PG_BUILD_STATUS_SUCCESS)
     )
 
-    model = flexmock(TFTTestRunModel, status="failed", target="tf_target")
+    model = flexmock(TFTTestRunTargetModel, status="failed", target="tf_target")
     flexmock(model).should_receive("get_all_by_commit_target").and_return(flexmock())
     flexmock(AbstractForgeIndependentEvent).should_receive(
         "get_all_tf_failed_targets"

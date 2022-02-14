@@ -17,10 +17,10 @@ from ogr.services.pagure import PagureProject
 from packit_service.config import ServiceConfig, PackageConfigGetter
 from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import (
-    CoprBuildModel,
-    KojiBuildModel,
+    CoprBuildTargetModel,
+    KojiBuildTargetModel,
     TestingFarmResult,
-    TFTTestRunModel,
+    TFTTestRunTargetModel,
     AllowlistStatus,
     JobTriggerModel,
     GitBranchModel,
@@ -745,7 +745,7 @@ class TestEvents:
         flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
             request_id
         ).and_return(testing_farm_results)
-        flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
+        flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
             flexmock(
                 job_trigger=flexmock(),
                 data={"base_project_url": "https://github.com/packit/packit"},
@@ -778,7 +778,7 @@ class TestEvents:
         flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
             request_id
         ).and_return(testing_farm_results_error)
-        flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
+        flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
             flexmock(
                 job_trigger=flexmock(),
                 data={"base_project_url": "https://github.com/packit/packit"},
@@ -807,7 +807,7 @@ class TestEvents:
     def test_parse_copr_build_event_start(
         self, copr_build_results_start, copr_build_pr
     ):
-        flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
+        flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
             copr_build_pr
         )
 
@@ -848,7 +848,7 @@ class TestEvents:
         assert event_object.package_config
 
     def test_parse_copr_build_event_end(self, copr_build_results_end, copr_build_pr):
-        flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
+        flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
             copr_build_pr
         )
 
@@ -894,7 +894,7 @@ class TestEvents:
     def test_parse_koji_build_scratch_event_start(
         self, koji_build_scratch_start, koji_build_pr
     ):
-        flexmock(KojiBuildModel).should_receive("get_by_build_id").and_return(
+        flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").and_return(
             koji_build_pr
         )
 
@@ -911,7 +911,7 @@ class TestEvents:
     def test_parse_koji_build_scratch_event_end(
         self, koji_build_scratch_end, koji_build_pr
     ):
-        flexmock(KojiBuildModel).should_receive("get_by_build_id").and_return(
+        flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").and_return(
             koji_build_pr
         )
 
@@ -1261,7 +1261,7 @@ class TestEvents:
         flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
             request_id
         ).and_return(testing_farm_results)
-        flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").with_args(
+        flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").with_args(
             request_id
         ).and_return(flexmock(data={"base_project_url": "abc"}, commit_sha="12345"))
         event_object = Parser.parse_event(testing_farm_notification)
@@ -1289,7 +1289,7 @@ class TestEvents:
         flexmock(TestingFarmJobHelper).should_receive("get_request_details").and_return(
             testing_farm_results
         )
-        flexmock(TFTTestRunModel).should_receive("get_by_pipeline_id").and_return(
+        flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
             flexmock(data={"base_project_url": "abc"}, commit_sha="12345")
         )
         event_object = Parser.parse_event(testing_farm_notification)
@@ -1576,7 +1576,7 @@ class TestCentOSEventParser:
     def test_parse_copr_build_event_start(
         self, copr_build_results_start, copr_build_centos_pr
     ):
-        flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
+        flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
             copr_build_centos_pr
         )
 
@@ -1628,7 +1628,7 @@ class TestCentOSEventParser:
     def test_parse_copr_build_event_end(
         self, copr_build_results_end, copr_build_centos_pr
     ):
-        flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
+        flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
             copr_build_centos_pr
         )
 

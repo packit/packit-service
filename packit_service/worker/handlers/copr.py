@@ -21,7 +21,11 @@ from packit_service.constants import (
     PG_BUILD_STATUS_FAILURE,
     PG_BUILD_STATUS_SUCCESS,
 )
-from packit_service.models import AbstractTriggerDbType, CoprBuildModel, SRPMBuildModel
+from packit_service.models import (
+    AbstractTriggerDbType,
+    CoprBuildTargetModel,
+    SRPMBuildModel,
+)
 from packit_service.worker.events import (
     CoprBuildEndEvent,
     AbstractCoprBuildEvent,
@@ -156,7 +160,7 @@ class AbstractCoprBuildReportHandler(JobHandler):
         targets_override = (
             {
                 build.target
-                for build in CoprBuildModel.get_all_by_build_id(
+                for build in CoprBuildTargetModel.get_all_by_build_id(
                     str(self.copr_event.build_id)
                 )
             }
@@ -183,7 +187,7 @@ class AbstractCoprBuildReportHandler(JobHandler):
             if self.copr_event.chroot == COPR_SRPM_CHROOT:
                 self._build = SRPMBuildModel.get_by_copr_build_id(build_id)
             else:
-                self._build = CoprBuildModel.get_by_build_id(
+                self._build = CoprBuildTargetModel.get_by_build_id(
                     build_id, self.copr_event.chroot
                 )
         return self._build
@@ -415,7 +419,9 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             )
             return TaskResults(success=False, details={"msg": failed_msg})
 
-        for build in CoprBuildModel.get_all_by_build_id(str(self.copr_event.build_id)):
+        for build in CoprBuildTargetModel.get_all_by_build_id(
+            str(self.copr_event.build_id)
+        ):
             # from waiting_for_srpm to pending
             build.set_status("pending")
 

@@ -19,11 +19,11 @@ import packit_service
 from packit_service.constants import COPR_API_FAIL_STATE
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.models import (
-    CoprBuildModel,
+    CoprBuildTargetModel,
     TestingFarmResult,
-    TFTTestRunModel,
+    TFTTestRunTargetModel,
     JobTriggerModelType,
-    KojiBuildModel,
+    KojiBuildTargetModel,
     SRPMBuildModel,
 )
 from packit_service.worker.events import AbstractCoprBuildEvent, KojiTaskEvent
@@ -215,7 +215,9 @@ def test_copr_build_end(
         pr.should_receive("comment")
     else:
         pr.should_receive("comment").never()
-    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
+    flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
+        copr_build_pr
+    )
     copr_build_pr.should_call("set_status").with_args("success").once()
     copr_build_pr.should_receive("set_end_time").once()
 
@@ -281,7 +283,7 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
         "was_last_packit_comment_with_congratulation"
     ).and_return(False)
 
-    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
+    flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
         copr_build_branch_push
     )
 
@@ -339,7 +341,7 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
         "was_last_packit_comment_with_congratulation"
     ).and_return(False)
 
-    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(
+    flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
         copr_build_release
     )
     copr_build_release.should_receive("set_status").with_args("success")
@@ -430,8 +432,10 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
-    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    flexmock(CoprBuildModel).should_receive("get_by_id").and_return(copr_build_pr)
+    flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
+        copr_build_pr
+    )
+    flexmock(CoprBuildTargetModel).should_receive("get_by_id").and_return(copr_build_pr)
     copr_build_pr.should_call("set_status").with_args("success").once()
     copr_build_pr.should_receive("set_end_time").once()
     flexmock(requests).should_receive("get").and_return(requests.Response())
@@ -527,7 +531,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     )
 
     tft_test_run_model = flexmock(id=5)
-    flexmock(TFTTestRunModel).should_receive("create").with_args(
+    flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
         pipeline_id=pipeline_id,
         commit_sha="0011223344",
         status=TestingFarmResult.new,
@@ -569,7 +573,9 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         copr_build_pr.get_trigger_object()
     )
 
-    flexmock(CoprBuildModel).should_receive("get_all_by").and_return([copr_build_pr])
+    flexmock(CoprBuildTargetModel).should_receive("get_all_by").and_return(
+        [copr_build_pr]
+    )
 
     run_testing_farm_handler(
         package_config=package_config,
@@ -622,8 +628,10 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
-    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    flexmock(CoprBuildModel).should_receive("get_by_id").and_return(copr_build_pr)
+    flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
+        copr_build_pr
+    )
+    flexmock(CoprBuildTargetModel).should_receive("get_by_id").and_return(copr_build_pr)
     copr_build_pr.should_call("set_status").with_args("success").once()
     copr_build_pr.should_receive("set_end_time").once()
     flexmock(requests).should_receive("get").and_return(requests.Response())
@@ -748,8 +756,10 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
-    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
-    flexmock(CoprBuildModel).should_receive("get_by_id").and_return(copr_build_pr)
+    flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
+        copr_build_pr
+    )
+    flexmock(CoprBuildTargetModel).should_receive("get_by_id").and_return(copr_build_pr)
     copr_build_pr.should_call("set_status").with_args("success").once()
     copr_build_pr.should_receive("set_end_time").once()
     url = get_copr_build_info_url(1)
@@ -785,7 +795,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         )
     )
 
-    flexmock(CoprBuildModel).should_receive("set_status").with_args("failure")
+    flexmock(CoprBuildTargetModel).should_receive("set_status").with_args("failure")
     flexmock(StatusReporter).should_receive("report").with_args(
         state=BaseCommitStatus.running,
         description="Build succeeded. Submitting the tests ...",
@@ -846,7 +856,9 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
         EXPECTED_BUILD_CHECK_NAME
     )
 
-    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
+    flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
+        copr_build_pr
+    )
     url = get_copr_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -895,7 +907,9 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
         EXPECTED_TESTING_FARM_CHECK_NAME
     )
 
-    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
+    flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
+        copr_build_pr
+    )
     url = get_copr_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -951,7 +965,9 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
         "was_last_packit_comment_with_congratulation"
     ).and_return(True)
 
-    flexmock(CoprBuildModel).should_receive("get_by_build_id").and_return(copr_build_pr)
+    flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
+        copr_build_pr
+    )
     copr_build_pr.should_call("set_status").with_args("success").once()
     copr_build_pr.should_receive("set_end_time").once()
     url = get_copr_build_info_url(1)
@@ -996,7 +1012,9 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
         pc_koji_build_pr
     )
 
-    flexmock(KojiBuildModel).should_receive("get_by_build_id").and_return(koji_build_pr)
+    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").and_return(
+        koji_build_pr
+    )
     url = get_koji_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -1034,7 +1052,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
 
 
 def test_koji_build_start_build_not_found(koji_build_scratch_start):
-    flexmock(KojiBuildModel).should_receive("get_by_build_id").and_return(None)
+    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").and_return(None)
 
     # check if packit-service set correct PR status
     flexmock(StatusReporter).should_receive("report").never()
@@ -1056,7 +1074,9 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
         pc_koji_build_pr
     )
 
-    flexmock(KojiBuildModel).should_receive("get_by_build_id").and_return(koji_build_pr)
+    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").and_return(
+        koji_build_pr
+    )
     url = get_koji_build_info_url(1)
     flexmock(requests).should_receive("get").and_return(requests.Response())
     flexmock(requests.Response).should_receive("raise_for_status").and_return(None)
@@ -1100,7 +1120,7 @@ def test_srpm_build_end(srpm_build_end, pc_build_pr, srpm_build_model):
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
-    flexmock(CoprBuildModel).should_receive("get_all_by_build_id").and_return(
+    flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").and_return(
         [
             flexmock(target="fedora-33-x86_64")
             .should_receive("set_status")
@@ -1162,7 +1182,7 @@ def test_srpm_build_end_failure(srpm_build_end, pc_build_pr, srpm_build_model):
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
-    flexmock(CoprBuildModel).should_receive("get_all_by_build_id").and_return(
+    flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").and_return(
         [flexmock(target="fedora-33-x86_64")]
     )
     (
@@ -1219,7 +1239,7 @@ def test_srpm_build_start(srpm_build_start, pc_build_pr, srpm_build_model):
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
-    flexmock(CoprBuildModel).should_receive("get_all_by_build_id").and_return(
+    flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").and_return(
         [flexmock(target="fedora-33-x86_64")]
     )
     flexmock(Pushgateway).should_receive("push").once().and_return()

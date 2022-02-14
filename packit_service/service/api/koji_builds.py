@@ -6,7 +6,7 @@ from logging import getLogger
 
 from flask_restx import Namespace, Resource
 
-from packit_service.models import KojiBuildModel, optional_timestamp
+from packit_service.models import KojiBuildTargetModel, optional_timestamp
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import get_project_info_from_build, response_maker
 
@@ -25,7 +25,7 @@ class KojiBuildsList(Resource):
         first, last = indices()
         result = []
 
-        for build in KojiBuildModel.get_range(first, last):
+        for build in KojiBuildTargetModel.get_range(first, last):
             build_dict = {
                 "packit_id": build.id,
                 "build_id": build.build_id,
@@ -65,7 +65,7 @@ class KojiBuildItem(Resource):
     )
     def get(self, id):
         """A specific koji build details."""
-        build = KojiBuildModel.get_by_id(int(id))
+        build = KojiBuildTargetModel.get_by_id(int(id))
 
         if not build:
             return response_maker(

@@ -22,7 +22,11 @@ from packit_service.constants import (
     SRPM_BUILD_DEPS,
     PG_BUILD_STATUS_SUCCESS,
 )
-from packit_service.models import AbstractTriggerDbType, CoprBuildModel, SRPMBuildModel
+from packit_service.models import (
+    AbstractTriggerDbType,
+    CoprBuildTargetModel,
+    SRPMBuildModel,
+)
 from packit_service.utils import get_package_nvrs
 from packit_service.worker.events import EventData
 from packit_service.service.urls import (
@@ -398,7 +402,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 unprocessed_chroots.append(chroot)
                 continue
 
-            copr_build = CoprBuildModel.create(
+            copr_build = CoprBuildTargetModel.create(
                 build_id=str(build_id),
                 commit_sha=self.metadata.commit_sha,
                 project_name=self.job_project,
