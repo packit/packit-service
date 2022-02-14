@@ -10,7 +10,7 @@ from ogr.services.github import GithubProject
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import (
-    InstallationModel,
+    GithubInstallationModel,
 )
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
@@ -30,7 +30,7 @@ def test_installation():
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
 
-    flexmock(InstallationModel).should_receive("create").once()
+    flexmock(GithubInstallationModel).should_receive("create").once()
     flexmock(Allowlist).should_receive("add_namespace").with_args(
         "github.com/packit-service", "jpopelka"
     ).and_return(False)

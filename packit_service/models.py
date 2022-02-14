@@ -1653,7 +1653,7 @@ class ProjectAuthenticationIssueModel(Base):
         )
 
 
-class InstallationModel(Base):
+class GithubInstallationModel(Base):
     __tablename__ = "github_installations"
     id = Column(Integer, primary_key=True, autoincrement=True)
     # information about account (user/organization) into which the app has been installed
@@ -1678,23 +1678,25 @@ class InstallationModel(Base):
         )
 
     @classmethod
-    def get_by_id(cls, id: int) -> Optional["InstallationModel"]:
+    def get_by_id(cls, id: int) -> Optional["GithubInstallationModel"]:
         with get_sa_session() as session:
-            return session.query(InstallationModel).filter_by(id=id).first()
+            return session.query(GithubInstallationModel).filter_by(id=id).first()
 
     @classmethod
-    def get_by_account_login(cls, account_login: str) -> Optional["InstallationModel"]:
+    def get_by_account_login(
+        cls, account_login: str
+    ) -> Optional["GithubInstallationModel"]:
         with get_sa_session() as session:
             return (
-                session.query(InstallationModel)
+                session.query(GithubInstallationModel)
                 .filter_by(account_login=account_login)
                 .first()
             )
 
     @classmethod
-    def get_all(cls) -> Optional[Iterable["InstallationModel"]]:
+    def get_all(cls) -> Optional[Iterable["GithubInstallationModel"]]:
         with get_sa_session() as session:
-            return session.query(InstallationModel).all()
+            return session.query(GithubInstallationModel).all()
 
     @classmethod
     def create(cls, event):
@@ -1729,4 +1731,4 @@ class InstallationModel(Base):
         }
 
     def __repr__(self):
-        return f"InstallationModel(id={self.id}, account={self.account_login})"
+        return f"GithubInstallationModel(id={self.id}, account={self.account_login})"

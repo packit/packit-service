@@ -33,7 +33,7 @@ from packit_service.models import (
     KojiBuildTargetModel,
     TFTTestRunTargetModel,
     TestingFarmResult,
-    InstallationModel,
+    GithubInstallationModel,
     BugzillaModel,
     ProjectAuthenticationIssueModel,
 )
@@ -149,7 +149,7 @@ def clean_db():
     with get_sa_session() as session:
 
         session.query(AllowlistModel).delete()
-        session.query(InstallationModel).delete()
+        session.query(GithubInstallationModel).delete()
         session.query(BugzillaModel).delete()
 
         session.query(PipelineModel).delete()
@@ -858,12 +858,12 @@ def installation_events():
 @pytest.fixture()
 def multiple_installation_entries(installation_events):
     with get_sa_session() as session:
-        session.query(InstallationModel).delete()
+        session.query(GithubInstallationModel).delete()
         yield [
-            InstallationModel.create(
+            GithubInstallationModel.create(
                 event=installation_events[0],
             ),
-            InstallationModel.create(
+            GithubInstallationModel.create(
                 event=installation_events[1],
             ),
         ]

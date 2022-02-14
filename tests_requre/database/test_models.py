@@ -10,7 +10,7 @@ from packit_service.models import (
     CoprBuildTargetModel,
     GitBranchModel,
     GitProjectModel,
-    InstallationModel,
+    GithubInstallationModel,
     JobTriggerModelType,
     KojiBuildTargetModel,
     ProjectAuthenticationIssueModel,
@@ -700,15 +700,15 @@ def test_project_property_for_koji_build(a_koji_build_for_pr):
 
 
 def test_get_installations(clean_before_and_after, multiple_installation_entries):
-    results = list(InstallationModel.get_all())
+    results = list(GithubInstallationModel.get_all())
     assert len(results) == 2
 
 
 def test_get_installation_by_account(
     clean_before_and_after, multiple_installation_entries
 ):
-    assert InstallationModel.get_by_account_login("teg").sender_login == "teg"
-    assert InstallationModel.get_by_account_login("Pac23").sender_login == "Pac23"
+    assert GithubInstallationModel.get_by_account_login("teg").sender_login == "teg"
+    assert GithubInstallationModel.get_by_account_login("Pac23").sender_login == "Pac23"
 
 
 def test_pr_get_copr_builds(
