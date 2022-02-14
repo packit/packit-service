@@ -30,7 +30,7 @@ from sandcastle import SandcastleTimeoutReached
 from packit_service import sentry_integration
 from packit_service.config import Deployment, ServiceConfig
 from packit_service.constants import PG_BUILD_STATUS_SUCCESS, PG_BUILD_STATUS_FAILURE
-from packit_service.models import RunModel, SRPMBuildModel, JobTriggerModel
+from packit_service.models import PipelineModel, SRPMBuildModel, JobTriggerModel
 from packit_service.worker.events import EventData
 from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.monitoring import Pushgateway
@@ -63,7 +63,7 @@ class BaseBuildJobHelper:
         self.db_trigger = db_trigger
         self.msg_retrigger: Optional[str] = ""
         self.metadata: EventData = metadata
-        self.run_model: Optional[RunModel] = None
+        self.run_model: Optional[PipelineModel] = None
         self.targets_override: Optional[Set[str]] = targets_override
         self.pushgateway = pushgateway
 

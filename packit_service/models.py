@@ -135,7 +135,7 @@ class BuildsAndTestsConnector:
     id: int
     job_trigger_model_type: JobTriggerModelType
 
-    def get_runs(self) -> List["RunModel"]:
+    def get_runs(self) -> List["PipelineModel"]:
         with get_sa_session() as session:
             trigger_list = (
                 session.query(JobTriggerModel)
@@ -190,7 +190,7 @@ class ProjectAndTriggersConnector:
     to share methods for accessing project and trigger models.
     """
 
-    runs: Optional[List["RunModel"]]
+    runs: Optional[List["PipelineModel"]]
 
     def get_job_trigger_model(self) -> Optional["JobTriggerModel"]:
         if not self.runs:
@@ -653,14 +653,14 @@ class JobTriggerModel(Base):
     """
     Model representing a trigger of some packit task.
 
-    It connects RunModel (and built/test models via that model)
+    It connects PipelineModel (and built/test models via that model)
     with models like PullRequestModel, GitBranchModel or ProjectReleaseModel.
 
     * It contains type and id of the other database_model.
       * We know table and id that we need to find in that table.
-    * Each RunModel has to be connected to exactly one JobTriggerModel.
-    * There can be multiple RunModels for one JobTriggerModel.
-      (e.g. For each push to PR, there will be new RunModel, but same JobTriggerModel.)
+    * Each PipelineModel has to be connected to exactly one JobTriggerModel.
+    * There can be multiple PipelineModels for one JobTriggerModel.
+      (e.g. For each push to PR, there will be new PipelineModel, but same JobTriggerModel.)
     """
 
     __tablename__ = "build_triggers"
@@ -668,7 +668,7 @@ class JobTriggerModel(Base):
     type = Column(Enum(JobTriggerModelType))
     trigger_id = Column(Integer)
 
-    runs = relationship("RunModel", back_populates="job_trigger")
+    runs = relationship("PipelineModel", back_populates="job_trigger")
 
     @classmethod
     def get_or_create(
@@ -704,7 +704,7 @@ class JobTriggerModel(Base):
         return f"JobTriggerModel(type={self.type}, trigger_id={self.trigger_id})"
 
 
-class RunModel(Base):
+class PipelineModel(Base):
     """
     Represents one pipeline.
 
@@ -712,10 +712,10 @@ class RunModel(Base):
     build/test models like  SRPMBuildModel, CoprBuildModel, KojiBuildModel, and TFTTestRunModel.
 
     * One model of each build/test model can be connected.
-    * Each build/test model can be connected to multiple RunModels (e.g. on retrigger).
-    * Each RunModel has to be connected to exactly one JobTriggerModel.
-    * There can be multiple RunModels for one JobTriggerModel.
-      (e.g. For each push to PR, there will be new RunModel, but same JobTriggerModel.)
+    * Each build/test model can be connected to multiple PipelineModels (e.g. on retrigger).
+    * Each PipelineModel has to be connected to exactly one JobTriggerModel.
+    * There can be multiple PipelineModels for one JobTriggerModel.
+      (e.g. For each push to PR, there will be new PipelineModel, but same JobTriggerModel.)
     """
 
     __tablename__ = "runs"
@@ -737,9 +737,9 @@ class RunModel(Base):
     test_run = relationship("TFTTestRunModel", back_populates="runs")
 
     @classmethod
-    def create(cls, type: JobTriggerModelType, trigger_id: int) -> "RunModel":
+    def create(cls, type: JobTriggerModelType, trigger_id: int) -> "PipelineModel":
         with get_sa_session() as session:
-            run_model = RunModel()
+            run_model = PipelineModel()
             run_model.job_trigger = JobTriggerModel.get_or_create(
                 type=type, trigger_id=trigger_id
             )
@@ -750,27 +750,34 @@ class RunModel(Base):
         return self.job_trigger.get_trigger_object()
 
     def __repr__(self):
-        return f"RunModel(id={self.id}, datetime='{datetime}', job_trigger={self.job_trigger})"
+        return f"PipelineModel(id={self.id}, datetime='{datetime}', job_trigger={self.job_trigger})"
 
     @classmethod
     def __query_merged_runs(cls, session):
         return session.query(
-            func.min(RunModel.id).label("merged_id"),
-            RunModel.srpm_build_id,
-            func.array_agg(psql_array([RunModel.copr_build_id])).label("copr_build_id"),
-            func.array_agg(psql_array([RunModel.koji_build_id])).label("koji_build_id"),
-            func.array_agg(psql_array([RunModel.test_run_id])).label("test_run_id"),
+            func.min(PipelineModel.id).label("merged_id"),
+            PipelineModel.srpm_build_id,
+            func.array_agg(psql_array([PipelineModel.copr_build_id])).label(
+                "copr_build_id"
+            ),
+            func.array_agg(psql_array([PipelineModel.koji_build_id])).label(
+                "koji_build_id"
+            ),
+            func.array_agg(psql_array([PipelineModel.test_run_id])).label(
+                "test_run_id"
+            ),
         )
 
     @classmethod
-    def get_merged_chroots(cls, first: int, last: int) -> Iterable["RunModel"]:
+    def get_merged_chroots(cls, first: int, last: int) -> Iterable["PipelineModel"]:
         with get_sa_session() as session:
             return (
                 cls.__query_merged_runs(session)
                 .group_by(
-                    RunModel.srpm_build_id,
+                    PipelineModel.srpm_build_id,
                     case(
-                        [(RunModel.srpm_build_id.isnot(null()), 0)], else_=RunModel.id
+                        [(PipelineModel.srpm_build_id.isnot(null()), 0)],
+                        else_=PipelineModel.id,
                     ),
                 )
                 .order_by(desc("merged_id"))
@@ -778,24 +785,27 @@ class RunModel(Base):
             )
 
     @classmethod
-    def get_merged_run(cls, first_id: int) -> Optional[Iterable["RunModel"]]:
+    def get_merged_run(cls, first_id: int) -> Optional[Iterable["PipelineModel"]]:
         with get_sa_session() as session:
             return (
                 cls.__query_merged_runs(session)
-                .filter(RunModel.id >= first_id, RunModel.id <= first_id + 100)
+                .filter(
+                    PipelineModel.id >= first_id, PipelineModel.id <= first_id + 100
+                )
                 .group_by(
-                    RunModel.srpm_build_id,
+                    PipelineModel.srpm_build_id,
                     case(
-                        [(RunModel.srpm_build_id.isnot(null()), 0)], else_=RunModel.id
+                        [(PipelineModel.srpm_build_id.isnot(null()), 0)],
+                        else_=PipelineModel.id,
                     ),
                 )
                 .first()
             )
 
     @classmethod
-    def get_run(cls, id_: int) -> Optional["RunModel"]:
+    def get_run(cls, id_: int) -> Optional["PipelineModel"]:
         with get_sa_session() as session:
-            return session.query(RunModel).filter_by(id=id_).first()
+            return session.query(PipelineModel).filter_by(id=id_).first()
 
 
 class CoprBuildModel(ProjectAndTriggersConnector, Base):
@@ -845,7 +855,7 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
     # ]
     built_packages = Column(JSON)
 
-    runs = relationship("RunModel", back_populates="copr_build")
+    runs = relationship("PipelineModel", back_populates="copr_build")
 
     def set_built_packages(self, built_packages):
         with get_sa_session() as session:
@@ -981,7 +991,7 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
         web_url: str,
         target: str,
         status: str,
-        run_model: "RunModel",
+        run_model: "PipelineModel",
         task_accepted_time: Optional[datetime] = None,
     ) -> "CoprBuildModel":
         with get_sa_session() as session:
@@ -998,7 +1008,7 @@ class CoprBuildModel(ProjectAndTriggersConnector, Base):
 
             if run_model.copr_build:
                 # Clone run model
-                new_run_model = RunModel.create(
+                new_run_model = PipelineModel.create(
                     type=run_model.job_trigger.type,
                     trigger_id=run_model.job_trigger.trigger_id,
                 )
@@ -1050,7 +1060,7 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
     # metadata is reserved to sqlalch
     data = Column(JSON)
 
-    runs = relationship("RunModel", back_populates="koji_build")
+    runs = relationship("PipelineModel", back_populates="koji_build")
 
     def set_status(self, status: str):
         with get_sa_session() as session:
@@ -1148,7 +1158,7 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
         web_url: str,
         target: str,
         status: str,
-        run_model: "RunModel",
+        run_model: "PipelineModel",
     ) -> "KojiBuildModel":
         with get_sa_session() as session:
             build = cls()
@@ -1161,7 +1171,7 @@ class KojiBuildModel(ProjectAndTriggersConnector, Base):
 
             if run_model.koji_build:
                 # Clone run model
-                new_run_model = RunModel.create(
+                new_run_model = PipelineModel.create(
                     type=run_model.job_trigger.type,
                     trigger_id=run_model.job_trigger.trigger_id,
                 )
@@ -1203,7 +1213,7 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
     copr_build_id = Column(String, index=True)
     copr_web_url = Column(Text)
 
-    runs = relationship("RunModel", back_populates="srpm_build")
+    runs = relationship("PipelineModel", back_populates="srpm_build")
 
     @classmethod
     def create_with_new_run(
@@ -1212,27 +1222,27 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
         commit_sha: str,
         copr_build_id: Optional[str] = None,
         copr_web_url: Optional[str] = None,
-    ) -> Tuple["SRPMBuildModel", "RunModel"]:
+    ) -> Tuple["SRPMBuildModel", "PipelineModel"]:
         """
-        Create a new model for SRPM and connect it to the RunModel.
+        Create a new model for SRPM and connect it to the PipelineModel.
 
-        * New SRPMBuildModel model will have connection to a new RunModel.
-        * The newly created RunModel can reuse existing JobTriggerModel
+        * New SRPMBuildModel model will have connection to a new PipelineModel.
+        * The newly created PipelineModel can reuse existing JobTriggerModel
           (e.g.: one pull-request can have multiple runs).
 
         More specifically:
         * On PR creation:
           -> SRPMBuildModel is created.
-          -> New RunModel is created.
+          -> New PipelineModel is created.
           -> JobTriggerModel is created.
         * On `/packit build` comment or new push:
           -> SRPMBuildModel is created.
-          -> New RunModel is created.
+          -> New PipelineModel is created.
           -> JobTriggerModel is reused.
         * On `/packit test` comment:
           -> SRPMBuildModel and CoprBuildModel are reused.
           -> New TFTTestRunModel is created.
-          -> New RunModel is created and
+          -> New PipelineModel is created and
              collects this new TFTTestRunModel with old SRPMBuildModel and CoprBuildModel.
         """
         with get_sa_session() as session:
@@ -1244,7 +1254,7 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
             session.add(srpm_build)
 
             # Create a new run model, reuse trigger_model if it exists:
-            new_run_model = RunModel.create(
+            new_run_model = PipelineModel.create(
                 type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id
             )
             new_run_model.srpm_build = srpm_build
@@ -1459,7 +1469,7 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
     submitted_time = Column(DateTime, default=datetime.utcnow)
     data = Column(JSON)
 
-    runs = relationship("RunModel", back_populates="test_run")
+    runs = relationship("PipelineModel", back_populates="test_run")
 
     def set_status(self, status: TestingFarmResult, created: Optional[DateTime] = None):
         """
@@ -1483,7 +1493,7 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
         commit_sha: str,
         status: TestingFarmResult,
         target: str,
-        run_model: "RunModel",
+        run_model: "PipelineModel",
         web_url: Optional[str] = None,
         data: dict = None,
     ) -> "TFTTestRunModel":
@@ -1499,7 +1509,7 @@ class TFTTestRunModel(ProjectAndTriggersConnector, Base):
 
             if run_model.test_run:
                 # Clone run model
-                new_run_model = RunModel.create(
+                new_run_model = PipelineModel.create(
                     type=run_model.job_trigger.type,
                     trigger_id=run_model.job_trigger.trigger_id,
                 )

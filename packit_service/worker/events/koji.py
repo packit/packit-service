@@ -16,7 +16,7 @@ from packit_service.models import (
     PullRequestModel,
     ProjectReleaseModel,
     GitBranchModel,
-    RunModel,
+    PipelineModel,
 )
 from packit_service.worker.events.event import (
     AbstractForgeIndependentEvent,
@@ -122,7 +122,7 @@ class KojiBuildEvent(AbstractKojiEvent):
                 web_url=self.web_url,
                 target="noarch",  # TODO: where to get this info from?
                 status=self.state.value,
-                run_model=RunModel.create(
+                run_model=PipelineModel.create(
                     type=JobTriggerModelType.branch_push,
                     trigger_id=GitBranchModel.get_or_create(
                         branch_name=self.branch_name,

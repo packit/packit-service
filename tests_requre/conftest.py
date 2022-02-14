@@ -28,7 +28,7 @@ from packit_service.models import (
     GitBranchModel,
     ProjectReleaseModel,
     IssueModel,
-    RunModel,
+    PipelineModel,
     JobTriggerModelType,
     KojiBuildModel,
     TFTTestRunModel,
@@ -152,7 +152,7 @@ def clean_db():
         session.query(InstallationModel).delete()
         session.query(BugzillaModel).delete()
 
-        session.query(RunModel).delete()
+        session.query(PipelineModel).delete()
         session.query(JobTriggerModel).delete()
 
         session.query(TFTTestRunModel).delete()
@@ -256,7 +256,7 @@ def pr_trigger_model(pr_model):
 
 @pytest.fixture()
 def different_pr_trigger_model(different_pr_model):
-    yield RunModel.get_or_create(
+    yield PipelineModel.get_or_create(
         type=JobTriggerModelType.pull_request, trigger_id=different_pr_model.id
     )
 
@@ -1720,10 +1720,10 @@ def few_runs(pr_model, different_pr_model):
 
 @pytest.fixture()
 def runs_without_build(pr_model, branch_model):
-    run_model_for_pr_only_test = RunModel.create(
+    run_model_for_pr_only_test = PipelineModel.create(
         type=pr_model.job_trigger_model_type, trigger_id=pr_model.id
     )
-    run_model_for_branch_only_test = RunModel.create(
+    run_model_for_branch_only_test = PipelineModel.create(
         type=branch_model.job_trigger_model_type, trigger_id=branch_model.id
     )
 

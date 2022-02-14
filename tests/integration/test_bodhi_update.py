@@ -14,7 +14,7 @@ from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
-from packit_service.models import GitBranchModel, KojiBuildModel, RunModel
+from packit_service.models import GitBranchModel, KojiBuildModel, PipelineModel
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
@@ -78,7 +78,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         git_branch_model_flexmock
     )
-    flexmock(RunModel).should_receive("create").and_return(run_model_flexmock)
+    flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
     flexmock(KojiBuildModel).should_receive("create").with_args(
         build_id="1864700",
         commit_sha="0eb3e12005cb18f15d3054020f7ac934c01eae08",
@@ -157,7 +157,7 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         git_branch_model_flexmock
     )
-    flexmock(RunModel).should_receive("create").and_return(run_model_flexmock)
+    flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
     flexmock(KojiBuildModel).should_receive("create").with_args(
         build_id="1864700",
         commit_sha="0eb3e12005cb18f15d3054020f7ac934c01eae08",
@@ -293,7 +293,7 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         git_branch_model_flexmock
     )
-    flexmock(RunModel).should_receive("create").and_return(run_model_flexmock)
+    flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
     flexmock(KojiBuildModel).should_receive("create").with_args(
         build_id="1864700",
         commit_sha="0eb3e12005cb18f15d3054020f7ac934c01eae08",

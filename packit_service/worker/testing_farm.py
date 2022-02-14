@@ -22,7 +22,7 @@ from packit_service.models import (
     CoprBuildModel,
     TFTTestRunModel,
     TestingFarmResult,
-    RunModel,
+    PipelineModel,
 )
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.utils import get_package_nvrs
@@ -474,7 +474,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
         run_model = (
-            RunModel.create(
+            PipelineModel.create(
                 type=self.db_trigger.job_trigger_model_type,
                 trigger_id=self.db_trigger.id,
             )

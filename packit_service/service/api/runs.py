@@ -9,7 +9,7 @@ from flask_restx import Namespace, Resource
 from packit_service.models import (
     CoprBuildModel,
     KojiBuildModel,
-    RunModel,
+    PipelineModel,
     SRPMBuildModel,
     TFTTestRunModel,
     optional_timestamp,
@@ -27,11 +27,11 @@ ns = Namespace("runs", description="Pipelines")
 
 def process_runs(runs):
     """
-    Process `RunModel`s and construct a JSON that is returned from the endpoints
+    Process `PipelineModel`s and construct a JSON that is returned from the endpoints
     that return merged chroots.
 
     Args:
-        runs: Iterator over merged `RunModel`s.
+        runs: Iterator over merged `PipelineModel`s.
 
     Returns:
         List of JSON objects where each represents pipelines run on single SRPM.
@@ -95,7 +95,7 @@ class RunsList(Resource):
     def get(self):
         """List all runs."""
         first, last = indices()
-        result = process_runs(RunModel.get_merged_chroots(first, last))
+        result = process_runs(PipelineModel.get_merged_chroots(first, last))
         resp = response_maker(
             result,
             status=HTTPStatus.PARTIAL_CONTENT.value,
@@ -111,7 +111,7 @@ class MergedRun(Resource):
     @ns.response(HTTPStatus.NOT_FOUND.value, "Run ID not found in DB")
     def get(self, id):
         """Return details for merged run."""
-        if result := process_runs([RunModel.get_merged_run(id)]):
+        if result := process_runs([PipelineModel.get_merged_run(id)]):
             return response_maker(result[0])
 
         return response_maker(
@@ -126,7 +126,7 @@ class Run(Resource):
     @ns.response(HTTPStatus.NOT_FOUND.value, "Run ID not found in DB")
     def get(self, id):
         """Return details for given run."""
-        run = RunModel.get_run(id_=id)
+        run = PipelineModel.get_run(id_=id)
         if not run:
             return response_maker(
                 {"error": "No run has been found in DB"},

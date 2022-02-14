@@ -11,7 +11,7 @@ from ogr.services.pagure import PagureProject
 from packit.config import JobConfigTriggerType
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
-from packit_service.models import GitBranchModel, KojiBuildModel, RunModel
+from packit_service.models import GitBranchModel, KojiBuildModel, PipelineModel
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
@@ -157,7 +157,7 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         git_branch_model_flexmock
     )
-    flexmock(RunModel).should_receive("create").and_return(run_model_flexmock)
+    flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
     flexmock(KojiBuildModel).should_receive("create").with_args(
         build_id="1864700",
         commit_sha="0eb3e12005cb18f15d3054020f7ac934c01eae08",

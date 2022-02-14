@@ -28,7 +28,7 @@ from packit_service.models import (
     JobTriggerModel,
     TFTTestRunModel,
     TestingFarmResult,
-    RunModel,
+    PipelineModel,
     CoprBuildModel,
 )
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
@@ -888,7 +888,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
 
     tft_test_run_model = flexmock(id=5)
     run_model = flexmock()
-    flexmock(RunModel).should_receive("create").and_return(run_model)
+    flexmock(PipelineModel).should_receive("create").and_return(run_model)
     flexmock(TFTTestRunModel).should_receive("create").with_args(
         pipeline_id=pipeline_id,
         commit_sha="12345",

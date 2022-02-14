@@ -20,7 +20,7 @@ from packit_service.models import (
     TFTTestRunModel,
     TestingFarmResult,
     get_sa_session,
-    RunModel,
+    PipelineModel,
 )
 from tests_requre.conftest import SampleValues
 
@@ -276,9 +276,9 @@ def test_get_srpm_builds_in_give_range(
 def test_get_all_builds(clean_before_and_after, multiple_copr_builds):
     builds_list = list(CoprBuildModel.get_all())
     assert len({builds_list[i].id for i in range(4)})
-    # All builds has to have exactly one RunModel connected
+    # All builds has to have exactly one PipelineModel connected
     assert all(len(build.runs) == 1 for build in builds_list)
-    # All builds has to have a different RunModel connected.
+    # All builds has to have a different PipelineModel connected.
     assert len({build.runs[0] for build in builds_list}) == 4
 
 
@@ -459,9 +459,9 @@ def test_tmt_test_multiple_runs(clean_before_and_after, multiple_new_test_runs):
     with get_sa_session() as session:
         test_runs = session.query(TFTTestRunModel).all()
         assert len(test_runs) == 4
-        # Separate RunModel for each TFTTestRunModel
+        # Separate PipelineModel for each TFTTestRunModel
         assert len({m.runs[0] for m in multiple_new_test_runs}) == 4
-        # Exactly one RunModel for each TFTTestRunModel
+        # Exactly one PipelineModel for each TFTTestRunModel
         assert all(len(m.runs) == 1 for m in multiple_new_test_runs)
         # Two JobTriggerModels:
         assert len({m.get_trigger_object() for m in multiple_new_test_runs}) == 2
@@ -776,7 +776,7 @@ def test_project_token_model(clean_before_and_after):
 
 def test_merged_runs(clean_before_and_after, few_runs):
     for i, run_id in enumerate(few_runs, 1):
-        merged_run = RunModel.get_merged_run(run_id)
+        merged_run = PipelineModel.get_merged_run(run_id)
         srpm_build_id = merged_run.srpm_build_id
 
         # for different_pr (i=1) there are Copr builds twice, since the second
@@ -796,7 +796,7 @@ def test_merged_runs(clean_before_and_after, few_runs):
 def test_merged_chroots_on_tests_without_build(
     clean_before_and_after, runs_without_build
 ):
-    result = list(RunModel.get_merged_chroots(0, 10))
+    result = list(PipelineModel.get_merged_chroots(0, 10))
     assert len(result) == 2
     for item in result:
         assert len(item.test_run_id[0]) == 1
