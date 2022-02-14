@@ -283,7 +283,7 @@ class Event:
         return self._db_trigger
 
     @property
-    def job_config_trigger_type(self) -> JobConfigTriggerType:
+    def job_config_trigger_type(self) -> Optional[JobConfigTriggerType]:
         """
         By default, we can use a database model related to this to get the config trigger type.
 
@@ -297,6 +297,11 @@ class Event:
         ) in MAP_EVENT_TO_JOB_CONFIG_TRIGGER_TYPE.items():
             if isinstance(self, event_cls):
                 return job_config_trigger_type
+        if not self.db_trigger:
+            logger.warning(
+                f"Event {self} does not have a matching object in the database."
+            )
+            return None
         return self.db_trigger.job_config_trigger_type
 
     @property
