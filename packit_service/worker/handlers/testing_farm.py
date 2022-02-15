@@ -81,7 +81,6 @@ class TestingFarmHandler(JobHandler):
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
-        chroot: Optional[str] = None,
         build_id: Optional[int] = None,
     ):
         super().__init__(
@@ -89,7 +88,6 @@ class TestingFarmHandler(JobHandler):
             job_config=job_config,
             event=event,
         )
-        self.chroot = chroot
         self.build_id = build_id
         self._db_trigger: Optional[AbstractTriggerDbType] = None
         self._testing_farm_job_helper: Optional[TestingFarmJobHelper] = None
@@ -181,21 +179,22 @@ class TestingFarmHandler(JobHandler):
         ).apply_async()
 
     def run_with_copr_builds(self, targets: List[str], failed: Dict):
-        targets_without_builds = []
+        targets_without_builds = set()
         targets_with_builds = {}
 
         for target in targets:
+            chroot = self.testing_farm_job_helper.test_target2build_target(target)
             if self.build_id:
                 copr_build = CoprBuildTargetModel.get_by_id(self.build_id)
             else:
                 copr_build = self.testing_farm_job_helper.get_latest_copr_build(
-                    target=target, commit_sha=self.data.commit_sha
+                    target=chroot, commit_sha=self.data.commit_sha
                 )
 
             if copr_build:
                 targets_with_builds[target] = copr_build
             else:
-                targets_without_builds.append(target)
+                targets_without_builds.add(chroot)
 
         # Trigger copr build for targets missing build
         if targets_without_builds:
@@ -216,7 +215,7 @@ class TestingFarmHandler(JobHandler):
                 )
 
             event_data = self.data.get_dict()
-            event_data["targets_override"] = targets_without_builds
+            event_data["build_targets_override"] = list(targets_without_builds)
             self.run_copr_build_handler(event_data, len(targets_without_builds))
 
         for target, copr_build in targets_with_builds.items():
@@ -224,11 +223,11 @@ class TestingFarmHandler(JobHandler):
                 logger.info(
                     "The latest build was not successful, not running tests for it."
                 )
-                self.testing_farm_job_helper.report_status_to_test_for_chroot(
+                self.testing_farm_job_helper.report_status_to_test_for_test_target(
                     state=BaseCommitStatus.failure,
                     description="The latest build was not successful, "
                     "not running tests for it.",
-                    chroot=target,
+                    target=target,
                     url=get_copr_build_info_url(copr_build.id),
                 )
                 continue
@@ -244,7 +243,7 @@ class TestingFarmHandler(JobHandler):
     ):
         self.pushgateway.test_runs_queued.inc()
         result = self.testing_farm_job_helper.run_testing_farm(
-            build=build, chroot=target
+            build=build, target=target
         )
         if not result["success"]:
             failed[target] = result.get("details")
@@ -311,7 +310,6 @@ class TestingFarmResultsHandler(JobHandler):
         )
         self.pipeline_id = event.get("pipeline_id")
         self.log_url = event.get("log_url")
-        self.copr_chroot = event.get("copr_chroot")
         self.summary = event.get("summary")
         self._db_trigger: Optional[AbstractTriggerDbType] = None
         self.created = event.get("created")
@@ -333,13 +331,11 @@ class TestingFarmResultsHandler(JobHandler):
             pipeline_id=self.pipeline_id
         )
         if not test_run_model:
-            logger.warning(
-                f"Unknown pipeline_id received from the testing-farm: "
-                f"{self.pipeline_id}"
-            )
+            msg = f"Unknown pipeline_id received from the testing-farm: {self.pipeline_id}"
+            logger.warning(msg)
+            return TaskResults(success=False, details={"msg": msg})
 
-        if test_run_model:
-            test_run_model.set_status(self.result, created=self.created)
+        test_run_model.set_status(self.result, created=self.created)
 
         if self.result == TestingFarmResult.running:
             status = BaseCommitStatus.running
@@ -363,8 +359,7 @@ class TestingFarmResultsHandler(JobHandler):
             )
             self.pushgateway.test_run_finished_time.observe(test_run_time)
 
-        if test_run_model:
-            test_run_model.set_web_url(self.log_url)
+        test_run_model.set_web_url(self.log_url)
 
         trigger = JobTriggerModel.get_or_create(
             type=self.db_trigger.job_trigger_model_type,
@@ -383,7 +378,7 @@ class TestingFarmResultsHandler(JobHandler):
             if test_run_model
             else self.log_url,
             links_to_external_services={"Testing Farm": self.log_url},
-            check_names=TestingFarmJobHelper.get_test_check(self.copr_chroot),
+            check_names=TestingFarmJobHelper.get_test_check(test_run_model.target),
         )
 
         return TaskResults(success=True, details={})

@@ -21,6 +21,8 @@ from packit_service.constants import (
     MSG_RETRIGGER,
     SRPM_BUILD_DEPS,
     PG_BUILD_STATUS_SUCCESS,
+    DEFAULT_MAPPING_INTERNAL_TF,
+    DEFAULT_MAPPING_TF,
 )
 from packit_service.models import (
     AbstractTriggerDbType,
@@ -162,6 +164,65 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         Return all valid test targets/chroots from config.
         """
         return get_valid_build_targets(*self.configured_tests_targets, default=None)
+
+    @property
+    def tests_targets_all_mapped(self) -> Set[str]:
+        """
+        Return all valid mapped test targets from config.
+        """
+        targets = set()
+        for chroot in self.tests_targets_all:
+            targets.update(self.build_target2test_targets(chroot))
+        return targets
+
+    def build_target2test_targets(self, build_target: str) -> Set[str]:
+        """
+        Return all test targets defined for the build target
+        (from configuration or from default mapping).
+        """
+
+        distro, arch = build_target.rsplit("-", 1)
+
+        configured_distros = self.job_config.metadata.targets_dict.get(
+            build_target, {}
+        ).get("distros")
+
+        if configured_distros:
+            distro_arch_list = [(distro, arch) for distro in configured_distros]
+        else:
+            mapping = (
+                DEFAULT_MAPPING_INTERNAL_TF
+                if self.job_config.metadata.use_internal_tf
+                else DEFAULT_MAPPING_TF
+            )
+            distro = mapping.get(distro, distro)
+            distro_arch_list = [(distro, arch)]
+
+        return {f"{distro}-{arch}" for (distro, arch) in distro_arch_list}
+
+    def test_target2build_target(self, test_target: str) -> str:
+        """
+        Return build target to build in needed for testing in test target
+        (from configuration or from default mapping).
+        """
+        distro, arch = test_target.rsplit("-", 1)
+        for chroot in self.job_config.metadata.targets:
+            distros_dict = self.job_config.metadata.targets_dict.get(chroot, {})
+            if distros_dict:
+                if distro in distros_dict.get("distros"):
+                    chroot_split = chroot.rsplit("-", maxsplit=2)
+                    return f"{chroot}-{arch}" if len(chroot_split) == 2 else chroot
+
+        mapping = (
+            DEFAULT_MAPPING_INTERNAL_TF
+            if self.job_config.metadata.use_internal_tf
+            else DEFAULT_MAPPING_TF
+        )
+        for build_target, test_target in mapping.items():
+            if test_target == distro:
+                return f"{build_target}-{arch}"
+
+        return f"{distro}-{arch}"
 
     @property
     def available_chroots(self) -> Set[str]:

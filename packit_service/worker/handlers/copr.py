@@ -439,15 +439,18 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     def handle_testing_farm(self):
         if (
             self.copr_build_helper.job_tests
-            and self.copr_event.chroot in self.copr_build_helper.tests_targets
+            and self.copr_event.chroot in self.copr_build_helper.build_targets_for_tests
         ):
+            event_dict = self.data.get_dict()
+            event_dict["tests_targets_override"] = list(
+                self.copr_build_helper.build_target2test_targets(self.copr_event.chroot)
+            )
             signature(
                 TaskName.testing_farm.value,
                 kwargs={
                     "package_config": dump_package_config(self.package_config),
                     "job_config": dump_job_config(self.copr_build_helper.job_tests),
-                    "event": self.data.get_dict(),
-                    "chroot": self.copr_event.chroot,
+                    "event": event_dict,
                     "build_id": self.build.id,
                 },
             ).apply_async()
