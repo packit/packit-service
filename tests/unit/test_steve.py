@@ -20,6 +20,15 @@ from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
+from packit_service.models import (
+    ProjectReleaseModel,
+    JobTriggerModelType,
+    PipelineModel,
+    ProposeDownstreamModel,
+    ProposeDownstreamStatus,
+    ProposeDownstreamTargetModel,
+    ProposeDownstreamTargetStatus,
+)
 from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.tasks import run_propose_downstream_handler
@@ -76,6 +85,41 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     config = ServiceConfig(enabled_private_namespaces=enabled_private_namespaces)
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
+
+    run_model = flexmock(PipelineModel)
+    trigger = flexmock(
+        job_trigger_model_type=JobTriggerModelType.release,
+        id=12,
+    )
+    flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
+        tag_name="1.2.3",
+        namespace="the-namespace",
+        repo_name="the-repo",
+        project_url="https://github.com/the-namespace/the-repo",
+        commit_hash="12345",
+    ).and_return(trigger).times(1 if success else 0)
+    propose_downstream_model = flexmock(propose_downstream_targets=[])
+    flexmock(ProposeDownstreamModel).should_receive("create_with_new_run").with_args(
+        status=ProposeDownstreamStatus.running,
+        trigger_model=trigger,
+    ).and_return(propose_downstream_model, run_model).times(1 if success else 0)
+
+    model = flexmock(ProposeDownstreamTargetModel)
+    flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
+        status=ProposeDownstreamTargetStatus.queued
+    ).and_return(model).times(1 if success else 0)
+    flexmock(model).should_receive("set_status").with_args(
+        status=ProposeDownstreamTargetStatus.running
+    ).times(1 if success else 0)
+    flexmock(model).should_receive("set_branch").with_args(branch="main").times(
+        1 if success else 0
+    )
+    flexmock(model).should_receive("set_start_time").times(1 if success else 0)
+    flexmock(model).should_receive("set_finished_time").times(1 if success else 0)
+    flexmock(model).should_receive("set_logs").times(1 if success else 0)
+    flexmock(propose_downstream_model).should_receive("set_status").with_args(
+        status=ProposeDownstreamStatus.finished
+    ).times(1 if success else 0)
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main", tag="1.2.3"
