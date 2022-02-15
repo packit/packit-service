@@ -52,7 +52,8 @@ class AbstractPRCommentEvent(AddPullRequestDbTrigger, AbstractCommentEvent):
         comment_id: int,
         commit_sha: str = "",
         comment_object: Optional[Comment] = None,
-        targets_override: Optional[Set[str]] = None,
+        build_targets_override: Optional[Set[str]] = None,
+        tests_targets_override: Optional[Set[str]] = None,
     ) -> None:
         super().__init__(
             pr_id=pr_id,
@@ -65,7 +66,8 @@ class AbstractPRCommentEvent(AddPullRequestDbTrigger, AbstractCommentEvent):
         # Lazy properties
         self._commit_sha = commit_sha
         self._comment_object = comment_object
-        self._targets_override = targets_override
+        self._build_targets_override = build_targets_override
+        self._tests_targets_override = tests_targets_override
 
     @property
     def commit_sha(self) -> str:  # type:ignore
@@ -83,25 +85,24 @@ class AbstractPRCommentEvent(AddPullRequestDbTrigger, AbstractCommentEvent):
         return self._comment_object
 
     @property
-    def targets_override(self) -> Optional[Set[str]]:
-        if not self._targets_override:
-            self._targets_override = self._get_all_failed_targets_in_pr()
+    def build_targets_override(self) -> Optional[Set[str]]:
+        if not self._build_targets_override and "rebuild-failed" in self.comment:
+            self._build_targets_override = (
+                super().get_all_build_failed_targets() or None
+            )
+        return self._build_targets_override
 
-        return self._targets_override
-
-    def _get_all_failed_targets_in_pr(self) -> Optional[Set[str]]:
-        targets_found: Optional[Set[str]] = None
-        if "rebuild-failed" in self.comment:
-            targets_found = super().get_all_build_failed_targets()
-        elif "retest-failed" in self.comment:
-            targets_found = super().get_all_tf_failed_targets()
-
-        return targets_found if targets_found else None
+    @property
+    def tests_targets_override(self) -> Optional[Set[str]]:
+        if not self._tests_targets_override and "retest-failed" in self.comment:
+            self._tests_targets_override = super().get_all_tf_failed_targets() or None
+        return self._tests_targets_override
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["commit_sha"] = self.commit_sha
-        result.pop("_targets_override")
+        result.pop("_build_targets_override")
+        result.pop("_tests_targets_override")
         return result
 
 

@@ -138,9 +138,8 @@ class TestingFarmHandler(JobHandler):
                 metadata=self.data,
                 db_trigger=self.db_trigger,
                 job_config=self.job_config,
-                targets_override={self.chroot}
-                if self.chroot
-                else self.data.targets_override,
+                build_targets_override=self.data.build_targets_override,
+                tests_targets_override=self.data.tests_targets_override,
             )
         return self._testing_farm_job_helper
 

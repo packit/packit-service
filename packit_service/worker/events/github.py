@@ -225,8 +225,16 @@ class CheckRerunEvent(AbstractGithubEvent):
         self._db_trigger = db_trigger
 
     @property
-    def targets_override(self) -> Optional[Set[str]]:
+    def build_targets_override(self) -> Optional[Set[str]]:
+        if self.check_name_job == "testing-farm":
+            return None
         return {self.check_name_target}
+
+    @property
+    def tests_targets_override(self) -> Optional[Set[str]]:
+        if self.check_name_job == "testing-farm":
+            return {self.check_name_target}
+        return None
 
 
 class CheckRerunCommitEvent(CheckRerunEvent):

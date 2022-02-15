@@ -102,7 +102,8 @@ class CoprBuildHandler(JobHandler):
                 metadata=self.data,
                 db_trigger=self.data.db_trigger,
                 job_config=self.job_config,
-                targets_override=self.data.targets_override,
+                build_targets_override=self.data.build_targets_override,
+                tests_targets_override=self.data.tests_targets_override,
                 pushgateway=self.pushgateway,
             )
         return self._copr_build_helper
@@ -157,7 +158,7 @@ class AbstractCoprBuildReportHandler(JobHandler):
     @property
     def copr_build_helper(self) -> CoprBuildJobHelper:
         # when reporting state of SRPM build built in Copr
-        targets_override = (
+        build_targets_override = (
             {
                 build.target
                 for build in CoprBuildTargetModel.get_all_by_build_id(
@@ -176,7 +177,7 @@ class AbstractCoprBuildReportHandler(JobHandler):
                 db_trigger=self.db_trigger,
                 job_config=self.job_config,
                 pushgateway=self.pushgateway,
-                targets_override=targets_override,
+                build_targets_override=build_targets_override,
             )
         return self._copr_build_helper
 

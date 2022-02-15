@@ -44,7 +44,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         metadata: EventData,
         db_trigger,
         job_config: JobConfig,
-        targets_override: Optional[Set[str]] = None,
+        build_targets_override: Optional[Set[str]] = None,
+        tests_targets_override: Optional[Set[str]] = None,
     ):
         super().__init__(
             service_config=service_config,
@@ -53,7 +54,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             metadata=metadata,
             db_trigger=db_trigger,
             job_config=job_config,
-            targets_override=targets_override,
+            build_targets_override=build_targets_override,
+            tests_targets_override=tests_targets_override,
         )
 
         self.session = requests.session()

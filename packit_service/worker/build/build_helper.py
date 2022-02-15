@@ -53,7 +53,8 @@ class BaseBuildJobHelper:
         metadata: EventData,
         db_trigger,
         job_config: JobConfig,
-        targets_override: Optional[Set[str]] = None,
+        build_targets_override: Optional[Set[str]] = None,
+        tests_targets_override: Optional[Set[str]] = None,
         pushgateway: Optional[Pushgateway] = None,
     ):
         self.service_config: ServiceConfig = service_config
@@ -64,7 +65,8 @@ class BaseBuildJobHelper:
         self.msg_retrigger: Optional[str] = ""
         self.metadata: EventData = metadata
         self.run_model: Optional[PipelineModel] = None
-        self.targets_override: Optional[Set[str]] = targets_override
+        self.build_targets_override: Optional[Set[str]] = build_targets_override
+        self.tests_targets_override: Optional[Set[str]] = tests_targets_override
         self.pushgateway = pushgateway
 
         # lazy properties

@@ -57,7 +57,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         metadata: EventData,
         db_trigger: AbstractTriggerDbType,
         job_config: JobConfig,
-        targets_override: Optional[Set[str]] = None,
+        build_targets_override: Optional[Set[str]] = None,
+        tests_targets_override: Optional[Set[str]] = None,
         pushgateway: Optional[Pushgateway] = None,
     ):
         super().__init__(
@@ -67,7 +68,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             metadata=metadata,
             db_trigger=db_trigger,
             job_config=job_config,
-            targets_override=targets_override,
+            build_targets_override=build_targets_override,
+            tests_targets_override=tests_targets_override,
             pushgateway=pushgateway,
         )
 
