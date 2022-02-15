@@ -5,7 +5,7 @@
 - name: Run requre tests inside an openshift pod
   hosts: localhost
   vars:
-    local_data_dir: "../tests_requre/openshift_integration"
+    local_data_dir: "../tests_openshift/openshift_integration"
     remote_data_dir: "/tmp/test_data"
     test_job_template_path: "./test-in-openshift.yaml"
     get_data_template_path: "./test-in-openshift-get-data.yaml"

@@ -48,7 +48,7 @@ check-in-container:
 # * Make sure to set `command_handler: local`: there is no kube API in pristine containers
 # * Make sure to `docker-compose up redis postgres`
 # Features:
-# * Can regen requre stuff (`TEST_TARGET=./tests_requre/openshift_integration/`)
+# * Can regen requre stuff (`TEST_TARGET=./tests_openshift/openshift_integration/`)
 # * Mounts your source code in the container
 # * Mounts secrets in the container: make sure all are valid
 # * Can touch redis and psql
@@ -65,7 +65,7 @@ check-in-container-tomas:
 		-w /src \
 		--security-opt label=disable \
 		-v $(CURDIR)/files/packit-service.yaml:/root/.config/packit-service.yaml \
-		-v $(CURDIR)/tests_requre/openshift_integration/test_data/:/tmp/test_data/ \
+		-v $(CURDIR)/tests_openshift/openshift_integration/test_data/:/tmp/test_data/ \
 		--network packit-service_default \
 		$(TEST_IMAGE) make check "TEST_TARGET=$(TEST_TARGET)"
 

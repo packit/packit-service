@@ -16,7 +16,7 @@ from requre.helpers.tempfile import TempFile
 from requre.helpers.git.fetchinfo import FetchInfoStorageList
 from requre.helpers.git.repo import Repo
 
-from tests_requre.openshift_integration.base import PackitServiceTestCase
+from tests_openshift.openshift_integration.base import PackitServiceTestCase
 from packit.pkgtool import PkgTool
 
 #        where="download_helper",

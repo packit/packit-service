@@ -5,7 +5,7 @@ from flask import url_for
 
 from packit_service.models import TestingFarmResult, PipelineModel
 from packit_service.service.api.runs import process_runs
-from tests_requre.conftest import SampleValues
+from tests_openshift.conftest import SampleValues
 
 
 # Check if the API is working

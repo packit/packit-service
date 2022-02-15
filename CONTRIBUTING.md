@@ -178,7 +178,8 @@ Here is a list of commands to run if you need a local database with real data fr
 
 ## Testing
 
-Tests are stored in the [tests/](/tests) directory and tests using [requre](https://github.com/packit/requre) are stored in [tests_requre/](/tests_requre).
+Tests are stored in the [tests/](/tests) directory and tests requiring openshift are stored in [tests_openshift/](/tests_openshift)
+(e.g. tests that needs to touch the database or that uses [requre](https://github.com/packit/requre) framework).
 
 ### Test categories
 
@@ -197,7 +198,7 @@ We have multiple test categories within packit-service:
   integration test.
 
 3. Integration tests which run within an OpenShift pod — stored in
-   `tests_requre/openshift_integration/`:
+   `tests_openshift/openshift_integration/`:
 
 - A checkout of packit-service is built as a container image and deployed to
   openshift as a job while the root process is pytest.
@@ -261,7 +262,7 @@ to store and replay data for tests.
 
 - remove files which you want to regenerate:
   ```bash
-  rm -r tests_requre/openshift_integration/test_data/test_*
+  rm -r tests_openshift/openshift_integration/test_data/test_*
   ```
 - Run the tests with the secrets - the response files will be regenerated (container images for `worker` and `test_image` are done in this step)
   ```bash
@@ -283,9 +284,9 @@ to store and replay data for tests.
 
 - If you got:
   ```
-  PermissionError: [Errno 13] Permission denied: '/src/tests_requre/test_data/test_fedpkg'
+  PermissionError: [Errno 13] Permission denied: '/src/tests_openshift/test_data/test_fedpkg'
   ```
-  You have to create test data directory `mkdir -p tests_requre/test_data`. This directory is part of git repo, so it should not be deleted.
+  You have to create test data directory `mkdir -p tests_openshift/test_data`. This directory is part of git repo, so it should not be deleted.
 - If you have troubles with requre data regeneration
   - Stop your openshift cluster first
     ```

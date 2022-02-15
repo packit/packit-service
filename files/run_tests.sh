@@ -10,4 +10,4 @@ cat "${HOME}/.config/packit-service.yaml"
 
 alembic-3 upgrade head
 
-python3 -m pytest -vv tests_requre/
+python3 -m pytest -vv tests_openshift/

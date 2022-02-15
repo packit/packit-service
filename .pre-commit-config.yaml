@@ -15,7 +15,7 @@ repos:
     rev: v2.5.1
     hooks:
       - id: prettier
-        exclude: tests_requre/openshift_integration/test_data/
+        exclude: tests_openshift/openshift_integration/test_data/
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.1.0
     hooks:
@@ -86,5 +86,5 @@ repos:
           --replaces "requests.sessions%_content:token:str:v1.1cd89d399b8c70f8b88e22cbdaa72abbe5e390db"
         language: python
         types: [yaml]
-        files: /tests_requre.*\.yaml$
+        files: /tests_openshift.*\.yaml$
         stages: [manual, push]

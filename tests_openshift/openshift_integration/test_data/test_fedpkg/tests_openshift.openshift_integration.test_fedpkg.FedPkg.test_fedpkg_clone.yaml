@@ -2,11 +2,11 @@ X:
   file:
     tar:
       StoreFiles:
-        tests_requre.openshift_integration.test_fedpkg.FedPkg.test_fedpkg_clone.yaml:
+        tests_openshift.openshift_integration.test_fedpkg.FedPkg.test_fedpkg_clone.yaml:
           target_path:
           - metadata:
               latency: 0
-            output: tests_requre.openshift_integration.test_fedpkg.FedPkg.test_fedpkg_clone.yaml.static_tmp_1_1.tar.xz
+            output: tests_openshift.openshift_integration.test_fedpkg.FedPkg.test_fedpkg_clone.yaml.static_tmp_1_1.tar.xz
 _requre:
   DataTypes: 1
   key_strategy: StorageKeysInspectSimple
@@ -18,7 +18,7 @@ packit.fedpkg:
       module_call_list:
       - unittest.case
       - requre.online_replacing
-      - tests_requre.openshift_integration.test_fedpkg
+      - tests_openshift.openshift_integration.test_fedpkg
       - requre.helpers.files
       - requre.objects
       - requre.cassette
