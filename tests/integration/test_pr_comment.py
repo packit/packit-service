@@ -1169,7 +1169,7 @@ def test_rebuild_failed(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
-    assert event_dict["targets_override"] == ["target"]
+    assert event_dict["build_targets_override"] == ["target"]
     assert json.dumps(event_dict)
 
     results = run_copr_build_handler(
@@ -1224,11 +1224,11 @@ def test_retest_failed(
         flexmock(status=PG_BUILD_STATUS_SUCCESS)
     )
 
-    model = flexmock(TFTTestRunTargetModel, status="failed", target="tf_target")
+    model = flexmock(TFTTestRunTargetModel, status="failed", target="tf_target-arch")
     flexmock(model).should_receive("get_all_by_commit_target").and_return(flexmock())
     flexmock(AbstractForgeIndependentEvent).should_receive(
         "get_all_tf_failed_targets"
-    ).and_return({"tf_target"})
+    ).and_return({"tf_target-arch"})
 
     flexmock(Pushgateway).should_receive("push").twice().and_return()
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
@@ -1241,7 +1241,7 @@ def test_retest_failed(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
-    assert event_dict["targets_override"] == ["tf_target"]
+    assert event_dict["tests_targets_override"] == ["tf_target-arch"]
     assert json.dumps(event_dict)
 
     run_testing_farm_handler(

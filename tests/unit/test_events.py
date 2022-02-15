@@ -1331,7 +1331,8 @@ class TestEvents:
             flexmock()
         ).once()
         assert event_object.package_config
-        assert event_object.targets_override == {"fedora-rawhide-x86_64"}
+        assert event_object.build_targets_override is None
+        assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
         assert event_object.actor == "lbarcziova"
 
     def test_parse_check_rerun_pull_request(self, check_rerun):
@@ -1372,7 +1373,8 @@ class TestEvents:
             flexmock()
         ).once()
         assert event_object.package_config
-        assert event_object.targets_override == {"fedora-rawhide-x86_64"}
+        assert event_object.build_targets_override is None
+        assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
 
     def test_parse_check_rerun_release(self, check_rerun):
         trigger = flexmock(JobTriggerModel, trigger_id=123)
@@ -1394,7 +1396,8 @@ class TestEvents:
         assert event_object.identifier == "0.1.0"
         assert event_object.check_name_job == "testing-farm"
         assert event_object.check_name_target == "fedora-rawhide-x86_64"
-        assert event_object.targets_override == {"fedora-rawhide-x86_64"}
+        assert event_object.build_targets_override is None
+        assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
         assert event_object.actor == "lbarcziova"
 
 

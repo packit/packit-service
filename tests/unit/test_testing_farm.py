@@ -124,6 +124,7 @@ def test_testing_farm_response(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             job_trigger_model_type=JobTriggerModelType.pull_request,
         ),
+        target="fedora-rawhide-x86_64",
     )
     tft_test_run_model.should_receive("set_status").with_args(
         tests_result, created=created_dt
@@ -142,44 +143,6 @@ def test_testing_farm_response(
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
     test_farm_handler.run()
-
-
-@pytest.mark.parametrize(
-    "chroot,distro,arch,use_internal_tf",
-    [
-        ("fedora-33-x86_64", "fedora-33", "x86_64", False),
-        ("fedora-rawhide-aarch64", "fedora-rawhide", "aarch64", False),
-        ("centos-stream-x86_64", "centos-stream", "x86_64", False),
-        ("epel-6-x86_64", "centos-6", "x86_64", False),
-        ("epel-7-x86_64", "centos-7", "x86_64", False),
-        ("epel-8-x86_64", "centos-stream-8", "x86_64", False),
-        ("fedora-33-x86_64", "fedora-33", "x86_64", True),
-        ("fedora-rawhide-aarch64", "fedora-rawhide", "aarch64", True),
-        ("centos-stream-x86_64", "centos-stream", "x86_64", True),
-        ("epel-7-x86_64", "rhel-7", "x86_64", True),
-        ("epel-8-x86_64", "rhel-8", "x86_64", True),
-        ("oraclelinux-7-x86_64", "oraclelinux-7", "x86_64", True),
-        ("oraclelinux-8-x86_64", "oraclelinux-8", "x86_64", True),
-    ],
-)
-def test_chroot2distro_arch(chroot, distro, arch, use_internal_tf):
-    job_helper = TFJobHelper(
-        service_config=flexmock(
-            testing_farm_api_url="xyz",
-        ),
-        package_config=flexmock(jobs=[]),
-        project=flexmock(),
-        metadata=flexmock(),
-        db_trigger=flexmock(),
-        job_config=JobConfig(
-            type=JobType.tests,
-            trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(use_internal_tf=use_internal_tf),
-        ),
-    )
-    job_helper = flexmock(job_helper)
-
-    assert job_helper.chroot2distro_arch(chroot) == (distro, arch)
 
 
 @pytest.mark.parametrize(
@@ -730,6 +693,7 @@ def test_trigger_build(copr_build, run_new_build):
     event = {
         "event_type": "CoprBuileEndEvent",
         "commit_sha": valid_commit_sha,
+        "targets_override": ["target-x86_64"],
     }
 
     flexmock(TFJobHelper).should_receive("get_latest_copr_build").and_return(copr_build)
@@ -743,8 +707,8 @@ def test_trigger_build(copr_build, run_new_build):
         )
 
     flexmock(cb).should_receive("get_valid_build_targets").and_return(
-        {"target", "another-target"}
+        {"target-x86_64", "another-target-x86_64"}
     )
 
-    tf_handler = TestingFarmHandler(package_config, job_config, event, "target")
+    tf_handler = TestingFarmHandler(package_config, job_config, event)
     tf_handler.run()

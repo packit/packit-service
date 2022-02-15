@@ -393,7 +393,8 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
 
 
 @pytest.mark.parametrize(
-    "jobs,job_config_trigger_type,targets_override,build_targets,test_targets",
+    "jobs,job_config_trigger_type,build_targets_override,"
+    "tests_targets_override,build_targets,test_targets",
     [
         pytest.param(
             [
@@ -409,6 +410,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
             ],
             JobConfigTriggerType.pull_request,
             {"fedora-32-x86_64"},
+            None,
             {"fedora-32-x86_64"},
             {"fedora-32-x86_64"},
             id="target_in_config_for_both",
@@ -423,6 +425,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
             ],
             JobConfigTriggerType.pull_request,
             {"fedora-32-x86_64"},
+            None,
             {"fedora-32-x86_64"},
             set(),
             id="target_in_config",
@@ -437,14 +440,54 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
             ],
             JobConfigTriggerType.pull_request,
             {"fedora-33-x86_64"},
+            None,
             set(),
             set(),
             id="target_not_in_config",
         ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(
+                        _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}}
+                    ),
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            None,
+            {"centos-7-x86_64"},
+            {"epel-7-x86_64"},
+            {"centos-7-x86_64"},
+            id="build_test_mapping_test_overrides",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(
+                        _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}}
+                    ),
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            {"epel-7-x86_64"},
+            None,
+            {"epel-7-x86_64"},
+            {"centos-7-x86_64", "rhel-7-x86_64"},
+            id="build_test_mapping_build_overrides",
+        ),
     ],
 )
 def test_copr_targets_overrides(
-    jobs, job_config_trigger_type, targets_override, build_targets, test_targets
+    jobs,
+    job_config_trigger_type,
+    build_targets_override,
+    tests_targets_override,
+    build_targets,
+    test_targets,
 ):
     copr_build_helper = CoprBuildJobHelper(
         service_config=flexmock(),
@@ -453,7 +496,8 @@ def test_copr_targets_overrides(
         project=flexmock(),
         metadata=flexmock(pr_id=None),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
-        targets_override=targets_override,
+        build_targets_override=build_targets_override,
+        tests_targets_override=tests_targets_override,
     )
     flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
         "fedora-31", "fedora-32", default=None
@@ -464,6 +508,9 @@ def test_copr_targets_overrides(
     flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
         default=None
     ).and_return(set())
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        "epel-7-x86_64", default=None
+    ).and_return({"epel-7-x86_64"})
     assert copr_build_helper.build_targets == build_targets
     assert copr_build_helper.tests_targets == test_targets
 
@@ -509,7 +556,7 @@ def test_koji_targets_overrides(
         project=flexmock(),
         metadata=flexmock(),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
-        targets_override=targets_override,
+        build_targets_override=targets_override,
     )
     assert koji_build_helper.build_targets == build_targets
 

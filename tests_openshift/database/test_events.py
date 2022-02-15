@@ -388,7 +388,7 @@ def test_parse_check_rerun_commit(
     assert isinstance(event_object.project, GithubProject)
     assert event_object.project.full_repo_name == "packit/hello-world"
     assert not event_object.base_project
-    assert event_object.targets_override == {"fedora-rawhide-x86_64"}
+    assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
 
 
 def test_parse_check_rerun_pull_request(
@@ -411,7 +411,7 @@ def test_parse_check_rerun_pull_request(
     )
     assert event_object.check_name_job == "testing-farm"
     assert event_object.check_name_target == "fedora-rawhide-x86_64"
-    assert event_object.targets_override == {"fedora-rawhide-x86_64"}
+    assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
 
 
 def test_parse_check_rerun_release(
@@ -440,7 +440,7 @@ def test_parse_check_rerun_release(
     )
     assert event_object.check_name_job == "testing-farm"
     assert event_object.check_name_target == "fedora-rawhide-x86_64"
-    assert event_object.targets_override == {"fedora-rawhide-x86_64"}
+    assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
 
 
 def test_filter_failed_models_targets_copr(
