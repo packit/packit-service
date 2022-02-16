@@ -282,7 +282,7 @@ def test_get_package_config_from_repo_alternative_config_name():
     )
     assert isinstance(config, PackageConfig)
     assert config.specfile_path == "packit.spec"
-    assert config.synced_files == [
+    assert config.files_to_sync == [
         SyncFilesItem(src=["packit.spec"], dest="packit.spec"),
         SyncFilesItem(src=[".packit.yaml"], dest=".packit2.yaml"),
     ]
