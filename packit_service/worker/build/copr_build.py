@@ -169,6 +169,18 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
     def tests_targets_all_mapped(self) -> Set[str]:
         """
         Return all valid mapped test targets from config.
+
+        Examples:
+        test job configuration:
+          - job: tests
+            trigger: pull_request
+            metadata:
+                targets:
+                      epel-7-x86_64:
+                        distros: [centos-7, rhel-7]
+                      fedora-35-x86_64: {}
+
+        helper.tests_targets_all_mapped -> {"centos-7", "rhel-7", "fedora-35-x86_64"}
         """
         targets = set()
         for chroot in self.tests_targets_all:
@@ -179,6 +191,26 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         Return all test targets defined for the build target
         (from configuration or from default mapping).
+
+        Examples:
+        test job configuration:
+          - job: tests
+            trigger: pull_request
+            metadata:
+                targets:
+                      epel-7-x86_64:
+                        distros: [centos-7, rhel-7]
+
+        helper.build_target2test_targets("epel-7-x86_64") -> {"centos-7", "rhel-7"}
+
+        test job configuration:
+          - job: tests
+            trigger: pull_request
+            metadata:
+                targets:
+                      fedora-35-x86_64
+
+        helper.build_target2test_targets("fedora-35-x86_64") -> {"fedora-35-x86_64"}
         """
 
         distro, arch = build_target.rsplit("-", 1)
@@ -204,14 +236,33 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         Return build target to build in needed for testing in test target
         (from configuration or from default mapping).
+
+        Examples:
+        configuration:
+          - job: tests
+            trigger: pull_request
+            metadata:
+                targets:
+                      epel-7-x86_64:
+                        distros: [centos-7, rhel-7]
+
+        helper.test_target2build_target("centos-7") -> "epel-7-x86_64"
+
+        configuration:
+          - job: tests
+            trigger: pull_request
+            metadata:
+                targets:
+                      fedora-35-x86_64
+
+        helper.test_target2build_target("fedora-35-x86_64") -> "fedora-35-x86_64"
         """
         distro, arch = test_target.rsplit("-", 1)
         for chroot in self.job_config.metadata.targets:
             distros_dict = self.job_config.metadata.targets_dict.get(chroot, {})
-            if distros_dict:
-                if distro in distros_dict.get("distros"):
-                    chroot_split = chroot.rsplit("-", maxsplit=2)
-                    return f"{chroot}-{arch}" if len(chroot_split) == 2 else chroot
+            if distros_dict and distro in distros_dict.get("distros"):
+                chroot_split = chroot.rsplit("-", maxsplit=2)
+                return f"{chroot}-{arch}" if len(chroot_split) == 2 else chroot
 
         mapping = (
             DEFAULT_MAPPING_INTERNAL_TF

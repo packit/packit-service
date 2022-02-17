@@ -289,6 +289,28 @@ class BaseBuildJobHelper:
     def get_build_targets(self, configured_targets: Set[str]) -> Set[str]:
         """
         Return valid targets/chroots to build from configured targets.
+        If there are build_targets_override or tests_targets_override defined,
+        configured targets ∩ (build_targets_override ∪ mapped tests_targets_override)
+        will be returned.
+
+        Example:
+        build and test job configuration:
+          - job: build
+            trigger: pull_request
+            metadata:
+                targets:
+                      fedora-35-x86_64
+
+          - job: tests
+            trigger: pull_request
+            metadata:
+                targets:
+                      epel-7-x86_64:
+                        distros: [centos-7, rhel-7]
+
+        helper.build_targets_override: None
+        helper.test_targets_override = {"centos-7-x86_64"}
+        helper.get_build_targets({"fedora-35-x86_64", "epel-7-x86_64"})-> {"epel-7-x86_64"}
         """
         targets_override = set()
 
@@ -331,6 +353,23 @@ class BaseBuildJobHelper:
     def tests_targets(self) -> Set[str]:
         """
         Return valid targets/chroots to use in testing farm.
+        If there are build_targets_override or tests_targets_override defined,
+        configured targets ∩ (mapped build_targets_override ∪ tests_targets_override)
+        will be returned.
+
+        Example:
+        test job configuration:
+          - job: tests
+            trigger: pull_request
+            metadata:
+                targets:
+                      epel-7-x86_64:
+                        distros: [centos-7, rhel-7]
+                      fedora-35-x86_64: {}
+
+        helper.build_targets_override: {"epel-7-x86_64}
+        helper.test_targets_override = None
+        helper.tests_targets-> {"centos-7-x86_64", "rhel-7-x86_64"}
 
         (Used when submitting the tests and as a part of the commit status name.)
         """
@@ -362,7 +401,7 @@ class BaseBuildJobHelper:
 
     def test_target2build_target(self, test_target) -> str:
         """
-        Return build target to build in needed for testing in test target
+        Return build target to be built for a given test target
         (from configuration or from default mapping).
         """
         raise NotImplementedError("Use subclass instead.")
