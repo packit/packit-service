@@ -18,7 +18,11 @@ from packit_service.constants import (
     DEFAULT_JOB_TIMEOUT,
 )
 from packit_service.worker.parser import Parser
-from packit_service.models import CoprBuildModel, TFTTestRunModel, TestingFarmResult
+from packit_service.models import (
+    CoprBuildTargetModel,
+    TFTTestRunTargetModel,
+    TestingFarmResult,
+)
 from packit_service.worker.events import AbstractCoprBuildEvent, TestingFarmResultsEvent
 from packit_service.worker.events.enums import FedmsgTopic
 from packit_service.worker.handlers import (
@@ -39,7 +43,7 @@ def check_pending_testing_farm_runs() -> None:
         TestingFarmResult.queued,
         TestingFarmResult.running,
     )
-    pending_test_runs = TFTTestRunModel.get_all_by_status(*not_completed)
+    pending_test_runs = TFTTestRunTargetModel.get_all_by_status(*not_completed)
     for run in pending_test_runs:
         logger.info(f"Checking status of pipeline with id {run.pipeline_id}")
         # .submitted_time can be None, we'll set it later
@@ -113,7 +117,7 @@ def check_pending_testing_farm_runs() -> None:
 
 def check_pending_copr_builds() -> None:
     """Checks the status of pending copr builds and updates it if needed."""
-    pending_copr_builds = CoprBuildModel.get_all_by_status("pending")
+    pending_copr_builds = CoprBuildTargetModel.get_all_by_status("pending")
     builds_grouped_by_id = collections.defaultdict(list)
     for build in pending_copr_builds:
         builds_grouped_by_id[build.build_id].append(build)
@@ -135,20 +139,20 @@ def check_copr_build(build_id: int) -> bool:
         bool: Whether the run was successful, False signals the need to retry.
     """
     logger.debug(f"Getting copr build ID {build_id} from DB.")
-    builds = CoprBuildModel.get_all_by_build_id(build_id)
+    builds = CoprBuildTargetModel.get_all_by_build_id(build_id)
     if not builds:
         logger.warning(f"Copr build {build_id} not in DB.")
         return True
     return update_copr_builds(build_id, builds)
 
 
-def update_copr_builds(build_id: int, builds: Iterable["CoprBuildModel"]) -> bool:
+def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) -> bool:
     """
     Updates the state of copr builds if they have ended.
 
     Args:
         build_id (int): ID of the copr build to update.
-        builds (Iterable[CoprBuildModel]): List of builds corresponding to
+        builds (Iterable[CoprBuildTargetModel]): List of builds corresponding to
             the given ``build_id``.
 
     Returns:

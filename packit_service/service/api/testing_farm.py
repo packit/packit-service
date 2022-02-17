@@ -11,7 +11,7 @@ from flask_restx import Namespace, Resource, fields
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
 from packit_service.constants import CELERY_DEFAULT_MAIN_TASK_NAME
-from packit_service.models import TFTTestRunModel, optional_timestamp
+from packit_service.models import TFTTestRunTargetModel, optional_timestamp
 from packit_service.service.api.errors import ValidationFailed
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import get_project_info_from_build, response_maker
@@ -108,7 +108,7 @@ class TestingFarmResults(Resource):
         first, last = indices()
         # results have nothing other than ref in common, so it doesnt make sense to
         # merge them like copr builds
-        for tf_result in TFTTestRunModel.get_range(first, last):
+        for tf_result in TFTTestRunTargetModel.get_range(first, last):
             result_dict = {
                 "packit_id": tf_result.id,
                 "pipeline_id": tf_result.pipeline_id,
@@ -142,7 +142,7 @@ class TestingFarmResult(Resource):
     @ns.response(HTTPStatus.NOT_FOUND.value, "No info about test run stored in DB")
     def get(self, id):
         """A specific test run details."""
-        test_run_model = TFTTestRunModel.get_by_id(int(id))
+        test_run_model = TFTTestRunTargetModel.get_by_id(int(id))
 
         if not test_run_model:
             return response_maker(

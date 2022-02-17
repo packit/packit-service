@@ -8,10 +8,10 @@ from typing import Any, Dict, Union
 from flask import make_response
 
 from packit_service.models import (
-    CoprBuildModel,
-    KojiBuildModel,
+    CoprBuildTargetModel,
+    KojiBuildTargetModel,
     SRPMBuildModel,
-    TFTTestRunModel,
+    TFTTestRunTargetModel,
 )
 
 
@@ -24,7 +24,12 @@ def response_maker(result, status=HTTPStatus.OK.value):
 
 
 def get_project_info_from_build(
-    build: Union[SRPMBuildModel, CoprBuildModel, KojiBuildModel, TFTTestRunModel]
+    build: Union[
+        SRPMBuildModel,
+        CoprBuildTargetModel,
+        KojiBuildTargetModel,
+        TFTTestRunTargetModel,
+    ]
 ) -> Dict[str, Any]:
     project = build.get_project()
     if not project:

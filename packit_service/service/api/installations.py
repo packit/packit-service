@@ -6,7 +6,7 @@ from logging import getLogger
 
 from flask_restx import Namespace, Resource
 
-from packit_service.models import InstallationModel
+from packit_service.models import GithubInstallationModel
 
 logger = getLogger("packit_service")
 
@@ -18,7 +18,9 @@ class InstallationsList(Resource):
     @ns.response(HTTPStatus.OK.value, "OK, installations list follows")
     def get(self):
         """List all Github App installations"""
-        return [installation.to_dict() for installation in InstallationModel.get_all()]
+        return [
+            installation.to_dict() for installation in GithubInstallationModel.get_all()
+        ]
 
 
 @ns.route("/<int:id>")
@@ -28,7 +30,7 @@ class InstallationItem(Resource):
     @ns.response(HTTPStatus.NO_CONTENT.value, "identifier not in allowlist")
     def get(self, id):
         """A specific installation details"""
-        installation = InstallationModel.get_by_id(id)
+        installation = GithubInstallationModel.get_by_id(id)
         return (
             installation.to_dict()
             if installation

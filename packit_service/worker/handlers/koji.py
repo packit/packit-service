@@ -21,7 +21,7 @@ from packit_service.constants import (
     PERMISSIONS_ERROR_WRITE_OR_ADMIN,
 )
 from packit_service.constants import KojiTaskState
-from packit_service.models import AbstractTriggerDbType, KojiBuildModel
+from packit_service.models import AbstractTriggerDbType, KojiBuildTargetModel
 from packit_service.service.urls import (
     get_koji_build_info_url,
 )
@@ -152,12 +152,12 @@ class KojiTaskReportHandler(JobHandler):
         )
         self.koji_task_event: KojiTaskEvent = KojiTaskEvent.from_event_dict(event)
         self._db_trigger: Optional[AbstractTriggerDbType] = None
-        self._build: Optional[KojiBuildModel] = None
+        self._build: Optional[KojiBuildTargetModel] = None
 
     @property
-    def build(self) -> Optional[KojiBuildModel]:
+    def build(self) -> Optional[KojiBuildTargetModel]:
         if not self._build:
-            self._build = KojiBuildModel.get_by_build_id(
+            self._build = KojiBuildTargetModel.get_by_build_id(
                 build_id=str(self.koji_task_event.build_id)
             )
         return self._build
@@ -169,7 +169,7 @@ class KojiTaskReportHandler(JobHandler):
         return self._db_trigger
 
     def run(self):
-        build = KojiBuildModel.get_by_build_id(
+        build = KojiBuildTargetModel.get_by_build_id(
             build_id=str(self.koji_task_event.build_id)
         )
 
@@ -272,12 +272,12 @@ class KojiBuildReportHandler(JobHandler):
         )
         self.koji_build_event: KojiBuildEvent = KojiBuildEvent.from_event_dict(event)
         self._db_trigger: Optional[AbstractTriggerDbType] = None
-        self._build: Optional[KojiBuildModel] = None
+        self._build: Optional[KojiBuildTargetModel] = None
 
     @property
-    def build(self) -> Optional[KojiBuildModel]:
+    def build(self) -> Optional[KojiBuildTargetModel]:
         if not self._build:
-            self._build = KojiBuildModel.get_by_build_id(
+            self._build = KojiBuildTargetModel.get_by_build_id(
                 build_id=self.koji_build_event.build_id
             )
         return self._build

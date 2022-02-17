@@ -12,11 +12,11 @@ from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import (
     AbstractTriggerDbType,
     JobTriggerModelType,
-    KojiBuildModel,
+    KojiBuildTargetModel,
     PullRequestModel,
     ProjectReleaseModel,
     GitBranchModel,
-    RunModel,
+    PipelineModel,
 )
 from packit_service.worker.events.event import (
     AbstractForgeIndependentEvent,
@@ -36,13 +36,15 @@ class AbstractKojiEvent(AbstractForgeIndependentEvent):
 
         # Lazy properties
         self._target: Optional[str] = None
-        self._build_model: Optional[KojiBuildModel] = None
+        self._build_model: Optional[KojiBuildTargetModel] = None
         self._build_model_searched = False
 
     @property
-    def build_model(self) -> Optional[KojiBuildModel]:
+    def build_model(self) -> Optional[KojiBuildTargetModel]:
         if not self._build_model_searched and not self._build_model:
-            self._build_model = KojiBuildModel.get_by_build_id(build_id=self.build_id)
+            self._build_model = KojiBuildTargetModel.get_by_build_id(
+                build_id=self.build_id
+            )
             self._build_model_searched = True
         return self._build_model
 
@@ -114,15 +116,15 @@ class KojiBuildEvent(AbstractKojiEvent):
         return self._commit_sha
 
     @property
-    def build_model(self) -> Optional[KojiBuildModel]:
+    def build_model(self) -> Optional[KojiBuildTargetModel]:
         if not super().build_model:
-            self._build_model = KojiBuildModel.create(
+            self._build_model = KojiBuildTargetModel.create(
                 build_id=str(self.build_id),
                 commit_sha=self._commit_sha,
                 web_url=self.web_url,
                 target="noarch",  # TODO: where to get this info from?
                 status=self.state.value,
-                run_model=RunModel.create(
+                run_model=PipelineModel.create(
                     type=JobTriggerModelType.branch_push,
                     trigger_id=GitBranchModel.get_or_create(
                         branch_name=self.branch_name,

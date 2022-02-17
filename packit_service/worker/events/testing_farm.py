@@ -10,7 +10,7 @@ from packit_service.models import (
     TestingFarmResult,
     AbstractTriggerDbType,
     PullRequestModel,
-    TFTTestRunModel,
+    TFTTestRunTargetModel,
 )
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
 
@@ -57,7 +57,9 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
         return result
 
     def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        run_model = TFTTestRunModel.get_by_pipeline_id(pipeline_id=self.pipeline_id)
+        run_model = TFTTestRunTargetModel.get_by_pipeline_id(
+            pipeline_id=self.pipeline_id
+        )
         return run_model.get_trigger_object() if run_model else None
 
     def get_base_project(self) -> Optional[GitProject]:

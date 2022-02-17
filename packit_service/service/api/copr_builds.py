@@ -6,7 +6,7 @@ from logging import getLogger
 
 from flask_restx import Namespace, Resource
 
-from packit_service.models import CoprBuildModel, optional_timestamp
+from packit_service.models import CoprBuildTargetModel, optional_timestamp
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import get_project_info_from_build, response_maker
 
@@ -28,8 +28,8 @@ class CoprBuildsList(Resource):
         result = []
 
         first, last = indices()
-        for build in CoprBuildModel.get_merged_chroots(first, last):
-            build_info = CoprBuildModel.get_by_build_id(build.build_id, None)
+        for build in CoprBuildTargetModel.get_merged_chroots(first, last):
+            build_info = CoprBuildTargetModel.get_by_build_id(build.build_id, None)
             if build_info.status == "waiting_for_srpm":
                 continue
             project_info = build_info.get_project()
@@ -75,7 +75,7 @@ class CoprBuildItem(Resource):
     @ns.response(HTTPStatus.NOT_FOUND.value, "Copr build identifier not in db/hash")
     def get(self, id):
         """A specific copr build details for one chroot."""
-        build = CoprBuildModel.get_by_id(int(id))
+        build = CoprBuildTargetModel.get_by_id(int(id))
         if not build:
             return response_maker(
                 {"error": "No info about build stored in DB"},

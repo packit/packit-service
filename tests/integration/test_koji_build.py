@@ -11,7 +11,7 @@ from ogr.services.pagure import PagureProject
 from packit.config import JobConfigTriggerType
 from packit_service.config import ServiceConfig
 from packit_service.constants import SANDCASTLE_WORK_DIR
-from packit_service.models import GitBranchModel, KojiBuildModel, RunModel
+from packit_service.models import GitBranchModel, KojiBuildTargetModel, PipelineModel
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
@@ -67,7 +67,7 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
     flexmock(Pushgateway).should_receive("push").once().and_return()
 
     # Database
-    flexmock(KojiBuildModel).should_receive("get_by_build_id").with_args(
+    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
         build_id=1874074
     ).and_return(
         flexmock(
@@ -151,14 +151,14 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
     git_branch_model_flexmock = flexmock(
         id=1, job_config_trigger_type=JobConfigTriggerType.commit
     )
-    flexmock(KojiBuildModel).should_receive("get_by_build_id").with_args(
+    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
         build_id=1864700
     ).and_return(None)
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         git_branch_model_flexmock
     )
-    flexmock(RunModel).should_receive("create").and_return(run_model_flexmock)
-    flexmock(KojiBuildModel).should_receive("create").with_args(
+    flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
+    flexmock(KojiBuildTargetModel).should_receive("create").with_args(
         build_id="1864700",
         commit_sha="0eb3e12005cb18f15d3054020f7ac934c01eae08",
         web_url="https://koji.fedoraproject.org/koji/taskinfo?taskID=79721403",
@@ -166,7 +166,7 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
         status="BUILDING",
         run_model=run_model_flexmock,
     ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
-    flexmock(KojiBuildModel).should_receive("get_by_build_id").with_args(
+    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
         build_id=1874074
     ).and_return(
         flexmock(

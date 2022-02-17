@@ -10,7 +10,7 @@ import pytest
 from flexmock import flexmock
 
 from packit_service.models import (
-    CoprBuildModel,
+    CoprBuildTargetModel,
     JobTriggerModelType,
     SRPMBuildModel,
 )
@@ -85,7 +85,9 @@ def test_get_logs(client):
     copr_build_mock.should_receive("get_project").and_return(project_mock)
     copr_build_mock.should_receive("get_srpm_build").and_return(srpm_build_mock)
 
-    flexmock(CoprBuildModel).should_receive("get_by_id").and_return(copr_build_mock)
+    flexmock(CoprBuildTargetModel).should_receive("get_by_id").and_return(
+        copr_build_mock
+    )
 
     logs_url = get_copr_build_info_url(1)
     assert logs_url == "https://localhost/results/copr-builds/1"

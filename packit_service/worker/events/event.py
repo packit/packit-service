@@ -16,12 +16,12 @@ from packit.config import JobConfigTriggerType, PackageConfig
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.models import (
     AbstractTriggerDbType,
-    CoprBuildModel,
+    CoprBuildTargetModel,
     GitBranchModel,
     IssueModel,
     ProjectReleaseModel,
     PullRequestModel,
-    TFTTestRunModel,
+    TFTTestRunTargetModel,
 )
 
 logger = getLogger(__name__)
@@ -444,7 +444,8 @@ class AbstractForgeIndependentEvent(Event):
     @staticmethod
     def _filter_failed_models_targets(
         models: Union[
-            Optional[Iterable[CoprBuildModel]], Optional[Iterable[TFTTestRunModel]]
+            Optional[Iterable[CoprBuildTargetModel]],
+            Optional[Iterable[TFTTestRunTargetModel]],
         ],
     ) -> Optional[Set[str]]:
         failed_models_targets = set()
@@ -459,17 +460,19 @@ class AbstractForgeIndependentEvent(Event):
             return None
 
         return self._filter_failed_models_targets(
-            models=TFTTestRunModel.get_all_by_commit_target(commit_sha=self.commit_sha)
+            models=TFTTestRunTargetModel.get_all_by_commit_target(
+                commit_sha=self.commit_sha
+            )
         )
 
     def get_all_build_failed_targets(self) -> Optional[Set[str]]:
-        # TODO: get rid of project.repo which is mandatory in `CoprBuildModel.get_all_by`
+        # TODO: get rid of project.repo which is mandatory in `CoprBuildTargetModel.get_all_by`
         # in this case relevant for us is only commit_sha
         if self.commit_sha is None or self.project.repo is None:
             return None
 
         return self._filter_failed_models_targets(
-            models=CoprBuildModel.get_all_by(
+            models=CoprBuildTargetModel.get_all_by(
                 project_name=self.project.repo, commit_sha=self.commit_sha
             )
         )

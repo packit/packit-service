@@ -21,7 +21,7 @@ from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.models import (
     SRPMBuildModel,
-    KojiBuildModel,
+    KojiBuildTargetModel,
     JobTriggerModel,
     JobTriggerModelType,
 )
@@ -151,7 +151,7 @@ def test_koji_build_check_names(github_pr_event):
             flexmock(),
         )
     )
-    flexmock(KojiBuildModel).should_receive("create").and_return(flexmock(id=1))
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
     # koji build
@@ -225,7 +225,7 @@ def test_koji_build_failed_kerberos(github_pr_event):
             flexmock(),
         )
     )
-    flexmock(KojiBuildModel).should_receive("create").and_return(flexmock(id=1))
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
     flexmock(PackitAPI).should_receive("init_kerberos_ticket").and_raise(
@@ -300,7 +300,7 @@ def test_koji_build_target_not_supported(github_pr_event):
             flexmock(),
         )
     )
-    flexmock(KojiBuildModel).should_receive("create").and_return(flexmock(id=1))
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
     response = helper.run_koji_build()
@@ -356,7 +356,7 @@ def test_koji_build_with_multiple_targets(github_pr_event):
             flexmock(),
         )
     )
-    flexmock(KojiBuildModel).should_receive("create").and_return(
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(
         flexmock(id=1)
     ).and_return(flexmock(id=2))
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
@@ -438,7 +438,7 @@ def test_koji_build_failed(github_pr_event):
             flexmock(),
         )
     )
-    flexmock(KojiBuildModel).should_receive("create").and_return(flexmock(id=1))
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
     # koji build
@@ -506,7 +506,7 @@ def test_koji_build_failed_srpm(github_pr_event):
             flexmock(),
         )
     )
-    flexmock(KojiBuildModel).should_receive("create").never()
+    flexmock(KojiBuildTargetModel).should_receive("create").never()
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().once()
 
     result = helper.run_koji_build()
@@ -560,7 +560,7 @@ def test_koji_build_targets_override(github_pr_event):
             flexmock(),
         )
     )
-    flexmock(KojiBuildModel).should_receive("create").and_return(
+    flexmock(KojiBuildTargetModel).should_receive("create").and_return(
         flexmock(id=1)
     ).and_return(flexmock(id=2))
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")

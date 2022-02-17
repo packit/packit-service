@@ -13,7 +13,7 @@ from packit.exceptions import PackitCommandFailedError
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import MSG_RETRIGGER, PG_BUILD_STATUS_SUCCESS
-from packit_service.models import KojiBuildModel
+from packit_service.models import KojiBuildTargetModel
 from packit_service.worker.events import EventData
 from packit_service.service.urls import (
     get_koji_build_info_url,
@@ -142,7 +142,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 errors[target] = str(ex)
                 continue
 
-            koji_build = KojiBuildModel.create(
+            koji_build = KojiBuildTargetModel.create(
                 build_id=str(build_id),
                 commit_sha=self.metadata.commit_sha,
                 web_url=web_url,

@@ -12,7 +12,7 @@ from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerTyp
 from packit.config.job_config import JobMetadataConfig
 from packit_service.constants import PG_BUILD_STATUS_SUCCESS
 from packit_service.models import (
-    CoprBuildModel,
+    CoprBuildTargetModel,
     SRPMBuildModel,
     PullRequestModel,
 )
@@ -61,7 +61,7 @@ def packit_build_752():
     )
     srpm_build.set_logs("asd\nqwe\n")
     srpm_build.set_status("success")
-    yield CoprBuildModel.create(
+    yield CoprBuildTargetModel.create(
         build_id=str(BUILD_ID),
         commit_sha="687abc76d67d",
         project_name="packit-service-packit-752",

@@ -13,7 +13,7 @@ from packit.config import (
 from packit.config.package_config import PackageConfig
 
 from packit_service.models import (
-    InstallationModel,
+    GithubInstallationModel,
 )
 from packit_service.worker.events import (
     InstallationEvent,
@@ -62,7 +62,7 @@ class GithubAppInstallationHandler(JobHandler):
         user is a packager.
         :return: TaskResults
         """
-        InstallationModel.create(event=self.installation_event)
+        GithubInstallationModel.create(event=self.installation_event)
         # try to add user to allowlist
         allowlist = Allowlist(
             fas_user=self.service_config.fas_user,

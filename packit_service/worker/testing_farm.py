@@ -19,10 +19,10 @@ from packit_service.constants import (
     TESTING_FARM_INSTALLABILITY_TEST_REF,
 )
 from packit_service.models import (
-    CoprBuildModel,
-    TFTTestRunModel,
+    CoprBuildTargetModel,
+    TFTTestRunTargetModel,
     TestingFarmResult,
-    RunModel,
+    PipelineModel,
 )
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.utils import get_package_nvrs
@@ -130,7 +130,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self,
         chroot: str,
         artifact: Optional[Dict[str, Union[List[str], str]]] = None,
-        build: Optional["CoprBuildModel"] = None,
+        build: Optional["CoprBuildTargetModel"] = None,
     ) -> dict:
         """Prepare a Testing Farm request payload.
 
@@ -220,7 +220,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         TF provides 'installation test', we request it in ['test']['fmf']['url'].
         We don't specify 'artifacts' as in _payload(), but 'variables'.
         """
-        copr_build = CoprBuildModel.get_by_build_id(build_id)
+        copr_build = CoprBuildTargetModel.get_by_build_id(build_id)
         distro, arch = self.chroot2distro_arch(chroot)
         compose = self.distro2compose(distro, arch)
         return {
@@ -352,11 +352,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def get_latest_copr_build(
         self, target: str, commit_sha: str
-    ) -> Optional[CoprBuildModel]:
+    ) -> Optional[CoprBuildTargetModel]:
         """
         Search a last build for the given target and commit SHA using Copr owner and project.
         """
-        copr_builds = CoprBuildModel.get_all_by(
+        copr_builds = CoprBuildTargetModel.get_all_by(
             project_name=self.job_project,
             commit_sha=commit_sha,
             owner=self.job_owner,
@@ -368,7 +368,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return list(copr_builds)[0]
 
     def run_testing_farm(
-        self, chroot: str, build: Optional["CoprBuildModel"]
+        self, chroot: str, build: Optional["CoprBuildTargetModel"]
     ) -> TaskResults:
         if chroot not in self.tests_targets:
             # Leaving here just to be sure that we will discover this situation if it occurs.
@@ -474,7 +474,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
         run_model = (
-            RunModel.create(
+            PipelineModel.create(
                 type=self.db_trigger.job_trigger_model_type,
                 trigger_id=self.db_trigger.id,
             )
@@ -482,7 +482,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             else build.runs[-1]
         )
 
-        created_model = TFTTestRunModel.create(
+        created_model = TFTTestRunTargetModel.create(
             pipeline_id=pipeline_id,
             commit_sha=self.metadata.commit_sha,
             status=TestingFarmResult.new,
