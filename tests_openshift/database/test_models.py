@@ -22,7 +22,7 @@ from packit_service.models import (
     get_sa_session,
     PipelineModel,
 )
-from tests_requre.conftest import SampleValues
+from tests_openshift.conftest import SampleValues
 
 
 def test_create_pr_model(clean_before_and_after, pr_model):

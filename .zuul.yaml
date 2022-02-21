@@ -5,7 +5,7 @@
       jobs:
         - pre-commit
         - packit-service-tests
-        - packit-service-tests-requre
+        - packit-service-tests-openshift
     gate:
       jobs:
         - pre-commit
@@ -17,9 +17,9 @@
     run: files/zuul-tests.yaml
 
 - job:
-    name: packit-service-tests-requre
+    name: packit-service-tests-openshift
     parent: oc-cluster-up
-    description: Run tests with requre support in a cluster
+    description: Run tests with service being deployed including database (e.g. for database or requre tests)
     # this will clone the deployment repo to a predictable path
     required-projects:
       - github.com/packit/deployment

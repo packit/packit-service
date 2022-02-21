@@ -30,7 +30,7 @@ from packit_service.worker.events import (
 )
 from packit_service.worker.parser import Parser
 from packit_service.worker.testing_farm import TestingFarmJobHelper
-from tests_requre.conftest import SampleValues
+from tests_openshift.conftest import SampleValues
 
 
 def test_release_event_existing_release(
