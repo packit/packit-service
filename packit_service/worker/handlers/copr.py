@@ -109,10 +109,7 @@ class CoprBuildHandler(JobHandler):
         return self._copr_build_helper
 
     def run(self) -> TaskResults:
-        if (
-            f"{self.project.service.hostname}/{self.project.full_repo_name}"
-            in self.service_config.enabled_projects_for_srpm_in_copr
-        ):
+        if self.package_config.srpm_build_deps is not None:
             return self.copr_build_helper.run_copr_build_from_source_script()
         return self.copr_build_helper.run_copr_build()
 

@@ -19,7 +19,6 @@ from packit_service.celerizer import celery_app
 from packit_service.config import Deployment, ServiceConfig
 from packit_service.constants import (
     MSG_RETRIGGER,
-    SRPM_BUILD_DEPS,
     PG_BUILD_STATUS_SUCCESS,
     DEFAULT_MAPPING_INTERNAL_TF,
     DEFAULT_MAPPING_TF,
@@ -402,7 +401,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     projectname=self.job_project,
                     script=script,
                     script_builddeps=self.get_packit_copr_download_urls()
-                    + SRPM_BUILD_DEPS,
+                    + self.package_config.srpm_build_deps,
                     buildopts={
                         "chroots": list(self.build_targets),
                     },
