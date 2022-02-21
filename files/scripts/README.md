@@ -8,7 +8,7 @@ List all requests pending approval:
 $ oc exec packit-worker-0 allowlist.py waiting
 ```
 
-Approving a user who is waiting to be put on the allowlist:
+Use `oc exec -it ...` instead if you also want to approve a namespace from the waiting list and specify the number of namespace to approve. In order to add to the allowlist manually:
 
 ```
 $ oc exec -it packit-worker-0 allowlist.py approve <path_to_namespace>
