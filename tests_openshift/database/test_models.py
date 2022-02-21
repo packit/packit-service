@@ -1,6 +1,5 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-
 from datetime import datetime, timedelta
 
 from sqlalchemy.exc import ProgrammingError
@@ -21,6 +20,10 @@ from packit_service.models import (
     TestingFarmResult,
     get_sa_session,
     PipelineModel,
+    ProposeDownstreamTargetStatus,
+    ProposeDownstreamStatus,
+    ProposeDownstreamTargetModel,
+    ProposeDownstreamModel,
 )
 from tests_openshift.conftest import SampleValues
 
@@ -826,3 +829,86 @@ def test_tf_get_all_by_commit_target(clean_before_and_after, multiple_new_test_r
         == test_list[2].commit_sha
         == SampleValues.commit_sha
     )
+
+
+def test_create_propose_model(clean_before_and_after, propose_model):
+    assert propose_model.status == ProposeDownstreamTargetStatus.running
+    # test if submitted time is something - datetime
+    assert isinstance(propose_model.submitted_time, datetime)
+
+
+def test_set_propose_model_attributes(clean_before_and_after, propose_model):
+    propose_model.set_status(status=ProposeDownstreamTargetStatus.submitted)
+    assert propose_model.status == ProposeDownstreamTargetStatus.submitted
+
+    propose_model.set_downstream_pr_url(downstream_pr_url="not_for_kids")
+    assert propose_model.downstream_pr_url == "not_for_kids"
+
+    now = datetime.utcnow()
+    propose_model.set_finished_time(finished_time=now)
+    assert propose_model.finished_time == now
+
+    propose_model.set_start_time(start_time=now)
+    assert propose_model.start_time == now
+
+    propose_model.set_branch(branch=SampleValues.branch)
+    assert propose_model.branch == SampleValues.branch
+
+    propose_model.set_logs(logs="omg secret logs! don't read this!")
+    assert propose_model.logs == "omg secret logs! don't read this!"
+
+
+def test_propose_model_get_by_id(clean_before_and_after, propose_model):
+    assert propose_model.id
+
+    model = ProposeDownstreamTargetModel.get_by_id(id_=propose_model.id)
+    assert model.id == propose_model.id
+
+
+def test_create_propose_downstream_model(
+    clean_before_and_after, propose_downstream_model_release
+):
+    assert propose_downstream_model_release.status == ProposeDownstreamStatus.running
+    # test if submitted time is something - datetime
+    assert isinstance(propose_downstream_model_release.submitted_time, datetime)
+
+
+def test_set_propose_downstream_model_status(
+    clean_before_and_after, propose_downstream_model_release
+):
+    propose_downstream_model_release.set_status(ProposeDownstreamStatus.finished)
+    assert propose_downstream_model_release.status == ProposeDownstreamStatus.finished
+
+
+def test_get_propose_downstream_model_by_id(
+    clean_before_and_after, propose_downstream_model_release
+):
+    assert propose_downstream_model_release.id
+
+    model = ProposeDownstreamModel.get_by_id(id_=propose_downstream_model_release.id)
+    assert model.id == propose_downstream_model_release.id
+
+
+def test_get_propose_downstream_model_by_status(
+    clean_before_and_after, multiple_propose_downstream_runs_release_trigger
+):
+    assert multiple_propose_downstream_runs_release_trigger
+
+    propose_downstream_list = list(
+        ProposeDownstreamModel.get_all_by_status(status=ProposeDownstreamStatus.running)
+    )
+    assert len(propose_downstream_list) == 2
+    assert (
+        propose_downstream_list[0].status
+        == propose_downstream_list[1].status
+        == ProposeDownstreamStatus.running
+    )
+
+
+def test_get_propose_downstream_model_range(
+    clean_before_and_after, multiple_propose_downstream_runs_release_trigger
+):
+    assert multiple_propose_downstream_runs_release_trigger
+
+    propose_downstream_list = list(ProposeDownstreamModel.get_range(first=0, last=10))
+    assert len(propose_downstream_list) == 4
