@@ -72,7 +72,8 @@ class EventData:
         event_dict: Optional[dict],
         issue_id: Optional[int],
         task_accepted_time: Optional[datetime],
-        targets_override: Optional[List[str]],
+        build_targets_override: Optional[List[str]],
+        tests_targets_override: Optional[List[str]],
     ):
         self.event_type = event_type
         self.actor = actor
@@ -86,7 +87,12 @@ class EventData:
         self.event_dict = event_dict
         self.issue_id = issue_id
         self.task_accepted_time = task_accepted_time
-        self.targets_override = set(targets_override) if targets_override else None
+        self.build_targets_override = (
+            set(build_targets_override) if build_targets_override else None
+        )
+        self.tests_targets_override = (
+            set(tests_targets_override) if tests_targets_override else None
+        )
 
         # lazy attributes
         self._project = None
@@ -111,7 +117,8 @@ class EventData:
             if event.get("task_accepted_time")
             else None
         )
-        targets_override = event.get("targets_override")
+        build_targets_override = event.get("build_targets_override")
+        tests_targets_override = event.get("tests_targets_override")
 
         return EventData(
             event_type=event_type,
@@ -126,7 +133,8 @@ class EventData:
             event_dict=event,
             issue_id=issue_id,
             task_accepted_time=task_accepted_time,
-            targets_override=targets_override,
+            build_targets_override=build_targets_override,
+            tests_targets_override=tests_targets_override,
         )
 
     @property
@@ -201,9 +209,10 @@ class EventData:
         d["task_accepted_time"] = (
             int(task_accepted_time.timestamp()) if task_accepted_time else None
         )
-        targets_override = self.targets_override
-        if targets_override:
-            d["targets_override"] = list(targets_override)
+        if self.build_targets_override:
+            d["build_targets_override"] = list(self.build_targets_override)
+        if self.tests_targets_override:
+            d["tests_targets_override"] = list(self.tests_targets_override)
         d.pop("_project", None)
         d.pop("_db_trigger", None)
         return d
@@ -268,9 +277,10 @@ class Event:
         d["project_url"] = d.get("project_url") or (
             self.db_trigger.project.project_url if self.db_trigger else None
         )
-        targets_override = self.targets_override
-        if targets_override:
-            d["targets_override"] = list(targets_override)
+        if self.build_targets_override:
+            d["build_targets_override"] = list(self.build_targets_override)
+        if self.tests_targets_override:
+            d["tests_targets_override"] = list(self.tests_targets_override)
         return d
 
     def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
@@ -317,9 +327,17 @@ class Event:
         raise NotImplementedError("Please implement me!")
 
     @property
-    def targets_override(self) -> Optional[Set[str]]:
+    def build_targets_override(self) -> Optional[Set[str]]:
         """
-        Return the targets to use for building/testing instead of the all targets from config
+        Return the targets to use for building of the all targets from config
+        for the relevant events (e.g.rerunning of a single check).
+        """
+        return None
+
+    @property
+    def tests_targets_override(self) -> Optional[Set[str]]:
+        """
+        Return the targets to use for testing of the all targets from config
         for the relevant events (e.g.rerunning of a single check).
         """
         return None

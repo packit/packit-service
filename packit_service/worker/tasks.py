@@ -141,14 +141,12 @@ def run_testing_farm_handler(
     event: dict,
     package_config: dict,
     job_config: dict,
-    chroot: Optional[str] = None,
     build_id: Optional[int] = None,
 ):
     handler = TestingFarmHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
-        chroot=chroot,
         build_id=build_id,
     )
     return get_handlers_task_results(handler.run_job(), event)

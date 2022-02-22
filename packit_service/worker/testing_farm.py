@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Dict, Any, Optional, Tuple, Set, List, Union
+from typing import Dict, Any, Optional, Set, List, Union
 
 import requests
 from ogr.abstract import GitProject
@@ -44,7 +44,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         metadata: EventData,
         db_trigger,
         job_config: JobConfig,
-        targets_override: Optional[Set[str]] = None,
+        build_targets_override: Optional[Set[str]] = None,
+        tests_targets_override: Optional[Set[str]] = None,
     ):
         super().__init__(
             service_config=service_config,
@@ -53,7 +54,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             metadata=metadata,
             db_trigger=db_trigger,
             job_config=job_config,
-            targets_override=targets_override,
+            build_targets_override=build_targets_override,
+            tests_targets_override=tests_targets_override,
         )
 
         self.session = requests.session()
@@ -128,7 +130,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def _payload(
         self,
-        chroot: str,
+        target: str,
         artifact: Optional[Dict[str, Union[List[str], str]]] = None,
         build: Optional["CoprBuildTargetModel"] = None,
     ) -> dict:
@@ -146,7 +148,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             artifact: Optional artifacts, e.g. list of package NEVRAs
             build: The related copr build.
         """
-        distro, arch = self.chroot2distro_arch(chroot)
+        distro, arch = target.rsplit("-", 1)
         compose = self.distro2compose(distro, arch)
         fmf = {"url": self.fmf_url}
         if self.fmf_ref:
@@ -214,14 +216,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             },
         }
 
-    def _payload_install_test(self, build_id: int, chroot: str) -> dict:
+    def _payload_install_test(self, build_id: int, target: str) -> dict:
         """
         If the project doesn't use fmf, but still wants to run tests in TF.
         TF provides 'installation test', we request it in ['test']['fmf']['url'].
         We don't specify 'artifacts' as in _payload(), but 'variables'.
         """
         copr_build = CoprBuildTargetModel.get_by_build_id(build_id)
-        distro, arch = self.chroot2distro_arch(chroot)
+        distro, arch = target.rsplit("-", 1)
         compose = self.distro2compose(distro, arch)
         return {
             "api_key": self.service_config.testing_farm_secret,
@@ -261,33 +263,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             return True
         except FileNotFoundError:
             return False
-
-    def chroot2distro_arch(self, chroot: str) -> Tuple[str, str]:
-        """Get distro and arch from chroot."""
-        distro, arch = chroot.rsplit("-", 1)
-
-        distros = self.job_config.metadata.targets_dict.get(chroot, {}).get("distros")
-        if distros:
-            # For now take just the first one
-            return distros[0], arch
-
-        if self.job_config.metadata.use_internal_tf:
-            epel_mapping = {
-                "epel-6": "rhel-6",
-                "epel-7": "rhel-7",
-                "epel-8": "rhel-8",
-                "epel-9": "centos-stream-9",
-            }
-        else:
-            epel_mapping = {
-                "epel-6": "centos-6",
-                "epel-7": "centos-7",
-                "epel-8": "centos-stream-8",
-                "epel-9": "centos-stream-9",
-            }
-
-        distro = epel_mapping.get(distro, distro)
-        return distro, arch
 
     def distro2compose(self, distro: str, arch: str) -> str:
         """
@@ -368,18 +343,19 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return list(copr_builds)[0]
 
     def run_testing_farm(
-        self, chroot: str, build: Optional["CoprBuildTargetModel"]
+        self, target: str, build: Optional["CoprBuildTargetModel"]
     ) -> TaskResults:
-        if chroot not in self.tests_targets:
+        if target not in self.tests_targets:
             # Leaving here just to be sure that we will discover this situation if it occurs.
             # Currently not possible to trigger this situation.
-            msg = f"Target '{chroot}' not defined for tests but triggered."
+            msg = f"Target '{target}' not defined for tests but triggered."
             logger.error(msg)
             send_to_sentry(PackitConfigException(msg))
             return TaskResults(
                 success=False,
                 details={"msg": msg},
             )
+        chroot = self.test_target2build_target(target)
 
         if not self.skip_build and chroot not in self.build_targets:
             self.report_missing_build_chroot(chroot)
@@ -396,10 +372,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             and f"{self.project.service.hostname}/{self.project.full_repo_name}"
             not in self.service_config.enabled_projects_for_internal_tf
         ):
-            self.report_status_to_test_for_chroot(
+            self.report_status_to_test_for_test_target(
                 state=BaseCommitStatus.neutral,
                 description="Internal TF not allowed for this project. Let us know.",
-                chroot=chroot,
+                target=target,
                 url="https://packit.dev/#contact",
             )
             return TaskResults(
@@ -407,11 +383,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 details={"msg": "Project not allowed to use internal TF."},
             )
 
-        self.report_status_to_test_for_chroot(
+        self.report_status_to_test_for_test_target(
             state=BaseCommitStatus.running,
             description=f"{'Build succeeded. ' if not self.skip_build else ''}"
             f"Submitting the tests ...",
-            chroot=chroot,
+            target=target,
         )
 
         logger.info("Sending testing farm request...")
@@ -422,9 +398,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 if not self.skip_build
                 else None
             )
-            payload = self._payload(chroot, artifact, build)
+            payload = self._payload(target, artifact, build)
         elif not self.is_fmf_configured() and not self.skip_build:
-            payload = self._payload_install_test(int(build.build_id), chroot)
+            payload = self._payload_install_test(int(build.build_id), target)
         else:
             return TaskResults(
                 success=True, details={"msg": "No actions for TestingFarmHandler."}
@@ -441,10 +417,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if not req:
             msg = "Failed to post request to testing farm API."
             logger.debug("Failed to post request to testing farm API.")
-            self.report_status_to_test_for_chroot(
+            self.report_status_to_test_for_test_target(
                 state=BaseCommitStatus.error,
                 description=msg,
-                chroot=chroot,
+                target=target,
             )
             return TaskResults(success=False, details={"msg": msg})
 
@@ -459,10 +435,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             else:
                 msg = f"Failed to submit tests: {req.reason}"
             logger.error(msg)
-            self.report_status_to_test_for_chroot(
+            self.report_status_to_test_for_test_target(
                 state=BaseCommitStatus.failure,
                 description=msg,
-                chroot=chroot,
+                target=target,
             )
             return TaskResults(success=False, details={"msg": msg})
 
@@ -486,7 +462,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             pipeline_id=pipeline_id,
             commit_sha=self.metadata.commit_sha,
             status=TestingFarmResult.new,
-            target=chroot,
+            target=target,
             web_url=None,
             run_model=run_model,
             # In _payload() we ask TF to test commit_sha of fork (PR's source).
@@ -494,11 +470,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             data={"base_project_url": self.project.get_web_url()},
         )
 
-        self.report_status_to_test_for_chroot(
+        self.report_status_to_test_for_test_target(
             state=BaseCommitStatus.running,
             description="Tests have been submitted ...",
             url=get_testing_farm_info_url(created_model.id),
-            chroot=chroot,
+            target=target,
         )
 
         return TaskResults(success=True, details={})

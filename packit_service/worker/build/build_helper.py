@@ -53,7 +53,8 @@ class BaseBuildJobHelper:
         metadata: EventData,
         db_trigger,
         job_config: JobConfig,
-        targets_override: Optional[Set[str]] = None,
+        build_targets_override: Optional[Set[str]] = None,
+        tests_targets_override: Optional[Set[str]] = None,
         pushgateway: Optional[Pushgateway] = None,
     ):
         self.service_config: ServiceConfig = service_config
@@ -64,7 +65,8 @@ class BaseBuildJobHelper:
         self.msg_retrigger: Optional[str] = ""
         self.metadata: EventData = metadata
         self.run_model: Optional[PipelineModel] = None
-        self.targets_override: Optional[Set[str]] = targets_override
+        self.build_targets_override: Optional[Set[str]] = build_targets_override
+        self.tests_targets_override: Optional[Set[str]] = tests_targets_override
         self.pushgateway = pushgateway
 
         # lazy properties
@@ -278,34 +280,131 @@ class BaseBuildJobHelper:
         raise NotImplementedError("Use subclass instead.")
 
     @property
+    def tests_targets_all_mapped(self) -> Set[str]:
+        """
+        Return all valid mapped test targets from config.
+        """
+        raise NotImplementedError("Use subclass instead.")
+
+    def get_build_targets(self, configured_targets: Set[str]) -> Set[str]:
+        """
+        Return valid targets/chroots to build from configured targets.
+        If there are build_targets_override or tests_targets_override defined,
+        configured targets ∩ (build_targets_override ∪ mapped tests_targets_override)
+        will be returned.
+
+        Example:
+        build and test job configuration:
+          - job: build
+            trigger: pull_request
+            metadata:
+                targets:
+                      fedora-35-x86_64
+
+          - job: tests
+            trigger: pull_request
+            metadata:
+                targets:
+                      epel-7-x86_64:
+                        distros: [centos-7, rhel-7]
+
+        helper.build_targets_override: None
+        helper.test_targets_override = {"centos-7-x86_64"}
+        helper.get_build_targets({"fedora-35-x86_64", "epel-7-x86_64"})-> {"epel-7-x86_64"}
+        """
+        targets_override = set()
+
+        if self.build_targets_override:
+            logger.debug(f"Build targets override: {self.build_targets_override}")
+            targets_override.update(self.build_targets_override)
+
+        if self.tests_targets_override:
+            logger.debug(f"Test targets override: {self.tests_targets_override}")
+            targets_override.update(
+                self.test_target2build_target(target)
+                for target in self.tests_targets_override
+            )
+
+        return (
+            configured_targets & targets_override
+            if targets_override
+            else configured_targets
+        )
+
+    @property
     def build_targets(self) -> Set[str]:
         """
         Return valid targets/chroots to build.
 
         (Used when submitting the koji/copr build and as a part of the commit status name.)
         """
-        configured_targets = self.build_targets_all
+        return self.get_build_targets(self.build_targets_all)
 
-        if self.targets_override:
-            logger.debug(f"Targets override: {self.targets_override}")
-            return self.targets_override & configured_targets
+    @property
+    def build_targets_for_tests(self) -> Set[str]:
+        """
+        Return valid targets/chroots to build in needed to run testing farm.
 
-        return configured_targets
+        (Used when submitting the tests and as a part of the commit status name.)
+        """
+        return self.get_build_targets(self.tests_targets_all)
 
     @property
     def tests_targets(self) -> Set[str]:
         """
         Return valid targets/chroots to use in testing farm.
+        If there are build_targets_override or tests_targets_override defined,
+        configured targets ∩ (mapped build_targets_override ∪ tests_targets_override)
+        will be returned.
+
+        Example:
+        test job configuration:
+          - job: tests
+            trigger: pull_request
+            metadata:
+                targets:
+                      epel-7-x86_64:
+                        distros: [centos-7, rhel-7]
+                      fedora-35-x86_64: {}
+
+        helper.build_targets_override: {"epel-7-x86_64}
+        helper.test_targets_override = None
+        helper.tests_targets-> {"centos-7-x86_64", "rhel-7-x86_64"}
 
         (Used when submitting the tests and as a part of the commit status name.)
         """
-        configured_targets = self.tests_targets_all
+        configured_targets = self.tests_targets_all_mapped
 
-        if self.targets_override:
-            logger.debug(f"Targets override: {self.targets_override}")
-            return self.targets_override & configured_targets
+        targets_override = set()
 
-        return configured_targets
+        if self.build_targets_override:
+            logger.debug(f"Build targets override: {self.build_targets_override}")
+            for target in self.build_targets_override:
+                targets_override.update(self.build_target2test_targets(target))
+
+        if self.tests_targets_override:
+            logger.debug(f"Test targets override: {self.tests_targets_override}")
+            targets_override.update(self.tests_targets_override)
+
+        return (
+            configured_targets & targets_override
+            if targets_override
+            else configured_targets
+        )
+
+    def build_target2test_targets(self, build_target: str) -> Set[str]:
+        """
+        Return all test targets defined for the build target
+        (from configuration or from default mapping).
+        """
+        raise NotImplementedError("Use subclass instead.")
+
+    def test_target2build_target(self, test_target) -> str:
+        """
+        Return build target to be built for a given test target
+        (from configuration or from default mapping).
+        """
+        raise NotImplementedError("Use subclass instead.")
 
     @property
     def test_check_names(self) -> List[str]:
@@ -572,12 +671,31 @@ class BaseBuildJobHelper:
         chroot: str = "",
         markdown_content: str = None,
     ) -> None:
-        if self.job_tests and chroot in self.tests_targets:
+        if self.job_tests and chroot in self.build_targets_for_tests:
+            test_targets = self.build_target2test_targets(chroot)
+            for target in test_targets:
+                self._report(
+                    description=description,
+                    state=state,
+                    url=url,
+                    check_names=self.get_test_check(target),
+                    markdown_content=markdown_content,
+                )
+
+    def report_status_to_test_for_test_target(
+        self,
+        description,
+        state,
+        url: str = "",
+        target: str = "",
+        markdown_content: str = None,
+    ) -> None:
+        if self.job_tests and target in self.tests_targets:
             self._report(
                 description=description,
                 state=state,
                 url=url,
-                check_names=self.get_test_check(chroot),
+                check_names=self.get_test_check(target),
                 markdown_content=markdown_content,
             )
 

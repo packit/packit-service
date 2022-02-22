@@ -53,7 +53,7 @@ def build_helper(
     trigger=None,
     jobs=None,
     db_trigger=None,
-    targets_override=None,
+    build_targets_override=None,
 ):
     if not metadata:
         metadata = JobMetadataConfig(
@@ -87,7 +87,7 @@ def build_helper(
             identifier=event.identifier,
         ),
         db_trigger=db_trigger,
-        targets_override=targets_override,
+        build_targets_override=build_targets_override,
     )
     handler._api = PackitAPI(config=ServiceConfig(), package_config=pkg_conf)
     return handler
@@ -530,7 +530,7 @@ def test_koji_build_targets_override(github_pr_event):
             _targets=["bright-future", "dark-past"], scratch=True
         ),
         db_trigger=trigger,
-        targets_override={"bright-future"},
+        build_targets_override={"bright-future"},
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
         ["dark-past", "bright-future"]

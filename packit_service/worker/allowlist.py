@@ -293,7 +293,8 @@ class Allowlist:
                     metadata=EventData.from_event_dict(event.get_dict()),
                     db_trigger=event.db_trigger,
                     job_config=job_config,
-                    targets_override=event.targets_override,
+                    build_targets_override=event.build_targets_override,
+                    tests_targets_override=event.tests_targets_override,
                 )
                 msg = (
                     "Namespace is not allowed!"

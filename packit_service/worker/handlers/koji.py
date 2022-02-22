@@ -95,7 +95,8 @@ class KojiBuildHandler(JobHandler):
                 metadata=self.data,
                 db_trigger=self.data.db_trigger,
                 job_config=self.job_config,
-                targets_override=self.data.targets_override,
+                build_targets_override=self.data.build_targets_override,
+                tests_targets_override=self.data.tests_targets_override,
             )
         return self._koji_build_helper
 

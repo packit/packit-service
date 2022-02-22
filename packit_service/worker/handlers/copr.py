@@ -102,7 +102,8 @@ class CoprBuildHandler(JobHandler):
                 metadata=self.data,
                 db_trigger=self.data.db_trigger,
                 job_config=self.job_config,
-                targets_override=self.data.targets_override,
+                build_targets_override=self.data.build_targets_override,
+                tests_targets_override=self.data.tests_targets_override,
                 pushgateway=self.pushgateway,
             )
         return self._copr_build_helper
@@ -157,7 +158,7 @@ class AbstractCoprBuildReportHandler(JobHandler):
     @property
     def copr_build_helper(self) -> CoprBuildJobHelper:
         # when reporting state of SRPM build built in Copr
-        targets_override = (
+        build_targets_override = (
             {
                 build.target
                 for build in CoprBuildTargetModel.get_all_by_build_id(
@@ -176,7 +177,7 @@ class AbstractCoprBuildReportHandler(JobHandler):
                 db_trigger=self.db_trigger,
                 job_config=self.job_config,
                 pushgateway=self.pushgateway,
-                targets_override=targets_override,
+                build_targets_override=build_targets_override,
             )
         return self._copr_build_helper
 
@@ -438,15 +439,18 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     def handle_testing_farm(self):
         if (
             self.copr_build_helper.job_tests
-            and self.copr_event.chroot in self.copr_build_helper.tests_targets
+            and self.copr_event.chroot in self.copr_build_helper.build_targets_for_tests
         ):
+            event_dict = self.data.get_dict()
+            event_dict["tests_targets_override"] = list(
+                self.copr_build_helper.build_target2test_targets(self.copr_event.chroot)
+            )
             signature(
                 TaskName.testing_farm.value,
                 kwargs={
                     "package_config": dump_package_config(self.package_config),
                     "job_config": dump_job_config(self.copr_build_helper.job_tests),
-                    "event": self.data.get_dict(),
-                    "chroot": self.copr_event.chroot,
+                    "event": event_dict,
                     "build_id": self.build.id,
                 },
             ).apply_async()

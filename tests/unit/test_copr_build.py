@@ -99,7 +99,7 @@ def build_helper(
     db_trigger=None,
     selected_job=None,
     project_type: Type[GitProject] = GithubProject,
-    targets_override=None,
+    build_targets_override=None,
 ):
     if jobs and metadata:
         raise Exception("Only one of jobs and metadata can be used.")
@@ -140,7 +140,7 @@ def build_helper(
             project_url="https://git.instance.io/the/example/namespace/the-example-repo",
         ),
         db_trigger=db_trigger,
-        targets_override=targets_override,
+        build_targets_override=build_targets_override,
         pushgateway=Pushgateway(),
     )
     handler._api = PackitAPI(ServiceConfig(), pkg_conf)
@@ -1932,7 +1932,7 @@ def test_copr_build_targets_override(github_pr_event):
         jobs=[test_job],
         event=github_pr_event,
         db_trigger=trigger,
-        targets_override={"bright-future-x86_64"},
+        build_targets_override={"bright-future-x86_64"},
     )
     flexmock(GithubProject).should_receive("create_check_run").and_return().times(2)
     flexmock(GithubProject).should_receive("get_pr").and_return(

@@ -122,6 +122,20 @@ SRPM_BUILD_DEPS = [
     "fmf",
 ]
 
+DEFAULT_MAPPING_TF = {
+    "epel-6": "centos-6",
+    "epel-7": "centos-7",
+    "epel-8": "centos-stream-8",
+    "epel-9": "centos-stream-9",
+}
+
+DEFAULT_MAPPING_INTERNAL_TF = {
+    "epel-6": "rhel-6",
+    "epel-7": "rhel-7",
+    "epel-8": "rhel-8",
+    "epel-9": "centos-stream-9",
+}
+
 
 class KojiTaskState(Enum):
     """

@@ -21,6 +21,8 @@ from packit_service.constants import (
     MSG_RETRIGGER,
     SRPM_BUILD_DEPS,
     PG_BUILD_STATUS_SUCCESS,
+    DEFAULT_MAPPING_INTERNAL_TF,
+    DEFAULT_MAPPING_TF,
 )
 from packit_service.models import (
     AbstractTriggerDbType,
@@ -57,7 +59,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         metadata: EventData,
         db_trigger: AbstractTriggerDbType,
         job_config: JobConfig,
-        targets_override: Optional[Set[str]] = None,
+        build_targets_override: Optional[Set[str]] = None,
+        tests_targets_override: Optional[Set[str]] = None,
         pushgateway: Optional[Pushgateway] = None,
     ):
         super().__init__(
@@ -67,7 +70,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             metadata=metadata,
             db_trigger=db_trigger,
             job_config=job_config,
-            targets_override=targets_override,
+            build_targets_override=build_targets_override,
+            tests_targets_override=tests_targets_override,
             pushgateway=pushgateway,
         )
 
@@ -160,6 +164,116 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         Return all valid test targets/chroots from config.
         """
         return get_valid_build_targets(*self.configured_tests_targets, default=None)
+
+    @property
+    def tests_targets_all_mapped(self) -> Set[str]:
+        """
+        Return all valid mapped test targets from config.
+
+        Examples:
+        test job configuration:
+          - job: tests
+            trigger: pull_request
+            metadata:
+                targets:
+                      epel-7-x86_64:
+                        distros: [centos-7, rhel-7]
+                      fedora-35-x86_64: {}
+
+        helper.tests_targets_all_mapped -> {"centos-7", "rhel-7", "fedora-35-x86_64"}
+        """
+        targets = set()
+        for chroot in self.tests_targets_all:
+            targets.update(self.build_target2test_targets(chroot))
+        return targets
+
+    def build_target2test_targets(self, build_target: str) -> Set[str]:
+        """
+        Return all test targets defined for the build target
+        (from configuration or from default mapping).
+
+        Examples:
+        test job configuration:
+          - job: tests
+            trigger: pull_request
+            metadata:
+                targets:
+                      epel-7-x86_64:
+                        distros: [centos-7, rhel-7]
+
+        helper.build_target2test_targets("epel-7-x86_64") -> {"centos-7", "rhel-7"}
+
+        test job configuration:
+          - job: tests
+            trigger: pull_request
+            metadata:
+                targets:
+                      fedora-35-x86_64
+
+        helper.build_target2test_targets("fedora-35-x86_64") -> {"fedora-35-x86_64"}
+        """
+
+        distro, arch = build_target.rsplit("-", 1)
+
+        configured_distros = self.job_config.metadata.targets_dict.get(
+            build_target, {}
+        ).get("distros")
+
+        if configured_distros:
+            distro_arch_list = [(distro, arch) for distro in configured_distros]
+        else:
+            mapping = (
+                DEFAULT_MAPPING_INTERNAL_TF
+                if self.job_config.metadata.use_internal_tf
+                else DEFAULT_MAPPING_TF
+            )
+            distro = mapping.get(distro, distro)
+            distro_arch_list = [(distro, arch)]
+
+        return {f"{distro}-{arch}" for (distro, arch) in distro_arch_list}
+
+    def test_target2build_target(self, test_target: str) -> str:
+        """
+        Return build target to build in needed for testing in test target
+        (from configuration or from default mapping).
+
+        Examples:
+        configuration:
+          - job: tests
+            trigger: pull_request
+            metadata:
+                targets:
+                      epel-7-x86_64:
+                        distros: [centos-7, rhel-7]
+
+        helper.test_target2build_target("centos-7") -> "epel-7-x86_64"
+
+        configuration:
+          - job: tests
+            trigger: pull_request
+            metadata:
+                targets:
+                      fedora-35-x86_64
+
+        helper.test_target2build_target("fedora-35-x86_64") -> "fedora-35-x86_64"
+        """
+        distro, arch = test_target.rsplit("-", 1)
+        for chroot in self.job_config.metadata.targets:
+            distros_dict = self.job_config.metadata.targets_dict.get(chroot, {})
+            if distros_dict and distro in distros_dict.get("distros"):
+                chroot_split = chroot.rsplit("-", maxsplit=2)
+                return f"{chroot}-{arch}" if len(chroot_split) == 2 else chroot
+
+        mapping = (
+            DEFAULT_MAPPING_INTERNAL_TF
+            if self.job_config.metadata.use_internal_tf
+            else DEFAULT_MAPPING_TF
+        )
+        for build_target, test_target in mapping.items():
+            if test_target == distro:
+                return f"{build_target}-{arch}"
+
+        return f"{distro}-{arch}"
 
     @property
     def available_chroots(self) -> Set[str]:

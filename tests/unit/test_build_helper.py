@@ -393,7 +393,8 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
 
 
 @pytest.mark.parametrize(
-    "jobs,job_config_trigger_type,targets_override,build_targets,test_targets",
+    "jobs,job_config_trigger_type,build_targets_override,"
+    "tests_targets_override,build_targets,test_targets",
     [
         pytest.param(
             [
@@ -409,6 +410,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
             ],
             JobConfigTriggerType.pull_request,
             {"fedora-32-x86_64"},
+            None,
             {"fedora-32-x86_64"},
             {"fedora-32-x86_64"},
             id="target_in_config_for_both",
@@ -423,6 +425,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
             ],
             JobConfigTriggerType.pull_request,
             {"fedora-32-x86_64"},
+            None,
             {"fedora-32-x86_64"},
             set(),
             id="target_in_config",
@@ -437,14 +440,54 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
             ],
             JobConfigTriggerType.pull_request,
             {"fedora-33-x86_64"},
+            None,
             set(),
             set(),
             id="target_not_in_config",
         ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(
+                        _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}}
+                    ),
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            None,
+            {"centos-7-x86_64"},
+            {"epel-7-x86_64"},
+            {"centos-7-x86_64"},
+            id="build_test_mapping_test_overrides",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(
+                        _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}}
+                    ),
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            {"epel-7-x86_64"},
+            None,
+            {"epel-7-x86_64"},
+            {"centos-7-x86_64", "rhel-7-x86_64"},
+            id="build_test_mapping_build_overrides",
+        ),
     ],
 )
 def test_copr_targets_overrides(
-    jobs, job_config_trigger_type, targets_override, build_targets, test_targets
+    jobs,
+    job_config_trigger_type,
+    build_targets_override,
+    tests_targets_override,
+    build_targets,
+    test_targets,
 ):
     copr_build_helper = CoprBuildJobHelper(
         service_config=flexmock(),
@@ -453,7 +496,8 @@ def test_copr_targets_overrides(
         project=flexmock(),
         metadata=flexmock(pr_id=None),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
-        targets_override=targets_override,
+        build_targets_override=build_targets_override,
+        tests_targets_override=tests_targets_override,
     )
     flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
         "fedora-31", "fedora-32", default=None
@@ -464,8 +508,158 @@ def test_copr_targets_overrides(
     flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
         default=None
     ).and_return(set())
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        "epel-7-x86_64", default=None
+    ).and_return({"epel-7-x86_64"})
     assert copr_build_helper.build_targets == build_targets
     assert copr_build_helper.tests_targets == test_targets
+
+
+@pytest.mark.parametrize(
+    "configured_targets,use_internal_tf,build_target,test_targets",
+    [
+        pytest.param(
+            STABLE_VERSIONS,
+            False,
+            "fedora-32-x86_64",
+            {"fedora-32-x86_64"},
+            id="default_mapping",
+        ),
+        pytest.param(
+            {"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
+            False,
+            "epel-7-x86_64",
+            {"centos-7-x86_64", "rhel-7-x86_64"},
+            id="mapping_defined_in_config",
+        ),
+        pytest.param(
+            ["epel-7-x86_64"],
+            False,
+            "epel-7-x86_64",
+            {"centos-7-x86_64"},
+            id="public_tf_default_mapping1",
+        ),
+        pytest.param(
+            ["epel-6-x86_64"],
+            False,
+            "epel-6-x86_64",
+            {"centos-6-x86_64"},
+            id="public_tf_default_mapping2",
+        ),
+        pytest.param(
+            ["epel-8-x86_64"],
+            False,
+            "epel-8-x86_64",
+            {"centos-stream-8-x86_64"},
+            id="public_tf_default_mapping3",
+        ),
+        pytest.param(
+            ["epel-7-x86_64"],
+            True,
+            "epel-7-x86_64",
+            {"rhel-7-x86_64"},
+            id="internal_tf_default_mapping1",
+        ),
+        pytest.param(
+            ["epel-8-x86_64"],
+            True,
+            "epel-8-x86_64",
+            {"rhel-8-x86_64"},
+            id="internal_tf_default_mapping2",
+        ),
+    ],
+)
+def test_copr_build_target2test_targets(
+    configured_targets, use_internal_tf, build_target, test_targets
+):
+    jobs = [
+        JobConfig(
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.pull_request,
+            metadata=JobMetadataConfig(
+                _targets=configured_targets, use_internal_tf=use_internal_tf
+            ),
+        )
+    ]
+    copr_build_helper = CoprBuildJobHelper(
+        service_config=flexmock(),
+        package_config=PackageConfig(jobs=jobs),
+        job_config=jobs[0],
+        project=flexmock(),
+        metadata=flexmock(pr_id=None),
+        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+    )
+    assert copr_build_helper.build_target2test_targets(build_target) == test_targets
+
+
+@pytest.mark.parametrize(
+    "configured_targets,use_internal_tf,test_target,build_target",
+    [
+        pytest.param(
+            STABLE_VERSIONS,
+            False,
+            "fedora-32-x86_64",
+            "fedora-32-x86_64",
+            id="default_mapping",
+        ),
+        pytest.param(
+            {"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
+            False,
+            "centos-7-x86_64",
+            "epel-7-x86_64",
+            id="mapping_defined_in_config1",
+        ),
+        pytest.param(
+            {"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
+            False,
+            "rhel-7-x86_64",
+            "epel-7-x86_64",
+            id="mapping_defined_in_config2",
+        ),
+        pytest.param(
+            {"epel-7": {"distros": ["centos-7", "rhel-7"]}},
+            False,
+            "rhel-7-x86_64",
+            "epel-7-x86_64",
+            id="mapping_defined_in_config_without_arch",
+        ),
+        pytest.param(
+            ["epel-7-x86_64"],
+            False,
+            "centos-7-x86_64",
+            "epel-7-x86_64",
+            id="public_tf_default_mapping",
+        ),
+        pytest.param(
+            ["epel-7-x86_64"],
+            True,
+            "rhel-7-x86_64",
+            "epel-7-x86_64",
+            id="internal_tf_default_mapping",
+        ),
+    ],
+)
+def test_copr_test_target2build_target(
+    configured_targets, use_internal_tf, test_target, build_target
+):
+    jobs = [
+        JobConfig(
+            type=JobType.copr_build,
+            trigger=JobConfigTriggerType.pull_request,
+            metadata=JobMetadataConfig(
+                _targets=configured_targets, use_internal_tf=use_internal_tf
+            ),
+        )
+    ]
+    copr_build_helper = CoprBuildJobHelper(
+        service_config=flexmock(),
+        package_config=PackageConfig(jobs=jobs),
+        job_config=jobs[0],
+        project=flexmock(),
+        metadata=flexmock(pr_id=None),
+        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+    )
+    assert copr_build_helper.test_target2build_target(test_target) == build_target
 
 
 @pytest.mark.parametrize(
@@ -509,7 +703,7 @@ def test_koji_targets_overrides(
         project=flexmock(),
         metadata=flexmock(),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
-        targets_override=targets_override,
+        build_targets_override=targets_override,
     )
     assert koji_build_helper.build_targets == build_targets
 
