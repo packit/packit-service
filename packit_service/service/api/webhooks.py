@@ -207,12 +207,16 @@ class GitlabWebhook(Resource):
                 {"namespace": parsed_url.namespace, "repo_name": parsed_url.repo},
                 config.gitlab_token_secret,
                 algorithm="HS256",
-            ).decode("utf-8")
+            )
+            if isinstance(token_project, bytes):
+                token_project = token_project.decode("utf-8")
             token_group = jwt.encode(
                 {"namespace": parsed_url.namespace},
                 config.gitlab_token_secret,
                 algorithm="HS256",
-            ).decode("utf-8")
+            )
+            if isinstance(token_group, bytes):
+                token_group = token_group.decode("utf-8")
 
             project = config.get_project(url=http_url)
             packit_user = project.service.user.get_username()
