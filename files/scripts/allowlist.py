@@ -149,7 +149,7 @@ def waiting(ctx):
         click.echo(f"{i}. {namespace}")
 
     if choice := click.prompt(
-        "Do you wish to allowlist namespace or repository?",
+        f"Approve request number (1-{len(waiting_list)})",
         type=click.types.IntRange(min=min(1, len(waiting_list)), max=len(waiting_list)),
     ):
         click.echo()
