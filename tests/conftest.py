@@ -326,6 +326,20 @@ def cache_clear(request):
 
 
 @pytest.fixture()
+def koji_build_scratch_start():
+    with open(DATA_DIR / "fedmsg" / "koji_build_scratch_start.json", "r") as outfile:
+        # We are using the final format used by parser.
+        return json.load(outfile)
+
+
+@pytest.fixture()
+def koji_build_scratch_end():
+    with open(DATA_DIR / "fedmsg" / "koji_build_scratch_end.json", "r") as outfile:
+        # We are using the final format used by parser.
+        return json.load(outfile)
+
+
+@pytest.fixture()
 def koji_build_start_old_format():
     with open(DATA_DIR / "fedmsg" / "koji_build_start_old_format.json", "r") as outfile:
         return load_the_message_from_file(outfile)
