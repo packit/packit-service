@@ -345,6 +345,13 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
             raise ex
 
+    def get_job_config_index(self) -> int:
+        """
+        Get index of the job config in the package config.
+        (Index is being submitted to Copr via source script.)
+        """
+        return self.package_config.jobs.index(self.job_config)
+
     def run_copr_build_from_source_script(self) -> TaskResults:
         """
         Run copr build using custom source method.
@@ -359,7 +366,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 target_branch=self.project.get_pr(pr_id).target_branch
                 if pr_id
                 else None,
-                job_config=self.job_config,
+                job_config_index=self.get_job_config_index(),
             )
             build_id, web_url = self.submit_copr_build(script=script)
         except Exception as ex:
