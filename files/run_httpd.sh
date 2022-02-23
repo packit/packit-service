@@ -16,4 +16,6 @@ do
 done
 popd  # pushd /src
 
+export PACKIT_SERVICE_CONFIG="${HOME}/.config/packit-service.yaml"
+
 httpd -DFOREGROUND
