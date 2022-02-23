@@ -2113,3 +2113,73 @@ def test_get_packit_copr_download_urls(github_pr_event):
     helper.service_config.deployment = Deployment.prod
 
     assert helper.get_packit_copr_download_urls() == urls
+
+
+@pytest.mark.parametrize(
+    "package_config,job_config,result",
+    [
+        (
+            PackageConfig(
+                jobs=[
+                    JobConfig(
+                        type=JobType.copr_build,
+                        trigger=JobConfigTriggerType.pull_request,
+                        metadata=JobMetadataConfig(_targets=["fedora-all"]),
+                    ),
+                    JobConfig(
+                        type=JobType.tests,
+                        trigger=JobConfigTriggerType.pull_request,
+                    ),
+                ]
+            ),
+            JobConfig(
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
+                metadata=JobMetadataConfig(_targets=["fedora-all"]),
+            ),
+            0,
+        ),
+        (
+            PackageConfig(
+                jobs=[
+                    JobConfig(
+                        type=JobType.tests,
+                        trigger=JobConfigTriggerType.commit,
+                    ),
+                    JobConfig(
+                        type=JobType.copr_build,
+                        trigger=JobConfigTriggerType.commit,
+                        metadata=JobMetadataConfig(_targets=["fedora-all"]),
+                    ),
+                    JobConfig(
+                        type=JobType.copr_build,
+                        trigger=JobConfigTriggerType.pull_request,
+                        metadata=JobMetadataConfig(_targets=["fedora-all"]),
+                    ),
+                    JobConfig(
+                        type=JobType.tests,
+                        trigger=JobConfigTriggerType.pull_request,
+                    ),
+                ]
+            ),
+            JobConfig(
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
+                metadata=JobMetadataConfig(_targets=["fedora-all"]),
+            ),
+            2,
+        ),
+    ],
+)
+def test_get_job_config_index(package_config, job_config, result):
+    assert (
+        CoprBuildJobHelper(
+            package_config=package_config,
+            job_config=job_config,
+            service_config=None,
+            project=None,
+            metadata=None,
+            db_trigger=None,
+        ).get_job_config_index()
+        == result
+    )
