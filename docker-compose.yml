@@ -6,7 +6,7 @@ services:
     container_name: redis
     ports:
       - 6379:6379
-    user: "123123"
+    user: "1024"
 
   redis-commander:
     container_name: redis-commander
@@ -19,7 +19,7 @@ services:
       - 8081:8081
     depends_on:
       - redis
-    user: "123123"
+    user: "1024"
 
   flower:
     image: docker.io/mher/flower
@@ -31,7 +31,7 @@ services:
     environment:
       FLOWER_DEBUG: "True"
       CELERY_BROKER_URL: redis://redis:6379/0
-    user: "123123"
+    user: "1024"
 
   postgres:
     container_name: postgres
@@ -80,7 +80,7 @@ services:
       - ./secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
       - ./secrets/packit/dev/private-key.pem:/secrets/private-key.pem:ro,z
       #- .:/src:ro,z
-    user: "123123"
+    user: "1024"
 
   service:
     container_name: service
@@ -114,7 +114,7 @@ services:
       - ./secrets/packit/dev/private-key.pem:/secrets/private-key.pem:ro,z
       - ./secrets/packit/dev/fullchain.pem:/secrets/fullchain.pem:ro,z
       - ./secrets/packit/dev/privkey.pem:/secrets/privkey.pem:ro,z
-    user: "123123"
+    user: "1024"
 
   fedora-messaging:
     container_name: fedora-messaging
@@ -128,7 +128,7 @@ services:
     volumes:
       # get it from secrets
       - ./secrets/packit/dev/fedora.toml:/home/packit/.config/fedora.toml:ro,Z
-    user: "123123"
+    user: "1024"
 
   centosmsg:
     container_name: centosmsg
@@ -142,7 +142,7 @@ services:
     volumes:
       - ./secrets/packit/dev/centos-server-ca.cert:/secrets/centos-server-ca.cert:ro,Z
       - ./secrets/packit/dev/centos.cert:/secrets/centos.cert:ro,Z
-    user: "123123"
+    user: "1024"
 
   adminer:
     image: docker.io/adminer
@@ -151,7 +151,7 @@ services:
       - postgres
     ports:
       - 8082:8080
-    user: "123123"
+    user: "1024"
 
   beat:
     container_name: beat
@@ -186,4 +186,4 @@ services:
       - ./secrets/packit/dev/id_rsa:/packit-ssh/id_rsa:ro,z
       - ./secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
       - ./secrets/packit/dev/private-key.pem:/secrets/private-key.pem:ro,z
-    user: "123123"
+    user: "1024"
