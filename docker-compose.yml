@@ -106,7 +106,6 @@ services:
     volumes:
       - ./packit_service:/usr/local/lib/python3.9/site-packages/packit_service:ro,z
       - ./alembic:/src/alembic:ro,z
-      - ./files/packit-httpd.conf:/etc/httpd/conf.d/packit-httpd.conf:ro,z
       # There's no secrets/ by default. You have to create (or symlink to other dir) it yourself.
       # Make sure to set `command_handler: local` since there is no kube in d-c
       - ./secrets/packit/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
