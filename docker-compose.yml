@@ -113,7 +113,10 @@ services:
 
   fedora-messaging:
     container_name: fedora-messaging
-    image: quay.io/packit/packit-service-fedmsg:dev
+    # If you want to test your changes in packit-service-fedmsg,
+    # run 'make build' in cloned packit-service-fedmsg
+    # and change this to :dev
+    image: quay.io/packit/packit-service-fedmsg:stg
     depends_on:
       - redis
     environment:
