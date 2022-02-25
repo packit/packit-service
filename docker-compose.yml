@@ -125,20 +125,6 @@ services:
       - ./secrets/packit/dev/fedora.toml:/home/packit/.config/fedora.toml:ro,Z
     user: "1024"
 
-  centosmsg:
-    container_name: centosmsg
-    image: quay.io/packit/packit-service-centosmsg:dev
-    depends_on:
-      - redis
-    environment:
-      DEPLOYMENT: dev
-      LOG_LEVEL: DEBUG
-      REDIS_SERVICE_HOST: redis
-    volumes:
-      - ./secrets/packit/dev/centos-server-ca.cert:/secrets/centos-server-ca.cert:ro,Z
-      - ./secrets/packit/dev/centos.cert:/secrets/centos.cert:ro,Z
-    user: "1024"
-
   adminer:
     image: docker.io/adminer
     container_name: adminer
