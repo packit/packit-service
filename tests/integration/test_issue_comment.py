@@ -45,6 +45,15 @@ def issue_comment_propose_downstream_event(forge):
     )
 
 
+def mock_release_class(release_class, project_class, **kwargs):
+    release = release_class(raw_release=flexmock(), project=flexmock(project_class))
+
+    for prop, value in kwargs.items():
+        flexmock(release).should_receive(prop).and_return(value)
+
+    return release
+
+
 @pytest.fixture(scope="module")
 def mock_comment(request):
     project_class, release_class, forge, author = request.param
@@ -74,14 +83,14 @@ def mock_comment(request):
     flexmock(issue).should_receive("get_comment").and_return(comment)
     flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
     flexmock(issue).should_receive("close").and_return(issue)
-    gr = release_class(
+    gr = mock_release_class(
+        release_class=release_class,
+        project_class=project_class,
         tag_name="0.5.1",
         url="packit-service/packit",
         created_at="",
         tarball_url="https://foo/bar",
         git_tag=flexmock(GitTag),
-        project=flexmock(project_class),
-        raw_release=flexmock(),
     )
     flexmock(project_class).should_receive("get_latest_release").and_return(gr)
     config = ServiceConfig()
