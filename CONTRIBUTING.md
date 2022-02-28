@@ -51,8 +51,29 @@ You can also run only certain pieces of packit-service for local development
 
 When you are running service/httpd and making requests to it,
 make sure that `server_name` configuration file in `packit-service.yaml` is set.
-Then you **need** to make requests to httpd using that hostname
-(which can be done by creating a new entry in `/etc/hosts` on your laptop).
+
+### binding on localhost
+
+```yaml
+server_name: service.localhost:8443
+```
+
+and you should be able to make requests:
+
+    $ curl -k --head https://service.localhost:8443/api/
+    HTTP/1.1 200 OK
+    Date: Wed, 23 Feb 2022 14:01:41 GMT
+    Server: Apache/2.4.51 (Fedora) OpenSSL/1.1.1l mod_wsgi/4.7.1 Python/3.9
+    Content-Length: 3824
+    Content-Type: text/html; charset=utf-8
+
+### binding on other hosts
+
+If you are not binding the service on `localhost`
+then you **need** to make requests to httpd using the hostname
+(which can be done by creating a new entry in `/etc/hosts` on your laptop)
+and you have to provide a route to that host.
+
 Flask literally checks if the request is meant for it by comparing `Host`
 from the HTTP request with the value of
 [`SERVER_NAME`](https://flask.palletsprojects.com/en/1.1.x/config/#SERVER_NAME).
