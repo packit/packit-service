@@ -20,11 +20,7 @@ DEFAULT_CELERY_COMMAND="worker"
 # Whether to run Celery worker or beat (task scheduler)
 CELERY_COMMAND="${CELERY_COMMAND:-$DEFAULT_CELERY_COMMAND}"
 
-if [[ ${DEPLOYMENT} == "prod" ]]; then
-  LOGLEVEL="${LOGLEVEL:-INFO}"
-else
-  LOGLEVEL="${LOGLEVEL:-DEBUG}"
-fi
+LOGLEVEL="${LOGLEVEL:-DEBUG}"
 
 if [[ "${CELERY_COMMAND}" == "beat" ]]; then
     # when using the database backend, celery beat must be running for the results to be expired.
