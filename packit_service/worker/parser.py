@@ -13,7 +13,6 @@ from typing import Optional, Type, Union, Dict, Any, Tuple
 from ogr.parsing import parse_git_repo
 from packit.constants import PROD_DISTGIT_URL
 from packit.utils import nested_get
-
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import (
     KojiBuildState,
@@ -62,7 +61,6 @@ from packit_service.worker.events.enums import (
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.testing_farm import TestingFarmJobHelper
-
 
 logger = logging.getLogger(__name__)
 
@@ -1195,6 +1193,8 @@ class Parser:
         )
 
 
+# TODO: Currently not used, merge in Parser or remove
+# https://github.com/packit/deployment/issues/225
 class CentosEventParser:
     """
     Class responsible for parsing events received from CentOS infrastructure
