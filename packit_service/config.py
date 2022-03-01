@@ -3,6 +3,7 @@
 
 import enum
 import logging
+import os
 from pathlib import Path
 from typing import List, Optional, Set, Union, NamedTuple
 
@@ -247,14 +248,15 @@ class ServiceConfig(Config):
     @classmethod
     def get_service_config(cls) -> "ServiceConfig":
         if cls.service_config is None:
-            directory = Path.home() / ".config"
-            config_file_name_full = directory / CONFIG_FILE_NAME
-            logger.debug(f"Loading service config from directory: {directory}")
+            config_file = os.getenv(
+                "PACKIT_SERVICE_CONFIG", Path.home() / ".config" / CONFIG_FILE_NAME
+            )
+            logger.debug(f"Loading service config from: {config_file}")
 
             try:
-                loaded_config = safe_load(open(config_file_name_full))
+                loaded_config = safe_load(open(config_file))
             except Exception as ex:
-                logger.error(f"Cannot load service config '{config_file_name_full}'.")
+                logger.error(f"Cannot load service config '{config_file}'.")
                 raise PackitException(f"Cannot load service config: {ex}.")
 
             cls.service_config = ServiceConfig.get_from_dict(raw_dict=loaded_config)

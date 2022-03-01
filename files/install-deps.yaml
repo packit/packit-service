@@ -9,14 +9,11 @@
       dnf:
         name:
           - python3-ipdb # for easy debugging
-          - python3-mod_wsgi
           - python3-click
           - git # setuptools-scm
           # httpd & deps
-          - httpd
-          - mod_md
+          - python3-mod_wsgi
           - mod_ssl
-          - nss_wrapper
           #- python3-packit # temporary workaround for sake of marhsmallow
           - python3-pip # not included in base fedora:31 image, needed for next task
           # temporary dependencies
