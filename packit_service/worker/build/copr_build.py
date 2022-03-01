@@ -10,7 +10,7 @@ from ogr.abstract import GitProject
 from ogr.parsing import parse_git_repo
 from ogr.services.github import GithubProject
 from packit.config import JobConfig, JobType
-from packit.config.aliases import get_valid_build_targets
+from packit.config.aliases import get_valid_build_targets, get_aliases
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitCoprException, PackitCoprSettingsException
 
@@ -331,10 +331,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 ).builds["latest_succeeded"]["id"]
             )
             result_url = self.api.copr_helper.copr_client.build_chroot_proxy.get(
-                latest_successful_build_id, "fedora-35-x86_64"
+                latest_successful_build_id, self.get_latest_fedora_stable_chroot()
             ).result_url
             package_nvrs = self.get_built_packages(
-                latest_successful_build_id, "fedora-35-x86_64"
+                latest_successful_build_id, self.get_latest_fedora_stable_chroot()
             )
             built_packages = get_package_nvrs(package_nvrs)
             return [f"{result_url}{package}.rpm" for package in built_packages]
@@ -393,6 +393,16 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         return TaskResults(success=True, details={})
 
+    @staticmethod
+    def get_latest_fedora_stable_chroot() -> str:
+        """
+        Get the latest stable Fedora chroot.
+
+        This is used as a chroot where the Copr source script will be run.
+        """
+        latest_fedora_stable_chroot = get_aliases().get("fedora-stable")[-1]
+        return list(get_valid_build_targets(latest_fedora_stable_chroot))[0]
+
     def submit_copr_build(self, script: Optional[str] = None) -> Tuple[int, str]:
         """
         Create the project in Copr if not exists and submit a new build using
@@ -407,6 +417,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     ownername=owner,
                     projectname=self.job_project,
                     script=script,
+                    # use the latest stable chroot
+                    script_chroot=self.get_latest_fedora_stable_chroot(),
                     script_builddeps=self.get_packit_copr_download_urls()
                     + self.package_config.srpm_build_deps,
                     buildopts={

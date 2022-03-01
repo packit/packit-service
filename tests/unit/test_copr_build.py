@@ -2028,6 +2028,9 @@ def test_run_copr_build_from_source_script(github_pr_event):
         None
     )
     flexmock(helper).should_receive("get_packit_copr_download_urls").and_return([])
+    flexmock(helper).should_receive("get_latest_fedora_stable_chroot").and_return(
+        "fedora-35-x86_64"
+    )
     flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
             config={"copr_url": "https://copr.fedorainfracloud.org/"},
@@ -2050,6 +2053,19 @@ def test_run_copr_build_from_source_script(github_pr_event):
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build_from_source_script()["success"]
+
+
+def test_get_latest_fedora_stable_chroot(github_pr_event):
+    flexmock(packit.config.aliases).should_receive("get_aliases").and_return(
+        {"fedora-stable": ["fedora-34", "fedora-35"]}
+    )
+    flexmock(packit_service.worker.build.copr_build).should_receive(
+        "get_valid_build_targets"
+    ).with_args("fedora-35").and_return({"fedora-35-x86_64"})
+    assert (
+        build_helper(github_pr_event).get_latest_fedora_stable_chroot()
+        == "fedora-35-x86_64"
+    )
 
 
 def test_get_packit_copr_download_urls(github_pr_event):
@@ -2105,11 +2121,14 @@ def test_get_packit_copr_download_urls(github_pr_event):
             .mock(),
         )
     )
+    helper = build_helper(event=github_pr_event)
+    flexmock(helper).should_receive("get_latest_fedora_stable_chroot").and_return(
+        "fedora-35-x86_64"
+    )
     urls = [
         "https://results/python3-packit-0.38.0-1.2.noarch.rpm",
         "https://results/packit-0.38.0-1.2.noarch.rpm",
     ]
-    helper = build_helper(event=github_pr_event)
     helper.service_config.deployment = Deployment.prod
 
     assert helper.get_packit_copr_download_urls() == urls
