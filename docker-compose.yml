@@ -71,15 +71,12 @@ services:
       AWS_SECRET_ACCESS_KEY: ""
     volumes:
       - ./packit_service:/usr/local/lib/python3.9/site-packages/packit_service:ro,z
-      # worker should not require packit-service.yaml
       - ./secrets/packit/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
       - ./secrets/packit/dev/copr:/home/packit/.config/copr:ro,z
       - ./secrets/packit/dev/ssh_config:/packit-ssh/config:ro,z
       - ./secrets/packit/dev/id_rsa.pub:/packit-ssh/id_rsa.pub:ro,z
       - ./secrets/packit/dev/id_rsa:/packit-ssh/id_rsa:ro,z
       - ./secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
-      - ./secrets/packit/dev/private-key.pem:/secrets/private-key.pem:ro,z
-      #- .:/src:ro,z
     user: "1024"
 
   service:
@@ -110,14 +107,16 @@ services:
       # Make sure to set `command_handler: local` since there is no kube in d-c
       - ./secrets/packit/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
       - ./secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
-      - ./secrets/packit/dev/private-key.pem:/secrets/private-key.pem:ro,z
       - ./secrets/packit/dev/fullchain.pem:/secrets/fullchain.pem:ro,z
       - ./secrets/packit/dev/privkey.pem:/secrets/privkey.pem:ro,z
     user: "1024"
 
   fedora-messaging:
     container_name: fedora-messaging
-    image: quay.io/packit/packit-service-fedmsg:dev
+    # If you want to test your changes in packit-service-fedmsg,
+    # run 'make build' in cloned packit-service-fedmsg
+    # and change this to :dev
+    image: quay.io/packit/packit-service-fedmsg:stg
     depends_on:
       - redis
     environment:
@@ -127,20 +126,6 @@ services:
     volumes:
       # get it from secrets
       - ./secrets/packit/dev/fedora.toml:/home/packit/.config/fedora.toml:ro,Z
-    user: "1024"
-
-  centosmsg:
-    container_name: centosmsg
-    image: quay.io/packit/packit-service-centosmsg:dev
-    depends_on:
-      - redis
-    environment:
-      DEPLOYMENT: dev
-      LOG_LEVEL: DEBUG
-      REDIS_SERVICE_HOST: redis
-    volumes:
-      - ./secrets/packit/dev/centos-server-ca.cert:/secrets/centos-server-ca.cert:ro,Z
-      - ./secrets/packit/dev/centos.cert:/secrets/centos.cert:ro,Z
     user: "1024"
 
   adminer:
@@ -184,5 +169,4 @@ services:
       - ./secrets/packit/dev/id_rsa.pub:/packit-ssh/id_rsa.pub:ro,z
       - ./secrets/packit/dev/id_rsa:/packit-ssh/id_rsa:ro,z
       - ./secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
-      - ./secrets/packit/dev/private-key.pem:/secrets/private-key.pem:ro,z
     user: "1024"
