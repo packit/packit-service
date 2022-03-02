@@ -23,7 +23,7 @@ CELERY_COMMAND="${CELERY_COMMAND:-$DEFAULT_CELERY_COMMAND}"
 if [[ "${CELERY_COMMAND}" == "beat" ]]; then
     # when using the database backend, celery beat must be running for the results to be expired.
     # https://docs.celeryproject.org/en/stable/userguide/periodic-tasks.html#starting-the-scheduler
-    exec celery --app="${APP}" beat --loglevel="${LOGLEVEL}" --pidfile=/tmp/celerybeat.pid --schedule=/tmp/celerybeat-schedule
+    exec celery --app="${APP}" beat --loglevel="${LOGLEVEL:-DEBUG}" --pidfile=/tmp/celerybeat.pid --schedule=/tmp/celerybeat-schedule
 
 elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     # define queues to serve
