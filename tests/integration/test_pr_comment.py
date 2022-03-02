@@ -21,6 +21,7 @@ from packit_service.constants import (
     SANDCASTLE_WORK_DIR,
     TASK_ACCEPTED,
     PG_BUILD_STATUS_SUCCESS,
+    COMMENT_REACTION,
 )
 from packit_service.models import (
     PullRequestModel,
@@ -193,7 +194,7 @@ def test_pr_comment_copr_build_handler(
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
     flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
 
     processing_results = SteveJobs().process_message(pr_copr_build_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -252,7 +253,7 @@ def test_pr_comment_build_handler(
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
     flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
 
     processing_results = SteveJobs().process_message(pr_build_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -311,7 +312,7 @@ def test_pr_comment_build_test_handler(
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
     flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
 
     processing_results = SteveJobs().process_message(pr_build_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -380,7 +381,7 @@ def test_pr_comment_build_build_and_test_handler(
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
     flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
 
     processing_results = SteveJobs().process_message(pr_build_comment_event)
     assert len(processing_results) == 2
@@ -470,7 +471,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
     flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
 
     processing_results = SteveJobs().process_message(pr_production_build_comment_event)
     event_dict, job, job_config, package_config = get_parameters_from_results(
@@ -558,7 +559,7 @@ def test_pr_embedded_command_handler(
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
     flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
         description=TASK_ACCEPTED,
@@ -680,7 +681,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
     flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
@@ -764,7 +765,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
     flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
@@ -938,7 +939,7 @@ def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
     flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
@@ -1030,7 +1031,7 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
     flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
     gh_project = flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
@@ -1148,7 +1149,7 @@ def test_rebuild_failed(
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
     flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
 
     model = flexmock(CoprBuildTargetModel, status="failed", target="target")
@@ -1202,7 +1203,7 @@ def test_retest_failed(
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
     flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
 
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,

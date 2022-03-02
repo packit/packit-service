@@ -19,7 +19,7 @@ from packit.distgit import DistGit
 from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
-from packit_service.constants import SANDCASTLE_WORK_DIR
+from packit_service.constants import SANDCASTLE_WORK_DIR, COMMENT_REACTION
 from packit_service.models import IssueModel
 from packit_service.worker.events import IssueCommentEvent, IssueCommentGitlabEvent
 from packit_service.worker.jobs import SteveJobs
@@ -62,7 +62,7 @@ def mock_comment(request):
     flexmock(project_class).should_receive("get_issue").and_return(issue)
     comment = flexmock()
     flexmock(issue).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args("+1").once()
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
     flexmock(issue).should_receive("close").and_return(issue)
     gr = release_class(
         tag_name="0.5.1",

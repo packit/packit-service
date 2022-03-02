@@ -136,6 +136,8 @@ DEFAULT_MAPPING_INTERNAL_TF = {
     "epel-9": "centos-stream-9",
 }
 
+COMMENT_REACTION = "eyes"
+
 
 class KojiTaskState(Enum):
     """

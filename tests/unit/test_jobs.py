@@ -8,6 +8,7 @@ from flexmock import flexmock
 
 from packit.config import JobConfig, JobConfigTriggerType, JobType
 from packit.config.job_config import JobMetadataConfig
+from packit_service.constants import COMMENT_REACTION
 from packit_service.worker.events import (
     CoprBuildEndEvent,
     CoprBuildStartEvent,
@@ -1001,7 +1002,9 @@ def test_get_handlers_for_comment_event(event_cls, comment, db_trigger, jobs, re
     if comment:
         comment_object = flexmock()
         event._comment_object = comment_object
-        flexmock(comment_object).should_receive("add_reaction").with_args("+1").once()
+        flexmock(comment_object).should_receive("add_reaction").with_args(
+            COMMENT_REACTION
+        ).once()
 
     event_handlers = set(
         get_handlers_for_event(
