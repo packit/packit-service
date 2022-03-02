@@ -233,8 +233,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
     def test_target2build_target(self, test_target: str) -> str:
         """
-        Return build target to build in needed for testing in test target
-        (from configuration or from default mapping).
+        Return build target to build in needed for testing in test target.
+        Go through the not mapped test targets (self.test_targets_all)
+        and for each check the mapped test targets, if test_target is
+        in mapped test targets, return the target that was mapped.
 
         Examples:
         configuration:
@@ -254,25 +256,25 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 targets:
                       fedora-35-x86_64
 
+
         helper.test_target2build_target("fedora-35-x86_64") -> "fedora-35-x86_64"
+
+        configuration:
+          - job: tests
+            trigger: pull_request
+            metadata:
+                targets:
+                      centos-stream-8-x86_64
+
+
+        helper.test_target2build_target("centos-stream-8-x86_64") -> "centos-stream-8-x86_64"
         """
-        distro, arch = test_target.rsplit("-", 1)
-        for chroot in self.job_config.metadata.targets:
-            distros_dict = self.job_config.metadata.targets_dict.get(chroot, {})
-            if distros_dict and distro in distros_dict.get("distros"):
-                chroot_split = chroot.rsplit("-", maxsplit=2)
-                return f"{chroot}-{arch}" if len(chroot_split) == 2 else chroot
+        for target in self.tests_targets_all:
+            if test_target in self.build_target2test_targets(target):
+                logger.debug(f"Build target corresponding to {test_target}: {target}")
+                return target
 
-        mapping = (
-            DEFAULT_MAPPING_INTERNAL_TF
-            if self.job_config.metadata.use_internal_tf
-            else DEFAULT_MAPPING_TF
-        )
-        for build_target, test_target in mapping.items():
-            if test_target == distro:
-                return f"{build_target}-{arch}"
-
-        return f"{distro}-{arch}"
+        return test_target
 
     @property
     def available_chroots(self) -> Set[str]:
