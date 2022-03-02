@@ -13,7 +13,7 @@ from celery import group
 from packit.config import JobConfig, PackageConfig
 
 from packit_service.config import ServiceConfig
-from packit_service.constants import TASK_ACCEPTED
+from packit_service.constants import TASK_ACCEPTED, COMMENT_REACTION
 from packit_service.log_versions import log_job_versions
 from packit_service.worker.events.comment import AbstractCommentEvent
 from packit_service.worker.events import (
@@ -90,7 +90,7 @@ def get_handlers_for_event(
         if handlers_triggered_by_comment and not isinstance(
             event, PullRequestCommentPagureEvent
         ):
-            event.comment_object.add_reaction("+1")
+            event.comment_object.add_reaction(COMMENT_REACTION)
 
     if isinstance(event, CheckRerunEvent):
         handlers_triggered_by_check_rerun = get_handlers_for_check_rerun(
