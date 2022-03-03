@@ -715,7 +715,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(copr_build).should_receive("get_valid_build_targets").twice().and_return(
+    flexmock(copr_build).should_receive("get_valid_build_targets").times(3).and_return(
         {"test-target"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
@@ -1218,7 +1218,7 @@ def test_retest_failed(
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(copr_build).should_receive("get_valid_build_targets").twice().and_return(
+    flexmock(copr_build).should_receive("get_valid_build_targets").times(3).and_return(
         {"test-target"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(

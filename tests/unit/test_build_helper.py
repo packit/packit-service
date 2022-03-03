@@ -479,6 +479,100 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
             {"centos-7-x86_64", "rhel-7-x86_64"},
             id="build_test_mapping_build_overrides",
         ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(_targets=["centos-stream-8"]),
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            None,
+            {"centos-stream-8-x86_64"},
+            {"centos-stream-8-x86_64"},
+            {"centos-stream-8-x86_64"},
+            id="targets_in_tests_no_mapping",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(_targets=["centos-stream-8"]),
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            JobConfigTriggerType.pull_request,
+            None,
+            {"centos-stream-8-x86_64"},
+            {"centos-stream-8-x86_64"},
+            {"centos-stream-8-x86_64"},
+            id="targets_in_build_no_mapping",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(_targets=["epel-7-x86_64"]),
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            {"epel-7-x86_64"},
+            None,
+            {"epel-7-x86_64"},
+            {"centos-7-x86_64"},
+            id="default_mapping_build_override",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(_targets=["epel-7-x86_64"]),
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            None,
+            {"centos-7-x86_64"},
+            {"epel-7-x86_64"},
+            {"centos-7-x86_64"},
+            id="default_mapping_test_override",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(_targets=["epel-7-ppc64le"]),
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            {"epel-7-ppc64le"},
+            None,
+            {"epel-7-ppc64le"},
+            {"centos-7-ppc64le"},
+            id="default_mapping_build_override_different_arch",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(_targets=["epel-7-ppc64le"]),
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            None,
+            {"centos-7-ppc64le"},
+            {"epel-7-ppc64le"},
+            {"centos-7-ppc64le"},
+            id="default_mapping_test_override_different_arch",
+        ),
     ],
 )
 def test_copr_targets_overrides(
@@ -511,6 +605,12 @@ def test_copr_targets_overrides(
     flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
         "epel-7-x86_64", default=None
     ).and_return({"epel-7-x86_64"})
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        "epel-7-ppc64le", default=None
+    ).and_return({"epel-7-ppc64le"})
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        "centos-stream-8", default=None
+    ).and_return({"centos-stream-8-x86_64"})
     assert copr_build_helper.build_targets == build_targets
     assert copr_build_helper.tests_targets == test_targets
 
@@ -593,64 +693,134 @@ def test_copr_build_target2test_targets(
 
 
 @pytest.mark.parametrize(
-    "configured_targets,use_internal_tf,test_target,build_target",
+    "job_config,test_target,build_target",
     [
         pytest.param(
-            STABLE_VERSIONS,
-            False,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                )
+            ],
             "fedora-32-x86_64",
             "fedora-32-x86_64",
             id="default_mapping",
         ),
         pytest.param(
-            {"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
-            False,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(
+                        _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}}
+                    ),
+                )
+            ],
             "centos-7-x86_64",
             "epel-7-x86_64",
             id="mapping_defined_in_config1",
         ),
         pytest.param(
-            {"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
-            False,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(
+                        _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}}
+                    ),
+                )
+            ],
             "rhel-7-x86_64",
             "epel-7-x86_64",
             id="mapping_defined_in_config2",
         ),
         pytest.param(
-            {"epel-7": {"distros": ["centos-7", "rhel-7"]}},
-            False,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(
+                        _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}}
+                    ),
+                )
+            ],
             "rhel-7-x86_64",
             "epel-7-x86_64",
             id="mapping_defined_in_config_without_arch",
         ),
         pytest.param(
-            ["epel-7-x86_64"],
-            False,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(_targets=["epel-7-x86_64"]),
+                )
+            ],
             "centos-7-x86_64",
             "epel-7-x86_64",
             id="public_tf_default_mapping",
         ),
         pytest.param(
-            ["epel-7-x86_64"],
-            True,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(
+                        _targets=["epel-7-x86_64"], use_internal_tf=True
+                    ),
+                )
+            ],
             "rhel-7-x86_64",
             "epel-7-x86_64",
             id="internal_tf_default_mapping",
         ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(_targets=["centos-stream-9-x86_64"]),
+                )
+            ],
+            "centos-stream-9-x86_64",
+            "centos-stream-9-x86_64",
+            id="no_mapping",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(_targets=["centos-stream-9-x86_64"]),
+                ),
+            ],
+            "centos-stream-9-x86_64",
+            "centos-stream-9-x86_64",
+            id="no_mapping_targets_defined_in_build",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    metadata=JobMetadataConfig(
+                        _targets=["centos-stream-9-x86_64"], use_internal_tf=True
+                    ),
+                )
+            ],
+            "centos-stream-9-x86_64",
+            "centos-stream-9-x86_64",
+            id="no_mapping_internal_tf",
+        ),
     ],
 )
-def test_copr_test_target2build_target(
-    configured_targets, use_internal_tf, test_target, build_target
-):
-    jobs = [
-        JobConfig(
-            type=JobType.copr_build,
-            trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(
-                _targets=configured_targets, use_internal_tf=use_internal_tf
-            ),
-        )
-    ]
+def test_copr_test_target2build_target(job_config, test_target, build_target):
+    jobs = job_config
     copr_build_helper = CoprBuildJobHelper(
         service_config=flexmock(),
         package_config=PackageConfig(jobs=jobs),
@@ -659,6 +829,18 @@ def test_copr_test_target2build_target(
         metadata=flexmock(pr_id=None),
         db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
     )
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        "fedora-31", "fedora-32", default=None
+    ).and_return(STABLE_CHROOTS)
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        "fedora-32", "fedora-31", default=None
+    ).and_return(STABLE_CHROOTS)
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        "centos-stream-9-x86_64", default=None
+    ).and_return({"centos-stream-9-x86_64"})
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        "epel-7-x86_64", default=None
+    ).and_return({"epel-7-x86_64"})
     assert copr_build_helper.test_target2build_target(test_target) == build_target
 
 
