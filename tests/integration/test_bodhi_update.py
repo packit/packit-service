@@ -64,7 +64,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
         dist_git_branch="rawhide",
         update_type="enhancement",
         update_notes=DEFAULT_BODHI_NOTE,
-        koji_builds=["1864700"],
+        koji_builds=["packit-0.43.0-1.fc36"],
     )
 
     # Database structure
@@ -213,7 +213,7 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
         dist_git_branch="rawhide",
         update_type="enhancement",
         update_notes=DEFAULT_BODHI_NOTE,
-        koji_builds=["1864700"],
+        koji_builds=["packit-0.43.0-1.fc36"],
     )
 
     # Database structure
@@ -348,7 +348,7 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f35):
         dist_git_branch="f35",
         update_type="enhancement",
         update_notes=DEFAULT_BODHI_NOTE,
-        koji_builds=["1874070"],
+        koji_builds=["python-ogr-0.34.0-1.fc35"],
     ).once()
 
     # Database not touched
