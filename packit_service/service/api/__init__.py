@@ -14,6 +14,7 @@ from packit_service.service.api.testing_farm import ns as testing_farm_ns
 from packit_service.service.api.webhooks import ns as webhooks_ns
 from packit_service.service.api.allowlist import ns as allowlist_ns
 from packit_service.service.api.runs import ns as runs_ns
+from packit_service.service.api.propose_downstream import ns as propose_downstream_ns
 
 # https://flask-restplus.readthedocs.io/en/stable/scaling.html
 blueprint = Blueprint("api", __name__, url_prefix="/api")
@@ -34,3 +35,4 @@ api.add_namespace(allowlist_ns)
 api.add_namespace(koji_builds_ns)
 api.add_namespace(srpm_builds_ns)
 api.add_namespace(runs_ns)
+api.add_namespace(propose_downstream_ns)

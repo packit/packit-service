@@ -3,7 +3,12 @@
 
 from flask import url_for
 
-from packit_service.models import TestingFarmResult, PipelineModel
+from packit_service.models import (
+    TestingFarmResult,
+    PipelineModel,
+    ProposeDownstreamStatus,
+    ProposeDownstreamTargetStatus,
+)
 from packit_service.service.api.runs import process_runs
 from tests_openshift.conftest import SampleValues
 
@@ -462,3 +467,105 @@ def test_process_runs_without_build(clean_before_and_after, runs_without_build):
         assert item["time_submitted"]
         assert len(item["test_run"]) == 1
         assert item["trigger"]
+
+
+def test_propose_downstream_list_releases(
+    client,
+    clean_before_and_after,
+    multiple_propose_downstream_runs_with_propose_downstream_targets_release_trigger,
+):
+    response = client.get(url_for("api.propose-downstream_propose_downstream_list"))
+    response_dict = response.json
+
+    # the order is reversed
+    response_dict.reverse()
+    assert response_dict[0]["status"] == ProposeDownstreamStatus.running
+    assert response_dict[1]["status"] == ProposeDownstreamStatus.error
+    assert response_dict[0]["submitted_time"] is not None
+    assert response_dict[0]["release"] == SampleValues.tag_name
+    assert response_dict[2]["release"] == SampleValues.different_tag_name
+
+    assert (
+        response_dict[0]["status_per_downstream_pr"]["unknown"]
+        == ProposeDownstreamTargetStatus.queued
+    )
+    assert (
+        response_dict[0]["status_per_downstream_pr"][SampleValues.branch]
+        == ProposeDownstreamTargetStatus.running
+    )
+
+    assert response_dict[0]["repo_namespace"] == SampleValues.repo_namespace
+    assert response_dict[0]["repo_name"] == SampleValues.repo_name
+    assert response_dict[0]["project_url"] == SampleValues.project_url
+
+    assert len(response_dict) == 4
+
+
+def test_propose_downstream_list_issues(
+    client,
+    clean_before_and_after,
+    multiple_propose_downstream_runs_with_propose_downstream_targets_issue_trigger,
+):
+    response = client.get(url_for("api.propose-downstream_propose_downstream_list"))
+    response_dict = response.json
+
+    # the order is reversed
+    response_dict.reverse()
+    assert response_dict[0]["status"] == ProposeDownstreamStatus.running
+    assert response_dict[3]["status"] == ProposeDownstreamStatus.finished
+    assert response_dict[0]["submitted_time"] is not None
+    assert response_dict[0]["issue_id"] == SampleValues.issue_id
+    assert response_dict[3]["issue_id"] == SampleValues.different_issue_id
+
+    assert (
+        response_dict[0]["status_per_downstream_pr"][SampleValues.branch]
+        == ProposeDownstreamTargetStatus.retry
+    )
+    assert (
+        response_dict[0]["status_per_downstream_pr"][SampleValues.different_branch]
+        == ProposeDownstreamTargetStatus.error
+    )
+
+    assert response_dict[0]["repo_namespace"] == SampleValues.repo_namespace
+    assert response_dict[0]["repo_name"] == SampleValues.repo_name
+    assert response_dict[0]["project_url"] == SampleValues.project_url
+
+    assert len(response_dict) == 4
+
+
+def test_detailed_propose_info_release(
+    client, clean_before_and_after, propose_model_submitted_release
+):
+    response = client.get(
+        url_for(
+            "api.propose-downstream_propose_result",
+            id=propose_model_submitted_release.id,
+        )
+    )
+    response_dict = response.json
+
+    assert response_dict["status"] == ProposeDownstreamTargetStatus.submitted
+    assert response_dict["branch"] == SampleValues.branch
+    assert response_dict["downstream_pr_url"] == SampleValues.downstream_pr_url
+    assert response_dict["submitted_time"] is not None
+    assert response_dict["finished_time"] is not None
+    assert response_dict["logs"] == "random logs"
+
+    # Project info:
+    assert response_dict["repo_namespace"] == SampleValues.repo_namespace
+    assert response_dict["repo_name"] == SampleValues.repo_name
+    assert response_dict["git_repo"] == SampleValues.project_url
+    assert response_dict["release"] == SampleValues.tag_name
+
+
+def test_detailed_propose_info_issue(
+    client, clean_before_and_after, propose_model_submitted_issue
+):
+    response = client.get(
+        url_for(
+            "api.propose-downstream_propose_result", id=propose_model_submitted_issue.id
+        )
+    )
+    response_dict = response.json
+
+    assert response_dict["issue_id"] == SampleValues.issue_id

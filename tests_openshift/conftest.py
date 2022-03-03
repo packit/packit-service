@@ -12,6 +12,7 @@ $ docker-compose -d postgres
 $ alembic upgrade head
 ```
 """
+import datetime
 
 import pytest
 
@@ -36,6 +37,10 @@ from packit_service.models import (
     GithubInstallationModel,
     BugzillaModel,
     ProjectAuthenticationIssueModel,
+    ProposeDownstreamTargetModel,
+    ProposeDownstreamTargetStatus,
+    ProposeDownstreamModel,
+    ProposeDownstreamStatus,
 )
 from packit_service.worker.events import InstallationEvent
 
@@ -49,6 +54,7 @@ class SampleValues:
     repo_name = "the-repo-name"
     different_project_name = "different-project-name"
     project_url = "https://github.com/the-namespace/the-repo-name"
+    downstream_pr_url = "propose-downstream-pr-url"
     https_url = "https://github.com/the-namespace/the-repo-name.git"
     pagure_project_url = "https://git.stg.centos.org/the-namespace/the-repo-name"
     project = "the-project-name"
@@ -56,10 +62,12 @@ class SampleValues:
     ref = "80201a74d96c"
     different_ref = "123456789012"
     branch = "build-branch"
+    different_branch = "different-branch"
     commit_sha = "80201a74d96c"
     different_commit_sha = "687abc76d67d"
     pr_id = 342
     tag_name = "v1.0.2"
+    different_tag_name = "v1.2.3"
 
     # gitlab
     mr_id = 2
@@ -101,6 +109,7 @@ class SampleValues:
 
     # Issues
     issue_id = 2020
+    different_issue_id = 987
     built_packages = [
         {
             "arch": "noarch",
@@ -159,6 +168,8 @@ def clean_db():
         session.query(CoprBuildTargetModel).delete()
         session.query(KojiBuildTargetModel).delete()
         session.query(SRPMBuildModel).delete()
+        session.query(ProposeDownstreamTargetModel).delete()
+        session.query(ProposeDownstreamModel).delete()
 
         session.query(GitBranchModel).delete()
         session.query(ProjectReleaseModel).delete()
@@ -228,6 +239,17 @@ def release_model():
 
 
 @pytest.fixture()
+def different_release_model():
+    yield ProjectReleaseModel.get_or_create(
+        tag_name=SampleValues.different_tag_name,
+        commit_hash=SampleValues.different_commit_sha,
+        namespace=SampleValues.repo_namespace,
+        repo_name=SampleValues.repo_name,
+        project_url=SampleValues.project_url,
+    )
+
+
+@pytest.fixture()
 def branch_model():
     yield GitBranchModel.get_or_create(
         branch_name=SampleValues.branch,
@@ -245,6 +267,68 @@ def branch_model_gitlab():
         repo_name=SampleValues.gitlab_repo_name,
         project_url=SampleValues.gitlab_project_url,
     )
+
+
+@pytest.fixture()
+def propose_model():
+    yield ProposeDownstreamTargetModel.create(
+        status=ProposeDownstreamTargetStatus.running
+    )
+
+
+@pytest.fixture()
+def propose_downstream_model_release(release_model):
+    propose_downstream_model, _ = ProposeDownstreamModel.create_with_new_run(
+        status=ProposeDownstreamStatus.running,
+        trigger_model=release_model,
+    )
+    yield propose_downstream_model
+
+
+@pytest.fixture()
+def propose_downstream_model_issue(an_issue_model):
+    propose_downstream_model, _ = ProposeDownstreamModel.create_with_new_run(
+        status=ProposeDownstreamStatus.running,
+        trigger_model=an_issue_model,
+    )
+    yield propose_downstream_model
+
+
+@pytest.fixture()
+def propose_model_submitted():
+    propose_downstream_target = ProposeDownstreamTargetModel.create(
+        status=ProposeDownstreamTargetStatus.submitted
+    )
+    propose_downstream_target.set_branch(branch=SampleValues.branch)
+    propose_downstream_target.set_downstream_pr_url(
+        downstream_pr_url=SampleValues.downstream_pr_url
+    )
+    propose_downstream_target.set_finished_time(
+        finished_time=datetime.datetime.utcnow()
+    )
+    propose_downstream_target.set_logs(logs="random logs")
+
+    yield propose_downstream_target
+
+
+@pytest.fixture()
+def propose_model_submitted_release(
+    propose_downstream_model_release, propose_model_submitted
+):
+    propose_downstream = propose_downstream_model_release
+    propose_downstream_target = propose_model_submitted
+    propose_downstream.propose_downstream_targets.append(propose_downstream_target)
+    yield propose_downstream_target
+
+
+@pytest.fixture()
+def propose_model_submitted_issue(
+    propose_downstream_model_issue, propose_model_submitted
+):
+    propose_downstream = propose_downstream_model_issue
+    propose_downstream_target = propose_model_submitted
+    propose_downstream.propose_downstream_targets.append(propose_downstream_target)
+    yield propose_downstream_target
 
 
 @pytest.fixture()
@@ -333,6 +417,16 @@ def bugzilla_model():
 def an_issue_model():
     yield IssueModel.get_or_create(
         issue_id=SampleValues.issue_id,
+        namespace=SampleValues.repo_namespace,
+        repo_name=SampleValues.repo_name,
+        project_url=SampleValues.project_url,
+    )
+
+
+@pytest.fixture()
+def different_issue_model():
+    yield IssueModel.get_or_create(
+        issue_id=SampleValues.different_issue_id,
         namespace=SampleValues.repo_namespace,
         repo_name=SampleValues.repo_name,
         project_url=SampleValues.project_url,
@@ -794,6 +888,118 @@ def multiple_new_test_runs(pr_model, different_pr_model):
             status=TestingFarmResult.running,
             run_model=run_model_for_a_different_pr,
         ),
+    ]
+
+
+@pytest.fixture()
+def multiple_propose_downstream_runs_release_trigger(
+    release_model, different_release_model
+):
+    propose_downstream_model1, _ = ProposeDownstreamModel.create_with_new_run(
+        status=ProposeDownstreamStatus.running,
+        trigger_model=release_model,
+    )
+    propose_downstream_model2, _ = ProposeDownstreamModel.create_with_new_run(
+        status=ProposeDownstreamStatus.error,
+        trigger_model=release_model,
+    )
+    propose_downstream_model3, _ = ProposeDownstreamModel.create_with_new_run(
+        status=ProposeDownstreamStatus.running,
+        trigger_model=different_release_model,
+    )
+    propose_downstream_model4, _ = ProposeDownstreamModel.create_with_new_run(
+        status=ProposeDownstreamStatus.finished,
+        trigger_model=different_release_model,
+    )
+
+    yield [
+        propose_downstream_model1,
+        propose_downstream_model2,
+        propose_downstream_model3,
+        propose_downstream_model4,
+    ]
+
+
+@pytest.fixture()
+def multiple_propose_downstream_runs_issue_trigger(
+    an_issue_model, different_issue_model
+):
+    propose_downstream_model1, _ = ProposeDownstreamModel.create_with_new_run(
+        status=ProposeDownstreamStatus.running,
+        trigger_model=an_issue_model,
+    )
+    propose_downstream_model2, _ = ProposeDownstreamModel.create_with_new_run(
+        status=ProposeDownstreamStatus.error,
+        trigger_model=an_issue_model,
+    )
+    propose_downstream_model3, _ = ProposeDownstreamModel.create_with_new_run(
+        status=ProposeDownstreamStatus.running,
+        trigger_model=different_issue_model,
+    )
+    propose_downstream_model4, _ = ProposeDownstreamModel.create_with_new_run(
+        status=ProposeDownstreamStatus.finished,
+        trigger_model=different_issue_model,
+    )
+
+    yield [
+        propose_downstream_model1,
+        propose_downstream_model2,
+        propose_downstream_model3,
+        propose_downstream_model4,
+    ]
+
+
+@pytest.fixture()
+def multiple_propose_downstream_runs_with_propose_downstream_targets_release_trigger(
+    multiple_propose_downstream_runs_release_trigger,
+):
+    propose_downstream_models_release = multiple_propose_downstream_runs_release_trigger
+    propose_downstream_models_release[0].propose_downstream_targets.append(
+        ProposeDownstreamTargetModel.create(status=ProposeDownstreamTargetStatus.queued)
+    )
+
+    propose_downstream_target = ProposeDownstreamTargetModel.create(
+        status=ProposeDownstreamTargetStatus.running
+    )
+    propose_downstream_target.set_branch(branch=SampleValues.branch)
+    propose_downstream_models_release[0].propose_downstream_targets.append(
+        propose_downstream_target
+    )
+
+    yield [
+        propose_downstream_models_release[0],
+        propose_downstream_models_release[1],
+        propose_downstream_models_release[2],
+        propose_downstream_models_release[3],
+    ]
+
+
+@pytest.fixture()
+def multiple_propose_downstream_runs_with_propose_downstream_targets_issue_trigger(
+    multiple_propose_downstream_runs_issue_trigger,
+):
+    propose_downstream_models_issue = multiple_propose_downstream_runs_issue_trigger
+    propose_downstream_target = ProposeDownstreamTargetModel.create(
+        status=ProposeDownstreamTargetStatus.retry
+    )
+    propose_downstream_target.set_branch(branch=SampleValues.branch)
+    propose_downstream_models_issue[0].propose_downstream_targets.append(
+        propose_downstream_target
+    )
+
+    propose_downstream_target = ProposeDownstreamTargetModel.create(
+        status=ProposeDownstreamTargetStatus.error
+    )
+    propose_downstream_target.set_branch(branch=SampleValues.different_branch)
+    propose_downstream_models_issue[0].propose_downstream_targets.append(
+        propose_downstream_target
+    )
+
+    yield [
+        propose_downstream_models_issue[0],
+        propose_downstream_models_issue[1],
+        propose_downstream_models_issue[2],
+        propose_downstream_models_issue[3],
     ]
 
 

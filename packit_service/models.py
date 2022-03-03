@@ -215,13 +215,20 @@ class ProjectAndTriggersConnector:
             return trigger_object.pr_id
         return None
 
+    def get_issue_id(self) -> Optional[int]:
+        trigger_object = self.get_trigger_object()
+        if not isinstance(trigger_object, IssueModel):
+            return None
+
+        return trigger_object.issue_id
+
     def get_branch_name(self) -> Optional[str]:
         trigger_object = self.get_trigger_object()
         if isinstance(trigger_object, GitBranchModel):
             return trigger_object.name
         return None
 
-    def get_release_tag(self) -> Optional[int]:
+    def get_release_tag(self) -> Optional[str]:
         trigger_object = self.get_trigger_object()
         if isinstance(trigger_object, ProjectReleaseModel):
             return trigger_object.tag_name
@@ -736,6 +743,12 @@ class PipelineModel(Base):
     koji_build = relationship("KojiBuildTargetModel", back_populates="runs")
     test_run_id = Column(Integer, ForeignKey("tft_test_run_targets.id"))
     test_run = relationship("TFTTestRunTargetModel", back_populates="runs")
+    propose_downstream_run_id = Column(
+        Integer, ForeignKey("propose_downstream_runs.id")
+    )
+    propose_downstream_run = relationship(
+        "ProposeDownstreamModel", back_populates="runs"
+    )
 
     @classmethod
     def create(cls, type: JobTriggerModelType, trigger_id: int) -> "PipelineModel":
@@ -766,6 +779,9 @@ class PipelineModel(Base):
             ),
             func.array_agg(psql_array([PipelineModel.test_run_id])).label(
                 "test_run_id"
+            ),
+            func.array_agg(psql_array([PipelineModel.propose_downstream_run_id])).label(
+                "propose_downstream_run_id",
             ),
         )
 
@@ -1600,8 +1616,171 @@ class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
         return f"TFTTestRunTargetModel(id={self.id}, pipeline_id={self.pipeline_id})"
 
 
+class ProposeDownstreamTargetStatus(str, enum.Enum):
+    queued = "queued"
+    running = "running"
+    error = "error"
+    retry = "retry"
+    submitted = "submitted"
+
+
+class ProposeDownstreamTargetModel(ProjectAndTriggersConnector, Base):
+    __tablename__ = "propose_downstream_run_targets"
+    id = Column(Integer, primary_key=True)
+    branch = Column(String, default="unknown")
+    downstream_pr_url = Column(String)
+    status = Column(Enum(ProposeDownstreamTargetStatus))
+    submitted_time = Column(DateTime, default=datetime.utcnow)
+    start_time = Column(DateTime)
+    finished_time = Column(DateTime)
+    logs = Column(Text)
+    propose_downstream_id = Column(Integer, ForeignKey("propose_downstream_runs.id"))
+
+    propose_downstream = relationship(
+        "ProposeDownstreamModel", back_populates="propose_downstream_targets"
+    )
+
+    def __repr__(self) -> str:
+        return f"ProposeDownstreamTargetModel(id={self.id})"
+
+    @classmethod
+    def create(
+        cls,
+        status: ProposeDownstreamTargetStatus,
+    ) -> "ProposeDownstreamTargetModel":
+        with get_sa_session() as session:
+            downstream_pr = cls()
+            downstream_pr.status = status
+            session.add(downstream_pr)
+            return downstream_pr
+
+    def set_status(self, status: ProposeDownstreamTargetStatus) -> None:
+        with get_sa_session() as session:
+            self.status = status
+            session.add(self)
+
+    def set_downstream_pr_url(self, downstream_pr_url: str) -> None:
+        with get_sa_session() as session:
+            self.downstream_pr_url = downstream_pr_url
+            session.add(self)
+
+    def set_start_time(self, start_time: DateTime) -> None:
+        with get_sa_session() as session:
+            self.start_time = start_time
+            session.add(self)
+
+    def set_finished_time(self, finished_time: DateTime) -> None:
+        with get_sa_session() as session:
+            self.finished_time = finished_time
+            session.add(self)
+
+    def set_branch(self, branch: str) -> None:
+        with get_sa_session() as session:
+            self.branch = branch
+            session.add(self)
+
+    def set_logs(self, logs: str) -> None:
+        with get_sa_session() as session:
+            self.logs = logs
+            session.add(self)
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["ProposeDownstreamTargetModel"]:
+        with get_sa_session() as session:
+            return session.query(ProposeDownstreamTargetModel).filter_by(id=id_).first()
+
+
+class ProposeDownstreamStatus(str, enum.Enum):
+    running = "running"
+    finished = "finished"
+    error = "error"
+
+
+class ProposeDownstreamModel(ProjectAndTriggersConnector, Base):
+    __tablename__ = "propose_downstream_runs"
+    id = Column(Integer, primary_key=True)
+    status = Column(Enum(ProposeDownstreamStatus))
+    submitted_time = Column(DateTime, default=datetime.utcnow)
+
+    runs = relationship("PipelineModel", back_populates="propose_downstream_run")
+    propose_downstream_targets = relationship(
+        "ProposeDownstreamTargetModel", back_populates="propose_downstream"
+    )
+
+    def __repr__(self) -> str:
+        return f"ProposeDownstreamModel(id={self.id}, submitted_time={self.submitted_time})"
+
+    @classmethod
+    def create_with_new_run(
+        cls,
+        status: ProposeDownstreamStatus,
+        trigger_model: AbstractTriggerDbType,
+    ) -> Tuple["ProposeDownstreamModel", "PipelineModel"]:
+        """
+        Create a new model for ProposeDownstream and connect it to the PipelineModel.
+
+        * New ProposeDownstreamModel model will have connection to a new PipelineModel.
+        * The newly created PipelineModel can reuse existing JobTriggerModel
+          (e.g.: one IssueModel can have multiple runs).
+
+        More specifically:
+        * On `/packit propose-downstream` issue comment:
+          -> ProposeDownstreamModel is created.
+          -> New PipelineModel is created.
+          -> JobTriggerModel is created.
+        * Something went wrong, after correction and another `/packit propose-downstream` comment:
+          -> ProposeDownstreamModel is created.
+          -> PipelineModel is created.
+          -> JobTriggerModel is reused.
+        * TODO: we will use propose-downstream in commit-checks - fill in once it's implemented
+        """
+        with get_sa_session() as session:
+            propose_downstream = cls()
+            propose_downstream.status = status
+            session.add(propose_downstream)
+
+            # Create a pipeline, reuse trigger_model if it exists:
+            pipeline = PipelineModel.create(
+                type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id
+            )
+            pipeline.propose_downstream_run = propose_downstream
+            session.add(pipeline)
+
+            return propose_downstream, pipeline
+
+    def set_status(self, status: ProposeDownstreamStatus) -> None:
+        with get_sa_session() as session:
+            self.status = status
+            session.add(self)
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["ProposeDownstreamModel"]:
+        with get_sa_session() as session:
+            return session.query(ProposeDownstreamModel).filter_by(id=id_).first()
+
+    @classmethod
+    def get_all_by_status(
+        cls, status: str
+    ) -> Optional[Iterable["ProposeDownstreamModel"]]:
+        with get_sa_session() as session:
+            return session.query(ProposeDownstreamModel).filter_by(status=status)
+
+    @classmethod
+    def get_range(cls, first: int, last: int) -> Iterable["ProposeDownstreamModel"]:
+        with get_sa_session() as session:
+            return (
+                session.query(ProposeDownstreamModel)
+                .order_by(desc(ProposeDownstreamModel.id))
+                .slice(first, last)
+            )
+
+
 AbstractBuildTestDbType = Union[
-    CoprBuildTargetModel, KojiBuildTargetModel, SRPMBuildModel, TFTTestRunTargetModel
+    CoprBuildTargetModel,
+    KojiBuildTargetModel,
+    SRPMBuildModel,
+    TFTTestRunTargetModel,
+    ProposeDownstreamModel,
 ]
 
 
