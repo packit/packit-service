@@ -116,6 +116,10 @@ class KojiBuildEvent(AbstractKojiEvent):
         return self._commit_sha
 
     @property
+    def nvr(self) -> str:
+        return f"{self.package_name}-{self.version}-{self.release}"
+
+    @property
     def build_model(self) -> Optional[KojiBuildTargetModel]:
         if not super().build_model:
             self._build_model = KojiBuildTargetModel.create(

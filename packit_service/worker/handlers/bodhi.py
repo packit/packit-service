@@ -113,7 +113,9 @@ class CreateBodhiUpdateHandler(JobHandler):
                 dist_git_branch=self.koji_build_event.git_ref,
                 update_type="enhancement",
                 update_notes=DEFAULT_BODHI_NOTE,
-                koji_builds=[str(self.koji_build_event.build_id)],
+                koji_builds=[
+                    self.koji_build_event.nvr  # it accepts NVRs, not build IDs
+                ],
             )
         except PackitException as ex:
             packit_api.downstream_local_project.git_project.commit_comment(

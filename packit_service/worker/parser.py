@@ -1103,7 +1103,7 @@ class Parser:
         epoch = event.get("epoch")
 
         # "release": "1.fc36"
-        release, _ = event.get("release").split(".")
+        release = event.get("release")
 
         # "request": [
         #       "git+https://src.fedoraproject.org/rpms/packit.git#0eb3e12005cb18f15d3054020f7ac934c01eae08",

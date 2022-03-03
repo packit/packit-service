@@ -880,7 +880,8 @@ class TestEvents:
         assert event_object.git_ref == "rawhide"
         assert event_object.epoch is None
         assert event_object.version == "0.43.0"
-        assert event_object.release == "1"
+        assert event_object.release == "1.fc36"
+        assert event_object.nvr == "packit-0.43.0-1.fc36"
         assert event_object.project_url == "https://src.fedoraproject.org/rpms/packit"
 
         assert isinstance(event_object.project, PagureProject)
@@ -917,7 +918,8 @@ class TestEvents:
         assert event_object.git_ref == "rawhide"
         assert event_object.epoch is None
         assert event_object.version == "0.34.0"
-        assert event_object.release == "1"
+        assert event_object.release == "1.fc36"
+        assert event_object.nvr == "python-ogr-0.34.0-1.fc36"
         assert (
             event_object.project_url == "https://src.fedoraproject.org/rpms/python-ogr"
         )
@@ -954,7 +956,8 @@ class TestEvents:
         assert event_object.git_ref == "f35"
         assert event_object.epoch is None
         assert event_object.version == "0.34.0"
-        assert event_object.release == "1"
+        assert event_object.release == "1.fc35"
+        assert event_object.nvr == "python-ogr-0.34.0-1.fc35"
         assert (
             event_object.project_url == "https://src.fedoraproject.org/rpms/python-ogr"
         )
@@ -993,7 +996,7 @@ class TestEvents:
         assert event_object.git_ref == "epel8"
         assert event_object.epoch is None
         assert event_object.version == "0.34.0"
-        assert event_object.release == "1"
+        assert event_object.release == "1.el8"
         assert (
             event_object.project_url == "https://src.fedoraproject.org/rpms/python-ogr"
         )
@@ -1032,7 +1035,8 @@ class TestEvents:
         assert event_object.git_ref == "rawhide"
         assert event_object.epoch is None
         assert event_object.version == "0.43.0"
-        assert event_object.release == "1"
+        assert event_object.release == "1.fc36"
+        assert event_object.nvr == "packit-0.43.0-1.fc36"
         assert event_object.project_url == "https://src.fedoraproject.org/rpms/packit"
 
         assert isinstance(event_object.project, PagureProject)
@@ -1069,7 +1073,8 @@ class TestEvents:
         assert event_object.git_ref == "rawhide"
         assert event_object.epoch is None
         assert event_object.version == "0.34.0"
-        assert event_object.release == "1"
+        assert event_object.release == "1.fc36"
+        assert event_object.nvr == "python-ogr-0.34.0-1.fc36"
         assert (
             event_object.project_url == "https://src.fedoraproject.org/rpms/python-ogr"
         )
@@ -1108,7 +1113,8 @@ class TestEvents:
         assert event_object.git_ref == "f35"
         assert event_object.epoch is None
         assert event_object.version == "0.34.0"
-        assert event_object.release == "1"
+        assert event_object.release == "1.fc35"
+        assert event_object.nvr == "python-ogr-0.34.0-1.fc35"
         assert (
             event_object.project_url == "https://src.fedoraproject.org/rpms/python-ogr"
         )
@@ -1147,7 +1153,8 @@ class TestEvents:
         assert event_object.git_ref == "epel8"
         assert event_object.epoch is None
         assert event_object.version == "0.34.0"
-        assert event_object.release == "1"
+        assert event_object.release == "1.el8"
+        assert event_object.nvr == "python-ogr-0.34.0-1.el8"
         assert (
             event_object.project_url == "https://src.fedoraproject.org/rpms/python-ogr"
         )
