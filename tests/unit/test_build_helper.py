@@ -6,6 +6,7 @@ import pytest
 from flexmock import flexmock
 
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
+from packit.config.aliases import get_build_targets
 from packit.config.job_config import JobMetadataConfig
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
@@ -689,7 +690,62 @@ def test_copr_build_target2test_targets(
         metadata=flexmock(pr_id=None),
         db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
     )
+    flexmock(copr_build, get_valid_build_targets=get_build_targets)
     assert copr_build_helper.build_target2test_targets(build_target) == test_targets
+
+
+def test_copr_build_and_test_targets_both_jobs_defined():
+    jobs = [
+        JobConfig(
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.pull_request,
+            metadata=JobMetadataConfig(
+                _targets={
+                    "epel-8-x86_64": {},
+                    "fedora-35-x86_64": {"distros": ["fedora-35", "fedora-36"]},
+                },
+            ),
+        ),
+        JobConfig(
+            type=JobType.copr_build,
+            trigger=JobConfigTriggerType.pull_request,
+            metadata=JobMetadataConfig(_targets=["fedora-35", "fedora-36", "epel-8"]),
+        ),
+    ]
+    flexmock(copr_build, get_valid_build_targets=get_build_targets)
+    for i in [0, 1]:
+        copr_build_helper = CoprBuildJobHelper(
+            service_config=flexmock(),
+            package_config=PackageConfig(jobs=jobs),
+            job_config=jobs[i],
+            project=flexmock(),
+            metadata=flexmock(pr_id=None),
+            db_trigger=flexmock(
+                job_config_trigger_type=JobConfigTriggerType.pull_request
+            ),
+        )
+        assert copr_build_helper.build_target2test_targets("fedora-35-x86_64") == {
+            "fedora-35-x86_64",
+            "fedora-36-x86_64",
+        }
+        assert copr_build_helper.build_target2test_targets("fedora-36-x86_64") == set()
+        assert copr_build_helper.build_target2test_targets("epel-8-x86_64") == {
+            "centos-stream-8-x86_64"
+        }
+        assert copr_build_helper.build_targets_for_tests == {
+            "fedora-35-x86_64",
+            "epel-8-x86_64",
+        }
+        assert copr_build_helper.tests_targets == {
+            "fedora-35-x86_64",
+            "fedora-36-x86_64",
+            "centos-stream-8-x86_64",
+        }
+        assert copr_build_helper.build_targets == {
+            "fedora-35-x86_64",
+            "fedora-36-x86_64",
+            "epel-8-x86_64",
+        }
 
 
 @pytest.mark.parametrize(
