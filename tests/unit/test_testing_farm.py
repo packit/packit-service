@@ -308,7 +308,7 @@ def test_artifact(
             "packit",
             "packit-service",
             "feb41e5",
-            "https://github.com/packit/packit",
+            "https://github.com/source/packit",
             "master",
             "me",
             "cool-project",
@@ -329,7 +329,7 @@ def test_artifact(
             "packit",
             "packit-service",
             "feb41e5",
-            "https://github.com/packit/packit",
+            "https://github.com/source/packit",
             "master",
             "me",
             "cool-project",
@@ -350,7 +350,7 @@ def test_artifact(
             "packit",
             "packit-service",
             "feb41e5",
-            "https://github.com/packit/packit",
+            "https://github.com/source/packit",
             "master",
             "me",
             "cool-project",
@@ -372,7 +372,7 @@ def test_artifact(
             "packit",
             "packit-service",
             "feb41e5",
-            "https://github.com/packit/packit",
+            "https://github.com/source/packit",
             "master",
             "me",
             "cool-project",
@@ -432,8 +432,12 @@ def test_payload(
     )
     package_config = flexmock(jobs=[])
     pr = flexmock(
-        source_project=flexmock(get_web_url=lambda: project_url),
-        target_branch_head_commit="deadbeef",
+        source_project=flexmock(get_web_url=lambda: "https://github.com/source/packit"),
+        target_project=flexmock(get_web_url=lambda: "https://github.com/packit/packit"),
+        head_commit=commit_sha,
+        target_branch_head_commit="abcdefgh",
+        source_branch="the-source-branch",
+        target_branch="the-target-branch",
     )
     project = flexmock(
         repo=repo,
@@ -513,12 +517,17 @@ def test_payload(
             "artifacts": [artifact],
             "tmt": {"context": {"distro": distro, "arch": arch, "trigger": "commit"}},
             "variables": {
-                "PACKIT_FULL_REPO_NAME": f"{namespace}/{repo}",
-                "PACKIT_COMMIT_SHA": commit_sha,
-                "PACKIT_PACKAGE_NVR": f"{repo}-0.1-1",
                 "PACKIT_BUILD_LOG_URL": log_url,
+                "PACKIT_COMMIT_SHA": commit_sha,
+                "PACKIT_FULL_REPO_NAME": f"{namespace}/{repo}",
+                "PACKIT_PACKAGE_NVR": f"{repo}-0.1-1",
+                "PACKIT_SOURCE_BRANCH": "the-source-branch",
+                "PACKIT_SOURCE_SHA": "feb41e5",
+                "PACKIT_SOURCE_URL": "https://github.com/source/packit",
                 "PACKIT_SRPM_URL": srpm_url,
-                "PACKIT_TARGET_SHA": "deadbeef",
+                "PACKIT_TARGET_BRANCH": "the-target-branch",
+                "PACKIT_TARGET_SHA": "abcdefgh",
+                "PACKIT_TARGET_URL": "https://github.com/packit/packit",
             },
         }
     ]
@@ -559,7 +568,7 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
     tf_token = "very-secret"
     ps_deployment = "test"
     repo = "packit"
-    project_url = "https://github.com/packit/packit"
+    source_project_url = "https://github.com/packit/packit"
     git_ref = "master"
     namespace = "packit-service"
     commit_sha = "feb41e5"
@@ -576,14 +585,20 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
     )
     package_config = flexmock(jobs=[])
     pr = flexmock(
-        source_project=flexmock(get_web_url=lambda: project_url),
-        target_branch_head_commit="deadbeef",
+        source_project=flexmock(
+            get_web_url=lambda: source_project_url,
+        ),
+        target_project=flexmock(get_web_url=lambda: "https://github.com/target/bar"),
+        head_commit=commit_sha,
+        target_branch_head_commit="abcdefgh",
+        source_branch="the-source-branch",
+        target_branch="the-target-branch",
     )
     project = flexmock(
         repo=repo,
         namespace=namespace,
         service="GitHub",
-        get_git_urls=lambda: {"git": f"{project_url}.git"},
+        get_git_urls=lambda: {"git": f"{source_project_url}.git"},
         get_pr=lambda id_: pr,
         full_repo_name=f"{namespace}/{repo}",
     )
@@ -591,7 +606,7 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
         trigger=flexmock(),
         commit_sha=commit_sha,
         git_ref=git_ref,
-        project_url=project_url,
+        project_url=source_project_url,
         pr_id=123,
     )
     db_trigger = flexmock()

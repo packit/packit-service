@@ -109,10 +109,44 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return self.metadata.commit_sha
 
     @property
+    def source_branch_sha(self) -> Optional[str]:
+        if not self.metadata.pr_id:
+            return None
+        return self.project.get_pr(int(self.metadata.pr_id)).head_commit
+
+    @property
     def target_branch_sha(self) -> Optional[str]:
         if not self.metadata.pr_id:
             return None
         return self.project.get_pr(int(self.metadata.pr_id)).target_branch_head_commit
+
+    @property
+    def target_branch(self) -> Optional[str]:
+        if not self.metadata.pr_id:
+            return None
+        return self.project.get_pr(int(self.metadata.pr_id)).target_branch
+
+    @property
+    def source_branch(self) -> Optional[str]:
+        if not self.metadata.pr_id:
+            return None
+        return self.project.get_pr(int(self.metadata.pr_id)).source_branch
+
+    @property
+    def target_project_url(self) -> Optional[str]:
+        if not self.metadata.pr_id:
+            return None
+        return self.project.get_pr(
+            int(self.metadata.pr_id)
+        ).target_project.get_web_url()
+
+    @property
+    def source_project_url(self) -> Optional[str]:
+        if not self.metadata.pr_id:
+            return None
+        return self.project.get_pr(
+            int(self.metadata.pr_id)
+        ).source_project.get_web_url()
 
     @staticmethod
     def _artifact(
@@ -179,7 +213,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "PACKIT_BUILD_LOG_URL": build_log_url,
             "PACKIT_SRPM_URL": srpm_url,
             "PACKIT_COMMIT_SHA": self.metadata.commit_sha,
+            "PACKIT_SOURCE_SHA": self.source_branch_sha,
             "PACKIT_TARGET_SHA": self.target_branch_sha,
+            "PACKIT_SOURCE_BRANCH": self.source_branch,
+            "PACKIT_TARGET_BRANCH": self.target_branch,
+            "PACKIT_SOURCE_URL": self.source_project_url,
+            "PACKIT_TARGET_URL": self.target_project_url,
         }
         predefined_environment = {
             k: v for k, v in predefined_environment.items() if v is not None
