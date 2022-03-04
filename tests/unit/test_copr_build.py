@@ -1974,6 +1974,7 @@ def test_copr_build_targets_override(github_pr_event):
                 path=Path("my.srpm"),
                 buildopts={
                     "chroots": ["bright-future-x86_64"],
+                    "enable_net": True,
                 },
             )
             .and_return(
