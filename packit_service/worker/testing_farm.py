@@ -5,7 +5,7 @@ import logging
 from typing import Dict, Any, Optional, Set, List, Union
 
 import requests
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, PullRequest
 from ogr.utils import RequestResponse
 from packit.config import JobType, JobConfigTriggerType
 from packit.config.job_config import JobConfig
@@ -64,6 +64,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self.session.mount("https://", adapter)
         self._tft_api_url: str = ""
         self._tft_token: str = ""
+        self.__pr = None
 
     @property
     def tft_api_url(self) -> str:
@@ -110,43 +111,35 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     @property
     def source_branch_sha(self) -> Optional[str]:
-        if not self.metadata.pr_id:
-            return None
-        return self.project.get_pr(int(self.metadata.pr_id)).head_commit
+        return self._pr.head_commit if self._pr else None
 
     @property
     def target_branch_sha(self) -> Optional[str]:
-        if not self.metadata.pr_id:
-            return None
-        return self.project.get_pr(int(self.metadata.pr_id)).target_branch_head_commit
+        return self._pr.target_branch_head_commit if self._pr else None
 
     @property
     def target_branch(self) -> Optional[str]:
-        if not self.metadata.pr_id:
-            return None
-        return self.project.get_pr(int(self.metadata.pr_id)).target_branch
+        return self._pr.target_branch if self._pr else None
 
     @property
     def source_branch(self) -> Optional[str]:
-        if not self.metadata.pr_id:
-            return None
-        return self.project.get_pr(int(self.metadata.pr_id)).source_branch
+        return self._pr.source_branch if self._pr else None
 
     @property
     def target_project_url(self) -> Optional[str]:
-        if not self.metadata.pr_id:
-            return None
-        return self.project.get_pr(
-            int(self.metadata.pr_id)
-        ).target_project.get_web_url()
+        return self._pr.target_project.get_web_url() if self._pr else None
 
     @property
     def source_project_url(self) -> Optional[str]:
+        return self._pr.source_project.get_web_url() if self._pr else None
+
+    @property
+    def _pr(self) -> Optional[PullRequest]:
         if not self.metadata.pr_id:
             return None
-        return self.project.get_pr(
-            int(self.metadata.pr_id)
-        ).source_project.get_web_url()
+        if not self.__pr:
+            self.__pr = self.project.get_pr(int(self.metadata.pr_id))
+        return self.__pr
 
     @staticmethod
     def _artifact(
