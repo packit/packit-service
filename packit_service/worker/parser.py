@@ -669,7 +669,21 @@ class Parser:
         check_name_job, check_name_target = None, None
         if ":" in check_name:
             # e.g. "rpm-build:fedora-34-x86_64"
-            check_name_job, _, check_name_target = check_name.partition(":")
+            #   or "rpm-build:fedora-34-x86_64:identifier"
+            check_name_parts = check_name.split(":", maxsplit=2)
+            if len(check_name_parts) == 2:
+                check_name_job, check_name_target = check_name_parts
+                check_name_identifier = None
+            elif len(check_name_parts) == 3:
+                (
+                    check_name_job,
+                    check_name_target,
+                    check_name_identifier,
+                ) = check_name_parts
+            else:
+                logger.warning(f"{check_name_job} cannot be parsed")
+                check_name_job = None
+
             if check_name_job not in MAP_CHECK_PREFIX_TO_HANDLER:
                 logger.warning(
                     f"{check_name_job} not in {list(MAP_CHECK_PREFIX_TO_HANDLER.keys())}"
@@ -732,6 +746,7 @@ class Parser:
                 check_name_target=check_name_target,
                 db_trigger=db_trigger,
                 actor=actor,
+                job_identifier=check_name_identifier,
             )
 
         elif isinstance(db_trigger, ProjectReleaseModel):
@@ -745,6 +760,7 @@ class Parser:
                 check_name_target=check_name_target,
                 db_trigger=db_trigger,
                 actor=actor,
+                job_identifier=check_name_identifier,
             )
 
         elif isinstance(db_trigger, GitBranchModel):
@@ -758,6 +774,7 @@ class Parser:
                 check_name_target=check_name_target,
                 db_trigger=db_trigger,
                 actor=actor,
+                job_identifier=check_name_identifier,
             )
 
         return event

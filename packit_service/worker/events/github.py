@@ -214,6 +214,7 @@ class CheckRerunEvent(AbstractGithubEvent):
         commit_sha: str,
         actor: str,
         pr_id: Optional[int] = None,
+        job_identifier: Optional[str] = None,
     ):
         super().__init__(project_url=project_url, pr_id=pr_id)
         self.check_name_job = check_name_job
@@ -223,6 +224,7 @@ class CheckRerunEvent(AbstractGithubEvent):
         self.commit_sha = commit_sha
         self.actor = actor
         self._db_trigger = db_trigger
+        self.job_identifier = job_identifier
 
     @property
     def build_targets_override(self) -> Optional[Set[str]]:
@@ -251,6 +253,7 @@ class CheckRerunCommitEvent(CheckRerunEvent):
         check_name_target: str,
         db_trigger,
         actor: str,
+        job_identifier: Optional[str] = None,
     ):
         super().__init__(
             check_name_job=check_name_job,
@@ -261,6 +264,7 @@ class CheckRerunCommitEvent(CheckRerunEvent):
             db_trigger=db_trigger,
             commit_sha=commit_sha,
             actor=actor,
+            job_identifier=job_identifier,
         )
         self.identifier = git_ref
         self.git_ref = git_ref
@@ -280,6 +284,7 @@ class CheckRerunPullRequestEvent(CheckRerunEvent):
         check_name_target: str,
         db_trigger,
         actor: str,
+        job_identifier: Optional[str] = None,
     ):
         super().__init__(
             check_name_job=check_name_job,
@@ -291,6 +296,7 @@ class CheckRerunPullRequestEvent(CheckRerunEvent):
             commit_sha=commit_sha,
             pr_id=pr_id,
             actor=actor,
+            job_identifier=job_identifier,
         )
         self.identifier = str(pr_id)
         self.git_ref = None
@@ -310,6 +316,7 @@ class CheckRerunReleaseEvent(CheckRerunEvent):
         check_name_target: str,
         db_trigger,
         actor: str,
+        job_identifier: Optional[str] = None,
     ):
         super().__init__(
             check_name_job=check_name_job,
@@ -320,6 +327,7 @@ class CheckRerunReleaseEvent(CheckRerunEvent):
             db_trigger=db_trigger,
             commit_sha=commit_sha,
             actor=actor,
+            job_identifier=job_identifier,
         )
         self.tag_name = tag_name
         self.git_ref = tag_name
