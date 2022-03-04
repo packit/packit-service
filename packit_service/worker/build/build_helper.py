@@ -445,14 +445,26 @@ class BaseBuildJobHelper:
         return self._srpm_path
 
     @classmethod
-    def get_build_check(cls, chroot: str = None) -> str:
+    def get_build_check_cls(
+        cls, chroot: str = None, identifier: Optional[str] = None
+    ) -> str:
         chroot_str = f":{chroot}" if chroot else ""
-        return f"{cls.status_name_build}{chroot_str}"
+        optional_suffix = f":{identifier}" if identifier else ""
+        return f"{cls.status_name_build}{chroot_str}{optional_suffix}"
+
+    def get_build_check(self, chroot: str = None) -> str:
+        return self.get_build_check_cls(chroot, identifier=self.job_config.identifier)
 
     @classmethod
-    def get_test_check(cls, chroot: str = None) -> str:
+    def get_test_check_cls(
+        cls, chroot: str = None, identifier: Optional[str] = None
+    ) -> str:
         chroot_str = f":{chroot}" if chroot else ""
-        return f"{cls.status_name_test}{chroot_str}"
+        optional_suffix = f":{identifier}" if identifier else ""
+        return f"{cls.status_name_test}{chroot_str}{optional_suffix}"
+
+    def get_test_check(self, chroot: str = None) -> str:
+        return self.get_test_check_cls(chroot, self.job_config.identifier)
 
     def create_srpm_if_needed(self) -> Optional[TaskResults]:
         """

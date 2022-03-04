@@ -378,7 +378,9 @@ class TestingFarmResultsHandler(JobHandler):
             if test_run_model
             else self.log_url,
             links_to_external_services={"Testing Farm": self.log_url},
-            check_names=TestingFarmJobHelper.get_test_check(test_run_model.target),
+            check_names=TestingFarmJobHelper.get_test_check_cls(
+                test_run_model.target, identifier=self.job_config.identifier
+            ),
         )
 
         return TaskResults(success=True, details={})
