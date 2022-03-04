@@ -200,7 +200,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                       epel-7-x86_64:
                         distros: [centos-7, rhel-7]
 
-        helper.build_target2test_targets("epel-7-x86_64") -> {"centos-7", "rhel-7"}
+        helper.build_target2test_targets("epel-7-x86_64") -> {"centos-7-x86_64", "rhel-7-x86_64"}
 
         test job configuration:
           - job: tests
@@ -211,10 +211,11 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         helper.build_target2test_targets("fedora-35-x86_64") -> {"fedora-35-x86_64"}
         """
+        if not self.job_tests or build_target not in self.tests_targets_all:
+            return set()
 
         distro, arch = build_target.rsplit("-", 1)
-
-        configured_distros = self.job_config.metadata.targets_dict.get(
+        configured_distros = self.job_tests.metadata.targets_dict.get(
             build_target, {}
         ).get("distros")
 

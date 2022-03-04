@@ -683,12 +683,13 @@ def test_trigger_build(copr_build, run_new_build):
     valid_commit_sha = "1111111111111111111111111111111111111111"
 
     package_config = PackageConfig()
-    package_config.jobs = []
-    package_config.spec_source_id = 1
     job_config = flexmock()
-    job_config.type = JobType.build
+    job_config.type = JobType.tests
     job_config.spec_source_id = 1
     job_config.metadata = JobMetadataConfig()
+    job_config.trigger = JobConfigTriggerType.pull_request
+    package_config.jobs = [job_config]
+    package_config.spec_source_id = 1
 
     event = {
         "event_type": "CoprBuileEndEvent",
@@ -700,6 +701,9 @@ def test_trigger_build(copr_build, run_new_build):
 
     if run_new_build:
         flexmock(TFJobHelper, job_owner="owner", job_project="project")
+        flexmock(cb.CoprBuildJobHelper).should_receive(
+            "report_status_to_test_for_chroot"
+        )
         flexmock(Signature).should_receive("apply_async").once()
     else:
         flexmock(TFJobHelper).should_receive("run_testing_farm").and_return(
@@ -711,4 +715,7 @@ def test_trigger_build(copr_build, run_new_build):
     )
 
     tf_handler = TestingFarmHandler(package_config, job_config, event)
+    tf_handler._db_trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request
+    )
     tf_handler.run()
