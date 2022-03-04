@@ -105,7 +105,9 @@ def test_testing_farm_response(
         created=created_dt,
     ).get_dict()
     test_farm_handler = TFResultsHandler(
-        package_config=flexmock(), job_config=flexmock(), event=event_dict
+        package_config=flexmock(),
+        job_config=flexmock(identifier=None),
+        event=event_dict,
     )
     flexmock(StatusReporter).should_receive("report").with_args(
         state=status_status,
