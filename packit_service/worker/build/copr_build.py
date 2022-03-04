@@ -99,9 +99,17 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         stg = "-stg" if self.service_config.deployment == Deployment.stg else ""
         # We want to share project between all releases.
         # More details: https://github.com/packit/packit-service/issues/1044
-        identifier = "releases" if self.metadata.tag_name else self.metadata.identifier
+        ref_identifier = (
+            "releases" if self.metadata.tag_name else self.metadata.identifier
+        )
+        configured_identifier = (
+            f"-{self.job_config.identifier}" if self.job_config.identifier else ""
+        )
 
-        return f"{service_prefix}{namespace}-{self.project.repo}-{identifier}{stg}"
+        return (
+            f"{service_prefix}{namespace}-{self.project.repo}-{ref_identifier}"
+            f"{stg}{configured_identifier}"
+        )
 
     @property
     def job_project(self) -> Optional[str]:
