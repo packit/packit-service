@@ -426,6 +426,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     + self.package_config.srpm_build_deps,
                     buildopts={
                         "chroots": list(self.build_targets),
+                        "enable_net": self.job_config.metadata.enable_net,
                     },
                 )
             else:
@@ -435,6 +436,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     path=self.srpm_path,
                     buildopts={
                         "chroots": list(self.build_targets),
+                        "enable_net": self.job_config.metadata.enable_net,
                     },
                 )
 
