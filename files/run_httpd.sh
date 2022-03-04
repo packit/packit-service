@@ -23,6 +23,9 @@ export PACKIT_SERVICE_CONFIG="${HOME}/.config/packit-service.yaml"
 SERVER_NAME=$(sed -nr 's/^server_name: ([^:]+)(:([0-9]+))?$/\1/p' "$PACKIT_SERVICE_CONFIG")
 HTTPS_PORT=$(sed -nr 's/^server_name: ([^:]+)(:([0-9]+))?$/\3/p' "$PACKIT_SERVICE_CONFIG")
 
+# See "mod_wsgi-express-3 start-server --help" for details on
+# these options, and the configuration documentation of mod_wsgi:
+# https://modwsgi.readthedocs.io/en/master/configuration.html
 exec mod_wsgi-express-3 start-server \
     --https-port ${HTTPS_PORT:-8443} \
     --access-log \
@@ -31,5 +34,7 @@ exec mod_wsgi-express-3 start-server \
     --ssl-certificate-key-file /secrets/privkey.pem \
     --server-name $SERVER_NAME \
     --processes 2 \
+    --restart-interval 28800 \
+    --graceful-timeout 15 \
     --locale "C.UTF-8" \
     /usr/share/packit/packit.wsgi
