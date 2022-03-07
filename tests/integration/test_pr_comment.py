@@ -758,9 +758,16 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         + "}"
     )
     pr = flexmock(
-        head_commit="12345",
-        source_project=flexmock(get_web_url=lambda: "https://github.com/foo/bar"),
-        target_branch_head_commit="6789a",
+        source_project=flexmock(
+            get_web_url=lambda: "https://github.com/someone/hello-world"
+        ),
+        target_project=flexmock(
+            get_web_url=lambda: "https://github.com/packit-service/hello-world"
+        ),
+        head_commit="0011223344",
+        target_branch_head_commit="deadbeef",
+        source_branch="the-source-branch",
+        target_branch="the-target-branch",
     )
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     comment = flexmock()
@@ -771,7 +778,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         full_repo_name="packit-service/hello-world",
         get_file_content=lambda path, ref: packit_yaml,
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
-        get_web_url=lambda: "https://github.com/the-namespace/the-repo",
+        get_web_url=lambda: "https://github.com/packit-service/hello-world",
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
@@ -824,9 +831,9 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         "api_key": "secret token",
         "test": {
             "fmf": {
-                "url": "https://github.com/foo/bar",
-                "ref": "12345",
-            },
+                "url": "https://github.com/someone/hello-world",
+                "ref": "0011223344",
+            }
         },
         "environments": [
             {
@@ -845,8 +852,13 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
                     "PACKIT_DOWNSTREAM_NAME": "hello-world",
                     "PACKIT_DOWNSTREAM_URL": "https://src.fedoraproject.org/rpms/hello-world.git",
                     "PACKIT_PACKAGE_NAME": "hello-world",
-                    "PACKIT_COMMIT_SHA": "12345",
-                    "PACKIT_TARGET_SHA": "6789a",
+                    "PACKIT_COMMIT_SHA": "0011223344",
+                    "PACKIT_SOURCE_SHA": "0011223344",
+                    "PACKIT_TARGET_SHA": "deadbeef",
+                    "PACKIT_SOURCE_BRANCH": "the-source-branch",
+                    "PACKIT_TARGET_BRANCH": "the-target-branch",
+                    "PACKIT_SOURCE_URL": "https://github.com/someone/hello-world",
+                    "PACKIT_TARGET_URL": "https://github.com/packit-service/hello-world",
                 },
             }
         ],
@@ -884,7 +896,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     ).once()
 
     flexmock(GithubProject).should_receive("get_web_url").and_return(
-        "https://github.com/foo/bar"
+        "https://github.com/packit-service/hello-world"
     )
 
     tft_test_run_model = flexmock(id=5)
@@ -892,12 +904,12 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     flexmock(PipelineModel).should_receive("create").and_return(run_model)
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
         pipeline_id=pipeline_id,
-        commit_sha="12345",
+        commit_sha="0011223344",
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
         web_url=None,
         run_model=run_model,
-        data={"base_project_url": "https://github.com/foo/bar"},
+        data={"base_project_url": "https://github.com/packit-service/hello-world"},
     ).and_return(tft_test_run_model)
 
     flexmock(StatusReporter).should_receive("report").with_args(

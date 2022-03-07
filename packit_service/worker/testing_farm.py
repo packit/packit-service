@@ -5,7 +5,7 @@ import logging
 from typing import Dict, Any, Optional, Set, List, Union
 
 import requests
-from ogr.abstract import GitProject
+from ogr.abstract import GitProject, PullRequest
 from ogr.utils import RequestResponse
 from packit.config import JobType, JobConfigTriggerType
 from packit.config.job_config import JobConfig
@@ -64,6 +64,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self.session.mount("https://", adapter)
         self._tft_api_url: str = ""
         self._tft_token: str = ""
+        self.__pr = None
 
     @property
     def tft_api_url(self) -> str:
@@ -109,10 +110,36 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return self.metadata.commit_sha
 
     @property
+    def source_branch_sha(self) -> Optional[str]:
+        return self._pr.head_commit if self._pr else None
+
+    @property
     def target_branch_sha(self) -> Optional[str]:
+        return self._pr.target_branch_head_commit if self._pr else None
+
+    @property
+    def target_branch(self) -> Optional[str]:
+        return self._pr.target_branch if self._pr else None
+
+    @property
+    def source_branch(self) -> Optional[str]:
+        return self._pr.source_branch if self._pr else None
+
+    @property
+    def target_project_url(self) -> Optional[str]:
+        return self._pr.target_project.get_web_url() if self._pr else None
+
+    @property
+    def source_project_url(self) -> Optional[str]:
+        return self._pr.source_project.get_web_url() if self._pr else None
+
+    @property
+    def _pr(self) -> Optional[PullRequest]:
         if not self.metadata.pr_id:
             return None
-        return self.project.get_pr(int(self.metadata.pr_id)).target_branch_head_commit
+        if not self.__pr:
+            self.__pr = self.project.get_pr(int(self.metadata.pr_id))
+        return self.__pr
 
     @staticmethod
     def _artifact(
@@ -179,7 +206,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "PACKIT_BUILD_LOG_URL": build_log_url,
             "PACKIT_SRPM_URL": srpm_url,
             "PACKIT_COMMIT_SHA": self.metadata.commit_sha,
+            "PACKIT_SOURCE_SHA": self.source_branch_sha,
             "PACKIT_TARGET_SHA": self.target_branch_sha,
+            "PACKIT_SOURCE_BRANCH": self.source_branch,
+            "PACKIT_TARGET_BRANCH": self.target_branch,
+            "PACKIT_SOURCE_URL": self.source_project_url,
+            "PACKIT_TARGET_URL": self.target_project_url,
         }
         predefined_environment = {
             k: v for k, v in predefined_environment.items() if v is not None

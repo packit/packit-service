@@ -393,8 +393,16 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(
-            source_project=flexmock(get_web_url=lambda: "https://github.com/foo/bar"),
+            source_project=flexmock(
+                get_web_url=lambda: "https://github.com/source/bar"
+            ),
+            target_project=flexmock(
+                get_web_url=lambda: "https://github.com/target/bar"
+            ),
+            head_commit="0011223344",
             target_branch_head_commit="deadbeef",
+            source_branch="the-source-branch",
+            target_branch="the-target-branch",
         )
         .should_receive("comment")
         .mock()
@@ -460,12 +468,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
 
     payload = {
         "api_key": "secret token",
-        "test": {
-            "fmf": {
-                "url": "https://github.com/foo/bar",
-                "ref": "0011223344",
-            },
-        },
+        "test": {"fmf": {"url": "https://github.com/source/bar", "ref": "0011223344"}},
         "environments": [
             {
                 "arch": "x86_64",
@@ -486,10 +489,15 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
                 ],
                 "variables": {
                     "PACKIT_FULL_REPO_NAME": "foo/bar",
-                    "PACKIT_COMMIT_SHA": "0011223344",
                     "PACKIT_PACKAGE_NVR": "bar-0.1-1",
                     "PACKIT_BUILD_LOG_URL": "https://log-url",
+                    "PACKIT_COMMIT_SHA": "0011223344",
+                    "PACKIT_SOURCE_SHA": "0011223344",
                     "PACKIT_TARGET_SHA": "deadbeef",
+                    "PACKIT_SOURCE_BRANCH": "the-source-branch",
+                    "PACKIT_TARGET_BRANCH": "the-target-branch",
+                    "PACKIT_SOURCE_URL": "https://github.com/source/bar",
+                    "PACKIT_TARGET_URL": "https://github.com/target/bar",
                 },
             }
         ],
@@ -586,10 +594,21 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
 
 def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_web_url").and_return(
+        "https://github.com/target/bar"
+    )
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(
-            source_project=flexmock(get_web_url=lambda: "abc"),
+            source_project=flexmock(
+                get_web_url=lambda: "https://github.com/source/bar"
+            ),
+            target_project=flexmock(
+                get_web_url=lambda: "https://github.com/target/bar"
+            ),
+            head_commit="0011223344",
             target_branch_head_commit="deadbeef",
+            source_branch="the-source-branch",
+            target_branch="the-target-branch",
         )
         .should_receive("comment")
         .mock()
@@ -713,10 +732,21 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
 
 def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_pr):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(GithubProject).should_receive("get_web_url").and_return(
+        "https://github.com/target/bar"
+    )
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(
-            source_project=flexmock(get_web_url=lambda: "abc"),
+            source_project=flexmock(
+                get_web_url=lambda: "https://github.com/source/bar"
+            ),
+            target_project=flexmock(
+                get_web_url=lambda: "https://github.com/target/bar"
+            ),
+            head_commit="0011223344",
             target_branch_head_commit="deadbeef",
+            source_branch="the-source-branch",
+            target_branch="the-target-branch",
         )
         .should_receive("comment")
         .mock()
