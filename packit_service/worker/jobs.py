@@ -99,6 +99,12 @@ def get_handlers_for_event(
 
     matching_handlers: Set[Type["JobHandler"]] = set()
     for job in jobs_matching_trigger:
+        if (
+            isinstance(event, CheckRerunEvent)
+            and event.job_identifier != job.identifier
+        ):
+            continue
+
         for handler in (
             MAP_JOB_TYPE_TO_HANDLER[job.type]
             | MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job.type]

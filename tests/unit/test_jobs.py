@@ -1016,12 +1016,13 @@ def test_get_handlers_for_comment_event(event_cls, comment, db_trigger, jobs, re
 
 
 @pytest.mark.parametrize(
-    "event_cls,check_name_job, db_trigger,jobs,result",
+    "event_cls,check_name_job,db_trigger,job_identifier,jobs,result",
     [
         pytest.param(
             CheckRerunPullRequestEvent,
             "rpm-build",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            None,
             [
                 JobConfig(
                     type=JobType.build,
@@ -1033,8 +1034,56 @@ def test_get_handlers_for_comment_event(event_cls, comment, db_trigger, jobs, re
         ),
         pytest.param(
             CheckRerunPullRequestEvent,
+            "rpm-build",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            "the-identifier",
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    identifier="the-identifier",
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=build_for_pr&pull_request&CheckRerunPullRequestEvent"
+            "&identifier_match",
+        ),
+        pytest.param(
+            CheckRerunPullRequestEvent,
+            "rpm-build",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            None,
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    identifier="the-identifier",
+                ),
+            ],
+            set(),
+            id="config=build_for_pr&pull_request&CheckRerunPullRequestEvent"
+            "&identifier_not_in_event",
+        ),
+        pytest.param(
+            CheckRerunPullRequestEvent,
+            "rpm-build",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            "the-identifier",
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            set(),
+            id="config=build_for_pr&pull_request&CheckRerunPullRequestEvent"
+            "&identifier_not_in_config",
+        ),
+        pytest.param(
+            CheckRerunPullRequestEvent,
             "testing-farm",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            None,
             [
                 JobConfig(
                     type=JobType.tests,
@@ -1048,6 +1097,7 @@ def test_get_handlers_for_comment_event(event_cls, comment, db_trigger, jobs, re
             CheckRerunPullRequestEvent,
             "production-build",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            None,
             [
                 JobConfig(
                     type=JobType.production_build,
@@ -1061,6 +1111,7 @@ def test_get_handlers_for_comment_event(event_cls, comment, db_trigger, jobs, re
             CheckRerunCommitEvent,
             "rpm-build",
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            None,
             [
                 JobConfig(
                     type=JobType.build,
@@ -1074,6 +1125,7 @@ def test_get_handlers_for_comment_event(event_cls, comment, db_trigger, jobs, re
             CheckRerunCommitEvent,
             "testing-farm",
             flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+            None,
             [
                 JobConfig(
                     type=JobType.tests,
@@ -1087,6 +1139,7 @@ def test_get_handlers_for_comment_event(event_cls, comment, db_trigger, jobs, re
             CheckRerunReleaseEvent,
             "production-build",
             flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            None,
             [
                 JobConfig(
                     type=JobType.production_build,
@@ -1100,6 +1153,7 @@ def test_get_handlers_for_comment_event(event_cls, comment, db_trigger, jobs, re
             CheckRerunReleaseEvent,
             "production-build",
             flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+            None,
             [
                 JobConfig(
                     type=JobType.production_build,
@@ -1112,7 +1166,7 @@ def test_get_handlers_for_comment_event(event_cls, comment, db_trigger, jobs, re
     ],
 )
 def test_get_handlers_for_check_rerun_event(
-    event_cls, check_name_job, db_trigger, jobs, result
+    event_cls, check_name_job, job_identifier, db_trigger, jobs, result
 ):
     # We are using isinstance for matching event to handlers
     # and flexmock can't do this for us so we need a subclass to test it.
@@ -1120,6 +1174,7 @@ def test_get_handlers_for_check_rerun_event(
     class Event(event_cls):
         def __init__(self):
             self.check_name_job = check_name_job
+            self.job_identifier = job_identifier
 
         @property
         def db_trigger(self):

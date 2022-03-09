@@ -229,7 +229,7 @@ def test_copr_build_end(
         state=BaseCommitStatus.success,
         description="RPMs were built successfully.",
         url=url,
-        check_names=CoprBuildJobHelper.get_build_check(copr_build_end["chroot"]),
+        check_names=CoprBuildJobHelper.get_build_check_cls(copr_build_end["chroot"]),
         markdown_content=None,
     ).once()
 
@@ -297,7 +297,7 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
         state=BaseCommitStatus.success,
         description="RPMs were built successfully.",
         url=url,
-        check_names=CoprBuildJobHelper.get_build_check(copr_build_end["chroot"]),
+        check_names=CoprBuildJobHelper.get_build_check_cls(copr_build_end["chroot"]),
         markdown_content=None,
     ).once()
 
@@ -354,7 +354,7 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
         state=BaseCommitStatus.success,
         description="RPMs were built successfully.",
         url=url,
-        check_names=CoprBuildJobHelper.get_build_check(copr_build_end["chroot"]),
+        check_names=CoprBuildJobHelper.get_build_check_cls(copr_build_end["chroot"]),
         markdown_content=None,
     ).once()
 
@@ -1005,7 +1005,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
         state=BaseCommitStatus.success,
         description="RPMs were built successfully.",
         url=url,
-        check_names=CoprBuildJobHelper.get_build_check(copr_build_end["chroot"]),
+        check_names=CoprBuildJobHelper.get_build_check_cls(copr_build_end["chroot"]),
         markdown_content=None,
     ).once()
 
