@@ -59,6 +59,7 @@ from packit_service.worker.events.enums import (
     PullRequestCommentAction,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.pagure import PullRequestFlagPagureEvent
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 
@@ -91,6 +92,7 @@ class Parser:
             IssueCommentGitlabEvent,
             PushGitlabEvent,
             PipelineGitlabEvent,
+            PullRequestFlagPagureEvent,
             PushPagureEvent,
             CheckRerunCommitEvent,
             CheckRerunPullRequestEvent,
@@ -133,6 +135,7 @@ class Parser:
                 Parser.parse_gitlab_issue_comment_event,
                 Parser.parse_gitlab_push_event,
                 Parser.parse_pipeline_event,
+                Parser.parse_pagure_pr_flag_event,
             ),
         ):
             if response:
@@ -1190,6 +1193,50 @@ class Parser:
             commit_sha=commit_sha,
             source=source,
             merge_request_url=merge_request_url,
+        )
+
+    @staticmethod
+    def parse_pagure_pr_flag_event(event) -> Optional[PullRequestFlagPagureEvent]:
+        """
+        Look into the provided event and see if it is Pagure PR Flag added/updated event.
+        https://fedora-fedmsg.readthedocs.io/en/latest/topics.html#pagure-pull-request-flag-added
+        https://fedora-fedmsg.readthedocs.io/en/latest/topics.html#pagure-pull-request-flag-updated
+        """
+
+        if ".pagure.pull-request.flag." not in (topic := event.get("topic", "")):
+            return None
+        logger.info(f"Pagure PR flag event, topic: {topic}")
+
+        if (flag := event.get("flag")) is None:
+            return None
+        username = flag.get("username")
+        comment = flag.get("comment")
+        status = flag.get("status")
+        date_updated = int(d) if (d := flag.get("date_updated")) else None
+        url = flag.get("url")
+        commit_sha = flag.get("commit_hash")
+
+        pr_id: int = nested_get(event, "pullrequest", "id")
+        pr_url = nested_get(event, "pullrequest", "full_url")
+        pr_source_branch = nested_get(event, "pullrequest", "branch_from")
+
+        project_url = nested_get(event, "pullrequest", "project", "full_url")
+        project_name = nested_get(event, "pullrequest", "project", "name")
+        project_namespace = nested_get(event, "pullrequest", "project", "namespace")
+
+        return PullRequestFlagPagureEvent(
+            username=username,
+            comment=comment,
+            status=status,
+            date_updated=date_updated,
+            url=url,
+            commit_sha=commit_sha,
+            pr_id=pr_id,
+            pr_url=pr_url,
+            pr_source_branch=pr_source_branch,
+            project_url=project_url,
+            project_name=project_name,
+            project_namespace=project_namespace,
         )
 
 

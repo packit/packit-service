@@ -139,3 +139,32 @@ class PullRequestPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
         )
         logger.debug(f"Base project: {fork} owned by {self.base_repo_owner}")
         return fork
+
+
+class PullRequestFlagPagureEvent(AbstractPagureEvent):
+    def __init__(
+        self,
+        username: str,
+        comment: str,
+        status: str,
+        date_updated: int,
+        url: str,
+        commit_sha: str,
+        pr_id: int,
+        pr_url: str,
+        pr_source_branch: str,
+        project_url: str,
+        project_name: str,
+        project_namespace: str,
+    ):
+        super().__init__(project_url=project_url, pr_id=pr_id)
+        self.username = username
+        self.comment = comment
+        self.status = status
+        self.date_updated = date_updated
+        self.url = url
+        self.commit_sha = commit_sha
+        self.pr_url = pr_url
+        self.pr_source_branch = pr_source_branch
+        self.project_name = project_name
+        self.project_namespace = project_namespace

@@ -58,6 +58,7 @@ from packit_service.worker.events.enums import (
     GitlabEventAction,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.pagure import PullRequestFlagPagureEvent
 from packit_service.worker.parser import Parser, CentosEventParser
 from packit_service.worker.testing_farm import TestingFarmJobHelper
 from tests.conftest import copr_build_model
@@ -170,6 +171,11 @@ class TestEvents:
     @pytest.fixture()
     def gitlab_mr_pipeline(self):
         with open(DATA_DIR / "webhooks" / "gitlab" / "mr_pipeline.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def pagure_pr_flag_updated(self):
+        with open(DATA_DIR / "fedmsg" / "pagure_pr_flag_updated.json") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -673,6 +679,30 @@ class TestEvents:
             flexmock()
         ).once()
         assert event_object.package_config
+
+    def test_parse_pagure_flag(self, pagure_pr_flag_updated):
+        event_object = Parser.parse_event(pagure_pr_flag_updated)
+
+        assert isinstance(event_object, PullRequestFlagPagureEvent)
+        assert event_object.project_url == "https://src.fedoraproject.org/rpms/packit"
+        assert event_object.pr_id == 268
+
+        assert event_object.username == "Zuul"
+        assert event_object.comment == "Jobs result is success"
+        assert event_object.status == "success"
+        assert event_object.date_updated == 1646754511
+        assert (
+            event_object.url
+            == "https://fedora.softwarefactory-project.io/zuul/buildset/66ec2c23c78446afa2fd993"
+        )
+        assert event_object.commit_sha == "c69960e6f562c90905435fec824fcae952abfad6"
+        assert (
+            event_object.pr_url
+            == "https://src.fedoraproject.org/rpms/packit/pull-request/268"
+        )
+        assert event_object.pr_source_branch == "0.47.0-f36-update"
+        assert event_object.project_name == "packit"
+        assert event_object.project_namespace == "rpms"
 
     def test_parse_testing_farm_notification(
         self, testing_farm_notification, testing_farm_results

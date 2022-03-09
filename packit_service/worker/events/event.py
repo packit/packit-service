@@ -156,6 +156,7 @@ class EventData:
                 "PullRequestCommentGithubEvent",
                 "MergeRequestCommentGitlabEvent",
                 "PullRequestCommentPagureEvent",
+                "PullRequestFlagPagureEvent",
                 "CheckRerunPullRequestEvent",
             }:
                 self._db_trigger = PullRequestModel.get_or_create(
