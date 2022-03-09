@@ -261,7 +261,7 @@ class KojiTaskReportHandler(JobHandler):
 @configured_as(job_type=JobType.bodhi_update)
 @reacts_to(event=KojiBuildEvent)
 class KojiBuildReportHandler(JobHandler):
-    task_name = TaskName.koji_build_report
+    task_name = TaskName.downstream_koji_build_report
 
     def __init__(
         self, package_config: PackageConfig, job_config: JobConfig, event: dict
