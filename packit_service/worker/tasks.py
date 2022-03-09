@@ -183,7 +183,7 @@ def run_propose_downstream_handler(
 
 
 @celery_app.task(
-    name=TaskName.koji_build, base=HandlerTaskWithRetry, queue="long-running"
+    name=TaskName.upstream_koji_build, base=HandlerTaskWithRetry, queue="long-running"
 )
 def run_koji_build_handler(event: dict, package_config: dict, job_config: dict):
     handler = KojiBuildHandler(
@@ -194,7 +194,7 @@ def run_koji_build_handler(event: dict, package_config: dict, job_config: dict):
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.koji_build_report, base=HandlerTaskWithRetry)
+@celery_app.task(name=TaskName.upstream_koji_build_report, base=HandlerTaskWithRetry)
 def run_koji_build_report_handler(event: dict, package_config: dict, job_config: dict):
     handler = KojiTaskReportHandler(
         package_config=load_package_config(package_config),
