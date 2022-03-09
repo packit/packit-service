@@ -67,7 +67,7 @@ logger = logging.getLogger(__name__)
 @reacts_to(CheckRerunCommitEvent)
 @reacts_to(CheckRerunReleaseEvent)
 class KojiBuildHandler(JobHandler):
-    task_name = TaskName.koji_build
+    task_name = TaskName.upstream_koji_build
 
     def __init__(
         self,
@@ -141,7 +141,7 @@ class KojiBuildHandler(JobHandler):
 @configured_as(job_type=JobType.production_build)
 @reacts_to(event=KojiTaskEvent)
 class KojiTaskReportHandler(JobHandler):
-    task_name = TaskName.koji_build_report
+    task_name = TaskName.upstream_koji_build_report
 
     def __init__(
         self, package_config: PackageConfig, job_config: JobConfig, event: dict
@@ -261,7 +261,7 @@ class KojiTaskReportHandler(JobHandler):
 @configured_as(job_type=JobType.bodhi_update)
 @reacts_to(event=KojiBuildEvent)
 class KojiBuildReportHandler(JobHandler):
-    task_name = TaskName.koji_build_report
+    task_name = TaskName.downstream_koji_build_report
 
     def __init__(
         self, package_config: PackageConfig, job_config: JobConfig, event: dict

@@ -217,8 +217,8 @@ class TaskName(str, enum.Enum):
     testing_farm = "task.run_testing_farm_handler"
     testing_farm_results = "task.run_testing_farm_results_handler"
     propose_downstream = "task.run_propose_downstream_handler"
-    koji_build = "task.run_koji_build_handler"
-    koji_build_report = "task.run_koji_build_report_handler"
+    upstream_koji_build = "task.run_koji_build_handler"
+    upstream_koji_build_report = "task.run_koji_build_report_handler"
     downstream_koji_build = "task.run_downstream_koji_build_handler"
     downstream_koji_build_report = "task.run_downstream_koji_build_report_handler"
     # Fedora notification is ok for now
