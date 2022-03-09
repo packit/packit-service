@@ -124,17 +124,23 @@ We use PostgreSQL as a persistent data store.
 Take a look at [alembic](https://alembic.sqlalchemy.org/en/latest/cookbook.html#building-uptodate),
 the project which handles migrations and schema versioning for SQLAlchemy.
 
-To generate a migration script for your recent change you can do:
+To generate a migration script for your recent change you can use docker or
+more easily, with rootless podman, you can use our make target.
+
+Both expect that the `alembic upgrade head` is run in [run_httpd.sh](files/run_httpd.sh)
+during (packit-)service pod/container start.
+
+#### with docker:
 
     $ docker-compose up service
-    $ podman exec -ti service bash -c 'cd /src/; alembic revision -m "My change" --autogenerate'
-    $ podman cp service:/src/alembic/versions/123456789abc_my_change.py .
+    $ docker exec -ti service bash -c 'cd /src/; alembic revision -m "My change" --autogenerate'
+    $ docker cp service:/src/alembic/versions/123456789abc_my_change.py .
 
-The above expects that you
-[use podman with docker-compose](https://fedoramagazine.org/use-docker-compose-with-podman-to-orchestrate-containers-on-fedora).
-Otherwise you have to run `docker` instead of `podman` in the 2. and 3. command.
-The `alembic upgrade head` is run in [run_httpd.sh](files/run_httpd.sh)
-during (packit-)service pod/container start.
+#### with rootless podman
+
+[Use podman with docker-compose](https://fedoramagazine.org/use-docker-compose-with-podman-to-orchestrate-containers-on-fedora).
+
+    $ make migrate-db CHANGE="something new you did"
 
 ### How to check what's inside postgres?
 

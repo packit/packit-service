@@ -12,6 +12,8 @@ COV_REPORT ?= term-missing
 COLOR ?= yes
 SOURCE_BRANCH ?= $(shell git branch --show-current)
 CONTAINER_RUN_INTERACTIVE ?= -it
+COMPOSE ?= docker-compose
+MY_ID ?= `id -u`
 
 service: files/install-deps.yaml files/recipe.yaml
 	$(CONTAINER_ENGINE) pull $(BASE_IMAGE)
@@ -95,3 +97,29 @@ check-inside-toolbox:
 
 requre-purge-files:
 	pre-commit run requre-purge --all-files --verbose --hook-stage manual
+
+# run all the pods needed by the service pod
+# use docker-compose to update and run them
+# (postgres and redis)
+compose-for-migrate-db-up:
+	$(COMPOSE) up --build --force-recreate -d service
+
+# run alembic revision through another service pod
+# run processes as *local host user* inside the pod
+# preserve *local host user* files' uid inside the pod
+migrate-db: compose-for-migrate-db-up
+	podman run --rm -ti --user $(MY_ID) --uidmap=$(MY_ID):0:1 --uidmap=0:1:999 \
+	-e DEPLOYMENT=dev \
+	-e REDIS_SERVICE_HOST=redis \
+	-e POSTGRESQL_USER=packit \
+	-e POSTGRESQL_PASSWORD=secret-password \
+	-e POSTGRESQL_HOST=postgres \
+	-e POSTGRESQL_DATABASE=packit \
+	-v $(CURDIR)/alembic:/src/alembic:rw,z \
+	-v $(CURDIR)/packit_service:/usr/local/lib/python3.9/site-packages/packit_service:ro,z \
+	-v $(CURDIR)/secrets/packit/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z \
+	-v $(CURDIR)/secrets/packit/dev/fullchain.pem:/secrets/fullchain.pem:ro,z \
+	-v $(CURDIR)/secrets/packit/dev/privkey.pem:/secrets/privkey.pem:ro,z \
+	--network packit-service_default \
+	quay.io/packit/packit-service:dev alembic revision -m "$(CHANGE)" --autogenerate
+	$(COMPOSE) stop # stop previously started pods: service, postgres and redis
