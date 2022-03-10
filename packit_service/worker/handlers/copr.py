@@ -20,6 +20,7 @@ from packit_service.constants import (
     COPR_SRPM_CHROOT,
     PG_BUILD_STATUS_FAILURE,
     PG_BUILD_STATUS_SUCCESS,
+    INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
 )
 from packit_service.models import (
     AbstractTriggerDbType,
@@ -107,6 +108,26 @@ class CoprBuildHandler(JobHandler):
                 pushgateway=self.pushgateway,
             )
         return self._copr_build_helper
+
+    def check_if_actor_can_run_job_and_report(self, actor: str) -> bool:
+        """
+        The job is not allowed for external contributors when using internal TF.
+        """
+        test_job = self.copr_build_helper.job_tests
+        if (
+            test_job
+            and test_job.metadata.use_internal_tf
+            and not self.project.can_merge_pr(actor)
+        ):
+            self.copr_build_helper.report_status_to_build(
+                description=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[0].format(
+                    actor=actor
+                ),
+                state=BaseCommitStatus.neutral,
+                markdown_content=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[1],
+            )
+            return False
+        return True
 
     def run(self) -> TaskResults:
         if self.package_config.srpm_build_deps is not None:

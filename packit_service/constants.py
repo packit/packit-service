@@ -187,3 +187,16 @@ class KojiBuildState(Enum):
             3: KojiBuildState.failed,
             4: KojiBuildState.canceled,
         }.get(number)
+
+
+INTERNAL_TF_TESTS_NOT_ALLOWED = (
+    "{actor} can't run tests internally",
+    "*As a project maintainer, you can trigger the test job manually "
+    "via `/packit test` comment.*",
+)
+
+INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED = (
+    "{actor} can't run tests (and builds) internally",
+    "*As a project maintainer, you can trigger the build and test jobs manually "
+    "via `/packit build` comment.*",
+)
