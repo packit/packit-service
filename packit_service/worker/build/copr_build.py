@@ -12,7 +12,11 @@ from ogr.services.github import GithubProject
 from packit.config import JobConfig, JobType
 from packit.config.aliases import get_valid_build_targets, get_aliases
 from packit.config.package_config import PackageConfig
-from packit.exceptions import PackitCoprException, PackitCoprSettingsException
+from packit.exceptions import (
+    PackitCoprException,
+    PackitCoprSettingsException,
+    PackitCoprProjectException,
+)
 
 from packit_service import sentry_integration
 from packit_service.celerizer import celery_app
@@ -665,6 +669,21 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 "- Update the Packit configuration to match the Copr project settings.\n"
                 "\n"
                 "Please retrigger the build, once the issue above is fixed.\n"
+            )
+            self.status_reporter.comment(body=msg)
+            raise ex
+        except PackitCoprProjectException as ex:
+            msg = (
+                "We were not able to find Copr project"
+                f"({owner}/{self.job_project}) "
+                "specified in the config with the following error:\n"
+                f"```\n{str(ex.__cause__)}\n```\n---\n"
+                "Please check your configuration for:\n\n"
+                "1. typos in owner and project name\n"
+                "2. whether the project itself exists (Packit creates projects"
+                " only in its own namespace)\n"
+                "3. whether Packit is allowed to build in your Copr project\n"
+                "4. whether your Copr project/group is not private"
             )
             self.status_reporter.comment(body=msg)
             raise ex
