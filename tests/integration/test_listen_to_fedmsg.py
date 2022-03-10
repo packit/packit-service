@@ -7,7 +7,10 @@ from datetime import datetime
 import pytest
 import requests
 from celery.canvas import Signature
+from copr.v3 import Client
 from flexmock import flexmock
+from packit.copr_helper import CoprHelper
+
 from ogr.services.github import GithubProject
 from ogr.utils import RequestResponse
 from packit.config import JobConfig, JobType, JobConfigTriggerType
@@ -484,12 +487,12 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
                     {
                         "id": "1:fedora-rawhide-x86_64",
                         "type": "fedora-copr-build",
-                        "packages": ["bar-0.1-1.noarch"],
+                        "packages": ["hello-world-0.1-1.noarch"],
                     },
                 ],
                 "variables": {
-                    "PACKIT_FULL_REPO_NAME": "foo/bar",
-                    "PACKIT_PACKAGE_NVR": "bar-0.1-1",
+                    "PACKIT_FULL_REPO_NAME": "packit-service/hello-world",
+                    "PACKIT_PACKAGE_NVR": "hello-world-0.1-1",
                     "PACKIT_BUILD_LOG_URL": "https://log-url",
                     "PACKIT_COMMIT_SHA": "0011223344",
                     "PACKIT_SOURCE_SHA": "0011223344",
@@ -878,6 +881,9 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(config={"username": "packit"})
+    )
     flexmock(CoprBuildJobHelper).should_receive("get_build_check").and_return(
         EXPECTED_BUILD_CHECK_NAME
     )
@@ -925,6 +931,9 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
     )
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_tests
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(config={"username": "packit"})
     )
     flexmock(TestingFarmJobHelper).should_receive("get_build_check").and_return(
         EXPECTED_BUILD_CHECK_NAME
@@ -1264,6 +1273,9 @@ def test_srpm_build_start(srpm_build_start, pc_build_pr, srpm_build_model):
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(config={"username": "packit"})
     )
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").and_return(
         [flexmock(target="fedora-33-x86_64")]

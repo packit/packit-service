@@ -1,15 +1,15 @@
 {
   "topic": "org.fedoraproject.prod.copr.build.start",
   "status": 3,
-  "what": "build start: user:lbarczio copr:ogr-custom-source pkg:None build:3122876 ip:2620:52:3:1:dead:beef:cafe:c195 pid:2810668",
+  "what": "build start: user:packit copr:foo-bar-123-stg pkg:None build:3122876 ip:2620:52:3:1:dead:beef:cafe:c195 pid:2810668",
   "chroot": "srpm-builds",
   "ip": "2620:52:3:1:dead:beef:cafe:c195",
-  "user": "lbarczio",
+  "user": "packit",
   "who": "backend.worker-rpm_build_worker:3122876",
   "pid": 2810668,
-  "copr": "ogr-custom-source",
+  "copr": "foo-bar-123-stg",
   "version": null,
   "build": 3122876,
-  "owner": "lbarczio",
+  "owner": "packit",
   "pkg": null
 }

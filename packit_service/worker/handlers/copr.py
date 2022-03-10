@@ -217,6 +217,20 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
         copr_build_logs = self.copr_event.get_copr_build_logs_url()
         self.build.set_build_logs_url(copr_build_logs)
 
+    def pre_check(self) -> bool:
+        if (
+            self.copr_event.owner == self.copr_build_helper.job_owner
+            and self.copr_event.project_name == self.copr_build_helper.job_project
+        ):
+            return True
+
+        logger.debug(
+            f"The Copr project {self.copr_event.owner}/{self.copr_event.project_name} "
+            f"does not match the configuration "
+            f"({self.copr_build_helper.job_owner}/{self.copr_build_helper.job_project} expected)."
+        )
+        return False
+
     def run(self):
         if not self.build:
             model = (

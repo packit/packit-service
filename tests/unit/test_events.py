@@ -756,13 +756,15 @@ class TestEvents:
         assert event_object.status == 3
         assert event_object.owner == "packit"
         assert event_object.project_name == "packit-service-hello-world-24-stg"
-        assert event_object.project_url == "https://github.com/foo/bar"
-        assert event_object.base_repo_name == "bar"
-        assert event_object.base_repo_namespace == "foo"
+        assert (
+            event_object.project_url == "https://github.com/packit-service/hello-world"
+        )
+        assert event_object.base_repo_name == "hello-world"
+        assert event_object.base_repo_namespace == "packit-service"
         assert event_object.pkg == "hello"
 
         assert isinstance(event_object.project, GithubProject)
-        assert event_object.project.full_repo_name == "foo/bar"
+        assert event_object.project.full_repo_name == "packit-service/hello-world"
 
         assert (
             not event_object.base_project  # With Github app, we cannot work with fork repo
@@ -773,7 +775,7 @@ class TestEvents:
         ).with_args(
             base_project=None,
             project=event_object.project,
-            pr_id=123,
+            pr_id=24,
             reference="0011223344",
             fail_when_missing=False,
             spec_file_path=None,
@@ -797,8 +799,8 @@ class TestEvents:
         assert event_object.status == 1
         assert event_object.owner == "packit"
         assert event_object.project_name == "packit-service-hello-world-24-stg"
-        assert event_object.base_repo_name == "bar"
-        assert event_object.base_repo_namespace == "foo"
+        assert event_object.base_repo_name == "hello-world"
+        assert event_object.base_repo_namespace == "packit-service"
         assert event_object.pkg == "hello"
         assert event_object.git_ref == "0011223344"
 
@@ -806,7 +808,7 @@ class TestEvents:
             pr_id=123
         ).and_return(flexmock(author="the-fork"))
         assert isinstance(event_object.project, GithubProject)
-        assert event_object.project.full_repo_name == "foo/bar"
+        assert event_object.project.full_repo_name == "packit-service/hello-world"
 
         assert (
             not event_object.base_project  # With Github app, we cannot work with fork repo
@@ -817,7 +819,7 @@ class TestEvents:
         ).with_args(
             base_project=None,
             project=event_object.project,
-            pr_id=123,
+            pr_id=24,
             reference="0011223344",
             fail_when_missing=False,
             spec_file_path=None,
@@ -1543,9 +1545,9 @@ class TestCentOSEventParser:
         assert event_object.base_repo_namespace == "source-git"
         assert event_object.pkg == "hello"
 
-        flexmock(PagureProject).should_receive("get_pr").with_args(
-            pr_id=123
-        ).and_return(flexmock(author="the-fork"))
+        flexmock(PagureProject).should_receive("get_pr").with_args(pr_id=24).and_return(
+            flexmock(author="the-fork")
+        )
         assert isinstance(event_object.project, PagureProject)
         assert event_object.project.full_repo_name == "source-git/packit-hello-world"
         assert isinstance(event_object.base_project, PagureProject)
@@ -1559,7 +1561,7 @@ class TestCentOSEventParser:
         ).with_args(
             base_project=event_object.base_project,
             project=event_object.project,
-            pr_id=123,
+            pr_id=24,
             reference="0011223344",
             fail_when_missing=False,
             spec_file_path="SPECS/packit-hello-world.spec",
@@ -1592,9 +1594,9 @@ class TestCentOSEventParser:
         assert event_object.pkg == "hello"
         assert event_object.git_ref == "0011223344"
 
-        flexmock(PagureProject).should_receive("get_pr").with_args(
-            pr_id=123
-        ).and_return(flexmock(author="the-fork"))
+        flexmock(PagureProject).should_receive("get_pr").with_args(pr_id=24).and_return(
+            flexmock(author="the-fork")
+        )
         assert isinstance(event_object.project, PagureProject)
         assert event_object.project.full_repo_name == "source-git/packit-hello-world"
         assert isinstance(event_object.base_project, PagureProject)
@@ -1608,7 +1610,7 @@ class TestCentOSEventParser:
         ).with_args(
             base_project=event_object.base_project,
             project=event_object.project,
-            pr_id=123,
+            pr_id=24,
             reference="0011223344",
             fail_when_missing=False,
             spec_file_path="SPECS/packit-hello-world.spec",

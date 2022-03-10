@@ -136,8 +136,8 @@ def srpm_build_model(
 
 
 def copr_build_model(
-    repo_name="bar",
-    repo_namespace="foo",
+    repo_name="hello-world",
+    repo_namespace="packit-service",
     forge_instance="github.com",
     job_config_trigger_type=JobConfigTriggerType.pull_request,
     job_trigger_model_type=JobTriggerModelType.pull_request,
@@ -150,7 +150,7 @@ def copr_build_model(
     )
     pr_model = flexmock(
         id=1,
-        pr_id=123,
+        pr_id=24,
         project=project_model,
         job_config_trigger_type=job_config_trigger_type,
         job_trigger_model_type=JobTriggerModelType.pull_request,
