@@ -256,6 +256,16 @@ run only the unit tests use:
 
     TEST_TARGET=tests/unit make check-in-container
 
+#### **Database tests**
+
+Database tests can be run using a dedicated target.
+
+    make check-db
+
+To run them you need docker-compose.
+Otherwise you can run the same using _Openshift_ and following
+the instructions below.
+
 ### Openshift tests using requre
 
 This testsuite uses [requre project](https://github.com/packit/requre) project to
