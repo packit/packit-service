@@ -152,6 +152,20 @@ class AbstractCoprBuildReportHandler(JobHandler):
         self._db_trigger = None
         self._copr_build_helper: Optional[CoprBuildJobHelper] = None
 
+    def pre_check(self) -> bool:
+        if (
+            self.copr_event.owner == self.copr_build_helper.job_owner
+            and self.copr_event.project_name == self.copr_build_helper.job_project
+        ):
+            return True
+
+        logger.debug(
+            f"The Copr project {self.copr_event.owner}/{self.copr_event.project_name} "
+            f"does not match the configuration "
+            f"({self.copr_build_helper.job_owner}/{self.copr_build_helper.job_project} expected)."
+        )
+        return False
+
     @property
     def copr_build_helper(self) -> CoprBuildJobHelper:
         # when reporting state of SRPM build built in Copr
@@ -216,20 +230,6 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
     def set_logs_url(self):
         copr_build_logs = self.copr_event.get_copr_build_logs_url()
         self.build.set_build_logs_url(copr_build_logs)
-
-    def pre_check(self) -> bool:
-        if (
-            self.copr_event.owner == self.copr_build_helper.job_owner
-            and self.copr_event.project_name == self.copr_build_helper.job_project
-        ):
-            return True
-
-        logger.debug(
-            f"The Copr project {self.copr_event.owner}/{self.copr_event.project_name} "
-            f"does not match the configuration "
-            f"({self.copr_build_helper.job_owner}/{self.copr_build_helper.job_project} expected)."
-        )
-        return False
 
     def run(self):
         if not self.build:

@@ -211,6 +211,9 @@ def test_copr_build_end(
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(config={"username": "packit"})
+    )
     flexmock(CoprBuildEndHandler).should_receive(
         "was_last_packit_comment_with_congratulation"
     ).and_return(False)
@@ -282,6 +285,9 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_push
     )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(config={"username": "packit"})
+    )
     flexmock(CoprBuildEndHandler).should_receive(
         "was_last_packit_comment_with_congratulation"
     ).and_return(False)
@@ -339,6 +345,9 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
     )
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_release
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(config={"username": "packit"})
     )
     flexmock(CoprBuildEndHandler).should_receive(
         "was_last_packit_comment_with_congratulation"
@@ -419,8 +428,6 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
                 trigger=JobConfigTriggerType.pull_request,
                 metadata=JobMetadataConfig(
                     _targets=["fedora-rawhide"],
-                    owner="some-owner",
-                    project="some-project",
                 ),
             ),
             JobConfig(
@@ -433,6 +440,9 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
 
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         config
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(config={"username": "packit"})
     )
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
@@ -624,8 +634,6 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
                 trigger=JobConfigTriggerType.pull_request,
                 metadata=JobMetadataConfig(
                     _targets=["fedora-rawhide"],
-                    owner="some-owner",
-                    project="some-project",
                 ),
             ),
             JobConfig(
@@ -638,6 +646,9 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
 
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         config
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(config={"username": "packit"})
     )
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
@@ -762,8 +773,6 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
                 trigger=JobConfigTriggerType.pull_request,
                 metadata=JobMetadataConfig(
                     _targets=["fedora-rawhide"],
-                    owner="some-owner",
-                    project="some-project",
                 ),
             ),
             JobConfig(
@@ -776,6 +785,9 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
 
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         config
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(config={"username": "packit"})
     )
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
@@ -992,6 +1004,9 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(config={"username": "packit"})
+    )
     flexmock(CoprBuildJobHelper).should_receive("get_build_check").and_return(
         EXPECTED_BUILD_CHECK_NAME
     )
@@ -1155,6 +1170,9 @@ def test_srpm_build_end(srpm_build_end, pc_build_pr, srpm_build_model):
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
     )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(config={"username": "packit"})
+    )
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").and_return(
         [
             flexmock(target="fedora-33-x86_64")
@@ -1216,6 +1234,9 @@ def test_srpm_build_end_failure(srpm_build_end, pc_build_pr, srpm_build_model):
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         pc_build_pr
+    )
+    flexmock(CoprHelper).should_receive("get_copr_client").and_return(
+        Client(config={"username": "packit"})
     )
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").and_return(
         [flexmock(target="fedora-33-x86_64")]
