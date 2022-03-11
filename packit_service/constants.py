@@ -27,6 +27,15 @@ MSG_RETRIGGER = (
     "You can retrigger the {job} by adding a comment (`/packit {command}`) "
     "into this {place}."
 )
+COPR_CHROOT_CHANGE_MSG = (
+    "Settings of a Copr project {owner}/{project} need to be updated, "
+    "but Packit can't do that when there are previous builds still in progress.\n"
+    "You should be able to resolve the problem by recreating this pull request "
+    "or running `/packit build` after all builds finished.\n\n"
+    "This was the change Packit tried to do:\n\n"
+    "{table}"
+    "\n"
+)
 
 FILE_DOWNLOAD_FAILURE = "Failed to download file from URL"
 

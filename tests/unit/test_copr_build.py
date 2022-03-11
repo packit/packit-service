@@ -1168,6 +1168,11 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
             "| chroots | ['f30', 'f31'] | ['f31', 'f32'] |\n"
             "| description | old | new |\n"
             "\n"
+            "Diff of chroots:\n"
+            "```diff\n"
+            "-f30\n"
+            "+f32\n"
+            "```\n"
             "\n"
             "Packit was unable to update the settings above "
             "as it is missing `admin` permissions on the "
@@ -1220,6 +1225,63 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
     )
 
     assert not helper.run_copr_build()["success"]
+
+
+def test_copr_build_fails_chroot_update(github_pr_event):
+    """Verify that comment we post when we fail to update chroots on our projects
+    is correct and not the one about permissions"""
+    helper = build_helper(
+        event=github_pr_event,
+        db_trigger=flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
+        ),
+    )
+    # enforce that we are reporting on our own Copr project
+    helper.job_build.metadata.owner = "packit"
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+        {"f31", "f32"}
+    )
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_raise(
+        PackitCoprSettingsException,
+        "Copr project update failed.",
+        fields_to_change={
+            "chroots": (["f30", "f31"], ["f31", "f32"]),
+            "description": ("old", "new"),
+        },
+    )
+    status_reporter = (
+        flexmock()
+        .should_receive("comment")
+        .with_args(
+            body="Settings of a Copr project packit/the-example-namespace-the-example-repo-342-stg"
+            " need to be updated, but Packit can't do that when there are previous "
+            "builds still in progress.\n"
+            "You should be able to resolve the problem by recreating this pull request "
+            "or running `/packit build` after all builds finished.\n\n"
+            "This was the change Packit tried to do:\n"
+            "\n"
+            "| field | old value | new value |\n"
+            "| ----- | --------- | --------- |\n"
+            "| chroots | ['f30', 'f31'] | ['f31', 'f32'] |\n"
+            "| description | old | new |\n"
+            "\n"
+            "Diff of chroots:\n"
+            "```diff\n"
+            "-f30\n"
+            "+f32\n"
+            "```\n"
+        )
+        .and_return()
+        .mock()
+    )
+
+    flexmock(BaseBuildJobHelper).should_receive("status_reporter").and_return(
+        status_reporter
+    )
+    with pytest.raises(PackitCoprSettingsException):
+        helper.create_copr_project_if_not_exists()
 
 
 def test_copr_build_no_targets(github_pr_event):
