@@ -100,7 +100,7 @@ def build_helper(
     selected_job=None,
     project_type: Type[GitProject] = GithubProject,
     build_targets_override=None,
-):
+) -> CoprBuildJobHelper:
     if jobs and metadata:
         raise Exception("Only one of jobs and metadata can be used.")
 
@@ -119,7 +119,7 @@ def build_helper(
     ]
 
     pkg_conf = PackageConfig(jobs=jobs, downstream_package_name="dummy")
-    handler = CoprBuildJobHelper(
+    helper = CoprBuildJobHelper(
         service_config=ServiceConfig(),
         package_config=pkg_conf,
         job_config=selected_job or jobs[0],
@@ -143,8 +143,8 @@ def build_helper(
         build_targets_override=build_targets_override,
         pushgateway=Pushgateway(),
     )
-    handler._api = PackitAPI(ServiceConfig(), pkg_conf)
-    return handler
+    helper._api = PackitAPI(ServiceConfig(), pkg_conf)
+    return helper
 
 
 def test_copr_build_check_names(github_pr_event):
