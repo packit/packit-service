@@ -326,7 +326,9 @@ class DownstreamKojiBuildHandler(JobHandler):
         if self.data.event_type in (PushPagureEvent.__name__,):
             if self.data.git_ref not in (
                 configured_branches := get_branches(
-                    *self.job_config.metadata.dist_git_branches, default="main"
+                    *self.job_config.metadata.dist_git_branches,
+                    default="main",
+                    with_aliases=True,
                 )
             ):
                 logger.info(
