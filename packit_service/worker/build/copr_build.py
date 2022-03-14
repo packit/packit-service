@@ -3,7 +3,7 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple, Iterable
 
 from copr.v3 import CoprRequestException
 from ogr.abstract import GitProject
@@ -26,6 +26,7 @@ from packit_service.constants import (
     PG_BUILD_STATUS_SUCCESS,
     DEFAULT_MAPPING_INTERNAL_TF,
     DEFAULT_MAPPING_TF,
+    COPR_CHROOT_CHANGE_MSG,
 )
 from packit_service.models import (
     AbstractTriggerDbType,
@@ -589,6 +590,48 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             countdown=120,  # do the first check in 120s
         )
 
+    def _visualize_chroots_diff(
+        self, old_chroots: Iterable[str], new_chroots: Iterable[str]
+    ):
+        """
+        Visualize in markdown via code diff the difference in 2 sets of chroots
+
+        Args:
+            old_chroots: previous set of chroots
+            new_chroots: current set of chroots
+
+        Returns:
+            the diff of the two set of chroots rendered as markdown code diff
+        """
+        chroots_diff = "Diff of chroots:\n```diff\n"
+        extra_chroots = set(old_chroots).difference(new_chroots)
+        missing_chroots = set(new_chroots).difference(old_chroots)
+        for e in extra_chroots:
+            chroots_diff += f"-{e}\n"
+        for m in missing_chroots:
+            chroots_diff += f"+{m}\n"
+        chroots_diff += "```\n"
+        return chroots_diff
+
+    def _report_copr_chroot_change_problem(
+        self, owner: str, chroots_diff: str, table: str
+    ):
+        """
+        When we fail to update the list of chroots of a project,
+        we need to inform user this has happened
+
+        Args:
+            owner: Copr project owner (namespace)
+            chroots_diff: markdown code diff of Copr project chroots
+            table: markdown table which shows the change we intend to do
+        """
+        msg = COPR_CHROOT_CHANGE_MSG.format(
+            owner=owner, project=self.job_project, table=table
+        )
+        if chroots_diff:
+            msg += chroots_diff
+        self.status_reporter.comment(body=msg)
+
     def create_copr_project_if_not_exists(self) -> str:
         """
         Create project in Copr.
@@ -624,6 +667,16 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             for field, (old, new) in ex.fields_to_change.items():
                 table += f"| {field} | {old} | {new} |\n"
 
+            chroots_diff = ""
+            if "chroots" in ex.fields_to_change:
+                old_chroots, new_chroots = ex.fields_to_change["chroots"]
+                chroots_diff = self._visualize_chroots_diff(old_chroots, new_chroots)
+
+            if owner == "packit":
+                # the problem is on our side and user cannot fix it
+                self._report_copr_chroot_change_problem(owner, chroots_diff, table)
+                raise ex
+
             boolean_note = ""
             if "unlisted_on_hp" in ex.fields_to_change:
                 boolean_note += (
@@ -654,6 +707,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 "\n"
                 f"{table}"
                 "\n"
+                f"{chroots_diff}"
                 f"{boolean_note}"
                 "\n"
                 "Packit was unable to update the settings above as it is missing `admin` "
