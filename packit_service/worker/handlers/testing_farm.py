@@ -49,7 +49,11 @@ from packit_service.worker.monitoring import measure_time
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.result import TaskResults
 from packit_service.worker.testing_farm import TestingFarmJobHelper
-from packit_service.constants import PG_BUILD_STATUS_SUCCESS
+from packit_service.constants import (
+    PG_BUILD_STATUS_SUCCESS,
+    INTERNAL_TF_TESTS_NOT_ALLOWED,
+    INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
+)
 from packit_service.utils import dump_job_config, dump_package_config
 
 logger = logging.getLogger(__name__)
@@ -99,11 +103,15 @@ class TestingFarmHandler(JobHandler):
         if self.job_config.metadata.use_internal_tf and not self.project.can_merge_pr(
             actor
         ):
+            message = (
+                INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED
+                if self.testing_farm_job_helper.job_build
+                else INTERNAL_TF_TESTS_NOT_ALLOWED
+            )
             self.testing_farm_job_helper.report_status_to_tests(
-                description=f"{actor} can't run tests internally",
+                description=message[0].format(actor=actor),
                 state=BaseCommitStatus.neutral,
-                markdown_content="*As a project maintainer, you can trigger the test job manually "
-                "via `/packit test` comment.*",
+                markdown_content=message[1],
             )
             return False
         return True
