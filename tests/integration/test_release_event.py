@@ -93,7 +93,16 @@ def test_dist_git_push_release_handle(
     lp.git_project = project
     flexmock(DistGit).should_receive("local_project").and_return(lp)
     # reset of the upstream repo
-    flexmock(LocalProject).should_receive("reset").with_args("HEAD").once()
+    flexmock(LocalProject).should_receive("git_repo").and_return(
+        flexmock(
+            head=flexmock()
+            .should_receive("reset")
+            .with_args("HEAD", index=True, working_tree=True)
+            .once()
+            .mock(),
+            git=flexmock(clear_cache=lambda: None),
+        )
+    )
 
     flexmock(Allowlist, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url: project
@@ -164,8 +173,15 @@ def test_dist_git_push_release_handle_multiple_branches(
         default_branch="main",
     )
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(LocalProject).should_receive("reset").with_args("HEAD").times(
-        len(fedora_branches)
+    flexmock(LocalProject).should_receive("git_repo").and_return(
+        flexmock(
+            head=flexmock()
+            .should_receive("reset")
+            .with_args("HEAD", index=True, working_tree=True)
+            .times(len(fedora_branches))
+            .mock(),
+            git=flexmock(clear_cache=lambda: None),
+        )
     )
 
     flexmock(Allowlist, check_and_report=True)
@@ -245,8 +261,15 @@ def test_dist_git_push_release_handle_one_failed(
     )
     project.should_receive("get_issue_list").and_return([])
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(LocalProject).should_receive("reset").with_args("HEAD").times(
-        len(fedora_branches)
+    flexmock(LocalProject).should_receive("git_repo").and_return(
+        flexmock(
+            head=flexmock()
+            .should_receive("reset")
+            .with_args("HEAD", index=True, working_tree=True)
+            .times(len(fedora_branches))
+            .mock(),
+            git=flexmock(clear_cache=lambda: None),
+        )
     )
     flexmock(Allowlist, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url: project
@@ -356,8 +379,15 @@ def test_dist_git_push_release_handle_all_failed(
     lp.working_dir = ""
     flexmock(DistGit).should_receive("local_project").and_return(lp)
     # reset of the upstream repo
-    flexmock(LocalProject).should_receive("reset").with_args("HEAD").times(
-        len(fedora_branches)
+    flexmock(LocalProject).should_receive("git_repo").and_return(
+        flexmock(
+            head=flexmock()
+            .should_receive("reset")
+            .with_args("HEAD", index=True, working_tree=True)
+            .times(len(fedora_branches))
+            .mock(),
+            git=flexmock(clear_cache=lambda: None),
+        )
     )
 
     flexmock(Allowlist, check_and_report=True)
@@ -432,7 +462,16 @@ def test_retry_propose_downstream_task(
     lp.working_dir = ""
     flexmock(DistGit).should_receive("local_project").and_return(lp)
     # reset of the upstream repo
-    flexmock(LocalProject).should_receive("reset").with_args("HEAD").once()
+    flexmock(LocalProject).should_receive("git_repo").and_return(
+        flexmock(
+            head=flexmock()
+            .should_receive("reset")
+            .with_args("HEAD", index=True, working_tree=True)
+            .once()
+            .mock(),
+            git=flexmock(clear_cache=lambda: None),
+        )
+    )
 
     flexmock(Allowlist, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url: project
@@ -537,7 +576,16 @@ def test_dont_retry_propose_downstream_task(
         status=ProposeDownstreamStatus.error
     ).once()
 
-    flexmock(LocalProject).should_receive("reset").with_args("HEAD").once()
+    flexmock(LocalProject).should_receive("git_repo").and_return(
+        flexmock(
+            head=flexmock()
+            .should_receive("reset")
+            .with_args("HEAD", index=True, working_tree=True)
+            .once()
+            .mock(),
+            git=flexmock(clear_cache=lambda: None),
+        )
+    )
     flexmock(Context, retries=2)
     flexmock(shutil).should_receive("rmtree").with_args("")
     flexmock(Task).should_receive("retry").never()

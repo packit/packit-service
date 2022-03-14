@@ -77,8 +77,15 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     lp.working_dir = ""
     flexmock(DistGit).should_receive("local_project").and_return(lp)
     # reset of the upstream repo
-    flexmock(LocalProject).should_receive("reset").with_args("HEAD").times(
-        1 if success else 0
+    flexmock(LocalProject).should_receive("git_repo").and_return(
+        flexmock(
+            head=flexmock()
+            .should_receive("reset")
+            .with_args("HEAD", index=True, working_tree=True)
+            .times(1 if success else 0)
+            .mock(),
+            git=flexmock(clear_cache=lambda: None),
+        )
     )
 
     ServiceConfig().get_service_config().enabled_private_namespaces = (

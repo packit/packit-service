@@ -183,7 +183,9 @@ class ProposeDownstreamHandler(JobHandler):
                     raise AbortProposeDownstream()
             raise ex
         finally:
-            self.api.up.local_project.reset("HEAD")
+            self.api.up.local_project.git_repo.head.reset(
+                "HEAD", index=True, working_tree=True
+            )
 
         return downstream_pr
 

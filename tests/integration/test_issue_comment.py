@@ -140,7 +140,16 @@ def test_issue_comment_propose_downstream_handler(
         is_private=lambda: False,
     )
 
-    flexmock(LocalProject).should_receive("reset").with_args("HEAD").once()
+    flexmock(LocalProject).should_receive("git_repo").and_return(
+        flexmock(
+            head=flexmock()
+            .should_receive("reset")
+            .with_args("HEAD", index=True, working_tree=True)
+            .once()
+            .mock(),
+            git=flexmock(clear_cache=lambda: None),
+        )
+    )
 
     flexmock(IssueCommentGitlabEvent).should_receive("db_trigger").and_return(
         flexmock(id=123, job_config_trigger_type=JobConfigTriggerType.release)
