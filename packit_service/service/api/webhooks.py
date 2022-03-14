@@ -3,6 +3,7 @@
 
 import hmac
 import json
+import os
 from hashlib import sha1
 from http import HTTPStatus
 from logging import getLogger
@@ -45,7 +46,10 @@ ping_payload_gitlab = ns.model(
 )
 
 github_webhook_calls = Counter(
-    "github_webhook_calls", "Number of times the GitHub webhook is called", ["result"]
+    "github_webhook_calls",
+    "Number of times the GitHub webhook is called",
+    # process_id = label the metric with respective process ID so we can aggregate
+    ["result", "process_id"],
 )
 
 
@@ -65,30 +69,34 @@ class GithubWebhook(Resource):
 
         if not msg:
             logger.debug("/webhooks/github: we haven't received any JSON data.")
-            github_webhook_calls.labels(result="no_data").inc()
+            github_webhook_calls.labels(result="no_data", process_id=os.getpid()).inc()
             return "We haven't received any JSON data.", HTTPStatus.BAD_REQUEST
 
         if all([msg.get("zen"), msg.get("hook_id"), msg.get("hook")]):
             logger.debug(f"/webhooks/github received ping event: {msg['hook']}")
-            github_webhook_calls.labels(result="pong").inc()
+            github_webhook_calls.labels(result="pong", process_id=os.getpid()).inc()
             return "Pong!", HTTPStatus.OK
 
         try:
             self.validate_signature()
         except ValidationFailed as exc:
             logger.info(f"/webhooks/github {exc}")
-            github_webhook_calls.labels(result="invalid_signature").inc()
+            github_webhook_calls.labels(
+                result="invalid_signature", process_id=os.getpid()
+            ).inc()
             return str(exc), HTTPStatus.UNAUTHORIZED
 
         if not self.interested():
-            github_webhook_calls.labels(result="not_interested").inc()
+            github_webhook_calls.labels(
+                result="not_interested", process_id=os.getpid()
+            ).inc()
             return "Thanks but we don't care about this event", HTTPStatus.ACCEPTED
 
         celery_app.send_task(
             name=getenv("CELERY_MAIN_TASK_NAME") or CELERY_DEFAULT_MAIN_TASK_NAME,
             kwargs={"event": msg},
         )
-        github_webhook_calls.labels(result="accepted").inc()
+        github_webhook_calls.labels(result="accepted", process_id=os.getpid()).inc()
 
         return "Webhook accepted. We thank you, Github.", HTTPStatus.ACCEPTED
 
