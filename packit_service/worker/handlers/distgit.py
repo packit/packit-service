@@ -9,7 +9,7 @@ from datetime import datetime
 from os import getenv
 
 import shutil
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 from celery import Task
 from ogr.abstract import PullRequest
@@ -176,13 +176,15 @@ class ProposeDownstreamHandler(JobHandler):
 
     @staticmethod
     def _create_new_propose_for_each_branch(
-        propose_downstream_model: ProposeDownstreamModel, branches_count: int
+        propose_downstream_model: ProposeDownstreamModel, branches: List[str]
     ) -> None:
-        for _ in range(branches_count):
+        for branch in branches:
+            propose_downstream_target = ProposeDownstreamTargetModel.create(
+                status=ProposeDownstreamTargetStatus.queued
+            )
+            propose_downstream_target.set_branch(branch=branch)
             propose_downstream_model.propose_downstream_targets.append(
-                ProposeDownstreamTargetModel.create(
-                    status=ProposeDownstreamTargetStatus.queued
-                )
+                propose_downstream_target
             )
 
     def _report_errors_for_each_branch(self, errors: Dict[str, str]) -> None:
@@ -241,18 +243,18 @@ class ProposeDownstreamHandler(JobHandler):
         default_dg_branch = self.api.dg.local_project.git_project.default_branch
 
         try:
-            branches = get_branches(
-                *self.job_config.metadata.dist_git_branches, default=default_dg_branch
+            branches = list(
+                get_branches(
+                    *self.job_config.metadata.dist_git_branches,
+                    default=default_dg_branch,
+                )
             )
-            self._create_new_propose_for_each_branch(
-                propose_downstream_model, len(branches)
-            )
+            self._create_new_propose_for_each_branch(propose_downstream_model, branches)
 
             for branch, model in zip(
                 branches, propose_downstream_model.propose_downstream_targets
             ):
                 model.set_status(status=ProposeDownstreamTargetStatus.running)
-                model.set_branch(branch=branch)
                 buffer, handler = gather_packit_logs_to_buffer(
                     logging_level=logging.DEBUG
                 )
