@@ -1148,13 +1148,15 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
         description="phracek can't run tests (and builds) internally",
         state=BaseCommitStatus.neutral,
         markdown_content="*As a project maintainer, "
-        "you can trigger the build and test jobs manually via `/packit build` comment.*",
+        "you can trigger the build and test jobs manually via `/packit build` comment "
+        "or only test job via `/packit test` comment.*",
     ).once()
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
         description="phracek can't run tests (and builds) internally",
         state=BaseCommitStatus.neutral,
         markdown_content="*As a project maintainer, "
-        "you can trigger the build and test jobs manually via `/packit build` comment.*",
+        "you can trigger the build and test jobs manually via `/packit build` comment "
+        "or only test job via `/packit test` comment.*",
     ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)

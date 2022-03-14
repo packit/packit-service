@@ -207,5 +207,5 @@ INTERNAL_TF_TESTS_NOT_ALLOWED = (
 INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED = (
     "{actor} can't run tests (and builds) internally",
     "*As a project maintainer, you can trigger the build and test jobs manually "
-    "via `/packit build` comment.*",
+    "via `/packit build` comment or only test job via `/packit test` comment.*",
 )
