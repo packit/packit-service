@@ -56,7 +56,7 @@ def mock_propose_downstream_functionality():
         project_url="https://github.com/packit-service/hello-world",
         commit_hash="123456",
     ).and_return(trigger).once()
-    propose_downstream_model = flexmock(propose_downstream_targets=[])
+    propose_downstream_model = flexmock(id=123, propose_downstream_targets=[])
     flexmock(ProposeDownstreamModel).should_receive("create_with_new_run").with_args(
         status=ProposeDownstreamStatus.running,
         trigger_model=trigger,

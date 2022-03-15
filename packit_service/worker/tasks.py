@@ -171,12 +171,17 @@ def run_testing_farm_results_handler(
     queue="long-running",
 )
 def run_propose_downstream_handler(
-    self, event: dict, package_config: dict, job_config: dict
+    self,
+    event: dict,
+    package_config: dict,
+    job_config: dict,
+    propose_downstream_run_id: Optional[int] = None,
 ):
     handler = ProposeDownstreamHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
+        propose_downstream_run_id=propose_downstream_run_id,
         task=self,
     )
     return get_handlers_task_results(handler.run_job(), event)

@@ -138,6 +138,7 @@ class ProposeDownstreamHandler(JobHandler):
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
+        propose_downstream_run_id: Optional[int] = None,
         task: Task = None,
     ):
         super().__init__(
@@ -147,7 +148,11 @@ class ProposeDownstreamHandler(JobHandler):
         )
         self.task = task
 
-    def sync_branch(self, branch: str) -> Optional[PullRequest]:
+        self._propose_downstream_run_id = propose_downstream_run_id
+
+    def sync_branch(
+        self, branch: str, model: ProposeDownstreamModel
+    ) -> Optional[PullRequest]:
         try:
             downstream_pr = self.api.sync_release(
                 dist_git_branch=branch, tag=self.data.tag_name
@@ -166,7 +171,14 @@ class ProposeDownstreamHandler(JobHandler):
                     logger.info(f"Will retry for the {retries + 1}. time in {delay}s.")
                     # throw=False so that exception is not raised and task
                     # is not retried also automatically
-                    self.task.retry(exc=ex, countdown=delay, throw=False)
+                    self.task.retry(
+                        exc=ex,
+                        countdown=delay,
+                        throw=False,
+                        args=(),
+                        # https://stackoverflow.com/questions/68915407/celery-retry-with-updated-arguments
+                        kwargs={"propose_downstream_run_id": model.id},
+                    )
                     raise AbortProposeDownstream()
             raise ex
         finally:
@@ -211,6 +223,16 @@ class ProposeDownstreamHandler(JobHandler):
             body=body_msg,
         )
 
+    def _get_or_create_propose_downstream_run(self) -> ProposeDownstreamModel:
+        if self._propose_downstream_run_id is not None:
+            return ProposeDownstreamModel.get_by_id(self._propose_downstream_run_id)
+
+        propose_downstream_model, _ = ProposeDownstreamModel.create_with_new_run(
+            status=ProposeDownstreamStatus.running,
+            trigger_model=self.data.db_trigger,
+        )
+        return propose_downstream_model
+
     def run(self) -> TaskResults:
         """
         Sync the upstream release to dist-git as a pull request.
@@ -234,13 +256,9 @@ class ProposeDownstreamHandler(JobHandler):
             stage=self.service_config.use_stage(),
         )
 
-        propose_downstream_model, _ = ProposeDownstreamModel.create_with_new_run(
-            status=ProposeDownstreamStatus.running,
-            trigger_model=self.data.db_trigger,
-        )
-
         errors = {}
         default_dg_branch = self.api.dg.local_project.git_project.default_branch
+        propose_downstream_model = self._get_or_create_propose_downstream_run()
 
         try:
             branches = list(
@@ -261,7 +279,9 @@ class ProposeDownstreamHandler(JobHandler):
 
                 try:
                     model.set_start_time(start_time=datetime.utcnow())
-                    downstream_pr = self.sync_branch(branch=branch)
+                    downstream_pr = self.sync_branch(
+                        branch=branch, model=propose_downstream_model
+                    )
                     if downstream_pr is not None:
                         model.set_downstream_pr_url(downstream_pr_url=downstream_pr.url)
                         model.set_status(status=ProposeDownstreamTargetStatus.submitted)
