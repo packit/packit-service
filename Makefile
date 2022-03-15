@@ -101,13 +101,14 @@ requre-purge-files:
 # run all the pods needed by the service pod
 # use docker-compose to update and run them
 # (postgres and redis)
-compose-for-migrate-db-up:
+compose-for-db-up:
 	$(COMPOSE) up --build --force-recreate -d service
 
 # run alembic revision through another service pod
 # run processes as *local host user* inside the pod
 # preserve *local host user* files' uid inside the pod
-migrate-db: compose-for-migrate-db-up
+migrate-db: compose-for-db-up
+	sleep 5 # service pod have to be up and running "alembic upgrade head"
 	podman run --rm -ti --user $(MY_ID) --uidmap=$(MY_ID):0:1 --uidmap=0:1:999 \
 	-e DEPLOYMENT=dev \
 	-e REDIS_SERVICE_HOST=redis \
@@ -122,4 +123,29 @@ migrate-db: compose-for-migrate-db-up
 	-v $(CURDIR)/secrets/packit/dev/privkey.pem:/secrets/privkey.pem:ro,z \
 	--network packit-service_default \
 	quay.io/packit/packit-service:dev alembic revision -m "$(CHANGE)" --autogenerate
-	$(COMPOSE) stop # stop previously started pods: service, postgres and redis
+	$(COMPOSE) down # stop previously started pods: service, postgres and redis
+
+# run db tests using the network created by
+# docker compose
+check-db: build-test-image compose-for-db-up
+	sleep 10 # service pod have to be up and running and all migrations have to been applied
+	$(CONTAINER_ENGINE) run --rm -ti \
+		-e DEPLOYMENT=dev \
+		-e REDIS_SERVICE_HOST=redis \
+		-e POSTGRESQL_USER=packit \
+		-e POSTGRESQL_PASSWORD=secret-password \
+		-e POSTGRESQL_HOST=postgres \
+		-e POSTGRESQL_DATABASE=packit \
+		--pull="$(PULL_TEST_IMAGE)" \
+		--env COV_REPORT \
+		--env TEST_TARGET \
+		--env COLOR \
+		-v $(CURDIR):/src \
+		-v $(CURDIR)/files/packit-service.yaml:/root/.config/packit-service.yaml \
+		-v $(CURDIR)/secrets/packit/dev/fullchain.pem:/secrets/fullchain.pem:ro,z \
+		-v $(CURDIR)/secrets/packit/dev/privkey.pem:/secrets/privkey.pem:ro,z \
+		-w /src \
+		--security-opt label=disable \
+		--network packit-service_default \
+		$(TEST_IMAGE) make check "TEST_TARGET=tests_openshift/database"
+		$(COMPOSE) down
