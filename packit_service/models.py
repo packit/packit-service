@@ -1911,3 +1911,87 @@ class GithubInstallationModel(Base):
 
     def __repr__(self):
         return f"GithubInstallationModel(id={self.id}, account={self.account_login})"
+
+
+class SourceGitPRDistGitPRModel(Base):
+    __tablename__ = "source_git_pr_dist_git_pr"
+    id = Column(Integer, primary_key=True)  # our database PK
+    source_git_pull_request_id = Column(
+        Integer, ForeignKey("pull_requests.id"), unique=True, index=True
+    )
+    dist_git_pull_request_id = Column(
+        Integer, ForeignKey("pull_requests.id"), unique=True, index=True
+    )
+    source_git_pull_request = relationship(
+        "PullRequestModel",
+        primaryjoin="SourceGitPRDistGitPRModel.source_git_pull_request_id==PullRequestModel.id",
+        uselist=False,
+    )
+    dist_git_pull_request = relationship(
+        "PullRequestModel",
+        primaryjoin="SourceGitPRDistGitPRModel.dist_git_pull_request_id==PullRequestModel.id",
+        uselist=False,
+    )
+
+    @classmethod
+    def get_or_create(
+        cls,
+        source_git_pr_id: int,
+        source_git_namespace: str,
+        source_git_repo_name: str,
+        source_git_project_url: str,
+        dist_git_pr_id: int,
+        dist_git_namespace: str,
+        dist_git_repo_name: str,
+        dist_git_project_url: str,
+    ) -> "SourceGitPRDistGitPRModel":
+        with get_sa_session() as session:
+            source_git_pull_request = PullRequestModel.get_or_create(
+                pr_id=source_git_pr_id,
+                namespace=source_git_namespace,
+                repo_name=source_git_repo_name,
+                project_url=source_git_project_url,
+            )
+            dist_git_pull_request = PullRequestModel.get_or_create(
+                pr_id=dist_git_pr_id,
+                namespace=dist_git_namespace,
+                repo_name=dist_git_repo_name,
+                project_url=dist_git_project_url,
+            )
+            rel = (
+                session.query(SourceGitPRDistGitPRModel)
+                .filter_by(source_git_pull_request_id=source_git_pull_request.id)
+                .filter_by(dist_git_pull_request_id=dist_git_pull_request.id)
+                .one_or_none()
+            )
+            if not rel:
+                rel = SourceGitPRDistGitPRModel()
+                rel.source_git_pull_request_id = source_git_pull_request.id
+                rel.dist_git_pull_request_id = dist_git_pull_request.id
+                session.add(rel)
+            return rel
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["SourceGitPRDistGitPRModel"]:
+        with get_sa_session() as session:
+            return (
+                session.query(SourceGitPRDistGitPRModel).filter_by(id=id_).one_or_none()
+            )
+
+    @classmethod
+    def get_by_source_git_id(cls, id_: int) -> Optional["SourceGitPRDistGitPRModel"]:
+        with get_sa_session() as session:
+            return (
+                session.query(SourceGitPRDistGitPRModel)
+                .filter_by(source_git_pull_request_id=id_)
+                .one_or_none()
+            )
+
+    @classmethod
+    def get_by_dist_git_id(cls, id_: int) -> Optional["SourceGitPRDistGitPRModel"]:
+        with get_sa_session() as session:
+            return (
+                session.query(SourceGitPRDistGitPRModel)
+                .filter_by(dist_git_pull_request_id=id_)
+                .one_or_none()
+            )

@@ -1,8 +1,10 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+import pytest
+
 from datetime import datetime, timedelta
 
-from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.exc import ProgrammingError, IntegrityError
 
 from packit_service.models import (
     BugzillaModel,
@@ -16,6 +18,7 @@ from packit_service.models import (
     ProjectReleaseModel,
     PullRequestModel,
     SRPMBuildModel,
+    SourceGitPRDistGitPRModel,
     TFTTestRunTargetModel,
     TestingFarmResult,
     get_sa_session,
@@ -912,3 +915,79 @@ def test_get_propose_downstream_model_range(
 
     propose_downstream_list = list(ProposeDownstreamModel.get_range(first=0, last=10))
     assert len(propose_downstream_list) == 4
+
+
+def test_sourcegit_distgit_pr_relationship(clean_before_and_after):
+    source_git_pr_id = 8
+    source_git_namespace = "mmassari"
+    source_git_repo_name = "python-teamcity-messages"
+    source_git_project_url = "https://gitlab.com/mmassari/python-teamcity-messages"
+    dist_git_pr_id = 31
+    dist_git_namespace = "packit/rpms"
+    dist_git_repo_name = "python-teamcity-messages"
+    dist_git_project_url = (
+        "https://src.fedoraproject.org/fork/packit/rpms/python-teamcity-messages"
+    )
+
+    created = SourceGitPRDistGitPRModel.get_or_create(
+        source_git_pr_id,
+        source_git_namespace,
+        source_git_repo_name,
+        source_git_project_url,
+        dist_git_pr_id,
+        dist_git_namespace,
+        dist_git_repo_name,
+        dist_git_project_url,
+    )
+
+    found = SourceGitPRDistGitPRModel.get_or_create(
+        source_git_pr_id,
+        source_git_namespace,
+        source_git_repo_name,
+        source_git_project_url,
+        dist_git_pr_id,
+        dist_git_namespace,
+        dist_git_repo_name,
+        dist_git_project_url,
+    )
+
+    assert created.id == found.id
+
+    with pytest.raises(IntegrityError) as _:
+        SourceGitPRDistGitPRModel.get_or_create(
+            source_git_pr_id + 1,
+            source_git_namespace,
+            source_git_repo_name,
+            source_git_project_url,
+            dist_git_pr_id,
+            dist_git_namespace,
+            dist_git_repo_name,
+            dist_git_project_url,
+        )
+
+
+def test_get_source_git_dist_git_pr_relationship(
+    clean_before_and_after, source_git_dist_git_pr_new_relationship
+):
+    assert source_git_dist_git_pr_new_relationship.id
+    assert SourceGitPRDistGitPRModel.get_by_id(
+        source_git_dist_git_pr_new_relationship.id
+    )
+
+
+def test_get_by_source_git_id(
+    clean_before_and_after, source_git_dist_git_pr_new_relationship
+):
+    assert source_git_dist_git_pr_new_relationship.source_git_pull_request_id
+    assert SourceGitPRDistGitPRModel.get_by_source_git_id(
+        source_git_dist_git_pr_new_relationship.source_git_pull_request_id
+    )
+
+
+def test_get_by_dist_git_id(
+    clean_before_and_after, source_git_dist_git_pr_new_relationship
+):
+    assert source_git_dist_git_pr_new_relationship.dist_git_pull_request_id
+    assert SourceGitPRDistGitPRModel.get_by_dist_git_id(
+        source_git_dist_git_pr_new_relationship.dist_git_pull_request_id
+    )
