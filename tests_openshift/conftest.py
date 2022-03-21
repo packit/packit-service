@@ -41,6 +41,7 @@ from packit_service.models import (
     ProposeDownstreamTargetStatus,
     ProposeDownstreamModel,
     ProposeDownstreamStatus,
+    SourceGitPRDistGitPRModel,
 )
 from packit_service.worker.events import InstallationEvent
 
@@ -156,6 +157,8 @@ def global_service_config():
 
 def clean_db():
     with get_sa_session() as session:
+
+        session.query(SourceGitPRDistGitPRModel).delete()
 
         session.query(AllowlistModel).delete()
         session.query(GithubInstallationModel).delete()
@@ -2023,3 +2026,30 @@ def check_rerun_event_dict_commit():
             "login": "lbarcziova",
         },
     }
+
+
+@pytest.fixture()
+def source_git_dist_git_pr_new_relationship():
+    source_git_pr_id = 8
+    source_git_namespace = "mmassari"
+    source_git_repo_name = "python-teamcity-messages"
+    source_git_project_url = "https://gitlab.com/mmassari/python-teamcity-messages"
+    dist_git_pr_id = 31
+    dist_git_namespace = "packit/rpms"
+    dist_git_repo_name = "python-teamcity-messages"
+    dist_git_project_url = (
+        "https://src.fedoraproject.org/fork/packit/rpms/python-teamcity-messages"
+    )
+
+    created = SourceGitPRDistGitPRModel.get_or_create(
+        source_git_pr_id,
+        source_git_namespace,
+        source_git_repo_name,
+        source_git_project_url,
+        dist_git_pr_id,
+        dist_git_namespace,
+        dist_git_repo_name,
+        dist_git_project_url,
+    )
+
+    yield created
