@@ -142,6 +142,24 @@ during (packit-)service pod/container start.
 
     $ make migrate-db CHANGE="something new you did"
 
+##### troubleshooting
+
+If you get an error like this:
+
+```
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+ERROR [alembic.util.messaging] Target database is not up to date.
+ERROR [alembic.util.messaging] Target database is not up to date.
+  FAILED: Target database is not up to date.
+```
+
+Chances are that the _packit service pod_ is not properly started or
+for some reasons it is not running the
+`alembic upgrade head` command.
+
 ### How to check what's inside postgres?
 
 Get shell inside the container (or pod). E.g. with docker-compose:
