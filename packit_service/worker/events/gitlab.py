@@ -1,21 +1,17 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-from re import fullmatch
 from typing import Dict, Optional
 
 from ogr.abstract import GitProject, Comment
-
-from packit_service.config import ServiceConfig
-from packit_service.models import AbstractTriggerDbType, PullRequestModel
 from packit_service.service.db_triggers import (
     AddPullRequestDbTrigger,
     AddBranchPushDbTrigger,
 )
-from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.events.comment import (
     AbstractIssueCommentEvent,
     AbstractPRCommentEvent,
 )
+from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
 
 
@@ -200,18 +196,3 @@ class PipelineGitlabEvent(AbstractGitlabEvent):
         self.commit_sha = commit_sha
         self.source = source
         self.merge_request_url = merge_request_url
-
-    def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        if self.source == "merge_request_event":
-            # Can't use self.project because that can be either source or target project.
-            # We need target project here. Let's derive it from self.merge_request_url
-            m = fullmatch(r"(\S+)/-/merge_requests/(\d+)", self.merge_request_url)
-            if m:
-                project = ServiceConfig.get_service_config().get_project(url=m[1])
-                return PullRequestModel.get_or_create(
-                    pr_id=int(m[2]),
-                    namespace=project.namespace,
-                    repo_name=project.repo,
-                    project_url=m[1],
-                )
-        return None

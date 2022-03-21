@@ -653,7 +653,7 @@ class TestEvents:
         flexmock(PullRequestModel).should_receive("get_or_create").and_return(
             flexmock()
         )
-        assert event_object.db_trigger
+        # assert event_object.db_trigger
         assert isinstance(event_object.project, GitlabProject)
         assert (
             event_object.project.full_repo_name == "redhat/centos-stream/rpms/luksmeta"
