@@ -30,4 +30,3 @@ class FedmsgTopic(Enum):
     dist_git_push = "org.fedoraproject.prod.git.receive"
     copr_build_finished = "org.fedoraproject.prod.copr.build.end"
     copr_build_started = "org.fedoraproject.prod.copr.build.start"
-    pr_flag_added = "org.fedoraproject.prod.pagure.pull-request.flag.added"
