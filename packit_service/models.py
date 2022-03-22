@@ -1091,6 +1091,9 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
     # metadata is reserved to sqlalch
     data = Column(JSON)
 
+    # it is a scratch build?
+    scratch = Column(Boolean)
+
     runs = relationship("PipelineModel", back_populates="koji_build")
 
     def set_status(self, status: str):
