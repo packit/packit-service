@@ -10,12 +10,13 @@ from typing import Any
 from typing import List, Set, Type, Union
 
 from celery import group
-from packit.config import JobConfig, PackageConfig
 
+from packit.config import JobConfig, PackageConfig
 from packit_service.config import ServiceConfig
 from packit_service.constants import TASK_ACCEPTED, COMMENT_REACTION
 from packit_service.log_versions import log_job_versions
-from packit_service.worker.events.comment import AbstractCommentEvent
+from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.build import CoprBuildJobHelper, KojiBuildJobHelper
 from packit_service.worker.events import (
     Event,
     EventData,
@@ -24,8 +25,7 @@ from packit_service.worker.events import (
     InstallationEvent,
     CheckRerunEvent,
 )
-from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.build import CoprBuildJobHelper, KojiBuildJobHelper
+from packit_service.worker.events.comment import AbstractCommentEvent
 from packit_service.worker.handlers import (
     BugzillaHandler,
     CoprBuildHandler,
@@ -45,12 +45,10 @@ from packit_service.worker.handlers.abstract import (
     MAP_CHECK_PREFIX_TO_HANDLER,
     get_packit_commands_from_comment,
 )
-
 from packit_service.worker.monitoring import Pushgateway, measure_time
-from packit_service.worker.parser import CentosEventParser, Parser
+from packit_service.worker.parser import Parser
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
-
 
 logger = logging.getLogger(__name__)
 
@@ -390,10 +388,7 @@ class SteveJobs:
                 return []
 
         event_object: Any
-        if source == "centosmsg":
-            event_object = CentosEventParser().parse_event(event)
-        else:
-            event_object = Parser.parse_event(event)
+        event_object = Parser.parse_event(event)
 
         if not (event_object and event_object.pre_check()):
             return []

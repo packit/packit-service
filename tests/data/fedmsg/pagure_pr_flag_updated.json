@@ -1,0 +1,172 @@
+{
+  "topic": "org.fedoraproject.prod.pagure.pull-request.flag.updated",
+  "agent": "zuul",
+  "flag": {
+    "comment": "Jobs result is success",
+    "commit_hash": "c69960e6f562c90905435fec824fcae952abfad6",
+    "date_created": "1646751402",
+    "date_updated": "1646754511",
+    "percent": null,
+    "status": "success",
+    "url": "https://fedora.softwarefactory-project.io/zuul/buildset/66ec2c23c78446afa2fd993",
+    "user": {
+      "full_url": "https://src.fedoraproject.org/user/zuul",
+      "fullname": "Zuul CI Bot (Fabien Boucher)",
+      "name": "zuul",
+      "url_path": "user/zuul"
+    },
+    "username": "Zuul"
+  },
+  "pullrequest": {
+    "assignee": null,
+    "branch": "f36",
+    "branch_from": "0.47.0-f36-update",
+    "cached_merge_status": "unknown",
+    "closed_at": null,
+    "closed_by": null,
+    "comments": [],
+    "commit_start": "c69960e6f562c90905435fec824fcae952abfad6",
+    "commit_stop": "c69960e6f562c90905435fec824fcae952abfad6",
+    "date_created": "1646751388",
+    "full_url": "https://src.fedoraproject.org/rpms/packit/pull-request/268",
+    "id": 268,
+    "initial_comment": "Upstream tag: 0.47.0\nUpstream commit: aeb84da4",
+    "last_updated": "1646751559",
+    "project": {
+      "access_groups": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "ticket": []
+      },
+      "access_users": {
+        "admin": [
+          "csomh",
+          "jpopelka",
+          "jscotka",
+          "lbarczio",
+          "mfocko",
+          "ttomecek",
+          "usercont"
+        ],
+        "collaborator": [],
+        "commit": ["fnecas", "packit"],
+        "owner": ["lachmanfrantisek"],
+        "ticket": []
+      },
+      "close_status": [],
+      "custom_keys": [],
+      "date_created": "1552485797",
+      "date_modified": "1632998734",
+      "description": "A set of tools to integrate upstream open source projects into Fedora operating system",
+      "full_url": "https://src.fedoraproject.org/rpms/packit",
+      "fullname": "rpms/packit",
+      "id": 34882,
+      "milestones": {},
+      "name": "packit",
+      "namespace": "rpms",
+      "parent": null,
+      "priorities": {},
+      "tags": [""],
+      "url_path": "rpms/packit",
+      "user": {
+        "full_url": "https://src.fedoraproject.org/user/lachmanfrantisek",
+        "fullname": "Franti\u0161ek Lachman",
+        "name": "lachmanfrantisek",
+        "url_path": "user/lachmanfrantisek"
+      }
+    },
+    "remote_git": null,
+    "repo_from": {
+      "access_groups": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "ticket": []
+      },
+      "access_users": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "owner": ["packit"],
+        "ticket": []
+      },
+      "close_status": [],
+      "custom_keys": [],
+      "date_created": "1573115272",
+      "date_modified": "1573115272",
+      "description": "A set of tools to integrate upstream open source projects into Fedora operating system",
+      "full_url": "https://src.fedoraproject.org/fork/packit/rpms/packit",
+      "fullname": "forks/packit/rpms/packit",
+      "id": 39182,
+      "milestones": {},
+      "name": "packit",
+      "namespace": "rpms",
+      "parent": {
+        "access_groups": {
+          "admin": [],
+          "collaborator": [],
+          "commit": [],
+          "ticket": []
+        },
+        "access_users": {
+          "admin": [
+            "csomh",
+            "jpopelka",
+            "jscotka",
+            "lbarczio",
+            "mfocko",
+            "ttomecek",
+            "usercont"
+          ],
+          "collaborator": [],
+          "commit": ["fnecas", "packit"],
+          "owner": ["lachmanfrantisek"],
+          "ticket": []
+        },
+        "close_status": [],
+        "custom_keys": [],
+        "date_created": "1552485797",
+        "date_modified": "1632998734",
+        "description": "A set of tools to integrate upstream open source projects into Fedora operating system",
+        "full_url": "https://src.fedoraproject.org/rpms/packit",
+        "fullname": "rpms/packit",
+        "id": 34882,
+        "milestones": {},
+        "name": "packit",
+        "namespace": "rpms",
+        "parent": null,
+        "priorities": {},
+        "tags": [""],
+        "url_path": "rpms/packit",
+        "user": {
+          "full_url": "https://src.fedoraproject.org/user/lachmanfrantisek",
+          "fullname": "Franti\u0161ek Lachman",
+          "name": "lachmanfrantisek",
+          "url_path": "user/lachmanfrantisek"
+        }
+      },
+      "priorities": {},
+      "tags": [],
+      "url_path": "fork/packit/rpms/packit",
+      "user": {
+        "full_url": "https://src.fedoraproject.org/user/packit",
+        "fullname": "Packit Bot",
+        "name": "packit",
+        "url_path": "user/packit"
+      }
+    },
+    "status": "Open",
+    "tags": [],
+    "threshold_reached": null,
+    "title": "Update to upstream release 0.47.0",
+    "uid": "297ff457b1534e4cb301f8ea2cff35f9",
+    "updated_on": "1646751388",
+    "user": {
+      "full_url": "https://src.fedoraproject.org/user/packit",
+      "fullname": "Packit Bot",
+      "name": "packit",
+      "url_path": "user/packit"
+    }
+  }
+}

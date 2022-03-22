@@ -70,7 +70,7 @@ services:
       AWS_ACCESS_KEY_ID: ""
       AWS_SECRET_ACCESS_KEY: ""
     volumes:
-      - ./packit_service:/usr/local/lib/python3.9/site-packages/packit_service:ro,z
+      - ./packit_service:/usr/local/lib/python3.10/site-packages/packit_service:ro,z
       - ./secrets/packit/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
       - ./secrets/packit/dev/copr:/home/packit/.config/copr:ro,z
       - ./secrets/packit/dev/ssh_config:/packit-ssh/config:ro,z
@@ -101,7 +101,7 @@ services:
       POSTGRESQL_HOST: postgres
       POSTGRESQL_DATABASE: packit
     volumes:
-      - ./packit_service:/usr/local/lib/python3.9/site-packages/packit_service:ro,z
+      - ./packit_service:/usr/local/lib/python3.10/site-packages/packit_service:ro,z
       - ./alembic:/src/alembic:ro,z
       # There's no secrets/ by default. You have to create (or symlink to other dir) it yourself.
       # Make sure to set `command_handler: local` since there is no kube in d-c
@@ -162,7 +162,7 @@ services:
       CELERY_RETRY_LIMIT: 0
       PUSHGATEWAY_ADDRESS: ""
     volumes:
-      - ./packit_service:/usr/local/lib/python3.9/site-packages/packit_service:ro,z
+      - ./packit_service:/usr/local/lib/python3.10/site-packages/packit_service:ro,z
       - ./secrets/packit/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
       - ./secrets/packit/dev/copr:/home/packit/.config/copr:ro,z
       - ./secrets/packit/dev/ssh_config:/packit-ssh/config:ro,z
