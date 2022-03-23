@@ -161,6 +161,6 @@
       assert:
         that:
           - git_name.stdout == "Packit Service"
-          - git_email.stdout == "user-cont-team+packit-service@redhat.com"
+          - git_email.stdout == "hello@packit.dev"
         msg:
           - "Incorrect git config values: {{ git_name.stdout }} , {{ git_email.stdout }}"
