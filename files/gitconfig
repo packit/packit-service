@@ -1,5 +1,5 @@
 [user]
-    name = Packit Service
-    email = user-cont-team+packit-service@redhat.com
+    name = Packit
+    email = hello@packit.dev
 [push]
     default = current
