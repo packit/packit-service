@@ -1,5 +1,5 @@
 [user]
-    name = Packit Service
+    name = Packit
     email = hello@packit.dev
 [push]
     default = current
