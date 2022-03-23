@@ -104,7 +104,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         trigger_model=trigger,
     ).and_return(propose_downstream_model, run_model).times(1 if success else 0)
 
-    model = flexmock(ProposeDownstreamTargetModel)
+    model = flexmock(status="queued")
     flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
         status=ProposeDownstreamTargetStatus.queued
     ).and_return(model).times(1 if success else 0)

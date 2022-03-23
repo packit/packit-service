@@ -272,6 +272,14 @@ class ProposeDownstreamHandler(JobHandler):
             for branch, model in zip(
                 branches, propose_downstream_model.propose_downstream_targets
             ):
+                # skip submitting a branch if we already did that (even if it failed)
+                if model.status not in [
+                    ProposeDownstreamTargetStatus.running,
+                    ProposeDownstreamTargetStatus.retry,
+                    ProposeDownstreamTargetStatus.queued,
+                ]:
+                    continue
+
                 model.set_status(status=ProposeDownstreamTargetStatus.running)
                 buffer, handler = gather_packit_logs_to_buffer(
                     logging_level=logging.DEBUG

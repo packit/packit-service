@@ -165,7 +165,7 @@ def test_issue_comment_propose_downstream_handler(
         trigger_model=trigger,
     ).and_return(propose_downstream_model, run_model).once()
 
-    model = flexmock(ProposeDownstreamTargetModel)
+    model = flexmock(status="queued")
     flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
         status=ProposeDownstreamTargetStatus.queued
     ).and_return(model).once()
