@@ -177,6 +177,14 @@ class StatusReporter:
                 markdown_content=markdown_content,
             )
 
+    @staticmethod
+    def is_final_state(state: BaseCommitStatus) -> bool:
+        return state in {
+            BaseCommitStatus.success,
+            BaseCommitStatus.error,
+            BaseCommitStatus.failure,
+        }
+
     def _add_commit_comment_with_status(
         self, state: BaseCommitStatus, description: str, check_name: str, url: str = ""
     ):
@@ -190,6 +198,11 @@ class StatusReporter:
             )
             + f"\n\n{description}"
         )
+        if not self.is_final_state(state):
+            # To avoid multiple comments for non-final states
+            logger.debug(f"Not adding a '{check_name} is {state.name}' comment.")
+            return
+
         self.project.commit_comment(
             commit=self.commit_sha,
             body=body,
@@ -302,8 +315,8 @@ class StatusReporterGitlab(StatusReporter):
                 # 403: No permissions to set status, falling back to comment
                 # 404: Commit has not been found, e.g. used target project on GitLab
                 logger.debug(
-                    f"Failed to set status for {self.commit_sha}, commenting on"
-                    f" commit as a fallback: {str(e)}"
+                    f"Failed to set status for {self.commit_sha},"
+                    f"  commenting on commit as a fallback: {e}"
                 )
                 self._add_commit_comment_with_status(
                     state, description, check_name, url
@@ -344,8 +357,8 @@ class StatusReporterGithubStatuses(StatusReporter):
             )
         except github.GithubException as e:
             logger.debug(
-                f"Failed to set status for {self.commit_sha}, commenting on"
-                f" commit as a fallback: {str(e)}"
+                f"Failed to set status for {self.commit_sha},"
+                f" commenting on commit as a fallback: {e}"
             )
             self._add_commit_comment_with_status(state, description, check_name, url)
 
