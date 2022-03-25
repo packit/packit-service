@@ -5,36 +5,35 @@
 Let's test that Steve's as awesome as we think he is.
 """
 import json
+import shutil
 from json import dumps, load
 
 import pytest
-import shutil
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
+
 from ogr.services.github import GithubProject
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.distgit import DistGit
 from packit.local_project import LocalProject
-
 from packit_service.config import ServiceConfig
-from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import (
-    ProjectReleaseModel,
     JobTriggerModelType,
     PipelineModel,
+    ProjectReleaseModel,
     ProposeDownstreamModel,
     ProposeDownstreamStatus,
     ProposeDownstreamTargetModel,
     ProposeDownstreamTargetStatus,
 )
 from packit_service.service.db_triggers import AddReleaseDbTrigger
-from packit_service.worker.jobs import SteveJobs
-from packit_service.worker.tasks import run_propose_downstream_handler
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
-from tests.spellbook import first_dict_value, get_parameters_from_results, DATA_DIR
+from packit_service.worker.tasks import run_propose_downstream_handler
+from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 EVENT = {
     "action": "published",
@@ -82,9 +81,9 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         1 if success else 0
     )
 
-    config = ServiceConfig(enabled_private_namespaces=enabled_private_namespaces)
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
+    ServiceConfig().get_service_config().enabled_private_namespaces = (
+        enabled_private_namespaces
+    )
 
     run_model = flexmock(PipelineModel)
     trigger = flexmock(

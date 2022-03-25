@@ -785,7 +785,7 @@ class TestEvents:
         assert event_object.chroot == "fedora-rawhide-x86_64"
         assert event_object.status == 3
         assert event_object.owner == "packit"
-        assert event_object.project_name == "packit-service-hello-world-24-stg"
+        assert event_object.project_name == "packit-service-hello-world-24"
         assert (
             event_object.project_url == "https://github.com/packit-service/hello-world"
         )
@@ -828,7 +828,7 @@ class TestEvents:
         assert event_object.chroot == "fedora-rawhide-x86_64"
         assert event_object.status == 1
         assert event_object.owner == "packit"
-        assert event_object.project_name == "packit-service-hello-world-24-stg"
+        assert event_object.project_name == "packit-service-hello-world-24"
         assert event_object.base_repo_name == "hello-world"
         assert event_object.base_repo_namespace == "packit-service"
         assert event_object.pkg == "hello"
@@ -1377,16 +1377,6 @@ class TestEvents:
 
 
 class TestCentOSEventParser:
-    @classmethod
-    def setup_class(cls):
-        service_config = ServiceConfig()
-        service_config.services = {
-            GithubService(token="12345"),
-            PagureService(instance_url="https://git.stg.centos.org", token="6789"),
-        }
-        service_config.github_requests_log_path = "/path"
-        ServiceConfig.service_config = service_config
-
     @pytest.fixture()
     def copr_build_centos_pr(self):
         return copr_build_model(
@@ -1566,7 +1556,7 @@ class TestCentOSEventParser:
         assert event_object.chroot == "fedora-rawhide-x86_64"
         assert event_object.status == 3
         assert event_object.owner == "packit"
-        assert event_object.project_name == "packit-service-hello-world-24-stg"
+        assert event_object.project_name == "packit-service-hello-world-24"
         assert (
             event_object.project_url
             == "https://git.stg.centos.org/source-git/packit-hello-world"
@@ -1618,7 +1608,7 @@ class TestCentOSEventParser:
         assert event_object.chroot == "fedora-rawhide-x86_64"
         assert event_object.status == 1
         assert event_object.owner == "packit"
-        assert event_object.project_name == "packit-service-hello-world-24-stg"
+        assert event_object.project_name == "packit-service-hello-world-24"
         assert event_object.base_repo_name == "packit-hello-world"
         assert event_object.base_repo_namespace == "source-git"
         assert event_object.pkg == "hello"

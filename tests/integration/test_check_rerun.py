@@ -7,43 +7,38 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
-from packit_service.worker.monitoring import Pushgateway
 
 from ogr.services.github import GithubProject
 from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
-from packit_service.config import ServiceConfig
-from packit_service.constants import (
-    SANDCASTLE_WORK_DIR,
-    TASK_ACCEPTED,
-    PG_BUILD_STATUS_SUCCESS,
-)
+from packit_service.constants import PG_BUILD_STATUS_SUCCESS, TASK_ACCEPTED
 from packit_service.models import (
-    PullRequestModel,
-    JobTriggerModel,
     GitBranchModel,
+    JobTriggerModel,
     ProjectReleaseModel,
+    PullRequestModel,
 )
 from packit_service.service.db_triggers import (
-    AddPullRequestDbTrigger,
     AddBranchPushDbTrigger,
+    AddPullRequestDbTrigger,
     AddReleaseDbTrigger,
 )
 from packit_service.worker.build import (
-    copr_build,
-    KojiBuildJobHelper,
     CoprBuildJobHelper,
+    KojiBuildJobHelper,
+    copr_build,
 )
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.reporting import StatusReporterGithubChecks
 from packit_service.worker.result import TaskResults
 from packit_service.worker.tasks import (
     run_copr_build_handler,
-    run_testing_farm_handler,
     run_koji_build_handler,
+    run_testing_farm_handler,
 )
 from packit_service.worker.testing_farm import TestingFarmJobHelper
-from packit_service.worker.reporting import BaseCommitStatus
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
@@ -89,9 +84,6 @@ def mock_pr_functionality(request):
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     trigger = JobTriggerModel(type=JobConfigTriggerType.pull_request, id=123)
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
@@ -134,9 +126,6 @@ def mock_push_functionality(request):
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     trigger = JobTriggerModel(type=JobConfigTriggerType.commit, id=123)
     flexmock(AddBranchPushDbTrigger).should_receive("db_trigger").and_return(trigger)
     flexmock(GitBranchModel).should_receive("get_by_id").with_args(123).and_return(
@@ -177,9 +166,6 @@ def mock_release_functionality(request):
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     trigger = JobTriggerModel(type=JobConfigTriggerType.release, id=123)
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(trigger)
     flexmock(ProjectReleaseModel).should_receive("get_by_id").with_args(123).and_return(

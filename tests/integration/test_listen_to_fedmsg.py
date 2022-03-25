@@ -9,42 +9,41 @@ import requests
 from celery.canvas import Signature
 from copr.v3 import Client
 from flexmock import flexmock
-from packit.copr_helper import CoprHelper
-
-from ogr.services.github import GithubProject
-from ogr.utils import RequestResponse
-from packit.config import JobConfig, JobType, JobConfigTriggerType
-from packit.config.job_config import JobMetadataConfig
-from packit.config.package_config import PackageConfig
-from packit.local_project import LocalProject
 
 import packit_service
-from packit_service.constants import COPR_API_FAIL_STATE
+import packit_service.service.urls as urls
+from ogr.services.github import GithubProject
+from ogr.utils import RequestResponse
+from packit.config import JobConfig, JobConfigTriggerType, JobType
+from packit.config.job_config import JobMetadataConfig
+from packit.config.package_config import PackageConfig
+from packit.copr_helper import CoprHelper
+from packit.local_project import LocalProject
 from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.constants import COPR_API_FAIL_STATE
 from packit_service.models import (
     CoprBuildTargetModel,
-    TestingFarmResult,
-    TFTTestRunTargetModel,
     JobTriggerModelType,
     KojiBuildTargetModel,
     SRPMBuildModel,
+    TFTTestRunTargetModel,
+    TestingFarmResult,
 )
-from packit_service.worker.events import AbstractCoprBuildEvent, KojiTaskEvent
-import packit_service.service.urls as urls
 from packit_service.service.urls import (
     get_copr_build_info_url,
     get_koji_build_info_url,
     get_srpm_build_info_url,
 )
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
+from packit_service.worker.events import AbstractCoprBuildEvent, KojiTaskEvent
 from packit_service.worker.handlers import CoprBuildEndHandler, TestingFarmHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
+from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
 from packit_service.worker.tasks import (
-    run_koji_build_report_handler,
     run_copr_build_end_handler,
     run_copr_build_start_handler,
+    run_koji_build_report_handler,
     run_testing_farm_handler,
 )
 from packit_service.worker.testing_farm import TestingFarmJobHelper
@@ -395,13 +394,11 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
 
 
 def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
-    tft_api_url = "https://api.dev.testing-farm.io/v0.1/"
-    service_config = ServiceConfig(
-        testing_farm_api_url=tft_api_url, testing_farm_secret="secret token"
+    ServiceConfig.get_service_config().testing_farm_api_url = (
+        "https://api.dev.testing-farm.io/v0.1/"
     )
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        service_config
-    )
+    ServiceConfig.get_service_config().testing_farm_secret = "secret token"
+
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(
@@ -516,7 +513,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         ],
         "notification": {
             "webhook": {
-                "url": "https://stg.packit.dev/api/testing-farm/results",
+                "url": "https://prod.packit.dev/api/testing-farm/results",
                 "token": "secret token",
             }
         },

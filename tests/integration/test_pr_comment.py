@@ -8,36 +8,36 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
-from packit_service.worker.monitoring import Pushgateway
 
-from ogr.utils import RequestResponse
 from ogr.services.github import GithubProject
-
+from ogr.utils import RequestResponse
 from packit.config import JobConfigTriggerType
 from packit.exceptions import PackitConfigException
 from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
-    SANDCASTLE_WORK_DIR,
-    TASK_ACCEPTED,
-    PG_BUILD_STATUS_SUCCESS,
     COMMENT_REACTION,
+    PG_BUILD_STATUS_SUCCESS,
+    TASK_ACCEPTED,
 )
 from packit_service.models import (
-    PullRequestModel,
-    JobTriggerModelType,
+    CoprBuildTargetModel,
     JobTriggerModel,
+    JobTriggerModelType,
+    PipelineModel,
+    PullRequestModel,
     TFTTestRunTargetModel,
     TestingFarmResult,
-    PipelineModel,
-    CoprBuildTargetModel,
 )
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
+from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.build import copr_build
 from packit_service.worker.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
 from packit_service.worker.jobs import SteveJobs, get_packit_commands_from_comment
+from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import TaskResults
 from packit_service.worker.tasks import (
@@ -46,8 +46,6 @@ from packit_service.worker.tasks import (
     run_testing_farm_handler,
 )
 from packit_service.worker.testing_farm import TestingFarmJobHelper
-from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.reporting import BaseCommitStatus
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
@@ -125,9 +123,6 @@ def mock_pr_comment_functionality(request):
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
@@ -434,9 +429,6 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
@@ -691,9 +683,6 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
@@ -782,14 +771,11 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    tft_api_url = "https://api.dev.testing-farm.io/v0.1/"
-    config = ServiceConfig(
-        command_handler_work_dir=SANDCASTLE_WORK_DIR,
-        testing_farm_api_url=tft_api_url,
-        testing_farm_secret="secret token",
+    ServiceConfig.get_service_config().testing_farm_api_url = (
+        "https://api.dev.testing-farm.io/v0.1/"
     )
+    ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
 
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
@@ -828,7 +814,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     ).once()
 
     payload = {
-        "api_key": "secret token",
+        "api_key": "secret-token",
         "test": {
             "fmf": {
                 "url": "https://github.com/someone/hello-world",
@@ -864,8 +850,8 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         ],
         "notification": {
             "webhook": {
-                "url": "https://stg.packit.dev/api/testing-farm/results",
-                "token": "secret token",
+                "url": "https://prod.packit.dev/api/testing-farm/results",
+                "token": "secret-token",
             }
         },
     }
@@ -961,9 +947,6 @@ def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
@@ -1054,9 +1037,6 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
     gh_project.should_receive("can_merge_pr").with_args("phracek").and_return(False)
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )
@@ -1122,9 +1102,6 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
     gh_project.should_receive("can_merge_pr").with_args("phracek").and_return(False)
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
     )

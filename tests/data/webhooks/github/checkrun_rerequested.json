@@ -33,7 +33,7 @@
       "pull_requests": [],
       "app": {
         "id": 29180,
-        "slug": "packit-as-a-service-stg",
+        "slug": "packit-as-a-service",
         "node_id": "MDM6QXBwMjkxODA=",
         "owner": {
           "login": "packit",
@@ -82,7 +82,7 @@
     },
     "app": {
       "id": 29180,
-      "slug": "packit-as-a-service-stg",
+      "slug": "packit-as-a-service",
       "node_id": "MDM6QXBwMjkxODA=",
       "owner": {
         "login": "packit",
