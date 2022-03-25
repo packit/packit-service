@@ -295,6 +295,14 @@ class SteveJobs:
 
             # we want to run handlers for all possible jobs, not just the first one
             for job_config in job_configs:
+                if self.service_config.deployment not in job_config.packit_instances:
+                    logger.debug(
+                        f"Current deployment ({self.service_config.deployment}) "
+                        f"does not match the job configuration ({job_config.packit_instances}). "
+                        "The job will not be run."
+                    )
+                    continue
+
                 handler = handler_kls(
                     package_config=event.package_config,
                     job_config=job_config,
