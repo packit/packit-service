@@ -3,48 +3,48 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import List, Optional, Set, Tuple, Iterable
+from typing import Iterable, List, Optional, Set, Tuple
 
 from copr.v3 import CoprRequestException
+
 from ogr.abstract import GitProject
 from ogr.parsing import parse_git_repo
 from ogr.services.github import GithubProject
 from packit.config import JobConfig, JobType
-from packit.config.aliases import get_valid_build_targets, get_aliases
+from packit.config.aliases import get_aliases, get_valid_build_targets
+from packit.config.common_package_config import Deployment
 from packit.config.package_config import PackageConfig
 from packit.exceptions import (
     PackitCoprException,
-    PackitCoprSettingsException,
     PackitCoprProjectException,
+    PackitCoprSettingsException,
 )
-
+from packit.utils.source_script import create_source_script
 from packit_service import sentry_integration
 from packit_service.celerizer import celery_app
-from packit_service.config import Deployment, ServiceConfig
+from packit_service.config import ServiceConfig
 from packit_service.constants import (
-    MSG_RETRIGGER,
-    PG_BUILD_STATUS_SUCCESS,
+    COPR_CHROOT_CHANGE_MSG,
     DEFAULT_MAPPING_INTERNAL_TF,
     DEFAULT_MAPPING_TF,
-    COPR_CHROOT_CHANGE_MSG,
+    MSG_RETRIGGER,
+    PG_BUILD_STATUS_SUCCESS,
 )
 from packit_service.models import (
     AbstractTriggerDbType,
     CoprBuildTargetModel,
     SRPMBuildModel,
 )
-from packit_service.utils import get_package_nvrs
-from packit_service.worker.events import EventData
 from packit_service.service.urls import (
     get_copr_build_info_url,
     get_srpm_build_info_url,
 )
+from packit_service.utils import get_package_nvrs
 from packit_service.worker.build.build_helper import BaseBuildJobHelper
+from packit_service.worker.events import EventData
 from packit_service.worker.monitoring import Pushgateway, measure_time
-from packit_service.worker.result import TaskResults
 from packit_service.worker.reporting import BaseCommitStatus
-
-from packit.utils.source_script import create_source_script
+from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 
