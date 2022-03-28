@@ -705,6 +705,7 @@ def test_trigger_build(copr_build, run_new_build):
     job_config.spec_source_id = 1
     job_config.metadata = JobMetadataConfig()
     job_config.trigger = JobConfigTriggerType.pull_request
+    job_config._files_to_sync_used = False
     package_config.jobs = [job_config]
     package_config.spec_source_id = 1
 
