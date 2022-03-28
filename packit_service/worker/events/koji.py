@@ -128,6 +128,7 @@ class KojiBuildEvent(AbstractKojiEvent):
                 web_url=self.web_url,
                 target="noarch",  # TODO: where to get this info from?
                 status=self.state.value,
+                scratch=True,  # used by the event for scratch builds
                 run_model=PipelineModel.create(
                     type=JobTriggerModelType.branch_push,
                     trigger_id=GitBranchModel.get_or_create(

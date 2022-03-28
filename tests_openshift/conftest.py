@@ -693,6 +693,7 @@ def a_koji_build_for_pr(srpm_build_model_with_new_run_for_pr):
         web_url=SampleValues.koji_web_url,
         target=SampleValues.target,
         status=SampleValues.status_pending,
+        scratch=True,
         run_model=run_model,
     )
     koji_build_model.set_build_logs_url(
@@ -711,6 +712,7 @@ def a_koji_build_for_branch_push(srpm_build_model_with_new_run_for_branch):
         web_url=SampleValues.koji_web_url,
         target=SampleValues.target,
         status=SampleValues.status_pending,
+        scratch=True,
         run_model=run_model,
     )
 
@@ -725,6 +727,7 @@ def a_koji_build_for_release(srpm_build_model_with_new_run_for_release):
         web_url=SampleValues.koji_web_url,
         target=SampleValues.target,
         status=SampleValues.status_pending,
+        scratch=True,
         run_model=run_model,
     )
 
@@ -749,6 +752,7 @@ def multiple_koji_builds(pr_model, different_pr_model):
             web_url=SampleValues.koji_web_url,
             target=SampleValues.target,
             status=SampleValues.status_pending,
+            scratch=True,
             run_model=run_model_for_pr,
         ),
         KojiBuildTargetModel.create(
@@ -757,6 +761,7 @@ def multiple_koji_builds(pr_model, different_pr_model):
             web_url=SampleValues.koji_web_url,
             target=SampleValues.different_target,
             status=SampleValues.status_pending,
+            scratch=True,
             run_model=run_model_for_pr,
         ),
         # Same PR, different run
@@ -766,6 +771,7 @@ def multiple_koji_builds(pr_model, different_pr_model):
             web_url=SampleValues.koji_web_url,
             target=SampleValues.different_target,
             status=SampleValues.status_pending,
+            scratch=True,
             run_model=run_model_for_same_pr,
         ),
         # Completely different build
@@ -775,6 +781,7 @@ def multiple_koji_builds(pr_model, different_pr_model):
             web_url=SampleValues.koji_web_url,
             target=SampleValues.target,
             status=SampleValues.status_pending,
+            scratch=True,
             run_model=run_model_for_a_different_pr,
         ),
     ]

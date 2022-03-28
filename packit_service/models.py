@@ -1126,6 +1126,11 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
             self.build_submitted_time = build_submitted_time
             session.add(self)
 
+    def set_scratch(self, value: bool):
+        with get_sa_session() as session:
+            self.scratch = value
+            session.add(self)
+
     def get_srpm_build(self) -> Optional["SRPMBuildModel"]:
         if not self.runs:
             return None
@@ -1194,6 +1199,7 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
         web_url: str,
         target: str,
         status: str,
+        scratch: bool,
         run_model: "PipelineModel",
     ) -> "KojiBuildTargetModel":
         with get_sa_session() as session:
@@ -1203,6 +1209,7 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
             build.commit_sha = commit_sha
             build.web_url = web_url
             build.target = target
+            build.scratch = scratch
             session.add(build)
 
             if run_model.koji_build:
