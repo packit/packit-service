@@ -1,37 +1,35 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 import json
+import shutil
 
 import pytest
-import shutil
-from celery.app.task import Task, Context
+from celery.app.task import Context, Task
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
-from packit.distgit import DistGit
 from rebasehelper.exceptions import RebaseHelperError
 
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.config.aliases import get_branches
-from packit.pkgtool import PkgTool
+from packit.distgit import DistGit
 from packit.local_project import LocalProject
-
+from packit.pkgtool import PkgTool
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
-from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import (
-    PipelineModel,
     JobTriggerModelType,
+    PipelineModel,
+    ProjectReleaseModel,
     ProposeDownstreamModel,
     ProposeDownstreamStatus,
     ProposeDownstreamTargetModel,
     ProposeDownstreamTargetStatus,
-    ProjectReleaseModel,
 )
 from packit_service.service.db_triggers import AddReleaseDbTrigger
-from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import run_propose_downstream_handler
 from tests.spellbook import first_dict_value, get_parameters_from_results
@@ -98,11 +96,7 @@ def test_dist_git_push_release_handle(
     flexmock(LocalProject).should_receive("reset").with_args("HEAD").once()
 
     flexmock(Allowlist, check_and_report=True)
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    config.get_project = lambda url: project
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
-    # it would make sense to make LocalProject offline
+    ServiceConfig().get_service_config().get_project = lambda url: project
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main", tag="0.3.0"
@@ -175,11 +169,8 @@ def test_dist_git_push_release_handle_multiple_branches(
     )
 
     flexmock(Allowlist, check_and_report=True)
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    config.get_project = lambda url: project
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
-    # it would make sense to make LocalProject offline
+    ServiceConfig().get_service_config().get_project = lambda url: project
+
     for branch in fedora_branches:
         flexmock(PackitAPI).should_receive("sync_release").with_args(
             dist_git_branch=branch, tag="0.3.0"
@@ -256,11 +247,8 @@ def test_dist_git_push_release_handle_one_failed(
         len(fedora_branches)
     )
     flexmock(Allowlist, check_and_report=True)
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    config.get_project = lambda url: project
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
-    # it would make sense to make LocalProject offline
+    ServiceConfig().get_service_config().get_project = lambda url: project
+
     for i, branch in enumerate(fedora_branches):
         sync_release = (
             flexmock(PackitAPI)
@@ -369,11 +357,8 @@ def test_dist_git_push_release_handle_all_failed(
     )
 
     flexmock(Allowlist, check_and_report=True)
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    config.get_project = lambda url: project
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
-    # it would make sense to make LocalProject offline
+    ServiceConfig().get_service_config().get_project = lambda url: project
+
     flexmock(PackitAPI).should_receive("sync_release").and_raise(
         Exception, "Failed"
     ).times(len(fedora_branches))
@@ -446,11 +431,7 @@ def test_retry_propose_downstream_task(
     flexmock(LocalProject).should_receive("reset").with_args("HEAD").once()
 
     flexmock(Allowlist, check_and_report=True)
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    config.get_project = lambda url: project
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
-    # it would make sense to make LocalProject offline
+    ServiceConfig().get_service_config().get_project = lambda url: project
 
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)
@@ -518,11 +499,7 @@ def test_dont_retry_propose_downstream_task(
     flexmock(DistGit).should_receive("local_project").and_return(lp)
 
     flexmock(Allowlist, check_and_report=True)
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    config.get_project = lambda url: project
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
-    # it would make sense to make LocalProject offline
+    ServiceConfig().get_service_config().get_project = lambda url: project
 
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
         flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=123)

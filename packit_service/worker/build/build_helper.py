@@ -4,11 +4,6 @@ import datetime
 import logging
 from functools import partial
 from io import StringIO
-
-from packit.config.aliases import DEFAULT_VERSION
-
-from packit_service.service.urls import get_srpm_build_info_url
-from packit_service.worker.result import TaskResults
 from pathlib import Path
 from typing import List, Optional, Set, Tuple, Union
 
@@ -20,21 +15,24 @@ from ogr.exceptions import GitlabAPIException
 from ogr.services.gitlab import GitlabProject
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobType
+from packit.config.aliases import DEFAULT_VERSION
+from packit.config.common_package_config import Deployment
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitMergeException
 from packit.local_project import LocalProject
 from packit.utils import PackitFormatter
 from packit.utils.repo import RepositoryCache
-from sandcastle import SandcastleTimeoutReached
-
 from packit_service import sentry_integration
-from packit_service.config import Deployment, ServiceConfig
-from packit_service.constants import PG_BUILD_STATUS_SUCCESS, PG_BUILD_STATUS_FAILURE
-from packit_service.models import PipelineModel, SRPMBuildModel, JobTriggerModel
-from packit_service.worker.events import EventData
+from packit_service.config import ServiceConfig
+from packit_service.constants import PG_BUILD_STATUS_FAILURE, PG_BUILD_STATUS_SUCCESS
+from packit_service.models import JobTriggerModel, PipelineModel, SRPMBuildModel
+from packit_service.service.urls import get_srpm_build_info_url
 from packit_service.trigger_mapping import are_job_types_same
+from packit_service.worker.events import EventData
 from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
+from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
+from packit_service.worker.result import TaskResults
+from sandcastle import SandcastleTimeoutReached
 
 logger = logging.getLogger(__name__)
 

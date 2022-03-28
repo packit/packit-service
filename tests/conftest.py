@@ -9,8 +9,9 @@ from pathlib import Path
 import pytest
 from flexmock import flexmock
 
-from ogr import GithubService, GitlabService
+from ogr import GithubService, GitlabService, PagureService
 from packit.config import JobConfigTriggerType
+from packit.config.common_package_config import Deployment
 from packit_service.config import ServiceConfig
 from packit_service.models import JobTriggerModelType, JobTriggerModel
 from packit_service.worker.events import (
@@ -23,21 +24,29 @@ from packit_service.worker.parser import Parser
 from tests.spellbook import SAVED_HTTPD_REQS, DATA_DIR, load_the_message_from_file
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(autouse=True)
 def global_service_config():
     """
     This config will be used instead of the one loaded from the local config file.
 
     You can still mock/overwrite the service config content in your tests
     but this one will be used by default.
+
+    You can also (re)define some values like this:
+    ServiceConfig.get_service_config().attribute = "value"
     """
     service_config = ServiceConfig()
     service_config.services = {
         GithubService(token="token"),
         GitlabService(token="token"),
+        PagureService(instance_url="https://src.fedoraproject.org", token="token"),
+        PagureService(instance_url="https://git.stg.centos.org", token="6789"),
     }
     service_config.server_name = "localhost"
     service_config.github_requests_log_path = "/path"
+    # By default, [Deployment.prod] is used as packit_instances config option.
+    # So just prod reacts to configs without packit_instances defined.
+    service_config.deployment = Deployment.prod
     ServiceConfig.service_config = service_config
 
 

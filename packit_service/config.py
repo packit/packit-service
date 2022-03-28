@@ -1,11 +1,10 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-import enum
 import logging
 import os
 from pathlib import Path
-from typing import List, Optional, Set, Union, NamedTuple
+from typing import List, NamedTuple, Optional, Set, Union
 
 from yaml import safe_load
 
@@ -16,9 +15,10 @@ from packit.config import (
     RunCommandType,
     get_package_config_from_repo,
 )
+from packit.config.common_package_config import Deployment
 from packit.exceptions import (
-    PackitException,
     PackitConfigException,
+    PackitException,
     PackitMissingConfigException,
 )
 from packit_service.constants import (
@@ -31,12 +31,6 @@ from packit_service.constants import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-class Deployment(enum.Enum):
-    dev = "dev"
-    stg = "stg"
-    prod = "prod"
 
 
 class ProjectToSync(NamedTuple):

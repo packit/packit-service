@@ -9,8 +9,6 @@ from flexmock import flexmock
 
 from ogr.services.pagure import PagureProject
 from packit.config import JobConfigTriggerType
-from packit_service.config import ServiceConfig
-from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import GitBranchModel, KojiBuildTargetModel, PipelineModel
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
@@ -53,14 +51,6 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
         repo_name="python-ogr",
         project_url="https://src.fedoraproject.org/rpms/python-ogr",
     ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
-
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        ServiceConfig(
-            command_handler_work_dir=SANDCASTLE_WORK_DIR,
-            repository_cache="/tmp/repository-cache",
-            add_repositories_to_repository_cache=False,
-        )
-    )
 
     # 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").once()
@@ -133,14 +123,6 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
         repo_name="python-ogr",
         project_url="https://src.fedoraproject.org/rpms/python-ogr",
     ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
-
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        ServiceConfig(
-            command_handler_work_dir=SANDCASTLE_WORK_DIR,
-            repository_cache="/tmp/repository-cache",
-            add_repositories_to_repository_cache=False,
-        )
-    )
 
     # 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").once()

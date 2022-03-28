@@ -11,9 +11,6 @@ from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.constants import DEFAULT_BODHI_NOTE
 from packit.local_project import LocalProject
-from packit.utils.repo import RepositoryCache
-from packit_service.config import ServiceConfig
-from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import GitBranchModel, KojiBuildTargetModel, PipelineModel
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
@@ -47,16 +44,7 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
         path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
     ).and_return(packit_yaml)
 
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        ServiceConfig(
-            command_handler_work_dir=SANDCASTLE_WORK_DIR,
-            repository_cache="/tmp/repository-cache",
-            add_repositories_to_repository_cache=False,
-        )
-    )
-
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(RepositoryCache).should_call("__init__").once()
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(2)
     flexmock(Pushgateway).should_receive("push").once().and_return()
@@ -131,16 +119,7 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
         path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
     ).and_return(packit_yaml)
 
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        ServiceConfig(
-            command_handler_work_dir=SANDCASTLE_WORK_DIR,
-            repository_cache="/tmp/repository-cache",
-            add_repositories_to_repository_cache=False,
-        )
-    )
-
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(RepositoryCache).should_call("__init__").times(0)
     # 0*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(1)
     flexmock(Pushgateway).should_receive("push").times(0)
@@ -196,16 +175,7 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
         path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
     ).and_return(packit_yaml)
 
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        ServiceConfig(
-            command_handler_work_dir=SANDCASTLE_WORK_DIR,
-            repository_cache="/tmp/repository-cache",
-            add_repositories_to_repository_cache=False,
-        )
-    )
-
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(RepositoryCache).should_call("__init__").once()
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(2)
     flexmock(Pushgateway).should_receive("push").once().and_return()
@@ -267,16 +237,7 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
         path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
     ).and_return(packit_yaml)
 
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        ServiceConfig(
-            command_handler_work_dir=SANDCASTLE_WORK_DIR,
-            repository_cache="/tmp/repository-cache",
-            add_repositories_to_repository_cache=False,
-        )
-    )
-
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(RepositoryCache).should_call("__init__").times(0)
     # 0*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(1)
     flexmock(Pushgateway).should_receive("push").times(0)
@@ -331,16 +292,7 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f35):
         path=".packit.yaml", ref="51b57ec04f5e6e9066ac859a1408cfbf1ead307e"
     ).and_return(packit_yaml)
 
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        ServiceConfig(
-            command_handler_work_dir=SANDCASTLE_WORK_DIR,
-            repository_cache="/tmp/repository-cache",
-            add_repositories_to_repository_cache=False,
-        )
-    )
-
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(RepositoryCache).should_call("__init__").once()
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(2)
     flexmock(Pushgateway).should_receive("push").once().and_return()

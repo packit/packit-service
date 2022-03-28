@@ -10,6 +10,7 @@ from flexmock import flexmock
 from ogr.services.pagure import PagureProject
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
+from packit.config.common_package_config import Deployment
 from packit.constants import CONFIG_FILE_NAMES
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
@@ -73,6 +74,7 @@ def test_sync_from_downstream():
             command_handler_work_dir=SANDCASTLE_WORK_DIR,
             repository_cache="/tmp/repository-cache",
             add_repositories_to_repository_cache=False,
+            deployment=Deployment.prod,
         )
     )
 
@@ -142,6 +144,7 @@ def test_do_not_sync_from_downstream_on_a_different_branch():
             command_handler_work_dir=SANDCASTLE_WORK_DIR,
             repository_cache="/tmp/repository-cache",
             add_repositories_to_repository_cache=False,
+            deployment=Deployment.prod,
         )
     )
 
@@ -181,16 +184,7 @@ def test_downstream_koji_build():
         project_url="https://src.fedoraproject.org/rpms/buildah",
     ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
 
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        ServiceConfig(
-            command_handler_work_dir=SANDCASTLE_WORK_DIR,
-            repository_cache="/tmp/repository-cache",
-            add_repositories_to_repository_cache=False,
-        )
-    )
-
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(RepositoryCache).should_call("__init__").once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()
     flexmock(PackitAPI).should_receive("build").with_args(
@@ -313,16 +307,7 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         project_url="https://src.fedoraproject.org/rpms/buildah",
     ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
 
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        ServiceConfig(
-            command_handler_work_dir=SANDCASTLE_WORK_DIR,
-            repository_cache="/tmp/repository-cache",
-            add_repositories_to_repository_cache=False,
-        )
-    )
-
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(RepositoryCache).should_call("__init__").once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()
     flexmock(PackitAPI).should_receive("build").with_args(
@@ -410,14 +395,6 @@ def test_do_not_run_downstream_koji_build_for_a_different_branch(jobs_config):
         repo_name="buildah",
         project_url="https://src.fedoraproject.org/rpms/buildah",
     ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
-
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
-        ServiceConfig(
-            command_handler_work_dir=SANDCASTLE_WORK_DIR,
-            repository_cache="/tmp/repository-cache",
-            add_repositories_to_repository_cache=False,
-        )
-    )
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(PackitAPI).should_receive("build").times(0)

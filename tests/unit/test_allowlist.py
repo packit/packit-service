@@ -11,12 +11,12 @@ from flexmock import flexmock
 from ogr.abstract import GitProject, GitService
 from ogr.services.github import GithubProject, GithubService
 from packit.config import JobType, JobConfig, JobConfigTriggerType
+from packit.config.common_package_config import Deployment
 from packit.config.job_config import JobMetadataConfig
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 
 import packit_service
-from packit_service.config import Deployment
 from packit_service.constants import FAQ_URL
 from packit_service.models import (
     AllowlistModel as DBAllowlist,

@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: MIT
 
 import json
+import shutil
 from datetime import datetime
 
 import pytest
-import shutil
 from celery.canvas import Signature
 from flexmock import flexmock
 
@@ -14,28 +14,25 @@ from ogr.abstract import PRStatus
 from ogr.read_only import PullRequestReadOnly
 from ogr.services.github import GithubProject, GithubRelease
 from ogr.services.gitlab import GitlabProject, GitlabRelease
-
 from packit.api import PackitAPI
-from packit.distgit import DistGit
 from packit.config import JobConfigTriggerType
+from packit.distgit import DistGit
 from packit.local_project import LocalProject
-
-from packit_service.config import ServiceConfig
-from packit_service.constants import SANDCASTLE_WORK_DIR, COMMENT_REACTION
+from packit_service.constants import COMMENT_REACTION
 from packit_service.models import (
     IssueModel,
     JobTriggerModelType,
     PipelineModel,
     ProposeDownstreamModel,
-    ProposeDownstreamTargetModel,
     ProposeDownstreamStatus,
+    ProposeDownstreamTargetModel,
     ProposeDownstreamTargetStatus,
 )
+from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import IssueCommentEvent, IssueCommentGitlabEvent
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import run_propose_downstream_handler
-from packit_service.worker.allowlist import Allowlist
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
@@ -93,9 +90,6 @@ def mock_comment(request):
         git_tag=flexmock(GitTag),
     )
     flexmock(project_class).should_receive("get_latest_release").and_return(gr)
-    config = ServiceConfig()
-    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
-    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     lp = flexmock(git_project=flexmock(default_branch="main"))
     lp.working_dir = ""
