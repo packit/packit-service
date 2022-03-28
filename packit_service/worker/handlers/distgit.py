@@ -23,7 +23,7 @@ from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 
 from packit_service import sentry_integration
-from packit_service.config import ProjectToSync
+from packit_service.config import PackageConfigGetter, ProjectToSync
 from packit_service.constants import (
     CONTACTS_URL,
     DEFAULT_RETRY_LIMIT,
@@ -393,13 +393,34 @@ class DownstreamKojiBuildHandler(JobHandler):
                 from_upstream=False,
             )
         except PackitException as ex:
-            packit_api.downstream_local_project.git_project.commit_comment(
-                commit=packit_api.downstream_local_project.commit_hexsha,
-                body="Koji build failed:\n"
+            if not self.job_config.issue_repository:
+                logger.debug(
+                    "No issue repository configured. "
+                    "User will not be notified about the failure."
+                )
+                raise ex
+
+            logger.debug(
+                f"Issue repository configured. We will create "
+                f"a new issue in {self.job_config.issue_repository}"
+                "or update the existing one."
+            )
+
+            issue_repo = self.service_config.get_project(
+                url=self.job_config.issue_repository
+            )
+            body = (
+                f"Koji build on '{self.dg_branch}' branch failed:\n"
                 "```\n"
-                "{ex}\n"
+                f"{ex}\n"
                 "```\n\n"
-                f"*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
+                f"*Get in [touch with us]({CONTACTS_URL}) if you need some help.*"
+            )
+            PackageConfigGetter.create_issue_if_needed(
+                project=issue_repo,
+                title="Fedora Koji build failed to be triggered",
+                message=body,
+                comment_to_existing=body,
             )
             raise ex
         return TaskResults(success=True, details={})
