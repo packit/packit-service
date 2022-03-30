@@ -150,6 +150,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 web_url=web_url,
                 target=target,
                 status="pending",
+                scratch=self.is_scratch,
                 run_model=self.run_model,
             )
             url = get_koji_build_info_url(id_=koji_build.id)

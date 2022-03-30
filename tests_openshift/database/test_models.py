@@ -422,6 +422,7 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
         web_url="https://copr.something.somewhere/123456",
         target=SampleValues.target,
         status="pending",
+        scratch=True,
         run_model=run_model_for_koji,
     )
 

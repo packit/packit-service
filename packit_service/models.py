@@ -1091,6 +1091,9 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
     # metadata is reserved to sqlalch
     data = Column(JSON)
 
+    # it is a scratch build?
+    scratch = Column(Boolean)
+
     runs = relationship("PipelineModel", back_populates="koji_build")
 
     def set_status(self, status: str):
@@ -1121,6 +1124,11 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
     def set_build_submitted_time(self, build_submitted_time: Optional[DateTime]):
         with get_sa_session() as session:
             self.build_submitted_time = build_submitted_time
+            session.add(self)
+
+    def set_scratch(self, value: bool):
+        with get_sa_session() as session:
+            self.scratch = value
             session.add(self)
 
     def get_srpm_build(self) -> Optional["SRPMBuildModel"]:
@@ -1191,6 +1199,7 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
         web_url: str,
         target: str,
         status: str,
+        scratch: bool,
         run_model: "PipelineModel",
     ) -> "KojiBuildTargetModel":
         with get_sa_session() as session:
@@ -1200,6 +1209,7 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
             build.commit_sha = commit_sha
             build.web_url = web_url
             build.target = target
+            build.scratch = scratch
             session.add(build)
 
             if run_model.koji_build:
