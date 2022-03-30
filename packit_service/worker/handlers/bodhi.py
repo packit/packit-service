@@ -138,13 +138,13 @@ class CreateBodhiUpdateHandler(JobHandler):
                 f"Bodhi update failed to be created for '{self.koji_build_event.nvr}':\n"
                 "```\n"
                 f"{ex}\n"
-                "```\n\n"
-                f"*Get in [touch with us]({CONTACTS_URL}) if you need some help.*"
+                "```"
             )
             PackageConfigGetter.create_issue_if_needed(
                 project=issue_repo,
                 title="Fedora Bodhi update failed to be created",
-                message=body,
+                message=body
+                + f"\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
                 comment_to_existing=body,
             )
             raise ex

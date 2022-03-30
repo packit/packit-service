@@ -413,13 +413,13 @@ class DownstreamKojiBuildHandler(JobHandler):
                 f"Koji build on '{self.dg_branch}' branch failed:\n"
                 "```\n"
                 f"{ex}\n"
-                "```\n\n"
-                f"*Get in [touch with us]({CONTACTS_URL}) if you need some help.*"
+                "```"
             )
             PackageConfigGetter.create_issue_if_needed(
                 project=issue_repo,
                 title="Fedora Koji build failed to be triggered",
-                message=body,
+                message=body
+                + f"\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
                 comment_to_existing=body,
             )
             raise ex
