@@ -17,6 +17,7 @@ from packit.config.aliases import get_branches
 from packit.config import JobConfig, JobType, PackageConfig
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
+from packit_service.config import PackageConfigGetter
 from packit_service.constants import CONTACTS_URL, KojiBuildState
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
@@ -118,13 +119,33 @@ class CreateBodhiUpdateHandler(JobHandler):
                 ],
             )
         except PackitException as ex:
-            packit_api.downstream_local_project.git_project.commit_comment(
-                commit=packit_api.downstream_local_project.commit_hexsha,
-                body="Bodhi update failed:\n"
+            if not self.job_config.issue_repository:
+                logger.debug(
+                    "No issue repository configured. User will not be notified about the failure."
+                )
+                raise ex
+
+            logger.debug(
+                f"Issue repository configured. We will create "
+                f"a new issue in {self.job_config.issue_repository}"
+                "or update the existing one."
+            )
+
+            issue_repo = self.service_config.get_project(
+                url=self.job_config.issue_repository
+            )
+            body = (
+                f"Bodhi update failed to be created for '{self.koji_build_event.nvr}':\n"
                 "```\n"
-                "{ex}\n"
-                "```\n\n"
-                f"*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
+                f"{ex}\n"
+                "```"
+            )
+            PackageConfigGetter.create_issue_if_needed(
+                project=issue_repo,
+                title="Fedora Bodhi update failed to be created",
+                message=body
+                + f"\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
+                comment_to_existing=body,
             )
             raise ex
         return TaskResults(success=True, details={})

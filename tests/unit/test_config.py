@@ -346,7 +346,7 @@ def test_get_package_config_from_repo_not_found_exception_nonexisting_issue():
     gp.should_receive("get_issue_list").and_return(
         [flexmock(title="issue 1"), flexmock(title="issue 2")]
     ).once()
-    gp.should_receive("create_issue").and_return(flexmock(url="the url")).once()
+    gp.should_receive("create_issue").and_return(flexmock(id=3, url="the url")).once()
     with pytest.raises(PackitConfigException):
         PackageConfigGetter.get_package_config_from_repo(
             project=GitProject(repo="", service=GitService(), namespace=""),
@@ -355,13 +355,14 @@ def test_get_package_config_from_repo_not_found_exception_nonexisting_issue():
 
 
 @pytest.mark.parametrize(
-    "issues, create_new, title, message",
+    "issues, create_new, title, message, comment_to_existing",
     [
         (
             [flexmock(title="Some random issue"), flexmock(title="Many issues")],
             True,
             "Created issue",
             "Let's make sure to deliver the message",
+            None,
         ),
         (
             [
@@ -372,6 +373,7 @@ def test_get_package_config_from_repo_not_found_exception_nonexisting_issue():
             False,
             "I was here",
             "Down the rabbit hole",
+            None,
         ),
         (
             [
@@ -382,19 +384,54 @@ def test_get_package_config_from_repo_not_found_exception_nonexisting_issue():
             True,
             "Something new",
             "Knock, knock! Here we go again!",
+            None,
+        ),
+        (
+            [flexmock(title="Some random issue"), flexmock(title="Many issues")],
+            True,
+            "Created issue",
+            "Let's make sure to deliver the message",
+            "Let's make sure to deliver the message",
+        ),
+        (
+            [
+                flexmock(title="Some random issue"),
+                flexmock(
+                    title="[packit] I was here",
+                    id=3,
+                    url="https://github.com/namespace/project",
+                    comment=lambda body: None,
+                ),
+                flexmock(title="Many issues"),
+            ],
+            False,
+            "I was here",
+            "Down the rabbit hole",
+            "Down the rabbit hole",
         ),
     ],
 )
-def test_create_issue_if_needed(issues, create_new, title, message):
+def test_create_issue_if_needed(
+    issues, create_new, title, message, comment_to_existing
+):
     project = flexmock()
     check = lambda value: value is None  # noqa
     project.should_receive("get_issue_list").and_return(issues).once()
 
     if create_new:
+
+        issue_mock = flexmock(
+            id=3, title="new issue", url="https://github.com/namespace/project/issues/3"
+        )
+        issue_mock.should_receive("comment").times(0)
+
         project.should_receive("create_issue").with_args(
             title=f"[packit] {title}", body=message
-        ).and_return(flexmock(title="new issue")).once()
+        ).and_return(issue_mock).once()
+
         check = lambda value: value.title == "new issue"  # noqa
 
-    issue_created = PackageConfigGetter.create_issue_if_needed(project, title, message)
+    issue_created = PackageConfigGetter.create_issue_if_needed(
+        project, title, message, comment_to_existing
+    )
     assert check(issue_created)

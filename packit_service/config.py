@@ -272,17 +272,26 @@ class ServiceConfig(Config):
 class PackageConfigGetter:
     @staticmethod
     def create_issue_if_needed(
-        project: GitProject, title: str, message: str
+        project: GitProject,
+        title: str,
+        message: str,
+        comment_to_existing: Optional[str] = None,
     ) -> Optional[Issue]:
         # TODO: Improve filtering
         issues = project.get_issue_list()
         title = f"[packit] {title}"
 
-        if any(title in issue.title for issue in issues):
-            return None
+        for issue in issues:
+            if title in issue.title:
+                if comment_to_existing:
+                    issue.comment(body=comment_to_existing)
+                    logger.debug(f"Issue #{issue.id} updated: {issue.url}")
+                return None
 
         # TODO: store in DB
-        return project.create_issue(title=title, body=message)
+        issue = project.create_issue(title=title, body=message)
+        logger.debug(f"Issue #{issue.id} created: {issue.url}")
+        return issue
 
     @staticmethod
     def get_package_config_from_repo(

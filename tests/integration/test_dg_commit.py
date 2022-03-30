@@ -7,6 +7,9 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 
+from ogr.services.github import GithubProject
+from packit.exceptions import PackitException
+
 from ogr.services.pagure import PagureProject
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
@@ -205,6 +208,188 @@ def test_downstream_koji_build():
     )
 
     assert first_dict_value(results["job"])["success"]
+
+
+def test_downstream_koji_build_failure_no_issue():
+
+    packit_yaml = (
+        "{'specfile_path': 'buildah.spec',"
+        "'jobs': [{'trigger': 'commit', 'job': 'koji_build'}],"
+        "'downstream_package_name': 'buildah'}"
+    )
+    pagure_project_mock = flexmock(
+        PagureProject,
+        full_repo_name="rpms/buildah",
+        get_web_url=lambda: "https://src.fedoraproject.org/rpms/buildah",
+        default_branch="main",
+    )
+    pagure_project_mock.should_receive("get_files").with_args(
+        ref="abcd", filter_regex=r".+\.spec$"
+    ).and_return(["buildah.spec"])
+    pagure_project_mock.should_receive("get_file_content").with_args(
+        path=".distro/source-git.yaml", ref="abcd"
+    ).and_raise(FileNotFoundError, "Not found.")
+    pagure_project_mock.should_receive("get_file_content").with_args(
+        path=".packit.yaml", ref="abcd"
+    ).and_return(packit_yaml)
+
+    flexmock(GitBranchModel).should_receive("get_or_create").with_args(
+        branch_name="main",
+        namespace="rpms",
+        repo_name="buildah",
+        project_url="https://src.fedoraproject.org/rpms/buildah",
+    ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
+
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(PackitAPI).should_receive("build").with_args(
+        dist_git_branch="main",
+        scratch=False,
+        nowait=True,
+        from_upstream=False,
+    ).and_raise(PackitException, "Some error")
+
+    pagure_project_mock.should_receive("get_issue_list").times(0)
+    pagure_project_mock.should_receive("create_issue").times(0)
+
+    processing_results = SteveJobs().process_message(distgit_commit_event())
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+    with pytest.raises(PackitException):
+        run_downstream_koji_build(
+            package_config=package_config,
+            event=event_dict,
+            job_config=job_config,
+        )
+
+
+def test_downstream_koji_build_failure_issue_created():
+
+    packit_yaml = (
+        "{'specfile_path': 'buildah.spec',"
+        "'jobs': [{'trigger': 'commit', 'job': 'koji_build'}],"
+        "'downstream_package_name': 'buildah',"
+        "'issue_repository': 'https://github.com/namespace/project'}"
+    )
+    pagure_project_mock = flexmock(
+        PagureProject,
+        full_repo_name="rpms/buildah",
+        get_web_url=lambda: "https://src.fedoraproject.org/rpms/buildah",
+        default_branch="main",
+    )
+    pagure_project_mock.should_receive("get_files").with_args(
+        ref="abcd", filter_regex=r".+\.spec$"
+    ).and_return(["buildah.spec"])
+    pagure_project_mock.should_receive("get_file_content").with_args(
+        path=".distro/source-git.yaml", ref="abcd"
+    ).and_raise(FileNotFoundError, "Not found.")
+    pagure_project_mock.should_receive("get_file_content").with_args(
+        path=".packit.yaml", ref="abcd"
+    ).and_return(packit_yaml)
+
+    flexmock(GitBranchModel).should_receive("get_or_create").with_args(
+        branch_name="main",
+        namespace="rpms",
+        repo_name="buildah",
+        project_url="https://src.fedoraproject.org/rpms/buildah",
+    ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
+
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(PackitAPI).should_receive("build").with_args(
+        dist_git_branch="main",
+        scratch=False,
+        nowait=True,
+        from_upstream=False,
+    ).and_raise(PackitException, "Some error")
+
+    issue_project_mock = flexmock(GithubProject)
+    issue_project_mock.should_receive("get_issue_list").and_return([]).once()
+    issue_project_mock.should_receive("create_issue").and_return(
+        flexmock(id=3, url="https://github.com/namespace/project/issues/3")
+    ).once()
+
+    processing_results = SteveJobs().process_message(distgit_commit_event())
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+    with pytest.raises(PackitException):
+        run_downstream_koji_build(
+            package_config=package_config,
+            event=event_dict,
+            job_config=job_config,
+        )
+
+
+def test_downstream_koji_build_failure_issue_comment():
+
+    packit_yaml = (
+        "{'specfile_path': 'buildah.spec',"
+        "'jobs': [{'trigger': 'commit', 'job': 'koji_build'}],"
+        "'downstream_package_name': 'buildah',"
+        "'issue_repository': 'https://github.com/namespace/project'}"
+    )
+    pagure_project_mock = flexmock(
+        PagureProject,
+        full_repo_name="rpms/buildah",
+        get_web_url=lambda: "https://src.fedoraproject.org/rpms/buildah",
+        default_branch="main",
+    )
+    pagure_project_mock.should_receive("get_files").with_args(
+        ref="abcd", filter_regex=r".+\.spec$"
+    ).and_return(["buildah.spec"])
+    pagure_project_mock.should_receive("get_file_content").with_args(
+        path=".distro/source-git.yaml", ref="abcd"
+    ).and_raise(FileNotFoundError, "Not found.")
+    pagure_project_mock.should_receive("get_file_content").with_args(
+        path=".packit.yaml", ref="abcd"
+    ).and_return(packit_yaml)
+
+    flexmock(GitBranchModel).should_receive("get_or_create").with_args(
+        branch_name="main",
+        namespace="rpms",
+        repo_name="buildah",
+        project_url="https://src.fedoraproject.org/rpms/buildah",
+    ).and_return(flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.commit))
+
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(PackitAPI).should_receive("build").with_args(
+        dist_git_branch="main",
+        scratch=False,
+        nowait=True,
+        from_upstream=False,
+    ).and_raise(PackitException, "Some error")
+
+    issue_project_mock = flexmock(GithubProject)
+    issue_project_mock.should_receive("get_issue_list").and_return(
+        [
+            flexmock(
+                id=3,
+                title="[packit] Fedora Koji build failed to be triggered",
+                url="https://github.com/namespace/project/issues/3",
+            )
+            .should_receive("comment")
+            .once()
+            .mock()
+        ]
+    ).once()
+    issue_project_mock.should_receive("create_issue").times(0)
+
+    processing_results = SteveJobs().process_message(distgit_commit_event())
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+    with pytest.raises(PackitException):
+        run_downstream_koji_build(
+            package_config=package_config,
+            event=event_dict,
+            job_config=job_config,
+        )
 
 
 def test_downstream_koji_build_no_config():
