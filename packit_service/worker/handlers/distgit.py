@@ -218,9 +218,11 @@ class ProposeDownstreamHandler(JobHandler):
             f"{msg_retrigger}\n"
         )
 
-        self.project.create_issue(
-            title=f"[packit] Propose downstream failed for release {self.data.tag_name}",
-            body=body_msg,
+        PackageConfigGetter.create_issue_if_needed(
+            project=self.project,
+            title=f"Propose downstream failed for release {self.data.tag_name}",
+            message=body_msg,
+            comment_to_existing=body_msg,
         )
 
     def _get_or_create_propose_downstream_run(self) -> ProposeDownstreamModel:

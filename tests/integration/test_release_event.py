@@ -240,8 +240,10 @@ def test_dist_git_push_release_handle_one_failed(
         )
         .should_receive("create_issue")
         .once()
+        .and_return(flexmock(id="1", url="an url"))
         .mock()
     )
+    project.should_receive("get_issue_list").and_return([])
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(LocalProject).should_receive("reset").with_args("HEAD").times(
         len(fedora_branches)
@@ -345,8 +347,10 @@ def test_dist_git_push_release_handle_all_failed(
             " into this issue.\n",
         )
         .once()
+        .and_return(flexmock(id="1", url="an url"))
         .mock()
     )
+    project.should_receive("get_issue_list").and_return([])
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
     lp.git_project = project
     lp.working_dir = ""
@@ -481,17 +485,24 @@ def test_dont_retry_propose_downstream_task(
         ", jobs: [{trigger: release, job: propose_downstream, metadata: {targets:[]}}]}"
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
-    project = flexmock(
-        get_file_content=lambda path, ref: packit_yaml,
-        full_repo_name="packit-service/hello-world",
-        repo="hello-world",
-        namespace="packit-service",
-        get_files=lambda ref, filter_regex: [],
-        get_sha_from_tag=lambda tag_name: "123456",
-        get_web_url=lambda: "https://github.com/packit/hello-world",
-        is_private=lambda: False,
-        default_branch="main",
+    project = (
+        flexmock(
+            get_file_content=lambda path, ref: packit_yaml,
+            full_repo_name="packit-service/hello-world",
+            repo="hello-world",
+            namespace="packit-service",
+            get_files=lambda ref, filter_regex: [],
+            get_sha_from_tag=lambda tag_name: "123456",
+            get_web_url=lambda: "https://github.com/packit/hello-world",
+            is_private=lambda: False,
+            default_branch="main",
+        )
+        .should_receive("create_issue")
+        .once()
+        .and_return(flexmock(id="1", url="an url"))
+        .mock()
     )
+    project.should_receive("get_issue_list").and_return([]).once()
 
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
     lp.git_project = project
@@ -530,7 +541,6 @@ def test_dont_retry_propose_downstream_task(
     flexmock(Context, retries=2)
     flexmock(shutil).should_receive("rmtree").with_args("")
     flexmock(Task).should_receive("retry").never()
-    flexmock(project).should_receive("create_issue").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
