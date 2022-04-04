@@ -168,16 +168,17 @@ class ProposeDownstreamHandler(JobHandler):
                 if retries < int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT)):
                     # will retry in: 1m and then again in another 2m
                     delay = 60 * 2**retries
-                    logger.info(f"Will retry for the {retries + 1}. time in {delay}s.")
+                    logger.info(
+                        f"Will retry for the {retries + 1}. time in {delay}s \
+                            with propose_downstream_run_id {model.id}."
+                    )
                     # throw=False so that exception is not raised and task
                     # is not retried also automatically
+                    kargs = self.task.request.kwargs.copy()
+                    kargs["propose_downstream_run_id"] = model.id
+                    # https://celeryproject.readthedocs.io/zh_CN/latest/userguide/tasks.html#retrying
                     self.task.retry(
-                        exc=ex,
-                        countdown=delay,
-                        throw=False,
-                        args=(),
-                        # https://stackoverflow.com/questions/68915407/celery-retry-with-updated-arguments
-                        kwargs={"propose_downstream_run_id": model.id},
+                        exc=ex, countdown=delay, throw=False, args=(), kwargs=kargs
                     )
                     raise AbortProposeDownstream()
             raise ex
