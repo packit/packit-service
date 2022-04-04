@@ -848,17 +848,19 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
         get_handlers_for_event(
             event=event,
             package_config=flexmock(jobs=jobs),
+            packit_comment_command_prefix="/packit",
         )
     )
     assert event_handlers == result
 
 
 @pytest.mark.parametrize(
-    "event_cls,comment, db_trigger,jobs,result",
+    "event_cls, comment, packit_comment_command_prefix, db_trigger, jobs, result",
     [
         pytest.param(
             PullRequestCommentGithubEvent,
             "",
+            "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -872,7 +874,23 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
         ),
         pytest.param(
             PullRequestCommentGithubEvent,
+            "",
+            "/packit-stg",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            set(),
+            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            "&empty_comment&stg",
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
             "/packit build",
+            "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -887,6 +905,7 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
         pytest.param(
             PullRequestCommentGithubEvent,
             "/packit build",
+            "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -901,6 +920,7 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
         pytest.param(
             PullRequestCommentGithubEvent,
             "/packit copr-build",
+            "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -915,6 +935,7 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
         pytest.param(
             PullRequestCommentGithubEvent,
             "/packit build",
+            "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -929,6 +950,7 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
         pytest.param(
             PullRequestCommentGithubEvent,
             "/packit test",
+            "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -943,6 +965,7 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
         pytest.param(
             PullRequestCommentGithubEvent,
             "/packit production-build",
+            "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -957,6 +980,7 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
         pytest.param(
             PullRequestCommentGithubEvent,
             "/packit build",
+            "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -972,6 +996,7 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
         pytest.param(
             PullRequestCommentGithubEvent,
             "/packit test",
+            "/packit",
             flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
             [
                 JobConfig(
@@ -984,9 +1009,41 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
             id="config=test_for_pr_skip_build&pull_request&PullRequestCommentGithubEvent"
             "&packit_test",
         ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            "/packit build",
+            "/packit-stg",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            set(),
+            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            "&packit_build&stg",
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            "/packit-stg build",
+            "/packit-stg",
+            flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            {CoprBuildHandler},
+            id="config=build_for_pr&pull_request&PullRequestCommentGithubEvent"
+            "&packit_stg_build&stg",
+        ),
     ],
 )
-def test_get_handlers_for_comment_event(event_cls, comment, db_trigger, jobs, result):
+def test_get_handlers_for_comment_event(
+    event_cls, comment, packit_comment_command_prefix, db_trigger, jobs, result
+):
     # We are using isinstance for matching event to handlers
     # and flexmock can't do this for us so we need a subclass to test it.
     # (And real event classes have a lot of __init__ arguments.)
@@ -999,7 +1056,7 @@ def test_get_handlers_for_comment_event(event_cls, comment, db_trigger, jobs, re
             return db_trigger
 
     event = Event()
-    if comment:
+    if result:
         comment_object = flexmock()
         event._comment_object = comment_object
         flexmock(comment_object).should_receive("add_reaction").with_args(
@@ -1010,6 +1067,7 @@ def test_get_handlers_for_comment_event(event_cls, comment, db_trigger, jobs, re
         get_handlers_for_event(
             event=event,
             package_config=flexmock(jobs=jobs),
+            packit_comment_command_prefix=packit_comment_command_prefix,
         )
     )
     assert event_handlers == result
@@ -1186,6 +1244,7 @@ def test_get_handlers_for_check_rerun_event(
         get_handlers_for_event(
             event=event,
             package_config=flexmock(jobs=jobs),
+            packit_comment_command_prefix="/packit",
         )
     )
     assert event_handlers == result

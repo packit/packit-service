@@ -170,7 +170,8 @@ class TestingFarmHandler(JobHandler):
 
     def is_copr_build_comment_event(self) -> bool:
         return self.is_comment_event() and get_packit_commands_from_comment(
-            self.data.event_dict.get("comment")
+            self.data.event_dict.get("comment"),
+            packit_comment_command_prefix=self.service_config.comment_command_prefix,
         )[0] in ("build", "copr-build")
 
     def run_copr_build_handler(self, event_data: dict, number_of_builds: int):
