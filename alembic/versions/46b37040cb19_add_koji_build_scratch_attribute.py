@@ -7,8 +7,7 @@ Create Date: 2022-03-21 09:34:53.526691
 """
 from alembic import op
 import sqlalchemy as sa
-from packit.exceptions import PackitException
-from packit_service.models import JobTriggerModel, KojiBuildTargetModel
+from packit_service.models import KojiBuildTargetModel
 
 
 # revision identifiers, used by Alembic.
@@ -28,20 +27,8 @@ def upgrade():
     )
     # ### end Alembic commands ###
 
-    job_triggers = session.query(JobTriggerModel).all()
-    for job in job_triggers:
-        trigger = job.get_trigger_object()
-        for run in job.runs:
-            if run.koji_build:
-                run.koji_build.scratch = (
-                    "src.fedoraproject.org" not in trigger.project.instance_url
-                )
-
     for koji_build in session.query(KojiBuildTargetModel).all():
-        if koji_build.scratch is None:
-            raise PackitException(
-                f"KojiBuildTargetModel scratch attribute is None: {koji_build}"
-            )
+        koji_build.scratch = True
 
     session.commit()
 
