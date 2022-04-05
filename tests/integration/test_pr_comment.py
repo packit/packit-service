@@ -498,21 +498,42 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     ),
 )
 def test_pr_comment_invalid(comment):
-    commands = get_packit_commands_from_comment(comment)
+    commands = get_packit_commands_from_comment(
+        comment, packit_comment_command_prefix="/packit"
+    )
     assert len(commands) == 0
 
 
 @pytest.mark.parametrize(
-    "comments_list",
+    "comment, command",
     (
-        "/packit build",
-        "/packit build ",
-        "/packit  build ",
-        " /packit build",
-        " /packit build ",
-        "asd\n/packit build\n",
-        "asd\n /packit build \n",
-        "Should be fixed now, let's\n /packit build\n it.",
+        ("", "/packit"),
+        ("", "/packit-stg"),
+        ("/packit build", "/packit-stg"),
+        ("/packit-something build", "/packit-stg"),
+        ("/packit-stgg build", "/packit-stg"),
+        ("/packit-stg build", "/packit"),
+    ),
+)
+def test_pr_comment_invalid_with_command_set(comment, command):
+    commands = get_packit_commands_from_comment(
+        comment, packit_comment_command_prefix=command
+    )
+    assert len(commands) == 0
+
+
+@pytest.mark.parametrize(
+    "comments_list, command",
+    (
+        ("/packit build", "/packit"),
+        ("/packit-stg build", "/packit-stg"),
+        ("/packit build ", "/packit"),
+        ("/packit  build ", "/packit"),
+        (" /packit build", "/packit"),
+        (" /packit build ", "/packit"),
+        ("asd\n/packit build\n", "/packit"),
+        ("asd\n /packit build \n", "/packit"),
+        ("Should be fixed now, let's\n /packit build\n it.", "/packit"),
     ),
 )
 @pytest.mark.parametrize(
@@ -531,7 +552,10 @@ def test_pr_comment_invalid(comment):
     indirect=True,
 )
 def test_pr_embedded_command_handler(
-    mock_pr_comment_functionality, pr_embedded_command_comment_event, comments_list
+    mock_pr_comment_functionality,
+    pr_embedded_command_comment_event,
+    comments_list,
+    command,
 ):
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=9,
@@ -541,6 +565,7 @@ def test_pr_embedded_command_handler(
     ).and_return(
         flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
     )
+    ServiceConfig.get_service_config().comment_command_prefix = command
     pr_embedded_command_comment_event["comment"]["body"] = comments_list
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})

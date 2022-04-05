@@ -22,7 +22,6 @@ from packit.constants import DATETIME_FORMAT
 from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
-from packit_service.constants import REQUESTED_PULL_REQUEST_COMMENT
 from packit_service.models import (
     AbstractTriggerDbType,
 )
@@ -190,7 +189,9 @@ def run_for_check_rerun(prefix: str):
     return _add_to_mapping
 
 
-def get_packit_commands_from_comment(comment: str) -> List[str]:
+def get_packit_commands_from_comment(
+    comment: str, packit_comment_command_prefix: str
+) -> List[str]:
     comment_parts = comment.strip()
 
     if not comment_parts:
@@ -203,7 +204,7 @@ def get_packit_commands_from_comment(comment: str) -> List[str]:
         (packit_mark, *packit_command) = line.split(maxsplit=3)
         # packit_command[0] has the first cmd and [1] has the second, if needed.
 
-        if packit_mark == REQUESTED_PULL_REQUEST_COMMENT and packit_command:
+        if packit_mark == packit_comment_command_prefix and packit_command:
             return packit_command
 
     return []

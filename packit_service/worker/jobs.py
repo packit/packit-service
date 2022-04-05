@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_handlers_for_event(
-    event: Event, package_config: PackageConfig
+    event: Event, package_config: PackageConfig, packit_comment_command_prefix: str
 ) -> Set[Type[JobHandler]]:
     """
     Get all handlers that we need to run for the given event.
@@ -83,7 +83,9 @@ def get_handlers_for_event(
     handlers_triggered_by_check_rerun = None
 
     if isinstance(event, AbstractCommentEvent):
-        handlers_triggered_by_comment = get_handlers_for_comment(event.comment)
+        handlers_triggered_by_comment = get_handlers_for_comment(
+            event.comment, packit_comment_command_prefix
+        )
 
         if handlers_triggered_by_comment and not isinstance(
             event, PullRequestCommentPagureEvent
@@ -128,8 +130,10 @@ def get_handlers_for_event(
     return matching_handlers
 
 
-def get_handlers_for_comment(comment: str) -> Set[Type[JobHandler]]:
-    commands = get_packit_commands_from_comment(comment)
+def get_handlers_for_comment(
+    comment: str, packit_comment_command_prefix: str
+) -> Set[Type[JobHandler]]:
+    commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix)
     if not commands:
         return set()
 
@@ -234,7 +238,8 @@ class SteveJobs:
         Create a Celery task for a job handler (if trigger matches) for every job defined in config.
         """
         if isinstance(event, AbstractCommentEvent) and get_packit_commands_from_comment(
-            event.comment
+            event.comment,
+            packit_comment_command_prefix=self.service_config.comment_command_prefix,
         ):
             # we require packit config file when event is triggered by /packit command
             event.fail_when_config_file_missing = True
@@ -251,7 +256,11 @@ class SteveJobs:
                 )
             ]
 
-        handler_classes = get_handlers_for_event(event, event.package_config)
+        handler_classes = get_handlers_for_event(
+            event,
+            event.package_config,
+            packit_comment_command_prefix=self.service_config.comment_command_prefix,
+        )
 
         if not handler_classes:
             logger.debug(

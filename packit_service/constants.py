@@ -82,8 +82,6 @@ MSG_MORE_DETAILS = "You can find more details about the job [here]({url}).\n\n"
 
 MSG_TABLE_HEADER_WITH_DETAILS = "| Name/Job | URL |\n" "| --- | --- |\n"
 
-REQUESTED_PULL_REQUEST_COMMENT = "/packit"
-
 # https://github.com/packit/sandcastle/blob/3bd64e0812e3981b5462601e049471854eec433a/files/install-rpm-packages.yaml#L6
 SRPM_BUILD_DEPS = [
     "python3-pip",
