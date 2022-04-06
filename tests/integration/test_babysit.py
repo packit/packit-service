@@ -8,7 +8,7 @@ import requests
 from copr.v3 import Client, CoprNoResultException
 from flexmock import flexmock
 
-import packit_service.worker.build.babysit
+import packit_service.worker.helpers.build.babysit
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit_service.models import (
     CoprBuildTargetModel,
@@ -17,7 +17,7 @@ from packit_service.models import (
     TestingFarmResult,
 )
 from packit_service.worker.events import AbstractCoprBuildEvent, TestingFarmResultsEvent
-from packit_service.worker.build.babysit import (
+from packit_service.worker.helpers.build.babysit import (
     check_copr_build,
     update_copr_builds,
     check_pending_copr_builds,
@@ -201,7 +201,7 @@ def test_check_pending_copr_builds_no_builds():
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_status").with_args(
         "pending"
     ).and_return([])
-    flexmock(packit_service.worker.build.babysit).should_receive(
+    flexmock(packit_service.worker.helpers.build.babysit).should_receive(
         "update_copr_builds"
     ).never()
     check_pending_copr_builds()
@@ -214,10 +214,10 @@ def test_check_pending_copr_builds():
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_status").with_args(
         "pending"
     ).and_return([build1, build2, build3])
-    flexmock(packit_service.worker.build.babysit).should_receive(
+    flexmock(packit_service.worker.helpers.build.babysit).should_receive(
         "update_copr_builds"
     ).with_args(1, [build1, build3]).once()
-    flexmock(packit_service.worker.build.babysit).should_receive(
+    flexmock(packit_service.worker.helpers.build.babysit).should_receive(
         "update_copr_builds"
     ).with_args(2, [build2]).once()
     check_pending_copr_builds()

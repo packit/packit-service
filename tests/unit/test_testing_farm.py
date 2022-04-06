@@ -21,12 +21,12 @@ from packit_service.worker.events import (
 from packit_service.models import JobTriggerModel, JobTriggerModelType
 from packit_service.models import TestingFarmResult as TFResult
 
-from packit_service.worker.build import copr_build as cb
+from packit_service.worker.helpers.build import copr_build as cb
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.handlers import TestingFarmHandler
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.result import TaskResults
-from packit_service.worker.testing_farm import (
+from packit_service.worker.helpers.testing_farm import (
     TestingFarmJobHelper as TFJobHelper,
 )
 from packit_service.constants import PG_BUILD_STATUS_SUCCESS

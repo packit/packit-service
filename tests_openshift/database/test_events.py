@@ -29,7 +29,7 @@ from packit_service.worker.events import (
     AbstractForgeIndependentEvent,
 )
 from packit_service.worker.parser import Parser
-from packit_service.worker.testing_farm import TestingFarmJobHelper
+from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from tests_openshift.conftest import SampleValues
 
 

@@ -17,7 +17,7 @@ from packit_service.models import (
     PullRequestModel,
 )
 from packit_service.worker.events import AbstractCoprBuildEvent
-from packit_service.worker.build.babysit import check_copr_build
+from packit_service.worker.helpers.build.babysit import check_copr_build
 
 BUILD_ID = 1300329
 
@@ -186,7 +186,7 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
     flexmock(GithubProject).should_receive("get_git_urls").and_return(
         {"git": "https://github.com/packit-service/packit.git"}
     )
-    flexmock(packit_service.worker.build.copr_build).should_receive(
+    flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
         "get_valid_build_targets"
     ).and_return(
         {

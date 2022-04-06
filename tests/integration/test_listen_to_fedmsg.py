@@ -34,7 +34,7 @@ from packit_service.service.urls import (
     get_koji_build_info_url,
     get_srpm_build_info_url,
 )
-from packit_service.worker.build.copr_build import CoprBuildJobHelper
+from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.events import AbstractCoprBuildEvent, KojiTaskEvent
 from packit_service.worker.handlers import CoprBuildEndHandler, TestingFarmHandler
 from packit_service.worker.jobs import SteveJobs
@@ -46,7 +46,7 @@ from packit_service.worker.tasks import (
     run_koji_build_report_handler,
     run_testing_farm_handler,
 )
-from packit_service.worker.testing_farm import TestingFarmJobHelper
+from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from tests.conftest import copr_build_model
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
@@ -59,7 +59,7 @@ pytestmark = pytest.mark.usefixtures("mock_get_valid_build_targets")
 
 @pytest.fixture
 def mock_get_valid_build_targets():
-    flexmock(packit_service.worker.build.copr_build).should_receive(
+    flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
         "get_valid_build_targets"
     ).and_return(
         {

@@ -44,7 +44,7 @@ from packit_service.worker.events import (
 )
 from packit_service.service.urls import get_copr_build_info_url, get_srpm_build_info_url
 from packit_service.utils import dump_job_config, dump_package_config
-from packit_service.worker.build import CoprBuildJobHelper
+from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,

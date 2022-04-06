@@ -10,9 +10,9 @@ from packit.config.aliases import get_build_targets
 from packit.config.job_config import JobMetadataConfig
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
-from packit_service.worker.build import copr_build
-from packit_service.worker.build.copr_build import CoprBuildJobHelper
-from packit_service.worker.build.koji_build import KojiBuildJobHelper
+from packit_service.worker.helpers.build import copr_build
+from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
+from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 
 # packit.config.aliases.get_aliases() return value example
 ALIASES = {

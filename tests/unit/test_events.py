@@ -60,7 +60,7 @@ from packit_service.worker.events.enums import (
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.events.pagure import PullRequestFlagPagureEvent
 from packit_service.worker.parser import Parser, CentosEventParser
-from packit_service.worker.testing_farm import TestingFarmJobHelper
+from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from tests.conftest import copr_build_model
 from tests.spellbook import DATA_DIR
 

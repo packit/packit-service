@@ -25,7 +25,7 @@ from packit_service.models import AbstractTriggerDbType, KojiBuildTargetModel
 from packit_service.service.urls import (
     get_koji_build_info_url,
 )
-from packit_service.worker.build.koji_build import KojiBuildJobHelper
+from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.events import (
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,

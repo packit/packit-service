@@ -16,7 +16,7 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import TASK_ACCEPTED, COMMENT_REACTION
 from packit_service.log_versions import log_job_versions
 from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.build import CoprBuildJobHelper, KojiBuildJobHelper
+from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper
 from packit_service.worker.events import (
     Event,
     EventData,

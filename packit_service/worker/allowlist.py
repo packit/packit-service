@@ -33,7 +33,7 @@ from packit_service.worker.events import (
     TestingFarmResultsEvent,
     CheckRerunEvent,
 )
-from packit_service.worker.build import CoprBuildJobHelper
+from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.reporting import BaseCommitStatus
 

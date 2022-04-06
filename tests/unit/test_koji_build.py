@@ -37,8 +37,8 @@ from packit_service.service.urls import (
     get_koji_build_info_url,
     get_srpm_build_info_url,
 )
-from packit_service.worker.build import koji_build
-from packit_service.worker.build.koji_build import KojiBuildJobHelper
+from packit_service.worker.helpers.build import koji_build
+from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 
 

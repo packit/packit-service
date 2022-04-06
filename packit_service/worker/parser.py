@@ -61,7 +61,7 @@ from packit_service.worker.events.enums import (
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.events.pagure import PullRequestFlagPagureEvent
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
-from packit_service.worker.testing_farm import TestingFarmJobHelper
+from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 
 logger = logging.getLogger(__name__)
 
