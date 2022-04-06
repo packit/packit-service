@@ -19,6 +19,7 @@ from packit.config import JobConfigTriggerType
 from packit.distgit import DistGit
 from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
+from packit_service.constants import TASK_ACCEPTED
 from packit_service.models import (
     JobTriggerModelType,
     PipelineModel,
@@ -29,9 +30,12 @@ from packit_service.models import (
     ProposeDownstreamTargetStatus,
 )
 from packit_service.service.db_triggers import AddReleaseDbTrigger
+from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.tasks import run_propose_downstream_handler
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
@@ -96,6 +100,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     trigger = flexmock(
         job_trigger_model_type=JobTriggerModelType.release,
         id=12,
+        job_config_trigger_type=JobConfigTriggerType.release,
     )
     flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
         tag_name="1.2.3",
@@ -110,10 +115,13 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         trigger_model=trigger,
     ).and_return(propose_downstream_model, run_model).times(1 if success else 0)
 
-    model = flexmock(status="queued")
+    model = flexmock(status="queued", id=1234)
     flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
         status=ProposeDownstreamTargetStatus.queued
     ).and_return(model).times(1 if success else 0)
+    flexmock(model).should_receive("set_downstream_pr_url").with_args(
+        downstream_pr_url="some_url"
+    ).times(1 if success else 0)
     flexmock(model).should_receive("set_status").with_args(
         status=ProposeDownstreamTargetStatus.running
     ).times(1 if success else 0)
@@ -123,21 +131,61 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     flexmock(model).should_receive("set_start_time").times(1 if success else 0)
     flexmock(model).should_receive("set_finished_time").times(1 if success else 0)
     flexmock(model).should_receive("set_logs").times(1 if success else 0)
+    flexmock(model).should_receive("set_status").with_args(
+        status=ProposeDownstreamTargetStatus.submitted
+    ).times(1 if success else 0)
     flexmock(propose_downstream_model).should_receive("set_status").with_args(
         status=ProposeDownstreamStatus.finished
     ).times(1 if success else 0)
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main", tag="1.2.3"
-    ).times(1 if success else 0)
+    ).and_return(flexmock(url="some_url")).times(1 if success else 0)
     flexmock(shutil).should_receive("rmtree").with_args("")
 
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
-        flexmock(job_config_trigger_type=JobConfigTriggerType.release, id=1)
+        flexmock(
+            job_config_trigger_type=JobConfigTriggerType.release,
+            id=1,
+            job_trigger_model_type=JobConfigTriggerType.release,
+        )
     )
     flexmock(Allowlist, check_and_report=True)
     flexmock(Signature).should_receive("apply_async").times(1 if success else 0)
-    flexmock(Pushgateway).should_receive("push").times(1 if success else 0)
+
+    flexmock(ProposeDownstreamJobHelper).should_receive(
+        "report_status_to_all"
+    ).with_args(
+        description=TASK_ACCEPTED,
+        state=BaseCommitStatus.pending,
+        url="",
+    ).times(
+        1 if success else 0
+    )
+    flexmock(Pushgateway).should_receive("push").times(2 if success else 0)
+
+    url = get_propose_downstream_info_url(model.id)
+
+    flexmock(ProposeDownstreamJobHelper).should_receive(
+        "report_status_to_branch"
+    ).with_args(
+        branch="main",
+        description="Starting propose downstream...",
+        state=BaseCommitStatus.running,
+        url=url,
+    ).times(
+        1 if success else 0
+    )
+    flexmock(ProposeDownstreamJobHelper).should_receive(
+        "report_status_to_branch"
+    ).with_args(
+        branch="main",
+        description="Propose downstream finished successfully.",
+        state=BaseCommitStatus.success,
+        url=url,
+    ).times(
+        1 if success else 0
+    )
 
     processing_results = SteveJobs().process_message(event)
     if not success:

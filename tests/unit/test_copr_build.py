@@ -47,7 +47,6 @@ from packit_service.worker.helpers.build import copr_build
 from packit_service.worker.helpers.build.copr_build import (
     CoprBuildJobHelper,
     BaseBuildJobHelper,
-    CoprBuildJobHelper,
 )
 from packit_service.worker.events import (
     MergeRequestGitlabEvent,

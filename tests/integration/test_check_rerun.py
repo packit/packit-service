@@ -7,8 +7,8 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
-
 from ogr.services.github import GithubProject
+
 from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
 from packit_service.constants import PG_BUILD_STATUS_SUCCESS, TASK_ACCEPTED
@@ -23,11 +23,14 @@ from packit_service.service.db_triggers import (
     AddPullRequestDbTrigger,
     AddReleaseDbTrigger,
 )
-from packit_service.worker.build import (
+from packit_service.worker.handlers import ProposeDownstreamHandler
+from packit_service.worker.helpers.build import (
     CoprBuildJobHelper,
     KojiBuildJobHelper,
     copr_build,
 )
+from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
+from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus
@@ -38,7 +41,6 @@ from packit_service.worker.tasks import (
     run_koji_build_handler,
     run_testing_farm_handler,
 )
-from packit_service.worker.testing_farm import TestingFarmJobHelper
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
@@ -64,6 +66,15 @@ def check_rerun_event_koji_build():
         (DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json").read_text()
     )
     event["check_run"]["name"] = "production-build:f34"
+    return event
+
+
+@pytest.fixture(scope="module")
+def check_rerun_event_propose_downstream():
+    event = json.loads(
+        (DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json").read_text()
+    )
+    event["check_run"]["name"] = "propose-downstream:f34"
     return event
 
 
@@ -634,3 +645,52 @@ def test_check_rerun_release_koji_build_handler(
         job_config=job_config,
     )
     assert first_dict_value(results["job"])["success"]
+
+
+@pytest.mark.parametrize(
+    "mock_release_functionality",
+    (
+        [
+            [
+                {
+                    "trigger": "release",
+                    "job": "propose_downstream",
+                    "metadata": {"targets": "fedora-all"},
+                }
+            ]
+        ]
+    ),
+    indirect=True,
+)
+def test_check_rerun_release_propose_downstream_handler(
+    mock_release_functionality, check_rerun_event_propose_downstream
+):
+    flexmock(ProposeDownstreamHandler).should_receive("run").and_return(
+        TaskResults(success=True, details={})
+    )
+    flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
+    flexmock(GithubProject).should_receive("get_web_url").and_return(
+        "https://github.com/the-namespace/the-repo"
+    )
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+        {"fedora-rawhide-x86_64", "fedora-34-x86_64"}
+    )
+    flexmock(ProposeDownstreamJobHelper).should_receive(
+        "report_status_to_all"
+    ).with_args(
+        description=TASK_ACCEPTED,
+        state=BaseCommitStatus.pending,
+        url="",
+    ).once()
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
+
+    processing_results = SteveJobs().process_message(
+        check_rerun_event_propose_downstream
+    )
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert event_dict["branches_override"] == ["f34"]
+    assert json.dumps(event_dict)
