@@ -214,7 +214,7 @@ def test_copr_build_check_names(github_pr_event):
 
     # copr build
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").with_args(
-        project="the-example-namespace-the-example-repo-342-stg",
+        project="the-example-namespace-the-example-repo-342",
         chroots=["bright-future-x86_64"],
         owner="packit",
         description=None,
@@ -480,7 +480,7 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
 
     # copr build
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").with_args(
-        project="the-example-namespace-the-example-repo-342-stg",
+        project="the-example-namespace-the-example-repo-342",
         chroots=["fedora-32-x86_64"],
         owner="nobody",
         description=None,
@@ -582,7 +582,7 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
 
     # copr build
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").with_args(
-        project="the-example-namespace-the-example-repo-342-stg",
+        project="the-example-namespace-the-example-repo-342",
         chroots=["bright-future-x86_64"],
         owner="nobody",
         description=None,
@@ -1160,7 +1160,7 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
         .should_receive("comment")
         .with_args(
             body="Based on your Packit configuration the settings of the "
-            "nobody/the-example-namespace-the-example-repo-342-stg "
+            "nobody/the-example-namespace-the-example-repo-342 "
             "Copr project would need to be updated as follows:\n"
             "\n"
             "| field | old value | new value |\n"
@@ -1176,17 +1176,17 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
             "\n"
             "Packit was unable to update the settings above "
             "as it is missing `admin` permissions on the "
-            "nobody/the-example-namespace-the-example-repo-342-stg Copr project.\n"
+            "nobody/the-example-namespace-the-example-repo-342 Copr project.\n"
             "\n"
             "To fix this you can do one of the following:\n"
             "\n"
             "- Grant Packit `admin` permissions on the "
-            "nobody/the-example-namespace-the-example-repo-342-stg "
+            "nobody/the-example-namespace-the-example-repo-342 "
             "Copr project on the [permissions page](https://copr.fedorainfracloud.org/coprs/nobody/"
-            "the-example-namespace-the-example-repo-342-stg/permissions/).\n"
+            "the-example-namespace-the-example-repo-342/permissions/).\n"
             "- Change the above Copr project settings manually on the "
             "[settings page](https://copr.fedorainfracloud.org/"
-            "coprs/nobody/the-example-namespace-the-example-repo-342-stg/edit/) "
+            "coprs/nobody/the-example-namespace-the-example-repo-342/edit/) "
             "to match the Packit configuration.\n"
             "- Update the Packit configuration to match the Copr project settings.\n"
             "\n"
@@ -1200,19 +1200,19 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
     # copr build
     flexmock(CoprHelper).should_receive("get_copr_settings_url").with_args(
         "nobody",
-        "the-example-namespace-the-example-repo-342-stg",
+        "the-example-namespace-the-example-repo-342",
         section="permissions",
     ).and_return(
         "https://copr.fedorainfracloud.org/"
-        "coprs/nobody/the-example-namespace-the-example-repo-342-stg/permissions/"
+        "coprs/nobody/the-example-namespace-the-example-repo-342/permissions/"
     ).once()
 
     flexmock(CoprHelper).should_receive("get_copr_settings_url").with_args(
         "nobody",
-        "the-example-namespace-the-example-repo-342-stg",
+        "the-example-namespace-the-example-repo-342",
     ).and_return(
         "https://copr.fedorainfracloud.org/"
-        "coprs/nobody/the-example-namespace-the-example-repo-342-stg/edit/"
+        "coprs/nobody/the-example-namespace-the-example-repo-342/edit/"
     ).once()
 
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_raise(
@@ -1255,7 +1255,7 @@ def test_copr_build_fails_chroot_update(github_pr_event):
         flexmock()
         .should_receive("comment")
         .with_args(
-            body="Settings of a Copr project packit/the-example-namespace-the-example-repo-342-stg"
+            body="Settings of a Copr project packit/the-example-namespace-the-example-repo-342"
             " need to be updated, but Packit can't do that when there are previous "
             "builds still in progress.\n"
             "You should be able to resolve the problem by recreating this pull request "
@@ -1437,7 +1437,7 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
 
     # copr build
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").with_args(
-        project="git.instance.io-the-example-namespace-the-example-repo-1-stg",
+        project="git.instance.io-the-example-namespace-the-example-repo-1",
         chroots=["bright-future-x86_64"],
         owner="nobody",
         description=None,
@@ -2032,7 +2032,7 @@ def test_copr_build_targets_override(github_pr_event):
             .should_receive("create_from_file")
             .with_args(
                 ownername="nobody",
-                projectname="the-example-namespace-the-example-repo-342-stg",
+                projectname="the-example-namespace-the-example-repo-342",
                 path=Path("my.srpm"),
                 buildopts={
                     "chroots": ["bright-future-x86_64"],
@@ -2042,7 +2042,7 @@ def test_copr_build_targets_override(github_pr_event):
             .and_return(
                 flexmock(
                     id=2,
-                    projectname="the-example-namespace-the-example-repo-342-stg",
+                    projectname="the-example-namespace-the-example-repo-342",
                     ownername="nobody",
                 )
             )

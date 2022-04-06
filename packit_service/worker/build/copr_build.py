@@ -92,7 +92,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         * use hostname prefix for non-github service
         * replace slash in namespace with dash
-        * add `-stg` suffix for the stg app
         """
 
         service_hostname = parse_git_repo(self.project.service.instance_url).hostname
@@ -101,7 +100,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         )
 
         namespace = self.project.namespace.replace("/", "-")
-        stg = "-stg" if self.service_config.deployment == Deployment.stg else ""
         # We want to share project between all releases.
         # More details: https://github.com/packit/packit-service/issues/1044
         ref_identifier = (
@@ -113,7 +111,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         return (
             f"{service_prefix}{namespace}-{self.project.repo}-{ref_identifier}"
-            f"{stg}{configured_identifier}"
+            f"{configured_identifier}"
         )
 
     @property
