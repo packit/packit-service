@@ -36,11 +36,14 @@ from packit_service.models import (
     ProposeDownstreamModel,
     ProposeDownstreamStatus,
 )
+from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.utils import gather_packit_logs_to_buffer, collect_packit_logs
+from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
 from packit_service.worker.events import (
     PushPagureEvent,
     ReleaseEvent,
     AbstractIssueCommentEvent,
+    CheckRerunReleaseEvent,
 )
 from packit_service.worker.handlers.abstract import (
     JobHandler,
@@ -48,7 +51,9 @@ from packit_service.worker.handlers.abstract import (
     configured_as,
     reacts_to,
     run_for_comment,
+    run_for_check_rerun,
 )
+from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -127,8 +132,10 @@ class AbortProposeDownstream(Exception):
 @configured_as(job_type=JobType.propose_downstream)
 @run_for_comment(command="propose-downstream")
 @run_for_comment(command="propose-update")  # deprecated
+@run_for_check_rerun(prefix="propose-downstream")
 @reacts_to(event=ReleaseEvent)
 @reacts_to(event=AbstractIssueCommentEvent)
+@reacts_to(event=CheckRerunReleaseEvent)
 class ProposeDownstreamHandler(JobHandler):
     topic = "org.fedoraproject.prod.git.receive"
     task_name = TaskName.propose_downstream
@@ -147,8 +154,22 @@ class ProposeDownstreamHandler(JobHandler):
             event=event,
         )
         self.task = task
-
         self._propose_downstream_run_id = propose_downstream_run_id
+        self._propose_downstream_helper: Optional[ProposeDownstreamJobHelper] = None
+
+    @property
+    def propose_downstream_helper(self) -> ProposeDownstreamJobHelper:
+        if not self._propose_downstream_helper:
+            self._propose_downstream_helper = ProposeDownstreamJobHelper(
+                service_config=self.service_config,
+                package_config=self.package_config,
+                project=self.project,
+                metadata=self.data,
+                db_trigger=self.data.db_trigger,
+                job_config=self.job_config,
+                branches_override=self.data.branches_override,
+            )
+        return self._propose_downstream_helper
 
     def sync_branch(
         self, branch: str, model: ProposeDownstreamModel
@@ -242,7 +263,7 @@ class ProposeDownstreamHandler(JobHandler):
         """
         Sync the upstream release to dist-git as a pull request.
         """
-
+        # TODO use local project and api from BaseJobHelper when LocalProject refactored
         self.local_project = LocalProject(
             git_project=self.project,
             working_dir=self.service_config.command_handler_work_dir,
@@ -262,16 +283,11 @@ class ProposeDownstreamHandler(JobHandler):
         )
 
         errors = {}
-        default_dg_branch = self.api.dg.local_project.git_project.default_branch
         propose_downstream_model = self._get_or_create_propose_downstream_run()
 
         try:
-            branches = list(
-                get_branches(
-                    *self.job_config.metadata.dist_git_branches,
-                    default=default_dg_branch,
-                )
-            )
+            branches = list(self.propose_downstream_helper.branches)
+            logger.debug(f"Branches to run propose downstream: {branches}")
             self._create_new_propose_for_each_branch(propose_downstream_model, branches)
 
             for branch, model in zip(
@@ -284,22 +300,47 @@ class ProposeDownstreamHandler(JobHandler):
                     ProposeDownstreamTargetStatus.queued,
                 ]:
                     continue
-
+                logger.debug(f"Running propose downstream for {branch}")
                 model.set_status(status=ProposeDownstreamTargetStatus.running)
+                url = get_propose_downstream_info_url(model.id)
                 buffer, handler = gather_packit_logs_to_buffer(
                     logging_level=logging.DEBUG
                 )
 
                 try:
                     model.set_start_time(start_time=datetime.utcnow())
+                    self.propose_downstream_helper.report_status_to_branch(
+                        branch=branch,
+                        description="Starting propose downstream...",
+                        state=BaseCommitStatus.running,
+                        url=url,
+                    )
                     downstream_pr = self.sync_branch(
                         branch=branch, model=propose_downstream_model
                     )
                     if downstream_pr is not None:
+                        logger.debug("Downstream PR created successfully.")
                         model.set_downstream_pr_url(downstream_pr_url=downstream_pr.url)
                         model.set_status(status=ProposeDownstreamTargetStatus.submitted)
+                        self.propose_downstream_helper.report_status_to_branch(
+                            branch=branch,
+                            description="Propose downstream finished successfully.",
+                            state=BaseCommitStatus.success,
+                            url=url,
+                        )
                 except AbortProposeDownstream:
+                    logger.debug(
+                        "Propose downstream is being retried because "
+                        "we were not able yet to download the archive. "
+                    )
                     model.set_status(staus=ProposeDownstreamTargetStatus.retry)
+                    self.propose_downstream_helper.report_status_to_branch(
+                        branch=branch,
+                        description="Propose downstream is being retried because "
+                        "we were not able yet to download the archive. ",
+                        state=BaseCommitStatus.pending,
+                        url=url,
+                    )
                     return TaskResults(
                         success=True,  # do not create a Sentry issue
                         details={
@@ -307,8 +348,15 @@ class ProposeDownstreamHandler(JobHandler):
                         },
                     )
                 except Exception as ex:
+                    logger.debug(f"Propose downstream failed: {ex}")
                     # eat the exception and continue with the execution
                     model.set_status(status=ProposeDownstreamTargetStatus.error)
+                    self.propose_downstream_helper.report_status_to_branch(
+                        branch=branch,
+                        description=f"Propose downstream failed: {ex}",
+                        state=BaseCommitStatus.failure,
+                        url=url,
+                    )
                     errors[branch] = str(ex)
                     sentry_integration.send_to_sentry(ex)
                 finally:

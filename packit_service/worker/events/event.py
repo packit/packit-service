@@ -73,6 +73,7 @@ class EventData:
         task_accepted_time: Optional[datetime],
         build_targets_override: Optional[List[str]],
         tests_targets_override: Optional[List[str]],
+        branches_override: Optional[List[str]],
     ):
         self.event_type = event_type
         self.actor = actor
@@ -92,6 +93,7 @@ class EventData:
         self.tests_targets_override = (
             set(tests_targets_override) if tests_targets_override else None
         )
+        self.branches_override = set(branches_override) if branches_override else None
 
         # lazy attributes
         self._project = None
@@ -118,6 +120,7 @@ class EventData:
         )
         build_targets_override = event.get("build_targets_override")
         tests_targets_override = event.get("tests_targets_override")
+        branches_override = event.get("branches_override")
 
         return EventData(
             event_type=event_type,
@@ -134,6 +137,7 @@ class EventData:
             task_accepted_time=task_accepted_time,
             build_targets_override=build_targets_override,
             tests_targets_override=tests_targets_override,
+            branches_override=branches_override,
         )
 
     @property
@@ -213,6 +217,8 @@ class EventData:
             d["build_targets_override"] = list(self.build_targets_override)
         if self.tests_targets_override:
             d["tests_targets_override"] = list(self.tests_targets_override)
+        if self.branches_override:
+            d["branches_override"] = list(self.branches_override)
         d.pop("_project", None)
         d.pop("_db_trigger", None)
         return d
@@ -281,6 +287,8 @@ class Event:
             d["build_targets_override"] = list(self.build_targets_override)
         if self.tests_targets_override:
             d["tests_targets_override"] = list(self.tests_targets_override)
+        if self.branches_override:
+            d["branches_override"] = list(self.branches_override)
         return d
 
     def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
@@ -338,6 +346,14 @@ class Event:
     def tests_targets_override(self) -> Optional[Set[str]]:
         """
         Return the targets to use for testing of the all targets from config
+        for the relevant events (e.g.rerunning of a single check).
+        """
+        return None
+
+    @property
+    def branches_override(self) -> Optional[Set[str]]:
+        """
+        Return the branches to use for propose-downstream of the all branches from config
         for the relevant events (e.g.rerunning of a single check).
         """
         return None

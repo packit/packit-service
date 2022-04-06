@@ -48,12 +48,27 @@ class ProposeDownstreamJobHelper(BaseJobHelper):
 
     @classmethod
     def get_check_cls(cls, branch: str = None, identifier: Optional[str] = None) -> str:
-        chroot_str = f":{branch}" if branch else ""
+        """
+        Get name of the commit status for propose-downstream job for the given branch
+        and identifier.
+        """
+        branch_str = f":{branch}" if branch else ""
         optional_suffix = f":{identifier}" if identifier else ""
-        return f"{cls.status_name}{chroot_str}{optional_suffix}"
+        return f"{cls.status_name}{branch_str}{optional_suffix}"
 
     def get_check(self, branch: str = None) -> str:
         return self.get_check_cls(branch, identifier=self.job_config.identifier)
+
+    @property
+    def check_names(self) -> List[str]:
+        """
+        List of full names of the commit statuses for propose-downstream job.
+
+        e.g. ["propose-downstream:f34", "propose-downstream:f35"]
+        """
+        if not self._check_names:
+            self._check_names = [self.get_check(branch) for branch in self.branches]
+        return self._check_names
 
     def report_status_to_all(
         self,
@@ -90,13 +105,10 @@ class ProposeDownstreamJobHelper(BaseJobHelper):
             )
 
     @property
-    def check_names(self):
-        if not self._check_names:
-            self._check_names = [self.get_check(branch) for branch in self.branches]
-        return self._check_names
-
-    @property
-    def default_dg_branch(self):
+    def default_dg_branch(self) -> str:
+        """
+        Get the default branch of the distgit project.
+        """
         if not self._default_distgit_branch:
             self._default_distgit_branch = (
                 self.api.dg.local_project.git_project.default_branch
@@ -123,8 +135,6 @@ class ProposeDownstreamJobHelper(BaseJobHelper):
         Check if there is JobConfig for propose downstream defined
         :return: JobConfig or None
         """
-        if not self.job_type:
-            return None
         if not self._job:
             for job in [self.job_config] + self.package_config.jobs:
                 if are_job_types_same(job.type, self.job_type) and (

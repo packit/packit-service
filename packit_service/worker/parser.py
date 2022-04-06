@@ -671,6 +671,7 @@ class Parser:
         if ":" in check_name:
             # e.g. "rpm-build:fedora-34-x86_64"
             #   or "rpm-build:fedora-34-x86_64:identifier"
+            #   or "propose-downstream:f35
             check_name_parts = check_name.split(":", maxsplit=2)
             if len(check_name_parts) == 2:
                 check_name_job, check_name_target = check_name_parts
