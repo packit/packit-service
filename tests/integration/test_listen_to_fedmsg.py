@@ -211,7 +211,7 @@ def test_copr_build_end(
         pc_build_pr
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(config={"username": "packit"})
+        Client(config={"username": "packit", "copr_url": "https://dummy.url"})
     )
     flexmock(CoprBuildEndHandler).should_receive(
         "was_last_packit_comment_with_congratulation"
@@ -285,7 +285,7 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
         pc_build_push
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(config={"username": "packit"})
+        Client(config={"username": "packit", "copr_url": "https://dummy.url"})
     )
     flexmock(CoprBuildEndHandler).should_receive(
         "was_last_packit_comment_with_congratulation"
@@ -346,7 +346,7 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
         pc_build_release
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(config={"username": "packit"})
+        Client(config={"username": "packit", "copr_url": "https://dummy.url"})
     )
     flexmock(CoprBuildEndHandler).should_receive(
         "was_last_packit_comment_with_congratulation"
@@ -439,7 +439,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         config
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(config={"username": "packit"})
+        Client(config={"username": "packit", "copr_url": "https://dummy.url"})
     )
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
@@ -645,7 +645,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         config
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(config={"username": "packit"})
+        Client(config={"username": "packit", "copr_url": "https://dummy.url"})
     )
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
@@ -784,7 +784,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         config
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(config={"username": "packit"})
+        Client(config={"username": "packit", "copr_url": "https://dummy.url"})
     )
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
@@ -891,7 +891,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
         pc_build_pr
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(config={"username": "packit"})
+        Client(config={"username": "packit", "copr_url": "https://dummy.url"})
     )
     flexmock(CoprBuildJobHelper).should_receive("get_build_check").and_return(
         EXPECTED_BUILD_CHECK_NAME
@@ -942,7 +942,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
         pc_tests
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(config={"username": "packit"})
+        Client(config={"username": "packit", "copr_url": "https://dummy.url"})
     )
     flexmock(TestingFarmJobHelper).should_receive("get_build_check").and_return(
         EXPECTED_BUILD_CHECK_NAME
@@ -1002,7 +1002,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
         pc_build_pr
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(config={"username": "packit"})
+        Client(config={"username": "packit", "copr_url": "https://dummy.url"})
     )
     flexmock(CoprBuildJobHelper).should_receive("get_build_check").and_return(
         EXPECTED_BUILD_CHECK_NAME
@@ -1168,7 +1168,7 @@ def test_srpm_build_end(srpm_build_end, pc_build_pr, srpm_build_model):
         pc_build_pr
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(config={"username": "packit"})
+        Client(config={"username": "packit", "copr_url": "https://dummy.url"})
     )
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").and_return(
         [
@@ -1233,7 +1233,7 @@ def test_srpm_build_end_failure(srpm_build_end, pc_build_pr, srpm_build_model):
         pc_build_pr
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(config={"username": "packit"})
+        Client(config={"username": "packit", "copr_url": "https://dummy.url"})
     )
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").and_return(
         [flexmock(target="fedora-33-x86_64")]
@@ -1293,7 +1293,7 @@ def test_srpm_build_start(srpm_build_start, pc_build_pr, srpm_build_model):
         pc_build_pr
     )
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
-        Client(config={"username": "packit"})
+        Client(config={"username": "packit", "copr_url": "https://dummy.url"})
     )
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").and_return(
         [flexmock(target="fedora-33-x86_64")]
