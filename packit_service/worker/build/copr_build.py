@@ -644,7 +644,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
 
         try:
-            overwrite_booleans = owner == "packit"
+            overwrite_booleans = owner == self.service_config.fas_user
             self.api.copr_helper.create_copr_project_if_not_exists(
                 project=self.job_project,
                 chroots=list(self.build_targets_all),
@@ -670,7 +670,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 old_chroots, new_chroots = ex.fields_to_change["chroots"]
                 chroots_diff = self._visualize_chroots_diff(old_chroots, new_chroots)
 
-            if owner == "packit":
+            if owner == self.service_config.fas_user:
                 # the problem is on our side and user cannot fix it
                 self._report_copr_chroot_change_problem(owner, chroots_diff, table)
                 raise ex
