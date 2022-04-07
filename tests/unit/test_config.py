@@ -162,7 +162,7 @@ def test_config_opts(sc):
 
 
 @pytest.mark.parametrize(
-    "content,project,mock_spec_search,spec_path_option,spec_path,reference",
+    "content,project,spec_path_option,spec_path,reference",
     [
         (
             "---\nspecfile_path: packit.spec\n"
@@ -171,7 +171,6 @@ def test_config_opts(sc):
             "  - src: .packit.yaml\n"
             "    dest: .packit2.yaml",
             GitProject(repo="", service=GitService(), namespace=""),
-            True,
             None,
             "packit.spec",
             None,
@@ -183,7 +182,6 @@ def test_config_opts(sc):
             "  - src: .packit.yaml\n"
             "    dest: .packit2.yaml",
             GitProject(repo="", service=GitService(), namespace=""),
-            True,
             None,
             "packit.spec",
             "some-branch",
@@ -194,7 +192,6 @@ def test_config_opts(sc):
             "  - src: .packit.yaml\n"
             "    dest: .packit2.yaml",
             GitProject(repo="", service=GitService(), namespace=""),
-            True,
             None,
             "packit.spec",
             None,
@@ -205,7 +202,6 @@ def test_config_opts(sc):
             "  - src: .packit.yaml\n"
             "    dest: .packit2.yaml",
             GitProject(repo="", service=GitService(), namespace=""),
-            False,
             "packit.spec",
             "packit.spec",
             None,
@@ -217,7 +213,6 @@ def test_config_opts(sc):
             "    dest: .packit2.yaml\n"
             "jobs: [{job: build, trigger: pull_request}]\n",
             GitProject(repo="", service=GitService(), namespace=""),
-            False,
             "packit.spec",
             "packit.spec",
             None,
@@ -227,7 +222,6 @@ def test_config_opts(sc):
 def test_get_package_config_from_repo(
     content,
     project: GitProject,
-    mock_spec_search: bool,
     spec_path: Optional[str],
     spec_path_option: Optional[str],
     reference: str,
@@ -240,10 +234,9 @@ def test_get_package_config_from_repo(
     gp.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref=reference
     ).and_return(content)
-    if mock_spec_search:
-        gp.should_receive("get_files").and_return(["packit.spec"]).once()
+    gp.should_receive("get_files").and_return(["packit.spec"]).once()
     config = PackageConfigGetter.get_package_config_from_repo(
-        project=project, reference=reference, spec_file_path=spec_path_option
+        project=project, reference=reference
     )
     assert isinstance(config, PackageConfig)
     assert config.specfile_path == spec_path
@@ -275,10 +268,10 @@ def test_get_package_config_from_repo_alternative_config_name():
         "  - src: .packit.yaml\n"
         "    dest: .packit2.yaml"
     )
+    gp.should_receive("get_files").and_return(["packit.spec"]).once()
     config = PackageConfigGetter.get_package_config_from_repo(
         project=GitProject(repo="", service=GitService(), namespace=""),
         reference=None,
-        spec_file_path="packit.spec",
     )
     assert isinstance(config, PackageConfig)
     assert config.specfile_path == "packit.spec"

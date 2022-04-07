@@ -261,7 +261,6 @@ class TestEvents:
             pr_id=1,
             reference="1f6a716aa7a618a9ffe56970d77177d99d100022",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -286,7 +285,6 @@ class TestEvents:
             pr_id=2,
             reference="45e272a57335e4e308f3176df6e9226a9e7805a9",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -320,7 +318,6 @@ class TestEvents:
             pr_id=342,
             reference="528b803be6f93e19ca4130bf4976f2800a3004c4",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -360,7 +357,6 @@ class TestEvents:
             pr_id=9,
             reference="12345",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -397,7 +393,6 @@ class TestEvents:
             pr_id=2,
             reference="45e272a57335e4e308f3176df6e9226a9e7805a9",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -437,7 +432,6 @@ class TestEvents:
             pr_id=9,
             reference="12345",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -476,7 +470,6 @@ class TestEvents:
             pr_id=None,
             reference="0.5.0",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -511,7 +504,6 @@ class TestEvents:
             pr_id=None,
             reference="0.5.0",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -541,7 +533,6 @@ class TestEvents:
             pr_id=None,
             reference="04885ff850b0fa0e206cd09db73565703d48f99b",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -571,7 +562,6 @@ class TestEvents:
             pr_id=None,
             reference="cb2859505e101785097e082529dced35bbee0c8f",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -599,7 +589,6 @@ class TestEvents:
             pr_id=None,
             reference="da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -629,7 +618,6 @@ class TestEvents:
             pr_id=None,
             reference="04885ff850b0fa0e206cd09db73565703d48f99b",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -674,7 +662,6 @@ class TestEvents:
             pr_id=None,
             reference="ee58e259da263ecb4c1f0129be7aef8cfd4dedd6",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -808,7 +795,6 @@ class TestEvents:
             pr_id=24,
             reference="0011223344",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -852,7 +838,6 @@ class TestEvents:
             pr_id=24,
             reference="0011223344",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -1301,7 +1286,6 @@ class TestEvents:
             pr_id=None,
             reference="0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -1343,7 +1327,6 @@ class TestEvents:
             pr_id=12,
             reference="0e5d8b51fd5dfa460605e1497d22a76d65c6d7fd",
             fail_when_missing=False,
-            spec_file_path=None,
         ).and_return(
             flexmock()
         ).once()
@@ -1443,7 +1426,6 @@ class TestCentOSEventParser:
             pr_id=12,
             reference="bf9701dea5a167caa7a1afa0759342aa0bf0d8fd",
             fail_when_missing=False,
-            spec_file_path="SPECS/packit-hello-world.spec",
         ).and_return(
             flexmock()
         ).once()
@@ -1488,7 +1470,6 @@ class TestCentOSEventParser:
             pr_id=13,
             reference="b658af51df98c1cbf74a75095ced920bba2ef25e",
             fail_when_missing=False,
-            spec_file_path="SPECS/packit-hello-world.spec",
         ).and_return(
             flexmock()
         ).once()
@@ -1532,7 +1513,6 @@ class TestCentOSEventParser:
             pr_id=16,
             reference="dfe787d04101728c6ddc213d3f4bf39c969f194c",
             fail_when_missing=False,
-            spec_file_path="SPECS/packit-hello-world.spec",
         ).and_return(
             flexmock()
         ).once()
@@ -1584,7 +1564,6 @@ class TestCentOSEventParser:
             pr_id=24,
             reference="0011223344",
             fail_when_missing=False,
-            spec_file_path="SPECS/packit-hello-world.spec",
         ).and_return(
             flexmock()
         ).once()
@@ -1633,7 +1612,6 @@ class TestCentOSEventParser:
             pr_id=24,
             reference="0011223344",
             fail_when_missing=False,
-            spec_file_path="SPECS/packit-hello-world.spec",
         ).and_return(
             flexmock()
         ).once()
