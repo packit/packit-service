@@ -10,7 +10,6 @@ from logging import getLogger
 from typing import Dict, Iterable, Optional, Type, Union, Set, List
 
 from ogr.abstract import GitProject
-from ogr.parsing import RepoUrl
 from packit.config import JobConfigTriggerType, PackageConfig
 
 from packit_service.config import PackageConfigGetter, ServiceConfig
@@ -435,23 +434,12 @@ class AbstractForgeIndependentEvent(Event):
             f"\tpr_id: {self.pr_id}"
         )
 
-        spec_path = None
-        if self.project_url and RepoUrl.parse(self.project_url).hostname in [
-            "git.centos.org",
-            "git.stg.centos.org",
-        ]:
-            spec_path = f"SPECS/{self.project.repo}.spec"
-            logger.debug(
-                f"Getting package_config from CentOS dist-git. "
-                f"(Spec-file is expected to be in {spec_path}.)"
-            )
         package_config = PackageConfigGetter.get_package_config_from_repo(
             base_project=self.base_project,
             project=self.project,
             reference=self.commit_sha,
             pr_id=self.pr_id,
             fail_when_missing=self.fail_when_config_file_missing,
-            spec_file_path=spec_path,
         )
 
         # job config change note:

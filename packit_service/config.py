@@ -303,7 +303,6 @@ class PackageConfigGetter:
         base_project: Optional[GitProject] = None,
         pr_id: int = None,
         fail_when_missing: bool = True,
-        spec_file_path: Optional[str] = None,
     ) -> Optional[PackageConfig]:
         """
         Get the package config and catch the invalid config scenario and possibly no-config scenario
@@ -317,7 +316,6 @@ class PackageConfigGetter:
             package_config: PackageConfig = get_package_config_from_repo(
                 project=project_to_search_in,
                 ref=reference,
-                spec_file_path=spec_file_path,
             )
             if not package_config and fail_when_missing:
                 raise PackitMissingConfigException(
