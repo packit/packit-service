@@ -6,62 +6,60 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Type
 
+import gitlab
 import pytest
 from celery import Celery
 from copr.v3 import Client
 from flexmock import flexmock
-
-import gitlab
 from munch import Munch
 
 import packit
 import packit_service
-
-from ogr.abstract import GitProject, CommitStatus
+from ogr.abstract import CommitStatus, GitProject
 from ogr.services.github import GithubProject
 from ogr.services.github.check_run import (
-    GithubCheckRunStatus,
     GithubCheckRunResult,
+    GithubCheckRunStatus,
     create_github_check_run_output,
 )
 from ogr.services.gitlab import GitlabProject
 from packit.actions import ActionName
 from packit.api import PackitAPI
-from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
+from packit.config import JobConfig, JobConfigTriggerType, JobType, PackageConfig
 from packit.config.job_config import JobMetadataConfig
 from packit.copr_helper import CoprHelper
 from packit.exceptions import FailedCreateSRPM, PackitCoprSettingsException
 from packit_service import sentry_integration
-from packit_service.config import ServiceConfig, Deployment
+from packit_service.config import ServiceConfig
 from packit_service.models import (
     CoprBuildTargetModel,
-    SRPMBuildModel,
     JobTriggerModel,
     JobTriggerModelType,
+    SRPMBuildModel,
 )
 from packit_service.service.db_triggers import (
-    AddPullRequestDbTrigger,
     AddBranchPushDbTrigger,
+    AddPullRequestDbTrigger,
     AddReleaseDbTrigger,
-)
-from packit_service.worker.events import (
-    PullRequestGithubEvent,
-    PushGitHubEvent,
-    ReleaseEvent,
-    PushGitlabEvent,
-    MergeRequestGitlabEvent,
 )
 from packit_service.worker.build import copr_build
 from packit_service.worker.build.copr_build import (
-    CoprBuildJobHelper,
     BaseBuildJobHelper,
+    CoprBuildJobHelper,
+)
+from packit_service.worker.events import (
+    MergeRequestGitlabEvent,
+    PullRequestGithubEvent,
+    PushGitHubEvent,
+    PushGitlabEvent,
+    ReleaseEvent,
 )
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.parser import Parser
 from packit_service.worker.reporting import (
     BaseCommitStatus,
-    StatusReporterGitlab,
     StatusReporterGithubChecks,
+    StatusReporterGitlab,
 )
 from tests.spellbook import DATA_DIR
 
@@ -120,7 +118,7 @@ def build_helper(
 
     pkg_conf = PackageConfig(jobs=jobs, downstream_package_name="dummy")
     helper = CoprBuildJobHelper(
-        service_config=ServiceConfig(),
+        service_config=ServiceConfig.get_service_config(),
         package_config=pkg_conf,
         job_config=selected_job or jobs[0],
         project=project_type(
@@ -2192,7 +2190,6 @@ def test_get_packit_copr_download_urls(github_pr_event):
         "https://results/python3-packit-0.38.0-1.2.noarch.rpm",
         "https://results/packit-0.38.0-1.2.noarch.rpm",
     ]
-    helper.service_config.deployment = Deployment.prod
 
     assert helper.get_packit_copr_download_urls() == urls
 
