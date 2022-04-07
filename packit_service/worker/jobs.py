@@ -55,6 +55,86 @@ from packit_service.worker.result import TaskResults
 logger = logging.getLogger(__name__)
 
 
+def get_handlers_for_comment_and_rerun_event(
+    event: Event, packit_comment_command_prefix: str
+) -> Set[Type[JobHandler]]:
+    """
+    Get all handlers that can be triggered by comment (e.g. `/packit build`) or check rerun.
+
+    For comment events we want to get handlers mapped to comment commands. For check rerun event we
+     want to get handlers mapped to check name job.
+     These two sets of handlers are mutually exclusive.
+
+    Args:
+        event: Event which we are reacting to.
+        packit_comment_command_prefix: `/packit` for packit-prod or `/packit-stg` for stg.
+
+    Returns:
+        Set of handlers that are triggered by a comment or check rerun job.
+    """
+    handlers_triggered_by_job = None
+
+    if isinstance(event, AbstractCommentEvent):
+        handlers_triggered_by_job = get_handlers_for_comment(
+            event.comment, packit_comment_command_prefix
+        )
+
+        if handlers_triggered_by_job and not isinstance(
+            event, PullRequestCommentPagureEvent
+        ):
+            event.comment_object.add_reaction(COMMENT_REACTION)
+
+    if isinstance(event, CheckRerunEvent):
+        handlers_triggered_by_job = get_handlers_for_check_rerun(event.check_name_job)
+
+    return handlers_triggered_by_job
+
+
+def is_handler_matching_the_event(
+    event: Event,
+    handler: Type[JobHandler],
+    allowed_handlers: Set[Type[JobHandler]],
+) -> bool:
+    """
+    Decides whether handler matches to comment or check rerun job and given event supports handler.
+
+    Args:
+        event: Event which we are reacting to.
+        handler: Handler which we are observing whether it is matching to job.
+        allowed_handlers: Set of handlers that are triggered by a comment or check rerun
+         job.
+    """
+    handler_matches_to_comment_or_check_rerun_job = (
+        allowed_handlers is None or handler in allowed_handlers
+    )
+
+    return (
+        isinstance(event, tuple(SUPPORTED_EVENTS_FOR_HANDLER[handler]))
+        and handler_matches_to_comment_or_check_rerun_job
+    )
+
+
+def get_jobs_matching_event(
+    event: Event, package_config: PackageConfig
+) -> List[JobConfig]:
+    """
+    Get list of non-duplicated all jobs that matches with event's trigger.
+
+    Args:
+        event: Event which we are reacting to.
+        package_config: Config object for upstream/downstream packages
+    """
+    jobs_matching_trigger = []
+    for job in package_config.jobs:
+        if (
+            job.trigger == event.job_config_trigger_type
+            and job not in jobs_matching_trigger
+        ):
+            jobs_matching_trigger.append(job)
+
+    return jobs_matching_trigger
+
+
 def get_handlers_for_event(
     event: Event, package_config: PackageConfig, packit_comment_command_prefix: str
 ) -> Set[Type[JobHandler]]:
@@ -68,36 +148,20 @@ def get_handlers_for_event(
     Examples of the matching can be found in the tests:
     ./tests/unit/test_jobs.py:test_get_handlers_for_event
 
-    :param event: event which we are reacting to
-    :param package_config: for checking configured jobs
-    :return: set of handler instances that we need to run for given event and user configuration
+    Args:
+        event: Event which we are reacting to.
+        package_config: For checking configured jobs.
+        packit_comment_command_prefix: `/packit` for packit-prod or `/packit-stg` for stg
+
+    Returns:
+        Set of handler instances that we need to run for given event and user configuration.
     """
 
-    jobs_matching_trigger = []
-    for job in package_config.jobs:
-        if (
-            job.trigger == event.job_config_trigger_type
-            and job not in jobs_matching_trigger
-        ):
-            jobs_matching_trigger.append(job)
+    jobs_matching_trigger = get_jobs_matching_event(event, package_config)
 
-    handlers_triggered_by_comment = None
-    handlers_triggered_by_check_rerun = None
-
-    if isinstance(event, AbstractCommentEvent):
-        handlers_triggered_by_comment = get_handlers_for_comment(
-            event.comment, packit_comment_command_prefix
-        )
-
-        if handlers_triggered_by_comment and not isinstance(
-            event, PullRequestCommentPagureEvent
-        ):
-            event.comment_object.add_reaction(COMMENT_REACTION)
-
-    if isinstance(event, CheckRerunEvent):
-        handlers_triggered_by_check_rerun = get_handlers_for_check_rerun(
-            event.check_name_job
-        )
+    handlers_triggered_by_job = get_handlers_for_comment_and_rerun_event(
+        event=event, packit_comment_command_prefix=packit_comment_command_prefix
+    )
 
     matching_handlers: Set[Type["JobHandler"]] = set()
     for job in jobs_matching_trigger:
@@ -111,16 +175,10 @@ def get_handlers_for_event(
             MAP_JOB_TYPE_TO_HANDLER[job.type]
             | MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job.type]
         ):
-            if (
-                isinstance(event, tuple(SUPPORTED_EVENTS_FOR_HANDLER[handler]))
-                and (
-                    handlers_triggered_by_comment is None
-                    or handler in handlers_triggered_by_comment
-                )
-                and (
-                    handlers_triggered_by_check_rerun is None
-                    or handler in handlers_triggered_by_check_rerun
-                )
+            if is_handler_matching_the_event(
+                event=event,
+                handler=handler,
+                allowed_handlers=handlers_triggered_by_job,
             ):
                 matching_handlers.add(handler)
 
@@ -176,10 +234,9 @@ def get_config_for_handler_kls(
     :return: list of JobConfigs relevant to the given handler and event
              preserving the order in the config
     """
-    jobs_matching_trigger: List[JobConfig] = []
-    for job in package_config.jobs:
-        if job.trigger == event.job_config_trigger_type:
-            jobs_matching_trigger.append(job)
+    jobs_matching_trigger: List[JobConfig] = get_jobs_matching_event(
+        event=event, package_config=package_config
+    )
 
     matching_jobs: List[JobConfig] = []
     for job in jobs_matching_trigger:
