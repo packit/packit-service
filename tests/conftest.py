@@ -36,6 +36,7 @@ def global_service_config():
     ServiceConfig.get_service_config().attribute = "value"
     """
     service_config = ServiceConfig()
+    service_config.fas_user = "packit"
     service_config.services = {
         GithubService(token="token"),
         GitlabService(token="token"),
