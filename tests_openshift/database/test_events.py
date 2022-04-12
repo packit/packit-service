@@ -4,7 +4,7 @@
 from flexmock import flexmock
 from ogr.services.github import GithubProject
 
-from packit_service.constants import KojiTaskState
+from packit_service.constants import KojiTaskState, PG_BUILD_STATUS_FAILURE
 from packit_service.models import (
     ProjectReleaseModel,
     GitProjectModel,
@@ -12,6 +12,7 @@ from packit_service.models import (
     PullRequestModel,
     CoprBuildTargetModel,
     TFTTestRunTargetModel,
+    TestingFarmResult,
 )
 from packit_service.worker.events import (
     ReleaseEvent,
@@ -457,13 +458,14 @@ def test_filter_failed_models_targets_copr(
     # these targets should be different
     assert builds_list[0].target != builds_list[2].target
     # 2 builds with failed status and one with success
-    builds_list[0].set_status(SampleValues.status_failed)
-    builds_list[2].set_status(SampleValues.status_error)
+    builds_list[0].set_status(PG_BUILD_STATUS_FAILURE)
+    builds_list[2].set_status(PG_BUILD_STATUS_FAILURE)
 
     assert (
         len(
             AbstractForgeIndependentEvent._filter_failed_models_targets(
-                models=builds_list
+                models=builds_list,
+                statuses_to_filter_with=[PG_BUILD_STATUS_FAILURE],
             )
         )
         == 2
@@ -481,13 +483,17 @@ def test_filter_failed_models_targets_tf(
     assert len(test_list) == 3
 
     # 2 builds with failed status and one with success
-    test_list[0].set_status(SampleValues.status_failed)
-    test_list[1].set_status(SampleValues.status_error)
+    test_list[0].set_status(TestingFarmResult.failed)
+    test_list[1].set_status(TestingFarmResult.error)
 
     assert (
         len(
             AbstractForgeIndependentEvent._filter_failed_models_targets(
-                models=test_list
+                models=test_list,
+                statuses_to_filter_with=[
+                    TestingFarmResult.failed,
+                    TestingFarmResult.error,
+                ],
             )
         )
         == 2
