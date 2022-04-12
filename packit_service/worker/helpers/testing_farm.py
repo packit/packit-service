@@ -311,6 +311,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             .replace("Centos", "CentOS")
             .replace("Rhel", "RHEL")
             .replace("Oraclelinux", "Oracle-Linux")
+            .replace("Latest", "latest")
         )
         if compose == "CentOS-Stream":
             compose = "CentOS-Stream-8"
@@ -328,7 +329,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 return f"{compose}-Updated"
             if compose == "CentOS-Stream-8":
                 return "RHEL-8.5.0-Nightly"
-            if compose.startswith("CentOS"):
+            if compose.startswith("CentOS") and len(compose) == len("CentOS-7"):
+                # Attach latest suffix only to major versions:
+                # CentOS-7 -> CentOS-7-latest
+                # CentOS-8 -> CentOS-8-latest
+                # CentOS-8.4 -> CentOS-8.4
+                # CentOS-8-latest -> CentOS-8-latest
                 return f"{compose}-latest"
             if compose == "RHEL-6":
                 return "RHEL-6-LatestReleased"
