@@ -228,13 +228,22 @@ class CheckRerunEvent(AbstractGithubEvent):
 
     @property
     def build_targets_override(self) -> Optional[Set[str]]:
-        if self.check_name_job == "testing-farm":
-            return None
-        return {self.check_name_target}
+        if (
+            self.check_name_job == "rpm-build"
+            or self.check_name_job == "production-build"
+        ):
+            return {self.check_name_target}
+        return None
 
     @property
     def tests_targets_override(self) -> Optional[Set[str]]:
         if self.check_name_job == "testing-farm":
+            return {self.check_name_target}
+        return None
+
+    @property
+    def branches_override(self) -> Optional[Set[str]]:
+        if self.check_name_job == "propose-downstream":
             return {self.check_name_target}
         return None
 

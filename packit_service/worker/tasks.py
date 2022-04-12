@@ -14,7 +14,7 @@ from packit_service.constants import (
     CELERY_DEFAULT_MAIN_TASK_NAME,
 )
 from packit_service.utils import load_job_config, load_package_config
-from packit_service.worker.build.babysit import (
+from packit_service.worker.helpers.build.babysit import (
     check_copr_build,
     check_pending_copr_builds,
     check_pending_testing_farm_runs,

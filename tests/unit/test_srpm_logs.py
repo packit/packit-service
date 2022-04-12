@@ -26,7 +26,7 @@ from packit_service.worker.events.github import (
     PushGitHubEvent,
     ReleaseEvent,
 )
-from packit_service.worker.build.koji_build import KojiBuildJobHelper
+from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 
 logger = logging.getLogger(__name__)
 

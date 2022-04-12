@@ -19,7 +19,7 @@ from packit_service.service.urls import (
     get_koji_build_info_url,
     get_srpm_build_info_url,
 )
-from packit_service.worker.build.build_helper import BaseBuildJobHelper
+from packit_service.worker.helpers.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.result import TaskResults
 from packit_service.worker.reporting import BaseCommitStatus
 

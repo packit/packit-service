@@ -48,7 +48,7 @@ from packit_service.worker.handlers.abstract import (
 from packit_service.worker.monitoring import measure_time
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.result import TaskResults
-from packit_service.worker.testing_farm import TestingFarmJobHelper
+from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.constants import (
     PG_BUILD_STATUS_SUCCESS,
     INTERNAL_TF_TESTS_NOT_ALLOWED,

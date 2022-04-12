@@ -2,42 +2,34 @@
 # SPDX-License-Identifier: MIT
 import datetime
 import logging
-from functools import partial
 from io import StringIO
 from pathlib import Path
-from typing import List, Optional, Set, Tuple, Union
+from typing import List, Optional, Set, Tuple
 
 from kubernetes.client.rest import ApiException
-from lazy_object_proxy import Proxy
-
 from ogr.abstract import GitProject
-from ogr.exceptions import GitlabAPIException
-from ogr.services.gitlab import GitlabProject
-from packit.api import PackitAPI
 from packit.config import JobConfig, JobType
 from packit.config.aliases import DEFAULT_VERSION
-from packit.config.common_package_config import Deployment
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitMergeException
-from packit.local_project import LocalProject
 from packit.utils import PackitFormatter
-from packit.utils.repo import RepositoryCache
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
-from packit_service.constants import PG_BUILD_STATUS_FAILURE, PG_BUILD_STATUS_SUCCESS
-from packit_service.models import JobTriggerModel, PipelineModel, SRPMBuildModel
+from packit_service.constants import PG_BUILD_STATUS_SUCCESS, PG_BUILD_STATUS_FAILURE
+from packit_service.models import PipelineModel, SRPMBuildModel
 from packit_service.service.urls import get_srpm_build_info_url
 from packit_service.trigger_mapping import are_job_types_same
+from packit_service.worker.helpers.job_helper import BaseJobHelper
 from packit_service.worker.events import EventData
 from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.reporting import BaseCommitStatus, StatusReporter
+from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 from sandcastle import SandcastleTimeoutReached
 
 logger = logging.getLogger(__name__)
 
 
-class BaseBuildJobHelper:
+class BaseBuildJobHelper(BaseJobHelper):
     job_type_build: Optional[JobType] = None
     job_type_test: Optional[JobType] = None
     status_name_build: str = "base-build-status"
@@ -55,111 +47,27 @@ class BaseBuildJobHelper:
         tests_targets_override: Optional[Set[str]] = None,
         pushgateway: Optional[Pushgateway] = None,
     ):
-        self.service_config: ServiceConfig = service_config
-        self.job_config = job_config
-        self.package_config = package_config
-        self.project: GitProject = project
-        self.db_trigger = db_trigger
-        self.msg_retrigger: Optional[str] = ""
-        self.metadata: EventData = metadata
+        super().__init__(
+            service_config=service_config,
+            package_config=package_config,
+            project=project,
+            metadata=metadata,
+            db_trigger=db_trigger,
+            job_config=job_config,
+            pushgateway=pushgateway,
+        )
         self.run_model: Optional[PipelineModel] = None
         self.build_targets_override: Optional[Set[str]] = build_targets_override
         self.tests_targets_override: Optional[Set[str]] = tests_targets_override
         self.pushgateway = pushgateway
 
         # lazy properties
-        self._api = None
-        self._local_project = None
-        self._status_reporter: Optional[StatusReporter] = None
         self._test_check_names: Optional[List[str]] = None
         self._build_check_names: Optional[List[str]] = None
         self._srpm_model: Optional[SRPMBuildModel] = None
         self._srpm_path: Optional[Path] = None
         self._job_tests: Optional[JobConfig] = None
         self._job_build: Optional[JobConfig] = None
-        self._base_project: Optional[GitProject] = None
-        self._pr_id: Optional[int] = None
-        self._is_reporting_allowed: Optional[bool] = None
-        self._is_gitlab_instance: Optional[bool] = None
-
-    @property
-    def local_project(self) -> LocalProject:
-        if self._local_project is None:
-            self._local_project = LocalProject(
-                git_project=self.project,
-                working_dir=self.service_config.command_handler_work_dir,
-                ref=self.metadata.git_ref,
-                pr_id=self.metadata.pr_id,
-                cache=RepositoryCache(
-                    cache_path=self.service_config.repository_cache,
-                    add_new=self.service_config.add_repositories_to_repository_cache,
-                )
-                if self.service_config.repository_cache
-                else None,
-                merge_pr=self.package_config.merge_pr_in_ci,
-            )
-        return self._local_project
-
-    @property
-    def is_gitlab_instance(self) -> bool:
-        if self._is_gitlab_instance is None:
-            self._is_gitlab_instance = isinstance(self.project, GitlabProject)
-
-        return self._is_gitlab_instance
-
-    @property
-    def pr_id(self) -> Optional[int]:
-        if self._pr_id is None:
-            self._pr_id = self.metadata.pr_id
-        return self._pr_id
-
-    @property
-    def is_reporting_allowed(self) -> bool:
-        username = self.project.service.user.get_username()
-        if self._is_reporting_allowed is None:
-            self._is_reporting_allowed = self.base_project.can_merge_pr(username)
-        return self._is_reporting_allowed
-
-    @property
-    def base_project(self) -> GitProject:
-        """
-        Getting the source project info from PR,
-        In case of build events we loose the source info.
-        """
-        if self._base_project is None:
-            if self.pr_id:
-                self._base_project = self.project.get_pr(
-                    pr_id=self.pr_id
-                ).source_project
-            else:
-                self._base_project = self.project
-        return self._base_project
-
-    def request_project_access(self) -> None:
-        try:
-            self.base_project.request_access()
-        except GitlabAPIException:
-            logger.info("Access already requested")
-
-    @property
-    def api(self) -> PackitAPI:
-        if not self._api:
-            self._api = PackitAPI(
-                self.service_config,
-                self.job_config,
-                # so that the local_project is evaluated only if needed
-                Proxy(partial(BaseBuildJobHelper.local_project.__get__, self)),  # type: ignore
-                stage=self.service_config.use_stage(),
-            )
-        return self._api
-
-    @property
-    def api_url(self) -> str:
-        return (
-            "https://prod.packit.dev/api"
-            if self.service_config.deployment == Deployment.prod
-            else "https://stg.packit.dev/api"
-        )
 
     @property
     def configured_build_targets(self) -> Set[str]:
@@ -244,21 +152,6 @@ class BaseBuildJobHelper:
                     self._job_tests = job
                     break
         return self._job_tests
-
-    @property
-    def status_reporter(self) -> StatusReporter:
-        if not self._status_reporter:
-            trigger = JobTriggerModel.get_or_create(
-                type=self.db_trigger.job_trigger_model_type,
-                trigger_id=self.db_trigger.id,
-            )
-            self._status_reporter = StatusReporter.get_instance(
-                project=self.project,
-                commit_sha=self.metadata.commit_sha,
-                trigger_id=trigger.id if trigger else None,
-                pr_id=self.metadata.pr_id,
-            )
-        return self._status_reporter
 
     @property
     def build_targets_all(self) -> Set[str]:
@@ -572,44 +465,6 @@ class BaseBuildJobHelper:
         self._srpm_model.set_end_time(datetime.datetime.utcnow())
 
         return results
-
-    def _report(
-        self,
-        state: BaseCommitStatus,
-        description: str,
-        url: str = "",
-        check_names: Union[str, list, None] = None,
-        markdown_content: str = None,
-    ) -> None:
-        """
-        The status reporting should be done through this method
-        so we can extend it in subclasses easily.
-        """
-        if self.is_gitlab_instance and not self.is_reporting_allowed:
-            self.request_project_access()
-            description = (
-                f"{description}\n\n---\n*Packit-User does not have access to the "
-                "source project. We have requested access to be able to set "
-                "commit statuses / pipelines instead of the comments.*"
-            )
-
-            final_commit_states = (
-                BaseCommitStatus.success,
-                BaseCommitStatus.failure,
-                BaseCommitStatus.error,
-            )
-            # We are only commenting final states to avoid multiple comments for a build
-            # Ignoring all other states eg. pending, running
-            if state not in final_commit_states:
-                return
-
-        self.status_reporter.report(
-            description=description,
-            state=state,
-            url=url,
-            check_names=check_names,
-            markdown_content=markdown_content,
-        )
 
     def report_status_to_all(
         self,

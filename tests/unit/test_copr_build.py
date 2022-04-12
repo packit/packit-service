@@ -42,10 +42,11 @@ from packit_service.service.db_triggers import (
     AddPullRequestDbTrigger,
     AddReleaseDbTrigger,
 )
-from packit_service.worker.build import copr_build
-from packit_service.worker.build.copr_build import (
-    BaseBuildJobHelper,
+
+from packit_service.worker.helpers.build import copr_build
+from packit_service.worker.helpers.build.copr_build import (
     CoprBuildJobHelper,
+    BaseBuildJobHelper,
 )
 from packit_service.worker.events import (
     MergeRequestGitlabEvent,
@@ -1021,7 +1022,7 @@ def test_copr_build_fails_in_packit(github_pr_event):
         type=JobTriggerModelType.pull_request, trigger_id=123
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
 
-    flexmock(packit_service.worker.build.copr_build).should_receive(
+    flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
         "get_valid_build_targets"
     ).and_return({"fedora-31-x86_64", "fedora-rawhide-x86_64"})
     templ = "rpm-build:fedora-{ver}-x86_64"
@@ -1104,7 +1105,7 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
     flexmock(copr_build).should_receive("get_srpm_build_info_url").and_return(
         "https://test.url"
     )
-    flexmock(packit_service.worker.build.copr_build).should_receive(
+    flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
         "get_valid_build_targets"
     ).and_return({"fedora-31-x86_64", "fedora-rawhide-x86_64"})
     for v in ["31", "rawhide"]:
@@ -1429,7 +1430,7 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
 
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
-    flexmock(packit_service.worker.build.copr_build).should_receive(
+    flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
         "get_valid_build_targets"
     ).and_return(["bright-future-x86_64"])
 
@@ -1486,7 +1487,7 @@ def test_copr_build_success_set_test_check_gitlab(gitlab_mr_event):
         type=JobTriggerModelType.pull_request, trigger_id=123
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(CoprBuildJobHelper).should_receive("is_reporting_allowed").and_return(True)
-    flexmock(packit_service.worker.build.copr_build).should_receive(
+    flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
         "get_valid_build_targets"
     ).and_return(["bright-future-x86_64", "brightest-future-x86_64"])
     trigger = flexmock(
@@ -1631,7 +1632,7 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
             .mock(),
         )
     )
-    flexmock(packit_service.worker.build.copr_build).should_receive(
+    flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
         "get_valid_build_targets"
     ).and_return(DEFAULT_TARGETS)
 
@@ -1709,7 +1710,7 @@ def test_copr_build_success_gitlab(gitlab_mr_event):
             .mock(),
         )
     )
-    flexmock(packit_service.worker.build.copr_build).should_receive(
+    flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
         "get_valid_build_targets"
     ).and_return(DEFAULT_TARGETS)
 
@@ -1738,7 +1739,7 @@ def test_copr_build_fails_in_packit_gitlab(gitlab_mr_event):
     flexmock(copr_build).should_receive("get_srpm_build_info_url").and_return(
         "https://test.url"
     )
-    flexmock(packit_service.worker.build.copr_build).should_receive(
+    flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
         "get_valid_build_targets"
     ).and_return({"fedora-31-x86_64", "fedora-rawhide-x86_64"})
 
@@ -1873,7 +1874,7 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
             .mock(),
         )
     )
-    flexmock(packit_service.worker.build.copr_build).should_receive(
+    flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
         "get_valid_build_targets"
     ).and_return(
         {
@@ -2120,7 +2121,7 @@ def test_get_latest_fedora_stable_chroot(github_pr_event):
     flexmock(packit.config.aliases).should_receive("get_aliases").and_return(
         {"fedora-stable": ["fedora-34", "fedora-35"]}
     )
-    flexmock(packit_service.worker.build.copr_build).should_receive(
+    flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
         "get_valid_build_targets"
     ).with_args("fedora-35").and_return({"fedora-35-x86_64"})
     assert (

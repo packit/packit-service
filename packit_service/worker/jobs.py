@@ -6,7 +6,7 @@ We love you, Steve Jobs.
 """
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 from typing import List, Set, Type, Union
 
 from celery import group
@@ -16,7 +16,7 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import TASK_ACCEPTED, COMMENT_REACTION
 from packit_service.log_versions import log_job_versions
 from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.build import CoprBuildJobHelper, KojiBuildJobHelper
+from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper
 from packit_service.worker.events import (
     Event,
     EventData,
@@ -35,6 +35,7 @@ from packit_service.worker.handlers import (
     KojiBuildHandler,
     TestingFarmHandler,
     TestingFarmResultsHandler,
+    ProposeDownstreamHandler,
 )
 from packit_service.worker.handlers.abstract import (
     JobHandler,
@@ -45,6 +46,7 @@ from packit_service.worker.handlers.abstract import (
     MAP_CHECK_PREFIX_TO_HANDLER,
     get_packit_commands_from_comment,
 )
+from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
 from packit_service.worker.monitoring import Pushgateway, measure_time
 from packit_service.worker.parser import Parser
 from packit_service.worker.reporting import BaseCommitStatus
@@ -199,7 +201,9 @@ def get_config_for_handler_kls(
     return matching_jobs
 
 
-def push_initial_metrics(event: Event, handler: JobHandler, build_targets_len: int):
+def push_initial_metrics(
+    event: Event, handler: JobHandler, build_targets_len: Optional[int] = None
+):
     pushgateway = Pushgateway()
 
     task_accepted_time = datetime.now(timezone.utc)
@@ -211,7 +215,7 @@ def push_initial_metrics(event: Event, handler: JobHandler, build_targets_len: i
     # set the time when the accepted status was set so that we can use it later for measurements
     event.task_accepted_time = task_accepted_time
 
-    if isinstance(handler, CoprBuildHandler):
+    if isinstance(handler, CoprBuildHandler) and build_targets_len:
         for _ in range(build_targets_len):
             pushgateway.copr_builds_queued.inc()
 
@@ -232,6 +236,65 @@ class SteveJobs:
         if self._service_config is None:
             self._service_config = ServiceConfig.get_service_config()
         return self._service_config
+
+    def report_task_accepted(
+        self, event: Event, handler: JobHandler, job_config: JobConfig
+    ):
+        """
+        For the upstream events report the initial status "Task was accepted" to
+        inform user we are working on the request. Measure the time how much did it
+        take to set the status from the time when the event was triggered.
+        """
+        if isinstance(
+            handler, (CoprBuildHandler, KojiBuildHandler, TestingFarmHandler)
+        ):
+            helper = (
+                CoprBuildJobHelper
+                if isinstance(handler, (CoprBuildHandler, TestingFarmHandler))
+                else KojiBuildJobHelper
+            )
+
+            job_helper = helper(
+                service_config=self.service_config,
+                package_config=event.package_config,
+                project=event.project,
+                metadata=EventData.from_event_dict(event.get_dict()),
+                db_trigger=event.db_trigger,
+                job_config=job_config,
+                build_targets_override=event.build_targets_override,
+                tests_targets_override=event.tests_targets_override,
+            )
+
+            reporting_method = (
+                job_helper.report_status_to_tests
+                if isinstance(handler, TestingFarmHandler)
+                else job_helper.report_status_to_build
+            )
+
+            reporting_method(
+                description=TASK_ACCEPTED,
+                state=BaseCommitStatus.pending,
+                url="",
+            )
+            push_initial_metrics(event, handler, len(job_helper.build_targets))
+
+        elif isinstance(handler, ProposeDownstreamHandler):
+            job_helper = ProposeDownstreamJobHelper(
+                service_config=self.service_config,
+                package_config=event.package_config,
+                project=event.project,
+                metadata=EventData.from_event_dict(event.get_dict()),
+                db_trigger=event.db_trigger,
+                job_config=job_config,
+                branches_override=event.branches_override,
+            )
+
+            job_helper.report_status_to_all(
+                description=TASK_ACCEPTED,
+                state=BaseCommitStatus.pending,
+                url="",
+            )
+            push_initial_metrics(event, handler)
 
     def process_jobs(self, event: Event) -> List[TaskResults]:
         """
@@ -329,38 +392,9 @@ class SteveJobs:
                     # e.g. We don't allow using internal TF for external contributors.
                     continue
 
-                if isinstance(
-                    handler, (CoprBuildHandler, KojiBuildHandler, TestingFarmHandler)
-                ):
-                    helper = (
-                        CoprBuildJobHelper
-                        if isinstance(handler, (CoprBuildHandler, TestingFarmHandler))
-                        else KojiBuildJobHelper
-                    )
-
-                    job_helper = helper(
-                        service_config=self.service_config,
-                        package_config=event.package_config,
-                        project=event.project,
-                        metadata=EventData.from_event_dict(event.get_dict()),
-                        db_trigger=event.db_trigger,
-                        job_config=job_config,
-                        build_targets_override=event.build_targets_override,
-                        tests_targets_override=event.tests_targets_override,
-                    )
-
-                    reporting_method = (
-                        job_helper.report_status_to_tests
-                        if isinstance(handler, TestingFarmHandler)
-                        else job_helper.report_status_to_build
-                    )
-
-                    reporting_method(
-                        description=TASK_ACCEPTED,
-                        state=BaseCommitStatus.pending,
-                        url="",
-                    )
-                    push_initial_metrics(event, handler, len(job_helper.build_targets))
+                self.report_task_accepted(
+                    event=event, handler=handler, job_config=job_config
+                )
 
                 signatures.append(
                     handler_kls.get_signature(event=event, job=job_config)
