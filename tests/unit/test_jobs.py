@@ -46,6 +46,9 @@ from packit_service.worker.handlers.koji import KojiBuildReportHandler
 from packit_service.worker.jobs import (
     get_config_for_handler_kls,
     get_handlers_for_event,
+    get_handlers_for_comment_and_rerun_event,
+    is_handler_matching_the_event,
+    get_jobs_matching_event,
 )
 
 
@@ -2108,3 +2111,262 @@ def test_get_config_for_handler_kls(
         package_config=flexmock(jobs=jobs),
     )
     assert job_config == result_job_config
+
+
+@pytest.mark.parametrize(
+    "event_kls,comment,packit_comment_command_prefix,result",
+    [
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            "/packit build",
+            "/packit",
+            {CoprBuildHandler, TestingFarmHandler},
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            "/packit-stg build",
+            "/packit-stg",
+            {CoprBuildHandler, TestingFarmHandler},
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            "/packit test",
+            "/packit",
+            {TestingFarmHandler},
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            "/packit-stg test",
+            "/packit-stg",
+            {TestingFarmHandler},
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            "/packit propose-downstream",
+            "/packit",
+            {ProposeDownstreamHandler},
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            "/packit-stg propose-downstream",
+            "/packit-stg",
+            {ProposeDownstreamHandler},
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            "/packit production-build",
+            "/packit",
+            {KojiBuildHandler},
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            "/packit-stg production-build",
+            "/packit-stg",
+            {KojiBuildHandler},
+        ),
+    ],
+)
+def test_get_handlers_triggered_by_comment(
+    event_kls, comment, packit_comment_command_prefix, result
+):
+    class Event(event_kls):
+        def __init__(self):
+            self.comment = comment
+
+    event = Event()
+    comment_object = flexmock()
+    event._comment_object = comment_object
+    flexmock(comment_object).should_receive("add_reaction").with_args(
+        COMMENT_REACTION
+    ).once()
+
+    event_handlers = get_handlers_for_comment_and_rerun_event(
+        event=event,
+        packit_comment_command_prefix=packit_comment_command_prefix,
+    )
+    assert event_handlers == result
+
+
+@pytest.mark.parametrize(
+    "event_kls,check_name_job,result",
+    [
+        pytest.param(
+            CheckRerunPullRequestEvent,
+            "rpm-build",
+            {CoprBuildHandler},
+        ),
+        pytest.param(
+            CheckRerunPullRequestEvent,
+            "testing-farm",
+            {TestingFarmHandler},
+        ),
+        pytest.param(
+            CheckRerunPullRequestEvent,
+            "production-build",
+            {KojiBuildHandler},
+        ),
+    ],
+)
+def test_get_handlers_triggered_by_check_rerun(event_kls, check_name_job, result):
+    class Event(event_kls):
+        def __init__(self):
+            self.check_name_job = check_name_job
+
+    event = Event()
+    event_handlers = get_handlers_for_comment_and_rerun_event(
+        event=event,
+        packit_comment_command_prefix="/packit",
+    )
+    assert event_handlers == result
+
+
+@pytest.mark.parametrize(
+    "event_kls,handler,allowed_handlers",
+    [
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            CoprBuildHandler,
+            {CoprBuildHandler, KojiBuildHandler},
+        ),
+        pytest.param(
+            CheckRerunPullRequestEvent,
+            KojiBuildHandler,
+            {CoprBuildHandler, KojiBuildHandler},
+        ),
+        pytest.param(
+            ReleaseEvent,
+            ProposeDownstreamHandler,
+            {KojiBuildHandler, ProposeDownstreamHandler},
+        ),
+    ],
+)
+def test_handler_matches_to_job(event_kls, handler: Type[JobHandler], allowed_handlers):
+    class Event(event_kls):  # type: ignore
+        def __init__(self):
+            pass
+
+    event = Event()
+    assert is_handler_matching_the_event(event, handler, allowed_handlers)
+
+
+@pytest.mark.parametrize(
+    "event_kls,handler,allowed_handlers",
+    [
+        pytest.param(
+            PushPagureEvent,
+            CoprBuildHandler,
+            {DownstreamKojiBuildHandler},
+        ),
+        pytest.param(
+            CheckRerunPullRequestEvent,
+            KojiBuildHandler,
+            {CoprBuildHandler},
+        ),
+    ],
+)
+def test_handler_doesnt_match_to_job(
+    event_kls, handler: Type[JobHandler], allowed_handlers
+):
+    class Event(event_kls):  # type: ignore
+        def __init__(self):
+            pass
+
+    event = Event()
+    assert not is_handler_matching_the_event(event, handler, allowed_handlers)
+
+
+@pytest.mark.parametrize(
+    "event_kls,job_config_trigger_type,jobs,result",
+    [
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            JobConfigTriggerType.release,
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            JobConfigTriggerType.release,
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                ),
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.propose_downstream,
+                    trigger=JobConfigTriggerType.release,
+                ),
+            ],
+        ),
+        pytest.param(
+            PullRequestCommentGithubEvent,
+            JobConfigTriggerType.release,
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            [],
+        ),
+    ],
+)
+def test_get_jobs_matching_trigger(event_kls, job_config_trigger_type, jobs, result):
+    class Event(event_kls):
+        def __init__(self):
+            pass
+
+        @property
+        def job_config_trigger_type(self):
+            return job_config_trigger_type
+
+    event = Event()
+    assert result == get_jobs_matching_event(event, flexmock(jobs=jobs))
