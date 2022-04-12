@@ -259,12 +259,14 @@ def get_config_for_handler_kls(
 
 
 def push_initial_metrics(
-    event: Event, handler: JobHandler, build_targets_len: Optional[int] = None
+    task_accepted_time: datetime,
+    event: Event,
+    handler: JobHandler,
+    number_of_build_targets: Optional[int] = None,
 ):
     pushgateway = Pushgateway()
-
-    task_accepted_time = datetime.now(timezone.utc)
     response_time = measure_time(end=task_accepted_time, begin=event.created_at)
+    logger.debug(f"Reporting initial status time: {response_time} seconds.")
     pushgateway.initial_status_time.observe(response_time)
     if response_time > 15:
         pushgateway.no_status_after_15_s.inc()
@@ -272,8 +274,8 @@ def push_initial_metrics(
     # set the time when the accepted status was set so that we can use it later for measurements
     event.task_accepted_time = task_accepted_time
 
-    if isinstance(handler, CoprBuildHandler) and build_targets_len:
-        for _ in range(build_targets_len):
+    if isinstance(handler, CoprBuildHandler) and number_of_build_targets:
+        for _ in range(number_of_build_targets):
             pushgateway.copr_builds_queued.inc()
 
     pushgateway.push()
@@ -302,6 +304,7 @@ class SteveJobs:
         inform user we are working on the request. Measure the time how much did it
         take to set the status from the time when the event was triggered.
         """
+        number_of_build_targets = None
         if isinstance(
             handler, (CoprBuildHandler, KojiBuildHandler, TestingFarmHandler)
         ):
@@ -328,12 +331,14 @@ class SteveJobs:
                 else job_helper.report_status_to_build
             )
 
+            task_accepted_time = datetime.now(timezone.utc)
+
             reporting_method(
                 description=TASK_ACCEPTED,
                 state=BaseCommitStatus.pending,
                 url="",
             )
-            push_initial_metrics(event, handler, len(job_helper.build_targets))
+            number_of_build_targets = len(job_helper.build_targets)
 
         elif isinstance(handler, ProposeDownstreamHandler):
             job_helper = ProposeDownstreamJobHelper(
@@ -345,13 +350,20 @@ class SteveJobs:
                 job_config=job_config,
                 branches_override=event.branches_override,
             )
-
+            task_accepted_time = datetime.now(timezone.utc)
             job_helper.report_status_to_all(
                 description=TASK_ACCEPTED,
                 state=BaseCommitStatus.pending,
                 url="",
             )
-            push_initial_metrics(event, handler)
+
+        else:
+            # no reporting, no metrics
+            return
+
+        push_initial_metrics(
+            task_accepted_time, event, handler, number_of_build_targets
+        )
 
     def process_jobs(self, event: Event) -> List[TaskResults]:
         """
