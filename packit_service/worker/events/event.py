@@ -470,25 +470,35 @@ class AbstractForgeIndependentEvent(Event):
             Optional[Iterable[CoprBuildTargetModel]],
             Optional[Iterable[TFTTestRunTargetModel]],
         ],
+        statuses_to_filter_with: List[str],
     ) -> Optional[Set[str]]:
+        logger.info(
+            f"Trying to filter targets with possible status in: {statuses_to_filter_with}"
+        )
         failed_models_targets = set()
         for model in models:
-            if model.status in ["failed", "error"]:
+            if model.status in statuses_to_filter_with:
                 failed_models_targets.add(model.target)
 
+        logger.info(f"Targets found: {failed_models_targets}")
         return failed_models_targets if failed_models_targets else None
 
-    def get_all_tf_failed_targets(self) -> Optional[Set[str]]:
+    def get_all_tf_targets_by_status(
+        self, statuses_to_filter_with: List[str]
+    ) -> Optional[Set[str]]:
         if self.commit_sha is None:
             return None
 
         return self._filter_failed_models_targets(
             models=TFTTestRunTargetModel.get_all_by_commit_target(
                 commit_sha=self.commit_sha
-            )
+            ),
+            statuses_to_filter_with=statuses_to_filter_with,
         )
 
-    def get_all_build_failed_targets(self) -> Optional[Set[str]]:
+    def get_all_build_targets_by_status(
+        self, statuses_to_filter_with: List[str]
+    ) -> Optional[Set[str]]:
         # TODO: get rid of project.repo which is mandatory in `CoprBuildTargetModel.get_all_by`
         # in this case relevant for us is only commit_sha
         if self.commit_sha is None or self.project.repo is None:
@@ -497,7 +507,8 @@ class AbstractForgeIndependentEvent(Event):
         return self._filter_failed_models_targets(
             models=CoprBuildTargetModel.get_all_by(
                 project_name=self.project.repo, commit_sha=self.commit_sha
-            )
+            ),
+            statuses_to_filter_with=statuses_to_filter_with,
         )
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:

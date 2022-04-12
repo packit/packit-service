@@ -8,6 +8,9 @@ from logging import getLogger
 from typing import Dict, Optional, Set
 
 from ogr.abstract import Comment
+
+from packit_service.constants import PG_BUILD_STATUS_FAILURE
+from packit_service.models import TestingFarmResult
 from packit_service.service.db_triggers import (
     AddIssueDbTrigger,
     AddPullRequestDbTrigger,
@@ -88,14 +91,20 @@ class AbstractPRCommentEvent(AddPullRequestDbTrigger, AbstractCommentEvent):
     def build_targets_override(self) -> Optional[Set[str]]:
         if not self._build_targets_override and "rebuild-failed" in self.comment:
             self._build_targets_override = (
-                super().get_all_build_failed_targets() or None
+                super().get_all_build_targets_by_status([PG_BUILD_STATUS_FAILURE])
+                or None
             )
         return self._build_targets_override
 
     @property
     def tests_targets_override(self) -> Optional[Set[str]]:
         if not self._tests_targets_override and "retest-failed" in self.comment:
-            self._tests_targets_override = super().get_all_tf_failed_targets() or None
+            self._tests_targets_override = (
+                super().get_all_tf_targets_by_status(
+                    [TestingFarmResult.failed, TestingFarmResult.error]
+                )
+                or None
+            )
         return self._tests_targets_override
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:

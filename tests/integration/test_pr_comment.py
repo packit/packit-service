@@ -19,6 +19,7 @@ from packit_service.constants import (
     COMMENT_REACTION,
     PG_BUILD_STATUS_SUCCESS,
     TASK_ACCEPTED,
+    PG_BUILD_STATUS_FAILURE,
 )
 from packit_service.models import (
     CoprBuildTargetModel,
@@ -1242,10 +1243,12 @@ def test_rebuild_failed(
     flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
 
-    model = flexmock(CoprBuildTargetModel, status="failed", target="target")
+    model = flexmock(
+        CoprBuildTargetModel, status=PG_BUILD_STATUS_FAILURE, target="target"
+    )
     flexmock(model).should_receive("get_all_by").and_return(flexmock())
     flexmock(AbstractForgeIndependentEvent).should_receive(
-        "get_all_build_failed_targets"
+        "get_all_build_targets_by_status"
     ).and_return({"target"})
 
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
@@ -1315,10 +1318,12 @@ def test_retest_failed(
         flexmock(status=PG_BUILD_STATUS_SUCCESS)
     )
 
-    model = flexmock(TFTTestRunTargetModel, status="failed", target="tf_target-arch")
+    model = flexmock(
+        TFTTestRunTargetModel, status=TestingFarmResult.failed, target="tf_target-arch"
+    )
     flexmock(model).should_receive("get_all_by_commit_target").and_return(flexmock())
     flexmock(AbstractForgeIndependentEvent).should_receive(
-        "get_all_tf_failed_targets"
+        "get_all_tf_targets_by_status"
     ).and_return({"tf_target-arch"})
 
     flexmock(Pushgateway).should_receive("push").twice().and_return()
