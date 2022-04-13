@@ -616,7 +616,7 @@ def test_retry_propose_downstream_task(
     ).once()
     flexmock(model).should_receive("set_branch").with_args(branch="main").once()
     flexmock(model).should_receive("set_status").with_args(
-        staus=ProposeDownstreamTargetStatus.retry
+        status=ProposeDownstreamTargetStatus.retry
     ).once()
     flexmock(model).should_receive("set_start_time").once()
     flexmock(model).should_receive("set_finished_time").once()
