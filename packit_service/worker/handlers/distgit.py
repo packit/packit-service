@@ -333,7 +333,7 @@ class ProposeDownstreamHandler(JobHandler):
                         "Propose downstream is being retried because "
                         "we were not able yet to download the archive. "
                     )
-                    model.set_status(staus=ProposeDownstreamTargetStatus.retry)
+                    model.set_status(status=ProposeDownstreamTargetStatus.retry)
                     self.propose_downstream_helper.report_status_to_branch(
                         branch=branch,
                         description="Propose downstream is being retried because "
