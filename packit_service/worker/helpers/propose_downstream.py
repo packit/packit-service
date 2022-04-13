@@ -43,7 +43,7 @@ class ProposeDownstreamJobHelper(BaseJobHelper):
         self.branches_override = branches_override
         self.msg_retrigger: str = ""
         self._check_names: Optional[List[str]] = None
-        self._default_distgit_branch: Optional[str] = None
+        self._default_dg_branch: Optional[str] = None
         self._job: Optional[JobConfig] = None
 
     @classmethod
@@ -109,11 +109,12 @@ class ProposeDownstreamJobHelper(BaseJobHelper):
         """
         Get the default branch of the distgit project.
         """
-        if not self._default_distgit_branch:
-            self._default_distgit_branch = (
-                self.api.dg.local_project.git_project.default_branch
+        if not self._default_dg_branch:
+            git_project = self.service_config.get_project(
+                url=self.package_config.dist_git_package_url
             )
-        return self._default_distgit_branch
+            self._default_dg_branch = git_project.default_branch
+        return self._default_dg_branch
 
     @property
     def branches(self) -> Set[str]:
