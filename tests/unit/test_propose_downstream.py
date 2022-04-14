@@ -6,8 +6,6 @@ from flexmock import flexmock
 
 from packit.config import PackageConfig, JobConfig, JobType
 from packit.config.job_config import JobMetadataConfig, JobConfigTriggerType
-from packit.distgit import DistGit
-from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
 
@@ -65,6 +63,10 @@ from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJo
     ],
 )
 def test_branches(jobs, job_config_trigger_type, branches_override, branches):
+    project = flexmock(
+        default_branch="main",
+    )
+    flexmock(ServiceConfig, get_project=lambda url: project)
     propose_downstream_helper = ProposeDownstreamJobHelper(
         service_config=ServiceConfig(),
         package_config=PackageConfig(jobs=jobs),
@@ -74,12 +76,4 @@ def test_branches(jobs, job_config_trigger_type, branches_override, branches):
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
         branches_override=branches_override,
     )
-
-    lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    lp.git_project = flexmock(
-        default_branch="main",
-    )
-    lp.working_dir = ""
-    flexmock(DistGit).should_receive("local_project").and_return(lp)
-
     assert propose_downstream_helper.branches == branches

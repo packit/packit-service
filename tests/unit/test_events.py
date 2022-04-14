@@ -462,13 +462,14 @@ class TestEvents:
         flexmock(event_object.project).should_receive("get_latest_release").and_return(
             flexmock(tag_name="0.5.0")
         )
+        flexmock(GithubProject, get_sha_from_tag=lambda tag_name: "123456")
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
             base_project=event_object.base_project,
             project=event_object.project,
             pr_id=None,
-            reference="0.5.0",
+            reference="123456",
             fail_when_missing=False,
         ).and_return(
             flexmock()
@@ -496,13 +497,14 @@ class TestEvents:
         flexmock(event_object.project).should_receive("get_latest_release").and_return(
             flexmock(tag_name="0.5.0")
         )
+        flexmock(event_object.project, get_sha_from_tag=lambda tag_name: "123456")
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
             base_project=event_object.base_project,
             project=event_object.project,
             pr_id=None,
-            reference="0.5.0",
+            reference="123456",
             fail_when_missing=False,
         ).and_return(
             flexmock()
