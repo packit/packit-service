@@ -70,6 +70,7 @@ def mock_comment(request):
         full_repo_name="packit-service/packit",
         get_web_url=lambda: f"https://{forge}.com/packit-service/packit",
         default_branch="main",
+        get_sha_from_tag=lambda tag_name: "123456",
     )
     (
         flexmock(project_class)

@@ -139,6 +139,7 @@ class AbstractIssueCommentEvent(AddIssueDbTrigger, AbstractCommentEvent):
 
         # Lazy properties
         self._tag_name = tag_name
+        self._commit_sha: Optional[str] = None
         self._comment_object = comment_object
 
     @property
@@ -150,8 +151,11 @@ class AbstractIssueCommentEvent(AddIssueDbTrigger, AbstractCommentEvent):
         return self._tag_name
 
     @property
-    def commit_sha(self):
-        return self.tag_name
+    def commit_sha(self) -> Optional[str]:  # type:ignore
+        # mypy does not like properties
+        if not self._commit_sha:
+            self._commit_sha = self.project.get_sha_from_tag(tag_name=self.tag_name)
+        return self._commit_sha
 
     @property
     def comment_object(self) -> Optional[Comment]:
@@ -164,5 +168,6 @@ class AbstractIssueCommentEvent(AddIssueDbTrigger, AbstractCommentEvent):
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
         result["tag_name"] = self.tag_name
+        result["commit_sha"] = self.commit_sha
         result["issue_id"] = self.issue_id
         return result
