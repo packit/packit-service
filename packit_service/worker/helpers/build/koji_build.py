@@ -54,7 +54,10 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             tests_targets_override=tests_targets_override,
         )
         self.msg_retrigger: str = MSG_RETRIGGER.format(
-            job="build", command="production-build", place="pull request"
+            job="build",
+            command="production-build",
+            place="pull request",
+            packit_comment_command_prefix=self.service_config.comment_command_prefix,
         )
 
         # Lazy properties

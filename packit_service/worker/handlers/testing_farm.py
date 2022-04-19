@@ -111,7 +111,9 @@ class TestingFarmHandler(JobHandler):
             self.testing_farm_job_helper.report_status_to_tests(
                 description=message[0].format(actor=actor),
                 state=BaseCommitStatus.neutral,
-                markdown_content=message[1],
+                markdown_content=message[1].format(
+                    packit_comment_command_prefix=self.service_config.comment_command_prefix
+                ),
             )
             return False
         return True

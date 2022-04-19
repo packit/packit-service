@@ -124,7 +124,9 @@ class CoprBuildHandler(JobHandler):
                     actor=actor
                 ),
                 state=BaseCommitStatus.neutral,
-                markdown_content=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[1],
+                markdown_content=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[1].format(
+                    packit_comment_command_prefix=self.service_config.comment_command_prefix
+                ),
             )
             return False
         return True
