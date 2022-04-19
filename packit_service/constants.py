@@ -24,14 +24,14 @@ TESTING_FARM_INSTALLABILITY_TEST_URL = "https://gitlab.com/testing-farm/tests"
 TESTING_FARM_INSTALLABILITY_TEST_REF = "main"
 
 MSG_RETRIGGER = (
-    "You can retrigger the {job} by adding a comment (`/packit {command}`) "
+    "You can retrigger the {job} by adding a comment (`{packit_comment_command_prefix} {command}`) "
     "into this {place}."
 )
 COPR_CHROOT_CHANGE_MSG = (
     "Settings of a Copr project {owner}/{project} need to be updated, "
     "but Packit can't do that when there are previous builds still in progress.\n"
     "You should be able to resolve the problem by recreating this pull request "
-    "or running `/packit build` after all builds finished.\n\n"
+    "or running `{packit_comment_command_prefix} build` after all builds finished.\n\n"
     "This was the change Packit tried to do:\n\n"
     "{table}"
     "\n"
@@ -199,11 +199,12 @@ class KojiBuildState(Enum):
 INTERNAL_TF_TESTS_NOT_ALLOWED = (
     "{actor} can't run tests internally",
     "*As a project maintainer, you can trigger the test job manually "
-    "via `/packit test` comment.*",
+    "via `{packit_comment_command_prefix} test` comment.*",
 )
 
 INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED = (
     "{actor} can't run tests (and builds) internally",
     "*As a project maintainer, you can trigger the build and test jobs manually "
-    "via `/packit build` comment or only test job via `/packit test` comment.*",
+    "via `{packit_comment_command_prefix} build` comment "
+    "or only test job via `{packit_comment_command_prefix} test` comment.*",
 )

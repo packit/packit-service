@@ -232,7 +232,10 @@ class ProposeDownstreamHandler(JobHandler):
             branch_errors += f"| `{branch}` | `{err_without_new_lines}` |\n"
 
         msg_retrigger = MSG_RETRIGGER.format(
-            job="update", command="propose-downstream", place="issue"
+            job="update",
+            command="propose-downstream",
+            place="issue",
+            packit_comment_command_prefix=self.service_config.comment_command_prefix,
         )
         body_msg = (
             f"Packit failed on creating pull-requests in dist-git:\n\n"

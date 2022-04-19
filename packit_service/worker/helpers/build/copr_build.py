@@ -83,6 +83,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             job="build",
             command="copr-build" if self.job_build else "build",
             place="pull request",
+            packit_comment_command_prefix=self.service_config.comment_command_prefix,
         )
 
     @property
@@ -624,7 +625,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             table: markdown table which shows the change we intend to do
         """
         msg = COPR_CHROOT_CHANGE_MSG.format(
-            owner=owner, project=self.job_project, table=table
+            owner=owner,
+            project=self.job_project,
+            table=table,
+            packit_comment_command_prefix=self.service_config.comment_command_prefix,
         )
         if chroots_diff:
             msg += chroots_diff

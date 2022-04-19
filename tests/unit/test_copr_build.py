@@ -2256,7 +2256,7 @@ def test_get_job_config_index(package_config, job_config, result):
         CoprBuildJobHelper(
             package_config=package_config,
             job_config=job_config,
-            service_config=None,
+            service_config=ServiceConfig.get_service_config(),
             project=None,
             metadata=None,
             db_trigger=None,

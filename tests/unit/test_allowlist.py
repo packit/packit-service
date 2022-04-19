@@ -578,6 +578,7 @@ def test_check_and_report(
                     deployment=Deployment.stg,
                     command_handler_work_dir="",
                     admins=["admin"],
+                    comment_command_prefix="/packit-stg",
                 ),
                 job_configs=job_configs,
             )

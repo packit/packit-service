@@ -10,6 +10,7 @@ from packit.config.aliases import get_build_targets
 from packit.config.job_config import JobMetadataConfig
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
+from packit_service.config import ServiceConfig
 from packit_service.worker.helpers.build import copr_build
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
@@ -378,7 +379,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
 )
 def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
     copr_build_helper = CoprBuildJobHelper(
-        service_config=flexmock(),
+        service_config=ServiceConfig.get_service_config(),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],  # BuildHelper looks at all jobs in the end
         project=flexmock(),
@@ -585,7 +586,7 @@ def test_copr_targets_overrides(
     test_targets,
 ):
     copr_build_helper = CoprBuildJobHelper(
-        service_config=flexmock(),
+        service_config=ServiceConfig.get_service_config(),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],  # BuildHelper looks at all jobs in the end
         project=flexmock(),
@@ -683,7 +684,7 @@ def test_copr_build_target2test_targets(
         )
     ]
     copr_build_helper = CoprBuildJobHelper(
-        service_config=flexmock(),
+        service_config=ServiceConfig.get_service_config(),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],
         project=flexmock(),
@@ -715,7 +716,7 @@ def test_copr_build_and_test_targets_both_jobs_defined():
     flexmock(copr_build, get_valid_build_targets=get_build_targets)
     for i in [0, 1]:
         copr_build_helper = CoprBuildJobHelper(
-            service_config=flexmock(),
+            service_config=ServiceConfig.get_service_config(),
             package_config=PackageConfig(jobs=jobs),
             job_config=jobs[i],
             project=flexmock(),
@@ -878,7 +879,7 @@ def test_copr_build_and_test_targets_both_jobs_defined():
 def test_copr_test_target2build_target(job_config, test_target, build_target):
     jobs = job_config
     copr_build_helper = CoprBuildJobHelper(
-        service_config=flexmock(),
+        service_config=ServiceConfig.get_service_config(),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],
         project=flexmock(),
@@ -935,7 +936,7 @@ def test_koji_targets_overrides(
     jobs, job_config_trigger_type, targets_override, build_targets
 ):
     koji_build_helper = KojiBuildJobHelper(
-        service_config=flexmock(),
+        service_config=ServiceConfig.get_service_config(),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],
         project=flexmock(),
@@ -1282,7 +1283,7 @@ def test_build_handler_job_and_test_properties(
     result_job_tests,
 ):
     copr_build_helper = CoprBuildJobHelper(
-        service_config=flexmock(),
+        service_config=ServiceConfig.get_service_config(),
         package_config=PackageConfig(jobs=jobs),
         job_config=init_job,
         project=flexmock(),
@@ -1546,7 +1547,7 @@ def test_copr_project_and_namespace(
     job_project,
 ):
     copr_build_helper = CoprBuildJobHelper(
-        service_config=flexmock(deployment="stg"),
+        service_config=ServiceConfig.get_service_config(),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],  # BuildHelper looks at all jobs in the end
         project=flexmock(
@@ -1620,7 +1621,7 @@ def test_targets_for_koji_build(
 ):
     pr_id = 41 if job_config_trigger_type == JobConfigTriggerType.pull_request else None
     koji_build_helper = KojiBuildJobHelper(
-        service_config=flexmock(),
+        service_config=ServiceConfig.get_service_config(),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],
         project=flexmock(),
@@ -1636,12 +1637,13 @@ def test_targets_for_koji_build(
 
 
 def test_repository_cache_invocation():
+    service_config = ServiceConfig.get_service_config()
+    service_config.repository_cache = "/tmp/repository-cache"
+    service_config.add_repositories_to_repository_cache = False
+    service_config.command_handler_work_dir = "/tmp/some-dir"
+
     copr_build_helper = CoprBuildJobHelper(
-        service_config=flexmock(
-            repository_cache="/tmp/repository-cache",
-            add_repositories_to_repository_cache=False,
-            command_handler_work_dir="/tmp/some-dir",
-        ),
+        service_config=service_config,
         package_config=PackageConfig(
             jobs=[
                 JobConfig(
@@ -1690,7 +1692,7 @@ def test_local_project_not_called_when_initializing_api():
         )
     ]
     copr_build_helper = CoprBuildJobHelper(
-        service_config=flexmock(use_stage=lambda: False),
+        service_config=ServiceConfig.get_service_config(),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],
         project=flexmock(),
