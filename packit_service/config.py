@@ -205,9 +205,6 @@ class ServiceConfig(Config):
             f"comment_command_prefix='{self.comment_command_prefix}')"
         )
 
-    def use_stage(self) -> bool:
-        return self.deployment != Deployment.prod
-
     @classmethod
     def get_from_dict(cls, raw_dict: dict) -> "ServiceConfig":
         # required to avoid circular imports

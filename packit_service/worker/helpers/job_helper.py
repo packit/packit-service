@@ -120,7 +120,6 @@ class BaseJobHelper:
                 self.job_config,
                 # so that the local_project is evaluated only if needed
                 Proxy(partial(BaseJobHelper.local_project.__get__, self)),  # type: ignore
-                stage=self.service_config.use_stage(),
             )
         return self._api
 

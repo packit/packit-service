@@ -112,7 +112,6 @@ class SyncFromDownstream(JobHandler):
             self.service_config,
             self.job_config,
             upstream_local_project=upstream_local_project,
-            stage=self.service_config.use_stage(),
         )
         # rev is a commit
         # we use branch on purpose so we get the latest thing
@@ -282,7 +281,6 @@ class ProposeDownstreamHandler(JobHandler):
             self.service_config,
             self.job_config,
             self.local_project,
-            stage=self.service_config.use_stage(),
         )
 
         errors = {}
@@ -439,7 +437,6 @@ class DownstreamKojiBuildHandler(JobHandler):
             self.service_config,
             self.job_config,
             downstream_local_project=self.local_project,
-            stage=self.service_config.use_stage(),
         )
         try:
             packit_api.build(
