@@ -473,7 +473,7 @@ class AbstractForgeIndependentEvent(Event):
         statuses_to_filter_with: List[str],
     ) -> Optional[Set[str]]:
         logger.info(
-            f"Trying to filter targets with possible status in: {statuses_to_filter_with}"
+            f"Trying to filter targets with possible status: {statuses_to_filter_with} in {models}"
         )
         failed_models_targets = set()
         for model in models:
@@ -489,6 +489,10 @@ class AbstractForgeIndependentEvent(Event):
         if self.commit_sha is None:
             return None
 
+        logger.debug(
+            f"Getting failed Testing Farm targets for repo: {self.project.repo} and "
+            f"commit sha: {self.commit_sha}"
+        )
         return self._filter_failed_models_targets(
             models=TFTTestRunTargetModel.get_all_by_commit_target(
                 commit_sha=self.commit_sha
@@ -504,6 +508,10 @@ class AbstractForgeIndependentEvent(Event):
         if self.commit_sha is None or self.project.repo is None:
             return None
 
+        logger.debug(
+            f"Getting failed COPR build targets for repo: {self.project.repo} and "
+            f"commit sha: {self.commit_sha}"
+        )
         return self._filter_failed_models_targets(
             models=CoprBuildTargetModel.get_all_by(
                 project_name=self.project.repo, commit_sha=self.commit_sha
