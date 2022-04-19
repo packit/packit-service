@@ -107,7 +107,6 @@ class CreateBodhiUpdateHandler(JobHandler):
             self.service_config,
             self.job_config,
             downstream_local_project=self.local_project,
-            stage=self.service_config.use_stage(),
         )
         try:
             packit_api.create_update(
