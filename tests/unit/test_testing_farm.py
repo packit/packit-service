@@ -9,7 +9,7 @@ from packit.config.job_config import JobMetadataConfig
 from packit.local_project import LocalProject
 
 import packit_service.service.urls as urls
-from packit_service.config import PackageConfigGetter
+from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.models import TFTTestRunTargetModel
 
 # These names are definitely not nice, still they help with making classes
@@ -175,9 +175,7 @@ def test_testing_farm_response(
 )
 def test_distro2compose(distro, compose, use_internal_tf):
     job_helper = TFJobHelper(
-        service_config=flexmock(
-            testing_farm_api_url="xyz",
-        ),
+        service_config=ServiceConfig.get_service_config(),
         package_config=flexmock(jobs=[]),
         project=flexmock(),
         metadata=flexmock(),
@@ -209,9 +207,7 @@ def test_distro2compose(distro, compose, use_internal_tf):
 )
 def test_distro2compose_for_aarch64(distro, arch, compose, use_internal_tf):
     job_helper = TFJobHelper(
-        service_config=flexmock(
-            testing_farm_api_url="xyz",
-        ),
+        service_config=ServiceConfig.get_service_config(),
         package_config=flexmock(jobs=[]),
         project=flexmock(),
         metadata=flexmock(),
@@ -429,14 +425,12 @@ def test_payload(
     arch,
     packages_to_send,
 ):
-    # Soo many things are happening in a single constructor!!!!
-    config = flexmock(
-        testing_farm_api_url=tf_api,
-        testing_farm_secret=tf_token,
-        internal_testing_farm_secret=internal_tf_token,
-        deployment=ps_deployment,
-        command_handler_work_dir="/tmp",
-    )
+    service_config = ServiceConfig.get_service_config()
+    service_config.testing_farm_api_url = tf_api
+    service_config.testing_farm_secret = tf_token
+    service_config.internal_testing_farm_secret = internal_tf_token
+    service_config.deployment = ps_deployment
+
     package_config = flexmock(jobs=[])
     pr = flexmock(
         source_project=flexmock(get_web_url=lambda: "https://github.com/source/packit"),
@@ -464,7 +458,7 @@ def test_payload(
     db_trigger = flexmock()
 
     job_helper = TFJobHelper(
-        service_config=config,
+        service_config=service_config,
         package_config=package_config,
         project=project,
         metadata=metadata,
@@ -584,12 +578,11 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
     chroot = "centos-stream-x86_64"
     compose = "Fedora-Rawhide"
 
-    config = flexmock(
-        testing_farm_api_url=tf_api,
-        testing_farm_secret=tf_token,
-        deployment=ps_deployment,
-        command_handler_work_dir="/tmp",
-    )
+    service_config = ServiceConfig.get_service_config()
+    service_config.testing_farm_api_url = tf_api
+    service_config.testing_farm_secret = tf_token
+    service_config.deployment = ps_deployment
+
     package_config = flexmock(jobs=[])
     pr = flexmock(
         source_project=flexmock(
@@ -619,7 +612,7 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
     db_trigger = flexmock()
 
     job_helper = TFJobHelper(
-        service_config=config,
+        service_config=service_config,
         package_config=package_config,
         project=project,
         metadata=metadata,
