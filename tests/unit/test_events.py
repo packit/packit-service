@@ -92,6 +92,14 @@ class TestEvents:
             return json.load(outfile)
 
     @pytest.fixture()
+    def github_issue_comment_no_handler(self):
+        return json.loads(
+            (
+                DATA_DIR / "webhooks" / "github" / "issue_comment_no_handler.json"
+            ).read_text()
+        )
+
+    @pytest.fixture()
     def testing_farm_notification(self):
         with open(
             DATA_DIR / "webhooks" / "testing_farm" / "notification.json"
@@ -475,6 +483,33 @@ class TestEvents:
             flexmock()
         ).once()
         assert event_object.package_config
+
+    def test_parse_issue_comment_no_handler(self, github_issue_comment_no_handler):
+        event_object = Parser.parse_event(github_issue_comment_no_handler)
+
+        assert isinstance(event_object, IssueCommentEvent)
+        assert isinstance(event_object.project, GithubProject)
+        assert event_object.project.full_repo_name == "packit-service/packit"
+        assert not event_object.base_project
+
+        flexmock(event_object.project).should_receive("get_latest_release").and_return(
+            None
+        )
+        flexmock(GithubProject).should_receive("get_sha_from_tag").never()
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=event_object.base_project,
+            project=event_object.project,
+            pr_id=None,
+            reference=None,
+            fail_when_missing=False,
+        ).and_return(
+            flexmock()
+        ).once()
+        assert event_object.package_config
+        assert event_object.commit_sha is None
+        assert event_object.tag_name == ""
 
     def test_parse_gitlab_issue_comment(self, gitlab_issue_comment):
         event_object = Parser.parse_event(gitlab_issue_comment)
