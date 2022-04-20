@@ -153,7 +153,7 @@ class AbstractIssueCommentEvent(AddIssueDbTrigger, AbstractCommentEvent):
     @property
     def commit_sha(self) -> Optional[str]:  # type:ignore
         # mypy does not like properties
-        if not self._commit_sha:
+        if not self._commit_sha and self.tag_name:
             self._commit_sha = self.project.get_sha_from_tag(tag_name=self.tag_name)
         return self._commit_sha
 
