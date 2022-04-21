@@ -5,10 +5,8 @@ import logging
 from enum import Enum
 from typing import Optional, Union, Dict
 
-import github
-import gitlab
-
 from ogr.abstract import CommitStatus, GitProject
+from ogr.exceptions import GithubAPIException, GitlabAPIException
 from ogr.services.github import GithubProject
 from ogr.services.github.check_run import (
     create_github_check_run_output,
@@ -308,7 +306,7 @@ class StatusReporterGitlab(StatusReporter):
             self.project_with_commit.set_commit_status(
                 self.commit_sha, state_to_set, url, description, check_name, trim=True
             )
-        except gitlab.exceptions.GitlabCreateError as e:
+        except GitlabAPIException as e:
             # Ignoring Gitlab 'enqueue' error
             # https://github.com/packit-service/packit-service/issues/741
             if e.response_code != 400:
@@ -355,7 +353,7 @@ class StatusReporterGithubStatuses(StatusReporter):
             self.project_with_commit.set_commit_status(
                 self.commit_sha, state_to_set, url, description, check_name, trim=True
             )
-        except github.GithubException as e:
+        except GithubAPIException as e:
             logger.debug(
                 f"Failed to set status for {self.commit_sha},"
                 f" commenting on commit as a fallback: {e}"
@@ -424,7 +422,7 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
                 conclusion=conclusion,
                 output=create_github_check_run_output(description, summary),
             )
-        except github.GithubException as e:
+        except GithubAPIException as e:
             logger.debug(
                 f"Failed to set status check, setting status as a fallback: {str(e)}"
             )

@@ -12,6 +12,7 @@ from celery import Celery
 from copr.v3 import Client
 from flexmock import flexmock
 from munch import Munch
+from ogr.exceptions import GitlabAPIException
 
 import packit
 import packit_service
@@ -1823,9 +1824,9 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
         source_project=flexmock(),
     )
     flexmock(GitlabProject).should_receive("get_pr").and_return(pr)
-    flexmock(pr.source_project).should_receive("set_commit_status").and_raise(
-        gitlab.GitlabCreateError(response_code=403)
-    )
+    exception = GitlabAPIException()
+    exception.__cause__ = gitlab.GitlabError(response_code=403)
+    flexmock(pr.source_project).should_receive("set_commit_status").and_raise(exception)
     flexmock(GitlabProject).should_receive("commit_comment").and_return()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
