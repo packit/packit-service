@@ -44,6 +44,10 @@ def _add_propose_downstream(run: ProposeDownstreamModel, response_dict: Dict):
         response_dict["trigger"] = get_project_info_from_build(run)
 
 
+def flatten_and_remove_none(ids):
+    return filter(None, map(lambda arr: arr[0], ids))
+
+
 def process_runs(runs):
     """
     Process `PipelineModel`s and construct a JSON that is returned from the endpoints
@@ -83,7 +87,7 @@ def process_runs(runs):
             ("koji", KojiBuildTargetModel, pipeline.koji_build_id),
             ("test_run", TFTTestRunTargetModel, pipeline.test_run_id),
         ):
-            for packit_id in set(filter(None, map(lambda ids: ids[0], packit_ids))):
+            for packit_id in set(flatten_and_remove_none(packit_ids)):
                 row = Model.get_by_id(packit_id)
                 if row.status == "waiting_for_srpm":
                     continue
@@ -104,9 +108,11 @@ def process_runs(runs):
                     response_dict["trigger"] = get_project_info_from_build(row)
 
         # handle propose-downstream
-        if pipeline.propose_downstream_run_id[0] is not None:
+        if propose_downstream := list(
+            flatten_and_remove_none(pipeline.propose_downstream_run_id)
+        ):
             _add_propose_downstream(
-                ProposeDownstreamModel.get_by_id(pipeline.propose_downstream_run_id[0]),
+                ProposeDownstreamModel.get_by_id(propose_downstream[0]),
                 response_dict,
             )
 
