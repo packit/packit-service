@@ -4,12 +4,10 @@
 import logging
 from typing import Any, Iterable, Optional, Union, Callable, List, Tuple, Dict
 
-from fedora.client import AuthError, FedoraServiceError
-from fedora.client.fas2 import AccountSystem
 from ogr.abstract import GitProject
+
 from packit.config.job_config import JobConfig
 from packit.exceptions import PackitException
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import FAQ_URL
 from packit_service.models import AllowlistModel, AllowlistStatus
@@ -33,8 +31,8 @@ from packit_service.worker.events import (
     TestingFarmResultsEvent,
     CheckRerunEvent,
 )
-from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
@@ -53,11 +51,6 @@ UncheckedEvent = Union[
 
 
 class Allowlist:
-    def __init__(self, fas_user: str = None, fas_password: str = None):
-        self._fas: AccountSystem = AccountSystem(
-            username=fas_user, password=fas_password
-        )
-
     @staticmethod
     def _strip_protocol_and_add_git(url: Optional[str]) -> Optional[str]:
         """
@@ -74,66 +67,22 @@ class Allowlist:
             return None
         return url.split("://")[1] + ".git"
 
-    def _signed_fpca(self, account_login: str) -> bool:
+    @staticmethod
+    def add_namespace(namespace: str) -> bool:
         """
-        Check if the user is a packager, by checking if their GitHub
-        username is in the 'packager' group in FAS. Works only the user's
-        username is the same in GitHub and FAS.
-
-        Args:
-            account_login (str): Github username.
-
-        Returns:
-            `True` if user is a packager, `False` otherwise.
-        """
-
-        try:
-            person = self._fas.person_by_username(account_login)
-        except AuthError as e:
-            logger.error(f"FAS authentication failed: {e!r}")
-            return False
-        except FedoraServiceError as e:
-            logger.error(f"FAS query failed: {e!r}")
-            return False
-
-        if not person:
-            logger.info(f"Not a FAS username {account_login!r}.")
-            return False
-
-        for membership in person.get("memberships", []):
-            if membership.get("name") == "cla_fpca":
-                logger.info(f"User {account_login!r} signed FPCA!")
-                return True
-
-        logger.info(f"Cannot verify whether {account_login!r} signed FPCA.")
-        return False
-
-    def add_namespace(self, namespace: str, sender_login: Optional[str] = None) -> bool:
-        """
-        Add namespace to the allowlist. Namespace is set to `waiting` unless the
-        `sender_login` matches packager account in FAS.
+        Add namespace to the allowlist with `waiting` status if it is not in there already.
 
         Args:
             namespace (str): Namespace to be added in format of: `github.com/namespace`
                 or `github.com/namespace/repo.git`.
-            sender_login (str): Login of the user that can be matched against FAS.
-
-                Defaults to `None`.
 
         Returns:
-            `True` if account is already allowed, was auto-allowed. `False` otherwise.
+            `True` if account is already in our allowlist. `False` otherwise.
         """
         if AllowlistModel.get_namespace(namespace):
             return True
 
         AllowlistModel.add_namespace(namespace, AllowlistStatus.waiting.value)
-
-        if self._signed_fpca(sender_login):
-            AllowlistModel.add_namespace(
-                namespace, AllowlistStatus.approved_automatically.value, sender_login
-            )
-            return True
-
         return False
 
     @staticmethod

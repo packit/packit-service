@@ -5,18 +5,16 @@ from typing import Tuple, Iterable
 
 import pytest
 from copr.v3 import Client
-from fedora.client import AuthError, FedoraServiceError
-from fedora.client.fas2 import AccountSystem
 from flexmock import flexmock
 from ogr.abstract import GitProject, GitService
 from ogr.services.github import GithubProject, GithubService
+
+import packit_service
 from packit.config import JobType, JobConfig, JobConfigTriggerType
 from packit.config.common_package_config import Deployment
 from packit.config.job_config import JobMetadataConfig
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
-
-import packit_service
 from packit_service.constants import FAQ_URL
 from packit_service.models import (
     AllowlistModel as DBAllowlist,
@@ -25,6 +23,7 @@ from packit_service.models import (
     JobTriggerModel,
     JobTriggerModelType,
 )
+from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
     EventData,
     IssueCommentEvent,
@@ -38,7 +37,6 @@ from packit_service.worker.events.enums import (
     PullRequestCommentAction,
     IssueCommentAction,
 )
-from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 
 EXPECTED_TESTING_FARM_CHECK_NAME = "testing-farm:fedora-rawhide-x86_64"
@@ -193,43 +191,6 @@ def mocked_model(allowlist_entries, request):
 )
 def test_is_approved(allowlist, account_name, mocked_model, is_approved):
     assert allowlist.is_approved(account_name) == is_approved
-
-
-@pytest.mark.parametrize(
-    "account_name,person_object,raises,signed_fpca",
-    [
-        (
-            "me",
-            {
-                "memberships": [
-                    {"name": "unicorns"},
-                    {"name": "cla_fpca"},
-                    {"name": "builder"},
-                ]
-            },
-            None,
-            True,
-        ),
-        ("you", {"memberships": [{"name": "packager"}]}, None, False),
-        ("they", {}, None, False),
-        ("parrot", {"some": "data"}, None, False),
-        ("we", None, AuthError, False),
-        ("bear", None, FedoraServiceError, False),
-    ],
-)
-def test_signed_fpca(allowlist, account_name, person_object, raises, signed_fpca):
-    fas = (
-        flexmock(AccountSystem)
-        .should_receive("person_by_username")
-        .with_args(account_name)
-        .once()
-    )
-    if person_object is not None:
-        fas.and_return(person_object)
-    if raises is not None:
-        fas.and_raise(raises)
-
-    assert allowlist._signed_fpca(account_name) is signed_fpca
 
 
 @pytest.mark.parametrize(
