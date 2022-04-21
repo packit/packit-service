@@ -1246,8 +1246,8 @@ def test_rebuild_failed(
     model = flexmock(
         CoprBuildTargetModel, status=PG_BUILD_STATUS_FAILURE, target="some_target"
     )
-    flexmock(model).should_receive("get_all_by").with_args(
-        project_name="hello-world", commit_sha="12345"
+    flexmock(model).should_receive("get_all_by_commit").with_args(
+        commit_sha="12345"
     ).and_return(model)
     flexmock(AbstractForgeIndependentEvent).should_receive(
         "get_all_build_targets_by_status"

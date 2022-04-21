@@ -1013,6 +1013,15 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
             return query.all()
 
     @classmethod
+    def get_all_by_commit(
+        cls, commit_sha: str
+    ) -> Optional[Iterable["CoprBuildTargetModel"]]:
+        """Returns all builds that match a given commit sha"""
+        with get_sa_session() as session:
+            query = session.query(CoprBuildTargetModel).filter_by(commit_sha=commit_sha)
+            return query.all()
+
+    @classmethod
     def create(
         cls,
         build_id: str,
