@@ -3,6 +3,7 @@
 
 from http import HTTPStatus
 from logging import getLogger
+from typing import Dict
 
 from flask_restx import Namespace, Resource
 
@@ -10,6 +11,7 @@ from packit_service.models import (
     CoprBuildTargetModel,
     KojiBuildTargetModel,
     PipelineModel,
+    ProposeDownstreamModel,
     SRPMBuildModel,
     TFTTestRunTargetModel,
     optional_timestamp,
@@ -23,6 +25,23 @@ from packit_service.service.api.utils import (
 logger = getLogger("packit_service")
 
 ns = Namespace("runs", description="Pipelines")
+
+
+def _add_propose_downstream(run: ProposeDownstreamModel, response_dict: Dict):
+    targets = response_dict["propose_downstream"]
+
+    for target in run.propose_downstream_targets:
+        targets.append(
+            {
+                "packit_id": target.id,
+                "target": target.branch,
+                "status": target.status,
+            }
+        )
+
+    if "trigger" not in response_dict:
+        response_dict["time_submitted"] = optional_timestamp(run.submitted_time)
+        response_dict["trigger"] = get_project_info_from_build(run)
 
 
 def process_runs(runs):
@@ -45,6 +64,7 @@ def process_runs(runs):
             "copr": [],
             "koji": [],
             "test_run": [],
+            "propose_downstream": [],
         }
 
         srpm_build = SRPMBuildModel.get_by_id(pipeline.srpm_build_id)
@@ -82,6 +102,13 @@ def process_runs(runs):
                     )
                     response_dict["time_submitted"] = optional_timestamp(submitted_time)
                     response_dict["trigger"] = get_project_info_from_build(row)
+
+        # handle propose-downstream
+        if pipeline.propose_downstream_run_id[0] is not None:
+            _add_propose_downstream(
+                ProposeDownstreamModel.get_by_id(pipeline.propose_downstream_run_id[0]),
+                response_dict,
+            )
 
         result.append(response_dict)
 
@@ -135,7 +162,9 @@ class Run(Resource):
 
         result = {
             "run_id": run.id,
-            "trigger": get_project_info_from_build(run.srpm_build),
+            "trigger": get_project_info_from_build(
+                run.srpm_build or run.propose_downstream_run
+            ),
             "srpm_build_id": run.srpm_build_id,
             "copr_build_id": run.copr_build_id,
             "koji_build_id": run.koji_build_id,
