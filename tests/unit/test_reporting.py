@@ -1,14 +1,11 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-from inspect import signature
-
-import github
 import gitlab
 import pytest
 from flexmock import flexmock
-
 from ogr import PagureService
 from ogr.abstract import CommitStatus
+from ogr.exceptions import GithubAPIException, GitlabAPIException
 from ogr.services.github import GithubProject
 from ogr.services.github.check_run import (
     create_github_check_run_output,
@@ -243,7 +240,7 @@ def test_set_status_github_check(
         "project,commit_sha,"
         "pr_id,has_pr_id,pr_object,"
         "state,description,check_name,url,state_to_set,"
-        "exception_mock, status_reporter_type"
+        "exception_type, exception_dict, status_reporter_type"
     ),
     [
         pytest.param(
@@ -257,21 +254,8 @@ def test_set_status_github_check(
             "packit/pr-rpm-build",
             "https://api.packit.dev/build/111/logs",
             CommitStatus.success,
-            (
-                github.GithubException,
-                # https://docs.python.org/3/library/inspect.html#inspect.signature
-                # to account for changes in positional arguments: pygithub 1.55 added headers
-                # as additional positional argument; this creates an iterable and sets None
-                # for every argument of GithubException.__init__ except for 'self'
-                [
-                    None
-                    for param_name, param in signature(
-                        github.GithubException.__init__
-                    ).parameters.items()
-                    if param_name != "self"
-                ],
-                dict(),
-            ),
+            GithubAPIException,
+            dict(),
             StatusReporterGithubStatuses,
             id="GitHub PR",
         ),
@@ -286,7 +270,8 @@ def test_set_status_github_check(
             "packit/branch-rpm-build",
             "https://api.packit.dev/build/112/logs",
             CommitStatus.failure,
-            (gitlab.exceptions.GitlabCreateError, (), {"response_code": 403}),
+            GitlabAPIException,
+            {"__cause__": gitlab.GitlabError(response_code=403)},
             StatusReporterGitlab,
             id="branch push",
         ),
@@ -303,16 +288,19 @@ def test_commit_comment_instead_of_status(
     check_name,
     url,
     state_to_set,
-    exception_mock,
+    exception_type,
+    exception_dict,
     status_reporter_type,
 ):
     reporter = status_reporter_type(project, commit_sha, pr_id)
 
-    exception, exception_args, exception_kwargs = exception_mock
+    exception = exception_type()
+    for key, value in exception_dict.items():
+        setattr(exception, key, value)
 
     project.should_receive("set_commit_status").with_args(
         commit_sha, state_to_set, url, description, check_name, trim=True
-    ).and_raise(exception, *exception_args, **exception_kwargs).once()
+    ).and_raise(exception).once()
     project.should_receive("commit_comment").with_args(
         commit=commit_sha,
         body="\n".join(
@@ -395,7 +383,7 @@ def test_report_status_by_comment(
         "pr_id,pr_object,"
         "state,title,summary,"
         "check_name,url,check_status,"
-        "check_conclusion,commit_state_to_set,exception_mock,trigger_id"
+        "check_conclusion,commit_state_to_set,exception_type,trigger_id"
     ),
     [
         pytest.param(
@@ -414,21 +402,7 @@ def test_report_status_by_comment(
             GithubCheckRunStatus.completed,
             GithubCheckRunResult.success,
             CommitStatus.success,
-            (
-                github.GithubException,
-                # https://docs.python.org/3/library/inspect.html#inspect.signature
-                # to account for changes in positional arguments: pygithub 1.55 added headers
-                # as additional positional argument; this creates an iterable and sets None
-                # for every argument of GithubException.__init__ except for 'self'
-                [
-                    None
-                    for param_name, param in signature(
-                        github.GithubException.__init__
-                    ).parameters.items()
-                    if param_name != "self"
-                ],
-                dict(),
-            ),
+            GithubAPIException,
             1,
             id="GitHub PR",
         ),
@@ -447,7 +421,7 @@ def test_status_instead_check(
     check_status,
     check_conclusion,
     commit_state_to_set,
-    exception_mock,
+    exception_type,
     trigger_id,
 ):
     project = GithubProject(None, None, None)
@@ -456,7 +430,6 @@ def test_status_instead_check(
     )
     act_upon = flexmock(GithubProject)
 
-    exception, exception_args, exception_kwargs = exception_mock
     act_upon.should_receive("create_check_run").with_args(
         name=check_name,
         commit_sha=commit_sha,
@@ -465,7 +438,7 @@ def test_status_instead_check(
         status=check_status,
         conclusion=check_conclusion,
         output=create_github_check_run_output(title, summary),
-    ).and_raise(exception, *exception_args, **exception_kwargs).once()
+    ).and_raise(exception_type).once()
 
     act_upon.should_receive("set_commit_status").with_args(
         commit_sha, commit_state_to_set, url, title, check_name, trim=True
