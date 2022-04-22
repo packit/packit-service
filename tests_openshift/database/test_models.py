@@ -352,6 +352,20 @@ def test_copr_get_all_by_owner_project_commit_target(
     )
 
 
+def test_copr_get_all_by_commit(clean_before_and_after, multiple_copr_builds):
+    builds_list = list(
+        CoprBuildTargetModel.get_all_by_commit(commit_sha=SampleValues.ref)
+    )
+    assert len(builds_list) == 3
+    # they should have the same project_name
+    assert (
+        builds_list[0].project_name
+        == builds_list[1].project_name
+        == builds_list[2].project_name
+        == SampleValues.project
+    )
+
+
 def test_multiple_pr_models(clean_before_and_after):
     pr1 = PullRequestModel.get_or_create(
         pr_id=1,

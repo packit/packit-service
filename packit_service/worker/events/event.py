@@ -490,8 +490,7 @@ class AbstractForgeIndependentEvent(Event):
             return None
 
         logger.debug(
-            f"Getting failed Testing Farm targets for repo: {self.project.repo} and "
-            f"commit sha: {self.commit_sha}"
+            f"Getting failed Testing Farm targets for commit sha: {self.commit_sha}"
         )
         return self._filter_failed_models_targets(
             models=TFTTestRunTargetModel.get_all_by_commit_target(
@@ -503,19 +502,14 @@ class AbstractForgeIndependentEvent(Event):
     def get_all_build_targets_by_status(
         self, statuses_to_filter_with: List[str]
     ) -> Optional[Set[str]]:
-        # TODO: get rid of project.repo which is mandatory in `CoprBuildTargetModel.get_all_by`
-        # in this case relevant for us is only commit_sha
         if self.commit_sha is None or self.project.repo is None:
             return None
 
         logger.debug(
-            f"Getting failed COPR build targets for repo: {self.project.repo} and "
-            f"commit sha: {self.commit_sha}"
+            f"Getting failed COPR build targets for commit sha: {self.commit_sha}"
         )
         return self._filter_failed_models_targets(
-            models=CoprBuildTargetModel.get_all_by(
-                project_name=self.project.repo, commit_sha=self.commit_sha
-            ),
+            models=CoprBuildTargetModel.get_all_by_commit(commit_sha=self.commit_sha),
             statuses_to_filter_with=statuses_to_filter_with,
         )
 

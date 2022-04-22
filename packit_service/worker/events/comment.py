@@ -91,7 +91,9 @@ class AbstractPRCommentEvent(AddPullRequestDbTrigger, AbstractCommentEvent):
     def build_targets_override(self) -> Optional[Set[str]]:
         if not self._build_targets_override and "rebuild-failed" in self.comment:
             self._build_targets_override = (
-                super().get_all_build_targets_by_status([PG_BUILD_STATUS_FAILURE])
+                super().get_all_build_targets_by_status(
+                    statuses_to_filter_with=[PG_BUILD_STATUS_FAILURE]
+                )
                 or None
             )
         return self._build_targets_override
@@ -101,7 +103,10 @@ class AbstractPRCommentEvent(AddPullRequestDbTrigger, AbstractCommentEvent):
         if not self._tests_targets_override and "retest-failed" in self.comment:
             self._tests_targets_override = (
                 super().get_all_tf_targets_by_status(
-                    [TestingFarmResult.failed, TestingFarmResult.error]
+                    statuses_to_filter_with=[
+                        TestingFarmResult.failed,
+                        TestingFarmResult.error,
+                    ]
                 )
                 or None
             )
