@@ -7,6 +7,8 @@ This file defines classes for job handlers related to Bodhi
 import logging
 from typing import Optional
 
+from fedora.client import AuthError
+
 from packit.constants import DEFAULT_BODHI_NOTE
 
 from packit.exceptions import PackitException
@@ -133,12 +135,22 @@ class CreateBodhiUpdateHandler(JobHandler):
             issue_repo = self.service_config.get_project(
                 url=self.job_config.issue_repository
             )
-            body = (
-                f"Bodhi update failed to be created for `{self.koji_build_event.nvr}`:\n"
-                "```\n"
-                f"{ex}\n"
-                "```"
-            )
+
+            if isinstance(ex.__cause__, AuthError):
+                body = (
+                    f"Bodhi update creation failed for `{self.koji_build_event.nvr}` "
+                    f"because of the missing permissions.\n\n"
+                    f"Please, give {self.service_config.fas_user} user `commit` rights in the "
+                    f"[dist-git settings]({self.data.project_url}/adduser)."
+                )
+            else:
+                body = (
+                    f"Bodhi update creation failed for `{self.koji_build_event.nvr}`:\n"
+                    "```\n"
+                    f"{ex}\n"
+                    "```"
+                )
+
             PackageConfigGetter.create_issue_if_needed(
                 project=issue_repo,
                 title="Fedora Bodhi update failed to be created",
