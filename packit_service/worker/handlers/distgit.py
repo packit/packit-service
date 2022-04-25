@@ -463,7 +463,7 @@ class DownstreamKojiBuildHandler(JobHandler):
                 url=self.job_config.issue_repository
             )
             body = (
-                f"Koji build on '{self.dg_branch}' branch failed:\n"
+                f"Koji build on `{self.dg_branch}` branch failed:\n"
                 "```\n"
                 f"{ex}\n"
                 "```"
