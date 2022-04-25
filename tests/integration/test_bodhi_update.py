@@ -368,6 +368,7 @@ def test_bodhi_update_auth_error(
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(2)
+    flexmock(Pushgateway).should_receive("push").once().and_return()
 
     bodhi_exception = PackitException("packit exception")
     bodhi_exception.__cause__ = AuthError("auth error")
@@ -419,12 +420,13 @@ def test_bodhi_update_auth_error(
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
-    with pytest.raises(PackitException):
-        run_bodhi_update(
-            package_config=package_config,
-            event=event_dict,
-            job_config=job_config,
-        )
+    results = run_bodhi_update(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
 
 
 def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(

@@ -136,6 +136,7 @@ class CreateBodhiUpdateHandler(JobHandler):
                 url=self.job_config.issue_repository
             )
 
+            known_error = False
             if isinstance(ex.__cause__, AuthError):
                 body = (
                     f"Bodhi update creation failed for `{self.koji_build_event.nvr}` "
@@ -143,6 +144,7 @@ class CreateBodhiUpdateHandler(JobHandler):
                     f"Please, give {self.service_config.fas_user} user `commit` rights in the "
                     f"[dist-git settings]({self.data.project_url}/adduser)."
                 )
+                known_error = True
             else:
                 body = (
                     f"Bodhi update creation failed for `{self.koji_build_event.nvr}`:\n"
@@ -158,5 +160,7 @@ class CreateBodhiUpdateHandler(JobHandler):
                 + f"\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
                 comment_to_existing=body,
             )
-            raise ex
+
+            if not known_error:
+                raise ex
         return TaskResults(success=True, details={})
