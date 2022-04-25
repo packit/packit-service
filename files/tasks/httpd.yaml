@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: MIT
 
 - name: Copy packit.wsgi file
-  copy:
+  ansible.builtin.copy:
     src: packit.wsgi
     dest: /usr/share/packit/packit.wsgi
     mode: 0664
 - name: Copy run_httpd.sh
-  copy:
+  ansible.builtin.copy:
     src: run_httpd.sh
     dest: /usr/bin/run_httpd.sh
     mode: 0775

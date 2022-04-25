@@ -1,39 +1,49 @@
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 # Install dependencies for packit
 - name: Download script setupcfg2rpm.py
-  get_url:
+  ansible.builtin.get_url:
     url: https://raw.githubusercontent.com/packit/deployment/main/scripts/setupcfg2rpm.py
     dest: ./setupcfg2rpm.py
-    mode: "0744"
+    mode: 0775
   register: fetch_setupcfg2rpm
   until: fetch_setupcfg2rpm is not failed
   retries: 6
 
 - name: Download packit spec file
-  get_url:
+  ansible.builtin.get_url:
     url: https://raw.githubusercontent.com/packit/packit/{{ source_branch }}/packit.spec
     dest: ./packit.spec
+    mode: 0664
   register: fetch_packit_spec
   until: fetch_packit_spec is not failed
   retries: 6
 
 - name: Install packit RPM build dependencies from packit.spec
-  shell: dnf builddep packit.spec -y
+  ansible.builtin.command: dnf builddep packit.spec -y
   args:
-    warn: no
+    warn: false
+  changed_when: true
 - name: Install packit RPM runtime dependencies
-  shell: dnf install $(rpmspec -q --requires packit.spec | grep -v 'packit') -y
+  ansible.builtin.shell: |
+    set -o pipefail
+    dnf install $(rpmspec -q --requires packit.spec | grep -v 'packit') -y
   args:
-    warn: no
+    warn: false
   become: true
+  changed_when: true
 
 - name: Download packit setup.cfg
-  get_url:
+  ansible.builtin.get_url:
     url: https://raw.githubusercontent.com/packit/packit/{{ source_branch }}/setup.cfg
     dest: ./packit_setup.cfg
+    mode: 0664
   register: fetch_packit_setup
   until: fetch_packit_setup is not failed
   retries: 6
 
 - name: Install dependencies provided by setupcfg2rpm
-  shell: dnf install $(./setupcfg2rpm.py packit_setup.cfg)
+  ansible.builtin.shell: dnf install $(./setupcfg2rpm.py packit_setup.cfg)
   become: true
+  changed_when: true

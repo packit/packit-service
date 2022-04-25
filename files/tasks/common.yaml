@@ -1,33 +1,38 @@
-# Tasks common to all images
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
 
+# Tasks common to all images
+-
 - name: Create /usr/share/packit
-  file:
+  ansible.builtin.file:
     state: directory
     path: /usr/share/packit
+    mode: 0775
 - name: make packit home dir
-  file:
+  ansible.builtin.file:
     state: directory
     path: "{{ home_path }}"
     mode: 0776
 - name: stat {{ packit_service_path }}
-  stat:
+  ansible.builtin.stat:
     path: "{{ packit_service_path }}"
   tags:
     - no-cache
   register: src_path
 - name: Let's make sure {{ packit_service_path }} is present
-  assert:
+  ansible.builtin.assert:
     that:
       - src_path.stat.isdir
 - name: Install packit-service from {{ packit_service_path }}
-  pip:
+  ansible.builtin.pip:
     name: "{{ packit_service_path }}"
     executable: pip3
 - name: Clean all the cache files (especially pip)
-  file:
+  ansible.builtin.file:
     state: absent
     path: ~/.cache/
 - name: Copy setup_env_in_openshift.sh
-  copy:
+  ansible.builtin.copy:
     src: setup_env_in_openshift.sh
     dest: /usr/bin/setup_env_in_openshift.sh
+    mode: 0775

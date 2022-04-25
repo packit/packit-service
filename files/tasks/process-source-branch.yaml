@@ -1,17 +1,20 @@
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 # Check and if necessary adjust source_branch variable
 
 - name: Fail on empty source_branch variable
-  fail:
+  ansible.builtin.fail:
     msg: Variable source_branch, which is set from env variable SOURCE_BRANCH is empty.
-  when: source_branch == ''
+  when: source_branch | length == 0
 # Docker Hub CI image builds are performed from non contributor's branches (eg. packit:fix_hook),
 #  but we need it to be main or stable
 - name: Change source branch to main if is not main/stable
-  set_fact:
+  ansible.builtin.set_fact:
     source_branch: "main"
   when:
     - source_branch != 'stable'
     - source_branch != 'main'
 - name: Check source_branch value
-  debug:
+  ansible.builtin.debug:
     msg: source_branch is set to {{ source_branch }}

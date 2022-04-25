@@ -25,26 +25,26 @@
       k8s:
         host: "{{ oc_server.stdout }}"
         api_key: "{{ kubeconfig_token.stdout }}"
-        validate_certs: no
+        validate_certs: false
         namespace: "{{ oc_project.stdout }}"
         resource_definition: "{{ lookup('file', './test-src-pvc.yaml') }}"
     - name: Start pod which mounts test-src-pvc to /src
       k8s:
         host: "{{ oc_server.stdout }}"
         api_key: "{{ kubeconfig_token.stdout }}"
-        validate_certs: no
+        validate_certs: false
         namespace: "{{ oc_project.stdout }}"
         resource_definition: "{{ lookup('file', './test-src-mounter.yaml') }}"
     - name: Wait for the pod to be running so we can rsync the files
       k8s:
         host: "{{ oc_server.stdout }}"
         api_key: "{{ kubeconfig_token.stdout }}"
-        validate_certs: no
+        validate_certs: false
         namespace: "{{ oc_project.stdout }}"
         name: mount-src
         api_version: v1
         kind: Pod
-        wait: yes
+        wait: true
         wait_condition:
           type: Ready
         wait_timeout: 100
@@ -54,7 +54,7 @@
       k8s:
         host: "{{ oc_server.stdout }}"
         api_key: "{{ kubeconfig_token.stdout }}"
-        validate_certs: no
+        validate_certs: false
         namespace: "{{ oc_project.stdout }}"
         name: mount-src
         api_version: v1
@@ -65,7 +65,7 @@
       k8s:
         host: "{{ oc_server.stdout }}"
         api_key: "{{ kubeconfig_token.stdout }}"
-        validate_certs: no
+        validate_certs: false
         namespace: "{{ oc_project.stdout }}"
         name: "{{ tests_job_name }}"
         api_version: v1
@@ -75,7 +75,7 @@
       k8s:
         host: "{{ oc_server.stdout }}"
         api_key: "{{ kubeconfig_token.stdout }}"
-        validate_certs: no
+        validate_certs: false
         namespace: "{{ oc_project.stdout }}"
         name: get-requre-data
         api_version: v1
@@ -85,13 +85,13 @@
       k8s:
         host: "{{ oc_server.stdout }}"
         api_key: "{{ kubeconfig_token.stdout }}"
-        validate_certs: no
+        validate_certs: false
         namespace: "{{ oc_project.stdout }}"
         name: test-data-pvc
         api_version: v1
         kind: PersistentVolumeClaim
         state: absent
-        wait: yes
+        wait: true
         wait_condition:
           type: Complete
         wait_timeout: 300
@@ -104,21 +104,21 @@
       k8s:
         host: "{{ oc_server.stdout }}"
         api_key: "{{ kubeconfig_token.stdout }}"
-        validate_certs: no
+        validate_certs: false
         namespace: "{{ oc_project.stdout }}"
         name: "{{ tests_job_name }}"
         api_version: v1
         kind: Job
-        wait: yes
+        wait: true
         wait_condition:
           type: Complete
         wait_timeout: 300
-      ignore_errors: yes # we want to see logs either way
+      ignore_errors: true # we want to see logs either way
     - name: get test results
       k8s_info:
         host: "{{ oc_server.stdout }}"
         api_key: "{{ kubeconfig_token.stdout }}"
-        validate_certs: no
+        validate_certs: false
         namespace: "{{ oc_project.stdout }}"
         kind: Job
         name: "{{ tests_job_name }}"
@@ -136,12 +136,12 @@
       k8s:
         host: "{{ oc_server.stdout }}"
         api_key: "{{ kubeconfig_token.stdout }}"
-        validate_certs: no
+        validate_certs: false
         namespace: "{{ oc_project.stdout }}"
         name: get-requre-data
         api_version: v1
         kind: Pod
-        wait: yes
+        wait: true
         wait_condition:
           type: Ready
         wait_timeout: 100

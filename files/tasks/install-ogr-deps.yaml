@@ -1,24 +1,29 @@
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 # Install dependencies from setup.cfg as rpm packages for ogr
 - name: Download script setupcfg2rpm.py
-  get_url:
+  ansible.builtin.get_url:
     url: https://raw.githubusercontent.com/packit/deployment/main/scripts/setupcfg2rpm.py
     dest: ./setupcfg2rpm.py
-    mode: "0744"
+    mode: 0775
   register: fetch_setupcfg2rpm
   until: fetch_setupcfg2rpm is not failed
   retries: 6
 
 - name: Download ogr setup.cfg
-  get_url:
+  ansible.builtin.get_url:
     # ogr has only main branch
     url: https://raw.githubusercontent.com/packit/ogr/main/setup.cfg
     dest: ./ogr_setup.cfg
+    mode: 0664
   register: fetch_ogr_setup
   until: fetch_ogr_setup is not failed
   retries: 6
 
 - name: Install ogr dependencies provided by setupcfg2rpm
-  shell: dnf install $(./setupcfg2rpm.py ogr_setup.cfg) -y
+  ansible.builtin.shell: dnf install $(./setupcfg2rpm.py ogr_setup.cfg) -y
   args:
-    warn: no
+    warn: false
   become: true
+  changed_when: true
