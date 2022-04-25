@@ -3,6 +3,7 @@
 
 from http import HTTPStatus
 from logging import getLogger
+from typing import Dict
 
 from flask_restx import Namespace, Resource
 
@@ -10,6 +11,7 @@ from packit_service.models import (
     CoprBuildTargetModel,
     KojiBuildTargetModel,
     PipelineModel,
+    ProposeDownstreamModel,
     SRPMBuildModel,
     TFTTestRunTargetModel,
     optional_timestamp,
@@ -23,6 +25,27 @@ from packit_service.service.api.utils import (
 logger = getLogger("packit_service")
 
 ns = Namespace("runs", description="Pipelines")
+
+
+def _add_propose_downstream(run: ProposeDownstreamModel, response_dict: Dict):
+    targets = response_dict["propose_downstream"]
+
+    for target in run.propose_downstream_targets:
+        targets.append(
+            {
+                "packit_id": target.id,
+                "target": target.branch,
+                "status": target.status,
+            }
+        )
+
+    if "trigger" not in response_dict:
+        response_dict["time_submitted"] = optional_timestamp(run.submitted_time)
+        response_dict["trigger"] = get_project_info_from_build(run)
+
+
+def flatten_and_remove_none(ids):
+    return filter(None, map(lambda arr: arr[0], ids))
 
 
 def process_runs(runs):
@@ -45,6 +68,7 @@ def process_runs(runs):
             "copr": [],
             "koji": [],
             "test_run": [],
+            "propose_downstream": [],
         }
 
         srpm_build = SRPMBuildModel.get_by_id(pipeline.srpm_build_id)
@@ -63,7 +87,7 @@ def process_runs(runs):
             ("koji", KojiBuildTargetModel, pipeline.koji_build_id),
             ("test_run", TFTTestRunTargetModel, pipeline.test_run_id),
         ):
-            for packit_id in set(filter(None, map(lambda ids: ids[0], packit_ids))):
+            for packit_id in set(flatten_and_remove_none(packit_ids)):
                 row = Model.get_by_id(packit_id)
                 if row.status == "waiting_for_srpm":
                     continue
@@ -82,6 +106,15 @@ def process_runs(runs):
                     )
                     response_dict["time_submitted"] = optional_timestamp(submitted_time)
                     response_dict["trigger"] = get_project_info_from_build(row)
+
+        # handle propose-downstream
+        if propose_downstream := list(
+            flatten_and_remove_none(pipeline.propose_downstream_run_id)
+        ):
+            _add_propose_downstream(
+                ProposeDownstreamModel.get_by_id(propose_downstream[0]),
+                response_dict,
+            )
 
         result.append(response_dict)
 
@@ -111,7 +144,7 @@ class MergedRun(Resource):
     @ns.response(HTTPStatus.NOT_FOUND.value, "Run ID not found in DB")
     def get(self, id):
         """Return details for merged run."""
-        if result := process_runs([PipelineModel.get_merged_run(id)]):
+        if result := process_runs(filter(None, [PipelineModel.get_merged_run(id)])):
             return response_maker(result[0])
 
         return response_maker(
@@ -135,7 +168,9 @@ class Run(Resource):
 
         result = {
             "run_id": run.id,
-            "trigger": get_project_info_from_build(run.srpm_build),
+            "trigger": get_project_info_from_build(
+                run.srpm_build or run.propose_downstream_run
+            ),
             "srpm_build_id": run.srpm_build_id,
             "copr_build_id": run.copr_build_id,
             "koji_build_id": run.koji_build_id,
