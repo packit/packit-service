@@ -134,7 +134,7 @@ class CreateBodhiUpdateHandler(JobHandler):
                 url=self.job_config.issue_repository
             )
             body = (
-                f"Bodhi update failed to be created for '{self.koji_build_event.nvr}':\n"
+                f"Bodhi update failed to be created for `{self.koji_build_event.nvr}`:\n"
                 "```\n"
                 f"{ex}\n"
                 "```"
