@@ -144,7 +144,7 @@ class MergedRun(Resource):
     @ns.response(HTTPStatus.NOT_FOUND.value, "Run ID not found in DB")
     def get(self, id):
         """Return details for merged run."""
-        if result := process_runs([PipelineModel.get_merged_run(id)]):
+        if result := process_runs(filter(None, [PipelineModel.get_merged_run(id)])):
             return response_maker(result[0])
 
         return response_maker(
