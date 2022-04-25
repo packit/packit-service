@@ -64,13 +64,8 @@ class GithubAppInstallationHandler(JobHandler):
         """
         GithubInstallationModel.create(event=self.installation_event)
         # try to add user to allowlist
-        allowlist = Allowlist(
-            fas_user=self.service_config.fas_user,
-            fas_password=self.service_config.fas_password,
-        )
-        if not allowlist.add_namespace(
-            f"github.com/{self.account_login}", self.sender_login
-        ):
+        allowlist = Allowlist()
+        if not allowlist.add_namespace(f"github.com/{self.account_login}"):
             # Create an issue in our repository, so we are notified when someone install the app
             self.project.create_issue(
                 title=f"{self.account_type} {self.account_login} needs to be approved.",
@@ -79,10 +74,7 @@ class GithubAppInstallationHandler(JobHandler):
                     "order to start using Packit-as-a-Service. "
                     "We are now onboarding Fedora contributors who have a valid "
                     "[Fedora Account System](https://fedoraproject.org/wiki/Account_System) "
-                    "account and have signed "
-                    "[FPCA](https://fedoraproject.org/wiki/Legal"
-                    ":Fedora_Project_Contributor_Agreement). "
-                    "If you have such an account, please, provide it in a comment and "
+                    "account. If you have such an account, please, provide it in a comment and "
                     "we'd be glad to approve you for using the service.\n\n"
                     "For more info, please check out the documentation: "
                     "https://packit.dev/docs/packit-service"
@@ -90,7 +82,9 @@ class GithubAppInstallationHandler(JobHandler):
             )
             msg = f"{self.account_type} {self.account_login} needs to be approved manually!"
         else:
-            msg = f"{self.account_type} {self.account_login} allowlisted!"
+            msg = (
+                f"{self.account_type} {self.account_login} is already on our allowlist."
+            )
 
         logger.info(msg)
         return TaskResults(success=True, details={"msg": msg})
