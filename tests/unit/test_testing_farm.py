@@ -529,6 +529,7 @@ def test_payload(
                 "PACKIT_TARGET_BRANCH": "the-target-branch",
                 "PACKIT_TARGET_SHA": "abcdefgh",
                 "PACKIT_TARGET_URL": "https://github.com/packit/packit",
+                "PACKIT_PR_ID": 123,
             },
         }
     ]

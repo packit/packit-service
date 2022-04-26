@@ -508,6 +508,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
                     "PACKIT_TARGET_BRANCH": "the-target-branch",
                     "PACKIT_SOURCE_URL": "https://github.com/source/bar",
                     "PACKIT_TARGET_URL": "https://github.com/target/bar",
+                    "PACKIT_PR_ID": 24,
                 },
             }
         ],

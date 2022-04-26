@@ -212,6 +212,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "PACKIT_TARGET_BRANCH": self.target_branch,
             "PACKIT_SOURCE_URL": self.source_project_url,
             "PACKIT_TARGET_URL": self.target_project_url,
+            "PACKIT_PR_ID": self.pr_id,
         }
         predefined_environment = {
             k: v for k, v in predefined_environment.items() if v is not None
