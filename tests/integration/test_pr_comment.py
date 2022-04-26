@@ -871,6 +871,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
                     "PACKIT_TARGET_BRANCH": "the-target-branch",
                     "PACKIT_SOURCE_URL": "https://github.com/someone/hello-world",
                     "PACKIT_TARGET_URL": "https://github.com/packit-service/hello-world",
+                    "PACKIT_PR_ID": 9,
                 },
             }
         ],
