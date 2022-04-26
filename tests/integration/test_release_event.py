@@ -120,7 +120,7 @@ def test_dist_git_push_release_handle(
     ServiceConfig().get_service_config().get_project = lambda url: project
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="main", tag="0.3.0"
+        dist_git_branch="main", tag="0.3.0", create_pr=True
     ).and_return(flexmock(url="some_url")).once()
     flexmock(PackitAPI).should_receive("clean")
 
@@ -224,7 +224,7 @@ def test_dist_git_push_release_handle_multiple_branches(
 
     for branch in fedora_branches:
         flexmock(PackitAPI).should_receive("sync_release").with_args(
-            dist_git_branch=branch, tag="0.3.0"
+            dist_git_branch=branch, tag="0.3.0", create_pr=True
         ).and_return(flexmock(url="some_url")).once()
 
     flexmock(model).should_receive("set_status").with_args(
@@ -337,11 +337,11 @@ def test_dist_git_push_release_handle_one_failed(
     for i, branch in enumerate(fedora_branches):
         if i == 1:
             flexmock(PackitAPI).should_receive("sync_release").with_args(
-                dist_git_branch=branch, tag="0.3.0"
+                dist_git_branch=branch, tag="0.3.0", create_pr=True
             ).and_raise(Exception, f"Failed {branch}").once()
         else:
             flexmock(PackitAPI).should_receive("sync_release").with_args(
-                dist_git_branch=branch, tag="0.3.0"
+                dist_git_branch=branch, tag="0.3.0", create_pr=True
             ).and_return(flexmock(url="some_url")).once()
 
     flexmock(model).should_receive("set_status").with_args(
@@ -606,7 +606,7 @@ def test_retry_propose_downstream_task(
     flexmock(Signature).should_receive("apply_async").once()
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="main", tag="0.3.0"
+        dist_git_branch="main", tag="0.3.0", create_pr=True
     ).and_raise(
         RebaseHelperError, "Failed to download file from URL example.com"
     ).once()
@@ -704,7 +704,7 @@ def test_dont_retry_propose_downstream_task(
     flexmock(Signature).should_receive("apply_async").once()
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="main", tag="0.3.0"
+        dist_git_branch="main", tag="0.3.0", create_pr=True
     ).and_raise(
         RebaseHelperError, "Failed to download file from URL example.com"
     ).once()
