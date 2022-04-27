@@ -309,6 +309,9 @@ class SteveJobs:
         For the upstream events report the initial status "Task was accepted" to
         inform user we are working on the request. Measure the time how much did it
         take to set the status from the time when the event was triggered.
+
+        Args:
+
         """
         number_of_build_targets = None
         if isinstance(
@@ -371,9 +374,14 @@ class SteveJobs:
             task_accepted_time, event, handler, number_of_build_targets
         )
 
-    def process_jobs(self, event: Event) -> List[TaskResults]:
+    def is_packit_config_present(self, event: Event):
         """
-        Create a Celery task for a job handler (if trigger matches) for every job defined in config.
+        Set fail_when_config_file_missing if we handle comment events so that
+        we notify user about not present config and check whether the config
+        is present.
+
+        Returns:
+            whether the Packit configuration is present in the repo
         """
         if isinstance(event, AbstractCommentEvent) and get_packit_commands_from_comment(
             event.comment,
@@ -385,6 +393,15 @@ class SteveJobs:
         if not event.package_config:
             # this happens when service receives events for repos which don't have packit config
             # success=True - it's not an error that people don't have packit.yaml in their repo
+            return False
+
+        return True
+
+    def process_jobs(self, event: Event) -> List[TaskResults]:
+        """
+        Create Celery tasks for a job handler (if trigger matches) for every job defined in config.
+        """
+        if not self.is_packit_config_present(event):
             return [
                 TaskResults.create_from(
                     success=True,
@@ -438,54 +455,100 @@ class SteveJobs:
                     )
                 return processing_results
 
-            signatures = []
-
-            # we want to run handlers for all possible jobs, not just the first one
-            for job_config in job_configs:
-                if self.service_config.deployment not in job_config.packit_instances:
-                    logger.debug(
-                        f"Current deployment ({self.service_config.deployment}) "
-                        f"does not match the job configuration ({job_config.packit_instances}). "
-                        "The job will not be run."
-                    )
-                    continue
-
-                handler = handler_kls(
-                    package_config=event.package_config,
-                    job_config=job_config,
-                    event=event.get_dict(),
-                )
-                if not handler.pre_check():
-                    continue
-
-                if event.actor and not handler.check_if_actor_can_run_job_and_report(
-                    actor=event.actor
-                ):
-                    # For external contributors, we need to be more careful when running jobs.
-                    # This is a handler-specific permission check
-                    # for a user who trigger the action on a PR.
-                    # e.g. We don't allow using internal TF for external contributors.
-                    continue
-
-                self.report_task_accepted(
-                    event=event, handler=handler, job_config=job_config
-                )
-
-                signatures.append(
-                    handler_kls.get_signature(event=event, job=job_config)
-                )
-                processing_results.append(
-                    TaskResults.create_from(
-                        success=True,
-                        msg="Job created.",
-                        job_config=job_config,
-                        event=event,
-                    )
-                )
-            # https://docs.celeryproject.org/en/stable/userguide/canvas.html#groups
-            group(signatures).apply_async()
+            processing_results.extend(
+                self.create_tasks(event, job_configs, handler_kls)
+            )
 
         return processing_results
+
+    def create_tasks(
+        self, event: Event, job_configs: List[JobConfig], handler_kls: Type[JobHandler]
+    ) -> List[TaskResults]:
+        """ """
+        processing_results: List[TaskResults] = []
+        signatures = []
+        # we want to run handlers for all possible jobs, not just the first one
+        for job_config in job_configs:
+            if self.service_config.deployment not in job_config.packit_instances:
+                logger.debug(
+                    f"Current deployment ({self.service_config.deployment}) "
+                    f"does not match the job configuration ({job_config.packit_instances}). "
+                    "The job will not be run."
+                )
+                continue
+
+            handler = handler_kls(
+                package_config=event.package_config,
+                job_config=job_config,
+                event=event.get_dict(),
+            )
+            if not handler.pre_check():
+                continue
+
+            if event.actor and not handler.check_if_actor_can_run_job_and_report(
+                actor=event.actor
+            ):
+                # For external contributors, we need to be more careful when running jobs.
+                # This is a handler-specific permission check
+                # for a user who trigger the action on a PR.
+                # e.g. We don't allow using internal TF for external contributors.
+                continue
+
+            self.report_task_accepted(
+                event=event, handler=handler, job_config=job_config
+            )
+
+            signatures.append(handler_kls.get_signature(event=event, job=job_config))
+            processing_results.append(
+                TaskResults.create_from(
+                    success=True,
+                    msg="Job created.",
+                    job_config=job_config,
+                    event=event,
+                )
+            )
+        # https://docs.celeryproject.org/en/stable/userguide/canvas.html#groups
+        group(signatures).apply_async()
+        return processing_results
+
+    def is_project_public_or_enabled_private(self, event: Event) -> bool:
+        """
+        Checks whether the project is public or if it is private, explicitly enabled
+        in our service configuration.
+
+        Args:
+            event: Event which we are reacting to.
+
+        Returns:
+            True if the project is public or enabled in our service config,
+            False otherwise.
+        """
+        # CoprBuildEvent.get_project returns None when the build id is not known
+        if not event.project:
+            logger.warning(
+                "Cannot obtain project from this event! "
+                "Skipping private repository check!"
+            )
+        elif event.project.is_private():
+            service_with_namespace = (
+                f"{event.project.service.hostname}/" f"{event.project.namespace}"
+            )
+            if (
+                service_with_namespace
+                not in self.service_config.enabled_private_namespaces
+            ):
+                logger.info(
+                    f"We do not interact with private repositories by default. "
+                    f"Add `{service_with_namespace}` to the `enabled_private_namespaces` "
+                    f"in the service configuration."
+                )
+                return False
+            logger.debug(
+                f"Working in `{service_with_namespace}` namespace "
+                f"which is private but enabled via configuration."
+            )
+
+        return True
 
     def process_message(
         self, event: dict, topic: str = None, source: str = None
@@ -493,9 +556,13 @@ class SteveJobs:
         """
         Entrypoint for message processing.
 
-        :param event:  dict with webhook/fed-mes payload
-        :param topic:  meant to be a topic provided by messaging subsystem (fedmsg, mqqt)
-        :param source: source of message
+        Args:
+            event:  dict with webhook/fed-mes payload
+            topic:  meant to be a topic provided by messaging subsystem (fedmsg, mqqt)
+            source: source of message
+
+        Returns:
+
         """
 
         if topic:
@@ -519,31 +586,8 @@ class SteveJobs:
         if not (event_object and event_object.pre_check()):
             return []
 
-        # CoprBuildEvent.get_project returns None when the build id is not known
-        if not event_object.project:
-            logger.warning(
-                "Cannot obtain project from this event! "
-                "Skipping private repository check!"
-            )
-        elif event_object.project.is_private():
-            service_with_namespace = (
-                f"{event_object.project.service.hostname}/"
-                f"{event_object.project.namespace}"
-            )
-            if (
-                service_with_namespace
-                not in self.service_config.enabled_private_namespaces
-            ):
-                logger.info(
-                    f"We do not interact with private repositories by default. "
-                    f"Add `{service_with_namespace}` to the `enabled_private_namespaces` "
-                    f"in the service configuration."
-                )
-                return []
-            logger.debug(
-                f"Working in `{service_with_namespace}` namespace "
-                f"which is private but enabled via configuration."
-            )
+        if not self.is_project_public_or_enabled_private(event_object):
+            return []
 
         handler: Union[
             GithubAppInstallationHandler,
