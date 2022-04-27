@@ -7,7 +7,7 @@ We love you, Steve Jobs.
 import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
-from typing import List, Set, Type, Union
+from typing import List, Set, Type
 
 from celery import group
 
@@ -31,13 +31,10 @@ from packit_service.worker.events import (
 from packit_service.worker.events.comment import AbstractCommentEvent
 from packit_service.worker.handlers import (
     CoprBuildHandler,
-    CoprBuildEndHandler,
-    CoprBuildStartHandler,
     GithubAppInstallationHandler,
     GithubFasVerificationHandler,
     KojiBuildHandler,
     TestingFarmHandler,
-    TestingFarmResultsHandler,
     ProposeDownstreamHandler,
 )
 from packit_service.worker.handlers.abstract import (
@@ -441,17 +438,15 @@ class SteveJobs:
                 service_config=self.service_config,
                 job_configs=job_configs,
             ):
-                processing_results = []
-                for job_config in job_configs:
-                    processing_results.append(
-                        TaskResults.create_from(
-                            success=False,
-                            msg="Account is not allowlisted!",
-                            job_config=job_config,
-                            event=event,
-                        )
+                return [
+                    TaskResults.create_from(
+                        success=False,
+                        msg="Account is not allowlisted!",
+                        job_config=job_config,
+                        event=event,
                     )
-                return processing_results
+                    for job_config in job_configs
+                ]
 
             processing_results.extend(
                 self.create_tasks(event, job_configs, handler_kls)
@@ -548,9 +543,7 @@ class SteveJobs:
 
         return True
 
-    def process_message(
-        self, event: dict, topic: str = None, source: str = None
-    ) -> List[TaskResults]:
+    def process_message(self, event: dict) -> List[TaskResults]:
         """
         Entrypoint for message processing.
 
@@ -562,8 +555,7 @@ class SteveJobs:
         Returns:
 
         """
-        event_object: Any
-        event_object = Parser.parse_event(event)
+        event_object: Any = Parser.parse_event(event)
 
         if not (event_object and event_object.pre_check()):
             return []
@@ -571,12 +563,6 @@ class SteveJobs:
         if not self.is_project_public_or_enabled_private(event_object):
             return []
 
-        handler: Union[
-            GithubAppInstallationHandler,
-            TestingFarmResultsHandler,
-            CoprBuildStartHandler,
-            CoprBuildEndHandler,
-        ]
         processing_results = None
 
         # installation is handled differently b/c app is installed to GitHub account
