@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Iterable, List, Optional, Set, Tuple
 
-from copr.v3 import CoprRequestException
+from copr.v3 import CoprAuthException, CoprRequestException
 
 from ogr.abstract import GitProject
 from ogr.parsing import parse_git_repo
@@ -452,7 +452,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     },
                 )
 
-        except CoprRequestException as ex:
+        except (CoprRequestException, CoprAuthException) as ex:
             if "You don't have permissions to build in this copr." in str(
                 ex
             ) or "is not allowed to build in the copr" in str(ex):
