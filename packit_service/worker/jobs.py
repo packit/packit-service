@@ -24,14 +24,12 @@ from packit_service.worker.events import (
     Event,
     EventData,
     PullRequestCommentPagureEvent,
-    MergeRequestGitlabEvent,
     InstallationEvent,
     CheckRerunEvent,
     IssueCommentEvent,
 )
 from packit_service.worker.events.comment import AbstractCommentEvent
 from packit_service.worker.handlers import (
-    BugzillaHandler,
     CoprBuildHandler,
     CoprBuildEndHandler,
     CoprBuildStartHandler,
@@ -580,14 +578,6 @@ class SteveJobs:
             CoprBuildEndHandler,
         ]
         processing_results = None
-
-        # Bugzilla handler is run even the job is not configured in a package.
-        # This's not in the condition below because we want to run process_jobs() as well.
-        if isinstance(event_object, MergeRequestGitlabEvent):
-            BugzillaHandler.get_signature(
-                event=event_object,
-                job=None,
-            ).apply_async()
 
         # installation is handled differently b/c app is installed to GitHub account
         # not repository, so package config with jobs is missing
