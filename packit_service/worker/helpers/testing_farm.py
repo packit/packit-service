@@ -99,7 +99,13 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     def fmf_url(self) -> str:
         return (
             self.job_config.metadata.fmf_url
-            or self.project.get_pr(self.metadata.pr_id).source_project.get_web_url()
+            or (
+                self.metadata.pr_id
+                and self.project.get_pr(
+                    self.metadata.pr_id
+                ).source_project.get_web_url()
+            )
+            or self.project.get_web_url()
         )
 
     @property
