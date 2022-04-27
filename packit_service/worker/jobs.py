@@ -564,22 +564,6 @@ class SteveJobs:
         Returns:
 
         """
-
-        if topic:
-            # TODO: Check if we really use it.
-            #  Ideally, we don't want to mix implementation and events
-            #  (topics are related to events).
-            # let's pre-filter messages: we don't need to get debug logs from processing
-            # messages when we know beforehand that we are not interested in messages for such topic
-            topics = [
-                getattr(handler, "topic", None)
-                for handler in JobHandler.get_all_subclasses()
-            ]
-
-            if topic not in topics:
-                logger.debug(f"{topic} not in {topics}")
-                return []
-
         event_object: Any
         event_object = Parser.parse_event(event)
 
