@@ -104,6 +104,7 @@ def is_handler_matching_the_event(
         handler: Handler which we are observing whether it is matching to job.
         allowed_handlers: Set of handlers that are triggered by a comment or check rerun
          job.
+
     """
     handler_matches_to_comment_or_check_rerun_job = (
         allowed_handlers is None or handler in allowed_handlers
@@ -194,6 +195,16 @@ def get_handlers_for_event(
 def get_handlers_for_comment(
     comment: str, packit_comment_command_prefix: str
 ) -> Set[Type[JobHandler]]:
+    """
+    Get handlers for the given command respecting packit_comment_command_prefix.
+
+    Args:
+        comment: comment we are reacting to
+        packit_comment_command_prefix: `/packit` for packit-prod or `/packit-stg` for stg
+
+    Returns:
+        Set of handlers that are triggered by a comment.
+    """
     commands = get_packit_commands_from_comment(comment, packit_comment_command_prefix)
     if not commands:
         return set()
@@ -205,6 +216,15 @@ def get_handlers_for_comment(
 
 
 def get_handlers_for_check_rerun(check_name_job: str) -> Set[Type[JobHandler]]:
+    """
+    Get handlers for the given check name.
+
+    Args:
+        check_name_job: check name we are reacting to
+
+    Returns:
+        Set of handlers that are triggered by a check rerun.
+    """
     handlers = MAP_CHECK_PREFIX_TO_HANDLER[check_name_job]
     if not handlers:
         logger.debug(
@@ -229,10 +249,13 @@ def get_config_for_handler_kls(
     Examples of the matching can be found in the tests:
     ./tests/unit/test_jobs.py:test_get_config_for_handler_kls
 
-    :param handler_kls: class that will use the JobConfig
-    :param event: which we are reacting to
-    :param package_config: we pick the JobConfig(s) from this package_config instance
-    :return: list of JobConfigs relevant to the given handler and event
+    Args:
+        handler_kls: Handler class that will use the JobConfig.
+        event: Event which we are reacting to.
+        package_config: we pick the JobConfig(s) from this package_config instance
+
+    Returns:
+         list of JobConfigs relevant to the given handler and event
              preserving the order in the config
     """
     jobs_matching_trigger: List[JobConfig] = get_jobs_matching_event(
@@ -265,6 +288,16 @@ def push_initial_metrics(
     handler: JobHandler,
     number_of_build_targets: Optional[int] = None,
 ):
+    """
+    Push the metrics about the time of setting initial status and possibly number
+    of queued Copr builds.
+
+    Args:
+        task_accepted_time: Time when we put the initial status.
+        event: Event which we are reacting to.
+        handler: Handler that is being used.
+        number_of_build_targets: Number of build targets in case of CoprBuildHandler.
+    """
     pushgateway = Pushgateway()
     response_time = measure_time(end=task_accepted_time, begin=event.created_at)
     logger.debug(f"Reporting initial status time: {response_time} seconds.")
@@ -306,7 +339,9 @@ class SteveJobs:
         take to set the status from the time when the event was triggered.
 
         Args:
-
+            event: Event which we are reacting to.
+            handler: Handler that is being used.
+            job_config: Job config that is being used.
         """
         number_of_build_targets = None
         if isinstance(
@@ -375,8 +410,11 @@ class SteveJobs:
         we notify user about not present config and check whether the config
         is present.
 
+        Args:
+            event: Event which we are reacting to.
+
         Returns:
-            whether the Packit configuration is present in the repo
+            Whether the Packit configuration is present in the repo.
         """
         if isinstance(event, AbstractCommentEvent) and get_packit_commands_from_comment(
             event.comment,
@@ -457,7 +495,14 @@ class SteveJobs:
     def create_tasks(
         self, event: Event, job_configs: List[JobConfig], handler_kls: Type[JobHandler]
     ) -> List[TaskResults]:
-        """ """
+        """
+        Create handler tasks for handler and job configs.
+
+        Args:
+            event: Event which we are reacting to.
+            job_configs: Matching job configs.
+            handler_kls: Handler class that will be used.
+        """
         processing_results: List[TaskResults] = []
         signatures = []
         # we want to run handlers for all possible jobs, not just the first one
@@ -553,7 +598,7 @@ class SteveJobs:
             source: source of message
 
         Returns:
-
+            List of results of the processing tasks.
         """
         event_object: Any = Parser.parse_event(event)
 
