@@ -507,8 +507,9 @@ class AbstractForgeIndependentEvent(Event):
 
         return list(most_recent_models.values())
 
-    @staticmethod
+    @classmethod
     def _filter_most_recent_models_targets_by_status(
+        cls,
         models: Union[
             Optional[Iterable[CoprBuildTargetModel]],
             Optional[Iterable[TFTTestRunTargetModel]],
@@ -519,7 +520,7 @@ class AbstractForgeIndependentEvent(Event):
             f"Trying to filter targets with possible status: {statuses_to_filter_with} in {models}"
         )
         failed_models_targets = set()
-        for model in models:
+        for model in cls.get_most_recent_targets(models):
             if model.status in statuses_to_filter_with:
                 failed_models_targets.add(model.target)
 
