@@ -1456,16 +1456,16 @@ class TestEvents:
         )
         assert len(latest_copr_models) == 1
         assert datetime.utcnow() - latest_copr_models[
-            "target"
+            0
         ].build_submitted_time < timedelta(seconds=2)
 
         latest_tf_models = AbstractForgeIndependentEvent.get_most_recent_targets(
             tf_models
         )
         assert len(latest_tf_models) == 1
-        assert datetime.utcnow() - latest_tf_models[
-            "target"
-        ].submitted_time < timedelta(seconds=2)
+        assert datetime.utcnow() - latest_tf_models[0].submitted_time < timedelta(
+            seconds=2
+        )
 
 
 class TestCentOSEventParser:

@@ -1,5 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
+from operator import attrgetter
 
 from flexmock import flexmock
 from ogr.services.github import GithubProject
@@ -459,17 +460,20 @@ def test_filter_failed_models_targets_copr(
     assert builds_list[0].target != builds_list[2].target
     # 2 builds with failed status and one with success
     builds_list[0].set_status(PG_BUILD_STATUS_FAILURE)
+    builds_list[1].set_status(PG_BUILD_STATUS_FAILURE)
     builds_list[2].set_status(PG_BUILD_STATUS_FAILURE)
 
-    assert (
-        len(
-            AbstractForgeIndependentEvent._filter_most_recent_models_targets_by_status(
-                models=builds_list,
-                statuses_to_filter_with=[PG_BUILD_STATUS_FAILURE],
-            )
+    filtered_models = (
+        AbstractForgeIndependentEvent._filter_most_recent_models_targets_by_status(
+            models=builds_list,
+            statuses_to_filter_with=[PG_BUILD_STATUS_FAILURE],
         )
-        == 2
     )
+
+    assert len(filtered_models) == 2  # we don't do duplicate models here
+
+    most_recent_duplicate = max(builds_list[:2], key=attrgetter("build_submitted_time"))
+    assert most_recent_duplicate.target in filtered_models
 
 
 def test_filter_failed_models_targets_tf(
@@ -485,16 +489,19 @@ def test_filter_failed_models_targets_tf(
     # 2 builds with failed status and one with success
     test_list[0].set_status(TestingFarmResult.failed)
     test_list[1].set_status(TestingFarmResult.error)
+    test_list[2].set_status(TestingFarmResult.failed)
 
-    assert (
-        len(
-            AbstractForgeIndependentEvent._filter_most_recent_models_targets_by_status(
-                models=test_list,
-                statuses_to_filter_with=[
-                    TestingFarmResult.failed,
-                    TestingFarmResult.error,
-                ],
-            )
+    filtered_models = (
+        AbstractForgeIndependentEvent._filter_most_recent_models_targets_by_status(
+            models=test_list,
+            statuses_to_filter_with=[
+                TestingFarmResult.failed,
+                TestingFarmResult.error,
+            ],
         )
-        == 2
     )
+
+    assert len(filtered_models) == 2  # we don't do duplicates here
+
+    most_recent_duplicate = max(test_list[1:3], key=attrgetter("submitted_time"))
+    assert most_recent_duplicate.target in filtered_models
