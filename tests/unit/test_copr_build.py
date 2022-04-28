@@ -908,7 +908,10 @@ def test_copr_build_for_release(release_event):
     )
     flexmock(CoprBuildTargetModel).should_receive("create").and_return(flexmock(id=1))
 
-    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+    flexmock(PackitAPI).should_receive("create_srpm").with_args(
+        srpm_dir=None,
+        bump_version=False,
+    ).and_return("my.srpm")
 
     # copr build
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
