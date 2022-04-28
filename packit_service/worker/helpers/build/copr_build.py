@@ -383,6 +383,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 else None,
                 job_config_index=self.get_job_config_index(),
                 bump_version=self.job_config.trigger != JobConfigTriggerType.release,
+                release_suffix=self.job_config.release_suffix,
             )
             build_id, web_url = self.submit_copr_build(script=script)
         except Exception as ex:

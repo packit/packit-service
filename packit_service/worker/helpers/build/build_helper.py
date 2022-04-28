@@ -412,6 +412,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                     srpm_dir=self.api.up.local_project.working_dir,
                     bump_version=self.job_config.trigger
                     != JobConfigTriggerType.release,
+                    release_suffix=self.job_config.release_suffix,
                 )
             )
         except SandcastleTimeoutReached as ex:
