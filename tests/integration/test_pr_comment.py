@@ -1256,7 +1256,7 @@ def test_rebuild_failed(
         {"some_target"}
     )
     flexmock(AbstractForgeIndependentEvent).should_receive(
-        "_filter_failed_models_targets"
+        "_filter_most_recent_models_targets_by_status"
     ).with_args(
         models=[model], statuses_to_filter_with=[PG_BUILD_STATUS_FAILURE]
     ).and_return(
@@ -1344,7 +1344,7 @@ def test_retest_failed(
         {"some_tf_target"}
     )
     flexmock(AbstractForgeIndependentEvent).should_receive(
-        "_filter_failed_models_targets"
+        "_filter_most_recent_models_targets_by_status"
     ).with_args(
         models=[model],
         statuses_to_filter_with=[TestingFarmResult.failed, TestingFarmResult.error],

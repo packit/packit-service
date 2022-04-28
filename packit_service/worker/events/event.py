@@ -465,7 +465,50 @@ class AbstractForgeIndependentEvent(Event):
         return package_config
 
     @staticmethod
-    def _filter_failed_models_targets(
+    def _get_submitted_time_from_model(
+        model: Union[CoprBuildTargetModel, TFTTestRunTargetModel]
+    ) -> datetime:
+        # TODO: unify `submitted_name` (or better -> create for both models `task_accepted_time`)
+        # to delete this mess plz
+        if isinstance(model, CoprBuildTargetModel):
+            return model.build_submitted_time
+
+        return model.submitted_time
+
+    @classmethod
+    def get_most_recent_targets(
+        cls,
+        models: Union[
+            Optional[Iterable[CoprBuildTargetModel]],
+            Optional[Iterable[TFTTestRunTargetModel]],
+        ],
+    ) -> List[Union[CoprBuildTargetModel, TFTTestRunTargetModel]]:
+        """
+        Gets most recent models from an iterable (regarding submission time).
+
+        Args:
+            models: Copr or TF models - if there are any duplicates in them then use the most
+             recent model
+
+        Returns:
+            Dictionary - target as a key and corresponding most recent model as a value.
+        """
+        most_recent_models: Dict[
+            str, Union[CoprBuildTargetModel, TFTTestRunTargetModel]
+        ] = {}
+        for model in models:
+            submitted_time_of_current_model = cls._get_submitted_time_from_model(model)
+            if (
+                most_recent_models.get(model.target) is None
+                or cls._get_submitted_time_from_model(most_recent_models[model.target])
+                < submitted_time_of_current_model
+            ):
+                most_recent_models[model.target] = model
+
+        return list(most_recent_models.values())
+
+    @staticmethod
+    def _filter_most_recent_models_targets_by_status(
         models: Union[
             Optional[Iterable[CoprBuildTargetModel]],
             Optional[Iterable[TFTTestRunTargetModel]],
@@ -492,7 +535,7 @@ class AbstractForgeIndependentEvent(Event):
         logger.debug(
             f"Getting failed Testing Farm targets for commit sha: {self.commit_sha}"
         )
-        return self._filter_failed_models_targets(
+        return self._filter_most_recent_models_targets_by_status(
             models=TFTTestRunTargetModel.get_all_by_commit_target(
                 commit_sha=self.commit_sha
             ),
@@ -508,7 +551,7 @@ class AbstractForgeIndependentEvent(Event):
         logger.debug(
             f"Getting failed COPR build targets for commit sha: {self.commit_sha}"
         )
-        return self._filter_failed_models_targets(
+        return self._filter_most_recent_models_targets_by_status(
             models=CoprBuildTargetModel.get_all_by_commit(commit_sha=self.commit_sha),
             statuses_to_filter_with=statuses_to_filter_with,
         )

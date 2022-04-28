@@ -463,7 +463,7 @@ def test_filter_failed_models_targets_copr(
 
     assert (
         len(
-            AbstractForgeIndependentEvent._filter_failed_models_targets(
+            AbstractForgeIndependentEvent._filter_most_recent_models_targets_by_status(
                 models=builds_list,
                 statuses_to_filter_with=[PG_BUILD_STATUS_FAILURE],
             )
@@ -488,7 +488,7 @@ def test_filter_failed_models_targets_tf(
 
     assert (
         len(
-            AbstractForgeIndependentEvent._filter_failed_models_targets(
+            AbstractForgeIndependentEvent._filter_most_recent_models_targets_by_status(
                 models=test_list,
                 statuses_to_filter_with=[
                     TestingFarmResult.failed,
