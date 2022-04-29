@@ -736,3 +736,47 @@ def test_trigger_build(copr_build, run_new_build):
         job_config_trigger_type=JobConfigTriggerType.pull_request
     )
     tf_handler.run()
+
+
+@pytest.mark.parametrize(
+    ("metadata_url", "pr_id", "fmf_url"),
+    [
+        # custom set URL
+        ("https://custom.xyz/mf/fmf/", None, "https://custom.xyz/mf/fmf/"),
+        # PR, from fork
+        (None, 42, "https://github.com/mf/packit"),
+        # if from branch
+        (None, None, "https://github.com/packit/packit"),
+    ],
+)
+def test_fmf_url(metadata_url, pr_id, fmf_url):
+    job_config = flexmock(type=JobType.tests, metadata=flexmock(fmf_url=metadata_url))
+    metadata = flexmock(pr_id=pr_id)
+
+    git_project = flexmock()
+    if metadata_url is not None:
+        git_project.should_receive("get_pr").never()
+    elif pr_id is not None:
+        git_project.should_receive("get_pr").with_args(pr_id).and_return(
+            flexmock(
+                source_project=flexmock()
+                .should_receive("get_web_url")
+                .and_return(fmf_url)
+                .mock()
+            )
+        )
+    else:
+        git_project.should_receive("get_web_url").and_return(
+            "https://github.com/packit/packit"
+        ).once()
+
+    helper = TFJobHelper(
+        service_config=flexmock(comment_command_prefix="/packit-dev"),
+        package_config=flexmock(jobs=[]),
+        project=git_project,
+        metadata=metadata,
+        db_trigger=flexmock(),
+        job_config=job_config,
+    )
+
+    assert helper.fmf_url == fmf_url
