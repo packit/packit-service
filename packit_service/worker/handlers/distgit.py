@@ -175,7 +175,7 @@ class ProposeDownstreamHandler(JobHandler):
     ) -> Optional[PullRequest]:
         try:
             downstream_pr = self.api.sync_release(
-                dist_git_branch=branch, tag=self.data.tag_name
+                dist_git_branch=branch, tag=self.data.tag_name, create_pr=True
             )
         except Exception as ex:
             # the archive has not been uploaded to PyPI yet
@@ -319,16 +319,15 @@ class ProposeDownstreamHandler(JobHandler):
                     downstream_pr = self.sync_branch(
                         branch=branch, model=propose_downstream_model
                     )
-                    if downstream_pr is not None:
-                        logger.debug("Downstream PR created successfully.")
-                        model.set_downstream_pr_url(downstream_pr_url=downstream_pr.url)
-                        model.set_status(status=ProposeDownstreamTargetStatus.submitted)
-                        self.propose_downstream_helper.report_status_to_branch(
-                            branch=branch,
-                            description="Propose downstream finished successfully.",
-                            state=BaseCommitStatus.success,
-                            url=url,
-                        )
+                    logger.debug("Downstream PR created successfully.")
+                    model.set_downstream_pr_url(downstream_pr_url=downstream_pr.url)
+                    model.set_status(status=ProposeDownstreamTargetStatus.submitted)
+                    self.propose_downstream_helper.report_status_to_branch(
+                        branch=branch,
+                        description="Propose downstream finished successfully.",
+                        state=BaseCommitStatus.success,
+                        url=url,
+                    )
                 except AbortProposeDownstream:
                     logger.debug(
                         "Propose downstream is being retried because "
