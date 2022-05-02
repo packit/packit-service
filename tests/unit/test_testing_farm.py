@@ -5,7 +5,6 @@ from datetime import datetime
 import pytest
 from flexmock import flexmock
 from packit.config import JobConfig, JobType, JobConfigTriggerType
-from packit.config.job_config import JobMetadataConfig
 from packit.local_project import LocalProject
 
 import packit_service.service.urls as urls
@@ -183,7 +182,7 @@ def test_distro2compose(distro, compose, use_internal_tf):
         job_config=JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(use_internal_tf=use_internal_tf),
+            use_internal_tf=use_internal_tf,
         ),
     )
     job_helper = flexmock(job_helper)
@@ -215,7 +214,7 @@ def test_distro2compose_for_aarch64(distro, arch, compose, use_internal_tf):
         job_config=JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(use_internal_tf=use_internal_tf),
+            use_internal_tf=use_internal_tf,
         ),
     )
     job_helper = flexmock(job_helper)
@@ -466,7 +465,7 @@ def test_payload(
         job_config=JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(use_internal_tf=use_internal_tf),
+            use_internal_tf=use_internal_tf,
         ),
     )
 
@@ -621,7 +620,8 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
         job_config=JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(fmf_url=fmf_url, fmf_ref=fmf_ref),
+            fmf_url=fmf_url,
+            fmf_ref=fmf_ref,
         ),
     )
     job_helper = flexmock(job_helper)
@@ -699,11 +699,11 @@ def test_trigger_build(copr_build, run_new_build):
     valid_commit_sha = "1111111111111111111111111111111111111111"
 
     package_config = PackageConfig()
-    job_config = flexmock()
-    job_config.type = JobType.tests
-    job_config.spec_source_id = 1
-    job_config.metadata = JobMetadataConfig()
-    job_config.trigger = JobConfigTriggerType.pull_request
+    job_config = JobConfig(
+        type=JobType.tests,
+        spec_source_id=1,
+        trigger=JobConfigTriggerType.pull_request,
+    )
     job_config._files_to_sync_used = False
     package_config.jobs = [job_config]
     package_config.spec_source_id = 1
@@ -739,7 +739,7 @@ def test_trigger_build(copr_build, run_new_build):
 
 
 @pytest.mark.parametrize(
-    ("metadata_url", "pr_id", "fmf_url"),
+    ("job_fmf_url", "pr_id", "fmf_url"),
     [
         # custom set URL
         ("https://custom.xyz/mf/fmf/", None, "https://custom.xyz/mf/fmf/"),
@@ -749,12 +749,16 @@ def test_trigger_build(copr_build, run_new_build):
         (None, None, "https://github.com/packit/packit"),
     ],
 )
-def test_fmf_url(metadata_url, pr_id, fmf_url):
-    job_config = flexmock(type=JobType.tests, metadata=flexmock(fmf_url=metadata_url))
+def test_fmf_url(job_fmf_url, pr_id, fmf_url):
+    job_config = JobConfig(
+        trigger=JobConfigTriggerType.pull_request,
+        type=JobType.tests,
+        fmf_url=job_fmf_url,
+    )
     metadata = flexmock(pr_id=pr_id)
 
     git_project = flexmock()
-    if metadata_url is not None:
+    if job_fmf_url is not None:
         git_project.should_receive("get_pr").never()
     elif pr_id is not None:
         git_project.should_receive("get_pr").with_args(pr_id).and_return(

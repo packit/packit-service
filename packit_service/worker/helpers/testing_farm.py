@@ -86,19 +86,19 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             # This is checked in the run_testing_farm method.
             self._tft_token = (
                 self.service_config.internal_testing_farm_secret
-                if self.job_config.metadata.use_internal_tf
+                if self.job_config.use_internal_tf
                 else self.service_config.testing_farm_secret
             )
         return self._tft_token
 
     @property
     def skip_build(self) -> bool:
-        return self.job_config.metadata.skip_build
+        return self.job_config.skip_build
 
     @property
     def fmf_url(self) -> str:
         return (
-            self.job_config.metadata.fmf_url
+            self.job_config.fmf_url
             or (
                 self.metadata.pr_id
                 and self.project.get_pr(
@@ -110,8 +110,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     @property
     def fmf_ref(self) -> str:
-        if self.job_config.metadata.fmf_url:
-            return self.job_config.metadata.fmf_ref
+        if self.job_config.fmf_url:
+            return self.job_config.fmf_ref
 
         return self.metadata.commit_sha
 
@@ -224,8 +224,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             k: v for k, v in predefined_environment.items() if v is not None
         }
         # User-defined variables have priority
-        metadata = self.job_config.metadata
-        env_variables = metadata.env if hasattr(metadata, "env") else {}
+        env_variables = self.job_config.env if hasattr(self.job_config, "env") else {}
         predefined_environment.update(env_variables)
 
         environment: Dict[str, Any] = {
@@ -292,7 +291,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def is_fmf_configured(self) -> bool:
 
-        if self.job_config.metadata.fmf_url is not None:
+        if self.job_config.fmf_url is not None:
             return True
 
         try:
@@ -327,7 +326,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             # TF has separate composes for aarch64 architecture
             compose += "-aarch64"
 
-        if self.job_config.metadata.use_internal_tf:
+        if self.job_config.use_internal_tf:
             # Internal TF does not have own endpoint for composes
             # This should be solved on the TF side.
             if compose == "Fedora-Rawhide":
@@ -413,7 +412,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             )
 
         if (
-            self.job_config.metadata.use_internal_tf
+            self.job_config.use_internal_tf
             and f"{self.project.service.hostname}/{self.project.full_repo_name}"
             not in self.service_config.enabled_projects_for_internal_tf
         ):

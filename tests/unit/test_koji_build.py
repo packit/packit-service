@@ -14,7 +14,6 @@ from packit.config import (
     JobType,
     JobConfigTriggerType,
 )
-from packit.config.job_config import JobMetadataConfig
 from packit.exceptions import PackitCommandFailedError
 from packit.upstream import Upstream
 from packit_service import sentry_integration
@@ -49,28 +48,33 @@ def build_helper(
         PushGitHubEvent,
         ReleaseEvent,
     ],
-    metadata=None,
+    _targets=None,
+    owner=None,
+    scratch=None,
     trigger=None,
     jobs=None,
     db_trigger=None,
     build_targets_override=None,
 ):
-    if not metadata:
-        metadata = JobMetadataConfig(
-            _targets=[
+    if not _targets:
+        _targets = (
+            [
                 "fedora-29-x86_64",
                 "fedora-30-x86_64",
                 "fedora-31-x86_64",
                 "fedora-rawhide-x86_64",
             ],
-            owner="nobody",
         )
+    if not owner:
+        owner = ("nobody",)
     jobs = jobs or []
     jobs.append(
         JobConfig(
             type=JobType.production_build,
             trigger=trigger or JobConfigTriggerType.pull_request,
-            metadata=metadata,
+            _targets=_targets,
+            owner=owner,
+            scratch=scratch,
         )
     )
 
@@ -105,7 +109,8 @@ def test_koji_build_check_names(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(_targets=["bright-future"], scratch=True),
+        _targets=["bright-future"],
+        scratch=True,
         db_trigger=trigger,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
@@ -180,7 +185,8 @@ def test_koji_build_failed_kerberos(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(_targets=["bright-future"], scratch=True),
+        _targets=["bright-future"],
+        scratch=True,
         db_trigger=trigger,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
@@ -255,7 +261,8 @@ def test_koji_build_target_not_supported(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(_targets=["nonexisting-target"], scratch=True),
+        _targets=["nonexisting-target"],
+        scratch=True,
         db_trigger=trigger,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
@@ -323,9 +330,8 @@ def test_koji_build_with_multiple_targets(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(
-            _targets=["bright-future", "dark-past"], scratch=True
-        ),
+        _targets=["bright-future", "dark-past"],
+        scratch=True,
         db_trigger=trigger,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
@@ -391,7 +397,8 @@ def test_koji_build_failed(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(_targets=["bright-future"], scratch=True),
+        _targets=["bright-future"],
+        scratch=True,
         db_trigger=trigger,
     )
     flexmock(koji_build).should_receive("get_all_koji_targets").and_return(
@@ -463,7 +470,8 @@ def test_koji_build_failed_srpm(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(_targets=["bright-future"], scratch=True),
+        _targets=["bright-future"],
+        scratch=True,
         db_trigger=trigger,
     )
     srpm_build_url = get_srpm_build_info_url(2)
@@ -526,9 +534,8 @@ def test_koji_build_targets_override(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(
-            _targets=["bright-future", "dark-past"], scratch=True
-        ),
+        _targets=["bright-future", "dark-past"],
+        scratch=True,
         db_trigger=trigger,
         build_targets_override={"bright-future"},
     )

@@ -120,11 +120,11 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         The job definition from the config file.
         """
-        if self.job_build and self.job_build.metadata.project:
-            return self.job_build.metadata.project
+        if self.job_build and self.job_build.project:
+            return self.job_build.project
 
-        if self.job_tests and self.job_tests.metadata.project:
-            return self.job_tests.metadata.project
+        if self.job_tests and self.job_tests.project:
+            return self.job_tests.project
 
         return self.default_project_name
 
@@ -133,11 +133,11 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         Owner used for the copr build -- search the config or use the copr's config.
         """
-        if self.job_build and self.job_build.metadata.owner:
-            return self.job_build.metadata.owner
+        if self.job_build and self.job_build.owner:
+            return self.job_build.owner
 
-        if self.job_tests and self.job_tests.metadata.owner:
-            return self.job_tests.metadata.owner
+        if self.job_tests and self.job_tests.owner:
+            return self.job_tests.owner
 
         return self.api.copr_helper.copr_client.config.get("username")
 
@@ -146,21 +146,21 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         If the project will be preserved or can be removed after 60 days.
         """
-        return self.job_build.metadata.preserve_project if self.job_build else None
+        return self.job_build.preserve_project if self.job_build else None
 
     @property
     def list_on_homepage(self) -> Optional[bool]:
         """
         If the project will be shown on the copr home page.
         """
-        return self.job_build.metadata.list_on_homepage if self.job_build else None
+        return self.job_build.list_on_homepage if self.job_build else None
 
     @property
     def additional_repos(self) -> Optional[List[str]]:
         """
         Additional repos that will be enable for copr build.
         """
-        return self.job_build.metadata.additional_repos if self.job_build else None
+        return self.job_build.additional_repos if self.job_build else None
 
     @property
     def build_targets_all(self) -> Set[str]:
@@ -227,16 +227,16 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             return set()
 
         distro, arch = build_target.rsplit("-", 1)
-        configured_distros = self.job_tests.metadata.targets_dict.get(
-            build_target, {}
-        ).get("distros")
+        configured_distros = self.job_tests.targets_dict.get(build_target, {}).get(
+            "distros"
+        )
 
         if configured_distros:
             distro_arch_list = [(distro, arch) for distro in configured_distros]
         else:
             mapping = (
                 DEFAULT_MAPPING_INTERNAL_TF
-                if self.job_config.metadata.use_internal_tf
+                if self.job_config.use_internal_tf
                 else DEFAULT_MAPPING_TF
             )
             distro = mapping.get(distro, distro)
@@ -440,7 +440,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     + self.package_config.srpm_build_deps,
                     buildopts={
                         "chroots": list(self.build_targets),
-                        "enable_net": self.job_config.metadata.enable_net,
+                        "enable_net": self.job_config.enable_net,
                     },
                 )
             else:
@@ -450,7 +450,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     path=self.srpm_path,
                     buildopts={
                         "chroots": list(self.build_targets),
-                        "enable_net": self.job_config.metadata.enable_net,
+                        "enable_net": self.job_config.enable_net,
                     },
                 )
 

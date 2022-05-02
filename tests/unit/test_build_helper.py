@@ -7,7 +7,6 @@ from flexmock import flexmock
 
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.aliases import get_build_targets
-from packit.config.job_config import JobMetadataConfig
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 from packit_service.config import ServiceConfig
@@ -38,7 +37,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -51,7 +50,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -64,7 +63,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 )
             ],
             JobConfigTriggerType.release,
@@ -77,7 +76,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 )
             ],
             JobConfigTriggerType.commit,
@@ -90,12 +89,12 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(_targets=["different", "os", "target"]),
+                    _targets=["different", "os", "target"],
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -108,12 +107,12 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(_targets=["different", "os", "target"]),
+                    _targets=["different", "os", "target"],
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -126,12 +125,12 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=["different", "os", "target"]),
+                    _targets=["different", "os", "target"],
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 ),
             ],
             JobConfigTriggerType.commit,
@@ -168,7 +167,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -197,7 +196,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 ),
                 JobConfig(
                     type=JobType.tests,
@@ -218,7 +217,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -235,7 +234,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=list(ONE_CHROOT_SET)),
+                    _targets=list(ONE_CHROOT_SET),
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -349,7 +348,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=list(ONE_CHROOT_SET)),
+                    _targets=list(ONE_CHROOT_SET),
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -362,12 +361,12 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=["fedora-rawhide"]),
+                    _targets=["fedora-rawhide"],
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -403,7 +402,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 ),
                 JobConfig(
                     type=JobType.tests,
@@ -422,7 +421,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -437,7 +436,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -452,9 +451,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(
-                        _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}}
-                    ),
+                    _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -469,9 +466,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(
-                        _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}}
-                    ),
+                    _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -486,7 +481,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=["centos-stream-8"]),
+                    _targets=["centos-stream-8"],
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -501,7 +496,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=["centos-stream-8"]),
+                    _targets=["centos-stream-8"],
                 ),
                 JobConfig(
                     type=JobType.tests,
@@ -520,7 +515,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=["epel-7-x86_64"]),
+                    _targets=["epel-7-x86_64"],
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -535,7 +530,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=["epel-7-x86_64"]),
+                    _targets=["epel-7-x86_64"],
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -550,7 +545,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=["epel-7-ppc64le"]),
+                    _targets=["epel-7-ppc64le"],
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -565,7 +560,7 @@ def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=["epel-7-ppc64le"]),
+                    _targets=["epel-7-ppc64le"],
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -678,9 +673,8 @@ def test_copr_build_target2test_targets(
         JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(
-                _targets=configured_targets, use_internal_tf=use_internal_tf
-            ),
+            _targets=configured_targets,
+            use_internal_tf=use_internal_tf,
         )
     ]
     copr_build_helper = CoprBuildJobHelper(
@@ -700,17 +694,15 @@ def test_copr_build_and_test_targets_both_jobs_defined():
         JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(
-                _targets={
-                    "epel-8-x86_64": {},
-                    "fedora-35-x86_64": {"distros": ["fedora-35", "fedora-36"]},
-                },
-            ),
+            _targets={
+                "epel-8-x86_64": {},
+                "fedora-35-x86_64": {"distros": ["fedora-35", "fedora-36"]},
+            },
         ),
         JobConfig(
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(_targets=["fedora-35", "fedora-36", "epel-8"]),
+            _targets=["fedora-35", "fedora-36", "epel-8"],
         ),
     ]
     flexmock(copr_build, get_valid_build_targets=get_build_targets)
@@ -757,7 +749,7 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 )
             ],
             "fedora-32-x86_64",
@@ -769,9 +761,7 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(
-                        _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}}
-                    ),
+                    _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
                 )
             ],
             "centos-7-x86_64",
@@ -783,9 +773,7 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(
-                        _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}}
-                    ),
+                    _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
                 )
             ],
             "rhel-7-x86_64",
@@ -797,9 +785,7 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(
-                        _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}}
-                    ),
+                    _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
                 )
             ],
             "rhel-7-x86_64",
@@ -811,7 +797,7 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=["epel-7-x86_64"]),
+                    _targets=["epel-7-x86_64"],
                 )
             ],
             "centos-7-x86_64",
@@ -823,9 +809,8 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(
-                        _targets=["epel-7-x86_64"], use_internal_tf=True
-                    ),
+                    _targets=["epel-7-x86_64"],
+                    use_internal_tf=True,
                 )
             ],
             "rhel-7-x86_64",
@@ -837,7 +822,7 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=["centos-stream-9-x86_64"]),
+                    _targets=["centos-stream-9-x86_64"],
                 )
             ],
             "centos-stream-9-x86_64",
@@ -853,7 +838,7 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=["centos-stream-9-x86_64"]),
+                    _targets=["centos-stream-9-x86_64"],
                 ),
             ],
             "centos-stream-9-x86_64",
@@ -865,9 +850,8 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(
-                        _targets=["centos-stream-9-x86_64"], use_internal_tf=True
-                    ),
+                    _targets=["centos-stream-9-x86_64"],
+                    use_internal_tf=True,
                 )
             ],
             "centos-stream-9-x86_64",
@@ -909,7 +893,7 @@ def test_copr_test_target2build_target(job_config, test_target, build_target):
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -922,7 +906,7 @@ def test_copr_test_target2build_target(job_config, test_target, build_target):
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1306,7 +1290,6 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(),
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1320,7 +1303,7 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(owner="custom-owner"),
+                    owner="custom-owner",
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1334,7 +1317,7 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="custom-project"),
+                    project="custom-project",
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1348,9 +1331,8 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(
-                        owner="custom-owner", project="custom-project"
-                    ),
+                    owner="custom-owner",
+                    project="custom-project",
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1364,9 +1346,8 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(
-                        owner="custom-owner", project="custom-project"
-                    ),
+                    owner="custom-owner",
+                    project="custom-project",
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1380,7 +1361,6 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(),
                 )
             ],
             JobConfigTriggerType.commit,
@@ -1394,7 +1374,6 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(),
                 )
             ],
             JobConfigTriggerType.release,
@@ -1408,14 +1387,14 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(
-                        owner="commit-owner", project="commit-project"
-                    ),
+                    owner="commit-owner",
+                    project="commit-project",
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(owner="pr-owner", project="pr-project"),
+                    owner="pr-owner",
+                    project="pr-project",
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -1429,12 +1408,10 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(),
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(),
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -1448,14 +1425,12 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(
-                        owner="custom-owner", project="custom-project"
-                    ),
+                    owner="custom-owner",
+                    project="custom-project",
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(),
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -1469,14 +1444,12 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(),
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(
-                        owner="custom-owner", project="custom-project"
-                    ),
+                    owner="custom-owner",
+                    project="custom-project",
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -1490,19 +1463,18 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(owner="pr-owner", project="pr-project"),
+                    owner="pr-owner",
+                    project="pr-project",
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(),
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(
-                        owner="commit-owner", project="commit-project"
-                    ),
+                    owner="commit-owner",
+                    project="commit-project",
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -1516,19 +1488,18 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(owner="pr-owner", project="pr-project"),
+                    owner="pr-owner",
+                    project="pr-project",
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(),
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(
-                        owner="commit-owner", project="commit-project"
-                    ),
+                    owner="commit-owner",
+                    project="commit-project",
                 ),
             ],
             JobConfigTriggerType.commit,
@@ -1576,7 +1547,7 @@ def test_copr_project_and_namespace(
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1589,9 +1560,8 @@ def test_copr_project_and_namespace(
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(
-                        _targets=STABLE_VERSIONS, branch="build-branch"
-                    ),
+                    _targets=STABLE_VERSIONS,
+                    branch="build-branch",
                 )
             ],
             JobConfigTriggerType.commit,
@@ -1604,9 +1574,8 @@ def test_copr_project_and_namespace(
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(
-                        _targets=STABLE_VERSIONS, branch="build-branch"
-                    ),
+                    _targets=STABLE_VERSIONS,
+                    branch="build-branch",
                 )
             ],
             JobConfigTriggerType.release,
@@ -1649,14 +1618,14 @@ def test_repository_cache_invocation():
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+                    _targets=STABLE_VERSIONS,
                 )
             ],
         ),
         job_config=JobConfig(
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(_targets=STABLE_VERSIONS),
+            _targets=STABLE_VERSIONS,
         ),
         project=flexmock(
             service=flexmock(),
@@ -1688,7 +1657,6 @@ def test_local_project_not_called_when_initializing_api():
         JobConfig(
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(),
         )
     ]
     copr_build_helper = CoprBuildJobHelper(

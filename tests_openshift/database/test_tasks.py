@@ -9,7 +9,6 @@ from munch import Munch
 import packit_service
 from ogr.services.github import GithubProject
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
-from packit.config.job_config import JobMetadataConfig
 from packit_service.constants import PG_BUILD_STATUS_SUCCESS
 from packit_service.models import (
     CoprBuildTargetModel,
@@ -86,14 +85,12 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(
-                        _targets=[
-                            "fedora-30-x86_64",
-                            "fedora-rawhide-x86_64",
-                            "fedora-31-x86_64",
-                            "fedora-32-x86_64",
-                        ]
-                    ),
+                    _targets=[
+                        "fedora-30-x86_64",
+                        "fedora-rawhide-x86_64",
+                        "fedora-31-x86_64",
+                        "fedora-32-x86_64",
+                    ],
                 )
             ]
         )

@@ -79,10 +79,10 @@ class BaseBuildJobHelper(BaseJobHelper):
         """
         targets = set()
         if self.job_build:
-            targets.update(self.job_build.metadata.targets)
+            targets.update(self.job_build.targets)
 
-        if self.job_tests and not self.job_tests.metadata.skip_build:
-            targets.update(self.job_tests.metadata.targets)
+        if self.job_tests and not self.job_tests.skip_build:
+            targets.update(self.job_tests.targets)
 
         return targets or {DEFAULT_VERSION}
 
@@ -101,10 +101,10 @@ class BaseBuildJobHelper(BaseJobHelper):
         if not self.job_tests:
             return set()
 
-        if not self.job_tests.metadata.targets and self.job_build:
+        if not self.job_tests.targets and self.job_build:
             return self.configured_build_targets
 
-        return self.job_tests.metadata.targets or {DEFAULT_VERSION}
+        return self.job_tests.targets or {DEFAULT_VERSION}
 
     @property
     def job_build(self) -> Optional[JobConfig]:
@@ -129,8 +129,8 @@ class BaseBuildJobHelper(BaseJobHelper):
         """
         Branch used for the build job or project's default branch.
         """
-        if self.job_build and self.job_build.metadata.branch:
-            return self.job_build.metadata.branch
+        if self.job_build and self.job_build.branch:
+            return self.job_build.branch
 
         return self.project.default_branch
 
