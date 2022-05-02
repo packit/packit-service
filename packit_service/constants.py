@@ -208,3 +208,5 @@ INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED = (
     "via `{packit_comment_command_prefix} build` comment "
     "or only test job via `{packit_comment_command_prefix} test` comment.*",
 )
+
+FASJSON_URL = "https://fasjson.fedoraproject.org"
