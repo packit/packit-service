@@ -8,7 +8,7 @@ from typing import List, Optional, Set, Tuple
 
 from kubernetes.client.rest import ApiException
 from ogr.abstract import GitProject
-from packit.config import JobConfig, JobType
+from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.aliases import DEFAULT_VERSION
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitMergeException
@@ -408,7 +408,12 @@ class BaseBuildJobHelper(BaseJobHelper):
 
         try:
             self._srpm_path = Path(
-                self.api.create_srpm(srpm_dir=self.api.up.local_project.working_dir)
+                self.api.create_srpm(
+                    srpm_dir=self.api.up.local_project.working_dir,
+                    bump_version=self.job_config.trigger
+                    != JobConfigTriggerType.release,
+                    release_suffix=self.job_config.release_suffix,
+                )
             )
         except SandcastleTimeoutReached as ex:
             exception = ex

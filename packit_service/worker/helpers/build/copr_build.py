@@ -10,7 +10,7 @@ from copr.v3 import CoprAuthException, CoprRequestException
 from ogr.abstract import GitProject
 from ogr.parsing import parse_git_repo
 from ogr.services.github import GithubProject
-from packit.config import JobConfig, JobType
+from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.aliases import get_aliases, get_valid_build_targets
 from packit.config.common_package_config import Deployment
 from packit.config.package_config import PackageConfig
@@ -382,6 +382,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 if pr_id
                 else None,
                 job_config_index=self.get_job_config_index(),
+                bump_version=self.job_config.trigger != JobConfigTriggerType.release,
+                release_suffix=self.job_config.release_suffix,
             )
             build_id, web_url = self.submit_copr_build(script=script)
         except Exception as ex:
