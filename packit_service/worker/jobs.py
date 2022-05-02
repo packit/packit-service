@@ -331,47 +331,57 @@ class SteveJobs:
         signatures = []
         # we want to run handlers for all possible jobs, not just the first one
         for job_config in job_configs:
-            if self.service_config.deployment not in job_config.packit_instances:
-                logger.debug(
-                    f"Current deployment ({self.service_config.deployment}) "
-                    f"does not match the job configuration ({job_config.packit_instances}). "
-                    "The job will not be run."
-                )
-                continue
-
-            handler = handler_kls(
-                package_config=self.event.package_config,
-                job_config=job_config,
-                event=self.event.get_dict(),
-            )
-            if not handler.pre_check():
-                continue
-
-            if self.event.actor and not handler.check_if_actor_can_run_job_and_report(
-                actor=self.event.actor
+            if self.should_task_be_created_for_job_config_and_handler(
+                job_config, handler_kls
             ):
-                # For external contributors, we need to be more careful when running jobs.
-                # This is a handler-specific permission check
-                # for a user who trigger the action on a PR.
-                # e.g. We don't allow using internal TF for external contributors.
-                continue
-
-            self.report_task_accepted(handler=handler, job_config=job_config)
-
-            signatures.append(
-                handler_kls.get_signature(event=self.event, job=job_config)
-            )
-            processing_results.append(
-                TaskResults.create_from(
-                    success=True,
-                    msg="Job created.",
-                    job_config=job_config,
-                    event=self.event,
+                signatures.append(
+                    handler_kls.get_signature(event=self.event, job=job_config)
                 )
-            )
+                processing_results.append(
+                    TaskResults.create_from(
+                        success=True,
+                        msg="Job created.",
+                        job_config=job_config,
+                        event=self.event,
+                    )
+                )
         # https://docs.celeryproject.org/en/stable/userguide/canvas.html#groups
         group(signatures).apply_async()
         return processing_results
+
+    def should_task_be_created_for_job_config_and_handler(
+        self, job_config: JobConfig, handler_kls: Type[JobHandler]
+    ):
+        """
+        Check whether a new task should be created for job config and handler.
+        """
+        if self.service_config.deployment not in job_config.packit_instances:
+            logger.debug(
+                f"Current deployment ({self.service_config.deployment}) "
+                f"does not match the job configuration ({job_config.packit_instances}). "
+                "The job will not be run."
+            )
+            return False
+
+        handler = handler_kls(
+            package_config=self.event.package_config,
+            job_config=job_config,
+            event=self.event.get_dict(),
+        )
+        if not handler.pre_check():
+            return False
+
+        if self.event.actor and not handler.check_if_actor_can_run_job_and_report(
+            actor=self.event.actor
+        ):
+            # For external contributors, we need to be more careful when running jobs.
+            # This is a handler-specific permission check
+            # for a user who trigger the action on a PR.
+            # e.g. We don't allow using internal TF for external contributors.
+            return False
+
+        self.report_task_accepted(handler=handler, job_config=job_config)
+        return True
 
     def is_project_public_or_enabled_private(self) -> bool:
         """
