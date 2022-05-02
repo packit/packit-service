@@ -7,6 +7,7 @@ import pytest
 from flexmock import flexmock
 
 from packit.config import JobConfig, JobConfigTriggerType, JobType
+from packit_service.config import ServiceConfig
 from packit_service.constants import COMMENT_REACTION
 from packit_service.worker.events import (
     CoprBuildEndEvent,
@@ -42,13 +43,7 @@ from packit_service.worker.handlers import (
 from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.handlers.koji import KojiBuildReportHandler
-from packit_service.worker.jobs import (
-    get_config_for_handler_kls,
-    get_handlers_for_event,
-    get_handlers_for_comment_and_rerun_event,
-    is_handler_matching_the_event,
-    get_jobs_matching_event,
-)
+from packit_service.worker.jobs import SteveJobs
 
 
 @pytest.mark.parametrize(
@@ -844,15 +839,16 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
         def db_trigger(self):
             return db_trigger
 
-    event = Event()
+        @property
+        def package_config(self):
+            return flexmock(jobs=jobs)
 
-    event_handlers = set(
-        get_handlers_for_event(
-            event=event,
-            package_config=flexmock(jobs=jobs),
-            packit_comment_command_prefix="/packit",
-        )
+    event = Event()
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
+        ServiceConfig(packit_comment_command_prefix="/packit")
     )
+
+    event_handlers = set(SteveJobs(event).get_handlers_for_event())
     assert event_handlers == result
 
 
@@ -1057,6 +1053,14 @@ def test_get_handlers_for_comment_event(
         def db_trigger(self):
             return db_trigger
 
+        @property
+        def package_config(self):
+            return flexmock(jobs=jobs)
+
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
+        ServiceConfig(comment_command_prefix=packit_comment_command_prefix)
+    )
+
     event = Event()
     if result:
         comment_object = flexmock()
@@ -1065,13 +1069,7 @@ def test_get_handlers_for_comment_event(
             COMMENT_REACTION
         ).once()
 
-    event_handlers = set(
-        get_handlers_for_event(
-            event=event,
-            package_config=flexmock(jobs=jobs),
-            packit_comment_command_prefix=packit_comment_command_prefix,
-        )
-    )
+    event_handlers = set(SteveJobs(event).get_handlers_for_event())
     assert event_handlers == result
 
 
@@ -1240,15 +1238,16 @@ def test_get_handlers_for_check_rerun_event(
         def db_trigger(self):
             return db_trigger
 
+        @property
+        def package_config(self):
+            return flexmock(jobs=jobs)
+
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
+        ServiceConfig(packit_comment_command_prefix="/packit")
+    )
     event = Event()
 
-    event_handlers = set(
-        get_handlers_for_event(
-            event=event,
-            package_config=flexmock(jobs=jobs),
-            packit_comment_command_prefix="/packit",
-        )
-    )
+    event_handlers = set(SteveJobs(event).get_handlers_for_event())
     assert event_handlers == result
 
 
@@ -2102,12 +2101,14 @@ def test_get_config_for_handler_kls(
         def db_trigger(self):
             return db_trigger
 
+        @property
+        def package_config(self):
+            return flexmock(jobs=jobs)
+
     event = Event()
 
-    job_config = get_config_for_handler_kls(
+    job_config = SteveJobs(event).get_config_for_handler_kls(
         handler_kls=handler_kls,
-        event=event,
-        package_config=flexmock(jobs=jobs),
     )
     assert job_config == result_job_config
 
@@ -2179,10 +2180,10 @@ def test_get_handlers_triggered_by_comment(
         COMMENT_REACTION
     ).once()
 
-    event_handlers = get_handlers_for_comment_and_rerun_event(
-        event=event,
-        packit_comment_command_prefix=packit_comment_command_prefix,
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
+        ServiceConfig(comment_command_prefix=packit_comment_command_prefix)
     )
+    event_handlers = SteveJobs(event).get_handlers_for_comment_and_rerun_event()
     assert event_handlers == result
 
 
@@ -2211,11 +2212,11 @@ def test_get_handlers_triggered_by_check_rerun(event_kls, check_name_job, result
         def __init__(self):
             self.check_name_job = check_name_job
 
-    event = Event()
-    event_handlers = get_handlers_for_comment_and_rerun_event(
-        event=event,
-        packit_comment_command_prefix="/packit",
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
+        ServiceConfig(packit_comment_command_prefix="/packit")
     )
+    event = Event()
+    event_handlers = SteveJobs(event).get_handlers_for_comment_and_rerun_event()
     assert event_handlers == result
 
 
@@ -2245,7 +2246,7 @@ def test_handler_matches_to_job(event_kls, handler: Type[JobHandler], allowed_ha
             pass
 
     event = Event()
-    assert is_handler_matching_the_event(event, handler, allowed_handlers)
+    assert SteveJobs(event).is_handler_matching_the_event(handler, allowed_handlers)
 
 
 @pytest.mark.parametrize(
@@ -2271,7 +2272,7 @@ def test_handler_doesnt_match_to_job(
             pass
 
     event = Event()
-    assert not is_handler_matching_the_event(event, handler, allowed_handlers)
+    assert not SteveJobs(event).is_handler_matching_the_event(handler, allowed_handlers)
 
 
 @pytest.mark.parametrize(
@@ -2367,5 +2368,9 @@ def test_get_jobs_matching_trigger(event_kls, job_config_trigger_type, jobs, res
         def job_config_trigger_type(self):
             return job_config_trigger_type
 
+        @property
+        def package_config(self):
+            return flexmock(jobs=jobs)
+
     event = Event()
-    assert result == get_jobs_matching_event(event, flexmock(jobs=jobs))
+    assert result == SteveJobs(event).get_jobs_matching_event()
