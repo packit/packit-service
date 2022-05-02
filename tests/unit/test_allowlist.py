@@ -5,11 +5,14 @@ from typing import Tuple, Iterable
 
 import pytest
 from copr.v3 import Client
+from fasjson_client import Client as FasjsonClient
+from fasjson_client.errors import APIError
 from flexmock import flexmock
 from ogr.abstract import GitProject, GitService
 from ogr.services.github import GithubProject, GithubService
 
 import packit_service
+from packit.api import PackitAPI
 from packit.config import JobType, JobConfig, JobConfigTriggerType
 from packit.config.common_package_config import Deployment
 from packit.config.job_config import JobMetadataConfig
@@ -559,3 +562,45 @@ def test_check_and_report(
 )
 def test_strip_protocol_and_add_git(url: str, expected_url: str) -> None:
     assert Allowlist._strip_protocol_and_add_git(url) == expected_url
+
+
+@pytest.mark.parametrize(
+    "sender_login,fas_account_name,person_object,raises,result",
+    [
+        ("me", "me", {"github_username": "me"}, None, True),
+        ("me", "me-fas", {"github_username": "me"}, None, True),
+        ("you", "you", {"github_username": None}, None, False),
+        ("she", "she", {"github_username": "me"}, None, False),
+        ("they", "they", {}, APIError, False),
+    ],
+)
+def test_is_github_username_from_fas_account_matching(
+    sender_login, fas_account_name, person_object, raises, result
+):
+    flexmock(PackitAPI).should_receive("init_kerberos_ticket").and_return(True)
+
+    def init(*args):
+        pass
+
+    # so that the kerberos authentication is not required
+    FasjsonClient.__init__ = init
+    # the Client class doesn't have directly the get_user method
+    fas = (
+        flexmock(FasjsonClient)
+        .should_receive("__getattr__")
+        .with_args("get_user")
+        .once()
+    )
+    if person_object is not None:
+        fas.and_return(flexmock(result=person_object))
+    if raises is not None:
+        fas.and_raise(raises)
+
+    assert (
+        Allowlist(
+            service_config=flexmock()
+        ).is_github_username_from_fas_account_matching(
+            fas_account=fas_account_name, sender_login=sender_login
+        )
+        is result
+    )
