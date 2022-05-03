@@ -16,7 +16,10 @@ from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.constants import DEFAULT_BODHI_NOTE
 from packit.local_project import LocalProject
+from packit_service.constants import DEFAULT_RETRY_LIMIT
 from packit_service.models import GitBranchModel, KojiBuildTargetModel, PipelineModel
+from packit_service.utils import load_job_config, load_package_config
+from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
@@ -243,11 +246,13 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         processing_results
     )
     with pytest.raises(PackitException):
-        run_bodhi_update(
-            package_config=package_config,
+        CreateBodhiUpdateHandler(
+            package_config=load_package_config(package_config),
+            job_config=load_job_config(job_config),
             event=event_dict,
-            job_config=job_config,
-        )
+            # Needs to be the last try to inform user
+            task=flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
+        ).run_job()
 
 
 def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
@@ -331,11 +336,13 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         processing_results
     )
     with pytest.raises(PackitException):
-        run_bodhi_update(
-            package_config=package_config,
+        CreateBodhiUpdateHandler(
+            package_config=load_package_config(package_config),
+            job_config=load_job_config(job_config),
             event=event_dict,
-            job_config=job_config,
-        )
+            # Needs to be the last try to inform user
+            task=flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
+        ).run_job()
 
 
 def test_bodhi_update_auth_error(

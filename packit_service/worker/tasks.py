@@ -224,13 +224,19 @@ def run_sync_from_downstream_handler(
 
 
 @celery_app.task(
-    name=TaskName.downstream_koji_build, base=HandlerTaskWithRetry, queue="long-running"
+    bind=True,
+    name=TaskName.downstream_koji_build,
+    base=HandlerTaskWithRetry,
+    queue="long-running",
 )
-def run_downstream_koji_build(event: dict, package_config: dict, job_config: dict):
+def run_downstream_koji_build(
+    self, event: dict, package_config: dict, job_config: dict
+):
     handler = DownstreamKojiBuildHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
+        task=self,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
@@ -248,13 +254,17 @@ def run_downstream_koji_build_report(
 
 
 @celery_app.task(
-    name=TaskName.bodhi_update, base=HandlerTaskWithRetry, queue="long-running"
+    bind=True,
+    name=TaskName.bodhi_update,
+    base=HandlerTaskWithRetry,
+    queue="long-running",
 )
-def run_bodhi_update(event: dict, package_config: dict, job_config: dict):
+def run_bodhi_update(self, event: dict, package_config: dict, job_config: dict):
     handler = CreateBodhiUpdateHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
+        task=self,
     )
     return get_handlers_task_results(handler.run_job(), event)
 

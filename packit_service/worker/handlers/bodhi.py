@@ -5,8 +5,10 @@
 This file defines classes for job handlers related to Bodhi
 """
 import logging
+from os import getenv
 from typing import Optional
 
+from celery import Task
 from fedora.client import AuthError
 
 from packit.constants import DEFAULT_BODHI_NOTE
@@ -20,7 +22,7 @@ from packit.config import JobConfig, JobType, PackageConfig
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 from packit_service.config import PackageConfigGetter
-from packit_service.constants import CONTACTS_URL, KojiBuildState
+from packit_service.constants import CONTACTS_URL, DEFAULT_RETRY_LIMIT, KojiBuildState
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
     JobHandler,
@@ -48,12 +50,14 @@ class CreateBodhiUpdateHandler(JobHandler):
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
+        task: Optional[Task] = None,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
             event=event,
         )
+        self.task = task
 
         # lazy properties
         self._koji_build_event: Optional[KojiBuildEvent] = None
@@ -120,21 +124,12 @@ class CreateBodhiUpdateHandler(JobHandler):
                 ],
             )
         except PackitException as ex:
+            logger.debug(f"Bodhi update failed to be created: {ex}")
             if not self.job_config.issue_repository:
                 logger.debug(
                     "No issue repository configured. User will not be notified about the failure."
                 )
                 raise ex
-
-            logger.debug(
-                f"Issue repository configured. We will create "
-                f"a new issue in {self.job_config.issue_repository}"
-                "or update the existing one."
-            )
-
-            issue_repo = self.service_config.get_project(
-                url=self.job_config.issue_repository
-            )
 
             known_error = False
             if isinstance(ex.__cause__, AuthError):
@@ -152,6 +147,27 @@ class CreateBodhiUpdateHandler(JobHandler):
                     f"{ex}\n"
                     "```"
                 )
+
+            if (
+                not known_error
+                and self.task
+                and self.task.request.retries
+                < int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT))
+            ):
+                logger.debug(
+                    "Celery task will be retried. User will not be notified about the failure."
+                )
+                raise ex
+
+            logger.debug(
+                f"Issue repository configured. We will create "
+                f"a new issue in {self.job_config.issue_repository}"
+                "or update the existing one."
+            )
+
+            issue_repo = self.service_config.get_project(
+                url=self.job_config.issue_repository
+            )
 
             PackageConfigGetter.create_issue_if_needed(
                 project=issue_repo,
