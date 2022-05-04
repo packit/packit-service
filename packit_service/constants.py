@@ -210,3 +210,5 @@ INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED = (
 )
 
 FASJSON_URL = "https://fasjson.fedoraproject.org"
+
+PACKIT_VERIFY_FAS_COMMAND = "verify-fas"
