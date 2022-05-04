@@ -60,8 +60,8 @@ class GithubAppInstallationHandler(JobHandler):
     def run(self) -> TaskResults:
         """
         Discover information about organization/user which wants to install packit on his repository
-        Try to allowlist automatically if mapping from github username to FAS account can prove that
-        user is a packager.
+        Try to allowlist automatically if mapping from github username to FAS account can prove a
+        match.
         :return: TaskResults
         """
         GithubInstallationModel.create(event=self.installation_event)
@@ -78,9 +78,13 @@ class GithubAppInstallationHandler(JobHandler):
                     "order to start using Packit-as-a-Service. "
                     "We are now onboarding Fedora contributors who have a valid "
                     "[Fedora Account System](https://fedoraproject.org/wiki/Account_System) "
-                    "account. If you have such an account, please, provide it in a comment and "
-                    "we'd be glad to approve you for using the service.\n\n"
-                    "For more info, please check out the documentation: "
+                    "account. \n\nIf you have such an account, please set the `GitHub Username`"
+                    " field in the settings of the FAS account (if you don't have it set already)"
+                    " and provide it in a comment in this issue as `/packit verify-fas "
+                    "my-fas-username`. We automatically check for the match between the `GitHub"
+                    " Username` field in the provided FAS account and the Github account that "
+                    "triggers the verification and approve you for using our service if they "
+                    "match.\n\nFor more info, please check out the documentation: "
                     "https://packit.dev/docs/packit-service"
                 ),
             )
