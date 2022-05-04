@@ -219,6 +219,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "PACKIT_SOURCE_URL": self.source_project_url,
             "PACKIT_TARGET_URL": self.target_project_url,
             "PACKIT_PR_ID": self.pr_id,
+            "PACKIT_COPR_PROJECT": f"{build.owner}/{build.project_name}"
+            if build
+            else None,
+            "PACKIT_COPR_RPMS": " ".join(artifact["packages"])
+            if artifact and artifact.get("packages")
+            else None,
         }
         predefined_environment = {
             k: v for k, v in predefined_environment.items() if v is not None
