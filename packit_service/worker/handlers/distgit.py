@@ -397,12 +397,14 @@ class DownstreamKojiBuildHandler(JobHandler):
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
+        task: Optional[Task] = None,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
             event=event,
         )
+        self.task = task
         self.dg_branch = event.get("git_ref")
 
     def pre_check(self) -> bool:
@@ -449,6 +451,14 @@ class DownstreamKojiBuildHandler(JobHandler):
                 logger.debug(
                     "No issue repository configured. "
                     "User will not be notified about the failure."
+                )
+                raise ex
+
+            if self.task and self.task.request.retries < int(
+                getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT)
+            ):
+                logger.debug(
+                    "Celery task will be retried. User will not be notified about the failure."
                 )
                 raise ex
 

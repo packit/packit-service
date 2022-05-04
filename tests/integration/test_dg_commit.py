@@ -18,8 +18,10 @@ from packit.constants import CONFIG_FILE_NAMES
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 from packit_service.config import PackageConfigGetter, ProjectToSync, ServiceConfig
-from packit_service.constants import SANDCASTLE_WORK_DIR
+from packit_service.constants import DEFAULT_RETRY_LIMIT, SANDCASTLE_WORK_DIR
 from packit_service.models import GitBranchModel
+from packit_service.utils import load_job_config, load_package_config
+from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
@@ -317,11 +319,13 @@ def test_downstream_koji_build_failure_issue_created():
     )
     assert json.dumps(event_dict)
     with pytest.raises(PackitException):
-        run_downstream_koji_build(
-            package_config=package_config,
+        DownstreamKojiBuildHandler(
+            package_config=load_package_config(package_config),
+            job_config=load_job_config(job_config),
             event=event_dict,
-            job_config=job_config,
-        )
+            # Needs to be the last try to inform user
+            task=flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
+        ).run_job()
 
 
 def test_downstream_koji_build_failure_issue_comment():
@@ -385,11 +389,13 @@ def test_downstream_koji_build_failure_issue_comment():
     )
     assert json.dumps(event_dict)
     with pytest.raises(PackitException):
-        run_downstream_koji_build(
-            package_config=package_config,
+        DownstreamKojiBuildHandler(
+            package_config=load_package_config(package_config),
+            job_config=load_job_config(job_config),
             event=event_dict,
-            job_config=job_config,
-        )
+            # Needs to be the last try to inform user
+            task=flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
+        ).run_job()
 
 
 def test_downstream_koji_build_no_config():
