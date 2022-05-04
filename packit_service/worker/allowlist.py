@@ -4,12 +4,15 @@
 import logging
 from typing import Any, Iterable, Optional, Union, Callable, List, Tuple, Dict
 
+from fasjson_client import Client
+from fasjson_client.errors import APIError
 from ogr.abstract import GitProject
 
+from packit.api import PackitAPI
 from packit.config.job_config import JobConfig
-from packit.exceptions import PackitException
+from packit.exceptions import PackitException, PackitCommandFailedError
 from packit_service.config import ServiceConfig
-from packit_service.constants import FAQ_URL
+from packit_service.constants import FAQ_URL, FASJSON_URL
 from packit_service.models import AllowlistModel, AllowlistStatus
 from packit_service.worker.events import (
     EventData,
@@ -51,6 +54,9 @@ UncheckedEvent = Union[
 
 
 class Allowlist:
+    def __init__(self, service_config: Optional[ServiceConfig] = None):
+        self.service_config = service_config
+
     @staticmethod
     def _strip_protocol_and_add_git(url: Optional[str]) -> Optional[str]:
         """
@@ -67,8 +73,64 @@ class Allowlist:
             return None
         return url.split("://")[1] + ".git"
 
-    @staticmethod
-    def add_namespace(namespace: str) -> bool:
+    def init_kerberos_ticket(self):
+        """
+        Try to init kerberos ticket.
+
+        Returns:
+            Whether the initialisation was successful.
+        """
+        try:
+            logger.debug("Initialising Kerberos ticket so that we can use fasjson API.")
+            PackitAPI(
+                config=self.service_config, package_config=None
+            ).init_kerberos_ticket()
+        except PackitCommandFailedError as ex:
+            msg = f"Kerberos authentication error: {ex.stderr_output}"
+            logger.error(msg)
+            return False
+
+        return True
+
+    def is_github_username_from_fas_account_matching(self, fas_account, sender_login):
+        """
+        Compares the Github username from the FAS account
+        to the username of the one who triggered the installation.
+
+        Args:
+            fas_account: FAS account for which we will get the account info.
+            sender_login: Login of the user that will be checked for be match
+                            against info from FAS.
+
+        Returns:
+            True if there was a match found. False if we were not able to run kinit or
+            the check for match was not successful.
+        """
+        if not self.init_kerberos_ticket():
+            return False
+
+        logger.info(
+            f"Going to check match for Github username from FAS account {fas_account} and"
+            f" Github account {sender_login}."
+        )
+        client = Client(FASJSON_URL)
+        try:
+            user_info = client.get_user(username=fas_account).result
+        # e.g. User not found
+        except APIError as e:
+            logger.debug(f"We were not able to get the user: {e}")
+            return False
+
+        github_username = user_info.get("github_username")
+        if github_username:
+            logger.debug(
+                f"github_username from FAS account {fas_account}: {github_username}"
+            )
+            return github_username == sender_login
+
+        return False
+
+    def add_namespace(self, namespace: str, sender_login: str) -> bool:
         """
         Add namespace to the allowlist with `waiting` status if it is not in there already.
 
@@ -76,13 +138,26 @@ class Allowlist:
             namespace (str): Namespace to be added in format of: `github.com/namespace`
                 or `github.com/namespace/repo.git`.
 
+            sender_login: Login of the user that will be checked for be match
+                            against info from FAS.
+
         Returns:
-            `True` if account is already in our allowlist. `False` otherwise.
+            `True` if account is already in our allowlist or the automatic check
+             for match was successful. `False` otherwise.
         """
         if AllowlistModel.get_namespace(namespace):
             return True
 
         AllowlistModel.add_namespace(namespace, AllowlistStatus.waiting.value)
+
+        if self.is_github_username_from_fas_account_matching(
+            fas_account=sender_login, sender_login=sender_login
+        ):
+            AllowlistModel.add_namespace(
+                namespace, AllowlistStatus.approved_automatically.value, sender_login
+            )
+            return True
+
         return False
 
     @staticmethod

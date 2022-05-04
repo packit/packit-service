@@ -16,7 +16,6 @@
           # changes b/w major versions and we want to pin to the specific
           # version to be sure it works well - it's 12.0.1 for now
           # - python3-kubernetes  # for sandcastle
-          - python3-fedora # to access FAS
           - python3-requests
           - python3-alembic
           - python3-prometheus_client
@@ -36,9 +35,9 @@
           - dnf-plugins-core
           # oc rsync /tmp/sandcastle -> sandcastle pod
           - rsync
-          - fedpkg-stage
           - postgresql # pg_dump
           - python3-boto3 # AWS (S3)
+          - python3-fasjson-client
         state: present
     - import_tasks: tasks/install-packit-deps.yaml
     - import_tasks: tasks/install-ogr-deps.yaml

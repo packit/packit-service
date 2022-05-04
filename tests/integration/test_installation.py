@@ -32,7 +32,7 @@ def test_installation():
 
     flexmock(GithubInstallationModel).should_receive("create").once()
     flexmock(Allowlist).should_receive("add_namespace").with_args(
-        "github.com/packit-service"
+        "github.com/packit-service", "jpopelka"
     ).and_return(False)
     flexmock(GithubProject).should_receive("create_issue").once()
 

@@ -64,8 +64,10 @@ class GithubAppInstallationHandler(JobHandler):
         """
         GithubInstallationModel.create(event=self.installation_event)
         # try to add user to allowlist
-        allowlist = Allowlist()
-        if not allowlist.add_namespace(f"github.com/{self.account_login}"):
+        allowlist = Allowlist(self.service_config)
+        if not allowlist.add_namespace(
+            f"github.com/{self.account_login}", self.sender_login
+        ):
             # Create an issue in our repository, so we are notified when someone install the app
             self.project.create_issue(
                 title=f"{self.account_type} {self.account_login} needs to be approved.",
