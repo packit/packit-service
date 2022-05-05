@@ -663,7 +663,9 @@ def test_pr_comment_packit_only_handler(
                 {
                     "trigger": "pull_request",
                     "job": "copr_build",
-                    "metadata": {"targets": "fedora-rawhide-x86_64"},
+                    "targets": [
+                        "fedora-rawhide-x86_64",
+                    ],
                 }
             ]
         ]

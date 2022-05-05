@@ -432,7 +432,9 @@ def test_check_rerun_push_copr_build_handler(
                 {
                     "trigger": "commit",
                     "job": "tests",
-                    "metadata": {"targets": "fedora-all"},
+                    "targets": [
+                        "fedora-all",
+                    ],
                 }
             ]
         ]
