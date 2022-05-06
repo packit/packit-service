@@ -5,7 +5,7 @@
 Tests for events parsing
 """
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import pytest
 from flexmock import flexmock
@@ -49,6 +49,7 @@ from packit_service.worker.events import (
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
+    AbstractForgeIndependentEvent,
 )
 from packit_service.worker.events.enums import (
     PullRequestAction,
@@ -197,6 +198,41 @@ class TestEvents:
             DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json"
         ) as outfile:
             return json.load(outfile)
+
+    @pytest.fixture()
+    def copr_models(self):
+        time = datetime(2000, 4, 28, 14, 9, 33, 860293)
+        latest_time = datetime.utcnow()
+        fake_copr = flexmock(build_id="1", build_submitted_time=time, target="target")
+        flexmock(CoprBuildTargetModel).new_instances(fake_copr)
+        copr = CoprBuildTargetModel()
+        copr.__class__ = CoprBuildTargetModel
+
+        another_fake_copr = flexmock(
+            build_id="2", build_submitted_time=latest_time, target="target"
+        )
+        flexmock(CoprBuildTargetModel).new_instances(another_fake_copr)
+        another_copr = CoprBuildTargetModel()
+        another_copr.__class__ = CoprBuildTargetModel
+
+        yield [copr, another_copr]
+
+    @pytest.fixture()
+    def tf_models(self):
+        time = datetime(2000, 4, 28, 14, 9, 33, 860293)
+        latest_time = datetime.utcnow()
+        fake_tf = flexmock(pipeline_id="1", submitted_time=time, target="target")
+        flexmock(TFTTestRunTargetModel).new_instances(fake_tf)
+        tf = TFTTestRunTargetModel()
+        tf.__class__ = TFTTestRunTargetModel
+
+        another_fake_tf = flexmock(
+            pipeline_id="2", submitted_time=latest_time, target="target"
+        )
+        flexmock(TFTTestRunTargetModel).new_instances(another_fake_tf)
+        another_tf = TFTTestRunTargetModel()
+        another_tf.__class__ = TFTTestRunTargetModel
+        yield [tf, another_tf]
 
     @pytest.fixture()
     def mock_config(self):
@@ -1394,6 +1430,42 @@ class TestEvents:
         assert event_object.build_targets_override is None
         assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
         assert event_object.actor == "lbarcziova"
+
+    def test_get_submitted_time_from_model(self):
+        date = datetime.utcnow()
+
+        fake_tf = flexmock(submitted_time=date)
+        flexmock(TFTTestRunTargetModel).new_instances(fake_tf)
+        tf = TFTTestRunTargetModel()
+        tf.__class__ = TFTTestRunTargetModel
+        assert date == AbstractForgeIndependentEvent._get_submitted_time_from_model(tf)
+
+        fake_copr = flexmock(build_submitted_time=date)
+        flexmock(CoprBuildTargetModel).new_instances(fake_copr)
+        copr = CoprBuildTargetModel()
+        copr.__class__ = (
+            CoprBuildTargetModel  # to pass in isinstance(model, CoprBuildTargetModel)
+        )
+        assert date == AbstractForgeIndependentEvent._get_submitted_time_from_model(
+            copr
+        )
+
+    def test_get_most_recent_targets(self, copr_models, tf_models):
+        latest_copr_models = AbstractForgeIndependentEvent.get_most_recent_targets(
+            copr_models
+        )
+        assert len(latest_copr_models) == 1
+        assert datetime.utcnow() - latest_copr_models[
+            0
+        ].build_submitted_time < timedelta(seconds=2)
+
+        latest_tf_models = AbstractForgeIndependentEvent.get_most_recent_targets(
+            tf_models
+        )
+        assert len(latest_tf_models) == 1
+        assert datetime.utcnow() - latest_tf_models[0].submitted_time < timedelta(
+            seconds=2
+        )
 
 
 class TestCentOSEventParser:
