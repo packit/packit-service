@@ -25,6 +25,7 @@ from packit_service.models import AbstractTriggerDbType, KojiBuildTargetModel
 from packit_service.service.urls import (
     get_koji_build_info_url,
 )
+from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.events import (
     CheckRerunCommitEvent,
@@ -104,6 +105,13 @@ class KojiBuildHandler(JobHandler):
         return self.koji_build_helper.run_koji_build()
 
     def pre_check(self) -> bool:
+        if (
+            self.data.event_type == MergeRequestGitlabEvent.__name__
+            and self.data.action == GitlabEventAction.closed.value
+        ):
+            # Not interested in closed merge requests
+            return False
+
         if self.data.event_type in (
             PushGitHubEvent.__name__,
             PushGitlabEvent.__name__,

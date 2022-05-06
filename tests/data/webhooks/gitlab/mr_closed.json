@@ -1,0 +1,143 @@
+{
+  "object_kind": "merge_request",
+  "event_type": "merge_request",
+  "user": {
+    "id": 2952463,
+    "name": "Jiri Popelka",
+    "username": "jpopelka",
+    "avatar_url": "https://gitlab.com/uploads/-/system/user/avatar/2952463/avatar.png",
+    "email": "[REDACTED]"
+  },
+  "project": {
+    "id": 19258958,
+    "name": "hello-world",
+    "description": "The most progressive command-line tool in the world.",
+    "web_url": "https://gitlab.com/packit-service/hello-world",
+    "avatar_url": null,
+    "git_ssh_url": "git@gitlab.com:packit-service/hello-world.git",
+    "git_http_url": "https://gitlab.com/packit-service/hello-world.git",
+    "namespace": "packit-service",
+    "visibility_level": 20,
+    "path_with_namespace": "packit-service/hello-world",
+    "default_branch": "master",
+    "ci_config_path": "",
+    "homepage": "https://gitlab.com/packit-service/hello-world",
+    "url": "git@gitlab.com:packit-service/hello-world.git",
+    "ssh_url": "git@gitlab.com:packit-service/hello-world.git",
+    "http_url": "https://gitlab.com/packit-service/hello-world.git"
+  },
+  "object_attributes": {
+    "assignee_id": 2952463,
+    "author_id": 2952463,
+    "created_at": "2022-05-06 15:08:42 UTC",
+    "description": "",
+    "head_pipeline_id": null,
+    "id": 153884270,
+    "iid": 19,
+    "last_edited_at": null,
+    "last_edited_by_id": null,
+    "merge_commit_sha": null,
+    "merge_error": null,
+    "merge_params": {
+      "force_remove_source_branch": "1"
+    },
+    "merge_status": "can_be_merged",
+    "merge_user_id": null,
+    "merge_when_pipeline_succeeds": false,
+    "milestone_id": null,
+    "source_branch": "innocent-change",
+    "source_project_id": 35945041,
+    "state_id": 2,
+    "target_branch": "master",
+    "target_project_id": 19258958,
+    "time_estimate": 0,
+    "title": "ja nic, to samo",
+    "updated_at": "2022-05-06 15:11:26 UTC",
+    "updated_by_id": null,
+    "url": "https://gitlab.com/packit-service/hello-world/-/merge_requests/19",
+    "source": {
+      "id": 35945041,
+      "name": "hello-world",
+      "description": "The most progressive command-line tool in the world.",
+      "web_url": "https://gitlab.com/jpopelka/hello-world",
+      "avatar_url": null,
+      "git_ssh_url": "git@gitlab.com:jpopelka/hello-world.git",
+      "git_http_url": "https://gitlab.com/jpopelka/hello-world.git",
+      "namespace": "Jiri Popelka",
+      "visibility_level": 20,
+      "path_with_namespace": "jpopelka/hello-world",
+      "default_branch": "master",
+      "ci_config_path": "",
+      "homepage": "https://gitlab.com/jpopelka/hello-world",
+      "url": "git@gitlab.com:jpopelka/hello-world.git",
+      "ssh_url": "git@gitlab.com:jpopelka/hello-world.git",
+      "http_url": "https://gitlab.com/jpopelka/hello-world.git"
+    },
+    "target": {
+      "id": 19258958,
+      "name": "hello-world",
+      "description": "The most progressive command-line tool in the world.",
+      "web_url": "https://gitlab.com/packit-service/hello-world",
+      "avatar_url": null,
+      "git_ssh_url": "git@gitlab.com:packit-service/hello-world.git",
+      "git_http_url": "https://gitlab.com/packit-service/hello-world.git",
+      "namespace": "packit-service",
+      "visibility_level": 20,
+      "path_with_namespace": "packit-service/hello-world",
+      "default_branch": "master",
+      "ci_config_path": "",
+      "homepage": "https://gitlab.com/packit-service/hello-world",
+      "url": "git@gitlab.com:packit-service/hello-world.git",
+      "ssh_url": "git@gitlab.com:packit-service/hello-world.git",
+      "http_url": "https://gitlab.com/packit-service/hello-world.git"
+    },
+    "last_commit": {
+      "id": "769beb0807cf0bafeb3357e787f8c2f8fd3ea42b",
+      "message": "the best improvement ever seen to mankind\n",
+      "title": "the best improvement ever seen to mankind",
+      "timestamp": "2022-05-06T17:06:07+02:00",
+      "url": "https://gitlab.com/packit-service/hello-world/-/commit/769beb0807cf0bafeb3357e787f8c2f8fd3ea42b",
+      "author": {
+        "name": "Jiri Popelka",
+        "email": "jpopelka@redhat.com"
+      }
+    },
+    "work_in_progress": false,
+    "total_time_spent": 0,
+    "time_change": 0,
+    "human_total_time_spent": null,
+    "human_time_change": null,
+    "human_time_estimate": null,
+    "assignee_ids": [2952463],
+    "labels": [],
+    "state": "closed",
+    "blocking_discussions_resolved": true,
+    "action": "close"
+  },
+  "labels": [],
+  "changes": {
+    "state_id": {
+      "previous": 1,
+      "current": 2
+    },
+    "updated_at": {
+      "previous": "2022-05-06 15:08:42 UTC",
+      "current": "2022-05-06 15:11:26 UTC"
+    }
+  },
+  "repository": {
+    "name": "hello-world",
+    "url": "git@gitlab.com:packit-service/hello-world.git",
+    "description": "The most progressive command-line tool in the world.",
+    "homepage": "https://gitlab.com/packit-service/hello-world"
+  },
+  "assignees": [
+    {
+      "id": 2952463,
+      "name": "Jiri Popelka",
+      "username": "jpopelka",
+      "avatar_url": "https://gitlab.com/uploads/-/system/user/avatar/2952463/avatar.png",
+      "email": "[REDACTED]"
+    }
+  ]
+}

@@ -44,6 +44,7 @@ from packit_service.worker.events import (
 )
 from packit_service.service.urls import get_copr_build_info_url, get_srpm_build_info_url
 from packit_service.utils import dump_job_config, dump_package_config
+from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.handlers.abstract import (
     JobHandler,
@@ -137,6 +138,13 @@ class CoprBuildHandler(JobHandler):
         return self.copr_build_helper.run_copr_build()
 
     def pre_check(self) -> bool:
+        if (
+            self.data.event_type == MergeRequestGitlabEvent.__name__
+            and self.data.action == GitlabEventAction.closed.value
+        ):
+            # Not interested in closed merge requests
+            return False
+
         if self.data.event_type in (
             PushGitHubEvent.__name__,
             PushGitlabEvent.__name__,

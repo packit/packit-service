@@ -151,7 +151,7 @@ class Parser:
             return None
 
         state = event["object_attributes"]["state"]
-        if state != "opened":
+        if state not in {"opened", "closed"}:
             return None
         action = nested_get(event, "object_attributes", "action")
         if action not in {"reopen", "update"}:
