@@ -2122,9 +2122,9 @@ def test_run_copr_build_from_source_script(github_pr_event):
 
 
 def test_get_latest_fedora_stable_chroot(github_pr_event):
-    flexmock(packit.config.aliases).should_receive("get_aliases").and_return(
-        {"fedora-stable": ["fedora-34", "fedora-35"]}
-    )
+    flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
+        "get_aliases"
+    ).and_return({"fedora-stable": ["fedora-34", "fedora-35"]})
     flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
         "get_valid_build_targets"
     ).with_args("fedora-35").and_return({"fedora-35-x86_64"})
