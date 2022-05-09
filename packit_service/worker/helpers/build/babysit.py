@@ -101,10 +101,15 @@ def check_pending_testing_farm_runs() -> None:
             created=created,
         )
 
+        package_config = event.get_package_config()
+        if not package_config:
+            logger.info(f"No config found for {run.pipeline_id}. Skipping.")
+            continue
+
         job_configs = get_config_for_handler_kls(
             handler_kls=TestingFarmResultsHandler,
             event=event,
-            package_config=event.get_package_config(),
+            package_config=package_config,
         )
 
         for job_config in job_configs:
@@ -212,10 +217,15 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
             timestamp=chroot_build.ended_on,
         )
 
+        package_config = event.get_package_config()
+        if not package_config:
+            logger.info(f"No config found for {build_id}. Skipping.")
+            continue
+
         job_configs = get_config_for_handler_kls(
             handler_kls=CoprBuildEndHandler,
             event=event,
-            package_config=event.get_package_config(),
+            package_config=package_config,
         )
 
         for job_config in job_configs:
