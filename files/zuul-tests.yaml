@@ -9,6 +9,13 @@
           - podman
         state: present
       become: true
+    # Fix the SELinux context for podman
+    - name: Create ~/.local/share/
+      file:
+        path: ~/.local/share/
+        state: directory
+        recurse: yes
+        setype: data_home_t
     - name: Run tests within a container
       command: "make check-in-container"
       args:

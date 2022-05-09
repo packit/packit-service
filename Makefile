@@ -39,10 +39,9 @@ check-in-container:
 		--env COV_REPORT \
 		--env TEST_TARGET \
 		--env COLOR \
-		-v $(CURDIR):/src \
+		-v $(CURDIR):/src:Z \
 		-w /src \
-		--security-opt label=disable \
-		-v $(CURDIR)/files/packit-service.yaml:/root/.config/packit-service.yaml \
+		-v $(CURDIR)/files/packit-service.yaml:/root/.config/packit-service.yaml:Z \
 		$(TEST_IMAGE) make check "TEST_TARGET=$(TEST_TARGET)"
 
 # This is my target so don't touch it! :) How to:
@@ -140,12 +139,11 @@ check-db: build-test-image compose-for-db-up
 		--env COV_REPORT \
 		--env TEST_TARGET \
 		--env COLOR \
-		-v $(CURDIR):/src \
-		-v $(CURDIR)/files/packit-service.yaml:/root/.config/packit-service.yaml \
+		-v $(CURDIR):/src:z \
+		-v $(CURDIR)/files/packit-service.yaml:/root/.config/packit-service.yaml:z \
 		-v $(CURDIR)/secrets/packit/dev/fullchain.pem:/secrets/fullchain.pem:ro,z \
 		-v $(CURDIR)/secrets/packit/dev/privkey.pem:/secrets/privkey.pem:ro,z \
 		-w /src \
-		--security-opt label=disable \
 		--network packit-service_default \
 		$(TEST_IMAGE) make check "TEST_TARGET=tests_openshift/database"
 		$(COMPOSE) down
