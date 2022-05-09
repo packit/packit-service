@@ -1,7 +1,10 @@
 BASE_IMAGE ?= quay.io/packit/base
+# true|false
+PULL_BASE_IMAGE ?= true
 SERVICE_IMAGE ?= quay.io/packit/packit-service:dev
 WORKER_IMAGE ?= quay.io/packit/packit-worker:dev
 TEST_IMAGE ?= quay.io/packit/packit-service-tests:stg
+# missing|always|never
 PULL_TEST_IMAGE ?= missing
 TEST_TARGET ?= ./tests/unit ./tests/integration/
 CONTAINER_ENGINE ?= $(shell command -v podman 2> /dev/null || echo docker)
@@ -16,12 +19,20 @@ COMPOSE ?= docker-compose
 MY_ID ?= `id -u`
 
 service: files/install-deps.yaml files/recipe.yaml
-	$(CONTAINER_ENGINE) pull $(BASE_IMAGE)
-	$(CONTAINER_ENGINE) build --rm -t $(SERVICE_IMAGE) -f files/docker/Dockerfile --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
+	$(CONTAINER_ENGINE) build --rm \
+		--pull=$(PULL_BASE_IMAGE) \
+		-t $(SERVICE_IMAGE) \
+		-f files/docker/Dockerfile \
+		--build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) \
+		.
 
 worker: files/install-deps-worker.yaml files/recipe-worker.yaml
-	$(CONTAINER_ENGINE) pull $(BASE_IMAGE)
-	$(CONTAINER_ENGINE) build --rm -t $(WORKER_IMAGE) -f files/docker/Dockerfile.worker --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
+	$(CONTAINER_ENGINE) build --rm \
+		--pull=$(PULL_BASE_IMAGE) \
+		-t $(WORKER_IMAGE) \
+		-f files/docker/Dockerfile.worker \
+		--build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) \
+		.
 
 check:
 	find . -name "*.pyc" -exec rm {} \;
@@ -29,8 +40,16 @@ check:
 
 # In most cases you don't need to build your test-image, the one in registry should be all you need.
 build-test-image: files/install-deps-worker.yaml files/install-deps.yaml files/recipe-tests.yaml
-	$(CONTAINER_ENGINE) build --rm -t $(TEST_IMAGE) -f files/docker/Dockerfile.tests --build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) .
+	$(CONTAINER_ENGINE) build --rm \
+		-t $(TEST_IMAGE) \
+		-f files/docker/Dockerfile.tests \
+		--build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) \
+		.
 
+# We use a test image pre-built (by Github action) from latest commit in main.
+# The PULL_TEST_IMAGE specifies whether the image is downloaded before running tests in a container.
+# Default is 'missing', which means that it's downloaded/updated ONLY if missing.
+# Set PULL_TEST_IMAGE=always to pull/update the test image before running tests.
 check-in-container:
 	@# don't use -ti here in CI, TTY is not allocated in zuul
 	echo $(SOURCE_BRANCH)
