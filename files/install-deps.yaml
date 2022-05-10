@@ -1,3 +1,6 @@
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 ---
 - name: Install dependencies for packit-service
   hosts: all
@@ -14,7 +17,6 @@
           # httpd & deps
           - python3-mod_wsgi
           - mod_ssl
-          #- python3-packit # temporary workaround for sake of marhsmallow
           - python3-pip # not included in base fedora:31 image, needed for next task
           # temporary dependencies
           - krb5-devel

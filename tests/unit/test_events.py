@@ -137,6 +137,11 @@ class TestEvents:
             return json.load(outfile)
 
     @pytest.fixture()
+    def merge_request_closed(self):
+        with open(DATA_DIR / "webhooks" / "gitlab" / "mr_closed.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
     def github_pr_comment_empty(self):
         with open(
             DATA_DIR / "webhooks" / "github" / "pr_comment_empty.json"
@@ -333,6 +338,11 @@ class TestEvents:
             flexmock()
         ).once()
         assert event_object.package_config
+
+    def test_parse_mr_closed(self, merge_request_closed):
+        event_object = Parser.parse_event(merge_request_closed)
+        assert isinstance(event_object, MergeRequestGitlabEvent)
+        assert event_object.action == GitlabEventAction.closed
 
     def test_parse_pr(self, github_pr_webhook):
         event_object = Parser.parse_event(github_pr_webhook)

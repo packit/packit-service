@@ -52,7 +52,6 @@ services:
         SOURCE_BRANCH: main
     image: quay.io/packit/packit-worker:dev
     command: /usr/bin/run_worker.sh
-    #tty: true
     depends_on:
       - redis
       - postgres

@@ -36,6 +36,7 @@ from packit_service.service.urls import (
     get_testing_farm_info_url,
     get_copr_build_info_url,
 )
+from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.abstract import (
     TaskName,
@@ -119,6 +120,13 @@ class TestingFarmHandler(JobHandler):
         return True
 
     def pre_check(self) -> bool:
+        if (
+            self.data.event_type == MergeRequestGitlabEvent.__name__
+            and self.data.action == GitlabEventAction.closed.value
+        ):
+            # Not interested in closed merge requests
+            return False
+
         return not (
             self.testing_farm_job_helper.skip_build
             and self.is_copr_build_comment_event()

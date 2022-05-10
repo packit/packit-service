@@ -11,9 +11,10 @@ class PullRequestAction(Enum):
 
 
 class GitlabEventAction(Enum):
-    opened = "opened"
-    reopen = "reopen"
-    update = "update"
+    opened = "opened"  # from state
+    closed = "closed"  # from state
+    reopen = "reopen"  # from action
+    update = "update"  # from action
 
 
 class PullRequestCommentAction(Enum):

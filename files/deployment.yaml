@@ -1,3 +1,6 @@
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
 ---
 # This file is the entrypoint to deploy packit-service to an openshift cluster (e.g. in Zuul)
 - name: Deploy dev version of packit-service into zuul.
@@ -33,7 +36,7 @@
           git:
             repo: "https://github.com/packit/deployment.git"
             dest: "{{ deployment_dir }}"
-            clone: yes
+            clone: true
       when: zuul is not defined
 
     - name: Generate secrets
@@ -61,7 +64,7 @@
     - name: get minishift ip
       command: minishift ip
       register: minishift_ip
-      ignore_errors: True
+      ignore_errors: true
 
     - set_fact:
         cluster_ip: "{{ minishift_ip.stdout if not minishift_ip.failed else '127.0.0.1' }}"
