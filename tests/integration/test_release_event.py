@@ -299,7 +299,7 @@ def test_dist_git_push_release_handle_one_failed(
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, "
-        "metadata: {targets:[], dist-git-branch: fedora-all}}]}"
+        "targets:[], dist_git_branches: [fedora-all,]}]}"
     )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
     project = (

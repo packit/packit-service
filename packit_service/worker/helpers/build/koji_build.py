@@ -65,7 +65,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
 
     @property
     def is_scratch(self) -> bool:
-        return self.job_build and self.job_build.metadata.scratch
+        return self.job_build and self.job_build.scratch
 
     @property
     def build_targets_all(self) -> Set[str]:

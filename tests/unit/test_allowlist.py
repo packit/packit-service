@@ -15,7 +15,6 @@ import packit_service
 from packit.api import PackitAPI
 from packit.config import JobType, JobConfig, JobConfigTriggerType
 from packit.config.common_package_config import Deployment
-from packit.config.job_config import JobMetadataConfig
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 from packit_service.constants import FAQ_URL
@@ -472,7 +471,7 @@ def test_check_and_report(
         JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(_targets=["fedora-rawhide"]),
+            _targets=["fedora-rawhide"],
         )
     ]
     flexmock(PullRequestGithubEvent).should_receive("get_package_config").and_return(

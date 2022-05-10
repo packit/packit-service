@@ -122,7 +122,7 @@ class ProposeDownstreamJobHelper(BaseJobHelper):
         Return all valid branches from config.
         """
         branches = get_branches(
-            *self.job.metadata.dist_git_branches, default=self.default_dg_branch
+            *self.job.dist_git_branches, default=self.default_dg_branch
         )
         if self.branches_override:
             logger.debug(f"Branches override: {self.branches_override}")

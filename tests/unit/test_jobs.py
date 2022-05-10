@@ -7,7 +7,6 @@ import pytest
 from flexmock import flexmock
 
 from packit.config import JobConfig, JobConfigTriggerType, JobType
-from packit.config.job_config import JobMetadataConfig
 from packit_service.constants import COMMENT_REACTION
 from packit_service.worker.events import (
     CoprBuildEndEvent,
@@ -467,7 +466,7 @@ from packit_service.worker.jobs import (
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(skip_build=True),
+                    skip_build=True,
                 ),
             ],
             {TestingFarmHandler},
@@ -484,7 +483,7 @@ from packit_service.worker.jobs import (
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(skip_build=True),
+                    skip_build=True,
                 ),
             ],
             {CoprBuildHandler, TestingFarmHandler},
@@ -989,7 +988,7 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(skip_build=True),
+                    skip_build=True,
                 ),
             ],
             {TestingFarmHandler},
@@ -1005,7 +1004,7 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(skip_build=True),
+                    skip_build=True,
                 ),
             ],
             {TestingFarmHandler},
@@ -1355,24 +1354,24 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
             ],
             id="build_for_pr_twice&CoprBuildHandler&PullRequestGithubEvent",
@@ -1386,24 +1385,24 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 )
             ],
             id="build_for_pr+build_for_commit+build_for_release"
@@ -1417,24 +1416,24 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
             ],
             id="build_for_pr+build_for_commit+build_for_release"
@@ -1448,24 +1447,24 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             id="build_for_pr+build_for_commit+build_for_release"
@@ -1480,17 +1479,17 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             [],
@@ -1505,24 +1504,24 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
             ],
             id="tests_for_pr+build_for_commit+build_for_release"
@@ -1536,24 +1535,24 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             id="tests_for_pr+build_for_commit+build_for_release"
@@ -1567,24 +1566,24 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             [
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
             ],
             id="tests_for_pr+build_for_commit+build_for_release"
@@ -1598,24 +1597,24 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             [
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
             ],
             id="tests_for_pr+build_for_commit+build_for_release"
@@ -1629,24 +1628,24 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             [
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
             ],
             id="tests_for_pr+build_for_commit+build_for_release"
@@ -1661,29 +1660,29 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project0"),
+                    project="project0",
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project0"),
+                    project="project0",
                 ),
             ],
             id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"
@@ -1697,29 +1696,29 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project0"),
+                    project="project0",
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
             ],
             id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"
@@ -1733,29 +1732,29 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project0"),
+                    project="project0",
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"
@@ -1769,29 +1768,29 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project0"),
+                    project="project0",
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project0"),
+                    project="project0",
                 ),
             ],
             id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"
@@ -1805,29 +1804,29 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project0"),
+                    project="project0",
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             [
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project0"),
+                    project="project0",
                 ),
             ],
             id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"
@@ -1841,29 +1840,29 @@ def test_get_handlers_for_check_rerun_event(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project0"),
+                    project="project0",
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(project="project2"),
+                    project="project2",
                 ),
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.release,
-                    metadata=JobMetadataConfig(project="project3"),
+                    project="project3",
                 ),
             ],
             [
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(project="project1"),
+                    project="project1",
                 ),
             ],
             id="build_for_pr+tests_for_pr+build_for_commit+build_for_release"

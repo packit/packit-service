@@ -106,7 +106,7 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
     packit_yaml = (
         "{'specfile_path': 'packit.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update',"
-        "'metadata': {'dist_git_branches': ['rawhide']}}],"
+        "'dist_git_branches': ['rawhide']}],"
         "'downstream_package_name': 'packit'}"
     )
     pagure_project_mock = flexmock(

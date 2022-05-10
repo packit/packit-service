@@ -16,7 +16,6 @@ from packit.config import (
     JobType,
     JobConfigTriggerType,
 )
-from packit.config.job_config import JobMetadataConfig
 from packit_service.config import ServiceConfig
 from packit_service.models import SRPMBuildModel
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
@@ -38,21 +37,20 @@ def build_helper(
         PushGitHubEvent,
         ReleaseEvent,
     ],
-    metadata=None,
+    _targets=None,
+    scratch=None,
     trigger=None,
     jobs=None,
     db_trigger=None,
 ):
-    if not metadata:
-        metadata = JobMetadataConfig(
-            owner="nobody",
-        )
     jobs = jobs or []
     jobs.append(
         JobConfig(
             type=JobType.production_build,
             trigger=trigger or JobConfigTriggerType.pull_request,
-            metadata=metadata,
+            _targets=_targets,
+            owner="nobody",
+            scratch=scratch,
         )
     )
 
@@ -106,7 +104,8 @@ def test_build_srpm_log_format(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(_targets=["bright-future"], scratch=True),
+        _targets=["bright-future"],
+        scratch=True,
         db_trigger=trigger,
     )
 

@@ -117,7 +117,7 @@ class CoprBuildHandler(JobHandler):
         test_job = self.copr_build_helper.job_tests
         if (
             test_job
-            and test_job.metadata.use_internal_tf
+            and test_job.use_internal_tf
             and not self.project.can_merge_pr(actor)
         ):
             self.copr_build_helper.report_status_to_build(

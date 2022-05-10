@@ -87,7 +87,7 @@ class CreateBodhiUpdateHandler(JobHandler):
 
         if self.koji_build_event.git_ref not in (
             configured_branches := get_branches(
-                *(self.job_config.metadata.dist_git_branches or {"fedora-stable"}),
+                *(self.job_config.dist_git_branches or {"fedora-stable"}),
                 default_dg_branch="rawhide",  # Koji calls it rawhide, not main
             )
         ):

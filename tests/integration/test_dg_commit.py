@@ -535,16 +535,16 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         pytest.param(
             "["
             "{'trigger': 'commit', 'job': 'koji_build', "
-            "'metadata': {'dist_git_branches': ['a-different-branch']}},"
+            "'dist_git_branches': ['a-different-branch']},"
             "{'trigger': 'commit', 'job': 'koji_build', "
-            "'metadata': {'dist_git_branches': ['other_branch']}}"
+            "'dist_git_branches': ['other_branch']}"
             "]",
             id="multiple_jobs",
         ),
         pytest.param(
             "["
             "{'trigger': 'commit', 'job': 'koji_build', "
-            "'metadata': {'dist_git_branches': ['a-different-branch', 'other_branch']}}"
+            "'dist_git_branches': ['a-different-branch', 'other_branch']}"
             "]",
             id="multiple_branches",
         ),

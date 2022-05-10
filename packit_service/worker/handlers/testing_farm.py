@@ -101,9 +101,7 @@ class TestingFarmHandler(JobHandler):
         """
         The job is not allowed for external contributors when using internal TF.
         """
-        if self.job_config.metadata.use_internal_tf and not self.project.can_merge_pr(
-            actor
-        ):
+        if self.job_config.use_internal_tf and not self.project.can_merge_pr(actor):
             message = (
                 INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED
                 if self.testing_farm_job_helper.job_build

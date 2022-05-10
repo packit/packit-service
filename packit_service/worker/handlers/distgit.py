@@ -411,7 +411,7 @@ class DownstreamKojiBuildHandler(JobHandler):
         if self.data.event_type in (PushPagureEvent.__name__,):
             if self.data.git_ref not in (
                 configured_branches := get_branches(
-                    *self.job_config.metadata.dist_git_branches,
+                    *self.job_config.dist_git_branches,
                     default="main",
                     with_aliases=True,
                 )
@@ -442,7 +442,7 @@ class DownstreamKojiBuildHandler(JobHandler):
         try:
             packit_api.build(
                 dist_git_branch=self.dg_branch,
-                scratch=self.job_config.metadata.scratch,
+                scratch=self.job_config.scratch,
                 nowait=True,
                 from_upstream=False,
             )

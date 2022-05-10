@@ -27,7 +27,6 @@ from ogr.services.gitlab import GitlabProject
 from packit.actions import ActionName
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobConfigTriggerType, JobType, PackageConfig
-from packit.config.job_config import JobMetadataConfig
 from packit.copr_helper import CoprHelper
 from packit.exceptions import FailedCreateSRPM, PackitCoprSettingsException
 from packit_service import sentry_integration
@@ -93,7 +92,8 @@ def branch_push_event_gitlab() -> PushGitlabEvent:
 
 def build_helper(
     event,
-    metadata=None,
+    _targets=None,
+    owner=None,
     trigger=None,
     jobs=None,
     db_trigger=None,
@@ -101,20 +101,20 @@ def build_helper(
     project_type: Type[GitProject] = GithubProject,
     build_targets_override=None,
 ) -> CoprBuildJobHelper:
-    if jobs and metadata:
-        raise Exception("Only one of jobs and metadata can be used.")
+    if jobs and (_targets or owner):
+        raise Exception("Only one job description can be used.")
 
-    if not metadata:
-        metadata = JobMetadataConfig(
-            _targets=DEFAULT_TARGETS,
-            owner="nobody",
-        )
+    if not _targets:
+        _targets = DEFAULT_TARGETS
+    if not owner:
+        owner = "nobody"
 
     jobs = jobs or [
         JobConfig(
             type=JobType.copr_build,
             trigger=trigger or JobConfigTriggerType.pull_request,
-            metadata=metadata,
+            _targets=_targets,
+            owner=owner,
         )
     ]
 
@@ -159,7 +159,8 @@ def test_copr_build_check_names(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(_targets=["bright-future-x86_64"], owner="packit"),
+        _targets=["bright-future-x86_64"],
+        owner="packit",
         db_trigger=trigger,
     )
     # we need to make sure that pr_id is set
@@ -268,7 +269,8 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(_targets=build_targets, owner="packit"),
+        _targets=build_targets,
+        owner="packit",
         db_trigger=trigger,
     )
     # we need to make sure that pr_id is set
@@ -406,17 +408,15 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                metadata=JobMetadataConfig(
-                    _targets=["fedora-rawhide-x86_64"], owner="nobody"
-                ),
+                _targets=["fedora-rawhide-x86_64"],
+                owner="nobody",
                 actions={ActionName.post_upstream_clone: "ls /*"},
             ),
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                metadata=JobMetadataConfig(
-                    _targets=["fedora-32-x86_64"], owner="nobody"
-                ),
+                _targets=["fedora-32-x86_64"],
+                owner="nobody",
                 actions={ActionName.post_upstream_clone: 'bash -c "ls /*"'},
             ),
         ],
@@ -424,7 +424,8 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
         selected_job=JobConfig(
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(_targets=["fedora-32-x86_64"], owner="nobody"),
+            _targets=["fedora-32-x86_64"],
+            owner="nobody",
             actions={ActionName.post_upstream_clone: 'bash -c "ls /*"'},
         ),
     )
@@ -527,7 +528,8 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(_targets=["bright-future-x86_64"], owner="nobody"),
+        _targets=["bright-future-x86_64"],
+        owner="nobody",
         db_trigger=trigger,
     )
     # we need to make sure that pr_id is set
@@ -624,9 +626,8 @@ def test_copr_build_success_set_test_check(github_pr_event):
     test_job = JobConfig(
         type=JobType.tests,
         trigger=JobConfigTriggerType.pull_request,
-        metadata=JobMetadataConfig(
-            owner="nobody", _targets=["bright-future-x86_64", "brightest-future-x86_64"]
-        ),
+        owner="nobody",
+        _targets=["bright-future-x86_64", "brightest-future-x86_64"],
     )
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
@@ -702,11 +703,9 @@ def test_copr_build_for_branch(branch_push_event):
     branch_build_job = JobConfig(
         type=JobType.build,
         trigger=JobConfigTriggerType.commit,
-        metadata=JobMetadataConfig(
-            _targets=DEFAULT_TARGETS,
-            owner="nobody",
-            dist_git_branches=["build-branch"],
-        ),
+        _targets=DEFAULT_TARGETS,
+        owner="nobody",
+        dist_git_branches=["build-branch"],
     )
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.commit,
@@ -783,11 +782,9 @@ def test_copr_build_for_branch_failed(branch_push_event):
     branch_build_job = JobConfig(
         type=JobType.build,
         trigger=JobConfigTriggerType.commit,
-        metadata=JobMetadataConfig(
-            _targets=DEFAULT_TARGETS,
-            owner="nobody",
-            dist_git_branches=["build-branch"],
-        ),
+        _targets=DEFAULT_TARGETS,
+        owner="nobody",
+        dist_git_branches=["build-branch"],
     )
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.commit,
@@ -861,11 +858,9 @@ def test_copr_build_for_release(release_event):
     branch_build_job = JobConfig(
         type=JobType.build,
         trigger=JobConfigTriggerType.release,
-        metadata=JobMetadataConfig(
-            _targets=DEFAULT_TARGETS,
-            owner="nobody",
-            dist_git_branches=["build-branch"],
-        ),
+        _targets=DEFAULT_TARGETS,
+        owner="nobody",
+        dist_git_branches=["build-branch"],
     )
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.release,
@@ -1242,7 +1237,7 @@ def test_copr_build_fails_chroot_update(github_pr_event):
         ),
     )
     # enforce that we are reporting on our own Copr project
-    helper.job_build.metadata.owner = "packit"
+    helper.job_build.owner = "packit"
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
         {"f31", "f32"}
     )
@@ -1293,7 +1288,7 @@ def test_copr_build_no_targets(github_pr_event):
     #  - Starting RPM build...
     helper = build_helper(
         event=github_pr_event,
-        metadata=JobMetadataConfig(owner="nobody"),
+        owner="nobody",
         db_trigger=flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
@@ -1380,7 +1375,8 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
     flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
     helper = build_helper(
         event=gitlab_mr_event,
-        metadata=JobMetadataConfig(_targets=["bright-future-x86_64"], owner="nobody"),
+        _targets=["bright-future-x86_64"],
+        owner="nobody",
         db_trigger=trigger,
         project_type=GitlabProject,
     )
@@ -1483,9 +1479,8 @@ def test_copr_build_success_set_test_check_gitlab(gitlab_mr_event):
     test_job = JobConfig(
         type=JobType.tests,
         trigger=JobConfigTriggerType.pull_request,
-        metadata=JobMetadataConfig(
-            owner="nobody", _targets=["bright-future-x86_64", "brightest-future-x86_64"]
-        ),
+        owner="nobody",
+        _targets=["bright-future-x86_64", "brightest-future-x86_64"],
     )
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
         type=JobTriggerModelType.pull_request, trigger_id=123
@@ -1568,11 +1563,9 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
     branch_build_job = JobConfig(
         type=JobType.build,
         trigger=JobConfigTriggerType.commit,
-        metadata=JobMetadataConfig(
-            _targets=DEFAULT_TARGETS,
-            owner="nobody",
-            dist_git_branches=["build-branch"],
-        ),
+        _targets=DEFAULT_TARGETS,
+        owner="nobody",
+        dist_git_branches=["build-branch"],
     )
     flexmock(CoprBuildJobHelper).should_receive("is_reporting_allowed").and_return(True)
     trigger = flexmock(
@@ -1899,7 +1892,7 @@ def test_copr_build_no_targets_gitlab(gitlab_mr_event):
     #  - Starting RPM build...
     helper = build_helper(
         event=gitlab_mr_event,
-        metadata=JobMetadataConfig(owner="nobody"),
+        owner="nobody",
         db_trigger=flexmock(
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
@@ -1980,9 +1973,8 @@ def test_copr_build_targets_override(github_pr_event):
     test_job = JobConfig(
         type=JobType.tests,
         trigger=JobConfigTriggerType.pull_request,
-        metadata=JobMetadataConfig(
-            owner="nobody", _targets=["bright-future-x86_64", "brightest-future-x86_64"]
-        ),
+        owner="nobody",
+        _targets=["bright-future-x86_64", "brightest-future-x86_64"],
     )
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
@@ -2208,7 +2200,7 @@ def test_get_packit_copr_download_urls(github_pr_event):
                     JobConfig(
                         type=JobType.copr_build,
                         trigger=JobConfigTriggerType.pull_request,
-                        metadata=JobMetadataConfig(_targets=["fedora-all"]),
+                        _targets=["fedora-all"],
                     ),
                     JobConfig(
                         type=JobType.tests,
@@ -2219,7 +2211,7 @@ def test_get_packit_copr_download_urls(github_pr_event):
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                metadata=JobMetadataConfig(_targets=["fedora-all"]),
+                _targets=["fedora-all"],
             ),
             0,
         ),
@@ -2233,12 +2225,12 @@ def test_get_packit_copr_download_urls(github_pr_event):
                     JobConfig(
                         type=JobType.copr_build,
                         trigger=JobConfigTriggerType.commit,
-                        metadata=JobMetadataConfig(_targets=["fedora-all"]),
+                        _targets=["fedora-all"],
                     ),
                     JobConfig(
                         type=JobType.copr_build,
                         trigger=JobConfigTriggerType.pull_request,
-                        metadata=JobMetadataConfig(_targets=["fedora-all"]),
+                        _targets=["fedora-all"],
                     ),
                     JobConfig(
                         type=JobType.tests,
@@ -2249,7 +2241,7 @@ def test_get_packit_copr_download_urls(github_pr_event):
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                metadata=JobMetadataConfig(_targets=["fedora-all"]),
+                _targets=["fedora-all"],
             ),
             2,
         ),

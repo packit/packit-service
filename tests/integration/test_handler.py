@@ -8,7 +8,6 @@ from flexmock import flexmock
 
 from ogr.services.github import GithubProject
 from packit.config import JobConfig, JobConfigTriggerType, JobType, PackageConfig
-from packit.config.job_config import JobMetadataConfig
 from packit_service.config import ServiceConfig
 from packit_service.constants import KOJI_PRODUCTION_BUILDS_ISSUE
 from packit_service.models import (
@@ -48,7 +47,6 @@ def test_handler_cleanup(tmp_path, trick_p_s_with_k8s):
     jc = JobConfig(
         type=JobType.copr_build,
         trigger=JobConfigTriggerType.pull_request,
-        metadata=JobMetadataConfig(),
     )
     j = JobHandler(
         package_config=pc,
@@ -106,14 +104,14 @@ def test_precheck_push(github_push_event):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(branch="build-branch"),
+                    branch="build-branch",
                 ),
             ]
         ),
         job_config=JobConfig(
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.commit,
-            metadata=JobMetadataConfig(branch="build-branch"),
+            branch="build-branch",
         ),
         event=github_push_event.get_dict(),
     )
@@ -132,14 +130,14 @@ def test_precheck_push_to_a_different_branch(github_push_event):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    metadata=JobMetadataConfig(branch="bad-branch"),
+                    branch="bad-branch",
                 ),
             ]
         ),
         job_config=JobConfig(
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.commit,
-            metadata=JobMetadataConfig(branch="bad-branch"),
+            branch="bad-branch",
         ),
         event=github_push_event.get_dict(),
     )
@@ -177,16 +175,16 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    metadata=JobMetadataConfig(
-                        _targets=["bright-future"], scratch=False
-                    ),
+                    _targets=["bright-future"],
+                    scratch=False,
                 ),
             ]
         ),
         job_config=JobConfig(
             type=JobType.production_build,
             trigger=JobConfigTriggerType.pull_request,
-            metadata=JobMetadataConfig(_targets=["bright-future"], scratch=False),
+            _targets=["bright-future"],
+            scratch=False,
         ),
         event=github_pr_event.get_dict(),
     )
