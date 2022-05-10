@@ -6,7 +6,7 @@ We love you, Steve Jobs.
 """
 import logging
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Optional, Union
 from typing import List, Set, Type
 
 from celery import group
@@ -46,7 +46,11 @@ from packit_service.worker.handlers.abstract import (
     MAP_CHECK_PREFIX_TO_HANDLER,
     get_packit_commands_from_comment,
 )
-from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper
+from packit_service.worker.helpers.build import (
+    CoprBuildJobHelper,
+    KojiBuildJobHelper,
+    BaseBuildJobHelper,
+)
 from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
 from packit_service.worker.monitoring import Pushgateway, measure_time
 from packit_service.worker.parser import Parser
@@ -132,6 +136,14 @@ class SteveJobs:
         return SteveJobs(event_object).process()
 
     def process(self) -> List[TaskResults]:
+        """
+        Processes the event object attribute of SteveJobs - runs the checks for
+        the given event and creates tasks that match the event,
+        example usage: SteveJobs(event_object).process()
+
+        Returns:
+            list of processing task results
+        """
         if not self.is_project_public_or_enabled_private():
             return []
 
@@ -144,10 +156,10 @@ class SteveJobs:
                 event=self.event, job=None
             ).apply_async()
         elif isinstance(
-                self.event, IssueCommentEvent
+            self.event, IssueCommentEvent
         ) and self.is_fas_verification_comment(self.event.comment):
             if GithubFasVerificationHandler(
-                    package_config=None, job_config=None, event=self.event.get_dict()
+                package_config=None, job_config=None, event=self.event.get_dict()
             ).pre_check():
                 self.event.comment_object.add_reaction(COMMENT_REACTION)
                 GithubFasVerificationHandler.get_signature(
@@ -171,6 +183,47 @@ class SteveJobs:
 
         return processing_results
 
+    def initialize_job_helper(
+        self, handler: JobHandler, job_config: JobConfig
+    ) -> Union[ProposeDownstreamJobHelper, BaseBuildJobHelper]:
+        """
+        Initialize job helper with arguments
+        based on what type of handler is used.
+
+        Args:
+            handler: Handler that will handle the job.
+            job_config: Corresponding job config.
+
+        Returns:
+            the correct job helper
+        """
+        params = {
+            "service_config": self.service_config,
+            "package_config": self.event.package_config,
+            "project": self.event.project,
+            "metadata": EventData.from_event_dict(self.event.get_dict()),
+            "db_trigger": self.event.db_trigger,
+            "job_config": job_config,
+        }
+
+        if isinstance(handler, ProposeDownstreamHandler):
+            propose_downstream_helper = ProposeDownstreamJobHelper
+            params.update({"branches_override": self.event.branches_override})
+            return propose_downstream_helper(**params)
+
+        build_helper = (
+            CoprBuildJobHelper
+            if isinstance(handler, (CoprBuildHandler, TestingFarmHandler))
+            else KojiBuildJobHelper
+        )
+        params.update(
+            {
+                "build_targets_override": self.event.build_targets_override,
+                "tests_targets_override": self.event.tests_targets_override,
+            }
+        )
+        return build_helper(**params)
+
     def report_task_accepted(self, handler: JobHandler, job_config: JobConfig):
         """
         For the upstream events report the initial status "Task was accepted" to
@@ -183,52 +236,30 @@ class SteveJobs:
         """
         number_of_build_targets = None
         if isinstance(
-            handler, (CoprBuildHandler, KojiBuildHandler, TestingFarmHandler)
+            handler,
+            (
+                CoprBuildHandler,
+                KojiBuildHandler,
+                TestingFarmHandler,
+                ProposeDownstreamHandler,
+            ),
         ):
-            helper = (
-                CoprBuildJobHelper
-                if isinstance(handler, (CoprBuildHandler, TestingFarmHandler))
-                else KojiBuildJobHelper
-            )
+            job_helper = self.initialize_job_helper(handler, job_config)
+            reporting_method = None
 
-            job_helper = helper(
-                service_config=self.service_config,
-                package_config=self.event.package_config,
-                project=self.event.project,
-                metadata=EventData.from_event_dict(self.event.get_dict()),
-                db_trigger=self.event.db_trigger,
-                job_config=job_config,
-                build_targets_override=self.event.build_targets_override,
-                tests_targets_override=self.event.tests_targets_override,
-            )
+            if isinstance(job_helper, ProposeDownstreamJobHelper):
+                reporting_method = job_helper.report_status_to_all
 
-            reporting_method = (
-                job_helper.report_status_to_tests
-                if isinstance(handler, TestingFarmHandler)
-                else job_helper.report_status_to_build
-            )
+            elif isinstance(job_helper, BaseBuildJobHelper):
+                reporting_method = (
+                    job_helper.report_status_to_tests
+                    if isinstance(handler, TestingFarmHandler)
+                    else job_helper.report_status_to_build
+                )
+                number_of_build_targets = len(job_helper.build_targets)
 
             task_accepted_time = datetime.now(timezone.utc)
-
             reporting_method(
-                description=TASK_ACCEPTED,
-                state=BaseCommitStatus.pending,
-                url="",
-            )
-            number_of_build_targets = len(job_helper.build_targets)
-
-        elif isinstance(handler, ProposeDownstreamHandler):
-            job_helper = ProposeDownstreamJobHelper(
-                service_config=self.service_config,
-                package_config=self.event.package_config,
-                project=self.event.project,
-                metadata=EventData.from_event_dict(self.event.get_dict()),
-                db_trigger=self.event.db_trigger,
-                job_config=job_config,
-                branches_override=self.event.branches_override,
-            )
-            task_accepted_time = datetime.now(timezone.utc)
-            job_helper.report_status_to_all(
                 description=TASK_ACCEPTED,
                 state=BaseCommitStatus.pending,
                 url="",
@@ -245,6 +276,7 @@ class SteveJobs:
         Set fail_when_config_file_missing if we handle comment events so that
         we notify user about not present config and check whether the config
         is present.
+
         Returns:
             Whether the Packit configuration is present in the repo.
         """
@@ -351,9 +383,16 @@ class SteveJobs:
 
     def should_task_be_created_for_job_config_and_handler(
         self, job_config: JobConfig, handler_kls: Type[JobHandler]
-    ):
+    ) -> bool:
         """
         Check whether a new task should be created for job config and handler.
+
+        Args:
+            job_config: job config to check
+            handler_kls: type of handler class to check
+
+        Returns:
+            Whether the task should be created.
         """
         if self.service_config.deployment not in job_config.packit_instances:
             logger.debug(
@@ -463,7 +502,6 @@ class SteveJobs:
             )
 
         return handlers_triggered_by_job
-
 
     def get_handlers_for_event(self) -> Set[Type[JobHandler]]:
         """
