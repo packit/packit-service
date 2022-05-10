@@ -9,20 +9,22 @@ import logging
 
 from packit.config import (
     JobConfig,
+    Deployment,
 )
 from packit.config.package_config import PackageConfig
-
 from packit_service.models import (
     GithubInstallationModel,
 )
+from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
     InstallationEvent,
+    IssueCommentEvent,
 )
-from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,
     reacts_to,
+    get_packit_commands_from_comment,
 )
 from packit_service.worker.result import TaskResults
 
@@ -58,8 +60,8 @@ class GithubAppInstallationHandler(JobHandler):
     def run(self) -> TaskResults:
         """
         Discover information about organization/user which wants to install packit on his repository
-        Try to allowlist automatically if mapping from github username to FAS account can prove that
-        user is a packager.
+        Try to allowlist automatically if mapping from github username to FAS account can prove a
+        match.
         :return: TaskResults
         """
         GithubInstallationModel.create(event=self.installation_event)
@@ -76,9 +78,13 @@ class GithubAppInstallationHandler(JobHandler):
                     "order to start using Packit-as-a-Service. "
                     "We are now onboarding Fedora contributors who have a valid "
                     "[Fedora Account System](https://fedoraproject.org/wiki/Account_System) "
-                    "account. If you have such an account, please, provide it in a comment and "
-                    "we'd be glad to approve you for using the service.\n\n"
-                    "For more info, please check out the documentation: "
+                    "account. \n\nIf you have such an account, please set the `GitHub Username`"
+                    " field in the settings of the FAS account (if you don't have it set already)"
+                    " and provide it in a comment in this issue as `/packit verify-fas "
+                    "my-fas-username`. We automatically check for the match between the `GitHub"
+                    " Username` field in the provided FAS account and the Github account that "
+                    "triggers the verification and approve you for using our service if they "
+                    "match.\n\nFor more info, please check out the documentation: "
                     "https://packit.dev/docs/packit-service"
                 ),
             )
@@ -89,4 +95,119 @@ class GithubAppInstallationHandler(JobHandler):
             )
 
         logger.info(msg)
+        return TaskResults(success=True, details={"msg": msg})
+
+
+@reacts_to(event=IssueCommentEvent)
+class GithubFasVerificationHandler(JobHandler):
+    task_name = TaskName.github_fas_verification
+
+    def __init__(
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        event: dict,
+    ):
+        super().__init__(
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
+        )
+        self.sender_login = self.data.actor
+        self.comment = self.data.event_dict.get("comment")
+        self._issue = None
+
+    @property
+    def issue(self):
+        if not self._issue:
+            self._issue = self.project.get_issue(self.data.issue_id)
+        return self._issue
+
+    def pre_check(self) -> bool:
+        """
+        Checks whether the Packit verification command is placed in
+        packit/notifications repository in the issue our service created.
+        """
+        if not (
+            self.project.namespace == "packit" and self.project.repo == "notifications"
+        ):
+            logger.debug(
+                "Packit verification comment command not placed in packit/notifications repository."
+            )
+            return False
+
+        issue_author = self.issue.author
+        if (
+            self.service_config.deployment == Deployment.prod
+            and issue_author != "packit-as-a-service[bot]"
+        ) or (
+            self.service_config.deployment == Deployment.stg
+            and issue_author != "packit-as-a-service-stg[bot]"
+        ):
+            logger.debug(
+                f"Packit verification comment command placed on issue with author "
+                f"other than our app: {issue_author}"
+            )
+            return False
+
+        return True
+
+    def run(self) -> TaskResults:
+        """
+        Discover information about organization/user which wants to verify the FAS account.
+        Allowlist automatically if mapping from github username to FAS account can prove a match.
+
+        Returns:
+            TaskResults
+        """
+        logger.debug(
+            f"Going to run verification of FAS account triggered by comment:"
+            f" {self.comment}"
+        )
+        # e.g. User Bebaabeni needs to be approved.
+        _, account_login, _ = self.issue.title.split(maxsplit=2)
+        namespace = f"github.com/{account_login}"
+        command_parts = get_packit_commands_from_comment(
+            self.comment, self.service_config.comment_command_prefix
+        )
+        # we expect ["verify-fas", "fas-account"]
+        if len(command_parts) != 2:
+            msg = "Incorrect format of the Packit verification comment command."
+            logger.debug(msg)
+            self.issue.comment(
+                f"{msg} The expected format: `/packit verify-fas my-fas-account`"
+            )
+            return TaskResults(success=False, details={"msg": msg})
+
+        fas_account = command_parts[1]
+
+        allowlist = Allowlist(service_config=self.service_config)
+        if allowlist.is_approved(namespace):
+            msg = f"Namespace `{namespace}` was already approved."
+            logger.debug(msg)
+            self.issue.comment(msg)
+            self.issue.close()
+            return TaskResults(success=True, details={"msg": msg})
+
+        if allowlist.verify_fas(
+            namespace=namespace, sender_login=self.sender_login, fas_account=fas_account
+        ):
+            msg = (
+                f"Namespace `{namespace}` approved successfully "
+                f"using FAS account `{fas_account}`!"
+            )
+            logger.debug(msg)
+            self.issue.comment(msg)
+            self.issue.close()
+
+        else:
+            msg = (
+                f"We were not able to find a match between the GitHub Username field "
+                f"in the FAS account `{fas_account}` and GitHub user `{self.sender_login}`. "
+                f"Please, check that you have set the field correctly and try again or contact "
+                f"[us](https://packit.dev/#contact)."
+            )
+            logger.debug(msg)
+            self.issue.comment(msg)
+
         return TaskResults(success=True, details={"msg": msg})

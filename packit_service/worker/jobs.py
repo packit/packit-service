@@ -13,10 +13,13 @@ from celery import group
 
 from packit.config import JobConfig, PackageConfig
 from packit_service.config import ServiceConfig
-from packit_service.constants import TASK_ACCEPTED, COMMENT_REACTION
+from packit_service.constants import (
+    TASK_ACCEPTED,
+    COMMENT_REACTION,
+    PACKIT_VERIFY_FAS_COMMAND,
+)
 from packit_service.log_versions import log_job_versions
 from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper
 from packit_service.worker.events import (
     Event,
     EventData,
@@ -24,6 +27,7 @@ from packit_service.worker.events import (
     MergeRequestGitlabEvent,
     InstallationEvent,
     CheckRerunEvent,
+    IssueCommentEvent,
 )
 from packit_service.worker.events.comment import AbstractCommentEvent
 from packit_service.worker.handlers import (
@@ -32,6 +36,7 @@ from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
     GithubAppInstallationHandler,
+    GithubFasVerificationHandler,
     KojiBuildHandler,
     TestingFarmHandler,
     TestingFarmResultsHandler,
@@ -46,6 +51,7 @@ from packit_service.worker.handlers.abstract import (
     MAP_CHECK_PREFIX_TO_HANDLER,
     get_packit_commands_from_comment,
 )
+from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper
 from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
 from packit_service.worker.monitoring import Pushgateway, measure_time
 from packit_service.worker.parser import Parser
@@ -561,6 +567,18 @@ class SteveJobs:
             GithubAppInstallationHandler.get_signature(
                 event=event_object, job=None
             ).apply_async()
+        elif isinstance(
+            event_object, IssueCommentEvent
+        ) and self.is_fas_verification_comment(event_object.comment):
+            if GithubFasVerificationHandler(
+                package_config=None, job_config=None, event=event_object.get_dict()
+            ).pre_check():
+                event_object.comment_object.add_reaction(COMMENT_REACTION)
+                GithubFasVerificationHandler.get_signature(
+                    event=event_object, job=None
+                ).apply_async()
+            # should we comment about not processing if the comment is not
+            # on the issue created by us or not in packit/notifications?
         else:
             # Processing the jobs from the config.
             processing_results = self.process_jobs(event_object)
@@ -576,3 +594,16 @@ class SteveJobs:
             ]
 
         return processing_results
+
+    def is_fas_verification_comment(self, comment: str) -> bool:
+        """
+        Checks whether the comment contains Packit verification command
+        /packit(-stg) verify-fas
+        """
+        command = get_packit_commands_from_comment(
+            comment, self.service_config.comment_command_prefix
+        )
+        if command and command[0] == PACKIT_VERIFY_FAS_COMMAND:
+            return True
+
+        return False

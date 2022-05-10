@@ -14,6 +14,7 @@ from packit_service.constants import (
     CELERY_DEFAULT_MAIN_TASK_NAME,
 )
 from packit_service.utils import load_job_config, load_package_config
+from packit_service.worker.handlers.forges import GithubFasVerificationHandler
 from packit_service.worker.helpers.build.babysit import (
     check_copr_build,
     check_pending_copr_builds,
@@ -131,6 +132,16 @@ def run_copr_build_handler(event: dict, package_config: dict, job_config: dict):
 @celery_app.task(name=TaskName.installation, base=HandlerTaskWithRetry)
 def run_installation_handler(event: dict, package_config: dict, job_config: dict):
     handler = GithubAppInstallationHandler(
+        package_config=None, job_config=None, event=event
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(name=TaskName.github_fas_verification, base=HandlerTaskWithRetry)
+def run_github_fas_verification_handler(
+    event: dict, package_config: dict, job_config: dict
+):
+    handler = GithubFasVerificationHandler(
         package_config=None, job_config=None, event=event
     )
     return get_handlers_task_results(handler.run_job(), event)

@@ -27,6 +27,7 @@ from packit_service.worker.handlers.distgit import (
 )
 from packit_service.worker.handlers.forges import (
     GithubAppInstallationHandler,
+    GithubFasVerificationHandler,
 )
 from packit_service.worker.handlers.koji import (
     KojiBuildHandler,
@@ -51,4 +52,5 @@ __all__ = [
     KojiTaskReportHandler.__name__,
     TestingFarmHandler.__name__,
     TestingFarmResultsHandler.__name__,
+    GithubFasVerificationHandler.__name__,
 ]

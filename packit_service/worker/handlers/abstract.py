@@ -203,7 +203,6 @@ def get_packit_commands_from_comment(
     for line in filter(None, map(str.strip, comment_lines)):
         (packit_mark, *packit_command) = line.split(maxsplit=3)
         # packit_command[0] has the first cmd and [1] has the second, if needed.
-
         if packit_mark == packit_comment_command_prefix and packit_command:
             return packit_command
 
@@ -227,6 +226,7 @@ class TaskName(str, enum.Enum):
     sync_from_downstream = "task.run_sync_from_downstream_handler"
     bugzilla = "task.run_bugzilla_handler"
     bodhi_update = "task.bodhi_update"
+    github_fas_verification = "task.github_fas_verification"
 
 
 class Handler:

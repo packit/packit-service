@@ -150,11 +150,29 @@ class Allowlist:
 
         AllowlistModel.add_namespace(namespace, AllowlistStatus.waiting.value)
 
+        return self.verify_fas(
+            namespace=namespace, sender_login=sender_login, fas_account=sender_login
+        )
+
+    def verify_fas(self, namespace: str, sender_login: str, fas_account: str) -> bool:
+        """
+        Verify that github_username in FAS account matches the sender_login.
+
+        Args:
+                namespace: namespace to be approved if the check succeeds
+                sender_login: Login of the user that will be checked for be match
+                            against info from FAS.
+                fas_account: FAS account from which we will get the info.
+
+        Returns:
+             Whether the check was successful and a match was found.
+        """
         if self.is_github_username_from_fas_account_matching(
-            fas_account=sender_login, sender_login=sender_login
+            fas_account=fas_account, sender_login=sender_login
         ):
+            # store the fas account in the DB for the namespace
             AllowlistModel.add_namespace(
-                namespace, AllowlistStatus.approved_automatically.value, sender_login
+                namespace, AllowlistStatus.approved_automatically.value, fas_account
             )
             return True
 
