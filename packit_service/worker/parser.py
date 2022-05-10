@@ -882,6 +882,9 @@ class Parser:
             logger.warning("Target branch/rev for the new commits is not set.")
             return None
 
+        name = nested_get(event, "commit", "name")
+        email = nested_get(event, "commit", "email")
+
         logger.info(
             f"New commits added to dist-git repo {dg_repo_namespace}/{dg_repo_name},"
             f"rev: {dg_commit}, branch: {dg_branch}"
@@ -896,6 +899,8 @@ class Parser:
             git_ref=dg_branch,
             project_url=dg_project_url,
             commit_sha=dg_commit,
+            name=name,
+            email=email,
         )
 
     @staticmethod
@@ -1375,4 +1380,6 @@ class CentosEventParser:
             git_ref=f"refs/head/{event['branch']}",
             project_url=f"https://{event['source']}/{event['repo']['url_path']}",
             commit_sha=event["end_commit"],
+            name=event["name"],
+            email=event["email"],
         )

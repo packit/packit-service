@@ -3,9 +3,9 @@
   "commit": {
     "agent": "rhcontainerbot",
     "branch": "main",
-    "email": "rhcontainerbot@fedoraproject.org",
+    "email": "hello@packit.dev",
     "message": "buildah-1.12.0-0.73.dev.git1e6a70c\n\n- autobuilt 1e6a70c\n\nSigned-off-by: RH Container Bot <rhcontainerbot@fedoraproject.org>\n",
-    "name": "RH Container Bot",
+    "name": "Packit",
     "namespace": "rpms",
     "path": "/srv/git/repositories/rpms/buildah.git",
     "repo": "buildah",
