@@ -421,6 +421,20 @@ class DownstreamKojiBuildHandler(JobHandler):
                     f"Koji build configured only for '{configured_branches}'."
                 )
                 return False
+
+            # Packit should only build its own contributions
+            # We need to preserve the proven packager workflow - pushes not done by Packit
+            # should be built by those that do it, e.g. rebuilds in a side tag.
+            # prod/stg filtering happens in jobs.py -> packit_instances
+            if not (
+                self.data.event_dict["email"] == "hello@packit.dev"
+                and self.data.event_dict["name"] == "Packit"
+            ):
+                logger.info(
+                    f"Push event {self.data.identifier} ({self.data.event_dict['name']} "
+                    f"<{self.data.event_dict['email']}>) not done by us."
+                )
+                return False
         return True
 
     def run(self) -> TaskResults:

@@ -19,6 +19,7 @@ from packit_service.worker.events import (
     PushGitHubEvent,
     ReleaseEvent,
     MergeRequestGitlabEvent,
+    PushPagureEvent,
 )
 from packit_service.worker.parser import Parser
 from tests.spellbook import SAVED_HTTPD_REQS, DATA_DIR, load_the_message_from_file
@@ -315,6 +316,17 @@ def github_push_event(github_push_webhook) -> PushGitHubEvent:
 def gitlab_mr_webhook():
     with open(DATA_DIR / "webhooks" / "gitlab" / "mr_event.json") as outfile:
         return json.load(outfile)
+
+
+@pytest.fixture(scope="module")
+def distgit_push_packit():
+    with open(DATA_DIR / "fedmsg" / "distgit_push_packit.json") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture(scope="module")
+def distgit_push_event(distgit_push_packit) -> PushPagureEvent:
+    return Parser.parse_push_pagure_event(distgit_push_packit)
 
 
 @pytest.fixture(scope="module")
