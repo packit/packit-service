@@ -79,7 +79,7 @@ def process_message(
     :param source: event source
     :return: dictionary containing task results
     """
-    return SteveJobs().process_message(event=event, topic=topic, source=source)
+    return SteveJobs().process_message(event=event)
 
 
 @celery_app.task(

@@ -29,7 +29,7 @@ from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     TestingFarmResultsHandler,
 )
-from packit_service.worker.jobs import get_config_for_handler_kls
+from packit_service.worker.jobs import SteveJobs
 
 logger = logging.getLogger(__name__)
 
@@ -106,10 +106,8 @@ def check_pending_testing_farm_runs() -> None:
             logger.info(f"No config found for {run.pipeline_id}. Skipping.")
             continue
 
-        job_configs = get_config_for_handler_kls(
+        job_configs = SteveJobs(event).get_config_for_handler_kls(
             handler_kls=TestingFarmResultsHandler,
-            event=event,
-            package_config=package_config,
         )
 
         for job_config in job_configs:
@@ -222,10 +220,8 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
             logger.info(f"No config found for {build_id}. Skipping.")
             continue
 
-        job_configs = get_config_for_handler_kls(
+        job_configs = SteveJobs(event).get_config_for_handler_kls(
             handler_kls=CoprBuildEndHandler,
-            event=event,
-            package_config=package_config,
         )
 
         for job_config in job_configs:
