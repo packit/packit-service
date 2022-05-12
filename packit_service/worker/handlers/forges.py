@@ -75,12 +75,14 @@ class GithubAppInstallationHandler(JobHandler):
                 title=f"{self.account_type} {self.account_login} needs to be approved.",
                 body=(
                     f"Hi @{self.sender_login}, we need to approve you in "
-                    "order to start using Packit-as-a-Service. "
+                    f"order to start using Packit-as-a-Service"
+                    f"{'-stg' if self.service_config.deployment == Deployment.stg else ''}. "
                     "We are now onboarding Fedora contributors who have a valid "
                     "[Fedora Account System](https://fedoraproject.org/wiki/Account_System) "
                     "account. \n\nIf you have such an account, please set the `GitHub Username`"
                     " field in the settings of the FAS account (if you don't have it set already)"
-                    " and provide it in a comment in this issue as `/packit verify-fas "
+                    f" and provide it in a comment in this issue as "
+                    f"`{self.service_config.comment_command_prefix} verify-fas "
                     "my-fas-username`. We automatically check for the match between the `GitHub"
                     " Username` field in the provided FAS account and the Github account that "
                     "triggers the verification and approve you for using our service if they "
