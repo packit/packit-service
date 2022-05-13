@@ -499,6 +499,8 @@ def test_payload(
             }
         ],
         build_logs_url=log_url,
+        owner="builder",
+        project_name="some_package",
     )
     copr_build.should_receive("get_srpm_build").and_return(flexmock(url=srpm_url))
 
@@ -510,7 +512,7 @@ def test_payload(
         "ref": commit_sha,
     }
 
-    assert payload["environments"] == [
+    expected_environments = [
         {
             "arch": arch,
             "os": {"compose": compose},
@@ -529,9 +531,15 @@ def test_payload(
                 "PACKIT_TARGET_SHA": "abcdefgh",
                 "PACKIT_TARGET_URL": "https://github.com/packit/packit",
                 "PACKIT_PR_ID": 123,
+                "PACKIT_COPR_PROJECT": "builder/some_package",
             },
         }
     ]
+    if packages_to_send:
+        expected_environments[0]["variables"]["PACKIT_COPR_RPMS"] = " ".join(
+            packages_to_send
+        )
+    assert payload["environments"] == expected_environments
     assert payload["notification"]["webhook"]["url"].endswith("/testing-farm/results")
 
 
@@ -648,6 +656,8 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
             }
         ],
         build_logs_url=log_url,
+        owner="mf",
+        project_name="tree",
     )
     copr_build.should_receive("get_srpm_build").and_return(flexmock(url=srpm_url))
 
