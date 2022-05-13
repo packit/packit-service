@@ -75,12 +75,14 @@ class GithubAppInstallationHandler(JobHandler):
                 title=f"{self.account_type} {self.account_login} needs to be approved.",
                 body=(
                     f"Hi @{self.sender_login}, we need to approve you in "
-                    "order to start using Packit-as-a-Service. "
+                    f"order to start using Packit-as-a-Service"
+                    f"{'-stg' if self.service_config.deployment == Deployment.stg else ''}. "
                     "We are now onboarding Fedora contributors who have a valid "
                     "[Fedora Account System](https://fedoraproject.org/wiki/Account_System) "
                     "account. \n\nIf you have such an account, please set the `GitHub Username`"
                     " field in the settings of the FAS account (if you don't have it set already)"
-                    " and provide it in a comment in this issue as `/packit verify-fas "
+                    f" and provide it in a comment in this issue as "
+                    f"`{self.service_config.comment_command_prefix} verify-fas "
                     "my-fas-username`. We automatically check for the match between the `GitHub"
                     " Username` field in the provided FAS account and the Github account that "
                     "triggers the verification and approve you for using our service if they "
@@ -166,6 +168,10 @@ class GithubFasVerificationHandler(JobHandler):
         )
         # e.g. User Bebaabeni needs to be approved.
         _, account_login, _ = self.issue.title.split(maxsplit=2)
+        original_sender_login = GithubInstallationModel.get_by_account_login(
+            account_login
+        ).sender_login
+        logger.debug(f"Original sender login: {original_sender_login}")
         namespace = f"github.com/{account_login}"
         command_parts = get_packit_commands_from_comment(
             self.comment, self.service_config.comment_command_prefix
@@ -181,6 +187,22 @@ class GithubFasVerificationHandler(JobHandler):
 
         fas_account = command_parts[1]
 
+        if original_sender_login != self.sender_login:
+            msg = (
+                "Packit verification comment command not created by the person who "
+                "installed the application."
+            )
+            logger.debug(msg)
+            self.issue.comment(msg)
+            return TaskResults(success=True, details={"msg": msg})
+
+        return self.verify(namespace=namespace, fas_account=fas_account)
+
+    def verify(self, namespace: str, fas_account: str) -> TaskResults:
+        """
+        Verify the information about namespace in our allowlist and try
+        to match fas_account.
+        """
         allowlist = Allowlist(service_config=self.service_config)
         if allowlist.is_approved(namespace):
             msg = f"Namespace `{namespace}` was already approved."
