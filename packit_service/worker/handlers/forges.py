@@ -86,7 +86,12 @@ class GithubAppInstallationHandler(JobHandler):
                     "my-fas-username`. We automatically check for the match between the `GitHub"
                     " Username` field in the provided FAS account and the Github account that "
                     "triggers the verification and approve you for using our service if they "
-                    "match.\n\nFor more info, please check out the documentation: "
+                    "match.\n\n"
+                    "Here is a link to the settings page:\n"
+                    f"https://accounts.fedoraproject.org/user/{self.sender_login}"
+                    "/settings/profile/#github (update the FAS account in the URL if needed)"
+                    "\n\n"
+                    "For more info, please check out the documentation: "
                     "https://packit.dev/docs/packit-service"
                 ),
             )
@@ -226,7 +231,10 @@ class GithubFasVerificationHandler(JobHandler):
             msg = (
                 f"We were not able to find a match between the GitHub Username field "
                 f"in the FAS account `{fas_account}` and GitHub user `{self.sender_login}`. "
-                f"Please, check that you have set the field correctly and try again or contact "
+                f"Please, check that you have set "
+                f"[the field]"
+                f"(https://accounts.fedoraproject.org/user/{fas_account}/settings/profile/#github) "
+                f"correctly and try again or contact "
                 f"[us](https://packit.dev/#contact)."
             )
             logger.debug(msg)
