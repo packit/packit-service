@@ -130,7 +130,9 @@ def test_verification_not_successful():
 
     msg = (
         "We were not able to find a match between the GitHub Username field in the FAS account "
-        "`my-fas-account` and GitHub user `phracek`. Please, check that you have set the field "
+        "`my-fas-account` and GitHub user `phracek`. Please, check that you have set "
+        "[the field]"
+        "(https://accounts.fedoraproject.org/user/my-fas-account/settings/profile/#github) "
         "correctly and try again or contact [us](https://packit.dev/#contact)."
     )
     flexmock(issue).should_receive("comment").with_args(msg).once()
