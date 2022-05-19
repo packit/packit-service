@@ -59,7 +59,10 @@ from packit_service.worker.events.enums import (
     PullRequestCommentAction,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
-from packit_service.worker.events.pagure import PullRequestFlagPagureEvent
+from packit_service.worker.events.pagure import (
+    PullRequestFlagPagureEvent,
+    PullRequestMergedPagureEvent,
+)
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 
@@ -97,6 +100,7 @@ class Parser:
             CheckRerunCommitEvent,
             CheckRerunPullRequestEvent,
             CheckRerunReleaseEvent,
+            PullRequestMergedPagureEvent,
         ]
     ]:
         """
@@ -136,6 +140,7 @@ class Parser:
                 Parser.parse_gitlab_push_event,
                 Parser.parse_pipeline_event,
                 Parser.parse_pagure_pr_flag_event,
+                Parser.parse_pagure_pr_merged_event,
             ),
         ):
             if response:
@@ -1243,6 +1248,38 @@ class Parser:
             project_url=project_url,
             project_name=project_name,
             project_namespace=project_namespace,
+        )
+
+    @staticmethod
+    def parse_pagure_pr_merged_event(
+        event: dict,
+    ) -> Optional[PullRequestMergedPagureEvent]:
+        if event.get("topic") != "org.fedoraproject.prod.pagure.pull-request.closed":
+            return None
+
+        pullrequest = event["pullrequest"]
+        pr_id = pullrequest["id"]
+        base_repo_namespace = pullrequest["repo_from"]["namespace"]
+        base_repo_name = pullrequest["repo_from"]["name"]
+        base_repo_owner = pullrequest["repo_from"]["user"]["name"]
+        branch = pullrequest["branch"]
+        target_repo = pullrequest["project"]["name"]
+        https_url = pullrequest["project"]["full_url"]
+        commit_sha = pullrequest["commit_stop"]
+        pr_author = pullrequest["user"]["name"]
+        merged_by = pullrequest["closed_by"]["name"]
+
+        return PullRequestMergedPagureEvent(
+            pr_id=pr_id,
+            repo_namespace=base_repo_namespace,
+            repo_name=base_repo_name,
+            base_repo_owner=base_repo_owner,
+            git_ref=branch,
+            target_repo=target_repo,
+            project_url=https_url,
+            commit_sha=commit_sha,
+            pr_author=pr_author,
+            committer=merged_by,
         )
 
 

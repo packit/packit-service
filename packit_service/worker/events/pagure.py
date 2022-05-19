@@ -145,6 +145,43 @@ class PullRequestPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
         return fork
 
 
+class PullRequestMergedPagureEvent(AddBranchPushDbTrigger, AbstractPagureEvent):
+    def __init__(
+        self,
+        pr_id: int,
+        repo_namespace: str,
+        repo_name: str,
+        base_repo_owner: str,
+        git_ref: str,
+        target_repo: str,
+        project_url: str,
+        commit_sha: str,
+        pr_author: str,
+        committer: str,
+    ):
+        super().__init__(project_url=project_url, pr_id=pr_id)
+        self.repo_namespace = repo_namespace
+        self.repo_name = repo_name
+        self.base_repo_owner = base_repo_owner
+        self.git_ref = git_ref
+        self.target_repo = target_repo
+        self.commit_sha = commit_sha
+        self.pr_author = pr_author
+        self.committer = committer
+        self.identifier = str(pr_id)
+        self.project_url = project_url
+
+    def get_base_project(self) -> GitProject:
+        fork = self.project.service.get_project(
+            namespace=self.repo_namespace,
+            repo=self.repo_name,
+            username=self.base_repo_owner,
+            is_fork=True,
+        )
+        logger.debug(f"Base project: {fork} owned by {self.base_repo_owner}")
+        return fork
+
+
 class PullRequestFlagPagureEvent(AbstractPagureEvent):
     def __init__(
         self,

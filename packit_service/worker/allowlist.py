@@ -35,6 +35,7 @@ from packit_service.worker.events import (
     CheckRerunEvent,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.pagure import PullRequestMergedPagureEvent
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 
@@ -50,6 +51,7 @@ UncheckedEvent = Union[
     KojiTaskEvent,
     KojiBuildEvent,
     CheckRerunEvent,
+    PullRequestMergedPagureEvent,
 ]
 
 
@@ -404,6 +406,7 @@ class Allowlist:
                 KojiTaskEvent,
                 KojiBuildEvent,
                 CheckRerunEvent,
+                PullRequestMergedPagureEvent,
             ): self._check_unchecked_event,
             (
                 ReleaseEvent,
