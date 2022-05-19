@@ -34,6 +34,7 @@ from packit_service.models import (
     AbstractTriggerDbType,
     CoprBuildTargetModel,
     SRPMBuildModel,
+    JobTriggerModelType,
 )
 from packit_service.service.urls import (
     get_copr_build_info_url,
@@ -104,7 +105,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         # We want to share project between all releases.
         # More details: https://github.com/packit/packit-service/issues/1044
         ref_identifier = (
-            "releases" if self.metadata.tag_name else self.metadata.identifier
+            "releases"
+            if self.db_trigger.job_trigger_model_type == JobTriggerModelType.release
+            else self.metadata.identifier
         )
         configured_identifier = (
             f"-{self.job_config.identifier}" if self.job_config.identifier else ""
