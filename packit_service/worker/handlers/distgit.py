@@ -38,6 +38,7 @@ from packit_service.models import (
 )
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.utils import gather_packit_logs_to_buffer, collect_packit_logs
+from packit_service.worker.events.pagure import PullRequestMergedPagureEvent
 from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
 from packit_service.worker.events import (
     PushPagureEvent,
@@ -384,12 +385,12 @@ class ProposeDownstreamHandler(JobHandler):
 
 @configured_as(job_type=JobType.koji_build)
 @reacts_to(event=PushPagureEvent)
+@reacts_to(event=PullRequestMergedPagureEvent)
 class DownstreamKojiBuildHandler(JobHandler):
     """
     This handler can submit a build in Koji from a dist-git.
     """
 
-    topic = "org.fedoraproject.prod.git.receive"
     task_name = TaskName.downstream_koji_build
 
     def __init__(
@@ -408,8 +409,11 @@ class DownstreamKojiBuildHandler(JobHandler):
         self.dg_branch = event.get("git_ref")
 
     def pre_check(self) -> bool:
-        if self.data.event_type in (PushPagureEvent.__name__,):
-            if self.data.git_ref not in (
+        if self.data.event_type in (
+            PushPagureEvent.__name__,
+            PullRequestMergedPagureEvent.__name__,
+        ):
+            if self.dg_branch not in (
                 configured_branches := get_branches(
                     *self.job_config.dist_git_branches,
                     default="main",
@@ -417,24 +421,46 @@ class DownstreamKojiBuildHandler(JobHandler):
                 )
             ):
                 logger.info(
-                    f"Skipping build on '{self.data.git_ref}'. "
+                    f"Skipping build on '{self.dg_branch}'. "
                     f"Koji build configured only for '{configured_branches}'."
                 )
                 return False
 
-            # Packit should only build its own contributions
-            # We need to preserve the proven packager workflow - pushes not done by Packit
-            # should be built by those that do it, e.g. rebuilds in a side tag.
-            # prod/stg filtering happens in jobs.py -> packit_instances
-            if not (
-                self.data.event_dict["email"] == "hello@packit.dev"
-                and self.data.event_dict["name"] == "Packit"
-            ):
+        if self.data.event_type == PushPagureEvent.__name__:
+            if self.data.event_dict["committer"] == "pagure":
                 logger.info(
-                    f"Push event {self.data.identifier} ({self.data.event_dict['name']} "
-                    f"<{self.data.event_dict['email']}>) not done by us."
+                    f"Push event {self.data.identifier} as a result of merged pull request."
+                    f"We will handle this by reacting to the closed PR message."
                 )
                 return False
+
+            if (
+                self.data.event_dict["committer"]
+                not in self.job_config.allowed_committers
+            ):
+                logger.info(
+                    f"Push event {self.data.identifier} done by "
+                    f"{self.data.event_dict['committer']} that is not allowed in project "
+                    f"configuration: {self.job_config.allowed_committers}."
+                )
+                return False
+
+        if self.data.event_type == PullRequestMergedPagureEvent.__name__:
+            if (
+                self.data.event_dict["committer"]
+                not in self.job_config.allowed_committers
+                and self.data.event_dict["pr_author"]
+                not in self.job_config.allowed_pr_authors
+            ):
+                logger.info(
+                    f"Pull request merged event {self.data.identifier} for PR created by"
+                    f" {self.data.event_dict['pr_author']} that is not allowed in project "
+                    f"configuration: {self.job_config.allowed_pr_authors} and merged by"
+                    f" {self.data.event_dict['committer']} that is also not allowed in "
+                    f"project configuration: {self.job_config.allowed_committers}."
+                )
+                return False
+
         return True
 
     def run(self) -> TaskResults:
