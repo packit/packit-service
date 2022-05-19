@@ -38,8 +38,7 @@ class PushPagureEvent(AddBranchPushDbTrigger, AbstractPagureEvent):
         git_ref: str,
         project_url: str,
         commit_sha: str,
-        name: str,
-        email: str,
+        committer: str,
     ):
         super().__init__(project_url=project_url)
         self.repo_namespace = repo_namespace
@@ -47,8 +46,7 @@ class PushPagureEvent(AddBranchPushDbTrigger, AbstractPagureEvent):
         self.git_ref = git_ref
         self.commit_sha = commit_sha
         self.identifier = git_ref
-        self.name = name
-        self.email = email
+        self.committer = committer
 
 
 class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent):
