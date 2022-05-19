@@ -21,6 +21,7 @@ from packit_service.worker.events import (
     MergeRequestGitlabEvent,
     PushPagureEvent,
 )
+from packit_service.worker.events.pagure import PullRequestMergedPagureEvent
 from packit_service.worker.parser import Parser
 from tests.spellbook import SAVED_HTTPD_REQS, DATA_DIR, load_the_message_from_file
 
@@ -327,6 +328,17 @@ def distgit_push_packit():
 @pytest.fixture(scope="module")
 def distgit_push_event(distgit_push_packit) -> PushPagureEvent:
     return Parser.parse_push_pagure_event(distgit_push_packit)
+
+
+@pytest.fixture(scope="module")
+def distgit_merged_pr():
+    with open(DATA_DIR / "fedmsg" / "distgit_merged_pr.json") as outfile:
+        return json.load(outfile)
+
+
+@pytest.fixture(scope="module")
+def distgit_merged_pr_event(distgit_merged_pr) -> PullRequestMergedPagureEvent:
+    return Parser.parse_pagure_pr_merged_event(distgit_merged_pr)
 
 
 @pytest.fixture(scope="module")

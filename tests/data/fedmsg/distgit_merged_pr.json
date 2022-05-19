@@ -1,0 +1,167 @@
+{
+  "topic": "org.fedoraproject.prod.pagure.pull-request.closed",
+  "agent": "nforro",
+  "merged": true,
+  "pullrequest": {
+    "assignee": null,
+    "branch": "epel8",
+    "branch_from": "0.3.0-epel8-update",
+    "cached_merge_status": "unknown",
+    "closed_at": "1652708223",
+    "closed_by": {
+      "full_url": "https://src.fedoraproject.org/user/nforro",
+      "fullname": "Nikola Forr\u00f3",
+      "name": "nforro",
+      "url_path": "user/nforro"
+    },
+    "comments": [
+      {
+        "comment": "Pull-Request has been merged by nforro",
+        "commit": null,
+        "date_created": "1652708223",
+        "edited_on": null,
+        "editor": null,
+        "filename": null,
+        "id": 105503,
+        "line": null,
+        "notification": true,
+        "parent": null,
+        "reactions": {},
+        "tree": null,
+        "user": {
+          "full_url": "https://src.fedoraproject.org/user/nforro",
+          "fullname": "Nikola Forr\u00f3",
+          "name": "nforro",
+          "url_path": "user/nforro"
+        }
+      }
+    ],
+    "commit_start": "0ba51c0f420befcd8fe76742fa3f2bd0e24b3740",
+    "commit_stop": "0ba51c0f420befcd8fe76742fa3f2bd0e24b3740",
+    "date_created": "1652703320",
+    "full_url": "https://src.fedoraproject.org/rpms/python-specfile/pull-request/11",
+    "id": 11,
+    "initial_comment": "Upstream tag: 0.3.0\nUpstream commit: df62e212",
+    "last_updated": "1652708223",
+    "project": {
+      "access_groups": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "ticket": []
+      },
+      "access_users": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "owner": ["nforro"],
+        "ticket": []
+      },
+      "close_status": [],
+      "custom_keys": [],
+      "date_created": "1645022033",
+      "date_modified": "1645022041",
+      "description": "A library for parsing and manipulating RPM spec files",
+      "full_url": "https://src.fedoraproject.org/rpms/python-specfile",
+      "fullname": "rpms/python-specfile",
+      "id": 55172,
+      "milestones": {},
+      "name": "python-specfile",
+      "namespace": "rpms",
+      "parent": null,
+      "priorities": {},
+      "tags": [""],
+      "url_path": "rpms/python-specfile",
+      "user": {
+        "full_url": "https://src.fedoraproject.org/user/nforro",
+        "fullname": "Nikola Forr\u00f3",
+        "name": "nforro",
+        "url_path": "user/nforro"
+      }
+    },
+    "remote_git": null,
+    "repo_from": {
+      "access_groups": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "ticket": []
+      },
+      "access_users": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "owner": ["packit-stg"],
+        "ticket": []
+      },
+      "close_status": [],
+      "custom_keys": [],
+      "date_created": "1652703212",
+      "date_modified": "1652703212",
+      "description": "A library for parsing and manipulating RPM spec files",
+      "full_url": "https://src.fedoraproject.org/fork/packit-stg/rpms/python-specfile",
+      "fullname": "forks/packit-stg/rpms/python-specfile",
+      "id": 56673,
+      "milestones": {},
+      "name": "python-specfile",
+      "namespace": "rpms",
+      "parent": {
+        "access_groups": {
+          "admin": [],
+          "collaborator": [],
+          "commit": [],
+          "ticket": []
+        },
+        "access_users": {
+          "admin": [],
+          "collaborator": [],
+          "commit": [],
+          "owner": ["nforro"],
+          "ticket": []
+        },
+        "close_status": [],
+        "custom_keys": [],
+        "date_created": "1645022033",
+        "date_modified": "1645022041",
+        "description": "A library for parsing and manipulating RPM spec files",
+        "full_url": "https://src.fedoraproject.org/rpms/python-specfile",
+        "fullname": "rpms/python-specfile",
+        "id": 55172,
+        "milestones": {},
+        "name": "python-specfile",
+        "namespace": "rpms",
+        "parent": null,
+        "priorities": {},
+        "tags": [""],
+        "url_path": "rpms/python-specfile",
+        "user": {
+          "full_url": "https://src.fedoraproject.org/user/nforro",
+          "fullname": "Nikola Forr\u00f3",
+          "name": "nforro",
+          "url_path": "user/nforro"
+        }
+      },
+      "priorities": {},
+      "tags": [],
+      "url_path": "fork/packit-stg/rpms/python-specfile",
+      "user": {
+        "full_url": "https://src.fedoraproject.org/user/packit-stg",
+        "fullname": "Packit Staging",
+        "name": "packit-stg",
+        "url_path": "user/packit-stg"
+      }
+    },
+    "status": "Merged",
+    "tags": [],
+    "threshold_reached": null,
+    "title": "Update to upstream release 0.3.0",
+    "uid": "c14ef1db56874a7087cd6b1cbdda913f",
+    "updated_on": "1652708223",
+    "user": {
+      "full_url": "https://src.fedoraproject.org/user/packit-stg",
+      "fullname": "Packit Staging",
+      "name": "packit-stg",
+      "url_path": "user/packit-stg"
+    }
+  }
+}

@@ -59,7 +59,10 @@ from packit_service.worker.events.enums import (
     GitlabEventAction,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
-from packit_service.worker.events.pagure import PullRequestFlagPagureEvent
+from packit_service.worker.events.pagure import (
+    PullRequestFlagPagureEvent,
+    PullRequestMergedPagureEvent,
+)
 from packit_service.worker.parser import Parser, CentosEventParser
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from tests.conftest import copr_build_model
@@ -202,6 +205,11 @@ class TestEvents:
         with open(
             DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json"
         ) as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def distgit_merged_pr(self):
+        with open(DATA_DIR / "fedmsg" / "distgit_merged_pr.json") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -1326,11 +1334,20 @@ class TestEvents:
         assert event_object.git_ref == "main"
         assert event_object.project_url == "https://src.fedoraproject.org/rpms/buildah"
 
-    def test_distgit_pagure_push_packit(self, distgit_push_packit):
-        event_object = Parser.parse_event(distgit_push_packit)
-        assert isinstance(event_object, PushPagureEvent)
-        assert event_object.name == "Packit"
-        assert event_object.email == "hello@packit.dev"
+    def test_distgit_pagure_merged_pr(self, distgit_merged_pr):
+        event_object = Parser.parse_event(distgit_merged_pr)
+        assert isinstance(event_object, PullRequestMergedPagureEvent)
+        assert event_object.pr_author == "packit-stg"
+        assert event_object.committer == "nforro"
+        assert (
+            event_object.project_url
+            == "https://src.fedoraproject.org/rpms/python-specfile"
+        )
+        assert event_object.pr_id == 11
+        assert event_object.repo_name == "python-specfile"
+        assert event_object.repo_namespace == "rpms"
+        assert event_object.base_repo_owner == "packit-stg"
+        assert event_object.git_ref == "epel8"
 
     def test_json_testing_farm_notification(
         self, testing_farm_notification, testing_farm_results
