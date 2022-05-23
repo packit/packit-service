@@ -740,7 +740,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 "specified in the config with the following error:\n"
                 f"```\n{str(ex.__cause__)}\n```\n---\n"
                 "Please check your configuration for:\n\n"
-                "1. typos in owner and project name\n"
+                "1. typos in owner and project name (groups need to be prefixed with `@`)\n"
                 "2. whether the project itself exists (Packit creates projects"
                 " only in its own namespace)\n"
                 "3. whether Packit is allowed to build in your Copr project\n"
