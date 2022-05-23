@@ -10,6 +10,7 @@ from packit.config.aliases import get_build_targets
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 from packit_service.config import ServiceConfig
+from packit_service.models import JobTriggerModelType
 from packit_service.worker.helpers.build import copr_build
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
@@ -1283,7 +1284,7 @@ def test_build_handler_job_and_test_properties(
 
 
 @pytest.mark.parametrize(
-    "jobs,job_config_trigger_type,tag_name,job_owner,job_project",
+    "jobs,job_config_trigger_type,job_trigger_model_type,tag_name,job_owner,job_project",
     [
         pytest.param(
             [
@@ -1293,6 +1294,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.pull_request,
+            JobTriggerModelType.pull_request,
             None,
             "nobody",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
@@ -1307,6 +1309,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.pull_request,
+            JobTriggerModelType.pull_request,
             None,
             "custom-owner",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
@@ -1321,6 +1324,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.pull_request,
+            JobTriggerModelType.pull_request,
             None,
             "nobody",
             "custom-project",
@@ -1336,6 +1340,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.pull_request,
+            JobTriggerModelType.pull_request,
             None,
             "custom-owner",
             "custom-project",
@@ -1351,6 +1356,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.pull_request,
+            JobTriggerModelType.pull_request,
             None,
             "custom-owner",
             "custom-project",
@@ -1364,6 +1370,7 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.commit,
+            JobTriggerModelType.branch_push,
             None,
             "nobody",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
@@ -1377,10 +1384,25 @@ def test_build_handler_job_and_test_properties(
                 )
             ],
             JobConfigTriggerType.release,
+            JobTriggerModelType.release,
             "v1.O.0",
             "nobody",
             "git.instance.io-the-example-namespace-the-example-repo-releases",
             id="release&default-owner&default-project",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.release,
+                )
+            ],
+            JobConfigTriggerType.release,
+            JobTriggerModelType.release,
+            None,
+            "nobody",
+            "git.instance.io-the-example-namespace-the-example-repo-releases",
+            id="release-without-tag&default-owner&default-project",
         ),
         pytest.param(
             [
@@ -1398,6 +1420,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.pull_request,
+            JobTriggerModelType.pull_request,
             None,
             "pr-owner",
             "pr-project",
@@ -1415,6 +1438,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.pull_request,
+            JobTriggerModelType.pull_request,
             None,
             "nobody",
             "git.instance.io-the-example-namespace-the-example-repo-the-event-identifier",
@@ -1434,6 +1458,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.pull_request,
+            JobTriggerModelType.pull_request,
             None,
             "custom-owner",
             "custom-project",
@@ -1453,6 +1478,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.pull_request,
+            JobTriggerModelType.pull_request,
             None,
             "custom-owner",
             "custom-project",
@@ -1478,6 +1504,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.pull_request,
+            JobTriggerModelType.pull_request,
             None,
             "pr-owner",
             "pr-project",
@@ -1503,6 +1530,7 @@ def test_build_handler_job_and_test_properties(
                 ),
             ],
             JobConfigTriggerType.commit,
+            JobTriggerModelType.branch_push,
             None,
             "commit-owner",
             "commit-project",
@@ -1513,6 +1541,7 @@ def test_build_handler_job_and_test_properties(
 def test_copr_project_and_namespace(
     jobs,
     job_config_trigger_type,
+    job_trigger_model_type,
     tag_name,
     job_owner,
     job_project,
@@ -1529,7 +1558,10 @@ def test_copr_project_and_namespace(
         metadata=flexmock(
             pr_id=None, identifier="the-event-identifier", tag_name=tag_name
         ),
-        db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
+        db_trigger=flexmock(
+            job_config_trigger_type=job_config_trigger_type,
+            job_trigger_model_type=job_trigger_model_type,
+        ),
     )
     copr_build_helper._api = flexmock(
         copr_helper=flexmock(copr_client=flexmock(config={"username": "nobody"}))
