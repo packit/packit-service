@@ -746,7 +746,6 @@ class Parser:
                 pr_id=db_trigger.pr_id,
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
-                db_trigger=db_trigger,
                 actor=actor,
                 job_identifier=check_name_identifier,
             )
@@ -760,7 +759,6 @@ class Parser:
                 tag_name=db_trigger.tag_name,
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
-                db_trigger=db_trigger,
                 actor=actor,
                 job_identifier=check_name_identifier,
             )
@@ -774,7 +772,6 @@ class Parser:
                 git_ref=db_trigger.name,
                 check_name_job=check_name_job,
                 check_name_target=check_name_target,
-                db_trigger=db_trigger,
                 actor=actor,
                 job_identifier=check_name_identifier,
             )
