@@ -12,7 +12,7 @@ import shutil
 from typing import Optional, Dict, List
 
 from celery import Task
-from ogr.abstract import PullRequest
+from ogr.abstract import PullRequest, PRStatus
 from packit.exceptions import PackitException
 
 from packit.api import PackitAPI
@@ -406,6 +406,23 @@ class DownstreamKojiBuildHandler(JobHandler):
         )
         self.task = task
         self.dg_branch = event.get("git_ref")
+        self._pull_request: Optional[PullRequest] = None
+
+    @property
+    def pull_request(self):
+        if not self._pull_request and self.data.event_dict["committer"] == "pagure":
+            prs = [
+                pr
+                for pr in self.project.get_pr_list(status=PRStatus.merged)
+                if pr.head_commit == self.data.commit_sha
+            ]
+            if prs:
+                self._pull_request = prs[0]
+        return self._pull_request
+
+    def get_pr_author(self):
+        """Get the login of the author of the PR (if there is any corresponding PR)."""
+        return self.pull_request.author if self.pull_request else None
 
     def pre_check(self) -> bool:
         if self.data.event_type in (PushPagureEvent.__name__,):
@@ -422,19 +439,27 @@ class DownstreamKojiBuildHandler(JobHandler):
                 )
                 return False
 
-            # Packit should only build its own contributions
-            # We need to preserve the proven packager workflow - pushes not done by Packit
-            # should be built by those that do it, e.g. rebuilds in a side tag.
-            # prod/stg filtering happens in jobs.py -> packit_instances
-            if not (
-                self.data.event_dict["email"] == "hello@packit.dev"
-                and self.data.event_dict["name"] == "Packit"
-            ):
-                logger.info(
-                    f"Push event {self.data.identifier} ({self.data.event_dict['name']} "
-                    f"<{self.data.event_dict['email']}>) not done by us."
-                )
-                return False
+            if self.data.event_dict["committer"] == "pagure":
+                pr_author = self.get_pr_author()
+                logger.debug(f"PR author: {pr_author}")
+                if pr_author not in self.job_config.allowed_pr_authors:
+                    logger.info(
+                        f"Push event {self.data.identifier} with corresponding PR created by"
+                        f" {pr_author} that is not allowed in project "
+                        f"configuration: {self.job_config.allowed_pr_authors}."
+                    )
+                    return False
+            else:
+                committer = self.data.event_dict["committer"]
+                logger.debug(f"Committer: {committer}")
+                if committer not in self.job_config.allowed_committers:
+                    logger.info(
+                        f"Push event {self.data.identifier} done by "
+                        f"{committer} that is not allowed in project "
+                        f"configuration: {self.job_config.allowed_committers}."
+                    )
+                    return False
+
         return True
 
     def run(self) -> TaskResults:
