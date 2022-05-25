@@ -1329,8 +1329,7 @@ class TestEvents:
     def test_distgit_pagure_push_packit(self, distgit_push_packit):
         event_object = Parser.parse_event(distgit_push_packit)
         assert isinstance(event_object, PushPagureEvent)
-        assert event_object.name == "Packit"
-        assert event_object.email == "hello@packit.dev"
+        assert event_object.committer == "pagure"
 
     def test_json_testing_farm_notification(
         self, testing_farm_notification, testing_farm_results
