@@ -6,20 +6,23 @@ import json
 import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
-
 from ogr.services.github import GithubProject
-from packit.exceptions import PackitException
-
 from ogr.services.pagure import PagureProject
+
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType, PackageConfig, JobConfig, JobType
 from packit.config.common_package_config import Deployment
 from packit.constants import CONFIG_FILE_NAMES
+from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 from packit_service.config import PackageConfigGetter, ProjectToSync, ServiceConfig
 from packit_service.constants import DEFAULT_RETRY_LIMIT, SANDCASTLE_WORK_DIR
-from packit_service.models import GitBranchModel, GitProjectModel, JobTriggerModelType
+from packit_service.models import (
+    GitBranchModel,
+    GitProjectModel,
+    JobTriggerModelType,
+)
 from packit_service.utils import load_job_config, load_package_config
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.jobs import SteveJobs
@@ -163,7 +166,8 @@ def test_downstream_koji_build():
 
     packit_yaml = (
         "{'specfile_path': 'buildah.spec', 'synced_files': [],"
-        "'jobs': [{'trigger': 'commit', 'job': 'koji_build'}],"
+        "'jobs': [{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers':"
+        " ['rhcontainerbot']}],"
         "'downstream_package_name': 'buildah'}"
     )
     pagure_project = flexmock(
@@ -216,7 +220,8 @@ def test_downstream_koji_build_failure_no_issue():
 
     packit_yaml = (
         "{'specfile_path': 'buildah.spec',"
-        "'jobs': [{'trigger': 'commit', 'job': 'koji_build'}],"
+        "'jobs': [{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers': "
+        "['rhcontainerbot']}],"
         "'downstream_package_name': 'buildah'}"
     )
     pagure_project_mock = flexmock(
@@ -271,7 +276,8 @@ def test_downstream_koji_build_failure_issue_created():
 
     packit_yaml = (
         "{'specfile_path': 'buildah.spec',"
-        "'jobs': [{'trigger': 'commit', 'job': 'koji_build'}],"
+        "'jobs': [{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers': "
+        "['rhcontainerbot']}],"
         "'downstream_package_name': 'buildah',"
         "'issue_repository': 'https://github.com/namespace/project'}"
     )
@@ -332,7 +338,8 @@ def test_downstream_koji_build_failure_issue_comment():
 
     packit_yaml = (
         "{'specfile_path': 'buildah.spec',"
-        "'jobs': [{'trigger': 'commit', 'job': 'koji_build'}],"
+        "'jobs': [{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers': "
+        "['rhcontainerbot']}],"
         "'downstream_package_name': 'buildah',"
         "'issue_repository': 'https://github.com/namespace/project'}"
     )
@@ -441,80 +448,31 @@ def test_downstream_koji_build_no_config():
 
 
 @pytest.mark.parametrize(
-    "push_name, push_email, should_pass",
-    (("Sakamoto", "gyokuro@example.com", False), ("Packit", "hello@packit.dev", True)),
-)
-def test_precheck_koji_build_push_owner(
-    distgit_push_event, push_name, push_email, should_pass
-):
-    distgit_push_event.name = push_name
-    distgit_push_event.email = push_email
-
-    flexmock(GitProjectModel).should_receive("get_or_create").with_args(
-        namespace="rpms",
-        project_url="https://src.fedoraproject.org/rpms/packit",
-        repo_name="packit",
-    ).and_return(
-        flexmock(
-            id=342,
-        )
-    )
-    flexmock(GitBranchModel).should_receive("get_or_create").with_args(
-        branch_name="f36",
-        namespace="rpms",
-        project_url="https://src.fedoraproject.org/rpms/packit",
-        repo_name="packit",
-    ).and_return(
-        flexmock(
-            id=13,
-            job_config_trigger_type=JobConfigTriggerType.commit,
-            job_trigger_model_type=JobTriggerModelType.branch_push,
-        )
-    )
-
-    # flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-    #     type=JobTriggerModelType.pull_request, trigger_id=342
-    # ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
-    # flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
-    jobs = [
-        JobConfig(
-            type=JobType.koji_build,
-            trigger=JobConfigTriggerType.pull_request,
-            dist_git_branches=["f36"],
-        ),
-    ]
-    koji_build_handler = DownstreamKojiBuildHandler(
-        package_config=PackageConfig(
-            jobs=jobs,
-        ),
-        job_config=jobs[0],
-        event=distgit_push_event.get_dict(),
-    )
-    assert koji_build_handler.pre_check() == should_pass
-
-
-@pytest.mark.parametrize(
     "jobs_config",
     [
         pytest.param(
             "["
-            "{'trigger': 'commit', 'job': 'koji_build', "
+            "{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers': "
+            "['rhcontainerbot'],"
             "'metadata': {'dist_git_branches': ['a-different-branch']}},"
-            "{'trigger': 'commit', 'job': 'koji_build', "
+            "{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers':"
+            " ['rhcontainerbot'], "
             "'metadata': {'dist_git_branches': ['main']}}"
             "]",
             id="multiple_jobs",
         ),
         pytest.param(
             "["
-            "{'trigger': 'commit', 'job': 'koji_build', "
+            "{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers': "
+            "['rhcontainerbot'], "
             "'metadata': {'dist_git_branches': ['a-different-branch', 'main', 'other_branch']}}"
             "]",
             id="multiple_branches",
         ),
         pytest.param(
             "["
-            "{'trigger': 'commit', 'job': 'koji_build', "
+            "{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers': "
+            "['rhcontainerbot'] ,"
             "'metadata': {'dist_git_branches': ['fedora-all']}}"
             "]",
             id="aliases",
@@ -587,7 +545,8 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
     [
         pytest.param(
             "["
-            "{'trigger': 'commit', 'job': 'koji_build', "
+            "{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers': "
+            "['rhcontainerbot'] ,"
             "'dist_git_branches': ['a-different-branch']},"
             "{'trigger': 'commit', 'job': 'koji_build', "
             "'dist_git_branches': ['other_branch']}"
@@ -596,14 +555,16 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         ),
         pytest.param(
             "["
-            "{'trigger': 'commit', 'job': 'koji_build', "
+            "{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers': "
+            "['rhcontainerbot'],"
             "'dist_git_branches': ['a-different-branch', 'other_branch']}"
             "]",
             id="multiple_branches",
         ),
         pytest.param(
             "["
-            "{'trigger': 'commit', 'job': 'koji_build', "
+            "{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers': "
+            "['rhcontainerbot'] ,"
             "'metadata': {'dist_git_branches': ['fedora-stable']}}"
             "]",
             id="aliases",
@@ -645,3 +606,128 @@ def test_do_not_run_downstream_koji_build_for_a_different_branch(jobs_config):
 
     processing_results = SteveJobs().process_message(distgit_commit_event())
     assert not processing_results
+
+
+@pytest.mark.parametrize(
+    "push_username, allowed_committers, should_pass",
+    (
+        ("sakamoto", [], False),
+        ("packit", ["packit"], True),
+        ("packit-stg", ["packit"], False),
+    ),
+)
+def test_precheck_koji_build_push(
+    distgit_push_event, push_username, allowed_committers, should_pass
+):
+    distgit_push_event.committer = push_username
+
+    flexmock(GitProjectModel).should_receive("get_or_create").with_args(
+        namespace="rpms",
+        project_url="https://src.fedoraproject.org/rpms/packit",
+        repo_name="packit",
+    ).and_return(
+        flexmock(
+            id=342,
+        )
+    )
+    flexmock(GitBranchModel).should_receive("get_or_create").with_args(
+        branch_name="f36",
+        namespace="rpms",
+        project_url="https://src.fedoraproject.org/rpms/packit",
+        repo_name="packit",
+    ).and_return(
+        flexmock(
+            id=13,
+            job_config_trigger_type=JobConfigTriggerType.commit,
+            job_trigger_model_type=JobTriggerModelType.branch_push,
+        )
+    )
+
+    # flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+    #     type=JobTriggerModelType.pull_request, trigger_id=342
+    # ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    # flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
+    jobs = [
+        JobConfig(
+            type=JobType.koji_build,
+            trigger=JobConfigTriggerType.commit,
+            dist_git_branches=["f36"],
+            allowed_committers=allowed_committers,
+        ),
+    ]
+    koji_build_handler = DownstreamKojiBuildHandler(
+        package_config=PackageConfig(
+            jobs=jobs,
+        ),
+        job_config=jobs[0],
+        event=distgit_push_event.get_dict(),
+    )
+    assert koji_build_handler.pre_check() == should_pass
+
+
+@pytest.mark.parametrize(
+    "pr_author, allowed_pr_authors, should_pass",
+    (
+        ("packit", ["packit"], True),
+        ("packit-stg", ["packit"], False),
+        ("packit-stg", [], False),
+    ),
+)
+def test_precheck_koji_build_push_pr(
+    distgit_push_event,
+    pr_author,
+    allowed_pr_authors,
+    should_pass,
+):
+    distgit_push_event.committer = "pagure"
+
+    flexmock(GitProjectModel).should_receive("get_or_create").with_args(
+        namespace="rpms",
+        project_url="https://src.fedoraproject.org/rpms/packit",
+        repo_name="packit",
+    ).and_return(
+        flexmock(
+            id=342,
+        )
+    )
+    flexmock(GitBranchModel).should_receive("get_or_create").with_args(
+        branch_name="f36",
+        namespace="rpms",
+        project_url="https://src.fedoraproject.org/rpms/packit",
+        repo_name="packit",
+    ).and_return(
+        flexmock(
+            id=13,
+            job_config_trigger_type=JobConfigTriggerType.commit,
+            job_trigger_model_type=JobTriggerModelType.branch_push,
+        )
+    )
+
+    # flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+    #     type=JobTriggerModelType.pull_request, trigger_id=342
+    # ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    # flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
+    jobs = [
+        JobConfig(
+            type=JobType.koji_build,
+            trigger=JobConfigTriggerType.commit,
+            dist_git_branches=["f36"],
+            allowed_pr_authors=allowed_pr_authors,
+        ),
+    ]
+    flexmock(PagureProject).should_receive("get_pr_list").and_return(
+        [
+            flexmock(
+                author=pr_author,
+                head_commit="ad0c308af91da45cf40b253cd82f07f63ea9cbbf",
+            )
+        ]
+    )
+    koji_build_handler = DownstreamKojiBuildHandler(
+        package_config=PackageConfig(
+            jobs=jobs,
+        ),
+        job_config=jobs[0],
+        event=distgit_push_event.get_dict(),
+    )
+    assert koji_build_handler.pre_check() == should_pass
