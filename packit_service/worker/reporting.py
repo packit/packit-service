@@ -183,6 +183,15 @@ class StatusReporter:
             BaseCommitStatus.failure,
         }
 
+    def _commit_comment_already_added(self, comment: str) -> bool:
+        commit_comments = self.project.get_commit_comments(self.commit_sha)
+        if exists := any(c.comment == comment for c in commit_comments):
+            logger.debug(
+                "The following comment already exists for commit "
+                f"{self.commit_sha}\n{comment}"
+            )
+        return exists
+
     def _add_commit_comment_with_status(
         self, state: BaseCommitStatus, description: str, check_name: str, url: str = ""
     ):
@@ -196,8 +205,7 @@ class StatusReporter:
             )
             + f"\n\n{description}"
         )
-        if not self.is_final_state(state):
-            # To avoid multiple comments for non-final states
+        if not self.is_final_state(state) or self._commit_comment_already_added(body):
             logger.debug(f"Not adding a '{check_name} is {state.name}' comment.")
             return
 
