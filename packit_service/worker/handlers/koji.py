@@ -107,7 +107,7 @@ class KojiBuildHandler(JobHandler):
     def pre_check(self) -> bool:
         if (
             self.data.event_type == MergeRequestGitlabEvent.__name__
-            and self.data.action == GitlabEventAction.closed.value
+            and self.data.event_dict["action"] == GitlabEventAction.closed.value
         ):
             # Not interested in closed merge requests
             return False
