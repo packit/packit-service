@@ -1824,6 +1824,7 @@ def test_copr_build_success_gitlab_comment(gitlab_mr_event):
     exception.__cause__ = gitlab.GitlabError(response_code=403)
     flexmock(pr.source_project).should_receive("set_commit_status").and_raise(exception)
     flexmock(GitlabProject).should_receive("commit_comment").and_return()
+    flexmock(GitlabProject).should_receive("get_commit_comments").and_return([])
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
             flexmock(status="success", id=42)

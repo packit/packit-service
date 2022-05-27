@@ -312,7 +312,7 @@ def test_commit_comment_instead_of_status(
         )
         + f"\n\n{description}",
     )
-
+    project.should_receive("get_commit_comments").and_return([])
     if has_pr_id:
         project.should_receive("get_pr").with_args(pr_id).and_return(pr_object)
 
