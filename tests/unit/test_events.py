@@ -1744,16 +1744,15 @@ class TestCentOSEventParser:
         )
         assert event_object.package_config
 
-
-def test_event_data_parse_pr(github_pr_event):
-    # A db_trigger would be created in the get_dict() call bellow.
-    # We don't need that in this test, so let's mock it out.
-    flexmock(PullRequestGithubEvent)
-    PullRequestGithubEvent.db_trigger = None
-    data = EventData.from_event_dict(github_pr_event.get_dict())
-    assert data.event_type == "PullRequestGithubEvent"
-    assert data.actor == "lbarcziova"
-    assert not data.git_ref
-    assert data.commit_sha == "528b803be6f93e19ca4130bf4976f2800a3004c4"
-    assert data.identifier == "342"
-    assert data.pr_id == 342
+    def test_event_data_parse_pr(self, github_pr_event):
+        # A db_trigger would be created in the get_dict() call bellow.
+        # We don't need that in this test, so let's mock it out.
+        flexmock(PullRequestGithubEvent)
+        PullRequestGithubEvent.db_trigger = None
+        data = EventData.from_event_dict(github_pr_event.get_dict())
+        assert data.event_type == "PullRequestGithubEvent"
+        assert data.actor == "lbarcziova"
+        assert not data.git_ref
+        assert data.commit_sha == "528b803be6f93e19ca4130bf4976f2800a3004c4"
+        assert data.identifier == "342"
+        assert data.pr_id == 342
