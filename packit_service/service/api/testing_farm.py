@@ -101,12 +101,12 @@ class TestingFarmResults(Resource):
     @ns.expect(pagination_arguments)
     @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "Testing Farm Results follow")
     def get(self):
-        """List all Testing Farm  results."""
+        """List all Testing Farm results."""
 
         result = []
 
         first, last = indices()
-        # results have nothing other than ref in common, so it doesnt make sense to
+        # results have nothing other than ref in common, so it doesn't make sense to
         # merge them like copr builds
         for tf_result in TFTTestRunTargetModel.get_range(first, last):
             result_dict = {
@@ -121,9 +121,9 @@ class TestingFarmResults(Resource):
             }
 
             project = tf_result.get_project()
-            result_dict["repo_namespace"] = project.namespace
-            result_dict["repo_name"] = project.repo_name
-            result_dict["project_url"] = project.project_url
+            result_dict["repo_namespace"] = project.namespace if project else None
+            result_dict["repo_name"] = project.repo_name if project else None
+            result_dict["project_url"] = project.project_url if project else None
 
             result.append(result_dict)
 
