@@ -1756,3 +1756,14 @@ class TestCentOSEventParser:
         assert data.commit_sha == "528b803be6f93e19ca4130bf4976f2800a3004c4"
         assert data.identifier == "342"
         assert data.pr_id == 342
+        assert data.event_dict["action"] == "opened"
+
+    def test_event_data_parse_gitlab_mr(self, gitlab_mr_event):
+        data = EventData.from_event_dict(gitlab_mr_event.get_dict())
+        assert data.event_type == "MergeRequestGitlabEvent"
+        assert data.actor == "shreyaspapi"
+        assert not data.git_ref
+        assert data.commit_sha == "1f6a716aa7a618a9ffe56970d77177d99d100022"
+        assert data.identifier == "1"
+        assert data.pr_id == 1
+        assert data.event_dict["action"] == "opened"
