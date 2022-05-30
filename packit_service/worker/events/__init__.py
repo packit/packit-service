@@ -42,6 +42,7 @@ from packit_service.worker.events.pagure import (
     PullRequestCommentPagureEvent,
     PushPagureEvent,
     AbstractPagureEvent,
+    PullRequestFlagPagureEvent,
 )
 from packit_service.worker.events.testing_farm import TestingFarmResultsEvent
 
@@ -77,4 +78,5 @@ __all__ = [
     AbstractPRCommentEvent.__name__,
     AbstractIssueCommentEvent.__name__,
     AbstractForgeIndependentEvent.__name__,
+    PullRequestFlagPagureEvent.__name__,
 ]

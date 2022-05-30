@@ -143,7 +143,7 @@ class PullRequestPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
         return fork
 
 
-class PullRequestFlagPagureEvent(AbstractPagureEvent):
+class PullRequestFlagPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
     def __init__(
         self,
         username: str,
