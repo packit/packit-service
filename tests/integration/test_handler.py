@@ -93,6 +93,37 @@ def test_precheck(github_pr_event):
     assert copr_build_handler.pre_check()
 
 
+def test_precheck_gitlab(gitlab_mr_event):
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=1,
+        namespace="testing/packit",
+        repo_name="hello-there",
+        project_url="https://gitlab.com/testing/packit/hello-there",
+    ).and_return(
+        flexmock(id=1, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
+    copr_build_handler = CoprBuildHandler(
+        package_config=PackageConfig(
+            jobs=[
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ]
+        ),
+        job_config=JobConfig(
+            type=JobType.copr_build,
+            trigger=JobConfigTriggerType.pull_request,
+        ),
+        event=gitlab_mr_event.get_dict(),
+    )
+    assert copr_build_handler.pre_check()
+
+
 def test_precheck_push(github_push_event):
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
         flexmock(id=1, job_config_trigger_type=JobConfigTriggerType.commit)
