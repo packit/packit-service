@@ -20,6 +20,9 @@ DEFAULT_CELERY_COMMAND="worker"
 # Whether to run Celery worker or beat (task scheduler)
 CELERY_COMMAND="${CELERY_COMMAND:-$DEFAULT_CELERY_COMMAND}"
 
+# https://stackoverflow.com/questions/49509264/explain-the-bash-command-exec-tee-log-file-21
+exec > >(tee -a "/logs/${HOSTNAME}.log") 2>&1
+
 if [[ "${CELERY_COMMAND}" == "beat" ]]; then
     # when using the database backend, celery beat must be running for the results to be expired.
     # https://docs.celeryproject.org/en/stable/userguide/periodic-tasks.html#starting-the-scheduler

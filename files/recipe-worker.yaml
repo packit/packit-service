@@ -31,3 +31,8 @@
         mode: 0777
       with_fileglob:
         - scripts/*.py
+    - name: Create /logs
+      file:
+        state: directory
+        path: /logs
+        mode: 0777

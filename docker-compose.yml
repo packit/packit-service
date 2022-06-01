@@ -76,6 +76,7 @@ services:
       - ./secrets/packit/dev/id_rsa.pub:/packit-ssh/id_rsa.pub:ro,z
       - ./secrets/packit/dev/id_rsa:/packit-ssh/id_rsa:ro,z
       - ./secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
+      - ./files/run_worker.sh:/usr/bin/run_worker.sh:ro,z
     user: "1024"
 
   service:
@@ -168,4 +169,5 @@ services:
       - ./secrets/packit/dev/id_rsa.pub:/packit-ssh/id_rsa.pub:ro,z
       - ./secrets/packit/dev/id_rsa:/packit-ssh/id_rsa:ro,z
       - ./secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
+      - ./files/run_worker.sh:/usr/bin/run_worker.sh:ro,z
     user: "1024"
