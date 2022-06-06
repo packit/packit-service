@@ -12,7 +12,11 @@ from packit.api import PackitAPI
 from packit.config.job_config import JobConfig
 from packit.exceptions import PackitException, PackitCommandFailedError
 from packit_service.config import ServiceConfig
-from packit_service.constants import FAQ_URL, FASJSON_URL
+from packit_service.constants import (
+    FASJSON_URL,
+    NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION,
+    REQUIREMENTS_URL,
+)
 from packit_service.models import AllowlistModel, AllowlistStatus
 from packit_service.worker.events import (
     EventData,
@@ -344,7 +348,10 @@ class Allowlist:
                     else "User cannot trigger!"
                 )
                 job_helper.report_status_to_all(
-                    description=msg, state=BaseCommitStatus.neutral, url=FAQ_URL
+                    description=msg,
+                    state=BaseCommitStatus.neutral,
+                    url=REQUIREMENTS_URL,
+                    markdown_content=NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION,
                 )
 
         return False

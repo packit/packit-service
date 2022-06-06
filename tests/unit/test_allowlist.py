@@ -17,7 +17,10 @@ from packit.config import JobType, JobConfig, JobConfigTriggerType
 from packit.config.common_package_config import Deployment
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
-from packit_service.constants import FAQ_URL
+from packit_service.constants import (
+    NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION,
+    REQUIREMENTS_URL,
+)
 from packit_service.models import (
     AllowlistModel as DBAllowlist,
     AllowlistStatus,
@@ -520,9 +523,9 @@ def test_check_and_report(
             flexmock(StatusReporter).should_receive("report").with_args(
                 description="Namespace is not allowed!",
                 state=BaseCommitStatus.neutral,
-                url=FAQ_URL,
+                url=REQUIREMENTS_URL,
                 check_names=[EXPECTED_TESTING_FARM_CHECK_NAME],
-                markdown_content=None,
+                markdown_content=NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION,
             ).once()
         flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
             "get_valid_build_targets"

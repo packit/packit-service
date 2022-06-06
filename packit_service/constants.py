@@ -10,6 +10,11 @@ FAQ_URL_HOW_TO_RETRIGGER = (
     f"{DOCS_URL}/packit-as-a-service/"
     "#how-to-re-trigger-packit-service-actions-in-your-pull-request"
 )
+REQUIREMENTS_URL = (
+    "https://packit.dev/docs/packit-service/"
+    "#requirements-for-running-packit-service-jobs"
+)
+
 KOJI_PRODUCTION_BUILDS_ISSUE = "https://pagure.io/releng/issue/9801"
 
 SANDCASTLE_WORK_DIR = "/tmp/sandcastle"
@@ -35,6 +40,15 @@ COPR_CHROOT_CHANGE_MSG = (
     "This was the change Packit tried to do:\n\n"
     "{table}"
     "\n"
+)
+
+NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION = (
+    "In order to start using the service, "
+    "your repository or namespace needs to be allowed. "
+    "Just be aware that we are now onboarding Fedora contributors who have "
+    "a valid [Fedora Account System](https://fedoraproject.org/wiki/Account_System) account. "
+    "For more details on how to get allowed for our service, please read "
+    "the requirements [here](/docs/packit-service#requirements-for-running-packit-service-jobs)."
 )
 
 FILE_DOWNLOAD_FAILURE = "Failed to download file from URL"
