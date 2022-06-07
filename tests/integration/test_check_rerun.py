@@ -28,6 +28,7 @@ from packit_service.worker.helpers.build import (
     CoprBuildJobHelper,
     KojiBuildJobHelper,
     copr_build,
+    koji_build,
 )
 from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
@@ -340,8 +341,8 @@ def test_check_rerun_pr_koji_build_handler(
         "https://github.com/the-namespace/the-repo"
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
-        {"fedora-rawhide-x86_64", "fedora-34-x86_64"}
+    flexmock(koji_build).should_receive("get_koji_targets").and_return(
+        {"rawhide", "f34"}
     )
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
@@ -510,8 +511,8 @@ def test_check_rerun_push_koji_build_handler(
         "https://github.com/the-namespace/the-repo"
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
-        {"fedora-rawhide-x86_64", "fedora-34-x86_64"}
+    flexmock(koji_build).should_receive("get_koji_targets").and_return(
+        {"rawhide", "f34"}
     )
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
@@ -620,8 +621,8 @@ def test_check_rerun_release_koji_build_handler(
         "https://github.com/the-namespace/the-repo"
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
-        {"fedora-rawhide-x86_64", "fedora-34-x86_64"}
+    flexmock(koji_build).should_receive("get_koji_targets").and_return(
+        {"rawhide", "f34"}
     )
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
