@@ -452,9 +452,13 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         elif not self.is_fmf_configured() and not self.skip_build:
             payload = self._payload_install_test(int(build.build_id), target)
         else:
-            return TaskResults(
-                success=True, details={"msg": "No actions for TestingFarmHandler."}
+            self.report_status_to_test_for_test_target(
+                state=BaseCommitStatus.neutral,
+                description="No FMF metadata found. Please, initialize the metadata tree "
+                "with `fmf init`.",
+                target=target,
             )
+            return TaskResults(success=True, details={"msg": "No FMF metadata found."})
         endpoint = "requests"
         logger.debug(f"POSTing {payload} to {self.tft_api_url}{endpoint}")
         req = self.send_testing_farm_request(
