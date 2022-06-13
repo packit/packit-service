@@ -11,6 +11,7 @@ from typing import List, Set, Type
 
 from celery import group
 
+from ogr.exceptions import GithubAppNotInstalledError
 from packit.config import JobConfig
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
@@ -144,7 +145,18 @@ class SteveJobs:
         Returns:
             list of processing task results
         """
-        if not self.is_project_public_or_enabled_private():
+        try:
+            if not self.is_project_public_or_enabled_private():
+                return []
+        except GithubAppNotInstalledError:
+            host, namespace, repo = (
+                self.event.project.service.hostname,
+                self.event.project.namespace,
+                self.event.project.repo,
+            )
+            logger.info(
+                "Packit is not installed on %s/%s/%s, skipping.", host, namespace, repo
+            )
             return []
 
         processing_results = None
