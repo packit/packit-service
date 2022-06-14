@@ -116,9 +116,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return self.metadata.commit_sha
 
     @property
-    def tf_name(self) -> Optional[str]:
-        if self.job_config.tf_name:
-            return self.job_config.tf_name
+    def tmt_plan(self) -> Optional[str]:
+        if self.job_config.tmt_plan:
+            return self.job_config.tmt_plan
 
         return None
 
@@ -201,8 +201,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if self.fmf_ref:
             fmf["ref"] = self.fmf_ref
 
-        if self.tf_name:
-            fmf["name"] = self.tf_name
+        if self.tmt_plan:
+            fmf["name"] = self.tmt_plan
 
         if build is not None:
             build_log_url = build.build_logs_url

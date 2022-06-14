@@ -299,7 +299,7 @@ def test_artifact(
         "compose,"
         "arch,"
         "packages_to_send,"
-        "tf_name,"
+        "tmt_plan,"
         "tf_post_install_script"
     ),
     [
@@ -411,7 +411,7 @@ def test_artifact(
             None,
             None,
         ),
-        # Test tf_name and tf_post_install_script
+        # Test tmt_plan and tf_post_install_script
         (
             "https://api.dev.testing-farm.io/v0.1/",
             "very-secret",
@@ -457,7 +457,7 @@ def test_payload(
     compose,
     arch,
     packages_to_send,
-    tf_name,
+    tmt_plan,
     tf_post_install_script,
 ):
     service_config = ServiceConfig.get_service_config()
@@ -502,7 +502,7 @@ def test_payload(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
             use_internal_tf=use_internal_tf,
-            tf_name=tf_name,
+            tmt_plan=tmt_plan,
             tf_post_install_script=tf_post_install_script,
         ),
     )
@@ -550,8 +550,8 @@ def test_payload(
         "url": project_url,
         "ref": commit_sha,
     }
-    if tf_name:
-        expected_test["name"] = tf_name
+    if tmt_plan:
+        expected_test["name"] = tmt_plan
 
     assert payload["test"]["fmf"] == expected_test
 
