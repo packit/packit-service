@@ -1664,14 +1664,14 @@ class ProposeDownstreamTargetModel(ProjectAndTriggersConnector, Base):
 
     @classmethod
     def create(
-        cls,
-        status: ProposeDownstreamTargetStatus,
+        cls, status: ProposeDownstreamTargetStatus, branch: str
     ) -> "ProposeDownstreamTargetModel":
         with get_sa_session() as session:
-            downstream_pr = cls()
-            downstream_pr.status = status
-            session.add(downstream_pr)
-            return downstream_pr
+            propose_downstream_target = cls()
+            propose_downstream_target.status = status
+            propose_downstream_target.branch = branch
+            session.add(propose_downstream_target)
+            return propose_downstream_target
 
     def set_status(self, status: ProposeDownstreamTargetStatus) -> None:
         with get_sa_session() as session:
@@ -1691,11 +1691,6 @@ class ProposeDownstreamTargetModel(ProjectAndTriggersConnector, Base):
     def set_finished_time(self, finished_time: DateTime) -> None:
         with get_sa_session() as session:
             self.finished_time = finished_time
-            session.add(self)
-
-    def set_branch(self, branch: str) -> None:
-        with get_sa_session() as session:
-            self.branch = branch
             session.add(self)
 
     def set_logs(self, logs: str) -> None:

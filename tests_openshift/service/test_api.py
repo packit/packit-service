@@ -486,7 +486,7 @@ def test_propose_downstream_list_releases(
     assert response_dict[2]["release"] == SampleValues.different_tag_name
 
     assert (
-        response_dict[0]["status_per_downstream_pr"]["unknown"]
+        response_dict[0]["status_per_downstream_pr"][SampleValues.different_branch]
         == ProposeDownstreamTargetStatus.queued
     )
     assert (

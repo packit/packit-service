@@ -119,9 +119,9 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         trigger_model=trigger,
     ).and_return(propose_downstream_model, run_model).times(1 if success else 0)
 
-    model = flexmock(status="queued", id=1234)
+    model = flexmock(status="queued", id=1234, branch="main")
     flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
-        status=ProposeDownstreamTargetStatus.queued
+        status=ProposeDownstreamTargetStatus.queued, branch="main"
     ).and_return(model).times(1 if success else 0)
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="some_url"
@@ -129,9 +129,6 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     flexmock(model).should_receive("set_status").with_args(
         status=ProposeDownstreamTargetStatus.running
     ).times(1 if success else 0)
-    flexmock(model).should_receive("set_branch").with_args(branch="main").times(
-        1 if success else 0
-    )
     flexmock(model).should_receive("set_start_time").times(1 if success else 0)
     flexmock(model).should_receive("set_finished_time").times(1 if success else 0)
     flexmock(model).should_receive("set_logs").times(1 if success else 0)

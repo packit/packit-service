@@ -5,23 +5,21 @@
 This file defines classes for job handlers specific for distgit
 """
 import logging
+import shutil
 from datetime import datetime
 from os import getenv
-
-import shutil
-from typing import Optional, Dict, List
+from typing import Optional, Dict
 
 from celery import Task
 from ogr.abstract import PullRequest, PRStatus
-from packit.exceptions import PackitException
 
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobType
 from packit.config.aliases import get_branches
 from packit.config.package_config import PackageConfig
+from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
-
 from packit_service import sentry_integration
 from packit_service.config import PackageConfigGetter, ProjectToSync
 from packit_service.constants import (
@@ -38,7 +36,6 @@ from packit_service.models import (
 )
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.utils import gather_packit_logs_to_buffer, collect_packit_logs
-from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
 from packit_service.worker.events import (
     PushPagureEvent,
     ReleaseEvent,
@@ -53,6 +50,7 @@ from packit_service.worker.handlers.abstract import (
     run_for_comment,
     run_for_check_rerun,
 )
+from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 
@@ -209,19 +207,6 @@ class ProposeDownstreamHandler(JobHandler):
 
         return downstream_pr
 
-    @staticmethod
-    def _create_new_propose_for_each_branch(
-        propose_downstream_model: ProposeDownstreamModel, branches: List[str]
-    ) -> None:
-        for branch in branches:
-            propose_downstream_target = ProposeDownstreamTargetModel.create(
-                status=ProposeDownstreamTargetStatus.queued
-            )
-            propose_downstream_target.set_branch(branch=branch)
-            propose_downstream_model.propose_downstream_targets.append(
-                propose_downstream_target
-            )
-
     def _report_errors_for_each_branch(self, errors: Dict[str, str]) -> None:
         branch_errors = ""
         for branch, err in sorted(
@@ -259,6 +244,15 @@ class ProposeDownstreamHandler(JobHandler):
             status=ProposeDownstreamStatus.running,
             trigger_model=self.data.db_trigger,
         )
+
+        for branch in self.propose_downstream_helper.branches:
+            propose_downstream_target = ProposeDownstreamTargetModel.create(
+                status=ProposeDownstreamTargetStatus.queued, branch=branch
+            )
+            propose_downstream_model.propose_downstream_targets.append(
+                propose_downstream_target
+            )
+
         return propose_downstream_model
 
     def run(self) -> TaskResults:
@@ -285,21 +279,25 @@ class ProposeDownstreamHandler(JobHandler):
 
         errors = {}
         propose_downstream_model = self._get_or_create_propose_downstream_run()
+        branches_to_run = [
+            target.branch
+            for target in propose_downstream_model.propose_downstream_targets
+        ]
+        logger.debug(f"Branches to run propose downstream: {branches_to_run}")
 
         try:
-            branches = list(self.propose_downstream_helper.branches)
-            logger.debug(f"Branches to run propose downstream: {branches}")
-            self._create_new_propose_for_each_branch(propose_downstream_model, branches)
-
-            for branch, model in zip(
-                branches, propose_downstream_model.propose_downstream_targets
-            ):
+            for model in propose_downstream_model.propose_downstream_targets:
+                branch = model.branch
                 # skip submitting a branch if we already did that (even if it failed)
                 if model.status not in [
                     ProposeDownstreamTargetStatus.running,
                     ProposeDownstreamTargetStatus.retry,
                     ProposeDownstreamTargetStatus.queued,
                 ]:
+                    logger.debug(
+                        f"Skipping propose downstream for branch {branch} "
+                        f"that was already processed."
+                    )
                     continue
                 logger.debug(f"Running propose downstream for {branch}")
                 model.set_status(status=ProposeDownstreamTargetStatus.running)
