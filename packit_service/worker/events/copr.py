@@ -147,9 +147,10 @@ class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):
 
     def get_copr_build_logs_url(self) -> str:
         pkg = "" if self.chroot == COPR_SRPM_CHROOT else f"-{self.pkg}"
+        # https://github.com/packit/packit-service/issues/1387
         return (
-            f"https://copr-be.cloud.fedoraproject.org/results/{self.owner}/"
-            f"{self.project_name}/{self.chroot}/"
+            "https://download.copr.fedorainfracloud.org/"
+            f"results/{self.owner}/{self.project_name}/{self.chroot}/"
             f"{self.build_id:08d}{pkg}/builder-live.log.gz"
         )
 

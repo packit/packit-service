@@ -870,6 +870,11 @@ class TestEvents:
             not event_object.base_project  # With Github app, we cannot work with fork repo
         )
 
+        assert event_object.get_copr_build_logs_url() == (
+            "https://download.copr.fedorainfracloud.org/results/packit/"
+            "packit-service-hello-world-24/fedora-rawhide-x86_64/01044215-hello/builder-live.log.gz"
+        )
+
         flexmock(PackageConfigGetter).should_receive(
             "get_package_config_from_repo"
         ).with_args(
