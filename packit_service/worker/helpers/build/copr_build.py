@@ -25,6 +25,8 @@ from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COPR_CHROOT_CHANGE_MSG,
+    CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT,
+    CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS,
     DEFAULT_MAPPING_INTERNAL_TF,
     DEFAULT_MAPPING_TF,
     MSG_RETRIGGER,
@@ -305,6 +307,48 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 .keys(),
             )
         }
+
+    def is_custom_copr_project_defined(self) -> bool:
+        return (
+            self.job_owner != self.api.copr_helper.copr_client.config.get("username")
+            or self.job_project != self.default_project_name
+        )
+
+    def check_if_custom_copr_can_be_used_and_report(self) -> bool:
+        """
+        Check if the git-forge project can build in the configured Copr project.
+
+        The mapping is hardcoded for now in the service config.
+        There will be a better integration in form of
+        a new config field in Copr settings that Packit can use.
+
+        :return: True if the matching is configured.
+        """
+        configured_copr_project = f"{self.job_owner}/{self.job_project}"
+        if (
+            forge_project := (
+                f"{self.project.service.hostname}/{self.project.namespace}/{self.project.repo}"
+            )
+        ) not in (
+            allowed_projects := self.service_config.allowed_forge_projects_for_copr_project.get(
+                configured_copr_project, []
+            )
+        ):
+            logger.warning(
+                f"{forge_project} can't use {configured_copr_project} "
+                f"(Only {allowed_projects} are allowed.)"
+            )
+            self.report_status_to_build(
+                description=CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS.format(
+                    copr_project=configured_copr_project
+                ),
+                state=BaseCommitStatus.neutral,
+                markdown_content=CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT.format(
+                    copr_project=configured_copr_project
+                ),
+            )
+            return False
+        return True
 
     def get_built_packages(self, build_id: int, chroot: str) -> List:
         return self.api.copr_helper.copr_client.build_chroot_proxy.get_built_packages(

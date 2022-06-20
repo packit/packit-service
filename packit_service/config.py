@@ -4,7 +4,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Set, Union
+from typing import Dict, List, NamedTuple, Optional, Set, Union
 
 from yaml import safe_load
 
@@ -109,6 +109,7 @@ class ServiceConfig(Config):
         koji_web_url: str = "https://koji.fedoraproject.org",
         enabled_projects_for_srpm_in_copr: Union[Set[str], List[str]] = None,
         comment_command_prefix: str = "/packit",
+        allowed_forge_projects_for_copr_project: Dict[str, List[str]] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -174,6 +175,14 @@ class ServiceConfig(Config):
         )
         self.comment_command_prefix = comment_command_prefix
 
+        # e.g. {
+        # "copr_owner/copr_project": ["github.com/namespace/repo", "github.com/namespace/repo-2"],
+        # "@copr_group/copr_project": ["github.com/namespace/repo"],
+        # }
+        self.allowed_forge_projects_for_copr_project = (
+            allowed_forge_projects_for_copr_project or {}
+        )
+
     service_config = None
 
     def __repr__(self):
@@ -202,6 +211,7 @@ class ServiceConfig(Config):
             f"koji_logs_url='{self.koji_logs_url}', "
             f"koji_web_url='{self.koji_web_url}', "
             f"enabled_projects_for_srpm_in_copr= '{self.enabled_projects_for_srpm_in_copr}', "
+            f"forge_projects_for_copr_project={self.allowed_forge_projects_for_copr_project}"
             f"comment_command_prefix='{self.comment_command_prefix}')"
         )
 

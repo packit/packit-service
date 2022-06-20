@@ -223,6 +223,9 @@ def test_check_rerun_pr_copr_build_handler(
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     ).once()
+    flexmock(CoprBuildJobHelper).should_receive(
+        "is_custom_copr_project_defined"
+    ).and_return(False).once()
     flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/the-namespace/the-repo"
@@ -391,6 +394,9 @@ def test_check_rerun_push_copr_build_handler(
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     ).once()
+    flexmock(CoprBuildJobHelper).should_receive(
+        "is_custom_copr_project_defined"
+    ).and_return(False).once()
     flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/the-namespace/the-repo"
@@ -561,6 +567,9 @@ def test_check_rerun_release_copr_build_handler(
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     ).once()
+    flexmock(CoprBuildJobHelper).should_receive(
+        "is_custom_copr_project_defined"
+    ).and_return(False).once()
     flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/the-namespace/the-repo"

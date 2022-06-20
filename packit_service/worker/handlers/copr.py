@@ -163,6 +163,14 @@ class CoprBuildHandler(JobHandler):
             # we can't report it to end-user at this stage
             return False
 
+        if self.copr_build_helper.is_custom_copr_project_defined():
+            logger.debug(
+                "Custom Copr owner/project set. "
+                "Checking if this GitHub project can use this Copr project."
+            )
+            if not self.copr_build_helper.check_if_custom_copr_can_be_used_and_report():
+                return False
+
         return True
 
 
