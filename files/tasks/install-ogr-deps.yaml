@@ -22,7 +22,7 @@
   retries: 6
 
 - name: Install ogr dependencies provided by setupcfg2rpm
-  ansible.builtin.shell: dnf install $(./setupcfg2rpm.py ogr_setup.cfg) -y
+  ansible.builtin.shell: dnf install -y $(./setupcfg2rpm.py ogr_setup.cfg)
   args:
     warn: false
   become: true
