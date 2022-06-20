@@ -44,6 +44,6 @@
   retries: 6
 
 - name: Install dependencies provided by setupcfg2rpm
-  ansible.builtin.shell: dnf install $(./setupcfg2rpm.py packit_setup.cfg)
+  ansible.builtin.shell: dnf install -y $(./setupcfg2rpm.py packit_setup.cfg)
   become: true
   changed_when: true
