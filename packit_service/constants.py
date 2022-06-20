@@ -223,6 +223,18 @@ INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED = (
     "or only test job via `{packit_comment_command_prefix} test` comment.*",
 )
 
+CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS = (
+    "Not allowed to build in {copr_project} Copr project."
+)
+CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT = (
+    "Your git-forge project is not allowed to use the configured {copr_project} Copr project.\n\n"
+    "Please, [let us know](https://packit.dev/#contact) "
+    "if you need this git project to be allowed. "
+    "We are working with the Copr team on a way "
+    "how to make this easily configurable in the Copr web interface."
+    "a list of projects that are allowed to use the Copr project."
+)
+
 FASJSON_URL = "https://fasjson.fedoraproject.org"
 
 PACKIT_VERIFY_FAS_COMMAND = "verify-fas"

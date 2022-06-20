@@ -21,6 +21,7 @@ from packit_service.worker.handlers import (
     CoprBuildHandler,
     KojiBuildHandler,
 )
+from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import StatusReporterGithubChecks, BaseCommitStatus
 
 
@@ -90,6 +91,9 @@ def test_precheck(github_pr_event):
         ),
         event=github_pr_event.get_dict(),
     )
+    flexmock(CoprBuildJobHelper).should_receive(
+        "is_custom_copr_project_defined"
+    ).and_return(False).once()
     assert copr_build_handler.pre_check()
 
 
@@ -121,6 +125,9 @@ def test_precheck_gitlab(gitlab_mr_event):
         ),
         event=gitlab_mr_event.get_dict(),
     )
+    flexmock(CoprBuildJobHelper).should_receive(
+        "is_custom_copr_project_defined"
+    ).and_return(False).once()
     assert copr_build_handler.pre_check()
 
 
@@ -146,6 +153,9 @@ def test_precheck_push(github_push_event):
         ),
         event=github_push_event.get_dict(),
     )
+    flexmock(CoprBuildJobHelper).should_receive(
+        "is_custom_copr_project_defined"
+    ).and_return(False).once()
 
     assert copr_build_handler.pre_check()
 

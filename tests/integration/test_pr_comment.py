@@ -173,6 +173,9 @@ def test_pr_comment_copr_build_handler(
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     ).once()
+    flexmock(CoprBuildJobHelper).should_receive(
+        "is_custom_copr_project_defined"
+    ).and_return(False).once()
     flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/the-namespace/the-repo"
@@ -235,6 +238,9 @@ def test_pr_comment_build_handler(
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     )
+    flexmock(CoprBuildJobHelper).should_receive(
+        "is_custom_copr_project_defined"
+    ).and_return(False).once()
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
@@ -371,6 +377,9 @@ def test_pr_comment_build_build_and_test_handler(
         state=BaseCommitStatus.pending,
         url="",
     ).once()
+    flexmock(CoprBuildJobHelper).should_receive(
+        "is_custom_copr_project_defined"
+    ).and_return(False).once()
     flexmock(Signature).should_receive("apply_async").twice()
     flexmock(Pushgateway).should_receive("push").times(3).and_return()
     pr = flexmock(head_commit="12345")
@@ -571,6 +580,9 @@ def test_pr_embedded_command_handler(
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     )
+    flexmock(CoprBuildJobHelper).should_receive(
+        "is_custom_copr_project_defined"
+    ).and_return(False).once()
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     pr = flexmock(head_commit="12345")
@@ -1164,6 +1176,9 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
         "you can trigger the build and test jobs manually via `/packit build` comment "
         "or only test job via `/packit test` comment.*",
     ).once()
+    flexmock(CoprBuildJobHelper).should_receive(
+        "is_custom_copr_project_defined"
+    ).and_return(False).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
     assert not processing_results
@@ -1237,6 +1252,9 @@ def test_rebuild_failed(
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     )
+    flexmock(CoprBuildJobHelper).should_receive(
+        "is_custom_copr_project_defined"
+    ).and_return(False).once()
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     pr = flexmock(head_commit="12345")
