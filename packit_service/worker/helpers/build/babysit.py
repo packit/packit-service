@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 def check_pending_testing_farm_runs() -> None:
     """Checks the status of pending TFT runs and updates it if needed."""
-    logger.debug("Getting pending TFT runs from DB")
+    logger.info("Getting pending TFT runs from DB")
     current_time = datetime.datetime.utcnow()
     not_completed = (
         TestingFarmResult.new,
@@ -45,25 +45,24 @@ def check_pending_testing_farm_runs() -> None:
     )
     pending_test_runs = TFTTestRunTargetModel.get_all_by_status(*not_completed)
     for run in pending_test_runs:
-        logger.info(f"Checking status of pipeline with id {run.pipeline_id}")
+        logger.debug(f"Checking status of TF pipeline {run.pipeline_id}")
         # .submitted_time can be None, we'll set it later
         if run.submitted_time:
             elapsed = current_time - run.submitted_time
             if elapsed.total_seconds() > DEFAULT_JOB_TIMEOUT:
                 logger.info(
-                    f"Pipeline has been running for {elapsed.total_seconds()},"
-                    f"probably an internal error occurred. Not checking it anymore."
+                    f"TF pipeline {run.pipeline_id} has been running for "
+                    f"{elapsed.total_seconds()}, probably an internal error occurred. "
+                    "Not checking it anymore."
                 )
                 run.set_status(TestingFarmResult.error)
                 continue
-        endpoint = "requests/"
-        run_url = f"{TESTING_FARM_API_URL}{endpoint}{run.pipeline_id}"
+        run_url = f"{TESTING_FARM_API_URL}requests/{run.pipeline_id}"
         response = requests.get(run_url)
         if not response.ok:
             logger.info(
-                f"Failed to obtain state of testing farm pipeline "
-                f"id {run.pipeline_id} (status code {response.status_code}. "
-                f"Reason: {response.reason}."
+                f"Failed to obtain state of TF pipeline {run.pipeline_id}. "
+                f"Status code {response.status_code}. Reason: {response.reason}."
             )
             run.set_status(TestingFarmResult.error)
             continue
@@ -82,11 +81,9 @@ def check_pending_testing_farm_runs() -> None:
             identifier,
         ) = Parser.parse_data_from_testing_farm(run, details)
 
-        logger.info(
-            f"Result for the testing farm pipeline {run.pipeline_id} is {result}."
-        )
+        logger.debug(f"Result for the TF pipeline {run.pipeline_id} is {result}.")
         if result in not_completed:
-            logger.info("Skip updating a pipeline which is not yet completed.")
+            logger.debug("Skip updating a pipeline which is not yet completed.")
             continue
 
         event = TestingFarmResultsEvent(
