@@ -45,7 +45,7 @@ def fedora_branches():
 
 
 @pytest.fixture
-def mock_propose_downstream_functionality():
+def propose_downstream_model():
     trigger = flexmock(
         job_trigger_model_type=JobTriggerModelType.release,
         id=12,
@@ -65,10 +65,6 @@ def mock_propose_downstream_functionality():
         trigger_model=trigger,
     ).and_return(propose_downstream_model, run_model).once()
 
-    model = flexmock(status="queued", id=1234)
-    flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
-        status=ProposeDownstreamTargetStatus.queued
-    ).and_return(model)
     flexmock(ProposeDownstreamJobHelper).should_receive(
         "report_status_to_all"
     ).with_args(
@@ -76,13 +72,26 @@ def mock_propose_downstream_functionality():
         state=BaseCommitStatus.pending,
         url="",
     ).once()
-    yield propose_downstream_model, model
+    yield propose_downstream_model
 
 
-def test_dist_git_push_release_handle(
-    github_release_webhook, mock_propose_downstream_functionality
-):
-    propose_downstream_model, model = mock_propose_downstream_functionality
+@pytest.fixture
+def propose_downstream_target_models(fedora_branches):
+    models = []
+    for branch in fedora_branches:
+        model = flexmock(status="queued", id=1234, branch=branch)
+        models.append(model)
+        flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
+            status=ProposeDownstreamTargetStatus.queued, branch=branch
+        ).and_return(model)
+    yield models
+
+
+def test_dist_git_push_release_handle(github_release_webhook, propose_downstream_model):
+    model = flexmock(status="queued", id=1234, branch="main")
+    flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
+        status=ProposeDownstreamTargetStatus.queued, branch="main"
+    ).and_return(model)
 
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
@@ -127,7 +136,6 @@ def test_dist_git_push_release_handle(
     flexmock(model).should_receive("set_status").with_args(
         status=ProposeDownstreamTargetStatus.running
     ).once()
-    flexmock(model).should_receive("set_branch").with_args(branch="main").once()
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="some_url"
     ).once()
@@ -186,9 +194,11 @@ def test_dist_git_push_release_handle(
 
 
 def test_dist_git_push_release_handle_multiple_branches(
-    github_release_webhook, fedora_branches, mock_propose_downstream_functionality
+    github_release_webhook,
+    fedora_branches,
+    propose_downstream_model,
+    propose_downstream_target_models,
 ):
-    propose_downstream_model, model = mock_propose_downstream_functionality
 
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
@@ -226,20 +236,19 @@ def test_dist_git_push_release_handle_multiple_branches(
         flexmock(PackitAPI).should_receive("sync_release").with_args(
             dist_git_branch=branch, tag="0.3.0", create_pr=True
         ).and_return(flexmock(url="some_url")).once()
-
-    flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.running
-    ).times(len(fedora_branches))
-    flexmock(model).should_receive("set_branch").times(len(fedora_branches))
-    flexmock(model).should_receive("set_downstream_pr_url").with_args(
-        downstream_pr_url="some_url"
-    ).times(len(fedora_branches))
-    flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.submitted
-    ).times(len(fedora_branches))
-    flexmock(model).should_receive("set_start_time").times(len(fedora_branches))
-    flexmock(model).should_receive("set_finished_time").times(len(fedora_branches))
-    flexmock(model).should_receive("set_logs").times(len(fedora_branches))
+    for model in propose_downstream_target_models:
+        flexmock(model).should_receive("set_status").with_args(
+            status=ProposeDownstreamTargetStatus.running
+        ).once()
+        flexmock(model).should_receive("set_downstream_pr_url").with_args(
+            downstream_pr_url="some_url"
+        ).once()
+        flexmock(model).should_receive("set_status").with_args(
+            status=ProposeDownstreamTargetStatus.submitted
+        ).once()
+        flexmock(model).should_receive("set_start_time").once()
+        flexmock(model).should_receive("set_finished_time").once()
+        flexmock(model).should_receive("set_logs").once()
     flexmock(propose_downstream_model).should_receive("set_status").with_args(
         status=ProposeDownstreamStatus.finished
     ).once()
@@ -292,9 +301,11 @@ def test_dist_git_push_release_handle_multiple_branches(
 
 
 def test_dist_git_push_release_handle_one_failed(
-    github_release_webhook, fedora_branches, mock_propose_downstream_functionality
+    github_release_webhook,
+    fedora_branches,
+    propose_downstream_model,
+    propose_downstream_target_models,
 ):
-    propose_downstream_model, model = mock_propose_downstream_functionality
 
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
@@ -333,9 +344,10 @@ def test_dist_git_push_release_handle_one_failed(
     )
     flexmock(Allowlist, check_and_report=True)
     ServiceConfig().get_service_config().get_project = lambda url: project
-
+    failed_branch = None
     for i, branch in enumerate(fedora_branches):
         if i == 1:
+            failed_branch = branch
             flexmock(PackitAPI).should_receive("sync_release").with_args(
                 dist_git_branch=branch, tag="0.3.0", create_pr=True
             ).and_raise(Exception, f"Failed {branch}").once()
@@ -343,27 +355,26 @@ def test_dist_git_push_release_handle_one_failed(
             flexmock(PackitAPI).should_receive("sync_release").with_args(
                 dist_git_branch=branch, tag="0.3.0", create_pr=True
             ).and_return(flexmock(url="some_url")).once()
+    for model in propose_downstream_target_models:
+        url = get_propose_downstream_info_url(model.id)
+        flexmock(model).should_receive("set_status").with_args(
+            status=ProposeDownstreamTargetStatus.running
+        ).once()
+        flexmock(model).should_receive("set_start_time").once()
+        flexmock(model).should_receive("set_finished_time").once()
+        flexmock(model).should_receive("set_logs").once()
+        if model.branch != failed_branch:
+            flexmock(model).should_receive("set_downstream_pr_url").with_args(
+                downstream_pr_url="some_url"
+            )
+            flexmock(model).should_receive("set_status").with_args(
+                status=ProposeDownstreamTargetStatus.submitted
+            ).once()
+        else:
+            flexmock(model).should_receive("set_status").with_args(
+                status=ProposeDownstreamTargetStatus.error
+            ).once()  # this is the failed branch
 
-    flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.running
-    ).times(len(fedora_branches))
-    flexmock(model).should_receive("set_branch").times(len(fedora_branches))
-    flexmock(model).should_receive("set_start_time").times(len(fedora_branches))
-    flexmock(model).should_receive("set_finished_time").times(len(fedora_branches))
-    flexmock(model).should_receive("set_logs").times(len(fedora_branches))
-    flexmock(model).should_receive("set_downstream_pr_url").with_args(
-        downstream_pr_url="some_url"
-    ).times(
-        len(fedora_branches) - 1  # one branch failed
-    )
-    flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.submitted
-    ).times(
-        len(fedora_branches) - 1
-    )  # one branch failed
-    flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.error
-    ).once()  # this is the failed branch
     flexmock(propose_downstream_model).should_receive("set_status").with_args(
         status=ProposeDownstreamStatus.error
     ).once()
@@ -381,8 +392,6 @@ def test_dist_git_push_release_handle_one_failed(
 
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
-
-    url = get_propose_downstream_info_url(model.id)
 
     for branch in fedora_branches:
         flexmock(ProposeDownstreamJobHelper).should_receive(
@@ -429,10 +438,11 @@ def test_dist_git_push_release_handle_one_failed(
 
 
 def test_dist_git_push_release_handle_all_failed(
-    github_release_webhook, fedora_branches, mock_propose_downstream_functionality
+    github_release_webhook,
+    fedora_branches,
+    propose_downstream_model,
+    propose_downstream_target_models,
 ):
-    propose_downstream_model, model = mock_propose_downstream_functionality
-
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, "
@@ -498,17 +508,17 @@ def test_dist_git_push_release_handle_all_failed(
             job_trigger_model_type=JobTriggerModelType.release,
         )
     )
-
-    flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.running
-    ).times(len(fedora_branches))
-    flexmock(model).should_receive("set_branch").times(len(fedora_branches))
-    flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.error
-    ).times(len(fedora_branches))
-    flexmock(model).should_receive("set_start_time").times(len(fedora_branches))
-    flexmock(model).should_receive("set_finished_time").times(len(fedora_branches))
-    flexmock(model).should_receive("set_logs").times(len(fedora_branches))
+    for model in propose_downstream_target_models:
+        url = get_propose_downstream_info_url(model.id)
+        flexmock(model).should_receive("set_status").with_args(
+            status=ProposeDownstreamTargetStatus.running
+        ).once()
+        flexmock(model).should_receive("set_status").with_args(
+            status=ProposeDownstreamTargetStatus.error
+        ).once()
+        flexmock(model).should_receive("set_start_time").once()
+        flexmock(model).should_receive("set_finished_time").once()
+        flexmock(model).should_receive("set_logs").once()
     flexmock(propose_downstream_model).should_receive("set_status").with_args(
         status=ProposeDownstreamStatus.error
     ).once()
@@ -520,7 +530,6 @@ def test_dist_git_push_release_handle_all_failed(
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").times(2).and_return()
 
-    url = get_propose_downstream_info_url(model.id)
     for branch in fedora_branches:
         flexmock(ProposeDownstreamJobHelper).should_receive(
             "report_status_to_branch"
@@ -556,9 +565,12 @@ def test_dist_git_push_release_handle_all_failed(
 
 
 def test_retry_propose_downstream_task(
-    github_release_webhook, mock_propose_downstream_functionality
+    github_release_webhook, propose_downstream_model
 ):
-    propose_downstream_model, model = mock_propose_downstream_functionality
+    model = flexmock(status="queued", id=1234, branch="main")
+    flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
+        status=ProposeDownstreamTargetStatus.queued, branch="main"
+    ).and_return(model)
 
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
@@ -614,7 +626,6 @@ def test_retry_propose_downstream_task(
     flexmock(model).should_receive("set_status").with_args(
         status=ProposeDownstreamTargetStatus.running
     ).once()
-    flexmock(model).should_receive("set_branch").with_args(branch="main").once()
     flexmock(model).should_receive("set_status").with_args(
         status=ProposeDownstreamTargetStatus.retry
     ).once()
@@ -658,10 +669,12 @@ def test_retry_propose_downstream_task(
 
 
 def test_dont_retry_propose_downstream_task(
-    github_release_webhook, mock_propose_downstream_functionality
+    github_release_webhook, propose_downstream_model
 ):
-    propose_downstream_model, model = mock_propose_downstream_functionality
-
+    model = flexmock(status="queued", id=1234, branch="main")
+    flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
+        status=ProposeDownstreamTargetStatus.queued, branch="main"
+    ).and_return(model)
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, metadata: {targets:[]}}]}"
@@ -712,7 +725,6 @@ def test_dont_retry_propose_downstream_task(
     flexmock(model).should_receive("set_status").with_args(
         status=ProposeDownstreamTargetStatus.running
     ).once()
-    flexmock(model).should_receive("set_branch").with_args(branch="main").once()
     flexmock(model).should_receive("set_status").with_args(
         status=ProposeDownstreamTargetStatus.error
     ).once()

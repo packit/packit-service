@@ -176,14 +176,13 @@ def test_issue_comment_propose_downstream_handler(
         trigger_model=trigger,
     ).and_return(propose_downstream_model, run_model).once()
 
-    model = flexmock(status="queued", id=1234)
+    model = flexmock(status="queued", id=1234, branch="main")
     flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
-        status=ProposeDownstreamTargetStatus.queued
+        status=ProposeDownstreamTargetStatus.queued, branch="main"
     ).and_return(model).once()
     flexmock(model).should_receive("set_status").with_args(
         status=ProposeDownstreamTargetStatus.running
     ).once()
-    flexmock(model).should_receive("set_branch").with_args(branch="main").once()
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="https://xyz"
     ).once()

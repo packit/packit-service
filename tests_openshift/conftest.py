@@ -275,7 +275,7 @@ def branch_model_gitlab():
 @pytest.fixture()
 def propose_model():
     yield ProposeDownstreamTargetModel.create(
-        status=ProposeDownstreamTargetStatus.running
+        status=ProposeDownstreamTargetStatus.running, branch=SampleValues.branch
     )
 
 
@@ -300,9 +300,8 @@ def propose_downstream_model_issue(an_issue_model):
 @pytest.fixture()
 def propose_model_submitted():
     propose_downstream_target = ProposeDownstreamTargetModel.create(
-        status=ProposeDownstreamTargetStatus.submitted
+        status=ProposeDownstreamTargetStatus.submitted, branch=SampleValues.branch
     )
-    propose_downstream_target.set_branch(branch=SampleValues.branch)
     propose_downstream_target.set_downstream_pr_url(
         downstream_pr_url=SampleValues.downstream_pr_url
     )
@@ -965,13 +964,15 @@ def multiple_propose_downstream_runs_with_propose_downstream_targets_release_tri
 ):
     propose_downstream_models_release = multiple_propose_downstream_runs_release_trigger
     propose_downstream_models_release[0].propose_downstream_targets.append(
-        ProposeDownstreamTargetModel.create(status=ProposeDownstreamTargetStatus.queued)
+        ProposeDownstreamTargetModel.create(
+            status=ProposeDownstreamTargetStatus.queued,
+            branch=SampleValues.different_branch,
+        )
     )
 
     propose_downstream_target = ProposeDownstreamTargetModel.create(
-        status=ProposeDownstreamTargetStatus.running
+        status=ProposeDownstreamTargetStatus.running, branch=SampleValues.branch
     )
-    propose_downstream_target.set_branch(branch=SampleValues.branch)
     propose_downstream_models_release[0].propose_downstream_targets.append(
         propose_downstream_target
     )
@@ -990,17 +991,15 @@ def multiple_propose_downstream_runs_with_propose_downstream_targets_issue_trigg
 ):
     propose_downstream_models_issue = multiple_propose_downstream_runs_issue_trigger
     propose_downstream_target = ProposeDownstreamTargetModel.create(
-        status=ProposeDownstreamTargetStatus.retry
+        status=ProposeDownstreamTargetStatus.retry, branch=SampleValues.branch
     )
-    propose_downstream_target.set_branch(branch=SampleValues.branch)
     propose_downstream_models_issue[0].propose_downstream_targets.append(
         propose_downstream_target
     )
 
     propose_downstream_target = ProposeDownstreamTargetModel.create(
-        status=ProposeDownstreamTargetStatus.error
+        status=ProposeDownstreamTargetStatus.error, branch=SampleValues.different_branch
     )
-    propose_downstream_target.set_branch(branch=SampleValues.different_branch)
     propose_downstream_models_issue[0].propose_downstream_targets.append(
         propose_downstream_target
     )

@@ -869,9 +869,6 @@ def test_set_propose_model_attributes(clean_before_and_after, propose_model):
     propose_model.set_start_time(start_time=now)
     assert propose_model.start_time == now
 
-    propose_model.set_branch(branch=SampleValues.branch)
-    assert propose_model.branch == SampleValues.branch
-
     propose_model.set_logs(logs="omg secret logs! don't read this!")
     assert propose_model.logs == "omg secret logs! don't read this!"
 
