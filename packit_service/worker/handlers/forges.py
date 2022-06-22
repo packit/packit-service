@@ -83,7 +83,7 @@ class GithubAppInstallationHandler(JobHandler):
                     " field in the settings of the FAS account (if you don't have it set already)"
                     f" and provide it in a comment in this issue as "
                     f"`{self.service_config.comment_command_prefix} verify-fas "
-                    "my-fas-username`. We automatically check for the match between the `GitHub"
+                    "<my-fas-username>`. We automatically check for the match between the `GitHub"
                     " Username` field in the provided FAS account and the Github account that "
                     "triggers the verification and approve you for using our service if they "
                     "match.\n\n"
