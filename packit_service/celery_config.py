@@ -28,3 +28,7 @@ beat_schedule = {
         "options": {"queue": "long-running"},
     },
 }
+
+# http://mher.github.io/flower/prometheus-integration.html#set-up-your-celery-application
+worker_send_task_events = True
+task_send_sent_event = True
