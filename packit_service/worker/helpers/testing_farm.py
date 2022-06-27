@@ -116,6 +116,20 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return self.metadata.commit_sha
 
     @property
+    def tmt_plan(self) -> Optional[str]:
+        if self.job_config.tmt_plan:
+            return self.job_config.tmt_plan
+
+        return None
+
+    @property
+    def tf_post_install_script(self) -> Optional[str]:
+        if self.job_config.tf_post_install_script:
+            return self.job_config.tf_post_install_script
+
+        return None
+
+    @property
     def source_branch_sha(self) -> Optional[str]:
         return self._pr.head_commit if self._pr else None
 
@@ -187,6 +201,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if self.fmf_ref:
             fmf["ref"] = self.fmf_ref
 
+        if self.tmt_plan:
+            fmf["name"] = self.tmt_plan
+
         if build is not None:
             build_log_url = build.build_logs_url
             srpm_build = build.get_srpm_build()
@@ -241,6 +258,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         }
         if artifact:
             environment["artifacts"] = [artifact]
+
+        if self.tf_post_install_script:
+            environment["settings"] = {
+                "provisioning": {"post_install_script": self.tf_post_install_script}
+            }
 
         return {
             "api_key": self.tft_token,

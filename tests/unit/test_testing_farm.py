@@ -298,7 +298,9 @@ def test_artifact(
         "distro,"
         "compose,"
         "arch,"
-        "packages_to_send"
+        "packages_to_send,"
+        "tmt_plan,"
+        "tf_post_install_script"
     ),
     [
         (
@@ -321,6 +323,8 @@ def test_artifact(
             "Fedora-Rawhide",
             "x86_64",
             None,
+            None,
+            None,
         ),
         (
             "https://api.dev.testing-farm.io/v0.1/",
@@ -342,6 +346,8 @@ def test_artifact(
             "Fedora-Rawhide",
             "x86_64",
             None,
+            None,
+            None,
         ),
         (
             "https://api.dev.testing-farm.io/v0.1/",
@@ -362,6 +368,8 @@ def test_artifact(
             "centos-stream",
             "Fedora-Rawhide",
             "x86_64",
+            None,
+            None,
             None,
         ),
         # Testing built_packages
@@ -400,6 +408,32 @@ def test_artifact(
             "Fedora-Rawhide",
             "x86_64",
             ["cool-project-0:0.1.0-2.el8.x86_64"],
+            None,
+            None,
+        ),
+        # Test tmt_plan and tf_post_install_script
+        (
+            "https://api.dev.testing-farm.io/v0.1/",
+            "very-secret",
+            "internal-very-secret",  # internal TF configured
+            True,  # internal TF enabled in the config
+            "test",
+            "packit",
+            "packit-service",
+            "feb41e5",
+            "https://github.com/source/packit",
+            "master",
+            "me",
+            "cool-project",
+            "123456",
+            "centos-stream-x86_64",
+            None,
+            "centos-stream",
+            "Fedora-Rawhide",
+            "x86_64",
+            None,
+            "^packit",
+            "echo 'hi packit'",
         ),
     ],
 )
@@ -423,6 +457,8 @@ def test_payload(
     compose,
     arch,
     packages_to_send,
+    tmt_plan,
+    tf_post_install_script,
 ):
     service_config = ServiceConfig.get_service_config()
     service_config.testing_farm_api_url = tf_api
@@ -466,6 +502,8 @@ def test_payload(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
             use_internal_tf=use_internal_tf,
+            tmt_plan=tmt_plan,
+            tf_post_install_script=tf_post_install_script,
         ),
     )
 
@@ -507,10 +545,15 @@ def test_payload(
     payload = job_helper._payload(chroot, artifact, copr_build)
 
     assert payload["api_key"] == token_to_use
-    assert payload["test"]["fmf"] == {
+
+    expected_test = {
         "url": project_url,
         "ref": commit_sha,
     }
+    if tmt_plan:
+        expected_test["name"] = tmt_plan
+
+    assert payload["test"]["fmf"] == expected_test
 
     expected_environments = [
         {
@@ -539,6 +582,12 @@ def test_payload(
         expected_environments[0]["variables"]["PACKIT_COPR_RPMS"] = " ".join(
             packages_to_send
         )
+
+    if tf_post_install_script:
+        expected_environments[0]["settings"] = {
+            "provisioning": {"post_install_script": tf_post_install_script}
+        }
+
     assert payload["environments"] == expected_environments
     assert payload["notification"]["webhook"]["url"].endswith("/testing-farm/results")
 
