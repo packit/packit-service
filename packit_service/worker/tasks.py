@@ -2,10 +2,13 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import socket
 from os import getenv
 from typing import List, Optional
 
 from celery import Task
+from celery.signals import after_setup_logger
+from syslog_rfc5424_formatter import RFC5424Formatter
 
 from packit_service.celerizer import celery_app
 from packit_service.constants import (
@@ -15,12 +18,6 @@ from packit_service.constants import (
 )
 from packit_service.log_versions import log_worker_versions
 from packit_service.utils import load_job_config, load_package_config
-from packit_service.worker.handlers.forges import GithubFasVerificationHandler
-from packit_service.worker.helpers.build.babysit import (
-    check_copr_build,
-    check_pending_copr_builds,
-    check_pending_testing_farm_runs,
-)
 from packit_service.worker.database import discard_old_srpm_build_logs, backup
 from packit_service.worker.handlers import (
     BugzillaHandler,
@@ -38,26 +35,47 @@ from packit_service.worker.handlers import (
 from packit_service.worker.handlers.abstract import TaskName
 from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
+from packit_service.worker.handlers.forges import GithubFasVerificationHandler
 from packit_service.worker.handlers.koji import KojiBuildReportHandler
+from packit_service.worker.helpers.build.babysit import (
+    check_copr_build,
+    check_pending_copr_builds,
+    check_pending_testing_farm_runs,
+)
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 
-# debug logs of these are super-duper verbose
-logging.getLogger("requests").setLevel(logging.WARNING)
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("github").setLevel(logging.WARNING)
-logging.getLogger("kubernetes").setLevel(logging.WARNING)
-logging.getLogger("botocore").setLevel(logging.WARNING)
-logging.getLogger("s3transfer").setLevel(logging.WARNING)
-# info is just enough
-logging.getLogger("ogr").setLevel(logging.INFO)
-# easier debugging
-logging.getLogger("packit").setLevel(logging.DEBUG)
-logging.getLogger("sandcastle").setLevel(logging.DEBUG)
 
-log_worker_versions()
+@after_setup_logger.connect
+def setup_loggers(logger, *args, **kwargs):
+    # debug logs of these are super-duper verbose
+    logging.getLogger("requests").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("github").setLevel(logging.WARNING)
+    logging.getLogger("kubernetes").setLevel(logging.WARNING)
+    logging.getLogger("botocore").setLevel(logging.WARNING)
+    logging.getLogger("s3transfer").setLevel(logging.WARNING)
+    # info is just enough
+    logging.getLogger("ogr").setLevel(logging.INFO)
+    logging.getLogger("sandcastle").setLevel(logging.INFO)
+    # easier debugging
+    logging.getLogger("packit").setLevel(logging.DEBUG)
+
+    syslog_host = getenv("SYSLOG_HOST", "fluentd")
+    syslog_port = int(getenv("SYSLOG_PORT", 5140))
+    logger.info(f"Setup logging to syslog -> {syslog_host}:{syslog_port}")
+    try:
+        handler = logging.handlers.SysLogHandler(address=(syslog_host, syslog_port))
+    except (ConnectionRefusedError, socket.gaierror):
+        logger.info(f"{syslog_host}:{syslog_port} not available")
+    else:
+        handler.setLevel(logging.DEBUG)
+        handler.setFormatter(RFC5424Formatter(msgid="packit"))
+        logger.addHandler(handler)
+
+    log_worker_versions()
 
 
 class HandlerTaskWithRetry(Task):

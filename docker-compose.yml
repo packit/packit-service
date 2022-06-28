@@ -79,6 +79,18 @@ services:
       - ./secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
     user: "1024"
 
+  fluentd:
+    container_name: fluentd
+    image: splunk/fluentd-hec
+    environment:
+      SPLUNK_HEC_URL: https://splunk-url
+      SPLUNK_HEC_TOKEN: "token"
+    ports:
+      - 5140:5140
+    volumes:
+      - ./secrets/packit/dev/fluentd-config:/fluentd/etc/fluent.conf:ro,Z
+    user: "1024"
+
   service:
     container_name: service
     build:
