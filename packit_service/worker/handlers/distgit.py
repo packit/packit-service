@@ -193,7 +193,7 @@ class ProposeDownstreamHandler(RetriableJobHandler):
                     # is not retried also automatically
                     kargs = self.celery_task.task.request.kwargs.copy()
                     kargs["propose_downstream_run_id"] = model.id
-                    # https://celeryproject.readthedocs.io/en/latest/userguide/tasks.html#retrying
+                    # https://docs.celeryq.dev/en/stable/userguide/tasks.html#retrying
                     self.celery_task.task.retry(
                         exc=ex, countdown=delay, throw=False, args=(), kwargs=kargs
                     )
