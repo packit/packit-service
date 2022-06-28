@@ -1516,6 +1516,7 @@ class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
     __tablename__ = "tft_test_run_targets"
     id = Column(Integer, primary_key=True)
     pipeline_id = Column(String, index=True)
+    identifier = Column(String)
     commit_sha = Column(String)
     status = Column(Enum(TestingFarmResult))
     target = Column(String)
@@ -1552,10 +1553,12 @@ class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
         run_model: "PipelineModel",
         web_url: Optional[str] = None,
         data: dict = None,
+        identifier: Optional[str] = None,
     ) -> "TFTTestRunTargetModel":
         with get_sa_session() as session:
             test_run = cls()
             test_run.pipeline_id = pipeline_id
+            test_run.identifier = identifier
             test_run.commit_sha = commit_sha
             test_run.status = status
             test_run.target = target

@@ -28,17 +28,19 @@ class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
         commit_sha: str,
         project_url: str,
         created: datetime,
+        identifier: Optional[str] = None,
     ):
         super().__init__(project_url=project_url)
-        self.pipeline_id = pipeline_id
-        self.result = result
-        self.compose = compose
-        self.summary = summary
-        self.log_url = log_url
-        self.copr_build_id = copr_build_id
-        self.copr_chroot = copr_chroot
+        self.pipeline_id: str = pipeline_id
+        self.result: TestingFarmResult = result
+        self.compose: str = compose
+        self.summary: str = summary
+        self.log_url: str = log_url
+        self.copr_build_id: str = copr_build_id
+        self.copr_chroot: str = copr_chroot
         self.commit_sha: str = commit_sha
         self.created: datetime = created
+        self.identifier: Optional[str] = identifier
 
         # Lazy properties
         self._pr_id: Optional[int] = None

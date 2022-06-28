@@ -774,8 +774,9 @@ class TestEvents:
         assert event_object.project_name == "packit"
         assert event_object.project_namespace == "rpms"
 
+    @pytest.mark.parametrize("identifier", [None, "foo"])
     def test_parse_testing_farm_notification(
-        self, testing_farm_notification, testing_farm_results
+        self, testing_farm_notification, testing_farm_results, identifier
     ):
         request_id = "129bd474-e4d3-49e0-9dec-d994a99feebc"
         flexmock(TestingFarmJobHelper).should_receive("get_request_details").with_args(
@@ -786,6 +787,7 @@ class TestEvents:
                 job_trigger=flexmock(),
                 data={"base_project_url": "https://github.com/packit/packit"},
                 commit_sha="12345",
+                identifier=identifier,
             )
             .should_receive("get_trigger_object")
             .and_return(flexmock(pr_id=10))
@@ -806,6 +808,7 @@ class TestEvents:
         assert event_object.db_trigger
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit/packit"
+        assert event_object.identifier == identifier
 
     def test_parse_testing_farm_notification_error(
         self, testing_farm_notification, testing_farm_results_error
@@ -819,6 +822,7 @@ class TestEvents:
                 job_trigger=flexmock(),
                 data={"base_project_url": "https://github.com/packit/packit"},
                 commit_sha="12345",
+                identifier=None,
             )
             .should_receive("get_trigger_object")
             .and_return(flexmock(pr_id=10))
@@ -839,6 +843,7 @@ class TestEvents:
         assert event_object.db_trigger
         assert isinstance(event_object.project, GithubProject)
         assert event_object.project.full_repo_name == "packit/packit"
+        assert not event_object.identifier
 
     def test_parse_copr_build_event_start(
         self, copr_build_results_start, copr_build_pr
@@ -1311,7 +1316,11 @@ class TestEvents:
         ).and_return(testing_farm_results)
         flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").with_args(
             request_id
-        ).and_return(flexmock(data={"base_project_url": "abc"}, commit_sha="12345"))
+        ).and_return(
+            flexmock(
+                data={"base_project_url": "abc"}, commit_sha="12345", identifier=None
+            )
+        )
         event_object = Parser.parse_event(testing_farm_notification)
 
         assert isinstance(event_object, TestingFarmResultsEvent)
@@ -1343,7 +1352,9 @@ class TestEvents:
             testing_farm_results
         )
         flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").and_return(
-            flexmock(data={"base_project_url": "abc"}, commit_sha="12345")
+            flexmock(
+                data={"base_project_url": "abc"}, commit_sha="12345", identifier=None
+            )
         )
         event_object = Parser.parse_event(testing_farm_notification)
         assert json.dumps(event_object.pipeline_id)

@@ -904,7 +904,9 @@ class Parser:
     @staticmethod
     def parse_data_from_testing_farm(
         tft_test_run: TFTTestRunTargetModel, event: Dict[Any, Any]
-    ) -> Tuple[str, str, TestingFarmResult, str, str, str, str, str, datetime]:
+    ) -> Tuple[
+        str, str, TestingFarmResult, str, str, str, str, str, datetime, Optional[str]
+    ]:
         """Parses common data from testing farm response.
 
         Such common data is environment, os, summary and others.
@@ -915,7 +917,7 @@ class Parser:
 
         Returns:
             tuple: project_url, ref, result, summary, copr_build_id,
-                copr_chroot, compose, log_url
+                copr_chroot, compose, log_url, identifier
         """
         result: TestingFarmResult = TestingFarmResult(
             nested_get(event, "result", "overall") or event.get("state") or "unknown"
@@ -924,6 +926,7 @@ class Parser:
         env: dict = nested_get(event, "environments_requested", 0, default={})
         compose: str = nested_get(env, "os", "compose")
         created: str = event.get("created")
+        identifier: Optional[str] = None
         created_dt: Optional[datetime] = None
         if created:
             created_dt = datetime.fromisoformat(created)
@@ -936,6 +939,7 @@ class Parser:
         # but we need the original commit_sha to be able to continue
         if tft_test_run:
             ref = tft_test_run.commit_sha
+            identifier = tft_test_run.identifier
 
         if fmf_url == TESTING_FARM_INSTALLABILITY_TEST_URL:
             # There are no artifacts in install-test results
@@ -982,6 +986,7 @@ class Parser:
             compose,
             log_url,
             created_dt,
+            identifier,
         )
 
     @staticmethod
@@ -1017,6 +1022,7 @@ class Parser:
             compose,
             log_url,
             created,
+            identifier,
         ) = Parser.parse_data_from_testing_farm(tft_test_run, event)
 
         logger.debug(
@@ -1036,6 +1042,7 @@ class Parser:
             commit_sha=ref,
             project_url=project_url,
             created=created,
+            identifier=identifier,
         )
 
     @staticmethod

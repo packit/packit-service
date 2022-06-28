@@ -3,6 +3,7 @@
 
 from typing import Type
 
+import celery
 import pytest
 from flexmock import flexmock
 
@@ -44,6 +45,7 @@ from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.handlers.koji import KojiBuildReportHandler
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.result import TaskResults
 
 
 @pytest.mark.parametrize(
@@ -2374,3 +2376,72 @@ def test_get_jobs_matching_trigger(event_kls, job_config_trigger_type, jobs, res
 
     event = Event()
     assert result == SteveJobs(event).get_jobs_matching_event()
+
+
+@pytest.mark.parametrize(
+    "event_kls,jobs,handler_kls,tasks_created,identifier",
+    [
+        (
+            TestingFarmResultsEvent,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    identifier="foo",
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    identifier="bar",
+                ),
+            ],
+            TestingFarmResultsHandler,
+            1,
+            "foo",
+        ),
+        (
+            TestingFarmResultsEvent,
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            TestingFarmResultsHandler,
+            2,
+            None,
+        ),
+    ],
+)
+def test_create_tasks_tf_identifier(
+    event_kls, jobs, handler_kls, tasks_created, identifier
+):
+    class Event(event_kls):
+        def __init__(self):
+            self._db_trigger = None
+
+        @property
+        def package_config(self):
+            return flexmock(jobs=jobs)
+
+        def get_dict(self, *args, **kwargs):
+            return {"identifier": identifier}
+
+        @property
+        def actor(self):
+            return None
+
+    event = Event()
+    # Ignore remote reporting
+    flexmock(SteveJobs, report_task_accepted=lambda handler, job_config: None)
+    # We are testing the number of tasks, the exact signatures are not important
+    flexmock(handler_kls).should_receive("get_signature").and_return(None)
+    flexmock(TaskResults, create_from=lambda *args, **kwargs: object())
+    flexmock(celery).should_receive("group").with_args(
+        tasks_created * [None]
+    ).and_return(flexmock().should_receive("apply_async").mock())
+    assert tasks_created == len(SteveJobs(event).create_tasks(jobs, handler_kls))
