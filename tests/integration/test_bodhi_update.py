@@ -4,6 +4,7 @@
 import json
 
 import pytest
+from celery import Task
 from celery.canvas import Signature
 from fedora.client import AuthError
 from flexmock import flexmock
@@ -394,6 +395,8 @@ def test_bodhi_update_auth_error(
         "because of the missing permissions.\n\n"
         "Please, give packit user `commit` rights "
         "in the [dist-git settings](https://src.fedoraproject.org/rpms/packit/adduser).\n\n"
+        "*Try 1/3: Task will be retried in 10 minutes.*\n\n"
+        "---\n\n"
         "*Get in [touch with us](https://packit.dev/#contact) if you need some help.*",
     ).and_return(
         flexmock(id=3, url="https://github.com/namespace/project/issues/3")
@@ -419,6 +422,11 @@ def test_bodhi_update_auth_error(
         status="COMPLETE",
         run_model=run_model_flexmock,
     ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
+
+    flexmock(Task).should_receive("retry").and_return().once()
+    flexmock(CreateBodhiUpdateHandler).should_call("retry").with_args(
+        ex=bodhi_exception, delay=600
+    ).once()
 
     processing_results = SteveJobs().process_message(koji_build_completed_old_format)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
