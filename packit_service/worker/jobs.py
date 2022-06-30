@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional, Union
 from typing import List, Set, Type
 
-from celery import group
+import celery
 
 from ogr.exceptions import GithubAppNotInstalledError
 from packit.config import JobConfig
@@ -390,7 +390,7 @@ class SteveJobs:
                     )
                 )
         # https://docs.celeryproject.org/en/stable/userguide/canvas.html#groups
-        group(signatures).apply_async()
+        celery.group(signatures).apply_async()
         return processing_results
 
     def should_task_be_created_for_job_config_and_handler(

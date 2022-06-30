@@ -536,6 +536,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         created_model = TFTTestRunTargetModel.create(
             pipeline_id=pipeline_id,
+            identifier=self.job_config.identifier,
             commit_sha=self.metadata.commit_sha,
             status=TestingFarmResult.new,
             target=target,

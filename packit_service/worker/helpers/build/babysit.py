@@ -79,6 +79,7 @@ def check_pending_testing_farm_runs() -> None:
             compose,
             log_url,
             created,
+            identifier,
         ) = Parser.parse_data_from_testing_farm(run, details)
 
         logger.info(
@@ -99,6 +100,7 @@ def check_pending_testing_farm_runs() -> None:
             commit_sha=ref,
             project_url=project_url,
             created=created,
+            identifier=identifier,
         )
 
         package_config = event.get_package_config()

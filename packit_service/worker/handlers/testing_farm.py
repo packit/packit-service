@@ -401,3 +401,6 @@ class TestingFarmResultsHandler(JobHandler):
         )
 
         return TaskResults(success=True, details={})
+
+    def pre_check(self) -> bool:
+        return self.data.identifier == self.job_config.identifier

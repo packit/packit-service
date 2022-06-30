@@ -250,6 +250,7 @@ def test_check_pending_testing_farm_runs(created):
             target="fedora-rawhide-x86_64",
             data={},
             job_trigger=flexmock(type=JobTriggerModelType.pull_request),
+            identifier=None,
         )
         .should_receive("get_trigger_object")
         .and_return(

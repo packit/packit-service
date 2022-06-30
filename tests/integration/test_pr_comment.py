@@ -931,6 +931,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     flexmock(PipelineModel).should_receive("create").and_return(run_model)
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
         pipeline_id=pipeline_id,
+        identifier=None,
         commit_sha="0011223344",
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
