@@ -25,8 +25,8 @@ def log_package_versions(package_versions: list):
     logger.info(log_string)
 
 
-def log_job_versions():
-    """Log essential package versions before running a job."""
+def log_worker_versions():
+    """Log essential package versions used in the worker."""
     package_versions = [
         ("OGR", ogr_version),
         ("Packit", packit_version),

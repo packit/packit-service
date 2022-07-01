@@ -19,7 +19,6 @@ from packit_service.constants import (
     COMMENT_REACTION,
     PACKIT_VERIFY_FAS_COMMAND,
 )
-from packit_service.log_versions import log_job_versions
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
     Event,
@@ -110,7 +109,6 @@ class SteveJobs:
     def __init__(self, event: Optional[Event] = None):
         self.event = event
         self._service_config = None
-        log_job_versions()
 
     @property
     def service_config(self):

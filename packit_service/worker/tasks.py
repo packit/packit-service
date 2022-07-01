@@ -13,6 +13,7 @@ from packit_service.constants import (
     DEFAULT_RETRY_BACKOFF,
     CELERY_DEFAULT_MAIN_TASK_NAME,
 )
+from packit_service.log_versions import log_worker_versions
 from packit_service.utils import load_job_config, load_package_config
 from packit_service.worker.handlers.forges import GithubFasVerificationHandler
 from packit_service.worker.helpers.build.babysit import (
@@ -55,6 +56,8 @@ logging.getLogger("ogr").setLevel(logging.INFO)
 # easier debugging
 logging.getLogger("packit").setLevel(logging.DEBUG)
 logging.getLogger("sandcastle").setLevel(logging.DEBUG)
+
+log_worker_versions()
 
 
 class HandlerTaskWithRetry(Task):
