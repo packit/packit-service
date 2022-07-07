@@ -409,9 +409,13 @@ class DownstreamKojiBuildHandler(JobHandler):
     @property
     def pull_request(self):
         if not self._pull_request and self.data.event_dict["committer"] == "pagure":
+            logger.debug(
+                f"Getting pull request with head commit {self.data.commit_sha}"
+                f"for repo {self.project.namespace}/{self.project.repo}"
+            )
             prs = [
                 pr
-                for pr in self.project.get_pr_list(status=PRStatus.merged)
+                for pr in self.project.get_pr_list(status=PRStatus.all)
                 if pr.head_commit == self.data.commit_sha
             ]
             if prs:
