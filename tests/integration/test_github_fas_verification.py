@@ -133,7 +133,9 @@ def test_verification_not_successful():
         "`my-fas-account` and GitHub user `phracek`. Please, check that you have set "
         "[the field]"
         "(https://accounts.fedoraproject.org/user/my-fas-account/settings/profile/#github) "
-        "correctly and try again or contact [us](https://packit.dev/#contact)."
+        "correctly and that your profile [is not private](https://accounts.fedoraproject.org/"
+        "user/my-fas-account/settings/profile/#is_private) "
+        "and try again or contact [us](https://packit.dev/#contact)."
     )
     flexmock(issue).should_receive("comment").with_args(msg).once()
 

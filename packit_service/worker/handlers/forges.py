@@ -83,7 +83,8 @@ class GithubAppInstallationHandler(JobHandler):
                     " field in the settings of the FAS account (if you don't have it set already)"
                     f" and provide it in a comment in this issue as "
                     f"`{self.service_config.comment_command_prefix} verify-fas "
-                    "<my-fas-username>`. We automatically check for the match between the `GitHub"
+                    "<my-fas-username>` (please, also make sure your profile is not private). "
+                    "We automatically check for the match between the `GitHub"
                     " Username` field in the provided FAS account and the Github account that "
                     "triggers the verification and approve you for using our service if they "
                     "match.\n\n"
@@ -228,16 +229,22 @@ class GithubFasVerificationHandler(JobHandler):
             self.issue.close()
 
         else:
+            logger.debug(
+                f"No match between FAS account `{fas_account}` "
+                f"and GitHub user `{self.sender_login}` found."
+            )
             msg = (
                 f"We were not able to find a match between the GitHub Username field "
                 f"in the FAS account `{fas_account}` and GitHub user `{self.sender_login}`. "
                 f"Please, check that you have set "
                 f"[the field]"
                 f"(https://accounts.fedoraproject.org/user/{fas_account}/settings/profile/#github) "
-                f"correctly and try again or contact "
+                f"correctly and that your profile [is not private]"
+                f"(https://accounts.fedoraproject.org/user/{fas_account}/"
+                f"settings/profile/#is_private)"
+                f" and try again or contact "
                 f"[us](https://packit.dev/#contact)."
             )
-            logger.debug(msg)
             self.issue.comment(msg)
 
         return TaskResults(success=True, details={"msg": msg})
