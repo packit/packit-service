@@ -29,10 +29,78 @@ def test_installation():
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
-
-    flexmock(GithubInstallationModel).should_receive("create").once()
+    flexmock(GithubInstallationModel).should_receive(
+        "get_by_account_login"
+    ).and_return()
+    flexmock(GithubInstallationModel).should_receive("create_or_update").once()
     flexmock(Allowlist).should_receive("add_namespace").with_args(
         "github.com/packit-service", "jpopelka"
+    ).and_return(False)
+    flexmock(GithubProject).should_receive("create_issue").once()
+
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
+    processing_results = SteveJobs().process_message(installation_event())
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    results = run_installation_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+
+def test_reinstallation_already_approved_namespace():
+    config = ServiceConfig()
+    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
+    flexmock(GithubInstallationModel).should_receive("get_by_account_login").and_return(
+        flexmock()
+    )
+    flexmock(GithubInstallationModel).should_receive("create_or_update").once()
+    flexmock(Allowlist).should_receive("add_namespace").with_args(
+        "github.com/packit-service", "jpopelka"
+    ).and_return(True)
+    flexmock(Allowlist).should_receive("is_approved").with_args(
+        "github.com/packit-service"
+    ).and_return(True)
+    flexmock(GithubProject).should_receive("create_issue").never()
+
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
+    processing_results = SteveJobs().process_message(installation_event())
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    results = run_installation_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+
+def test_reinstallation_not_approved_namespace():
+    config = ServiceConfig()
+    config.command_handler_work_dir = SANDCASTLE_WORK_DIR
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
+    flexmock(GithubInstallationModel).should_receive("get_by_account_login").and_return(
+        flexmock()
+    )
+    flexmock(GithubInstallationModel).should_receive("create_or_update").once()
+    flexmock(Allowlist).should_receive("add_namespace").with_args(
+        "github.com/packit-service", "jpopelka"
+    ).and_return(True)
+    flexmock(Allowlist).should_receive("is_approved").with_args(
+        "github.com/packit-service"
     ).and_return(False)
     flexmock(GithubProject).should_receive("create_issue").once()
 
