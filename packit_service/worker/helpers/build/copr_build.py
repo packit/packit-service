@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Iterable, List, Optional, Set, Tuple
 
 from copr.v3 import CoprAuthException, CoprRequestException
+from copr.v3.exceptions import CoprTimeoutException
 
 from ogr.abstract import GitProject
 from ogr.parsing import parse_git_repo
@@ -31,6 +32,9 @@ from packit_service.constants import (
     DEFAULT_MAPPING_TF,
     MSG_RETRIGGER,
     PG_BUILD_STATUS_SUCCESS,
+    MISSING_PERMISSIONS_TO_BUILD_IN_COPR,
+    NOT_ALLOWED_TO_BUILD_IN_COPR,
+    BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
 )
 from packit_service.models import (
     AbstractTriggerDbType,
@@ -43,6 +47,7 @@ from packit_service.service.urls import (
     get_srpm_build_info_url,
 )
 from packit_service.utils import get_package_nvrs
+from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.helpers.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.events import EventData
 from packit_service.worker.monitoring import Pushgateway, measure_time
@@ -69,6 +74,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         build_targets_override: Optional[Set[str]] = None,
         tests_targets_override: Optional[Set[str]] = None,
         pushgateway: Optional[Pushgateway] = None,
+        celery_task: Optional[CeleryTask] = None,
     ):
         super().__init__(
             service_config=service_config,
@@ -81,7 +87,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             tests_targets_override=tests_targets_override,
             pushgateway=pushgateway,
         )
-
+        self.celery_task = celery_task
         self.msg_retrigger: str = MSG_RETRIGGER.format(
             job="build",
             command="copr-build" if self.job_build else "build",
@@ -434,11 +440,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
             build_id, web_url = self.submit_copr_build(script=script)
         except Exception as ex:
-            self.handle_build_submit_error(ex)
-            return TaskResults(
-                success=False,
-                details={"msg": "Submit of the Copr build failed.", "error": str(ex)},
-            )
+            return self.handle_build_submit_error(ex)
 
         self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
             copr_build_id=str(build_id),
@@ -502,9 +504,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 )
 
         except (CoprRequestException, CoprAuthException) as ex:
-            if "You don't have permissions to build in this copr." in str(
+            if MISSING_PERMISSIONS_TO_BUILD_IN_COPR in str(
                 ex
-            ) or "is not allowed to build in the copr" in str(ex):
+            ) or NOT_ALLOWED_TO_BUILD_IN_COPR in str(ex):
                 self.api.copr_helper.copr_client.project_proxy.request_permissions(
                     ownername=owner,
                     projectname=self.job_project,
@@ -515,6 +517,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 permissions_url = self.api.copr_helper.get_copr_settings_url(
                     owner, self.job_project, section="permissions"
                 )
+
                 self.status_reporter.comment(
                     body="We have requested the `builder` permissions "
                     f"for the {owner}/{self.job_project} Copr project.\n"
@@ -522,8 +525,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     "Please confirm the request on the "
                     f"[{owner}/{self.job_project} Copr project permissions page]"
                     f"({permissions_url})"
-                    " and retrigger the build.",
+                    " and retrigger the build by a `/packit build` pull-request comment"
+                    "or click on a `Re-run` button.",
                 )
+
             raise ex
 
         return build.id, self.api.copr_helper.copr_web_build_url(build)
@@ -556,19 +561,42 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         try:
             build_id, web_url = self.submit_copr_build()
         except Exception as ex:
-            self.handle_build_submit_error(ex)
-            return TaskResults(
-                success=False,
-                details={"msg": "Submit of the Copr build failed.", "error": str(ex)},
-            )
+            return self.handle_build_submit_error(ex)
 
         self.handle_rpm_build_start(build_id, web_url)
         return TaskResults(success=True, details={})
 
-    def handle_build_submit_error(self, ex):
+    def handle_build_submit_error(self, ex) -> TaskResults:
         """
         Handle errors when submitting Copr build.
+
+        Returns:
+            result of the task saying whether the task was retried
         """
+        possible_copr_outage_exc = (
+            isinstance(ex, CoprRequestException) and "Unable to connect" in str(ex)
+        ) or isinstance(ex, CoprTimeoutException)
+
+        if not self.celery_task.is_last_try() and possible_copr_outage_exc:
+            interval = (
+                BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES
+                * 2**self.celery_task.retries
+            )
+
+            self.report_status_to_all(
+                state=BaseCommitStatus.pending,
+                description=f"Submit of the build failed due to a Copr error, the task will be"
+                f" retried in {interval} {'minute' if interval == 1 else 'minutes'}.",
+            )
+            self.celery_task.retry(
+                delay=interval * 60,
+                ex=ex,
+            )
+            return TaskResults(
+                success=True,
+                details={"msg": f"There was a Copr error: {ex}. Task will be retried."},
+            )
+
         sentry_integration.send_to_sentry(ex)
         # TODO: Where can we show more info about failure?
         # TODO: Retry
@@ -578,6 +606,13 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         )
         self.monitor_not_submitted_copr_builds(
             len(self.build_targets), "submit_failure"
+        )
+        return TaskResults(
+            success=False,
+            details={
+                "msg": "Submit of the Copr build failed.",
+                "error": str(ex),
+            },
         )
 
     def handle_rpm_build_start(

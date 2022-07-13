@@ -31,6 +31,7 @@ from packit.copr_helper import CoprHelper
 from packit.exceptions import FailedCreateSRPM, PackitCoprSettingsException
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
+from packit_service.constants import DEFAULT_RETRY_LIMIT
 from packit_service.models import (
     CoprBuildTargetModel,
     JobTriggerModel,
@@ -42,6 +43,7 @@ from packit_service.service.db_triggers import (
     AddPullRequestDbTrigger,
     AddReleaseDbTrigger,
 )
+from packit_service.worker.handlers.abstract import CeleryTask
 
 from packit_service.worker.helpers.build import copr_build
 from packit_service.worker.helpers.build.copr_build import (
@@ -1096,6 +1098,9 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
             id=123,
             job_trigger_model_type=JobTriggerModelType.pull_request,
         ),
+    )
+    helper.celery_task = CeleryTask(
+        flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT))
     )
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
         type=JobTriggerModelType.pull_request, trigger_id=123
