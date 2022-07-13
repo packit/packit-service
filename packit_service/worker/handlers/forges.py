@@ -64,11 +64,22 @@ class GithubAppInstallationHandler(JobHandler):
         match.
         :return: TaskResults
         """
-        GithubInstallationModel.create(event=self.installation_event)
+        # if there is already a record in the DB, the app was reinstalled
+        is_reinstalled = (
+            GithubInstallationModel.get_by_account_login(
+                self.installation_event.account_login
+            )
+            is not None
+        )
+        GithubInstallationModel.create_or_update(event=self.installation_event)
         # try to add user to allowlist
         allowlist = Allowlist(self.service_config)
-        if not allowlist.add_namespace(
-            f"github.com/{self.account_login}", self.sender_login
+        namespace = f"github.com/{self.account_login}"
+        # if the namespace was not on our allowlist (in any state) or
+        # the app was reinstalled and the namespace was not approved,
+        # create an issue in notifications repo
+        if not allowlist.add_namespace(namespace, self.sender_login) or (
+            is_reinstalled and not allowlist.is_approved(namespace)
         ):
             # Create an issue in our repository, so we are notified when someone install the app
             self.project.create_issue(
@@ -83,7 +94,8 @@ class GithubAppInstallationHandler(JobHandler):
                     " field in the settings of the FAS account (if you don't have it set already)"
                     f" and provide it in a comment in this issue as "
                     f"`{self.service_config.comment_command_prefix} verify-fas "
-                    "<my-fas-username>`. We automatically check for the match between the `GitHub"
+                    "<my-fas-username>` (make sure your profile is not private). "
+                    "We automatically check for the match between the `GitHub"
                     " Username` field in the provided FAS account and the Github account that "
                     "triggers the verification and approve you for using our service if they "
                     "match.\n\n"
@@ -228,16 +240,22 @@ class GithubFasVerificationHandler(JobHandler):
             self.issue.close()
 
         else:
+            logger.debug(
+                f"No match between FAS account `{fas_account}` "
+                f"and GitHub user `{self.sender_login}` found."
+            )
             msg = (
                 f"We were not able to find a match between the GitHub Username field "
                 f"in the FAS account `{fas_account}` and GitHub user `{self.sender_login}`. "
                 f"Please, check that you have set "
                 f"[the field]"
                 f"(https://accounts.fedoraproject.org/user/{fas_account}/settings/profile/#github) "
-                f"correctly and try again or contact "
+                f"correctly and that your profile [is not private]"
+                f"(https://accounts.fedoraproject.org/user/{fas_account}/"
+                f"settings/profile/#is_private)"
+                f" and try again or contact "
                 f"[us](https://packit.dev/#contact)."
             )
-            logger.debug(msg)
             self.issue.comment(msg)
 
         return TaskResults(success=True, details={"msg": msg})

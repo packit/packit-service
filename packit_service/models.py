@@ -1895,22 +1895,24 @@ class GithubInstallationModel(Base):
             return session.query(GithubInstallationModel).all()
 
     @classmethod
-    def create(cls, event):
+    def create_or_update(cls, event):
         with get_sa_session() as session:
             installation = cls.get_by_account_login(event.account_login)
+
             if not installation:
                 installation = cls()
                 installation.account_login = event.account_login
                 installation.account_id = event.account_id
                 installation.account_url = event.account_url
                 installation.account_type = event.account_type
-                installation.sender_login = event.sender_login
-                installation.sender_id = event.sender_id
-                installation.created_at = event.created_at
-                installation.repositories = [
-                    cls.get_project(repo).id for repo in event.repositories
-                ]
-                session.add(installation)
+
+            installation.sender_login = event.sender_login
+            installation.sender_id = event.sender_id
+            installation.created_at = event.created_at
+            installation.repositories = [
+                cls.get_project(repo).id for repo in event.repositories
+            ]
+            session.add(installation)
             return installation
 
     def to_dict(self):

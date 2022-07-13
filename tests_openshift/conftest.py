@@ -1075,10 +1075,10 @@ def multiple_installation_entries(installation_events):
     with get_sa_session() as session:
         session.query(GithubInstallationModel).delete()
         yield [
-            GithubInstallationModel.create(
+            GithubInstallationModel.create_or_update(
                 event=installation_events[0],
             ),
-            GithubInstallationModel.create(
+            GithubInstallationModel.create_or_update(
                 event=installation_events[1],
             ),
         ]

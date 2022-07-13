@@ -125,6 +125,11 @@ class Allowlist:
             logger.debug(f"We were not able to get the user: {e}")
             return False
 
+        is_private = user_info.get("is_private")
+        if is_private:
+            logger.debug("The account is private.")
+            return False
+
         github_username = user_info.get("github_username")
         if github_username:
             logger.debug(
@@ -132,6 +137,7 @@ class Allowlist:
             )
             return github_username == sender_login
 
+        logger.debug("github_username not set.")
         return False
 
     def add_namespace(self, namespace: str, sender_login: str) -> bool:
