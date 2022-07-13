@@ -5,7 +5,6 @@
 This file defines classes for job handlers related to Bodhi
 """
 import logging
-from os import getenv
 from typing import Optional
 
 from celery import Task
@@ -24,16 +23,15 @@ from packit.utils.repo import RepositoryCache
 from packit_service.config import PackageConfigGetter
 from packit_service.constants import (
     CONTACTS_URL,
-    DEFAULT_RETRY_LIMIT,
     KojiBuildState,
     RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
-    JobHandler,
     TaskName,
     configured_as,
     reacts_to,
+    RetriableJobHandler,
 )
 from packit_service.worker.result import TaskResults
 
@@ -42,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 @configured_as(job_type=JobType.bodhi_update)
 @reacts_to(event=KojiBuildEvent)
-class CreateBodhiUpdateHandler(JobHandler):
+class CreateBodhiUpdateHandler(RetriableJobHandler):
     """
     This handler can create a bodhi update for successful Koji builds.
     """
@@ -55,14 +53,14 @@ class CreateBodhiUpdateHandler(JobHandler):
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
-        task: Optional[Task] = None,
+        celery_task: Optional[Task] = None,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
             event=event,
+            celery_task=celery_task,
         )
-        self.task = task
 
         # lazy properties
         self._koji_build_event: Optional[KojiBuildEvent] = None
@@ -139,16 +137,19 @@ class CreateBodhiUpdateHandler(JobHandler):
                     f"[dist-git settings]({self.data.project_url}/adduser).\n\n"
                 )
 
-                body += f"*Try {self.task.request.retries+1}/{self.get_retry_limit()+1}"
+                body += (
+                    f"*Try {self.celery_task.retries + 1}/"
+                    f"{self.celery_task.get_retry_limit() + 1}"
+                )
 
                 # Notify user on each task run and set a more generous retry interval
                 # to let the user fix this issue in the meantime.
-                if not self.is_last_try():
+                if not self.celery_task.is_last_try():
                     body += (
                         f": Task will be retried in "
                         f"{RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED} minutes.*"
                     )
-                    self.retry(
+                    self.celery_task.retry(
                         delay=RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED * 60,
                         ex=ex,
                     )
@@ -165,7 +166,7 @@ class CreateBodhiUpdateHandler(JobHandler):
                     "```"
                 )
                 # Notify user just on the last run.
-                notify = self.is_last_try()
+                notify = self.celery_task.is_last_try()
                 known_error = False
 
             if notify:
@@ -216,37 +217,3 @@ class CreateBodhiUpdateHandler(JobHandler):
             + f"\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
             comment_to_existing=body,
         )
-
-    def is_last_try(self) -> bool:
-        """
-        Returns True if the current celery task is run for the last try.
-        More info about retries can be found here:
-        https://celeryproject.readthedocs.io/en/latest/userguide/tasks.html#retrying
-        """
-        return self.task.request.retries == self.get_retry_limit()
-
-    def get_retry_limit(self) -> int:
-        """
-        Returns the limit of the celery task retries.
-        (Packit uses this env.var. in HandlerTaskWithRetry base class
-        to set `max_retries` in `retry_kwargs`.)
-        """
-        return int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT))
-
-    def retry(self, ex: Exception, delay: Optional[int] = None) -> None:
-        """
-        Retries the celery task.
-        Argument `throw` is set to False to not retry
-        the task also because of the `autoretry_for` mechanism.
-
-        More info about retries can be found here:
-        https://celeryproject.readthedocs.io/en/latest/userguide/tasks.html#retrying
-
-        :param ex: Exception needs to be specified.
-        :param delay: Number of seconds task waits before being available to workers
-        """
-        retries = self.task.request.retries
-        delay = delay if delay is not None else 60 * 2**retries
-        logger.info(f"Will retry for the {retries + 1}. time in {delay}s.")
-        kargs = self.task.request.kwargs.copy()
-        self.task.retry(exc=ex, countdown=delay, throw=False, args=(), kwargs=kargs)

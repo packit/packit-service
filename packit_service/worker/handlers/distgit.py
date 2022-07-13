@@ -6,11 +6,10 @@ This file defines classes for job handlers specific for distgit
 """
 import logging
 import shutil
+from celery import Task
 from datetime import datetime
-from os import getenv
 from typing import Optional, Dict
 
-from celery import Task
 from ogr.abstract import PullRequest, PRStatus
 
 from packit.api import PackitAPI
@@ -24,7 +23,6 @@ from packit_service import sentry_integration
 from packit_service.config import PackageConfigGetter, ProjectToSync
 from packit_service.constants import (
     CONTACTS_URL,
-    DEFAULT_RETRY_LIMIT,
     FILE_DOWNLOAD_FAILURE,
     MSG_RETRIGGER,
 )
@@ -49,6 +47,7 @@ from packit_service.worker.handlers.abstract import (
     reacts_to,
     run_for_comment,
     run_for_check_rerun,
+    RetriableJobHandler,
 )
 from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
@@ -133,7 +132,7 @@ class AbortProposeDownstream(Exception):
 @reacts_to(event=ReleaseEvent)
 @reacts_to(event=AbstractIssueCommentEvent)
 @reacts_to(event=CheckRerunReleaseEvent)
-class ProposeDownstreamHandler(JobHandler):
+class ProposeDownstreamHandler(RetriableJobHandler):
     topic = "org.fedoraproject.prod.git.receive"
     task_name = TaskName.propose_downstream
 
@@ -143,14 +142,14 @@ class ProposeDownstreamHandler(JobHandler):
         job_config: JobConfig,
         event: dict,
         propose_downstream_run_id: Optional[int] = None,
-        task: Task = None,
+        celery_task: Task = None,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
             event=event,
+            celery_task=celery_task,
         )
-        self.task = task
         self._propose_downstream_run_id = propose_downstream_run_id
         self._propose_downstream_helper: Optional[ProposeDownstreamJobHelper] = None
 
@@ -182,8 +181,8 @@ class ProposeDownstreamHandler(JobHandler):
                 logger.info(f"We were not able to download the archive: {ex}")
                 # when the task hits max_retries, it raises MaxRetriesExceededError
                 # and the error handling code would be never executed
-                retries = self.task.request.retries
-                if retries < int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT)):
+                retries = self.celery_task.retries
+                if not self.celery_task.is_last_try():
                     # will retry in: 1m and then again in another 2m
                     delay = 60 * 2**retries
                     logger.info(
@@ -192,10 +191,10 @@ class ProposeDownstreamHandler(JobHandler):
                     )
                     # throw=False so that exception is not raised and task
                     # is not retried also automatically
-                    kargs = self.task.request.kwargs.copy()
+                    kargs = self.celery_task.task.request.kwargs.copy()
                     kargs["propose_downstream_run_id"] = model.id
                     # https://celeryproject.readthedocs.io/en/latest/userguide/tasks.html#retrying
-                    self.task.retry(
+                    self.celery_task.task.retry(
                         exc=ex, countdown=delay, throw=False, args=(), kwargs=kargs
                     )
                     raise AbortProposeDownstream()
@@ -382,7 +381,7 @@ class ProposeDownstreamHandler(JobHandler):
 
 @configured_as(job_type=JobType.koji_build)
 @reacts_to(event=PushPagureEvent)
-class DownstreamKojiBuildHandler(JobHandler):
+class DownstreamKojiBuildHandler(RetriableJobHandler):
     """
     This handler can submit a build in Koji from a dist-git.
     """
@@ -395,14 +394,14 @@ class DownstreamKojiBuildHandler(JobHandler):
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
-        task: Optional[Task] = None,
+        celery_task: Optional[Task] = None,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
             event=event,
+            celery_task=celery_task,
         )
-        self.task = task
         self.dg_branch = event.get("git_ref")
         self._pull_request: Optional[PullRequest] = None
 
@@ -495,9 +494,7 @@ class DownstreamKojiBuildHandler(JobHandler):
                 )
                 raise ex
 
-            if self.task and self.task.request.retries < int(
-                getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT)
-            ):
+            if self.celery_task and not self.celery_task.is_last_try():
                 logger.debug(
                     "Celery task will be retried. User will not be notified about the failure."
                 )

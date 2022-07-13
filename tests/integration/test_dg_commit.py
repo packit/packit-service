@@ -330,7 +330,7 @@ def test_downstream_koji_build_failure_issue_created():
             job_config=load_job_config(job_config),
             event=event_dict,
             # Needs to be the last try to inform user
-            task=flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
+            celery_task=flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
         ).run_job()
 
 
@@ -401,7 +401,7 @@ def test_downstream_koji_build_failure_issue_comment():
             job_config=load_job_config(job_config),
             event=event_dict,
             # Needs to be the last try to inform user
-            task=flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
+            celery_task=flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
         ).run_job()
 
 
