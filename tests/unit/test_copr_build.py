@@ -4,11 +4,12 @@
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Type
+from typing import Type, Optional
 
 import gitlab
 import pytest
 from celery import Celery
+from copr.v3 import CoprRequestException
 from copr.v3 import Client
 from flexmock import flexmock
 from munch import Munch
@@ -31,7 +32,9 @@ from packit.copr_helper import CoprHelper
 from packit.exceptions import FailedCreateSRPM, PackitCoprSettingsException
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
-from packit_service.constants import DEFAULT_RETRY_LIMIT
+from packit_service.constants import (
+    DEFAULT_RETRY_LIMIT,
+)
 from packit_service.models import (
     CoprBuildTargetModel,
     JobTriggerModel,
@@ -102,6 +105,7 @@ def build_helper(
     selected_job=None,
     project_type: Type[GitProject] = GithubProject,
     build_targets_override=None,
+    task: Optional[CeleryTask] = None,
 ) -> CoprBuildJobHelper:
     if jobs and (_targets or owner):
         raise Exception("Only one job description can be used.")
@@ -144,6 +148,7 @@ def build_helper(
         db_trigger=db_trigger,
         build_targets_override=build_targets_override,
         pushgateway=Pushgateway(),
+        celery_task=task,
     )
     helper._api = PackitAPI(ServiceConfig(), pkg_conf)
     return helper
@@ -250,6 +255,137 @@ def test_copr_build_check_names(github_pr_event):
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build()["success"]
+
+
+@pytest.mark.parametrize(
+    "retry_number,interval,delay,retry",
+    [
+        (0, "1 minute", 60, True),
+        (1, "2 minutes", 120, True),
+        (2, None, None, False),
+    ],
+)
+def test_copr_build_copr_outage_retry(
+    github_pr_event, retry_number, interval, delay, retry
+):
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+    )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    helper = build_helper(
+        event=github_pr_event,
+        _targets=["bright-future-x86_64"],
+        owner="packit",
+        db_trigger=trigger,
+        task=CeleryTask(flexmock(request=flexmock(retries=retry_number))),
+    )
+    # we need to make sure that pr_id is set
+    # so we can check it out and add it to spec's release field
+    assert helper.metadata.pr_id
+
+    flexmock(copr_build).should_receive("get_copr_build_info_url").and_return(
+        "https://test.url"
+    )
+    flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
+        state=BaseCommitStatus.running,
+        description="Building SRPM ...",
+        check_name="rpm-build:bright-future-x86_64",
+        url="",
+        links_to_external_services=None,
+        markdown_content=None,
+    ).and_return()
+    flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
+        state=BaseCommitStatus.running,
+        description="Starting RPM build...",
+        check_name="rpm-build:bright-future-x86_64",
+        url="https://test.url",
+        links_to_external_services=None,
+        markdown_content=None,
+    ).and_return()
+
+    flexmock(GithubProject).should_receive("get_pr").and_return(
+        flexmock(source_project=flexmock())
+    )
+    flexmock(GithubProject).should_receive("create_check_run").and_return().never()
+    flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
+        (
+            flexmock(status="success")
+            .should_receive("set_url")
+            .with_args("https://some.host/my.srpm")
+            .mock()
+            .should_receive("set_start_time")
+            .mock()
+            .should_receive("set_status")
+            .mock()
+            .should_receive("set_logs")
+            .mock()
+            .should_receive("set_end_time")
+            .mock(),
+            flexmock(),
+        )
+    )
+    flexmock(CoprBuildTargetModel).should_receive("create").and_return(flexmock(id=1))
+    flexmock(PullRequestGithubEvent).should_receive("db_trigger").and_return(flexmock())
+
+    flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
+
+    # copr build
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").with_args(
+        project="the-example-namespace-the-example-repo-342",
+        chroots=["bright-future-x86_64"],
+        owner="packit",
+        description=None,
+        instructions=None,
+        preserve_project=False,
+        list_on_homepage=False,
+        additional_repos=[],
+        request_admin_if_needed=True,
+    ).and_return(None)
+
+    exc = CoprRequestException("Unable to connect")
+    flexmock(Client).should_receive("create_from_config_file").and_return(
+        flexmock(
+            config={"copr_url": "https://copr.fedorainfracloud.org/"},
+            build_proxy=flexmock()
+            .should_receive("create_from_file")
+            .and_raise(exc)
+            .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({"bright-future-x86_64": "", "__proxy__": "something"})
+            .mock(),
+        )
+    )
+
+    if retry:
+        flexmock(CeleryTask).should_receive("retry").with_args(
+            ex=exc, delay=delay
+        ).once()
+        flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
+            state=BaseCommitStatus.pending,
+            description=f"Submit of the build failed due to a Copr error, the task will be"
+            f" retried in {interval}.",
+            check_name="rpm-build:bright-future-x86_64",
+            url="",
+            links_to_external_services=None,
+            markdown_content=None,
+        ).and_return()
+    else:
+        flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
+            state=BaseCommitStatus.error,
+            description="Submit of the build failed: Unable to connect",
+            check_name="rpm-build:bright-future-x86_64",
+            url="",
+            links_to_external_services=None,
+            markdown_content=None,
+        ).and_return()
+
+    assert helper.run_copr_build()["success"] is retry
 
 
 def test_copr_build_check_names_invalid_chroots(github_pr_event):
