@@ -30,14 +30,22 @@ elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     DEFAULT_QUEUES="short-running,long-running"
     QUEUES="${QUEUES:-$DEFAULT_QUEUES}"
 
+    # Min,max number of concurrent worker processes/threads executing tasks.
+    # https://docs.celeryq.dev/en/stable/userguide/workers.html#autoscaling
+    DEFAULT_AUTOSCALE="1,1"
+    AUTOSCALE="${AUTOSCALE:-$DEFAULT_AUTOSCALE}"
+
+    # Options: prefork | eventlet | gevent | solo
+    DEFAULT_POOL="prefork"
+    POOL="${POOL:-$DEFAULT_POOL}"
+
     # if this worker serves the long-running queue, it needs the repository cache
     if [[ "$QUEUES" == *"long-running"* ]]; then
       # Can't be set during deployment
       SANDCASTLE_REPOSITORY_CACHE_VOLUME="sandcastle-repository-cache-$(uname --nodename)"
       export SANDCASTLE_REPOSITORY_CACHE_VOLUME
     fi
-    # concurrency: Number of concurrent worker processes/threads/green threads executing tasks.
-    # prefetch-multiplier: How many messages to prefetch at a time multiplied by the number of concurrent processes.
-    # http://docs.celeryproject.org/en/latest/userguide/optimizing.html#prefetch-limits
-    exec celery --app="${APP}" worker --loglevel="${LOGLEVEL:-DEBUG}" --concurrency=1 --prefetch-multiplier=1 --queues="${QUEUES}"
+
+    # https://docs.celeryq.dev/en/stable/userguide/optimizing.html#optimizing-prefetch-limit
+    exec celery --app="${APP}" worker --loglevel="${LOGLEVEL:-DEBUG}" --autoscale="${AUTOSCALE}" --pool="${POOL}" --prefetch-multiplier=1 --queues="${QUEUES}"
 fi
