@@ -93,6 +93,7 @@ class Parser:
             PushGitlabEvent,
             PipelineGitlabEvent,
             PullRequestFlagPagureEvent,
+            PullRequestCommentPagureEvent,
             PushPagureEvent,
             CheckRerunCommitEvent,
             CheckRerunPullRequestEvent,
@@ -136,6 +137,7 @@ class Parser:
                 Parser.parse_gitlab_push_event,
                 Parser.parse_pipeline_event,
                 Parser.parse_pagure_pr_flag_event,
+                Parser.parse_pagure_pull_request_comment_event,
             ),
         ):
             if response:
@@ -1247,6 +1249,47 @@ class Parser:
             project_url=project_url,
             project_name=project_name,
             project_namespace=project_namespace,
+        )
+
+    @staticmethod
+    def parse_pagure_pull_request_comment_event(
+        event,
+    ) -> Optional[PullRequestCommentPagureEvent]:
+        if ".pagure.pull-request.comment." not in (topic := event.get("topic", "")):
+            return None
+        logger.info(f"Pagure PR comment event, topic: {topic}")
+
+        action = PullRequestCommentAction.created.value
+        pr_id = event["pullrequest"]["id"]
+        base_repo_namespace = event["pullrequest"]["project"]["namespace"]
+        base_repo_name = event["pullrequest"]["project"]["name"]
+        base_repo_owner = event["pullrequest"]["repo_from"]["user"]["name"]
+        target_repo = event["pullrequest"]["repo_from"]["name"]
+        https_url = event["pullrequest"]["project"]["full_url"]
+        pagure_login = event["agent"]
+        commit_sha = event["pullrequest"]["commit_stop"]
+
+        if "added" in event["topic"]:
+            comment = event["pullrequest"]["comments"][-1]["comment"]
+            comment_id = event["pullrequest"]["comments"][-1]["id"]
+        else:
+            raise ValueError(
+                f"Unknown comment location in response for {event['topic']}"
+            )
+
+        return PullRequestCommentPagureEvent(
+            action=PullRequestCommentAction[action],
+            pr_id=pr_id,
+            base_repo_namespace=base_repo_namespace,
+            base_repo_name=base_repo_name,
+            base_repo_owner=base_repo_owner,
+            base_ref=None,
+            target_repo=target_repo,
+            project_url=https_url,
+            commit_sha=commit_sha,
+            user_login=pagure_login,
+            comment=comment,
+            comment_id=comment_id,
         )
 
 

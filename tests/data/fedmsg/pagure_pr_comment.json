@@ -1,0 +1,127 @@
+{
+  "agent": "mmassari",
+  "pullrequest": {
+    "assignee": null,
+    "branch": "test-koji-downstream",
+    "branch_from": "test-koji-downstream-2",
+    "cached_merge_status": "FFORWARD",
+    "closed_at": null,
+    "closed_by": null,
+    "comments": [
+      {
+        "comment": "/packit koji-build",
+        "commit": null,
+        "date_created": "1657783448",
+        "edited_on": null,
+        "editor": null,
+        "filename": null,
+        "id": 110401,
+        "line": null,
+        "notification": false,
+        "parent": null,
+        "reactions": {},
+        "tree": null,
+        "user": {
+          "full_url": "https://src.fedoraproject.org/user/mmassari",
+          "fullname": "Maja Massarini",
+          "name": "mmassari",
+          "url_path": "user/mmassari"
+        }
+      }
+    ],
+    "commit_start": "beaf90bcecc51968a46663f8d6f092bfdc92e682",
+    "commit_stop": "beaf90bcecc51968a46663f8d6f092bfdc92e682",
+    "date_created": "1657783415",
+    "full_url": "https://src.fedoraproject.org/rpms/python-teamcity-messages/pull-request/36",
+    "id": 36,
+    "initial_comment": null,
+    "last_updated": "1657783448",
+    "project": {
+      "access_groups": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "ticket": []
+      },
+      "access_users": {
+        "admin": ["limb"],
+        "collaborator": [],
+        "commit": [],
+        "owner": ["mmassari"],
+        "ticket": []
+      },
+      "close_status": [],
+      "custom_keys": [],
+      "date_created": "1643654065",
+      "date_modified": "1650542166",
+      "description": "The python-teamcity-messages package\\n",
+      "full_url": "https://src.fedoraproject.org/rpms/python-teamcity-messages",
+      "fullname": "rpms/python-teamcity-messages",
+      "id": 54766,
+      "milestones": {},
+      "name": "python-teamcity-messages",
+      "namespace": "rpms",
+      "parent": null,
+      "priorities": {},
+      "tags": [],
+      "url_path": "rpms/python-teamcity-messages",
+      "user": {
+        "full_url": "https://src.fedoraproject.org/user/mmassari",
+        "fullname": "Maja Massarini",
+        "name": "mmassari",
+        "url_path": "user/mmassari"
+      }
+    },
+    "remote_git": null,
+    "repo_from": {
+      "access_groups": {
+        "admin": [],
+        "collaborator": [],
+        "commit": [],
+        "ticket": []
+      },
+      "access_users": {
+        "admin": ["limb"],
+        "collaborator": [],
+        "commit": [],
+        "owner": ["mmassari"],
+        "ticket": []
+      },
+      "close_status": [],
+      "custom_keys": [],
+      "date_created": "1643654065",
+      "date_modified": "1650542166",
+      "description": "The python-teamcity-messages package\\n",
+      "full_url": "https://src.fedoraproject.org/rpms/python-teamcity-messages",
+      "fullname": "rpms/python-teamcity-messages",
+      "id": 54766,
+      "milestones": {},
+      "name": "python-teamcity-messages",
+      "namespace": "rpms",
+      "parent": null,
+      "priorities": {},
+      "tags": [],
+      "url_path": "rpms/python-teamcity-messages",
+      "user": {
+        "full_url": "https://src.fedoraproject.org/user/mmassari",
+        "fullname": "Maja Massarini",
+        "name": "mmassari",
+        "url_path": "user/mmassari"
+      }
+    },
+    "status": "Open",
+    "tags": [],
+    "threshold_reached": null,
+    "title": "Not usefull commit",
+    "uid": "d8b1dd625c674cb9ad8010985bd98351",
+    "updated_on": "1657783448",
+    "user": {
+      "full_url": "https://src.fedoraproject.org/user/mmassari",
+      "fullname": "Maja Massarini",
+      "name": "mmassari",
+      "url_path": "user/mmassari"
+    }
+  },
+  "topic": "org.fedoraproject.prod.pagure.pull-request.comment.added",
+  "timestamp": 1657776351.055628
+}

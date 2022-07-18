@@ -90,14 +90,14 @@ class PullRequestCommentPagureEvent(AbstractPRCommentEvent, AbstractPagureEvent)
         return result
 
     def get_base_project(self) -> GitProject:
-        fork = self.project.service.get_project(
+        project = self.project.service.get_project(
             namespace=self.base_repo_namespace,
             repo=self.base_repo_name,
             username=self.base_repo_owner,
-            is_fork=True,
+            is_fork=False,
         )
-        logger.debug(f"Base project: {fork} owned by {self.base_repo_owner}")
-        return fork
+        logger.debug(f"Base project: {project} owned by {self.base_repo_owner}")
+        return project
 
 
 class PullRequestPagureEvent(AddPullRequestDbTrigger, AbstractPagureEvent):
