@@ -62,24 +62,28 @@ class GithubAppInstallationHandler(JobHandler):
         Discover information about organization/user which wants to install packit on his repository
         Try to allowlist automatically if mapping from github username to FAS account can prove a
         match.
-        :return: TaskResults
+
+        Returns:
+            Result of the run task.
         """
-        # if there is already a record in the DB, the app was reinstalled
-        is_reinstalled = (
-            GithubInstallationModel.get_by_account_login(
-                self.installation_event.account_login
-            )
-            is not None
+        previous_installation = GithubInstallationModel.get_by_account_login(
+            self.installation_event.account_login
         )
+        previous_sender_login = (
+            previous_installation.sender_login if previous_installation else None
+        )
+
         GithubInstallationModel.create_or_update(event=self.installation_event)
         # try to add user to allowlist
         allowlist = Allowlist(self.service_config)
         namespace = f"github.com/{self.account_login}"
         # if the namespace was not on our allowlist (in any state) or
-        # the app was reinstalled and the namespace was not approved,
-        # create an issue in notifications repo
+        # the app was reinstalled by someone else than previously
+        # and the namespace was not approved, create an issue in notifications repo
         if not allowlist.add_namespace(namespace, self.sender_login) or (
-            is_reinstalled and not allowlist.is_approved(namespace)
+            previous_installation is not None
+            and not allowlist.is_approved(namespace)
+            and previous_sender_login != self.sender_login
         ):
             # Create an issue in our repository, so we are notified when someone install the app
             self.project.create_issue(

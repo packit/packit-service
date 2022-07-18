@@ -80,8 +80,8 @@ def copr_build_results_end():
 
 class TestEvents:
     @pytest.fixture()
-    def github_installation(self, request):
-        file = f"installation_{request.param}.json"
+    def github_installation(self):
+        file = "installation_created.json"
         with open(DATA_DIR / "webhooks" / "github" / file) as outfile:
             return json.load(outfile)
 
@@ -250,8 +250,6 @@ class TestEvents:
         service_config.github_requests_log_path = "/path"
         ServiceConfig.service_config = service_config
 
-    # https://stackoverflow.com/questions/35413134/what-does-indirect-true-false-in-pytest-mark-parametrize-do-mean
-    @pytest.mark.parametrize("github_installation", ["added", "created"], indirect=True)
     def test_parse_installation(self, github_installation):
         event_object = Parser.parse_event(github_installation)
 

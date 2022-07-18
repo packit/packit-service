@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import json
+import pytest
 
 from celery.canvas import Signature
 from flexmock import flexmock
@@ -60,7 +61,7 @@ def test_reinstallation_already_approved_namespace():
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     flexmock(GithubInstallationModel).should_receive("get_by_account_login").and_return(
-        flexmock()
+        flexmock(sender_login="jpopelka")
     )
     flexmock(GithubInstallationModel).should_receive("create_or_update").once()
     flexmock(Allowlist).should_receive("add_namespace").with_args(
@@ -88,12 +89,15 @@ def test_reinstallation_already_approved_namespace():
     assert first_dict_value(results["job"])["success"]
 
 
-def test_reinstallation_not_approved_namespace():
+@pytest.mark.parametrize(
+    "sender_login, create_issue", [("jpopelka", False), ("flachman", True)]
+)
+def test_reinstallation_not_approved_namespace(sender_login, create_issue):
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     flexmock(GithubInstallationModel).should_receive("get_by_account_login").and_return(
-        flexmock()
+        flexmock(sender_login=sender_login)
     )
     flexmock(GithubInstallationModel).should_receive("create_or_update").once()
     flexmock(Allowlist).should_receive("add_namespace").with_args(
@@ -102,7 +106,10 @@ def test_reinstallation_not_approved_namespace():
     flexmock(Allowlist).should_receive("is_approved").with_args(
         "github.com/packit-service"
     ).and_return(False)
-    flexmock(GithubProject).should_receive("create_issue").once()
+    if create_issue:
+        flexmock(GithubProject).should_receive("create_issue").once()
+    else:
+        flexmock(GithubProject).should_receive("create_issue").never()
 
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()

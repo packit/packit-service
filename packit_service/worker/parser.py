@@ -789,13 +789,12 @@ class Parser:
             return None
 
         action = event["action"]
-        if action not in {"created", "added"}:
+        if action != "created":
             # We're currently not interested in removed/deleted/updated event.
             return None
         installation_id = event["installation"]["id"]
         # if action == 'created' then repos are in repositories
-        # if action == 'added' then repos are in repositories_added
-        repositories = event.get("repositories") or event.get("repositories_added", [])
+        repositories = event.get("repositories", [])
         repo_names = [repo["full_name"] for repo in repositories]
 
         logger.info(f"Github App installation {action!r} event. id: {installation_id}")
