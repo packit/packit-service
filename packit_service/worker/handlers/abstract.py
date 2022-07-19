@@ -7,6 +7,7 @@ This file defines generic job handler
 import enum
 import logging
 import shutil
+from celery import Task
 from collections import defaultdict
 from datetime import datetime
 from os import getenv
@@ -22,6 +23,7 @@ from packit.constants import DATETIME_FORMAT
 from packit.local_project import LocalProject
 
 from packit_service.config import ServiceConfig
+from packit_service.constants import DEFAULT_RETRY_LIMIT
 from packit_service.models import (
     AbstractTriggerDbType,
 )
@@ -207,6 +209,54 @@ def get_packit_commands_from_comment(
             return packit_command
 
     return []
+
+
+class CeleryTask:
+    """
+    Class wrapping the Celery task object with methods related to retrying.
+    """
+
+    def __init__(self, task: Task):
+        self.task = task
+
+    @property
+    def retries(self):
+        return self.task.request.retries
+
+    def is_last_try(self) -> bool:
+        """
+        Returns True if the current celery task is run for the last try.
+        More info about retries can be found here:
+        https://docs.celeryq.dev/en/latest/userguide/tasks.html#retrying
+        """
+        return self.retries >= self.get_retry_limit()
+
+    def get_retry_limit(self) -> int:
+        """
+        Returns the limit of the celery task retries.
+        (Packit uses this env.var. in HandlerTaskWithRetry base class
+        to set `max_retries` in `retry_kwargs`.)
+        """
+        return int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT))
+
+    def retry(self, ex: Exception, delay: Optional[int] = None) -> None:
+        """
+        Retries the celery task.
+        Argument `throw` is set to False to not retry
+        the task also because of the `autoretry_for` mechanism.
+
+        More info about retries can be found here:
+        https://docs.celeryq.dev/en/latest/userguide/tasks.html#retrying
+
+        Args:
+            ex: Exception which caused the retry (will be logged).
+            delay: Number of seconds the task will wait before being run again.
+        """
+        retries = self.retries
+        delay = delay if delay is not None else 60 * 2**retries
+        logger.info(f"Will retry for the {retries + 1}. time in {delay}s.")
+        kargs = self.task.request.kwargs.copy()
+        self.task.retry(exc=ex, countdown=delay, throw=False, args=(), kwargs=kargs)
 
 
 class TaskName(str, enum.Enum):
@@ -395,6 +445,23 @@ class JobHandler(Handler):
                 "event": event.get_dict(),
             },
         )
+
+    def run(self) -> TaskResults:
+        raise NotImplementedError("This should have been implemented.")
+
+
+class RetriableJobHandler(JobHandler):
+    def __init__(
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        event: dict,
+        celery_task: Optional[Task] = None,
+    ):
+        super().__init__(
+            package_config=package_config, job_config=job_config, event=event
+        )
+        self.celery_task = CeleryTask(celery_task) if celery_task else None
 
     def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")

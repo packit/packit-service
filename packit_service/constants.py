@@ -73,6 +73,7 @@ DEFAULT_RETRY_LIMIT = 2
 # retry in 3s, 6s
 DEFAULT_RETRY_BACKOFF = 3
 RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED = 10
+BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES = 1
 
 # Time after which we no longer check the status of jobs and consider it as
 # timeout/internal error. Nothing should hopefully run for 7 days.
@@ -238,3 +239,8 @@ CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT = (
 FASJSON_URL = "https://fasjson.fedoraproject.org"
 
 PACKIT_VERIFY_FAS_COMMAND = "verify-fas"
+
+MISSING_PERMISSIONS_TO_BUILD_IN_COPR = (
+    "You don't have permissions to build in this copr."
+)
+NOT_ALLOWED_TO_BUILD_IN_COPR = "is not allowed to build in the copr"

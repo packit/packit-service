@@ -20,6 +20,7 @@ from packit.local_project import LocalProject
 from packit_service.constants import DEFAULT_RETRY_LIMIT
 from packit_service.models import GitBranchModel, KojiBuildTargetModel, PipelineModel
 from packit_service.utils import load_job_config, load_package_config
+from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
@@ -252,7 +253,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
             job_config=load_job_config(job_config),
             event=event_dict,
             # Needs to be the last try to inform user
-            task=flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
+            celery_task=flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
         ).run_job()
 
 
@@ -342,7 +343,7 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
             job_config=load_job_config(job_config),
             event=event_dict,
             # Needs to be the last try to inform user
-            task=flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
+            celery_task=flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
         ).run_job()
 
 
@@ -424,7 +425,7 @@ def test_bodhi_update_auth_error(
     ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
 
     flexmock(Task).should_receive("retry").and_return().once()
-    flexmock(CreateBodhiUpdateHandler).should_call("retry").with_args(
+    flexmock(CeleryTask).should_call("retry").with_args(
         ex=bodhi_exception, delay=600
     ).once()
 

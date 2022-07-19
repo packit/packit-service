@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from celery import signature
+from celery import signature, Task
 from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
 from packit.config import (
@@ -54,6 +54,7 @@ from packit_service.worker.handlers.abstract import (
     required_for,
     run_for_comment,
     run_for_check_rerun,
+    RetriableJobHandler,
 )
 from packit_service.worker.monitoring import measure_time
 from packit_service.worker.reporting import BaseCommitStatus
@@ -77,7 +78,7 @@ logger = logging.getLogger(__name__)
 @reacts_to(CheckRerunPullRequestEvent)
 @reacts_to(CheckRerunCommitEvent)
 @reacts_to(CheckRerunReleaseEvent)
-class CoprBuildHandler(JobHandler):
+class CoprBuildHandler(RetriableJobHandler):
     task_name = TaskName.copr_build
 
     def __init__(
@@ -85,13 +86,14 @@ class CoprBuildHandler(JobHandler):
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
+        celery_task: Optional[Task] = None,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
             event=event,
+            celery_task=celery_task,
         )
-
         self._copr_build_helper: Optional[CoprBuildJobHelper] = None
 
     @property
@@ -107,6 +109,7 @@ class CoprBuildHandler(JobHandler):
                 build_targets_override=self.data.build_targets_override,
                 tests_targets_override=self.data.tests_targets_override,
                 pushgateway=self.pushgateway,
+                celery_task=self.celery_task,
             )
         return self._copr_build_helper
 
