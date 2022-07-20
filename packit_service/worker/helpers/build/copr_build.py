@@ -11,6 +11,7 @@ from copr.v3.exceptions import CoprTimeoutException
 from ogr.abstract import GitProject
 from ogr.parsing import parse_git_repo
 from ogr.services.github import GithubProject
+from ogr.exceptions import GitForgeInternalError, OgrNetworkError
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.aliases import get_aliases, get_valid_build_targets
 from packit.config.common_package_config import Deployment
@@ -35,6 +36,7 @@ from packit_service.constants import (
     MISSING_PERMISSIONS_TO_BUILD_IN_COPR,
     NOT_ALLOWED_TO_BUILD_IN_COPR,
     BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
+    BASE_RETRY_INTERVAL_IN_SECONDS_FOR_INTERNAL_ERRORS,
 )
 from packit_service.models import (
     AbstractTriggerDbType,
@@ -576,25 +578,43 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         possible_copr_outage_exc = (
             isinstance(ex, CoprRequestException) and "Unable to connect" in str(ex)
         ) or isinstance(ex, CoprTimeoutException)
+        forge_outage_exc = isinstance(ex, OgrNetworkError)
+        forge_internal_error = isinstance(ex, GitForgeInternalError)
 
-        if not self.celery_task.is_last_try() and possible_copr_outage_exc:
-            interval = (
-                BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES
-                * 2**self.celery_task.retries
-            )
+        if not self.celery_task.is_last_try() and (
+            possible_copr_outage_exc or forge_outage_exc or forge_internal_error
+        ):
+            what_failed = "Copr" if possible_copr_outage_exc else "Git forge"
+            if forge_internal_error:
+                # Internal error is delayed in seconds
+                delay = (
+                    BASE_RETRY_INTERVAL_IN_SECONDS_FOR_INTERNAL_ERRORS
+                    * 2**self.celery_task.retries
+                )
+                retry_in = f"{delay} seconds"
+            else:
+                # Outages are delayed in minutes
+                interval = (
+                    BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES
+                    * 2**self.celery_task.retries
+                )
+                retry_in = f"{interval} {'minute' if interval == 1 else 'minutes'}"
+                delay = 60 * interval
 
             self.report_status_to_all(
                 state=BaseCommitStatus.pending,
-                description=f"Submit of the build failed due to a Copr error, the task will be"
-                f" retried in {interval} {'minute' if interval == 1 else 'minutes'}.",
+                description=f"Submit of the build failed due to a {what_failed} error, the task "
+                f"will be retried in {retry_in}.",
             )
             self.celery_task.retry(
-                delay=interval * 60,
+                delay=delay,
                 ex=ex,
             )
             return TaskResults(
                 success=True,
-                details={"msg": f"There was a Copr error: {ex}. Task will be retried."},
+                details={
+                    "msg": f"There was a {what_failed} error: {ex}. Task will be retried."
+                },
             )
 
         sentry_integration.send_to_sentry(ex)

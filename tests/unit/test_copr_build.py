@@ -13,7 +13,7 @@ from copr.v3 import CoprRequestException
 from copr.v3 import Client
 from flexmock import flexmock
 from munch import Munch
-from ogr.exceptions import GitlabAPIException
+from ogr.exceptions import GitlabAPIException, OgrNetworkError, GitForgeInternalError
 
 import packit
 import packit_service
@@ -2253,6 +2253,95 @@ def test_run_copr_build_from_source_script(github_pr_event):
 
     flexmock(Celery).should_receive("send_task").once()
     assert helper.run_copr_build_from_source_script()["success"]
+
+
+@pytest.mark.parametrize(
+    "retry_number,interval,delay,retry, exc",
+    [
+        (0, "1 minute", 60, True, OgrNetworkError("Get PR failed")),
+        (1, "2 minutes", 120, True, OgrNetworkError("Get PR failed")),
+        (2, None, None, False, OgrNetworkError("Get PR failed")),
+        (0, "10 seconds", 10, True, GitForgeInternalError("Get PR failed")),
+        (1, "20 seconds", 20, True, GitForgeInternalError("Get PR failed")),
+        (2, None, None, False, GitForgeInternalError("Get PR failed")),
+    ],
+)
+def test_run_copr_build_from_source_script_github_outage_retry(
+    github_pr_event, retry_number, interval, delay, retry, exc
+):
+    helper = build_helper(
+        event=github_pr_event,
+        db_trigger=flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
+        ),
+        task=CeleryTask(flexmock(request=flexmock(retries=retry_number))),
+    )
+    helper.package_config.srpm_build_deps = ["make", "findutils"]
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    flexmock(GithubProject).should_receive("get_pr").and_raise(exc)
+    flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
+        (
+            flexmock(status="success", id=1),
+            flexmock(),
+        )
+    )
+    flexmock(PullRequestGithubEvent).should_receive("db_trigger").and_return(flexmock())
+
+    # copr build
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
+        None
+    )
+    flexmock(helper).should_receive("get_packit_copr_download_urls").and_return([])
+    flexmock(helper).should_receive("get_latest_fedora_stable_chroot").and_return(
+        "fedora-35-x86_64"
+    )
+    flexmock(Client).should_receive("create_from_config_file").and_return(
+        flexmock(
+            config={"copr_url": "https://copr.fedorainfracloud.org/"},
+            build_proxy=flexmock()
+            .should_receive("create_from_custom")
+            .and_return(
+                flexmock(
+                    id=2,
+                    projectname="the-project-name",
+                    ownername="the-owner",
+                )
+            )
+            .mock(),
+            mock_chroot_proxy=flexmock()
+            .should_receive("get_list")
+            .and_return({"bright-future-x86_64": "", "__proxy__": "something"})
+            .mock(),
+        )
+    )
+    if retry:
+        flexmock(CeleryTask).should_receive("retry").with_args(
+            ex=exc, delay=delay
+        ).once()
+        flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
+            state=BaseCommitStatus.pending,
+            description=f"Submit of the build failed due to a Git forge error, the task will be"
+            f" retried in {interval}.",
+            check_name="rpm-build:bright-future-x86_64",
+            url="",
+            links_to_external_services=None,
+            markdown_content=None,
+        ).and_return()
+    else:
+        flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
+            state=BaseCommitStatus.error,
+            description=f"Submit of the build failed: {exc}",
+            check_name="rpm-build:bright-fugure-x86_64",
+            url="",
+            links_to_external_services=None,
+            markdown_content=None,
+        ).and_return()
+
+    assert helper.run_copr_build_from_source_script()["success"] is retry
 
 
 def test_get_latest_fedora_stable_chroot(github_pr_event):
