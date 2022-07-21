@@ -41,6 +41,9 @@
           - postgresql # pg_dump
           - python3-boto3 # AWS (S3)
           - python3-fasjson-client
+          # remove if we decide not to use concurrency
+          - python3-eventlet
+          - python3-gevent
         state: present
     - import_tasks: tasks/install-packit-deps.yaml
     - import_tasks: tasks/install-ogr-deps.yaml

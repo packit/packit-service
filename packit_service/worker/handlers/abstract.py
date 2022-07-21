@@ -432,7 +432,7 @@ class JobHandler(Handler):
     def get_signature(cls, event: Event, job: Optional[JobConfig]) -> Signature:
         """
         Get the signature of a Celery task which will run the handler.
-        https://docs.celeryproject.org/en/stable/userguide/canvas.html#signatures
+        https://docs.celeryq.dev/en/stable/userguide/canvas.html#signatures
         :param event: event which triggered the task
         :param job: job to process
         """

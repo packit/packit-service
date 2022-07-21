@@ -389,7 +389,7 @@ class SteveJobs:
                         event=self.event,
                     )
                 )
-        # https://docs.celeryproject.org/en/stable/userguide/canvas.html#groups
+        # https://docs.celeryq.dev/en/stable/userguide/canvas.html#groups
         celery.group(signatures).apply_async()
         return processing_results
 
