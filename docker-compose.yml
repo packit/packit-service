@@ -69,6 +69,7 @@ services:
       AWS_ACCESS_KEY_ID: ""
       AWS_SECRET_ACCESS_KEY: ""
     volumes:
+      - ../packit/packit:/usr/local/lib/python3.10/site-packages/packit:ro,z
       - ./packit_service:/usr/local/lib/python3.10/site-packages/packit_service:ro,z
       - ./secrets/packit/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
       - ./secrets/packit/dev/copr:/home/packit/.config/copr:ro,z
@@ -76,6 +77,18 @@ services:
       - ./secrets/packit/dev/id_rsa.pub:/packit-ssh/id_rsa.pub:ro,z
       - ./secrets/packit/dev/id_rsa:/packit-ssh/id_rsa:ro,z
       - ./secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
+    user: "1024"
+
+  fluentd:
+    container_name: fluentd
+    image: splunk/fluentd-hec
+    environment:
+      SPLUNK_HEC_URL: https://splunk-url
+      SPLUNK_HEC_TOKEN: "token"
+    ports:
+      - 5140:5140
+    volumes:
+      - ./secrets/packit/dev/fluentd-config:/fluentd/etc/fluent.conf:ro,Z
     user: "1024"
 
   service:

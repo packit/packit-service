@@ -41,6 +41,7 @@ check:
 # In most cases you don't need to build your test-image, the one in registry should be all you need.
 build-test-image: files/install-deps-worker.yaml files/install-deps.yaml files/recipe-tests.yaml
 	$(CONTAINER_ENGINE) build --rm \
+		--pull=$(PULL_BASE_IMAGE) \
 		-t $(TEST_IMAGE) \
 		-f files/docker/Dockerfile.tests \
 		--build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) \
