@@ -133,29 +133,28 @@ def test_precheck_gitlab(gitlab_mr_event):
 
 def test_precheck_push(github_push_event):
     flexmock(GitBranchModel).should_receive("get_or_create").and_return(
-        flexmock(id=1, job_config_trigger_type=JobConfigTriggerType.commit)
+        flexmock(
+            id=1,
+            job_config_trigger_type=JobConfigTriggerType.commit,
+            job_trigger_model_type=JobTriggerModelType.branch_push,
+        )
+    )
+    jc = JobConfig(
+        type=JobType.copr_build,
+        trigger=JobConfigTriggerType.commit,
+        branch="build-branch",
+        owner="@foo",
+        project="bar",
     )
 
     copr_build_handler = CoprBuildHandler(
-        package_config=PackageConfig(
-            jobs=[
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.commit,
-                    branch="build-branch",
-                ),
-            ]
-        ),
-        job_config=JobConfig(
-            type=JobType.copr_build,
-            trigger=JobConfigTriggerType.commit,
-            branch="build-branch",
-        ),
+        package_config=PackageConfig(jobs=[jc]),
+        job_config=jc,
         event=github_push_event.get_dict(),
     )
-    flexmock(CoprBuildJobHelper).should_receive(
-        "is_custom_copr_project_defined"
-    ).and_return(False).once()
+    copr_build_handler.service_config.allowed_forge_projects_for_copr_project = {
+        "@foo/bar": ["github.com/packit-service/hello-world"]
+    }
 
     assert copr_build_handler.pre_check()
 
