@@ -22,8 +22,7 @@
           - python3-requests
           - python3-alembic
           - python3-prometheus_client
-          - python3-sqlalchemy
-          - python3-psycopg2
+          - python3-sqlalchemy+postgresql
           - python3-celery # unfortunately, the probes don't work with this
           - python3-redis # celery[redis]
           - python3-lazy-object-proxy
