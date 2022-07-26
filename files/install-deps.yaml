@@ -34,7 +34,13 @@
           # (see d90948124e46_add_tables_for_triggers_koji_and_tests.py )
           - dnf-plugins-core
           - python-jwt
+          # workaround for https://github.com/fedora-infra/bodhi/issues/4660
+          # we need to explicitly install here so that `tasks/install-packit-deps.yaml` doesn't pick up bodhi-client 6
+          - https://kojipkgs.fedoraproject.org/packages/bodhi/5.7.5/1.fc35/noarch/python3-bodhi-5.7.5-1.fc35.noarch.rpm
+          - https://kojipkgs.fedoraproject.org/packages/bodhi/5.7.5/1.fc35/noarch/python3-bodhi-client-5.7.5-1.fc35.noarch.rpm
         state: present
+        # needed when installing from koji - there are no GPG-signed packages
+        disable_gpg_check: true
     - import_tasks: tasks/install-ogr-deps.yaml
     - import_tasks: tasks/install-packit-deps.yaml
     - name: Install pip deps
