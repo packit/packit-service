@@ -193,6 +193,11 @@ class TestEvents:
             return json.load(outfile)
 
     @pytest.fixture()
+    def pagure_pr_comment_added(self):
+        with open(DATA_DIR / "fedmsg" / "pagure_pr_comment.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
     def distgit_commit(self):
         with open(DATA_DIR / "fedmsg" / "distgit_commit.json") as outfile:
             return json.load(outfile)
@@ -771,6 +776,47 @@ class TestEvents:
         assert event_object.pr_source_branch == "0.47.0-f36-update"
         assert event_object.project_name == "packit"
         assert event_object.project_namespace == "rpms"
+
+    def test_parse_pagure_pull_request_comment(self, pagure_pr_comment_added):
+        event_object = Parser.parse_event(pagure_pr_comment_added)
+
+        assert isinstance(event_object, PullRequestCommentPagureEvent)
+        assert event_object.pr_id == 36
+        assert event_object.base_repo_namespace == "rpms"
+        assert event_object.base_repo_name == "python-teamcity-messages"
+        assert event_object.base_repo_owner == "mmassari"
+        assert event_object.base_ref is None
+        assert event_object.target_repo == "python-teamcity-messages"
+        assert event_object.commit_sha == "beaf90bcecc51968a46663f8d6f092bfdc92e682"
+        assert event_object.user_login == "mmassari"
+        assert event_object.comment == "/packit koji-build"
+        assert (
+            event_object.project_url
+            == "https://src.fedoraproject.org/rpms/python-teamcity-messages"
+        )
+
+        assert isinstance(event_object.project, PagureProject)
+        assert event_object.project.full_repo_name == "rpms/python-teamcity-messages"
+        assert isinstance(event_object.base_project, PagureProject)
+        assert (
+            event_object.base_project.full_repo_name == "rpms/python-teamcity-messages"
+        )
+
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=event_object.base_project,
+            project=event_object.project,
+            pr_id=36,
+            reference="beaf90bcecc51968a46663f8d6f092bfdc92e682",
+            fail_when_missing=False,
+        ).and_return(
+            flexmock()
+        ).once()
+        flexmock(PagureProject).should_receive("get_web_url").and_return(
+            "https://src.fedoraproject.org/rpms/python-teamcity-messages"
+        )
+        assert event_object.package_config
 
     @pytest.mark.parametrize("identifier", [None, "foo"])
     def test_parse_testing_farm_notification(
@@ -1607,49 +1653,6 @@ class TestCentOSEventParser:
             project=event_object.project,
             pr_id=13,
             reference="b658af51df98c1cbf74a75095ced920bba2ef25e",
-            fail_when_missing=False,
-        ).and_return(
-            flexmock()
-        ).once()
-        flexmock(PagureProject).should_receive("get_web_url").and_return(
-            "https://git.stg.centos.org/source-git/packit-hello-world"
-        )
-        assert event_object.package_config
-
-    def test_pull_request_comment_event(self, pagure_pr_comment_added):
-        centos_event_parser = CentosEventParser()
-        event_object = centos_event_parser.parse_event(pagure_pr_comment_added)
-
-        assert isinstance(event_object, PullRequestCommentPagureEvent)
-        assert event_object.pr_id == 16
-        assert event_object.base_repo_namespace == "source-git"
-        assert event_object.base_repo_name == "packit-hello-world"
-        assert event_object.base_repo_owner == "sakalosj"
-        assert event_object.base_ref is None
-        assert event_object.target_repo == "packit-hello-world"
-        assert event_object.commit_sha == "dfe787d04101728c6ddc213d3f4bf39c969f194c"
-        assert event_object.user_login == "sakalosj"
-        assert event_object.comment == "/packit copr-build"
-        assert (
-            event_object.project_url
-            == "https://git.stg.centos.org/source-git/packit-hello-world"
-        )
-
-        assert isinstance(event_object.project, PagureProject)
-        assert event_object.project.full_repo_name == "source-git/packit-hello-world"
-        assert isinstance(event_object.base_project, PagureProject)
-        assert (
-            event_object.base_project.full_repo_name
-            == "fork/sakalosj/source-git/packit-hello-world"
-        )
-
-        flexmock(PackageConfigGetter).should_receive(
-            "get_package_config_from_repo"
-        ).with_args(
-            base_project=event_object.base_project,
-            project=event_object.project,
-            pr_id=16,
-            reference="dfe787d04101728c6ddc213d3f4bf39c969f194c",
             fail_when_missing=False,
         ).and_return(
             flexmock()

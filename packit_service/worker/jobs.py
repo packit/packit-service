@@ -12,7 +12,7 @@ from typing import List, Set, Type
 import celery
 
 from ogr.exceptions import GithubAppNotInstalledError
-from packit.config import JobConfig
+from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     TASK_ACCEPTED,
@@ -469,6 +469,27 @@ class SteveJobs:
 
         return True
 
+    def check_explicit_matching(self):
+        """Force explicit event/jobs matching for triggers
+
+        Returns:
+            list of jobs
+        """
+        matching_jobs = []
+        if isinstance(self.event, PullRequestCommentPagureEvent):
+            for job in self.event.package_config.jobs:
+                if (
+                    job.type == JobType.koji_build
+                    and job.trigger == JobConfigTriggerType.commit
+                    and self.event.job_config_trigger_type
+                    == JobConfigTriggerType.pull_request
+                ):
+                    # A koji_build job with comment trigger
+                    # can be re-triggered by a Pagure comment in a PR
+                    matching_jobs.append(job)
+
+        return matching_jobs
+
     def get_jobs_matching_event(self) -> List[JobConfig]:
         """
         Get list of non-duplicated all jobs that matches with event's trigger.
@@ -480,6 +501,9 @@ class SteveJobs:
                 and job not in jobs_matching_trigger
             ):
                 jobs_matching_trigger.append(job)
+
+        if not jobs_matching_trigger:
+            jobs_matching_trigger.extend(self.check_explicit_matching())
 
         return jobs_matching_trigger
 

@@ -10,6 +10,8 @@ from celery import Task
 from datetime import datetime
 from typing import Optional, Dict
 
+from fasjson_client import Client
+from fasjson_client.errors import APIError
 from ogr.abstract import PullRequest, PRStatus
 
 from packit.api import PackitAPI
@@ -23,6 +25,7 @@ from packit_service import sentry_integration
 from packit_service.config import PackageConfigGetter, ProjectToSync
 from packit_service.constants import (
     CONTACTS_URL,
+    FASJSON_URL,
     FILE_DOWNLOAD_FAILURE,
     MSG_RETRIGGER,
 )
@@ -39,6 +42,7 @@ from packit_service.worker.events import (
     ReleaseEvent,
     AbstractIssueCommentEvent,
     CheckRerunReleaseEvent,
+    PullRequestCommentPagureEvent,
 )
 from packit_service.worker.handlers.abstract import (
     JobHandler,
@@ -380,7 +384,9 @@ class ProposeDownstreamHandler(RetriableJobHandler):
 
 
 @configured_as(job_type=JobType.koji_build)
+@run_for_comment(command="koji-build")
 @reacts_to(event=PushPagureEvent)
+@reacts_to(event=PullRequestCommentPagureEvent)
 class DownstreamKojiBuildHandler(RetriableJobHandler):
     """
     This handler can submit a build in Koji from a dist-git.
@@ -404,6 +410,7 @@ class DownstreamKojiBuildHandler(RetriableJobHandler):
         )
         self.dg_branch = event.get("git_ref")
         self._pull_request: Optional[PullRequest] = None
+        self._packit_api = None
 
     @property
     def pull_request(self):
@@ -421,9 +428,37 @@ class DownstreamKojiBuildHandler(RetriableJobHandler):
                 self._pull_request = prs[0]
         return self._pull_request
 
+    @property
+    def packit_api(self):
+        if not self._packit_api:
+            self._packit_api = PackitAPI(
+                self.service_config,
+                self.job_config,
+                downstream_local_project=self.local_project,
+            )
+        return self._packit_api
+
     def get_pr_author(self):
         """Get the login of the author of the PR (if there is any corresponding PR)."""
         return self.pull_request.author if self.pull_request else None
+
+    def is_packager(self, user):
+        """Check that the given FAS user
+        is a packager
+
+        Args:
+            user (str) FAS user account name
+        Returns:
+            true if a packager false otherwise
+        """
+        self.packit_api.init_kerberos_ticket()
+        client = Client(FASJSON_URL)
+        try:
+            groups = client.list_user_groups(username=user)
+        except APIError:
+            logger.debug(f"Unable to get groups for user {user}.")
+            return False
+        return "packager" in [group["groupname"] for group in groups.result]
 
     def pre_check(self) -> bool:
         if self.data.event_type in (PushPagureEvent.__name__,):
@@ -460,6 +495,17 @@ class DownstreamKojiBuildHandler(RetriableJobHandler):
                         f"configuration: {self.job_config.allowed_committers}."
                     )
                     return False
+        elif self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
+            commenter = self.data.actor
+            logger.debug(
+                f"Triggering downstream koji build through comment by: {commenter}"
+            )
+            if not self.is_packager(commenter):
+                logger.info(
+                    f"koji-build retrigger comment event on PR identifier {self.data.pr_id} "
+                    f"done by {commenter} which is not a packager."
+                )
+                return False
 
         return True
 
@@ -474,14 +520,14 @@ class DownstreamKojiBuildHandler(RetriableJobHandler):
             if self.service_config.repository_cache
             else None,
         )
-        packit_api = PackitAPI(
-            self.service_config,
-            self.job_config,
-            downstream_local_project=self.local_project,
+        branch = (
+            self.project.get_pr(self.data.pr_id).target_branch
+            if self.data.event_type in (PullRequestCommentPagureEvent.__name__,)
+            else self.dg_branch
         )
         try:
-            packit_api.build(
-                dist_git_branch=self.dg_branch,
+            self.packit_api.build(
+                dist_git_branch=branch,
                 scratch=self.job_config.scratch,
                 nowait=True,
                 from_upstream=False,
@@ -509,12 +555,7 @@ class DownstreamKojiBuildHandler(RetriableJobHandler):
             issue_repo = self.service_config.get_project(
                 url=self.job_config.issue_repository
             )
-            body = (
-                f"Koji build on `{self.dg_branch}` branch failed:\n"
-                "```\n"
-                f"{ex}\n"
-                "```"
-            )
+            body = f"Koji build on `{branch}` branch failed:\n" "```\n" f"{ex}\n" "```"
             PackageConfigGetter.create_issue_if_needed(
                 project=issue_repo,
                 title="Fedora Koji build failed to be triggered",
