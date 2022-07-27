@@ -1509,3 +1509,74 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
         event=event_dict,
         job_config=job_config,
     )
+
+
+@pytest.mark.parametrize(
+    "mock_pr_comment_functionality",
+    (
+        [
+            [
+                {
+                    "trigger": "pull_request",
+                    "job": "copr_build",
+                    "metadata": {"targets": "fedora-rawhide-x86_64"},
+                }
+            ]
+        ]
+    ),
+    indirect=True,
+)
+def test_invalid_packit_command_with_config(
+    mock_pr_comment_functionality,
+    pr_embedded_command_comment_event,
+):
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(
+        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
+    ServiceConfig.get_service_config().comment_command_prefix = "/packit"
+    pr_embedded_command_comment_event["comment"][
+        "body"
+    ] = "/packit i-hate-testing-with-flexmock"
+    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+
+    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
+    assert processing_results == []
+
+
+def test_invalid_packit_command_without_config(
+    pr_embedded_command_comment_event,
+):
+    flexmock(
+        GithubProject,
+        full_repo_name="packit-service/hello-world",
+        get_file_content=lambda path, ref: (_ for _ in ()).throw(
+            FileNotFoundError
+        ),  # no config
+        get_files=lambda ref, filter_regex: ["the-specfile.spec"],
+        get_web_url=lambda: "https://github.com/the-namespace/the-repo",
+    )
+
+    ServiceConfig.get_service_config().comment_command_prefix = "/packit"
+    pr_embedded_command_comment_event["comment"][
+        "body"
+    ] = "/packit 10minutesOfImplementing3HoursOfTesting"
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+
+    processing_result = SteveJobs().process_message(pr_embedded_command_comment_event)[
+        0
+    ]
+    assert processing_result["success"]
+    assert (
+        processing_result["details"]["msg"]
+        == "No packit config found in the repository."
+    )
