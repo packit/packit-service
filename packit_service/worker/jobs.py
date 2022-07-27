@@ -290,14 +290,13 @@ class SteveJobs:
         Returns:
             Whether the Packit configuration is present in the repo.
         """
-        if isinstance(
-            self.event, AbstractCommentEvent
-        ) and get_packit_commands_from_comment(
+        if isinstance(self.event, AbstractCommentEvent) and get_handlers_for_comment(
             self.event.comment,
             packit_comment_command_prefix=self.service_config.comment_command_prefix,
         ):
             # we require packit config file when event is triggered by /packit command
             self.event.fail_when_config_file_missing = True
+
         if not self.event.package_config:
             # this happens when service receives events for repos which don't have packit config
             # success=True - it's not an error that people don't have packit.yaml in their repo
