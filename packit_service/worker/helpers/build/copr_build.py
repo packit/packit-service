@@ -37,6 +37,7 @@ from packit_service.constants import (
     NOT_ALLOWED_TO_BUILD_IN_COPR,
     BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
     BASE_RETRY_INTERVAL_IN_SECONDS_FOR_INTERNAL_ERRORS,
+    DEFAULT_RETRY_LIMIT_OUTAGE,
 )
 from packit_service.models import (
     AbstractTriggerDbType,
@@ -585,6 +586,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             possible_copr_outage_exc or forge_outage_exc or forge_internal_error
         ):
             what_failed = "Copr" if possible_copr_outage_exc else "Git forge"
+            max_retries = None
             if forge_internal_error:
                 # Internal error is delayed in seconds
                 delay = (
@@ -600,6 +602,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 )
                 retry_in = f"{interval} {'minute' if interval == 1 else 'minutes'}"
                 delay = 60 * interval
+                max_retries = DEFAULT_RETRY_LIMIT_OUTAGE
 
             self.report_status_to_all(
                 state=BaseCommitStatus.pending,
@@ -609,6 +612,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             self.celery_task.retry(
                 delay=delay,
                 ex=ex,
+                max_retries=max_retries,
             )
             return TaskResults(
                 success=True,

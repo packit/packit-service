@@ -239,7 +239,12 @@ class CeleryTask:
         """
         return int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT))
 
-    def retry(self, ex: Exception, delay: Optional[int] = None) -> None:
+    def retry(
+        self,
+        ex: Exception,
+        delay: Optional[int] = None,
+        max_retries: Optional[int] = None,
+    ) -> None:
         """
         Retries the celery task.
         Argument `throw` is set to False to not retry
@@ -251,12 +256,21 @@ class CeleryTask:
         Args:
             ex: Exception which caused the retry (will be logged).
             delay: Number of seconds the task will wait before being run again.
+            max_retries: Maximum number of retries to use instead of the default within
+                HandlerTaskWithRetry.
         """
         retries = self.retries
         delay = delay if delay is not None else 60 * 2**retries
         logger.info(f"Will retry for the {retries + 1}. time in {delay}s.")
         kargs = self.task.request.kwargs.copy()
-        self.task.retry(exc=ex, countdown=delay, throw=False, args=(), kwargs=kargs)
+        self.task.retry(
+            exc=ex,
+            countdown=delay,
+            throw=False,
+            args=(),
+            kwargs=kargs,
+            max_retries=max_retries,
+        )
 
 
 class TaskName(str, enum.Enum):

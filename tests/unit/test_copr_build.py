@@ -32,9 +32,7 @@ from packit.copr_helper import CoprHelper
 from packit.exceptions import FailedCreateSRPM, PackitCoprSettingsException
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
-from packit_service.constants import (
-    DEFAULT_RETRY_LIMIT,
-)
+from packit_service.constants import DEFAULT_RETRY_LIMIT, DEFAULT_RETRY_LIMIT_OUTAGE
 from packit_service.models import (
     CoprBuildTargetModel,
     JobTriggerModel,
@@ -364,7 +362,7 @@ def test_copr_build_copr_outage_retry(
 
     if retry:
         flexmock(CeleryTask).should_receive("retry").with_args(
-            ex=exc, delay=delay
+            ex=exc, delay=delay, max_retries=DEFAULT_RETRY_LIMIT_OUTAGE
         ).once()
         flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
             state=BaseCommitStatus.pending,
@@ -2320,7 +2318,11 @@ def test_run_copr_build_from_source_script_github_outage_retry(
     )
     if retry:
         flexmock(CeleryTask).should_receive("retry").with_args(
-            ex=exc, delay=delay
+            ex=exc,
+            delay=delay,
+            max_retries=DEFAULT_RETRY_LIMIT_OUTAGE
+            if exc.__class__ is OgrNetworkError
+            else None,
         ).once()
         flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
             state=BaseCommitStatus.pending,
