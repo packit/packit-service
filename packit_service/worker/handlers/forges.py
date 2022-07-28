@@ -160,13 +160,7 @@ class GithubFasVerificationHandler(JobHandler):
             return False
 
         issue_author = self.issue.author
-        if (
-            self.service_config.deployment == Deployment.prod
-            and issue_author != "packit-as-a-service[bot]"
-        ) or (
-            self.service_config.deployment == Deployment.stg
-            and issue_author != "packit-as-a-service-stg[bot]"
-        ):
+        if issue_author != self.service_config.get_github_account_name():
             logger.debug(
                 f"Packit verification comment command placed on issue with author "
                 f"other than our app: {issue_author}"
