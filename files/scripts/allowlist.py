@@ -120,7 +120,7 @@ def approve(full_path: Optional[str]):
 
     is_approved_before = Allowlist.is_approved(full_path)
 
-    Allowlist().approve_namespace(full_path)
+    Allowlist.approve_namespace(full_path)
     if Allowlist.is_approved(full_path) != is_approved_before:
         click.secho(f"Namespace ‹{full_path}› has been approved.", fg="green")
     else:
@@ -136,7 +136,7 @@ def remove(full_path: str):
     if full_path is None:
         full_path = RepoUrl().convert(construct_path())
 
-    Allowlist().remove_namespace(full_path)
+    Allowlist.remove_namespace(full_path)
 
 
 @cli.command(short_help="Show accounts waiting for an approval.")
@@ -144,7 +144,7 @@ def remove(full_path: str):
 def waiting(ctx):
     click.echo("Accounts waiting for approval:")
 
-    waiting_list = Allowlist().waiting_namespaces()
+    waiting_list = Allowlist.waiting_namespaces()
     for i, namespace in enumerate(waiting_list, 1):
         click.echo(f"{i}. {namespace}")
 

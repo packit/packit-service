@@ -326,7 +326,7 @@ class SteveJobs:
             )
             return []
 
-        allowlist = Allowlist()
+        allowlist = Allowlist(service_config=self.service_config)
         processing_results: List[TaskResults] = []
 
         for handler_kls in handler_classes:
@@ -341,7 +341,6 @@ class SteveJobs:
             if not allowlist.check_and_report(
                 self.event,
                 self.event.project,
-                service_config=self.service_config,
                 job_configs=job_configs,
             ):
                 return [

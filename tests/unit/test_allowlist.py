@@ -14,12 +14,11 @@ from ogr.services.github import GithubProject, GithubService
 import packit_service
 from packit.api import PackitAPI
 from packit.config import JobType, JobConfig, JobConfigTriggerType
-from packit.config.common_package_config import Deployment
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
+from packit_service.config import ServiceConfig
 from packit_service.constants import (
-    NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION,
-    REQUIREMENTS_URL,
+    NOTIFICATION_REPO,
 )
 from packit_service.models import (
     AllowlistModel as DBAllowlist,
@@ -49,7 +48,7 @@ EXPECTED_TESTING_FARM_CHECK_NAME = "testing-farm:fedora-rawhide-x86_64"
 
 @pytest.fixture()
 def allowlist():
-    return Allowlist()
+    return Allowlist(service_config=ServiceConfig.get_service_config())
 
 
 @pytest.fixture(scope="module")
@@ -304,11 +303,11 @@ def test_check_and_report_calls_method(allowlist, event, mocked_model, approved)
     )
     expectation.never() if approved else expectation.once()
 
+    ServiceConfig.get_service_config().admins = {"admin"}
     assert (
         allowlist.check_and_report(
             event,
             gp,
-            service_config=flexmock(deployment=Deployment.stg, admins=["admin"]),
             job_configs=[],
         )
         == approved
@@ -406,10 +405,14 @@ def events(request) -> Iterable[Tuple[AbstractGithubEvent, bool, Iterable[str]]]
         ),
         (
             "github.com",
-            "konipas",
-            "dwm",
+            "the-namespace",
+            "the-repo",
             False,
-            ("github.com/konipas/dwm.git", "github.com/konipas", "github.com"),
+            (
+                "github.com/the-namespace/the-repo.git",
+                "github.com/the-namespace",
+                "github.com",
+            ),
         ),
         (
             "github.com",
@@ -460,6 +463,7 @@ def test_check_and_report(
     :param allowlist: fixture
     :param events: fixture: [(Event, should-be-approved)]
     """
+    ServiceConfig.get_service_config().admins = {"admin"}
     flexmock(
         GithubProject,
         create_check_run=lambda *args, **kwargs: None,
@@ -494,7 +498,7 @@ def test_check_and_report(
         type=JobTriggerModelType.pull_request, trigger_id=123
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
 
-    git_project = GithubProject("", GithubService(), "")
+    git_project = GithubProject("the-repo", GithubService(), "the-namespace")
     for event, is_valid, resolved_through in events:
         flexmock(GithubProject, can_merge_pr=lambda username: is_valid)
         flexmock(event, project=git_project).should_receive("get_dict").and_return(None)
@@ -507,6 +511,22 @@ def test_check_and_report(
         )
 
         if isinstance(event, PullRequestGithubEvent) and not is_valid:
+            notification_project_mock = flexmock()
+            notification_project_mock.should_receive("get_issue_list").with_args(
+                author="packit-as-a-service[bot]"
+            ).and_return(
+                [
+                    flexmock(title="something-different"),
+                    flexmock(
+                        title="Namespace the-namespace needs to be approved.",
+                        url="https://issue.url",
+                    ),
+                    flexmock(title=""),
+                ]
+            )
+            flexmock(ServiceConfig).should_receive("get_project").with_args(
+                url=NOTIFICATION_REPO
+            ).and_return(notification_project_mock)
             # Report the status
             flexmock(CoprHelper).should_receive("get_copr_client").and_return(
                 Client(
@@ -521,11 +541,24 @@ def test_check_and_report(
             )
             flexmock(LocalProject).should_receive("checkout_pr").and_return(None)
             flexmock(StatusReporter).should_receive("report").with_args(
-                description="Namespace is not allowed!",
+                description="github.com/the-namespace not allowed!",
                 state=BaseCommitStatus.neutral,
-                url=REQUIREMENTS_URL,
+                url="https://issue.url",
                 check_names=[EXPECTED_TESTING_FARM_CHECK_NAME],
-                markdown_content=NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION,
+                markdown_content=(
+                    "In order to start using the service, "
+                    "your repository or namespace needs to be allowed. "
+                    "We are now onboarding Fedora contributors who have "
+                    "a valid [Fedora Account System](https://fedoraproject.org/wiki/Account_System)"
+                    " account.\n\n"
+                    "Packit has opened [an issue](https://issue.url) "
+                    "for you to finish the approval process. "
+                    "The process is automated and all the information can be found "
+                    "in the linked issue.\n\n"
+                    "For more details on how to get allowed for our service, please read "
+                    "the instructions "
+                    "[in our onboarding guide](https://packit.dev/docs/guide/#2-approval)."
+                ),
             ).once()
         flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
             "get_valid_build_targets"
@@ -540,12 +573,6 @@ def test_check_and_report(
             allowlist.check_and_report(
                 event,
                 git_project,
-                service_config=flexmock(
-                    deployment=Deployment.stg,
-                    command_handler_work_dir="",
-                    admins=["admin"],
-                    comment_command_prefix="/packit-stg",
-                ),
                 job_configs=job_configs,
             )
             is is_valid

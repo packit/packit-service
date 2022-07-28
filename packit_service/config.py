@@ -278,6 +278,13 @@ class ServiceConfig(Config):
             return projects[0]
         return None
 
+    def get_github_account_name(self) -> str:
+        return {
+            Deployment.prod: "packit-as-a-service[bot]",
+            Deployment.stg: "packit-as-a-service-stg[bot]",
+            Deployment.dev: "packit-as-a-service-dev[bot]",
+        }.get(self.deployment)
+
 
 class PackageConfigGetter:
     @staticmethod
