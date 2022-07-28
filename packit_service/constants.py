@@ -46,10 +46,19 @@ NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION = (
     "In order to start using the service, "
     "your repository or namespace needs to be allowed. "
     "We are now onboarding Fedora contributors who have "
-    "a valid [Fedora Account System](https://fedoraproject.org/wiki/Account_System) account. "
+    "a valid [Fedora Account System](https://fedoraproject.org/wiki/Account_System) account.\n\n"
+    "{instructions}"
     "For more details on how to get allowed for our service, please read "
-    "the requirements [here](/docs/packit-service#requirements-for-running-packit-service-jobs)."
+    "the instructions [in our onboarding guide](https://packit.dev/docs/guide/#2-approval)."
 )
+
+NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS = (
+    "Packit has opened [an issue]({issue_url}) for you to finish the approval process. "
+    "The process is automated and all the information can be found "
+    "in the linked issue.\n\n"
+)
+NOTIFICATION_REPO = "https://github.com/packit/notifications"
+
 
 FILE_DOWNLOAD_FAILURE = "Failed to download file from URL"
 

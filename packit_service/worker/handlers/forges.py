@@ -12,6 +12,7 @@ from packit.config import (
     Deployment,
 )
 from packit.config.package_config import PackageConfig
+from packit_service.constants import NOTIFICATION_REPO
 from packit_service.models import (
     GithubInstallationModel,
 )
@@ -53,9 +54,7 @@ class GithubAppInstallationHandler(JobHandler):
         self.account_type = self.installation_event.account_type
         self.account_login = self.installation_event.account_login
         self.sender_login = self.installation_event.sender_login
-        self._project = self.service_config.get_project(
-            url="https://github.com/packit/notifications"
-        )
+        self._project = self.service_config.get_project(url=NOTIFICATION_REPO)
 
     def run(self) -> TaskResults:
         """

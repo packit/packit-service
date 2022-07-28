@@ -15,6 +15,8 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import (
     FASJSON_URL,
     NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION,
+    NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS,
+    NOTIFICATION_REPO,
     REQUIREMENTS_URL,
 )
 from packit_service.models import AllowlistModel, AllowlistStatus
@@ -346,15 +348,22 @@ class Allowlist:
                     tests_targets_override=event.tests_targets_override,
                 )
                 msg = (
-                    "Namespace is not allowed!"
+                    f"{project.service.hostname}/{project.namespace} not allowed!"
                     if not namespace_approved
                     else "User cannot trigger!"
                 )
+                issue_url = self.get_approval_issue(namespace=project.namespace)
                 job_helper.report_status_to_all(
                     description=msg,
                     state=BaseCommitStatus.neutral,
-                    url=REQUIREMENTS_URL,
-                    markdown_content=NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION,
+                    url=issue_url or REQUIREMENTS_URL,
+                    markdown_content=NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION.format(
+                        instructions=NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS.format(
+                            issue_url=issue_url
+                        )
+                        if issue_url
+                        else ""
+                    ),
                 )
 
         return False
@@ -445,3 +454,11 @@ class Allowlist:
         msg = f"Failed to validate account: Unrecognized event type {type(event)!r}."
         logger.error(msg)
         raise PackitException(msg)
+
+    def get_approval_issue(self, namespace) -> Optional[str]:
+        for issue in self.service_config.get_project(
+            url=NOTIFICATION_REPO
+        ).get_issue_list(author=self.service_config.get_github_account_name()):
+            if issue.title.strip().endswith(f" {namespace} needs to be approved."):
+                return issue.url
+        return None
