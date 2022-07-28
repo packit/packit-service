@@ -14,9 +14,9 @@ from ogr.services.github import GithubProject, GithubService
 import packit_service
 from packit.api import PackitAPI
 from packit.config import JobType, JobConfig, JobConfigTriggerType
-from packit.config.common_package_config import Deployment
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
+from packit_service.config import ServiceConfig
 from packit_service.constants import (
     NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION,
     REQUIREMENTS_URL,
@@ -49,7 +49,7 @@ EXPECTED_TESTING_FARM_CHECK_NAME = "testing-farm:fedora-rawhide-x86_64"
 
 @pytest.fixture()
 def allowlist():
-    return Allowlist()
+    return Allowlist(service_config=ServiceConfig.get_service_config())
 
 
 @pytest.fixture(scope="module")
@@ -304,11 +304,11 @@ def test_check_and_report_calls_method(allowlist, event, mocked_model, approved)
     )
     expectation.never() if approved else expectation.once()
 
+    ServiceConfig.get_service_config().admins = {"admin"}
     assert (
         allowlist.check_and_report(
             event,
             gp,
-            service_config=flexmock(deployment=Deployment.stg, admins=["admin"]),
             job_configs=[],
         )
         == approved
@@ -460,6 +460,7 @@ def test_check_and_report(
     :param allowlist: fixture
     :param events: fixture: [(Event, should-be-approved)]
     """
+    ServiceConfig.get_service_config().admins = {"admin"}
     flexmock(
         GithubProject,
         create_check_run=lambda *args, **kwargs: None,
@@ -540,12 +541,6 @@ def test_check_and_report(
             allowlist.check_and_report(
                 event,
                 git_project,
-                service_config=flexmock(
-                    deployment=Deployment.stg,
-                    command_handler_work_dir="",
-                    admins=["admin"],
-                    comment_command_prefix="/packit-stg",
-                ),
                 job_configs=job_configs,
             )
             is is_valid

@@ -58,7 +58,7 @@ UncheckedEvent = Union[
 
 
 class Allowlist:
-    def __init__(self, service_config: Optional[ServiceConfig] = None):
+    def __init__(self, service_config: ServiceConfig):
         self.service_config = service_config
 
     @staticmethod
@@ -273,7 +273,6 @@ class Allowlist:
         self,
         event: UncheckedEvent,
         project: GitProject,
-        service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
     ) -> bool:
         # Allowlist checks do not apply to CentOS (Pagure, GitLab) and distgit commit event.
@@ -284,7 +283,6 @@ class Allowlist:
         self,
         event: Union[ReleaseEvent, PushGitHubEvent, PushGitlabEvent],
         project: GitProject,
-        service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
     ) -> bool:
         # TODO: modify event hierarchy so we can use some abstract classes instead
@@ -307,7 +305,6 @@ class Allowlist:
             MergeRequestCommentGitlabEvent,
         ],
         project: GitProject,
-        service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
     ) -> bool:
         actor_name = event.actor
@@ -339,7 +336,7 @@ class Allowlist:
         else:
             for job_config in job_configs:
                 job_helper = CoprBuildJobHelper(
-                    service_config=service_config,
+                    service_config=self.service_config,
                     package_config=event.get_package_config(),
                     project=project,
                     metadata=EventData.from_event_dict(event.get_dict()),
@@ -366,7 +363,6 @@ class Allowlist:
         self,
         event: Union[IssueCommentEvent, IssueCommentGitlabEvent],
         project: GitProject,
-        service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
     ) -> bool:
         actor_name = event.actor
@@ -393,12 +389,10 @@ class Allowlist:
         self,
         event: Optional[Any],
         project: GitProject,
-        service_config: ServiceConfig,
         job_configs: Iterable[JobConfig],
     ) -> bool:
         """
         Check if account is approved and report status back in case of PR
-        :param service_config: service config
         :param event: PullRequest and Release TODO: handle more
         :param project: GitProject
         :param job_configs: iterable of jobconfigs - so we know how to update status of the PR
@@ -440,13 +434,13 @@ class Allowlist:
             event, "user_login", None
         ) or getattr(event, "actor", None)
 
-        if user_login and user_login in service_config.admins:
+        if user_login and user_login in self.service_config.admins:
             logger.info(f"{user_login} is admin, you shall pass.")
             return True
 
         for related_events, callback in CALLBACKS.items():
             if isinstance(event, related_events):
-                return callback(event, project, service_config, job_configs)
+                return callback(event, project, job_configs)
 
         msg = f"Failed to validate account: Unrecognized event type {type(event)!r}."
         logger.error(msg)
