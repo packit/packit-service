@@ -3,17 +3,14 @@
 
 from enum import Enum
 
-DOCS_URL = "https://packit.dev/docs"
 CONTACTS_URL = "https://packit.dev/#contact"
-FAQ_URL = f"{DOCS_URL}/faq"
-FAQ_URL_HOW_TO_RETRIGGER = (
-    f"{DOCS_URL}/packit-as-a-service/"
-    "#how-to-re-trigger-packit-service-actions-in-your-pull-request"
+DOCS_URL = "https://packit.dev/docs"
+DOCS_FAQ_URL = f"{DOCS_URL}/faq"
+DOCS_HOW_TO_RETRIGGER_URL = (
+    f"{DOCS_URL}/guide/#how-to-re-trigger-packit-actions-in-your-pull-request"
 )
-REQUIREMENTS_URL = (
-    "https://packit.dev/docs/packit-service/"
-    "#requirements-for-running-packit-service-jobs"
-)
+DOCS_HOW_TO_CONFIGURE_URL = f"{DOCS_URL}/guide/#3-configuration"
+DOCS_APPROVAL_URL = f"{DOCS_URL}/docs/guide/#2-approval"
 
 KOJI_PRODUCTION_BUILDS_ISSUE = "https://pagure.io/releng/issue/9801"
 
@@ -49,7 +46,7 @@ NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION = (
     "a valid [Fedora Account System](https://fedoraproject.org/wiki/Account_System) account.\n\n"
     "{instructions}"
     "For more details on how to get allowed for our service, please read "
-    "the instructions [in our onboarding guide](https://packit.dev/docs/guide/#2-approval)."
+    f"the instructions [in our onboarding guide]({DOCS_APPROVAL_URL})."
 )
 
 NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS = (

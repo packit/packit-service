@@ -24,6 +24,7 @@ from packit.exceptions import (
 from packit_service.constants import (
     CONFIG_FILE_NAME,
     CONTACTS_URL,
+    DOCS_HOW_TO_CONFIGURE_URL,
     SANDCASTLE_DEFAULT_PROJECT,
     SANDCASTLE_IMAGE,
     SANDCASTLE_PVC,
@@ -346,7 +347,7 @@ class PackageConfigGetter:
 
             message += (
                 "For more info, please check out "
-                "[the documentation](https://packit.dev/docs/guide/#3-configuration) "
+                f"[the documentation]({DOCS_HOW_TO_CONFIGURE_URL}) "
                 "or [contact the Packit team]"
                 f"({CONTACTS_URL})."
             )

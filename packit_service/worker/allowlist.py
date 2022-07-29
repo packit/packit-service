@@ -17,7 +17,7 @@ from packit_service.constants import (
     NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION,
     NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS,
     NOTIFICATION_REPO,
-    REQUIREMENTS_URL,
+    DOCS_APPROVAL_URL,
 )
 from packit_service.models import AllowlistModel, AllowlistStatus
 from packit_service.worker.events import (
@@ -356,7 +356,7 @@ class Allowlist:
                 job_helper.report_status_to_all(
                     description=msg,
                     state=BaseCommitStatus.neutral,
-                    url=issue_url or REQUIREMENTS_URL,
+                    url=issue_url or DOCS_APPROVAL_URL,
                     markdown_content=NAMESPACE_NOT_ALLOWED_MARKDOWN_DESCRIPTION.format(
                         instructions=NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS.format(
                             issue_url=issue_url

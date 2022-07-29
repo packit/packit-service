@@ -12,7 +12,7 @@ from packit.config import (
     Deployment,
 )
 from packit.config.package_config import PackageConfig
-from packit_service.constants import CONTACTS_URL, NOTIFICATION_REPO
+from packit_service.constants import CONTACTS_URL, DOCS_APPROVAL_URL, NOTIFICATION_REPO
 from packit_service.models import (
     GithubInstallationModel,
 )
@@ -107,7 +107,7 @@ class GithubAppInstallationHandler(JobHandler):
                     "/settings/profile/#github (update the FAS account in the URL if needed)"
                     "\n\n"
                     "For more info, please check out the documentation: "
-                    "https://packit.dev/docs/packit-service"
+                    f"{DOCS_APPROVAL_URL}"
                 ),
             )
             msg = f"{self.account_type} {self.account_login} needs to be approved manually!"
