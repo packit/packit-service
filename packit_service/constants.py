@@ -239,7 +239,7 @@ CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS = (
 )
 CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT = (
     "Your git-forge project is not allowed to use the configured `{copr_project}` Copr project.\n\n"
-    "Please, [let us know](https://packit.dev/#contact) "
+    f"Please, [let us know]({CONTACTS_URL}) "
     "if you need this git project to be allowed. "
     "We are working with the Copr team on a way "
     "how to make this easily configurable in the Copr web interface.\n"

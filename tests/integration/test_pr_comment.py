@@ -17,6 +17,8 @@ from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,
+    CONTACTS_URL,
+    DOCS_HOW_TO_CONFIGURE_URL,
     PG_BUILD_STATUS_SUCCESS,
     TASK_ACCEPTED,
     PG_BUILD_STATUS_FAILURE,
@@ -1211,9 +1213,11 @@ def test_trigger_packit_command_without_config(
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     err_msg = (
         "No config file for packit (e.g. `.packit.yaml`) found in namespace/repo on commit 12345"
-        "\n\nFor more info, please check out the documentation: "
-        "https://packit.dev/docs/packit-service or contact us - [Packit team]"
-        "(https://github.com/orgs/packit/teams/the-packit-team)"
+        "\n\n"
+        "For more info, please check out "
+        f"[the documentation]({DOCS_HOW_TO_CONFIGURE_URL}) "
+        "or [contact the Packit team]"
+        f"({CONTACTS_URL})."
     )
     flexmock(pr).should_receive("comment").with_args(err_msg)
 

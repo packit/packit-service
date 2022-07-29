@@ -15,6 +15,7 @@ from packit.utils import nested_get
 
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
+    CONTACTS_URL,
     TESTING_FARM_INSTALLABILITY_TEST_URL,
     TESTING_FARM_INSTALLABILITY_TEST_REF,
 )
@@ -448,7 +449,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 state=BaseCommitStatus.neutral,
                 description="Internal TF not allowed for this project. Let us know.",
                 target=target,
-                url="https://packit.dev/#contact",
+                url=CONTACTS_URL,
             )
             return TaskResults(
                 success=True,

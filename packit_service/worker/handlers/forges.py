@@ -12,7 +12,7 @@ from packit.config import (
     Deployment,
 )
 from packit.config.package_config import PackageConfig
-from packit_service.constants import NOTIFICATION_REPO
+from packit_service.constants import CONTACTS_URL, NOTIFICATION_REPO
 from packit_service.models import (
     GithubInstallationModel,
 )
@@ -251,7 +251,7 @@ class GithubFasVerificationHandler(JobHandler):
                 f"(https://accounts.fedoraproject.org/user/{fas_account}/"
                 f"settings/profile/#is_private)"
                 f" and try again or contact "
-                f"[us](https://packit.dev/#contact)."
+                f"[us]({CONTACTS_URL})."
             )
             self.issue.comment(msg)
 
