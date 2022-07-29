@@ -500,8 +500,7 @@ class SteveJobs:
             ):
                 jobs_matching_trigger.append(job)
 
-        if not jobs_matching_trigger:
-            jobs_matching_trigger.extend(self.check_explicit_matching())
+        jobs_matching_trigger.extend(self.check_explicit_matching())
 
         return jobs_matching_trigger
 
