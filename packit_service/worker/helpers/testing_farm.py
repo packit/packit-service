@@ -339,7 +339,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         The internal TF has a different set and behaves differently:
         * Fedora-3x -> Fedora-3x-Updated
         * CentOS-x ->  CentOS-x-latest
-        * CentOS-Stream-8 -> RHEL-8.5.0-Nightly
         """
         compose = (
             distro.title()
@@ -358,18 +357,19 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if self.job_config.use_internal_tf:
             # Internal TF does not have own endpoint for composes
             # This should be solved on the TF side.
+            # For more information on the composes
+            # see https://api.dev.testing-farm.io/v0.1/composes/redhat
             if compose == "Fedora-Rawhide":
                 return "Fedora-Rawhide-Nightly"
             if compose.startswith("Fedora-"):
                 return f"{compose}-Updated"
-            if compose == "CentOS-Stream-8":
-                return "RHEL-8.5.0-Nightly"
             if compose.startswith("CentOS") and len(compose) == len("CentOS-7"):
                 # Attach latest suffix only to major versions:
                 # CentOS-7 -> CentOS-7-latest
                 # CentOS-8 -> CentOS-8-latest
                 # CentOS-8.4 -> CentOS-8.4
                 # CentOS-8-latest -> CentOS-8-latest
+                # CentOS-Stream-8 -> CentOS-Stream-8
                 return f"{compose}-latest"
             if compose == "RHEL-6":
                 return "RHEL-6-LatestReleased"
@@ -380,7 +380,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             if compose == "Oracle-Linux-7":
                 return "Oracle-Linux-7.9"
             if compose == "Oracle-Linux-8":
-                return "Oracle-Linux-8.5"
+                return "Oracle-Linux-8.6"
         else:
             response = self.send_testing_farm_request(endpoint="composes")
             if response.status_code == 200:
