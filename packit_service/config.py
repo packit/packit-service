@@ -338,10 +338,11 @@ class PackageConfigGetter:
                 )
         except PackitConfigException as ex:
             message = (
-                f"{str(ex)}\n\n"
+                f"{ex}\n\n"
                 if isinstance(ex, PackitMissingConfigException)
-                else f"Failed to load packit config file:\n```\n{str(ex)}\n```\n"
+                else f"Failed to load packit config file:\n```\n{ex}\n```\n"
             )
+
             message += (
                 "For more info, please check out the documentation: "
                 "https://packit.dev/docs/packit-service or contact us - "
