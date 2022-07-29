@@ -341,6 +341,6 @@ class KojiBuildReportHandler(JobHandler):
                     koji_web_url=self.service_config.koji_web_url,
                 )
             )
-        # TODO: update logs URL (the access via task number dos not work for non-scratch builds)
+        # TODO: update logs URL (the access via task number does not work for non-scratch builds)
 
         return TaskResults(success=True, details={"msg": msg})
