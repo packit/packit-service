@@ -22,7 +22,7 @@ api = Api(
     app=blueprint,
     version="1.0",
     title="Packit Service API",
-    description="https://packit.dev/docs/packit-service",
+    description="https://packit.dev/",
 )
 
 api.add_namespace(copr_builds_ns)

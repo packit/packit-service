@@ -23,6 +23,8 @@ from packit.exceptions import (
 )
 from packit_service.constants import (
     CONFIG_FILE_NAME,
+    CONTACTS_URL,
+    DOCS_HOW_TO_CONFIGURE_URL,
     SANDCASTLE_DEFAULT_PROJECT,
     SANDCASTLE_IMAGE,
     SANDCASTLE_PVC,
@@ -338,15 +340,16 @@ class PackageConfigGetter:
                 )
         except PackitConfigException as ex:
             message = (
-                f"{str(ex)}\n\n"
+                f"{ex}\n\n"
                 if isinstance(ex, PackitMissingConfigException)
-                else f"Failed to load packit config file:\n```\n{str(ex)}\n```\n"
+                else f"Failed to load packit config file:\n```\n{ex}\n```\n"
             )
+
             message += (
-                "For more info, please check out the documentation: "
-                "https://packit.dev/docs/packit-service or contact us - "
-                "[Packit team]"
-                "(https://github.com/orgs/packit/teams/the-packit-team)"
+                "For more info, please check out "
+                f"[the documentation]({DOCS_HOW_TO_CONFIGURE_URL}) "
+                "or [contact the Packit team]"
+                f"({CONTACTS_URL})."
             )
 
             if pr_id:

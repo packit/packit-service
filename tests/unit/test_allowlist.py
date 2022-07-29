@@ -18,6 +18,7 @@ from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
+    DOCS_APPROVAL_URL,
     NOTIFICATION_REPO,
 )
 from packit_service.models import (
@@ -557,7 +558,7 @@ def test_check_and_report(
                     "in the linked issue.\n\n"
                     "For more details on how to get allowed for our service, please read "
                     "the instructions "
-                    "[in our onboarding guide](https://packit.dev/docs/guide/#2-approval)."
+                    f"[in our onboarding guide]({DOCS_APPROVAL_URL})."
                 ),
             ).once()
         flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
