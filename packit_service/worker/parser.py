@@ -1261,12 +1261,13 @@ class Parser:
 
         action = PullRequestCommentAction.created.value
         pr_id = event["pullrequest"]["id"]
+        pagure_login = event["agent"]
         base_repo_namespace = event["pullrequest"]["project"]["namespace"]
         base_repo_name = event["pullrequest"]["project"]["name"]
-        base_repo_owner = event["pullrequest"]["repo_from"]["user"]["name"]
-        target_repo = event["pullrequest"]["repo_from"]["name"]
+        repo_from = event["pullrequest"]["repo_from"]
+        base_repo_owner = repo_from["user"]["name"] if repo_from else pagure_login
+        target_repo = repo_from["name"] if repo_from else base_repo_name
         https_url = event["pullrequest"]["project"]["full_url"]
-        pagure_login = event["agent"]
         commit_sha = event["pullrequest"]["commit_stop"]
 
         if "added" in event["topic"]:

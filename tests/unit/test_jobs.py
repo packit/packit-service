@@ -2375,6 +2375,30 @@ def test_handler_doesnt_match_to_job(
                 ),
             ],
         ),
+        pytest.param(
+            PullRequestCommentPagureEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.koji_build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.koji_build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+            ],
+        ),
     ],
 )
 def test_get_jobs_matching_trigger(event_kls, job_config_trigger_type, jobs, result):
