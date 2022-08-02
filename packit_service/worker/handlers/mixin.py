@@ -1,13 +1,15 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from abc import abstractmethod
 import logging
-from typing import Optional, Protocol
+from abc import abstractmethod
+from typing import Any, Optional, Protocol
+from packit.exceptions import PackitException
 from packit.config import PackageConfig, JobConfig
+from packit.utils.koji_helper import KojiHelper
 from packit_service.utils import get_packit_commands_from_comment
 from packit_service.config import ProjectToSync
-from packit_service.constants import COPR_SRPM_CHROOT
+from packit_service.constants import COPR_SRPM_CHROOT, KojiBuildState
 from packit_service.models import (
     AbstractTriggerDbType,
     CoprBuildTargetModel,
@@ -78,6 +80,90 @@ class GetKojiBuildJobHelperMixin(GetKojiBuildJobHelper, ConfigMixin):
                 tests_targets_override=self.data.tests_targets_override,
             )
         return self._koji_build_helper
+
+
+class GetKojiBuildData(Protocol):
+    @property
+    @abstractmethod
+    def nvr(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def build_id(self) -> int:
+        ...
+
+    @property
+    @abstractmethod
+    def dist_git_branch(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def state(self) -> KojiBuildState:
+        ...
+
+
+class GetKojiBuildDataFromKojiBuildEventMixin(GetKojiBuildData, GetKojiBuildEvent):
+    @property
+    def nvr(self) -> str:
+        return self.koji_build_event.nvr
+
+    @property
+    def build_id(self) -> int:
+        return self.koji_build_event.build_id
+
+    @property
+    def dist_git_branch(self) -> str:
+        return self.koji_build_event.git_ref
+
+    @property
+    def state(self) -> KojiBuildState:
+        return self.koji_build_event.state
+
+
+class GetKojiBuildDataFromKojiServiceMixin(ConfigMixin, GetKojiBuildData):
+    """See https://koji.fedoraproject.org/koji/api method listBuilds
+    for a detailed description of a Koji build map.
+    """
+
+    _build: Optional[Any] = None
+    _koji_helper: Optional[KojiHelper] = None
+
+    @property
+    def koji_helper(self):
+        if not self._koji_helper:
+            self._koji_helper = KojiHelper()
+        return self._koji_helper
+
+    @property
+    def build(self):
+        if not self._build:
+            self._build = self.koji_helper.get_latest_build_in_tag(
+                package=self.project.repo,
+                tag=self.dist_git_branch,
+            )
+            if not self._build:
+                raise PackitException(
+                    f"No build found for package={self.project.repo} and tag={self.dist_git_branch}"
+                )
+        return self._build
+
+    @property
+    def nvr(self) -> str:
+        return self.build["nvr"]
+
+    @property
+    def build_id(self) -> int:
+        return self.build["build_id"]
+
+    @property
+    def dist_git_branch(self) -> str:
+        return self.project.get_pr(self.data.pr_id).target_branch
+
+    @property
+    def state(self) -> KojiBuildState:
+        return KojiBuildState.from_number(self.build["state"])
 
 
 class GetCoprBuildEvent(Protocol):

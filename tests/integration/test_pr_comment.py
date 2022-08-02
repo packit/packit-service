@@ -8,13 +8,19 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
-from ogr.services.github import GithubProject
-from ogr.utils import RequestResponse
 
 import packit_service.models
 import packit_service.service.urls as urls
-from packit.config import JobConfigTriggerType
+
+from ogr.utils import RequestResponse
+from ogr.services.pagure import PagureProject
+from ogr.services.github import GithubProject
+from packit.api import PackitAPI
+from packit.config import (
+    JobConfigTriggerType,
+)
 from packit.exceptions import PackitConfigException
+from packit.utils.koji_helper import KojiHelper
 from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
@@ -44,6 +50,9 @@ from packit_service.utils import (
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.handlers.bodhi import (
+    RetriggerBodhiUpdateHandler,
+)
 from packit_service.worker.helpers.build import copr_build
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
@@ -56,6 +65,7 @@ from packit_service.worker.result import TaskResults
 from packit_service.worker.tasks import (
     run_copr_build_handler,
     run_koji_build_handler,
+    run_retrigger_bodhi_update,
     run_testing_farm_handler,
 )
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
@@ -2649,3 +2659,76 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         event=event_dict,
         job_config=job_config,
     )
+
+
+def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added):
+    pagure_pr_comment_added["pullrequest"]["comments"][0][
+        "comment"
+    ] = "/packit create-update"
+    project = pagure_pr_comment_added["pullrequest"]["project"]
+    project["full_url"] = "https://src.fedoraproject.org/rpms/jouduv-dort"
+    project["fullname"] = "rpms/jouduv-dort"
+    project["name"] = "jouduv-dort"
+    project["url_path"] = "rpms/jouduv-dort"
+
+    packit_yaml = (
+        "{'specfile_path': 'jouduv-dort.spec', 'synced_files': [],"
+        "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update'}],"
+        "'downstream_package_name': 'jouduv-dort'}"
+    )
+
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
+        trigger
+    )
+
+    pagure_project = flexmock(
+        PagureProject,
+        full_repo_name="rpms/jouduv-dort",
+        get_web_url=lambda: "https://src.fedoraproject.org/rpms/jouduv-dort",
+        default_branch="main",
+        get_pr=lambda id: flexmock(target_branch="the_distgit_branch"),
+    )
+
+    flexmock(KojiHelper).should_receive("get_latest_build_in_tag").and_return(
+        {"nvr": "123"}
+    )
+
+    pagure_project.should_receive("get_files").with_args(
+        ref="beaf90bcecc51968a46663f8d6f092bfdc92e682", filter_regex=r".+\.spec$"
+    ).and_return(["jouduv-dort.spec"])
+    pagure_project.should_receive("get_file_content").with_args(
+        path=".distro/source-git.yaml",
+        ref="beaf90bcecc51968a46663f8d6f092bfdc92e682",
+    ).and_raise(FileNotFoundError, "Not found.")
+    pagure_project.should_receive("get_file_content").with_args(
+        path=".packit.yaml", ref="beaf90bcecc51968a46663f8d6f092bfdc92e682"
+    ).and_return(packit_yaml)
+
+    flexmock(RetriggerBodhiUpdateHandler).should_receive("pre_check").and_return(True)
+
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(PackitAPI).should_receive("create_update").with_args(
+        dist_git_branch="the_distgit_branch",
+        update_type="enhancement",
+        koji_builds=["123"],
+    ).once()
+
+    flexmock(Pushgateway).should_receive("push").once().and_return()
+
+    processing_results = SteveJobs().process_message(pagure_pr_comment_added)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+    results = run_retrigger_bodhi_update(
+        event=event_dict,
+        package_config=package_config,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
