@@ -4,6 +4,7 @@ PULL_BASE_IMAGE ?= true
 SERVICE_IMAGE ?= quay.io/packit/packit-service:dev
 WORKER_IMAGE ?= quay.io/packit/packit-worker:dev
 TEST_IMAGE ?= quay.io/packit/packit-service-tests:stg
+PACKIT_PATH ?= ../packit
 # missing|always|never
 PULL_TEST_IMAGE ?= missing
 TEST_TARGET ?= ./tests/unit ./tests/integration/
@@ -45,6 +46,13 @@ build-test-image: files/install-deps-worker.yaml files/install-deps.yaml files/r
 		-t $(TEST_IMAGE) \
 		-f files/docker/Dockerfile.tests \
 		--build-arg SOURCE_BRANCH=$(SOURCE_BRANCH) \
+		.
+
+build-revdep-test-image: build-test-image
+	$(CONTAINER_ENGINE) build \
+		-t $(TEST_IMAGE) \
+		-f files/docker/Containerfile.revdep \
+	    -v $(shell realpath $(PACKIT_PATH)):/var/packit:Z \
 		.
 
 # We use a test image pre-built (by Github action) from latest commit in main.
@@ -166,4 +174,6 @@ check-db: build-test-image compose-for-db-up
 		-w /src \
 		--network packit-service_default \
 		$(TEST_IMAGE) make check "TEST_TARGET=tests_openshift/database"
-		$(COMPOSE) down
+		$(COMPproject=OSE) down
+
+.PHONY: build-revdep-test-image

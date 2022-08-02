@@ -105,65 +105,70 @@ def koji_build_scratch_end():
 @pytest.fixture(scope="module")
 def pc_build_pr():
     return PackageConfig(
+        specfile_path="test.spec",
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
                 _targets=["fedora-all"],
             )
-        ]
+        ],
     )
 
 
 @pytest.fixture(scope="module")
 def pc_koji_build_pr():
     return PackageConfig(
+        specfile_path="test.spec",
         jobs=[
             JobConfig(
                 type=JobType.production_build,
                 trigger=JobConfigTriggerType.pull_request,
                 _targets=["fedora-all"],
             )
-        ]
+        ],
     )
 
 
 @pytest.fixture(scope="module")
 def pc_build_push():
     return PackageConfig(
+        specfile_path="test.spec",
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.commit,
                 _targets=["fedora-all"],
             )
-        ]
+        ],
     )
 
 
 @pytest.fixture(scope="module")
 def pc_build_release():
     return PackageConfig(
+        specfile_path="test.spec",
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.release,
                 _targets=["fedora-all"],
             )
-        ]
+        ],
     )
 
 
 @pytest.fixture(scope="module")
 def pc_tests():
     return PackageConfig(
+        specfile_path="test.spec",
         jobs=[
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
                 _targets=["fedora-all"],
             )
-        ]
+        ],
     )
 
 
@@ -418,6 +423,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     urls.DASHBOARD_URL = "https://dashboard.localhost"
 
     config = PackageConfig(
+        specfile_path="test.spec",
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
@@ -429,7 +435,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
                 trigger=JobConfigTriggerType.pull_request,
                 _targets=["fedora-rawhide"],
             ),
-        ]
+        ],
     )
 
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
@@ -626,6 +632,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     )
 
     config = PackageConfig(
+        specfile_path="test.spec",
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
@@ -637,7 +644,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
                 trigger=JobConfigTriggerType.pull_request,
                 _targets=["fedora-rawhide"],
             ),
-        ]
+        ],
     )
 
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
@@ -763,6 +770,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     )
 
     config = PackageConfig(
+        specfile_path="test.spec",
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
@@ -774,7 +782,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
                 trigger=JobConfigTriggerType.pull_request,
                 _targets=["fedora-rawhide"],
             ),
-        ]
+        ],
     )
 
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
