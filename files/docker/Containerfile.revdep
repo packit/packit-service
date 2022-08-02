@@ -1,0 +1,5 @@
+FROM quay.io/packit/packit-service-tests:stg
+
+WORKDIR /var/packit
+
+RUN pip3 install .

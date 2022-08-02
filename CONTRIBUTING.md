@@ -286,6 +286,20 @@ To run them you need docker-compose.
 Otherwise you can run the same using _Openshift_ and following
 the instructions below.
 
+### Running "reverse-dep" tests locally
+
+In order to use a locally checked out, development version of Packit in the
+test image, build a "reverse-dep" test image:
+
+    make build-revdep-test-image
+
+By default, 'packit' is expected to be found at `../packit`. Set `PACKIT_PATH`
+to customize this.
+
+Once the image is built, run the tests in a container as usual:
+
+    make check-in-container
+
 ### Openshift tests using requre
 
 This testsuite uses [requre project](https://github.com/packit/requre) project to
