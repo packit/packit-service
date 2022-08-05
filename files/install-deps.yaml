@@ -55,8 +55,7 @@
       pip:
         name:
           - git+https://github.com/packit/packit.git@{{ source_branch }}
-          # ogr has only main branch
-          - git+https://github.com/packit/ogr.git
+          - git+https://github.com/packit/ogr.git@{{ source_branch }}
         executable: pip3
         extra_args: --no-deps
     - name: Check if all pip packages have all dependencies installed
