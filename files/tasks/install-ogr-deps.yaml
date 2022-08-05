@@ -13,8 +13,7 @@
 
 - name: Download ogr setup.cfg
   ansible.builtin.get_url:
-    # ogr has only main branch
-    url: https://raw.githubusercontent.com/packit/ogr/main/setup.cfg
+    url: https://raw.githubusercontent.com/packit/ogr/{{ source_branch }}/setup.cfg
     dest: ./ogr_setup.cfg
     mode: 0664
   register: fetch_ogr_setup
