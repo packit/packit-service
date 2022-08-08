@@ -50,9 +50,9 @@
         # needed when installing from koji - there are no GPG-signed packages
         disable_gpg_check: true
         state: present
-    - import_tasks: tasks/install-packit-deps.yaml
     - import_tasks: tasks/install-ogr-deps.yaml
     - import_tasks: tasks/install-specfile-deps.yaml
+    - import_tasks: tasks/install-packit-deps.yaml
     - name: Install pip deps
       pip:
         name:
