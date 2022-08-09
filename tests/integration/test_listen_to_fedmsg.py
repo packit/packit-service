@@ -19,7 +19,7 @@ from packit.config.package_config import PackageConfig
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 from packit_service.config import PackageConfigGetter, ServiceConfig
-from packit_service.constants import COPR_API_FAIL_STATE
+from packit_service.constants import COPR_API_FAIL_STATE, DEFAULT_RETRY_LIMIT
 from packit_service.models import (
     CoprBuildTargetModel,
     JobTriggerModelType,
@@ -855,7 +855,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     ).once()
     flexmock(StatusReporter).should_receive("report").with_args(
         state=BaseCommitStatus.failure,
-        description="Failed to submit tests: some text error",
+        description="Failed to submit tests: some text error.",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
         markdown_content=None,
@@ -885,7 +885,9 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         copr_build_pr.get_trigger_object()
     )
     event_dict["tests_targets_override"] = ["fedora-rawhide-x86_64"]
-    run_testing_farm_handler(
+    task = run_testing_farm_handler.__wrapped__.__func__
+    task(
+        flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
         package_config=package_config,
         event=event_dict,
         job_config=job_config,
