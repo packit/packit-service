@@ -4,9 +4,6 @@ from celery.schedules import crontab
 
 import packit_service.constants
 
-# https://docs.celeryq.dev/en/stable/userguide/tasks.html#ignore-results-you-don-t-want
-task_ignore_result = True
-
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#std-setting-task_default_queue
 task_default_queue = packit_service.constants.CELERY_TASK_DEFAULT_QUEUE
 

@@ -6,7 +6,6 @@ from os import getenv
 from celery import Celery
 from lazy_object_proxy import Proxy
 
-from packit_service.models import get_pg_url
 from packit_service.sentry_integration import configure_sentry
 
 
@@ -23,11 +22,8 @@ class Celerizer:
             db = getenv("REDIS_SERVICE_DB", "0")
             broker_url = f"redis://:{password}@{host}:{port}/{db}"
 
-            # https://docs.celeryq.dev/en/stable/userguide/configuration.html#database-url-examples
-            postgres_url = f"db+{get_pg_url()}"
-
             # http://docs.celeryq.dev/en/stable/reference/celery.html#celery.Celery
-            self._celery_app = Celery(backend=postgres_url, broker=broker_url)
+            self._celery_app = Celery(broker=broker_url)
 
             # https://docs.celeryq.dev/en/stable/getting-started/first-steps-with-celery.html#configuration
             self._celery_app.config_from_object("packit_service.celery_config")
