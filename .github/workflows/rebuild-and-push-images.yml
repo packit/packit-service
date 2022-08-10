@@ -37,7 +37,7 @@ jobs:
                   ;;
           esac
           echo "::set-output name=branch::${branch}"
-          unique_tag="${branch}-${GITHUB_SHA::7}"
+          unique_tag="${branch}-${GITHUB_SHA::7}-$(date +%s)"
           echo "::set-output name=tag::${tag} ${unique_tag}"
         id: branch_tag
 
