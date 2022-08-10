@@ -17,6 +17,7 @@ from packit_service.models import (
     JobTriggerModel,
     ProjectReleaseModel,
     PullRequestModel,
+    TFTTestRunGroupModel,
 )
 from packit_service.service.db_triggers import (
     AddBranchPushDbTrigger,
@@ -279,6 +280,10 @@ def test_check_rerun_pr_testing_farm_handler(
     mock_pr_functionality, check_rerun_event_testing_farm
 ):
 
+    run = flexmock()
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(run).and_return(
+        flexmock()
+    )
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})
     )
@@ -288,7 +293,7 @@ def test_check_rerun_pr_testing_farm_handler(
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=PG_BUILD_STATUS_SUCCESS)
+        flexmock(status=PG_BUILD_STATUS_SUCCESS, runs=[run])
     )
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64", "fedora-34-x86_64"}
@@ -452,6 +457,10 @@ def test_check_rerun_push_testing_farm_handler(
     mock_push_functionality, check_rerun_event_testing_farm
 ):
 
+    run = flexmock()
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(run).and_return(
+        flexmock()
+    )
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})
     )
@@ -461,7 +470,7 @@ def test_check_rerun_push_testing_farm_handler(
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=PG_BUILD_STATUS_SUCCESS)
+        flexmock(status=PG_BUILD_STATUS_SUCCESS, runs=[run])
     )
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64", "fedora-34-x86_64"}

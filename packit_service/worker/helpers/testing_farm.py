@@ -22,8 +22,8 @@ from packit_service.constants import (
 from packit_service.models import (
     CoprBuildTargetModel,
     TFTTestRunTargetModel,
+    TFTTestRunGroupModel,
     TestingFarmResult,
-    PipelineModel,
 )
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.utils import get_package_nvrs
@@ -416,7 +416,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             return None
 
     def run_testing_farm(
-        self, target: str, build: Optional["CoprBuildTargetModel"]
+        self,
+        target: str,
+        build: Optional["CoprBuildTargetModel"],
+        group: "TFTTestRunGroupModel",
     ) -> TaskResults:
         if target not in self.tests_targets:
             # Leaving here just to be sure that we will discover this situation if it occurs.
@@ -526,15 +529,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             f"Submitted ({req.status_code}) to testing farm as request {pipeline_id}"
         )
 
-        run_model = (
-            PipelineModel.create(
-                type=self.db_trigger.job_trigger_model_type,
-                trigger_id=self.db_trigger.id,
-            )
-            if self.skip_build
-            else build.runs[-1]
-        )
-
         created_model = TFTTestRunTargetModel.create(
             pipeline_id=pipeline_id,
             identifier=self.job_config.identifier,
@@ -542,7 +536,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             status=TestingFarmResult.new,
             target=target,
             web_url=None,
-            run_model=run_model,
+            test_run_group=group,
             # In _payload() we ask TF to test commit_sha of fork (PR's source).
             # Store original url. If this proves to work, make it a separate column.
             data={"base_project_url": self.project.get_web_url()},

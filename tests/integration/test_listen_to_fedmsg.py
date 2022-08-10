@@ -26,6 +26,7 @@ from packit_service.models import (
     KojiBuildTargetModel,
     SRPMBuildModel,
     TFTTestRunTargetModel,
+    TFTTestRunGroupModel,
     TestingFarmResult,
 )
 from packit_service.service.urls import (
@@ -555,6 +556,10 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     )
 
     tft_test_run_model = flexmock(id=5)
+    group = flexmock()
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        copr_build_pr.runs[-1]
+    ).and_return(group)
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
         pipeline_id=pipeline_id,
         identifier=None,
@@ -562,8 +567,8 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
         web_url=None,
-        run_model=copr_build_pr.runs[0],
         data={"base_project_url": "https://github.com/foo/bar"},
+        test_run_group=group,
     ).and_return(tft_test_run_model)
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -688,6 +693,9 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         markdown_content=None,
     ).once()
 
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        copr_build_pr.runs[-1]
+    ).and_return(flexmock())
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
     flexmock(TestingFarmJobHelper).should_receive(
         "send_testing_farm_request"
@@ -826,6 +834,9 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         markdown_content=None,
     ).once()
 
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        copr_build_pr.runs[-1]
+    ).and_return(flexmock())
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
     flexmock(TestingFarmJobHelper).should_receive(
         "send_testing_farm_request"

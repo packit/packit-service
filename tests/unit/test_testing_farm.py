@@ -17,7 +17,12 @@ from packit_service.models import TFTTestRunTargetModel
 from packit_service.worker.events import (
     TestingFarmResultsEvent as TFResultsEvent,
 )
-from packit_service.models import JobTriggerModel, JobTriggerModelType
+from packit_service.models import (
+    JobTriggerModel,
+    JobTriggerModelType,
+    PipelineModel,
+    TFTTestRunGroupModel,
+)
 from packit_service.models import TestingFarmResult as TFResult
 
 from packit_service.worker.helpers.build import copr_build as cb
@@ -748,6 +753,7 @@ def test_get_request_details():
             flexmock(
                 commit_sha="1111111111111111111111111111111111111111",
                 status=PG_BUILD_STATUS_SUCCESS,
+                runs=[flexmock()],
             ),
             False,
         ),
@@ -775,6 +781,8 @@ def test_trigger_build(copr_build, run_new_build):
 
     flexmock(TFJobHelper).should_receive("get_latest_copr_build").and_return(copr_build)
 
+    flexmock(PipelineModel).should_receive("create").and_return(flexmock())
+    flexmock(TFTTestRunGroupModel).should_receive("create").and_return(flexmock())
     if run_new_build:
         flexmock(TFJobHelper, job_owner="owner", job_project="project")
         flexmock(cb.CoprBuildJobHelper).should_receive(
@@ -792,7 +800,9 @@ def test_trigger_build(copr_build, run_new_build):
 
     tf_handler = TestingFarmHandler(package_config, job_config, event)
     tf_handler._db_trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+        id=11,
     )
     tf_handler.run()
 

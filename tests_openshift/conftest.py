@@ -33,6 +33,7 @@ from packit_service.models import (
     JobTriggerModelType,
     KojiBuildTargetModel,
     TFTTestRunTargetModel,
+    TFTTestRunGroupModel,
     TestingFarmResult,
     GithubInstallationModel,
     ProjectAuthenticationIssueModel,
@@ -366,6 +367,13 @@ def srpm_build_model_with_new_run_for_pr(pr_model):
 
 
 @pytest.fixture()
+def srpm_build_model_with_new_run_and_tf_for_pr(srpm_build_model_with_new_run_for_pr):
+    srpm_model, run_model = srpm_build_model_with_new_run_for_pr
+    tf_group_model = TFTTestRunGroupModel.create(run_model)
+    yield srpm_model, tf_group_model, run_model
+
+
+@pytest.fixture()
 def srpm_build_model_with_new_run_for_branch(branch_model):
     srpm_model, run_model = SRPMBuildModel.create_with_new_run(
         trigger_model=branch_model, commit_sha=SampleValues.commit_sha
@@ -376,6 +384,15 @@ def srpm_build_model_with_new_run_for_branch(branch_model):
 
 
 @pytest.fixture()
+def srpm_build_model_with_new_run_and_tf_for_branch(
+    srpm_build_model_with_new_run_for_branch,
+):
+    srpm_model, run_model = srpm_build_model_with_new_run_for_branch
+    tf_group_model = TFTTestRunGroupModel.create(run_model)
+    yield srpm_model, tf_group_model, run_model
+
+
+@pytest.fixture()
 def srpm_build_model_with_new_run_for_release(release_model):
     srpm_model, run_model = SRPMBuildModel.create_with_new_run(
         trigger_model=release_model, commit_sha=SampleValues.commit_sha
@@ -383,6 +400,15 @@ def srpm_build_model_with_new_run_for_release(release_model):
     srpm_model.set_logs(SampleValues.srpm_logs)
     srpm_model.set_status("success")
     yield srpm_model, run_model
+
+
+@pytest.fixture()
+def srpm_build_model_with_new_run_and_tf_for_release(
+    srpm_build_model_with_new_run_for_release,
+):
+    srpm_model, run_model = srpm_build_model_with_new_run_for_release
+    tf_group_model = TFTTestRunGroupModel.create(run_model)
+    yield srpm_model, tf_group_model, run_model
 
 
 @pytest.fixture()
@@ -771,13 +797,14 @@ def multiple_koji_builds(pr_model, different_pr_model):
 @pytest.fixture()
 def a_new_test_run_pr(srpm_build_model_with_new_run_for_pr, a_copr_build_for_pr):
     _, run_model = srpm_build_model_with_new_run_for_pr
+    group = TFTTestRunGroupModel.create(run_model)
     yield TFTTestRunTargetModel.create(
         pipeline_id=SampleValues.pipeline_id,
         commit_sha=SampleValues.commit_sha,
         web_url=SampleValues.testing_farm_url,
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_model=run_model,
+        test_run_group=group,
     )
 
 
@@ -786,13 +813,14 @@ def a_new_test_run_branch_push(
     srpm_build_model_with_new_run_for_branch, a_copr_build_for_branch_push
 ):
     _, run_model = srpm_build_model_with_new_run_for_branch
+    group = TFTTestRunGroupModel.create(run_model)
     yield TFTTestRunTargetModel.create(
         pipeline_id=SampleValues.pipeline_id,
         commit_sha=SampleValues.commit_sha,
         web_url=SampleValues.testing_farm_url,
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_model=run_model,
+        test_run_group=group,
     )
 
 
@@ -801,12 +829,15 @@ def multiple_new_test_runs(pr_model, different_pr_model):
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
         trigger_model=pr_model, commit_sha=SampleValues.commit_sha
     )
+    group_for_pr = TFTTestRunGroupModel.create(run_model_for_pr)
     _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
         trigger_model=pr_model, commit_sha=SampleValues.commit_sha
     )
+    group_for_same_pr = TFTTestRunGroupModel.create(run_model_for_same_pr)
     _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
         trigger_model=different_pr_model, commit_sha=SampleValues.commit_sha
     )
+    group_for_different_pr = TFTTestRunGroupModel.create(run_model_for_a_different_pr)
 
     CoprBuildTargetModel.create(
         build_id=SampleValues.build_id,
@@ -850,7 +881,7 @@ def multiple_new_test_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=SampleValues.target,
             status=TestingFarmResult.new,
-            run_model=run_model_for_pr,
+            test_run_group=group_for_pr,
         ),
         # Same commit_sha but different chroot and pipeline_id
         TFTTestRunTargetModel.create(
@@ -859,7 +890,7 @@ def multiple_new_test_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=SampleValues.different_target,
             status=TestingFarmResult.new,
-            run_model=run_model_for_pr,
+            test_run_group=group_for_pr,
         ),
         # Same PR, different run model
         TFTTestRunTargetModel.create(
@@ -868,7 +899,7 @@ def multiple_new_test_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=SampleValues.different_target,
             status=TestingFarmResult.new,
-            run_model=run_model_for_same_pr,
+            test_run_group=group_for_same_pr,
         ),
         # Completely different build
         TFTTestRunTargetModel.create(
@@ -877,7 +908,7 @@ def multiple_new_test_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=SampleValues.different_target,
             status=TestingFarmResult.running,
-            run_model=run_model_for_a_different_pr,
+            test_run_group=group_for_different_pr,
         ),
     ]
 
@@ -1853,6 +1884,7 @@ def few_runs(pr_model, different_pr_model):
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
         trigger_model=pr_model, commit_sha=SampleValues.commit_sha
     )
+    TFTTestRunGroupModel.create(run_model_for_pr)
 
     for target in (SampleValues.target, SampleValues.different_target):
         copr_build = CoprBuildTargetModel.create(
@@ -1872,12 +1904,13 @@ def few_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=target,
             status=TestingFarmResult.new,
-            run_model=copr_build.runs[0],
+            test_run_group=copr_build.runs[0].test_run_group,
         )
 
     _, run_model_for_different_pr = SRPMBuildModel.create_with_new_run(
         trigger_model=different_pr_model, commit_sha=SampleValues.commit_sha
     )
+    TFTTestRunGroupModel.create(run_model_for_different_pr)
 
     runs = []
     for target in (SampleValues.target, SampleValues.different_target):
@@ -1899,7 +1932,7 @@ def few_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=target,
             status=TestingFarmResult.new,
-            run_model=runs[-1],
+            test_run_group=runs[-1].test_run_group,
         )
 
     for i, target in enumerate((SampleValues.target, SampleValues.different_target)):
@@ -1909,7 +1942,7 @@ def few_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=target,
             status=TestingFarmResult.new,
-            run_model=runs[i],
+            test_run_group=runs[i].test_run_group,
         )
 
     yield run_model_for_pr.id, run_model_for_different_pr.id
@@ -1923,6 +1956,8 @@ def runs_without_build(pr_model, branch_model):
     run_model_for_branch_only_test = PipelineModel.create(
         type=branch_model.job_trigger_model_type, trigger_id=branch_model.id
     )
+    TFTTestRunGroupModel.create(run_model_for_pr_only_test)
+    TFTTestRunGroupModel.create(run_model_for_branch_only_test)
 
     TFTTestRunTargetModel.create(
         pipeline_id=SampleValues.pipeline_id,
@@ -1930,7 +1965,7 @@ def runs_without_build(pr_model, branch_model):
         web_url=SampleValues.testing_farm_url,
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_model=run_model_for_pr_only_test,
+        test_run_group=run_model_for_pr_only_test.test_run_group,
     ),
     TFTTestRunTargetModel.create(
         pipeline_id=SampleValues.pipeline_id,
@@ -1938,7 +1973,7 @@ def runs_without_build(pr_model, branch_model):
         web_url=SampleValues.testing_farm_url,
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_model=run_model_for_branch_only_test,
+        test_run_group=run_model_for_branch_only_test.test_run_group,
     )
     yield [run_model_for_pr_only_test, run_model_for_branch_only_test]
 

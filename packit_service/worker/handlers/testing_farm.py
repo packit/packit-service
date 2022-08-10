@@ -15,6 +15,8 @@ from packit.config.package_config import PackageConfig
 from packit_service.models import (
     AbstractTriggerDbType,
     TFTTestRunTargetModel,
+    TFTTestRunGroupModel,
+    PipelineModel,
     CoprBuildTargetModel,
     TestingFarmResult,
     JobTriggerModel,
@@ -199,6 +201,7 @@ class TestingFarmHandler(JobHandler):
         targets_without_builds = set()
         targets_with_builds = {}
 
+        copr_build = None
         for target in targets:
             chroot = self.testing_farm_job_helper.test_target2build_target(target)
             if self.build_id:
@@ -235,6 +238,16 @@ class TestingFarmHandler(JobHandler):
             event_data["build_targets_override"] = list(targets_without_builds)
             self.run_copr_build_handler(event_data, len(targets_without_builds))
 
+        run_model = (
+            PipelineModel.create(
+                type=self.db_trigger.job_trigger_model_type,
+                trigger_id=self.db_trigger.id,
+            )
+            if self.testing_farm_job_helper.skip_build or not copr_build
+            else copr_build.runs[-1]
+        )
+        group = TFTTestRunGroupModel.create(run_model)
+
         for target, copr_build in targets_with_builds.items():
             if copr_build.status != PG_BUILD_STATUS_SUCCESS:
                 logger.info(
@@ -250,17 +263,22 @@ class TestingFarmHandler(JobHandler):
                 continue
 
             logger.info(f"Running testing farm for {copr_build}:{target}.")
-            self.run_for_target(target=target, build=copr_build, failed=failed)
+            self.run_for_target(
+                target=target, build=copr_build, failed=failed, group=group
+            )
 
     def run_for_target(
         self,
         target: str,
         failed: Dict,
+        group: TFTTestRunGroupModel,
         build: Optional[CoprBuildTargetModel] = None,
     ):
         self.pushgateway.test_runs_queued.inc()
         result = self.testing_farm_job_helper.run_testing_farm(
-            build=build, target=target
+            build=build,
+            target=target,
+            group=group,
         )
         if not result["success"]:
             failed[target] = result.get("details")
@@ -291,8 +309,13 @@ class TestingFarmHandler(JobHandler):
         failed: Dict[str, str] = {}
 
         if self.testing_farm_job_helper.skip_build:
+            run_model = PipelineModel.create(
+                type=self.db_trigger.job_trigger_model_type,
+                trigger_id=self.db_trigger.id,
+            )
+            group = TFTTestRunGroupModel.create(run_model)
             for target in targets:
-                self.run_for_target(target=target, failed=failed)
+                self.run_for_target(target=target, failed=failed, group=group)
 
         else:
             self.run_with_copr_builds(targets=targets, failed=failed)

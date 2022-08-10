@@ -31,6 +31,7 @@ from packit_service.models import (
     PipelineModel,
     PullRequestModel,
     TFTTestRunTargetModel,
+    TFTTestRunGroupModel,
     TestingFarmResult,
 )
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
@@ -750,8 +751,12 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     flexmock(copr_build).should_receive("get_valid_build_targets").times(5).and_return(
         {"test-target"}
     )
+    run = flexmock()
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(run).and_return(
+        flexmock
+    )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=PG_BUILD_STATUS_SUCCESS)
+        flexmock(status=PG_BUILD_STATUS_SUCCESS, runs=[run])
     )
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})
@@ -932,6 +937,10 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     tft_test_run_model = flexmock(id=5)
     run_model = flexmock()
     flexmock(PipelineModel).should_receive("create").and_return(run_model)
+    group_model = flexmock()
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        run_model
+    ).and_return(group_model)
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
         pipeline_id=pipeline_id,
         identifier=None,
@@ -939,7 +948,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
         web_url=None,
-        run_model=run_model,
+        test_run_group=group_model,
         data={"base_project_url": "https://github.com/packit-service/hello-world"},
     ).and_return(tft_test_run_model)
 
@@ -1025,6 +1034,12 @@ def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
         {"test-target", "test-target-without-build"}
     )
+    run_model = flexmock()
+    flexmock(PipelineModel).should_receive("create").and_return(run_model)
+    group_model = flexmock()
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        run_model
+    ).and_return(group_model)
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
         flexmock(status=PG_BUILD_STATUS_SUCCESS)
     ).and_return()
@@ -1343,8 +1358,17 @@ def test_retest_failed(
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(
-        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+        flexmock(
+            id=9,
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
+        )
     )
+    run_model = flexmock()
+    flexmock(PipelineModel).should_receive("create").and_return(run_model)
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        run_model
+    ).and_return(flexmock())
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit retest-failed"
     flexmock(GithubProject, get_files="foo.spec")
@@ -1474,6 +1498,13 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64"}
     )
+    # There will be an empty group (i.e. no builds)
+    run_model = flexmock()
+    flexmock(PipelineModel).should_receive("create").and_return(run_model)
+    group_model = flexmock()
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        run_model
+    ).and_return(group_model)
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(

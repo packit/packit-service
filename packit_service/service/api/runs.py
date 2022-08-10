@@ -14,6 +14,7 @@ from packit_service.models import (
     ProposeDownstreamModel,
     SRPMBuildModel,
     TFTTestRunTargetModel,
+    TFTTestRunGroupModel,
     optional_timestamp,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
@@ -85,27 +86,35 @@ def process_runs(runs):
         for model_type, Model, packit_ids in (
             ("copr", CoprBuildTargetModel, pipeline.copr_build_id),
             ("koji", KojiBuildTargetModel, pipeline.koji_build_id),
-            ("test_run", TFTTestRunTargetModel, pipeline.test_run_id),
+            ("test_run", TFTTestRunGroupModel, pipeline.test_run_group_id),
         ):
             for packit_id in set(flatten_and_remove_none(packit_ids)):
-                row = Model.get_by_id(packit_id)
-                if row.status == "waiting_for_srpm":
-                    continue
-                response_dict[model_type].append(
-                    {
-                        "packit_id": packit_id,
-                        "target": row.target,
-                        "status": row.status,
-                    }
+                group_row = Model.get_by_id(packit_id)
+                target_models = (
+                    group_row.tft_test_run_targets
+                    if isinstance(group_row, TFTTestRunGroupModel)
+                    else [group_row]
                 )
-                if "trigger" not in response_dict:
-                    submitted_time = (
-                        row.submitted_time
-                        if isinstance(row, TFTTestRunTargetModel)
-                        else row.build_submitted_time
+                for row in target_models:
+                    if row.status == "waiting_for_srpm":
+                        continue
+                    response_dict[model_type].append(
+                        {
+                            "packit_id": row.id,
+                            "target": row.target,
+                            "status": row.status,
+                        }
                     )
-                    response_dict["time_submitted"] = optional_timestamp(submitted_time)
-                    response_dict["trigger"] = get_project_info_from_build(row)
+                    if "trigger" not in response_dict:
+                        submitted_time = (
+                            row.submitted_time
+                            if isinstance(row, TFTTestRunTargetModel)
+                            else row.build_submitted_time
+                        )
+                        response_dict["time_submitted"] = optional_timestamp(
+                            submitted_time
+                        )
+                        response_dict["trigger"] = get_project_info_from_build(row)
 
         # handle propose-downstream
         if propose_downstream := list(
@@ -174,6 +183,6 @@ class Run(Resource):
             "srpm_build_id": run.srpm_build_id,
             "copr_build_id": run.copr_build_id,
             "koji_build_id": run.koji_build_id,
-            "test_run_id": run.test_run_id,
+            "test_run_group_id": run.test_run_group_id,
         }
         return response_maker(result)
