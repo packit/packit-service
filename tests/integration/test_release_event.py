@@ -8,12 +8,12 @@ from celery.app.task import Context, Task
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
-from rebasehelper.exceptions import RebaseHelperError
 
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.config.aliases import get_branches
 from packit.distgit import DistGit
+from packit.exceptions import PackitDownloadFailedException
 from packit.local_project import LocalProject
 from packit.pkgtool import PkgTool
 from packit_service import sentry_integration
@@ -620,7 +620,7 @@ def test_retry_propose_downstream_task(
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main", tag="0.3.0", create_pr=True
     ).and_raise(
-        RebaseHelperError, "Failed to download file from URL example.com"
+        PackitDownloadFailedException, "Failed to download source from example.com"
     ).once()
 
     flexmock(model).should_receive("set_status").with_args(
@@ -719,7 +719,7 @@ def test_dont_retry_propose_downstream_task(
     flexmock(PackitAPI).should_receive("sync_release").with_args(
         dist_git_branch="main", tag="0.3.0", create_pr=True
     ).and_raise(
-        RebaseHelperError, "Failed to download file from URL example.com"
+        PackitDownloadFailedException, "Failed to download source from example.com"
     ).once()
 
     flexmock(model).should_receive("set_status").with_args(
@@ -763,7 +763,7 @@ def test_dont_retry_propose_downstream_task(
         "report_status_to_branch"
     ).with_args(
         branch="main",
-        description="Propose downstream failed: Failed to download file from URL example.com",
+        description="Propose downstream failed: Failed to download source from example.com",
         state=BaseCommitStatus.failure,
         url=url,
     ).once()
