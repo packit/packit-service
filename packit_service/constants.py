@@ -76,10 +76,13 @@ PG_BUILD_STATUS_FAILURE = "failure"
 PG_BUILD_STATUS_SUCCESS = "success"
 
 DEFAULT_RETRY_LIMIT = 2
+# Retry more times for outages
+DEFAULT_RETRY_LIMIT_OUTAGE = 5
 # retry in 3s, 6s
 DEFAULT_RETRY_BACKOFF = 3
 RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED = 10
 BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES = 1
+BASE_RETRY_INTERVAL_IN_SECONDS_FOR_INTERNAL_ERRORS = 10
 
 # Time after which we no longer check the status of jobs and consider it as
 # timeout/internal error. Nothing should hopefully run for 7 days.
