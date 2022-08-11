@@ -9,6 +9,7 @@ from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
 
+import packit_service.service.urls as urls
 from ogr.services.github import GithubProject
 from ogr.utils import RequestResponse
 from packit.config import JobConfigTriggerType
@@ -942,6 +943,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         data={"base_project_url": "https://github.com/packit-service/hello-world"},
     ).and_return(tft_test_run_model)
 
+    urls.DASHBOARD_URL = "https://dashboard.localhost"
     flexmock(StatusReporter).should_receive("report").with_args(
         description="Tests have been submitted ...",
         state=BaseCommitStatus.running,
