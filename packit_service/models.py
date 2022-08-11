@@ -330,7 +330,7 @@ class BuildsAndTestsConnector:
 
 class ProjectAndTriggersConnector:
     """
-    Abstract class that is inherited by build/test models
+    Abstract class that is inherited by build/test group models
     to share methods for accessing project and trigger models.
     """
 
@@ -370,6 +370,36 @@ class ProjectAndTriggersConnector:
         if isinstance(trigger_object, ProjectReleaseModel):
             return trigger_object.tag_name
         return None
+
+
+class GroupAndTargetModelConnector:
+    """
+    Abstract class that is inherited by build/test models
+    to share methods for accessing project and trigger models.
+    """
+
+    group_of_targets: ProjectAndTriggersConnector
+
+    def get_job_trigger_model(self) -> Optional["JobTriggerModel"]:
+        return self.group_of_targets.get_job_trigger_model()
+
+    def get_trigger_object(self) -> Optional["AbstractTriggerDbType"]:
+        return self.group_of_targets.get_trigger_object()
+
+    def get_project(self) -> Optional["GitProjectModel"]:
+        return self.group_of_targets.get_project()
+
+    def get_pr_id(self) -> Optional[int]:
+        return self.group_of_targets.get_pr_id()
+
+    def get_issue_id(self) -> Optional[int]:
+        return self.group_of_targets.get_issue_id()
+
+    def get_branch_name(self) -> Optional[str]:
+        return self.group_of_targets.get_branch_name()
+
+    def get_release_tag(self) -> Optional[str]:
+        return self.group_of_targets.get_release_tag()
 
 
 class GitProjectModel(Base):
