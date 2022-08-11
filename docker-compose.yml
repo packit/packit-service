@@ -113,7 +113,7 @@ services:
       POSTGRESQL_HOST: postgres
       POSTGRESQL_DATABASE: packit
     volumes:
-      - ./packit_service:/usr/local/lib/python3.10/site-packages/packit_service:ro,z
+      - ./packit_service:/src/packit_service:ro,z
       - ./alembic:/src/alembic:ro,z
       # There's no secrets/ by default. You have to create (or symlink to other dir) it yourself.
       # Make sure to set `command_handler: local` since there is no kube in d-c
