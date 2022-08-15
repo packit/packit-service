@@ -18,7 +18,7 @@ from packit.api import PackitAPI
 from packit.config import JobConfig, JobType
 from packit.config.aliases import get_branches
 from packit.config.package_config import PackageConfig
-from packit.exceptions import PackitException
+from packit.exceptions import PackitException, PackitDownloadFailedException
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 from packit_service import sentry_integration
@@ -26,7 +26,6 @@ from packit_service.config import PackageConfigGetter, ProjectToSync
 from packit_service.constants import (
     CONTACTS_URL,
     FASJSON_URL,
-    FILE_DOWNLOAD_FAILURE,
     MSG_RETRIGGER,
 )
 from packit_service.models import (
@@ -178,30 +177,29 @@ class ProposeDownstreamHandler(RetriableJobHandler):
             downstream_pr = self.api.sync_release(
                 dist_git_branch=branch, tag=self.data.tag_name, create_pr=True
             )
-        except Exception as ex:
+        except PackitDownloadFailedException as ex:
             # the archive has not been uploaded to PyPI yet
-            if FILE_DOWNLOAD_FAILURE in str(ex):
-                # retry for the archive to become available
-                logger.info(f"We were not able to download the archive: {ex}")
-                # when the task hits max_retries, it raises MaxRetriesExceededError
-                # and the error handling code would be never executed
-                retries = self.celery_task.retries
-                if not self.celery_task.is_last_try():
-                    # will retry in: 1m and then again in another 2m
-                    delay = 60 * 2**retries
-                    logger.info(
-                        f"Will retry for the {retries + 1}. time in {delay}s \
-                            with propose_downstream_run_id {model.id}."
-                    )
-                    # throw=False so that exception is not raised and task
-                    # is not retried also automatically
-                    kargs = self.celery_task.task.request.kwargs.copy()
-                    kargs["propose_downstream_run_id"] = model.id
-                    # https://docs.celeryq.dev/en/stable/userguide/tasks.html#retrying
-                    self.celery_task.task.retry(
-                        exc=ex, countdown=delay, throw=False, args=(), kwargs=kargs
-                    )
-                    raise AbortProposeDownstream()
+            # retry for the archive to become available
+            logger.info(f"We were not able to download the archive: {ex}")
+            # when the task hits max_retries, it raises MaxRetriesExceededError
+            # and the error handling code would be never executed
+            retries = self.celery_task.retries
+            if not self.celery_task.is_last_try():
+                # will retry in: 1m and then again in another 2m
+                delay = 60 * 2**retries
+                logger.info(
+                    f"Will retry for the {retries + 1}. time in {delay}s \
+                        with propose_downstream_run_id {model.id}."
+                )
+                # throw=False so that exception is not raised and task
+                # is not retried also automatically
+                kargs = self.celery_task.task.request.kwargs.copy()
+                kargs["propose_downstream_run_id"] = model.id
+                # https://docs.celeryq.dev/en/stable/userguide/tasks.html#retrying
+                self.celery_task.task.retry(
+                    exc=ex, countdown=delay, throw=False, args=(), kwargs=kargs
+                )
+                raise AbortProposeDownstream()
             raise ex
         finally:
             self.api.up.local_project.git_repo.head.reset(

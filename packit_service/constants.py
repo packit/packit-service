@@ -57,8 +57,6 @@ NAMESPACE_NOT_ALLOWED_MARKDOWN_ISSUE_INSTRUCTIONS = (
 NOTIFICATION_REPO = "https://github.com/packit/notifications"
 
 
-FILE_DOWNLOAD_FAILURE = "Failed to download file from URL"
-
 PERMISSIONS_ERROR_WRITE_OR_ADMIN = (
     "Only users with write or admin permissions to the repository "
     "can trigger Packit-as-a-Service"
