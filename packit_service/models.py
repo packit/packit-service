@@ -47,8 +47,6 @@ from packit.exceptions import PackitException
 from packit_service.constants import ALLOWLIST_CONSTANTS
 
 logger = logging.getLogger(__name__)
-# SQLAlchemy session, get it with `get_sa_session`
-session_instance = None
 
 
 def get_pg_url() -> str:
