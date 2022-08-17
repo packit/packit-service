@@ -27,6 +27,7 @@ from packit_service.models import (
     ProposeDownstreamStatus,
     ProposeDownstreamTargetModel,
     ProposeDownstreamModel,
+    Session,
 )
 from tests_openshift.conftest import SampleValues
 
@@ -479,15 +480,14 @@ def test_tmt_test_multiple_runs(clean_before_and_after, multiple_new_test_runs):
     assert multiple_new_test_runs[0].pipeline_id == SampleValues.pipeline_id
     assert multiple_new_test_runs[1].pipeline_id == SampleValues.different_pipeline_id
 
-    with get_sa_session() as session:
-        test_runs = session.query(TFTTestRunTargetModel).all()
-        assert len(test_runs) == 4
-        # Separate PipelineModel for each TFTTestRunTargetModel
-        assert len({m.runs[0] for m in multiple_new_test_runs}) == 4
-        # Exactly one PipelineModel for each TFTTestRunTargetModel
-        assert all(len(m.runs) == 1 for m in multiple_new_test_runs)
-        # Two JobTriggerModels:
-        assert len({m.get_trigger_object() for m in multiple_new_test_runs}) == 2
+    test_runs = Session().query(TFTTestRunTargetModel).all()
+    assert len(test_runs) == 4
+    # Separate PipelineModel for each TFTTestRunTargetModel
+    assert len({m.runs[0] for m in multiple_new_test_runs}) == 4
+    # Exactly one PipelineModel for each TFTTestRunTargetModel
+    assert all(len(m.runs) == 1 for m in multiple_new_test_runs)
+    # Two JobTriggerModels:
+    assert len({m.get_trigger_object() for m in multiple_new_test_runs}) == 2
 
 
 def test_tmt_test_run_set_status(clean_before_and_after, a_new_test_run_pr):
