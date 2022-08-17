@@ -215,10 +215,9 @@ class ProjectAndTriggersConnector:
 
     def get_issue_id(self) -> Optional[int]:
         trigger_object = self.get_trigger_object()
-        if not isinstance(trigger_object, IssueModel):
-            return None
-
-        return trigger_object.issue_id
+        if isinstance(trigger_object, IssueModel):
+            return trigger_object.issue_id
+        return None
 
     def get_branch_name(self) -> Optional[str]:
         trigger_object = self.get_trigger_object()
@@ -304,15 +303,11 @@ class GitProjectModel(Base):
     def get_namespace(cls, forge: str, namespace: str) -> Iterable["GitProjectModel"]:
         """Return projects of given forge and namespace"""
         with get_sa_session() as session:
-            projects = (
-                session.query(GitProjectModel).filter_by(namespace=namespace).all()
+            return (
+                p
+                for p in session.query(GitProjectModel).filter_by(namespace=namespace)
+                if forge == urlparse(p.project_url).hostname
             )
-            matched_projects = []
-            for project in projects:
-                forge_domain = urlparse(project.project_url).hostname
-                if forge == forge_domain:
-                    matched_projects.append(project)
-            return matched_projects
 
     @classmethod
     def get_project(
@@ -348,7 +343,7 @@ class GitProjectModel(Base):
     @classmethod
     def get_project_issues(
         cls, forge: str, namespace: str, repo_name: str
-    ) -> Optional[Iterable["IssueModel"]]:
+    ) -> Iterable["IssueModel"]:
         with get_sa_session() as session:
             issues = (
                 session.query(IssueModel)
@@ -359,15 +354,13 @@ class GitProjectModel(Base):
                     GitProjectModel.namespace == namespace,
                     GitProjectModel.repo_name == repo_name,
                 )
-                .all()
             )
             return issues
 
     @classmethod
     def get_project_branches(
         cls, forge: str, namespace: str, repo_name: str
-    ) -> Optional[Iterable["GitBranchModel"]]:
-
+    ) -> Iterable["GitBranchModel"]:
         with get_sa_session() as session:
             branches = (
                 session.query(GitBranchModel)
@@ -378,14 +371,13 @@ class GitProjectModel(Base):
                     GitProjectModel.namespace == namespace,
                     GitProjectModel.repo_name == repo_name,
                 )
-                .all()
             )
             return branches
 
     @classmethod
     def get_project_releases(
         cls, forge: str, namespace: str, repo_name: str
-    ) -> Optional[Iterable["ProjectReleaseModel"]]:
+    ) -> Iterable["ProjectReleaseModel"]:
         with get_sa_session() as session:
             releases = (
                 session.query(ProjectReleaseModel)
@@ -396,7 +388,6 @@ class GitProjectModel(Base):
                     GitProjectModel.namespace == namespace,
                     GitProjectModel.repo_name == repo_name,
                 )
-                .all()
             )
             return releases
 
@@ -693,7 +684,7 @@ class JobTriggerModel(Base):
             return trigger
 
     @classmethod
-    def get_by_id(cls, id_: int) -> "JobTriggerModel":
+    def get_by_id(cls, id_: int) -> Optional["JobTriggerModel"]:
         with get_sa_session() as session:
             return session.query(JobTriggerModel).filter_by(id=id_).first()
 
@@ -909,12 +900,10 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
             return session.query(CoprBuildTargetModel).filter_by(id=id_).first()
 
     @classmethod
-    def get_all(cls) -> Optional[Iterable["CoprBuildTargetModel"]]:
+    def get_all(cls) -> Iterable["CoprBuildTargetModel"]:
         with get_sa_session() as session:
-            return (
-                session.query(CoprBuildTargetModel)
-                .order_by(desc(CoprBuildTargetModel.id))
-                .all()
+            return session.query(CoprBuildTargetModel).order_by(
+                desc(CoprBuildTargetModel.id)
             )
 
     @classmethod
@@ -955,7 +944,7 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
     @classmethod
     def get_all_by_build_id(
         cls, build_id: Union[str, int]
-    ) -> Optional[Iterable["CoprBuildTargetModel"]]:
+    ) -> Iterable["CoprBuildTargetModel"]:
         if isinstance(build_id, int):
             # See the comment in get_by_build_id()
             build_id = str(build_id)
@@ -963,9 +952,7 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
             return session.query(CoprBuildTargetModel).filter_by(build_id=build_id)
 
     @classmethod
-    def get_all_by_status(
-        cls, status: str
-    ) -> Optional[Iterable["CoprBuildTargetModel"]]:
+    def get_all_by_status(cls, status: str) -> Iterable["CoprBuildTargetModel"]:
         """Returns all builds which currently have the given status."""
         with get_sa_session() as session:
             return session.query(CoprBuildTargetModel).filter_by(status=status)
@@ -993,7 +980,7 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
         commit_sha: str,
         owner: str = None,
         target: str = None,
-    ) -> Optional[Iterable["CoprBuildTargetModel"]]:
+    ) -> Iterable["CoprBuildTargetModel"]:
         """
         All owner/project_name builds sorted from latest to oldest
         with the given commit_sha and optional target.
@@ -1003,21 +990,17 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
         }
 
         with get_sa_session() as session:
-            query = (
+            return (
                 session.query(CoprBuildTargetModel)
                 .filter_by(**non_none_args)
                 .order_by(CoprBuildTargetModel.build_id.desc())
             )
-            return query.all()
 
     @classmethod
-    def get_all_by_commit(
-        cls, commit_sha: str
-    ) -> Optional[Iterable["CoprBuildTargetModel"]]:
+    def get_all_by_commit(cls, commit_sha: str) -> Iterable["CoprBuildTargetModel"]:
         """Returns all builds that match a given commit sha"""
         with get_sa_session() as session:
-            query = session.query(CoprBuildTargetModel).filter_by(commit_sha=commit_sha)
-            return query.all()
+            return session.query(CoprBuildTargetModel).filter_by(commit_sha=commit_sha)
 
     @classmethod
     def create(
@@ -1064,7 +1047,7 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
         cls,
         build_id: str,
         target: str,
-    ) -> "CoprBuildTargetModel":
+    ) -> Optional["CoprBuildTargetModel"]:
         return cls.get_by_build_id(build_id, target)
 
     def __repr__(self):
@@ -1150,9 +1133,9 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
             return session.query(KojiBuildTargetModel).filter_by(id=id_).first()
 
     @classmethod
-    def get_all(cls) -> Optional[Iterable["KojiBuildTargetModel"]]:
+    def get_all(cls) -> Iterable["KojiBuildTargetModel"]:
         with get_sa_session() as session:
-            return session.query(KojiBuildTargetModel).all()
+            return session.query(KojiBuildTargetModel)
 
     @classmethod
     def get_range(cls, first: int, last: int) -> Iterable["KojiBuildTargetModel"]:
@@ -1167,7 +1150,7 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
     @classmethod
     def get_all_by_build_id(
         cls, build_id: Union[str, int]
-    ) -> Optional[Iterable["KojiBuildTargetModel"]]:
+    ) -> Iterable["KojiBuildTargetModel"]:
         if isinstance(build_id, int):
             # See the comment in get_by_build_id()
             build_id = str(build_id)
@@ -1453,9 +1436,7 @@ class AllowlistModel(Base):
             return session.query(AllowlistModel).filter_by(namespace=namespace).first()
 
     @classmethod
-    def get_namespaces_by_status(
-        cls, status: str
-    ) -> Optional[Iterable["AllowlistModel"]]:
+    def get_namespaces_by_status(cls, status: str) -> Iterable["AllowlistModel"]:
         """
         Get list of namespaces with specific status.
 
@@ -1469,19 +1450,18 @@ class AllowlistModel(Base):
             return session.query(AllowlistModel).filter_by(status=status)
 
     @classmethod
-    def remove_namespace(cls, namespace: str) -> Optional["AllowlistModel"]:
+    def remove_namespace(cls, namespace: str):
         with get_sa_session() as session:
             namespace_entry = session.query(AllowlistModel).filter_by(
                 namespace=namespace
             )
-            if namespace_entry:
+            if namespace_entry.one_or_none():
                 namespace_entry.delete()
-            return namespace_entry
 
     @classmethod
-    def get_all(cls) -> Optional[Iterable["AllowlistModel"]]:
+    def get_all(cls) -> Iterable["AllowlistModel"]:
         with get_sa_session() as session:
-            return session.query(AllowlistModel).all()
+            return session.query(AllowlistModel)
 
     def to_dict(self) -> Dict[str, str]:
         return {
@@ -1592,7 +1572,7 @@ class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
     @classmethod
     def get_all_by_status(
         cls, *status: TestingFarmResult
-    ) -> Optional[Iterable["TFTTestRunTargetModel"]]:
+    ) -> Iterable["TFTTestRunTargetModel"]:
         """Returns all runs which currently have their status set to one
         of the requested statuses."""
         with get_sa_session() as session:
@@ -1609,7 +1589,7 @@ class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
     def get_all_by_commit_target(
         commit_sha: str,
         target: str = None,
-    ) -> Optional[Iterable["TFTTestRunTargetModel"]]:
+    ) -> Iterable["TFTTestRunTargetModel"]:
         """
         All tests with the given commit_sha and optional target.
         """
@@ -1618,13 +1598,10 @@ class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
         }
 
         with get_sa_session() as session:
-            query = session.query(TFTTestRunTargetModel).filter_by(**non_none_args)
-            return query.all()
+            return session.query(TFTTestRunTargetModel).filter_by(**non_none_args)
 
     @classmethod
-    def get_range(
-        cls, first: int, last: int
-    ) -> Optional[Iterable["TFTTestRunTargetModel"]]:
+    def get_range(cls, first: int, last: int) -> Iterable["TFTTestRunTargetModel"]:
         with get_sa_session() as session:
             return (
                 session.query(TFTTestRunTargetModel)
@@ -1774,9 +1751,7 @@ class ProposeDownstreamModel(ProjectAndTriggersConnector, Base):
             return session.query(ProposeDownstreamModel).filter_by(id=id_).first()
 
     @classmethod
-    def get_all_by_status(
-        cls, status: str
-    ) -> Optional[Iterable["ProposeDownstreamModel"]]:
+    def get_all_by_status(cls, status: str) -> Iterable["ProposeDownstreamModel"]:
         with get_sa_session() as session:
             return session.query(ProposeDownstreamModel).filter_by(status=status)
 
@@ -1863,7 +1838,7 @@ class GithubInstallationModel(Base):
     repositories = Column(ARRAY(Integer, ForeignKey("git_projects.id")))
 
     @classmethod
-    def get_project(cls, repository: str):
+    def get_project(cls, repository: str) -> "GitProjectModel":
         namespace, repo_name = repository.split("/")
         return GitProjectModel.get_or_create(
             namespace=namespace,
@@ -1888,9 +1863,9 @@ class GithubInstallationModel(Base):
             )
 
     @classmethod
-    def get_all(cls) -> Optional[Iterable["GithubInstallationModel"]]:
+    def get_all(cls) -> Iterable["GithubInstallationModel"]:
         with get_sa_session() as session:
-            return session.query(GithubInstallationModel).all()
+            return session.query(GithubInstallationModel)
 
     @classmethod
     def create_or_update(cls, event):

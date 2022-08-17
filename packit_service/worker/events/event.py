@@ -479,8 +479,8 @@ class AbstractForgeIndependentEvent(Event):
     def get_most_recent_targets(
         cls,
         models: Union[
-            Optional[Iterable[CoprBuildTargetModel]],
-            Optional[Iterable[TFTTestRunTargetModel]],
+            Iterable[CoprBuildTargetModel],
+            Iterable[TFTTestRunTargetModel],
         ],
     ) -> List[Union[CoprBuildTargetModel, TFTTestRunTargetModel]]:
         """
@@ -511,8 +511,8 @@ class AbstractForgeIndependentEvent(Event):
     def _filter_most_recent_models_targets_by_status(
         cls,
         models: Union[
-            Optional[Iterable[CoprBuildTargetModel]],
-            Optional[Iterable[TFTTestRunTargetModel]],
+            Iterable[CoprBuildTargetModel],
+            Iterable[TFTTestRunTargetModel],
         ],
         statuses_to_filter_with: List[str],
     ) -> Optional[Set[str]]:

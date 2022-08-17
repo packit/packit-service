@@ -121,10 +121,7 @@ class ProjectsNamespace(Resource):
     def get(self, forge, namespace):
         """List of projects of given forge and namespace"""
         result = []
-        projects = GitProjectModel.get_namespace(forge, namespace)
-        if not projects:
-            return response_maker([])
-        for project in projects:
+        for project in GitProjectModel.get_namespace(forge, namespace):
             project_info = {
                 "namespace": project.namespace,
                 "repo_name": project.repo_name,
@@ -231,13 +228,14 @@ class ProjectIssues(Resource):
     )
     def get(self, forge, namespace, repo_name):
         """Project issues"""
-        issues_list = GitProjectModel.get_project_issues(forge, namespace, repo_name)
-        if not issues_list:
-            return response_maker([])
-        result = []
-        for issue in issues_list:
-            result.append(issue.issue_id)
-        return response_maker(result)
+        return response_maker(
+            [
+                issue.issue_id
+                for issue in GitProjectModel.get_project_issues(
+                    forge, namespace, repo_name
+                )
+            ]
+        )
 
 
 @ns.route("/<forge>/<namespace>/<repo_name>/releases")
@@ -250,13 +248,10 @@ class ProjectReleases(Resource):
     )
     def get(self, forge, namespace, repo_name):
         """Project releases"""
-        releases_list = GitProjectModel.get_project_releases(
-            forge, namespace, repo_name
-        )
-        if not releases_list:
-            return response_maker([])
         result = []
-        for release in releases_list:
+        for release in GitProjectModel.get_project_releases(
+            forge, namespace, repo_name
+        ):
             release_info = {
                 "tag_name": release.tag_name,
                 "commit_hash": release.commit_hash,
@@ -275,11 +270,8 @@ class ProjectBranches(Resource):
     )
     def get(self, forge, namespace, repo_name):
         """Project branches"""
-        branches = GitProjectModel.get_project_branches(forge, namespace, repo_name)
-        if not branches:
-            return response_maker([])
         result = []
-        for branch in branches:
+        for branch in GitProjectModel.get_project_branches(forge, namespace, repo_name):
             branch_info = {
                 "branch": branch.name,
                 "builds": [],
