@@ -20,7 +20,7 @@ from packit_service.models import (
     SourceGitPRDistGitPRModel,
     TFTTestRunTargetModel,
     TestingFarmResult,
-    get_sa_session,
+    sa_session_transaction,
     PipelineModel,
     ProposeDownstreamTargetStatus,
     ProposeDownstreamStatus,
@@ -216,7 +216,7 @@ def test_koji_build_set_build_logs_url(clean_before_and_after, a_koji_build_for_
 
 
 def test_get_or_create_pr(clean_before_and_after):
-    with get_sa_session() as session:
+    with sa_session_transaction() as session:
         expected_pr = PullRequestModel.get_or_create(
             pr_id=42,
             namespace="clapton",
@@ -251,7 +251,7 @@ def test_get_or_create_pr(clean_before_and_after):
 
 
 def test_errors_while_doing_db(clean_before_and_after):
-    with get_sa_session() as session:
+    with sa_session_transaction() as session:
         try:
             PullRequestModel.get_or_create(
                 pr_id="nope",

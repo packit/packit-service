@@ -4,12 +4,12 @@
 # Create multiple allowlist entries
 import pytest
 
-from packit_service.models import get_sa_session, AllowlistModel
+from packit_service.models import sa_session_transaction, AllowlistModel
 
 
 @pytest.fixture()
 def multiple_allowlist_entries():
-    with get_sa_session() as session:
+    with sa_session_transaction() as session:
         session.query(AllowlistModel).delete()
         yield [
             AllowlistModel.add_namespace(
@@ -30,7 +30,7 @@ def multiple_allowlist_entries():
 # Create new allowlist entry
 @pytest.fixture()
 def new_allowlist_entry():
-    with get_sa_session() as session:
+    with sa_session_transaction() as session:
         session.query(AllowlistModel).delete()
         yield AllowlistModel.add_namespace(
             namespace="Rayquaza", status="approved_manually"
