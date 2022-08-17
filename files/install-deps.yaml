@@ -32,7 +32,6 @@
           - python3-flask-restx
           - python3-flexmock # because of the hack during the alembic upgrade
           # (see d90948124e46_add_tables_for_triggers_koji_and_tests.py )
-          - dnf-plugins-core
           - python-jwt
           # workaround for https://github.com/fedora-infra/bodhi/issues/4660
           # we need to explicitly install here so that `tasks/install-packit-deps.yaml` doesn't pick up bodhi-client 6
@@ -41,24 +40,16 @@
         state: present
         # needed when installing from koji - there are no GPG-signed packages
         disable_gpg_check: true
-    - import_tasks: tasks/install-ogr-deps.yaml
-    - import_tasks: tasks/install-specfile-deps.yaml
-    - import_tasks: tasks/install-packit-deps.yaml
     - name: Install pip deps
       pip:
         name:
           - persistentdict # still needed by one Alembic migration script
           - sentry-sdk[flask]
         executable: pip3
-
-    # --no-deps: to fail instead of installing from PyPI when we forget to add some dependency to packit.spec
-    - name: pip install packit & ogr & specfile with --no-deps
-      pip:
-        name:
-          - git+https://github.com/packit/packit.git@{{ source_branch }}
-          - git+https://github.com/packit/ogr.git@{{ source_branch }}
-          - git+https://github.com/packit/specfile.git@{{ source_branch }}
-        executable: pip3
-        extra_args: --no-deps
     - name: Check if all pip packages have all dependencies installed
       command: pip check
+    - import_tasks: tasks/setup-copr-repos.yaml
+    - name: Install packit from copr
+      dnf:
+        name: packit
+        state: present

@@ -1,0 +1,26 @@
+# Copyright Contributors to the Packit project.
+# SPDX-License-Identifier: MIT
+
+# Make sure correct packit copr repo is enabled
+
+- name: Select correct copr repo
+  ansible.builtin.set_fact:
+    copr_repo_enabled: packit-stable
+    copr_repo_disabled: packit-dev
+  when: source_branch == 'stable'
+
+- name: Select correct copr repo
+  ansible.builtin.set_fact:
+    copr_repo_enabled: packit-dev
+    copr_repo_disabled: packit-stable
+  when: source_branch != 'stable'
+
+- name: Enable {{ copr_repo_enabled }} copr repo
+  community.general.copr:
+    name: packit/{{ copr_repo_enabled }}
+    state: enabled
+
+- name: Disable {{ copr_repo_disabled }} copr repo
+  community.general.copr:
+    name: packit/{{ copr_repo_disabled }}
+    state: disabled

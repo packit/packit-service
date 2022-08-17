@@ -34,8 +34,8 @@
           - dnf-utils
           - python3-pip
           - make
-          # provides dnf builddep, required for packit dep installation from spec file
-          - dnf-plugins-core
+          # for pip-installing sandcastle from git repo
+          - git-core
           # oc rsync /tmp/sandcastle -> sandcastle pod
           - rsync
           - postgresql # pg_dump
@@ -50,9 +50,6 @@
         # needed when installing from koji - there are no GPG-signed packages
         disable_gpg_check: true
         state: present
-    - import_tasks: tasks/install-ogr-deps.yaml
-    - import_tasks: tasks/install-specfile-deps.yaml
-    - import_tasks: tasks/install-packit-deps.yaml
     - name: Install pip deps
       pip:
         name:
@@ -60,14 +57,10 @@
           - sentry-sdk
           - syslog-rfc5424-formatter
         executable: pip3
-    # --no-deps: to fail instead of installing from PyPI when we forget to add some dependency to packit.spec
-    - name: pip install packit & ogr & specfile with --no-deps
-      pip:
-        name:
-          - git+https://github.com/packit/packit.git@{{ source_branch }}
-          - git+https://github.com/packit/ogr.git@{{ source_branch }}
-          - git+https://github.com/packit/specfile.git@{{ source_branch }}
-        executable: pip3
-        extra_args: --no-deps
     - name: Check if all pip packages have all dependencies installed
       command: pip check
+    - import_tasks: tasks/setup-copr-repos.yaml
+    - name: Install packit from copr
+      dnf:
+        name: packit
+        state: present
