@@ -27,6 +27,7 @@ from packit_service.models import (
     ProposeDownstreamStatus,
     ProposeDownstreamTargetModel,
     ProposeDownstreamModel,
+    Session,
 )
 from tests_openshift.conftest import SampleValues
 
@@ -479,15 +480,14 @@ def test_tmt_test_multiple_runs(clean_before_and_after, multiple_new_test_runs):
     assert multiple_new_test_runs[0].pipeline_id == SampleValues.pipeline_id
     assert multiple_new_test_runs[1].pipeline_id == SampleValues.different_pipeline_id
 
-    with get_sa_session() as session:
-        test_runs = session.query(TFTTestRunTargetModel).all()
-        assert len(test_runs) == 4
-        # Separate PipelineModel for each TFTTestRunTargetModel
-        assert len({m.runs[0] for m in multiple_new_test_runs}) == 4
-        # Exactly one PipelineModel for each TFTTestRunTargetModel
-        assert all(len(m.runs) == 1 for m in multiple_new_test_runs)
-        # Two JobTriggerModels:
-        assert len({m.get_trigger_object() for m in multiple_new_test_runs}) == 2
+    test_runs = Session().query(TFTTestRunTargetModel).all()
+    assert len(test_runs) == 4
+    # Separate PipelineModel for each TFTTestRunTargetModel
+    assert len({m.runs[0] for m in multiple_new_test_runs}) == 4
+    # Exactly one PipelineModel for each TFTTestRunTargetModel
+    assert all(len(m.runs) == 1 for m in multiple_new_test_runs)
+    # Two JobTriggerModels:
+    assert len({m.get_trigger_object() for m in multiple_new_test_runs}) == 2
 
 
 def test_tmt_test_run_set_status(clean_before_and_after, a_new_test_run_pr):
@@ -660,7 +660,7 @@ def test_get_forge(clean_before_and_after, multiple_forge_projects):
 
 
 def test_get_namespace(clean_before_and_after, multiple_copr_builds):
-    projects = GitProjectModel.get_namespace("github.com", "the-namespace")
+    projects = list(GitProjectModel.get_namespace("github.com", "the-namespace"))
     assert projects[0].namespace == "the-namespace"
     assert projects[0].repo_name == "the-repo-name"
 
@@ -689,24 +689,30 @@ def test_get_project_prs(clean_before_and_after, a_copr_build_for_pr):
 
 
 def test_get_project_branch(clean_before_and_after, a_copr_build_for_branch_push):
-    branches_list = GitProjectModel.get_project_branches(
-        "github.com", "the-namespace", "the-repo-name"
+    branches_list = list(
+        GitProjectModel.get_project_branches(
+            "github.com", "the-namespace", "the-repo-name"
+        )
     )
     assert len(branches_list) == 1
     assert branches_list[0].name == "build-branch"
 
 
 def test_get_project_issues(clean_before_and_after, an_issue_model):
-    issues_list = GitProjectModel.get_project_issues(
-        "github.com", "the-namespace", "the-repo-name"
+    issues_list = list(
+        GitProjectModel.get_project_issues(
+            "github.com", "the-namespace", "the-repo-name"
+        )
     )
     assert len(issues_list) == 1
     assert issues_list[0].issue_id == 2020
 
 
 def test_get_project_releases(clean_before_and_after, release_model):
-    releases = GitProjectModel.get_project_releases(
-        "github.com", "the-namespace", "the-repo-name"
+    releases = list(
+        GitProjectModel.get_project_releases(
+            "github.com", "the-namespace", "the-repo-name"
+        )
     )
     assert releases[0].tag_name == "v1.0.2"
     assert releases[0].commit_hash == "80201a74d96c"

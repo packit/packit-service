@@ -410,10 +410,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             owner=self.job_owner,
             target=target,
         )
-        if not copr_builds:
+        try:
+            return next(iter(copr_builds))
+        except StopIteration:
             return None
-
-        return list(copr_builds)[0]
 
     def run_testing_farm(
         self, target: str, build: Optional["CoprBuildTargetModel"]

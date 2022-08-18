@@ -141,7 +141,7 @@ def check_copr_build(build_id: int) -> bool:
         bool: Whether the run was successful, False signals the need to retry.
     """
     logger.debug(f"Getting copr build ID {build_id} from DB.")
-    builds = CoprBuildTargetModel.get_all_by_build_id(build_id)
+    builds = list(CoprBuildTargetModel.get_all_by_build_id(build_id))
     if not builds:
         logger.warning(f"Copr build {build_id} not in DB.")
         return True
