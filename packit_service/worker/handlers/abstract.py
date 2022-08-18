@@ -288,7 +288,6 @@ class TaskName(str, enum.Enum):
     # Fedora notification is ok for now
     # downstream_koji_build_report = "task.run_downstream_koji_build_report_handler"
     sync_from_downstream = "task.run_sync_from_downstream_handler"
-    bugzilla = "task.run_bugzilla_handler"
     bodhi_update = "task.bodhi_update"
     github_fas_verification = "task.github_fas_verification"
 

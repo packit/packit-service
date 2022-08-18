@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from sqlalchemy.exc import ProgrammingError, IntegrityError
 
 from packit_service.models import (
-    BugzillaModel,
     CoprBuildTargetModel,
     GitBranchModel,
     GitProjectModel,
@@ -765,23 +764,6 @@ def test_pr_get_srpm_builds(
     srpm_build_model, _ = srpm_build_model_with_new_run_for_pr
     pr_model = a_copr_build_for_pr.get_trigger_object()
     assert srpm_build_model in pr_model.get_srpm_builds()
-
-
-def test_bugzilla_create(clean_before_and_after, bugzilla_model):
-    assert isinstance(bugzilla_model, BugzillaModel)
-    assert bugzilla_model.bug_id == SampleValues.bug_id
-    assert bugzilla_model.bug_url == SampleValues.bug_url
-
-
-def test_bugzilla_get_by_id(clean_before_and_after, bugzilla_model):
-    bz = BugzillaModel.get_by_pr(
-        pr_id=SampleValues.pr_id,
-        namespace=SampleValues.repo_namespace,
-        repo_name=SampleValues.repo_name,
-        project_url=SampleValues.project_url,
-    )
-    assert bz.bug_id == bugzilla_model.bug_id == SampleValues.bug_id
-    assert bz.bug_url == bugzilla_model.bug_url == SampleValues.bug_url
 
 
 def test_project_token_model(clean_before_and_after):

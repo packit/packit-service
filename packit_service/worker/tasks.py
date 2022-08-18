@@ -20,7 +20,6 @@ from packit_service.log_versions import log_worker_versions
 from packit_service.utils import load_job_config, load_package_config
 from packit_service.worker.database import discard_old_srpm_build_logs, backup
 from packit_service.worker.handlers import (
-    BugzillaHandler,
     CoprBuildEndHandler,
     CoprBuildStartHandler,
     KojiTaskReportHandler,
@@ -298,16 +297,6 @@ def run_bodhi_update(self, event: dict, package_config: dict, job_config: dict):
         job_config=load_job_config(job_config),
         event=event,
         celery_task=self,
-    )
-    return get_handlers_task_results(handler.run_job(), event)
-
-
-@celery_app.task(name=TaskName.bugzilla, base=HandlerTaskWithRetry)
-def run_bugzilla_handler(event: dict, package_config: dict, job_config: dict):
-    handler = BugzillaHandler(
-        package_config=load_package_config(package_config),
-        job_config=load_job_config(job_config),
-        event=event,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
