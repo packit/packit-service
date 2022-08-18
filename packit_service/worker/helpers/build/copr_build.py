@@ -529,7 +529,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     f"[{owner}/{self.job_project} Copr project permissions page]"
                     f"({permissions_url})"
                     " and retrigger the build by a `/packit build` pull-request comment"
-                    "or click on a `Re-run` button.",
+                    " or click on a `Re-run` button.",
                 )
 
             raise ex
