@@ -60,7 +60,10 @@
     - name: Check if all pip packages have all dependencies installed
       command: pip check
     - import_tasks: tasks/setup-copr-repos.yaml
-    - name: Install packit from copr
+    - name: Install ogr, specfile and packit from copr
       dnf:
-        name: packit
-        state: present
+        name:
+          - python3-ogr
+          - python3-specfile
+          - packit
+        state: latest
