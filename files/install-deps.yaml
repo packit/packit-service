@@ -40,7 +40,6 @@
     - name: Install pip deps
       pip:
         name:
-          - persistentdict # still needed by one Alembic migration script
           - sentry-sdk[flask]
         executable: pip3
     - name: Check if all pip packages have all dependencies installed
