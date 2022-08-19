@@ -81,7 +81,6 @@
           with_tokman: false
           with_beat: false
           with_fedmsg: false
-          with_centosmsg: false
           with_dashboard: false
           with_pushgateway: false
           push_dev_images: true

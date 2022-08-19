@@ -6,13 +6,13 @@ Parser is transforming github JSONs into `events` objects
 """
 import logging
 from datetime import datetime, timezone
-from functools import partial
 from os import getenv
 from typing import Optional, Type, Union, Dict, Any, Tuple
 
 from ogr.parsing import parse_git_repo
 from packit.constants import PROD_DISTGIT_URL
 from packit.utils import nested_get
+
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import (
     KojiBuildState,
@@ -32,9 +32,7 @@ from packit_service.worker.events import (
     KojiTaskEvent,
     CoprBuildStartEvent,
     CoprBuildEndEvent,
-    PullRequestPagureEvent,
     PushPagureEvent,
-    AbstractPagureEvent,
     IssueCommentGitlabEvent,
     MergeRequestCommentGitlabEvent,
     MergeRequestGitlabEvent,
@@ -68,7 +66,7 @@ logger = logging.getLogger(__name__)
 
 class Parser:
     """
-    Once we receive a new event (GitHub/GitLab webhook or Fedmsg/Centosmsg event) for every event
+    Once we receive a new event (GitHub/GitLab webhook) for every event
     we need to have method inside the `Parser` class to create objects defined in `event.py`.
     """
 
@@ -108,7 +106,7 @@ class Parser:
         See: https://github.com/packit/packit-service-fedmsg/blob/
              e53586bf7ace0c46fd6812fe8dc11491e5e6cf41/packit_service_fedmsg/consumer.py#L137
 
-        :param event: JSON from GitHub/GitLab or fedmsg/centosmsg
+        :param event: JSON from GitHub/GitLab
         :return: event object
         """
 
@@ -1291,142 +1289,4 @@ class Parser:
             user_login=pagure_login,
             comment=comment,
             comment_id=comment_id,
-        )
-
-
-# TODO: Currently not used, merge in Parser or remove
-# https://github.com/packit/deployment/issues/225
-class CentosEventParser:
-    """
-    Class responsible for parsing events received from CentOS infrastructure
-    """
-
-    def __init__(self):
-        """
-        self.event_mapping: dictionary mapping of topics to corresponding parsing methods
-
-        ..note: action in partial is github counterpart value, as this value is used in code
-
-            e.g.
-            pagure pull-request.update == github pull-request.synchronize -> in code is used
-            synchronize
-        """
-        self.event_mapping = {
-            "pull-request.new": partial(self._pull_request_event, action="opened"),
-            "pull-request.reopened": partial(
-                self._pull_request_event, action="reopened"
-            ),
-            "pull-request.updated": partial(
-                self._pull_request_event, action="synchronize"
-            ),
-            "pull-request.comment.added": partial(
-                self._pull_request_comment, action="added"
-            ),
-            "pull-request.comment.edited": partial(
-                self._pull_request_comment, action="edited"
-            ),
-            "git.receive": self._push_event,
-        }
-
-    def parse_event(self, event: dict) -> Optional[AbstractPagureEvent]:
-        """
-        Entry point for parsing event
-        :param event: contains event data
-        :return: event object or None
-        """
-        logger.debug(f"Parsing {event.get('topic')}")
-
-        # e.g. "topic": "git.stg.centos.org/pull-request.tag.added"
-        source, git_topic = event.get("topic").split("/")
-        event["source"] = source
-        event["git_topic"] = git_topic
-
-        if git_topic not in self.event_mapping:
-            logger.info(f"Event type {git_topic!r} is not processed.")
-            return None
-
-        return self.event_mapping[git_topic](event)
-
-    @staticmethod
-    def _pull_request_event(event: dict, action: str) -> PullRequestPagureEvent:
-        pullrequest = event["pullrequest"]
-        pr_id = pullrequest["id"]
-        base_repo_namespace = pullrequest["repo_from"]["namespace"]
-        base_repo_name = pullrequest["repo_from"]["name"]
-        base_repo_owner = pullrequest["repo_from"]["user"]["name"]
-        base_ref = pullrequest["branch"]
-        target_repo = pullrequest["project"]["name"]
-        https_url = f"https://{event['source']}/{pullrequest['project']['url_path']}"
-        commit_sha = pullrequest["commit_stop"]
-        pagure_login = pullrequest["user"]["name"]
-
-        return PullRequestPagureEvent(
-            action=PullRequestAction[action],
-            pr_id=pr_id,
-            base_repo_namespace=base_repo_namespace,
-            base_repo_name=base_repo_name,
-            base_repo_owner=base_repo_owner,
-            base_ref=base_ref,
-            target_repo=target_repo,
-            project_url=https_url,
-            commit_sha=commit_sha,
-            user_login=pagure_login,
-        )
-
-    @staticmethod
-    def _pull_request_comment(
-        event: dict, action: str
-    ) -> PullRequestCommentPagureEvent:
-        event[
-            "https_url"
-        ] = f"https://{event['source']}/{event['pullrequest']['project']['url_path']}"
-        action = PullRequestCommentAction.created.value
-        pr_id = event["pullrequest"]["id"]
-        base_repo_namespace = event["pullrequest"]["project"]["namespace"]
-        base_repo_name = event["pullrequest"]["project"]["name"]
-        base_repo_owner = event["pullrequest"]["repo_from"]["user"]["name"]
-        target_repo = event["pullrequest"]["repo_from"]["name"]
-        https_url = (
-            f"https://{event['source']}/{event['pullrequest']['project']['url_path']}"
-        )
-        pagure_login = event["agent"]
-        commit_sha = event["pullrequest"]["commit_stop"]
-
-        # gets comment from event.
-        # location differs based on topic (pull-request.comment.edited/pull-request.comment.added)
-        if "edited" in event["git_topic"]:
-            comment = event["comment"]["comment"]
-            comment_id = event["comment"]["id"]
-        elif "added" in event["git_topic"]:
-            comment = event["pullrequest"]["comments"][-1]["comment"]
-            comment_id = event["pullrequest"]["comments"][-1]["id"]
-        else:
-            raise ValueError(
-                f"Unknown comment location in response for {event['git_topic']}"
-            )
-
-        return PullRequestCommentPagureEvent(
-            action=PullRequestCommentAction[action],
-            pr_id=pr_id,
-            base_repo_namespace=base_repo_namespace,
-            base_repo_name=base_repo_name,
-            base_repo_owner=base_repo_owner,
-            base_ref=None,
-            target_repo=target_repo,
-            project_url=https_url,
-            commit_sha=commit_sha,
-            user_login=pagure_login,
-            comment=comment,
-            comment_id=comment_id,
-        )
-
-    @staticmethod
-    def _push_event(event: dict) -> PushPagureEvent:
-        return PushPagureEvent(
-            repo_namespace=event["repo"]["namespace"],
-            repo_name=event["repo"]["name"],
-            git_ref=f"refs/head/{event['branch']}",
-            project_url=f"https://{event['source']}/{event['repo']['url_path']}",
-            commit_sha=event["end_commit"],
-            committer=event["commit"]["username"],
         )
