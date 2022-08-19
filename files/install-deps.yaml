@@ -17,9 +17,6 @@
           # httpd & deps
           - python3-mod_wsgi
           - mod_ssl
-          - krb5-devel
-          - gcc
-          - python3-devel
           - python3-alembic
           - python3-sqlalchemy+postgresql
           - python3-prometheus_client
