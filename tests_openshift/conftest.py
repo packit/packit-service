@@ -35,7 +35,6 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     TestingFarmResult,
     GithubInstallationModel,
-    BugzillaModel,
     ProjectAuthenticationIssueModel,
     ProposeDownstreamTargetModel,
     ProposeDownstreamTargetStatus,
@@ -104,10 +103,6 @@ class SampleValues:
     another_different_acount_name = "gitlab.com/Solgaleo"
     yet_another_different_acount_name = "github.com/Zacian"
 
-    # Bugzilla
-    bug_id = 123456
-    bug_url = f"https://partner-bugzilla.redhat.com/show_bug.cgi?id={bug_id}"
-
     # Issues
     issue_id = 2020
     different_issue_id = 987
@@ -162,7 +157,6 @@ def clean_db():
 
         session.query(AllowlistModel).delete()
         session.query(GithubInstallationModel).delete()
-        session.query(BugzillaModel).delete()
 
         session.query(PipelineModel).delete()
         session.query(JobTriggerModel).delete()
@@ -401,18 +395,6 @@ def srpm_build_in_copr_model(pr_model):
     )
     srpm_model.set_status("success")
     yield srpm_model, run_model
-
-
-@pytest.fixture()
-def bugzilla_model():
-    yield BugzillaModel.get_or_create(
-        pr_id=SampleValues.pr_id,
-        namespace=SampleValues.repo_namespace,
-        repo_name=SampleValues.repo_name,
-        project_url=SampleValues.project_url,
-        bug_id=SampleValues.bug_id,
-        bug_url=SampleValues.bug_url,
-    )
 
 
 @pytest.fixture()

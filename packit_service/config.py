@@ -97,10 +97,6 @@ class ServiceConfig(Config):
         validate_webhooks: bool = True,
         admins: list = None,
         fas_password: Optional[str] = "",
-        bugzilla_url: str = "",
-        bugzilla_api_key: str = "",
-        bugz_namespaces: List[str] = None,
-        bugz_branches: List[str] = None,
         enabled_private_namespaces: Union[Set[str], List[str]] = None,
         gitlab_token_secret: str = "",
         gitlab_mr_targets_handled: List[MRTarget] = None,
@@ -129,15 +125,6 @@ class ServiceConfig(Config):
         # fas.fedoraproject.org needs password to authenticate
         # 'fas_user' is inherited from packit.config.Config
         self.fas_password = fas_password
-
-        self.bugzilla_url = bugzilla_url
-        self.bugzilla_api_key = bugzilla_api_key
-        # Create bugs only for MRs against these namespaces
-        self.bugz_namespaces: Set[str] = set(
-            bugz_namespaces or ["redhat/centos-stream/src"]
-        )
-        # Create bugs only for MRs against one of these branches (regex set)
-        self.bugz_branches: Set[str] = set(bugz_branches or [r"^c8s"])
 
         # List of github users who are allowed to trigger p-s on any repository
         self.admins: Set[str] = set(admins or [])
@@ -202,8 +189,6 @@ class ServiceConfig(Config):
             f"validate_webhooks='{self.validate_webhooks}', "
             f"admins='{self.admins}', "
             f"fas_password='{hide(self.fas_password)}', "
-            f"bugzilla_url='{self.bugzilla_url}', "
-            f"bugzilla_api_key='{hide(self.bugzilla_api_key)}', "
             f"gitlab_token_secret='{hide(self.gitlab_token_secret)}',"
             f"gitlab_mr_targets_handled='{self.gitlab_mr_targets_handled}', "
             f"enabled_private_namespaces='{self.enabled_private_namespaces}', "
