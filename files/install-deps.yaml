@@ -17,11 +17,6 @@
           # httpd & deps
           - python3-mod_wsgi
           - mod_ssl
-          - python3-pip # not included in base fedora:31 image, needed for next task
-          # temporary dependencies
-          - krb5-devel
-          - gcc
-          - python3-devel
           - python3-alembic
           - python3-sqlalchemy+postgresql
           - python3-prometheus_client
@@ -42,7 +37,6 @@
     - name: Install pip deps
       pip:
         name:
-          - persistentdict # still needed by one Alembic migration script
           - sentry-sdk[flask]
         executable: pip3
     - name: Check if all pip packages have all dependencies installed
