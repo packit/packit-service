@@ -537,6 +537,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             target=target,
             web_url=None,
             test_run_group=group,
+            copr_build_target_id=build.id if build else None,
             # In _payload() we ask TF to test commit_sha of fork (PR's source).
             # Store original url. If this proves to work, make it a separate column.
             data={"base_project_url": self.project.get_web_url()},

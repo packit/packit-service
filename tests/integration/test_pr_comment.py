@@ -949,6 +949,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         target="fedora-rawhide-x86_64",
         web_url=None,
         test_run_group=group_model,
+        copr_build_target_id=None,
         data={"base_project_url": "https://github.com/packit-service/hello-world"},
     ).and_return(tft_test_run_model)
 

@@ -1536,6 +1536,7 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
     submitted_time = Column(DateTime, default=datetime.utcnow)
     data = Column(JSON)
     tft_test_run_group_id = Column(Integer, ForeignKey("tft_test_run_groups.id"))
+    copr_build_target_id = Column(Integer, ForeignKey("copr_build_targets.id"))
 
     group_of_targets = relationship(
         "TFTTestRunGroupModel", back_populates="tft_test_run_targets"
@@ -1567,6 +1568,7 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
         web_url: Optional[str] = None,
         data: dict = None,
         identifier: Optional[str] = None,
+        copr_build_target_id: Optional[int] = None,
     ) -> "TFTTestRunTargetModel":
         with sa_session_transaction() as session:
             test_run = cls()
@@ -1577,6 +1579,7 @@ class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
             test_run.target = target
             test_run.web_url = web_url
             test_run.data = data
+            test_run.copr_build_target_id = copr_build_target_id
             session.add(test_run)
             test_run_group.tft_test_run_targets.append(test_run)
 

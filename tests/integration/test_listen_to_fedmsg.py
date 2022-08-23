@@ -569,6 +569,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         web_url=None,
         data={"base_project_url": "https://github.com/foo/bar"},
         test_run_group=group,
+        copr_build_target_id=copr_build_pr.id,
     ).and_return(tft_test_run_model)
 
     flexmock(StatusReporter).should_receive("report").with_args(
