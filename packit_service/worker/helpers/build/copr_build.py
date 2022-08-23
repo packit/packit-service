@@ -853,3 +853,13 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             raise ex
 
         return owner
+
+    def get_configured_targets(self) -> Set[str]:
+        """
+        Get configured targets of the custom Copr project.
+
+        Returns:
+            Set of Copr targets configured in the custom Copr project.
+        """
+        owner, project = self.job_owner, self.job_project
+        return self.api.copr_helper.get_chroots(owner=owner, project=project)

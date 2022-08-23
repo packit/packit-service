@@ -84,6 +84,14 @@ class BaseBuildJobHelper(BaseJobHelper):
         if self.job_tests and not self.job_tests.skip_build:
             targets.update(self.job_tests.targets)
 
+        if (
+            self.job_type_build == JobType.copr_build
+            and (self.job_build and not self.job_build.targets)
+            and self.is_custom_copr_project_defined()  # type: ignore
+        ):
+            copr_targets = self.get_configured_targets()  # type: ignore
+            targets.update(copr_targets)
+
         return targets or {DEFAULT_VERSION}
 
     @property
