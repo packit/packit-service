@@ -147,32 +147,32 @@ def test_testing_farm_response(
 
 
 @pytest.mark.parametrize(
-    "distro,compose,use_internal_tf",
+    "target,compose,use_internal_tf",
     [
-        ("fedora-33", "Fedora-33", False),
-        ("fedora-rawhide", "Fedora-Rawhide", False),
-        ("centos-stream-8", "CentOS-Stream-8", False),
-        ("centos-stream", "CentOS-Stream-8", False),
-        ("Centos-7", "CentOS-7", False),
-        ("Centos-8", "CentOS-8", False),
-        ("fedora-33", "Fedora-33-Updated", True),
-        ("fedora-rawhide", "Fedora-Rawhide-Nightly", True),
-        ("centos-stream-8", "CentOS-Stream-8", True),
-        ("centos-stream", "CentOS-Stream-8", True),
-        ("Centos-7", "CentOS-7-latest", True),
-        ("Centos-8", "CentOS-8-latest", True),
-        ("rhel-7", "RHEL-7-LatestReleased", True),
-        ("rhel-8", "RHEL-8.5.0-Nightly", True),
-        ("oraclelinux-7", "Oracle-Linux-7.9", True),
-        ("oraclelinux-8", "Oracle-Linux-8.6", True),
+        ("fedora-33-x86_64", "Fedora-33", False),
+        ("fedora-rawhide-x86_64", "Fedora-Rawhide", False),
+        ("centos-stream-8-x86_64", "CentOS-Stream-8", False),
+        ("centos-stream-x86_64", "CentOS-Stream-8", False),
+        ("Centos-7-x86_64", "CentOS-7", False),
+        ("Centos-8-x86_64", "CentOS-8", False),
+        ("fedora-33-x86_64", "Fedora-33-Updated", True),
+        ("fedora-rawhide-x86_64", "Fedora-Rawhide-Nightly", True),
+        ("centos-stream-8-x86_64", "CentOS-Stream-8", True),
+        ("centos-stream-x86_64", "CentOS-Stream-8", True),
+        ("Centos-7-x86_64", "CentOS-7-latest", True),
+        ("Centos-8-x86_64", "CentOS-8-latest", True),
+        ("rhel-7-x86_64", "RHEL-7-LatestReleased", True),
+        ("rhel-8-x86_64", "RHEL-8.5.0-Nightly", True),
+        ("oraclelinux-7-x86_64", "Oracle-Linux-7.9", True),
+        ("oraclelinux-8-x86_64", "Oracle-Linux-8.6", True),
         # Explicit compose name
-        ("centos-7-latest", "CentOS-7-latest", True),
-        ("centos-8-latest", "CentOS-8-latest", True),
-        ("centos-8-Latest", "CentOS-8-latest", True),
-        ("centos-8.4", "CentOS-8.4", True),
+        ("centos-7-latest-x86_64", "CentOS-7-latest", True),
+        ("centos-8-latest-x86_64", "CentOS-8-latest", True),
+        ("centos-8-Latest-x86_64", "CentOS-8-latest", True),
+        ("centos-8.4-x86_64", "CentOS-8.4", True),
     ],
 )
-def test_distro2compose(distro, compose, use_internal_tf):
+def test_distro2compose(target, compose, use_internal_tf):
     job_helper = TFJobHelper(
         service_config=ServiceConfig.get_service_config(),
         package_config=flexmock(jobs=[]),
@@ -187,24 +187,23 @@ def test_distro2compose(distro, compose, use_internal_tf):
     )
     job_helper = flexmock(job_helper)
 
-    response = flexmock(
-        status_code=200, json=lambda: {"composes": [{"name": "Fedora-33"}]}
-    )
-    job_helper.should_receive("send_testing_farm_request").and_return(response).times(
-        0 if use_internal_tf else 1
-    )
+    response = flexmock(status_code=200, json=lambda: {"composes": [{"name": compose}]})
+    endpoint = "composes/redhat" if use_internal_tf else "composes/public"
+    job_helper.should_receive("send_testing_farm_request").with_args(
+        endpoint=endpoint
+    ).and_return(response).once()
 
-    assert job_helper.distro2compose(distro, arch="x86_64") == compose
+    assert job_helper.distro2compose(target) == compose
 
 
 @pytest.mark.parametrize(
-    "distro,arch,compose,use_internal_tf",
+    "target,compose,use_internal_tf",
     [
-        ("fedora-33", "x86_64", "Fedora-33", False),
-        ("fedora-33", "aarch64", "Fedora-33-aarch64", False),
+        ("fedora-33-x86_64", "Fedora-33", False),
+        ("fedora-33-aarch64", "Fedora-33-aarch64", False),
     ],
 )
-def test_distro2compose_for_aarch64(distro, arch, compose, use_internal_tf):
+def test_distro2compose_for_aarch64(target, compose, use_internal_tf):
     job_helper = TFJobHelper(
         service_config=ServiceConfig.get_service_config(),
         package_config=flexmock(jobs=[]),
@@ -219,14 +218,12 @@ def test_distro2compose_for_aarch64(distro, arch, compose, use_internal_tf):
     )
     job_helper = flexmock(job_helper)
 
-    response = flexmock(
-        status_code=200, json=lambda: {"composes": [{"name": "Fedora-33"}]}
-    )
-    job_helper.should_receive("send_testing_farm_request").and_return(response).times(
-        0 if use_internal_tf else 1
-    )
+    response = flexmock(status_code=200, json=lambda: {"composes": [{"name": compose}]})
+    job_helper.should_receive("send_testing_farm_request").with_args(
+        endpoint="composes/public"
+    ).and_return(response).once()
 
-    assert job_helper.distro2compose(distro, arch=arch) == compose
+    assert job_helper.distro2compose(target) == compose
 
 
 @pytest.mark.parametrize(
@@ -514,7 +511,6 @@ def test_payload(
 
     job_helper.should_receive("job_owner").and_return(copr_owner)
     job_helper.should_receive("job_project").and_return(copr_project)
-    job_helper.should_receive("distro2compose").and_return(compose)
     artifact = {"id": f"{build_id}:{chroot}", "type": "fedora-copr-build"}
 
     if packages_to_send:
@@ -542,7 +538,9 @@ def test_payload(
     )
     copr_build.should_receive("get_srpm_build").and_return(flexmock(url=srpm_url))
 
-    payload = job_helper._payload(chroot, artifact, copr_build)
+    payload = job_helper._payload(
+        target=chroot, compose=compose, artifact=artifact, build=copr_build
+    )
 
     assert payload["api_key"] == token_to_use
 
@@ -710,7 +708,7 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
     )
     copr_build.should_receive("get_srpm_build").and_return(flexmock(url=srpm_url))
 
-    payload = job_helper._payload(chroot, build=copr_build)
+    payload = job_helper._payload(chroot, compose=compose, build=copr_build)
     assert payload.get("test")
     assert payload["test"].get("fmf")
     assert payload["test"]["fmf"].get("url") == result_url

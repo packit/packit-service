@@ -966,6 +966,252 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     )
 
 
+def test_pr_test_command_handler_compose_not_present(
+    pr_embedded_command_comment_event,
+):
+    jobs = [
+        {
+            "trigger": "pull_request",
+            "job": "tests",
+            "metadata": {"targets": "fedora-rawhide-x86_64", "skip_build": True},
+        }
+    ]
+    packit_yaml = (
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
+        + str(jobs)
+        + "}"
+    )
+    pr = flexmock(
+        source_project=flexmock(
+            get_web_url=lambda: "https://github.com/someone/hello-world"
+        ),
+        target_project=flexmock(
+            get_web_url=lambda: "https://github.com/packit-service/hello-world"
+        ),
+        head_commit="0011223344",
+        target_branch_head_commit="deadbeef",
+        source_branch="the-source-branch",
+        target_branch="the-target-branch",
+    )
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
+    flexmock(
+        GithubProject,
+        full_repo_name="packit-service/hello-world",
+        get_file_content=lambda path, ref: packit_yaml,
+        get_files=lambda ref, filter_regex: ["the-specfile.spec"],
+        get_web_url=lambda: "https://github.com/packit-service/hello-world",
+    )
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+
+    ServiceConfig.get_service_config().testing_farm_api_url = (
+        "https://api.dev.testing-farm.io/v0.1/"
+    )
+    ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
+
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
+        trigger
+    )
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(Allowlist, check_and_report=True)
+    pr_model = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+    )
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(pr_model)
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=9
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
+    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+        {"fedora-rawhide-x86_64"}
+    )
+    flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
+    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+        description=TASK_ACCEPTED,
+        state=BaseCommitStatus.pending,
+        url="",
+    ).once()
+
+    flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
+
+    flexmock(StatusReporter).should_receive("report").with_args(
+        state=BaseCommitStatus.running,
+        description="Submitting the tests ...",
+        check_names="testing-farm:fedora-rawhide-x86_64",
+        url="",
+        markdown_content=None,
+    ).once()
+
+    response = flexmock(
+        status_code=200, json=lambda: {"composes": [{"name": "some-other-compose"}]}
+    )
+    flexmock(TestingFarmJobHelper).should_receive(
+        "send_testing_farm_request"
+    ).with_args(endpoint="composes/public").and_return(response).once()
+
+    flexmock(StatusReporter).should_receive("report").with_args(
+        state=BaseCommitStatus.error,
+        description="The compose Fedora-Rawhide is not available in the public "
+        "Testing Farm infrastructure.",
+        check_names="testing-farm:fedora-rawhide-x86_64",
+        url="",
+        markdown_content="The compose Fedora-Rawhide (from target fedora-rawhide) is not in "
+        "the list of available composes:\n"
+        "['some-other-compose']. Please, check the targets defined in your test job configuration. "
+        "If you think your configuration is correct, get "
+        "in touch with [us](https://packit.dev/#contact).",
+    ).once()
+
+    flexmock(Signature).should_receive("apply_async").once()
+
+    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    run_testing_farm_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+
+def test_pr_test_command_handler_composes_not_available(
+    pr_embedded_command_comment_event,
+):
+    jobs = [
+        {
+            "trigger": "pull_request",
+            "job": "tests",
+            "metadata": {"targets": "fedora-rawhide-x86_64", "skip_build": True},
+        }
+    ]
+    packit_yaml = (
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
+        + str(jobs)
+        + "}"
+    )
+    pr = flexmock(
+        source_project=flexmock(
+            get_web_url=lambda: "https://github.com/someone/hello-world"
+        ),
+        target_project=flexmock(
+            get_web_url=lambda: "https://github.com/packit-service/hello-world"
+        ),
+        head_commit="0011223344",
+        target_branch_head_commit="deadbeef",
+        source_branch="the-source-branch",
+        target_branch="the-target-branch",
+    )
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
+    flexmock(
+        GithubProject,
+        full_repo_name="packit-service/hello-world",
+        get_file_content=lambda path, ref: packit_yaml,
+        get_files=lambda ref, filter_regex: ["the-specfile.spec"],
+        get_web_url=lambda: "https://github.com/packit-service/hello-world",
+    )
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+
+    ServiceConfig.get_service_config().testing_farm_api_url = (
+        "https://api.dev.testing-farm.io/v0.1/"
+    )
+    ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
+
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
+        trigger
+    )
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(Allowlist, check_and_report=True)
+    pr_model = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+    )
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(pr_model)
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=9
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
+    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+        {"fedora-rawhide-x86_64"}
+    )
+    flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
+    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+        description=TASK_ACCEPTED,
+        state=BaseCommitStatus.pending,
+        url="",
+    ).once()
+
+    flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
+
+    flexmock(StatusReporter).should_receive("report").with_args(
+        state=BaseCommitStatus.running,
+        description="Submitting the tests ...",
+        check_names="testing-farm:fedora-rawhide-x86_64",
+        url="",
+        markdown_content=None,
+    ).once()
+
+    flexmock(TestingFarmJobHelper).should_receive(
+        "send_testing_farm_request"
+    ).with_args(endpoint="composes/public").and_return(flexmock(status_code=500)).once()
+
+    flexmock(StatusReporter).should_receive("report").with_args(
+        state=BaseCommitStatus.error,
+        description="We were not able to get the available TF composes.",
+        check_names="testing-farm:fedora-rawhide-x86_64",
+        url="",
+        markdown_content=None,
+    ).once()
+
+    flexmock(Signature).should_receive("apply_async").once()
+
+    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    run_testing_farm_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+
 def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event):
     jobs = [
         {
