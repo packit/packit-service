@@ -756,7 +756,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
         flexmock
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=PG_BUILD_STATUS_SUCCESS, runs=[run])
+        flexmock(status=PG_BUILD_STATUS_SUCCESS, group_of_targets=flexmock(runs=[run]))
     )
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})

@@ -283,9 +283,9 @@ def test_get_all_builds(clean_before_and_after, multiple_copr_builds):
     builds_list = list(CoprBuildTargetModel.get_all())
     assert len({builds_list[i].id for i in range(4)})
     # All builds has to have exactly one PipelineModel connected
-    assert all(len(build.runs) == 1 for build in builds_list)
+    assert all(len(build.group_of_targets.runs) == 1 for build in builds_list)
     # All builds has to have a different PipelineModel connected.
-    assert len({build.runs[0] for build in builds_list}) == 4
+    assert len({build.group_of_targets.runs[0] for build in builds_list}) == 4
 
 
 def test_get_all_build_id(clean_before_and_after, multiple_copr_builds):
@@ -794,10 +794,11 @@ def test_merged_runs(clean_before_and_after, few_runs):
         # run of TFT from the same Copr build produces new row with same SRPM
         # and Copr IDs, but different Testing Farm IDs
         # ^ handled in API by iterating over set of IDs instead of list
-        assert len(merged_run.copr_build_id) == 2 * i
+        assert len(merged_run.copr_build_group_id) == 2 * i
 
         for copr_build in map(
-            lambda ids: CoprBuildTargetModel.get_by_id(ids[0]), merged_run.copr_build_id
+            lambda ids: CoprBuildTargetModel.get_by_id(ids[0]),
+            merged_run.copr_build_group_id,
         ):
             assert copr_build.get_srpm_build().id == srpm_build_id
 

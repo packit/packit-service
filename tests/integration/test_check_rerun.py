@@ -293,7 +293,7 @@ def test_check_rerun_pr_testing_farm_handler(
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=PG_BUILD_STATUS_SUCCESS, runs=[run])
+        flexmock(status=PG_BUILD_STATUS_SUCCESS, group_of_targets=flexmock(runs=[run]))
     )
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64", "fedora-34-x86_64"}
@@ -470,7 +470,7 @@ def test_check_rerun_push_testing_farm_handler(
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=PG_BUILD_STATUS_SUCCESS, runs=[run])
+        flexmock(status=PG_BUILD_STATUS_SUCCESS, group_of_targets=flexmock(runs=[run]))
     )
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64", "fedora-34-x86_64"}

@@ -42,6 +42,7 @@ from packit_service.constants import (
 from packit_service.models import (
     AbstractTriggerDbType,
     CoprBuildTargetModel,
+    CoprBuildGroupModel,
     SRPMBuildModel,
     JobTriggerModelType,
 )
@@ -647,6 +648,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         if the SRPM is already built.
         """
         unprocessed_chroots = []
+        group = CoprBuildGroupModel.create(self.run_model)
         for chroot in self.build_targets:
             if chroot not in self.available_chroots:
                 self.report_status_to_all_for_chroot(
@@ -667,7 +669,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 web_url=web_url,
                 target=chroot,
                 status="waiting_for_srpm" if waiting_for_srpm else "pending",
-                run_model=self.run_model,
+                copr_build_group=group,
                 task_accepted_time=self.metadata.task_accepted_time,
             )
             if not waiting_for_srpm:

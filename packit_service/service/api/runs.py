@@ -8,13 +8,14 @@ from typing import Dict
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
-    CoprBuildTargetModel,
+    CoprBuildGroupModel,
     KojiBuildTargetModel,
     PipelineModel,
     ProposeDownstreamModel,
     SRPMBuildModel,
     TFTTestRunTargetModel,
     TFTTestRunGroupModel,
+    GroupModel,
     optional_timestamp,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
@@ -84,15 +85,15 @@ def process_runs(runs):
             response_dict["trigger"] = get_project_info_from_build(srpm_build)
 
         for model_type, Model, packit_ids in (
-            ("copr", CoprBuildTargetModel, pipeline.copr_build_id),
+            ("copr", CoprBuildGroupModel, pipeline.copr_build_group_id),
             ("koji", KojiBuildTargetModel, pipeline.koji_build_id),
             ("test_run", TFTTestRunGroupModel, pipeline.test_run_group_id),
         ):
             for packit_id in set(flatten_and_remove_none(packit_ids)):
                 group_row = Model.get_by_id(packit_id)
                 target_models = (
-                    group_row.tft_test_run_targets
-                    if isinstance(group_row, TFTTestRunGroupModel)
+                    group_row.grouped_targets
+                    if isinstance(group_row, GroupModel)
                     else [group_row]
                 )
                 for row in target_models:
@@ -181,7 +182,7 @@ class Run(Resource):
                 run.srpm_build or run.propose_downstream_run
             ),
             "srpm_build_id": run.srpm_build_id,
-            "copr_build_id": run.copr_build_id,
+            "copr_build_group_id": run.copr_build_group_id,
             "koji_build_id": run.koji_build_id,
             "test_run_group_id": run.test_run_group_id,
         }

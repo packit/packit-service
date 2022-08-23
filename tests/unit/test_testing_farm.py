@@ -753,7 +753,7 @@ def test_get_request_details():
             flexmock(
                 commit_sha="1111111111111111111111111111111111111111",
                 status=PG_BUILD_STATUS_SUCCESS,
-                runs=[flexmock()],
+                group_of_targets=flexmock(runs=[flexmock()]),
             ),
             False,
         ),

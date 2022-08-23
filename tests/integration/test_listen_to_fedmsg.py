@@ -558,7 +558,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     tft_test_run_model = flexmock(id=5)
     group = flexmock()
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
-        copr_build_pr.runs[-1]
+        copr_build_pr.group_of_targets.runs[-1]
     ).and_return(group)
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
         pipeline_id=pipeline_id,
@@ -694,7 +694,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     ).once()
 
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
-        copr_build_pr.runs[-1]
+        copr_build_pr.group_of_targets.runs[-1]
     ).and_return(flexmock())
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
     flexmock(TestingFarmJobHelper).should_receive(
@@ -835,7 +835,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     ).once()
 
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
-        copr_build_pr.runs[-1]
+        copr_build_pr.group_of_targets.runs[-1]
     ).and_return(flexmock())
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
     flexmock(TestingFarmJobHelper).should_receive(

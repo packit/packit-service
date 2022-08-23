@@ -95,7 +95,7 @@ class CoprBuildItem(Resource):
             "copr_project": build.project_name,
             "copr_owner": build.owner,
             "srpm_build_id": build.get_srpm_build().id,
-            "run_ids": sorted(run.id for run in build.runs),
+            "run_ids": sorted(run.id for run in build.group_of_targets.runs),
             "built_packages": build.built_packages,
         }
 
