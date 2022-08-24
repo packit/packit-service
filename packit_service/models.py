@@ -1480,7 +1480,10 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
         return cls.get_by_build_id(build_id, target)
 
     def __repr__(self):
-        return f"COPRBuildModel(id={self.id}, build_submitted_time={self.build_submitted_time})"
+        return (
+            f"CoprBuildTargetModel(id={self.id}, "
+            f"build_submitted_time={self.build_submitted_time})"
+        )
 
 
 class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
