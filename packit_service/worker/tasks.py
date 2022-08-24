@@ -43,8 +43,13 @@ from packit_service.worker.helpers.build.babysit import (
 )
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import TaskResults
+from packit.exceptions import PackitException
 
 logger = logging.getLogger(__name__)
+
+
+class PackitCoprBuildTimeoutException(PackitException):
+    """Copr build has timed out"""
 
 
 @after_setup_logger.connect
@@ -105,6 +110,7 @@ def process_message(
 @celery_app.task(
     bind=True,
     name="task.babysit_copr_build",
+    autoretry_for=(PackitCoprBuildTimeoutException,),
     retry_backoff=30,  # retry again in 30s, 60s, 120s, 240s...
     retry_backoff_max=3600,  # at most, wait for an hour between retries
     max_retries=14,  # retry 14 times; with the backoff values above this is ~8 hours
@@ -113,7 +119,9 @@ def process_message(
 def babysit_copr_build(self, build_id: int):
     """check status of a copr build and update it in DB"""
     if not check_copr_build(build_id=build_id):
-        self.retry()
+        raise PackitCoprBuildTimeoutException(
+            f"No feedback for copr build id={build_id} yet"
+        )
 
 
 # tasks for running the handlers
