@@ -4,11 +4,12 @@
 """
 Data layer on top of PSQL using sqlalch
 """
+
 import enum
 import logging
 import os
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import (
     Dict,
     Iterable,
@@ -96,9 +97,7 @@ def optional_time(
     Returns:
         Formatted date-time or `None` if no datetime is provided.
     """
-    if datetime_object is None:
-        return None
-    return datetime_object.strftime(fmt)
+    return None if datetime_object is None else datetime_object.strftime(fmt)
 
 
 def optional_timestamp(datetime_object: Optional[datetime]) -> Optional[int]:
@@ -111,9 +110,7 @@ def optional_timestamp(datetime_object: Optional[datetime]) -> Optional[int]:
     Returns:
         UNIX timestamp or `None` if no datetime object is provided.
     """
-    if datetime_object is None:
-        return None
-    return int(datetime_object.timestamp())
+    return None if datetime_object is None else int(datetime_object.timestamp())
 
 
 # https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
@@ -197,21 +194,15 @@ class ProjectAndTriggersConnector:
     runs: Optional[List["PipelineModel"]]
 
     def get_job_trigger_model(self) -> Optional["JobTriggerModel"]:
-        if not self.runs:
-            return None
-        return self.runs[0].job_trigger
+        return self.runs[0].job_trigger if self.runs else None
 
     def get_trigger_object(self) -> Optional["AbstractTriggerDbType"]:
         job_trigger = self.get_job_trigger_model()
-        if not job_trigger:
-            return None
-        return job_trigger.get_trigger_object()
+        return job_trigger.get_trigger_object() if job_trigger else None
 
     def get_project(self) -> Optional["GitProjectModel"]:
         trigger_object = self.get_trigger_object()
-        if not trigger_object:
-            return None
-        return trigger_object.project
+        return trigger_object.project if trigger_object else None
 
     def get_pr_id(self) -> Optional[int]:
         trigger_object = self.get_trigger_object()
@@ -821,10 +812,8 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
             session.add(self)
 
     def get_srpm_build(self) -> Optional["SRPMBuildModel"]:
-        if not self.runs:
-            return None
         # All SRPMBuild models for all the runs have to be same.
-        return self.runs[0].srpm_build
+        return self.runs[0].srpm_build if self.runs else None
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["CoprBuildTargetModel"]:
@@ -1048,10 +1037,8 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
             session.add(self)
 
     def get_srpm_build(self) -> Optional["SRPMBuildModel"]:
-        if not self.runs:
-            return None
         # All SRPMBuild models for all the runs have to be same.
-        return self.runs[0].srpm_build
+        return self.runs[0].srpm_build if self.runs else None
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["KojiBuildTargetModel"]:
@@ -1250,7 +1237,7 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
     @classmethod
     def get_older_than(cls, delta: timedelta) -> Iterable["SRPMBuildModel"]:
         """Return builds older than delta, whose logs/artifacts haven't been discarded yet."""
-        delta_ago = datetime.utcnow() - delta
+        delta_ago = datetime.now(timezone.utc) - delta
         return (
             Session()
             .query(SRPMBuildModel)
