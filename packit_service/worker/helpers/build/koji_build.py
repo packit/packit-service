@@ -13,7 +13,7 @@ from packit.exceptions import PackitCommandFailedError
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import MSG_RETRIGGER, PG_BUILD_STATUS_SUCCESS
-from packit_service.models import KojiBuildTargetModel
+from packit_service.models import KojiBuildTargetModel, KojiBuildGroupModel
 from packit_service.worker.events import EventData
 from packit_service.service.urls import (
     get_koji_build_info_url,
@@ -119,6 +119,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             return TaskResults(success=False, details={"msg": msg})
 
         errors: Dict[str, str] = {}
+        build_group = KojiBuildGroupModel.create(run_model=self.run_model)
         for target in self.build_targets:
 
             if target not in self.supported_koji_targets:
@@ -154,7 +155,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 target=target,
                 status="pending",
                 scratch=self.is_scratch,
-                run_model=self.run_model,
+                koji_build_group=build_group,
             )
             url = get_koji_build_info_url(id_=koji_build.id)
             self.report_status_to_all_for_chroot(

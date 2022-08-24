@@ -9,7 +9,7 @@ from flask_restx import Namespace, Resource
 
 from packit_service.models import (
     CoprBuildGroupModel,
-    KojiBuildTargetModel,
+    KojiBuildGroupModel,
     PipelineModel,
     ProposeDownstreamModel,
     SRPMBuildModel,
@@ -86,7 +86,7 @@ def process_runs(runs):
 
         for model_type, Model, packit_ids in (
             ("copr", CoprBuildGroupModel, pipeline.copr_build_group_id),
-            ("koji", KojiBuildTargetModel, pipeline.koji_build_id),
+            ("koji", KojiBuildGroupModel, pipeline.koji_build_group_id),
             ("test_run", TFTTestRunGroupModel, pipeline.test_run_group_id),
         ):
             for packit_id in set(flatten_and_remove_none(packit_ids)):
@@ -183,7 +183,7 @@ class Run(Resource):
             ),
             "srpm_build_id": run.srpm_build_id,
             "copr_build_group_id": run.copr_build_group_id,
-            "koji_build_id": run.koji_build_id,
+            "koji_build_group_id": run.koji_build_group_id,
             "test_run_group_id": run.test_run_group_id,
         }
         return response_maker(result)

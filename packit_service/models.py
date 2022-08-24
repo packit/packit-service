@@ -178,7 +178,11 @@ class BuildsAndTestsConnector:
             ]
 
         if model_type == KojiBuildTargetModel:
-            models = [run.koji_build for run in runs]
+            models = [
+                target
+                for run in runs
+                for target in run.copr_build_group.copr_build_targets
+            ]
 
         if model_type == SRPMBuildModel:
             models = [run.srpm_build for run in runs]
@@ -711,8 +715,8 @@ class PipelineModel(Base):
     srpm_build = relationship("SRPMBuildModel", back_populates="runs")
     copr_build_group_id = Column(Integer, ForeignKey("copr_build_groups.id"))
     copr_build_group = relationship("CoprBuildGroupModel", back_populates="runs")
-    koji_build_id = Column(Integer, ForeignKey("koji_build_targets.id"))
-    koji_build = relationship("KojiBuildTargetModel", back_populates="runs")
+    koji_build_group_id = Column(Integer, ForeignKey("koji_build_groups.id"))
+    koji_build_group = relationship("KojiBuildGroupModel", back_populates="runs")
     test_run_group_id = Column(Integer, ForeignKey("tft_test_run_groups.id"))
     test_run_group = relationship("TFTTestRunGroupModel", back_populates="runs")
     propose_downstream_run_id = Column(
@@ -746,7 +750,7 @@ class PipelineModel(Base):
             func.array_agg(psql_array([PipelineModel.copr_build_group_id])).label(
                 "copr_build_group_id"
             ),
-            func.array_agg(psql_array([PipelineModel.koji_build_id])).label(
+            func.array_agg(psql_array([PipelineModel.koji_build_group_id])).label(
                 "koji_build_id"
             ),
             func.array_agg(psql_array([PipelineModel.test_run_group_id])).label(
@@ -1057,6 +1061,45 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
         )
 
 
+class KojiBuildGroupModel(ProjectAndTriggersConnector, GroupModel, Base):
+    __tablename__ = "koji_build_groups"
+    id = Column(Integer, primary_key=True)
+    submitted_time = Column(DateTime, default=datetime.utcnow)
+
+    runs = relationship("PipelineModel", back_populates="koji_build_group")
+    koji_build_targets = relationship(
+        "KojiBuildTargetModel", back_populates="group_of_targets"
+    )
+
+    @property
+    def grouped_targets(self):
+        return self.koji_build_targets
+
+    def __repr__(self) -> str:
+        return (
+            f"KojiBuildGroupModel(id={self.id}, submitted_time={self.submitted_time})"
+        )
+
+    @classmethod
+    def create(cls, run_model: "PipelineModel") -> "KojiBuildGroupModel":
+        with sa_session_transaction() as session:
+            build_group = cls()
+            session.add(build_group)
+            if run_model.koji_build_group:
+                # Clone run model
+                new_run_model = PipelineModel.create(
+                    type=run_model.job_trigger.type,
+                    trigger_id=run_model.job_trigger.trigger_id,
+                )
+                new_run_model.srpm_build = run_model.srpm_build
+                new_run_model.koji_build_group = build_group
+                session.add(new_run_model)
+            else:
+                run_model.koji_build_group = build_group
+                session.add(run_model)
+            return build_group
+
+
 class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
     """we create an entry for every target"""
 
@@ -1079,6 +1122,7 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
     build_submitted_time = Column(DateTime, default=datetime.utcnow)
     build_start_time = Column(DateTime)
     build_finished_time = Column(DateTime)
+    koji_build_group_id = Column(Integer, ForeignKey("koji_build_groups.id"))
 
     # metadata for the build which didn't make it to schema yet
     # metadata is reserved to sqlalch
@@ -1087,7 +1131,9 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
     # it is a scratch build?
     scratch = Column(Boolean)
 
-    runs = relationship("PipelineModel", back_populates="koji_build")
+    group_of_targets = relationship(
+        "KojiBuildGroupModel", back_populates="koji_build_targets"
+    )
 
     def set_status(self, status: str):
         with sa_session_transaction() as session:
@@ -1184,7 +1230,7 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
         target: str,
         status: str,
         scratch: bool,
-        run_model: "PipelineModel",
+        koji_build_group: "KojiBuildGroupModel",
     ) -> "KojiBuildTargetModel":
         with sa_session_transaction() as session:
             build = cls()
@@ -1195,20 +1241,7 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
             build.target = target
             build.scratch = scratch
             session.add(build)
-
-            if run_model.koji_build:
-                # Clone run model
-                new_run_model = PipelineModel.create(
-                    type=run_model.job_trigger.type,
-                    trigger_id=run_model.job_trigger.trigger_id,
-                )
-                new_run_model.srpm_build = run_model.srpm_build
-                new_run_model.koji_build = build
-                session.add(new_run_model)
-            else:
-                run_model.koji_build = build
-                session.add(run_model)
-
+            koji_build_group.koji_build_targets.append(build)
             return build
 
     @classmethod

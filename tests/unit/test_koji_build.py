@@ -21,6 +21,7 @@ from packit_service.config import ServiceConfig
 from packit_service.models import (
     SRPMBuildModel,
     KojiBuildTargetModel,
+    KojiBuildGroupModel,
     JobTriggerModel,
     JobTriggerModelType,
 )
@@ -156,6 +157,7 @@ def test_koji_build_check_names(github_pr_event):
             flexmock(),
         )
     )
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
@@ -308,6 +310,7 @@ def test_koji_build_target_not_supported(github_pr_event):
         )
     )
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(flexmock(id=1))
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
     response = helper.run_koji_build()
@@ -362,6 +365,7 @@ def test_koji_build_with_multiple_targets(github_pr_event):
             flexmock(),
         )
     )
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(
         flexmock(id=1)
     ).and_return(flexmock(id=2))
@@ -445,6 +449,7 @@ def test_koji_build_failed(github_pr_event):
             flexmock(),
         )
     )
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(PackitAPI).should_receive("create_srpm").and_return("my.srpm")
 
@@ -567,6 +572,7 @@ def test_koji_build_targets_override(github_pr_event):
             flexmock(),
         )
     )
+    flexmock(KojiBuildGroupModel).should_receive("create").and_return(flexmock(id=1))
     flexmock(KojiBuildTargetModel).should_receive("create").and_return(
         flexmock(id=1)
     ).and_return(flexmock(id=2))
