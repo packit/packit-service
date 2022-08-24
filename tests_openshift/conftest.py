@@ -21,7 +21,7 @@ from packit_service.config import ServiceConfig
 from packit_service.models import (
     CoprBuildTargetModel,
     JobTriggerModel,
-    get_sa_session,
+    sa_session_transaction,
     SRPMBuildModel,
     PullRequestModel,
     GitProjectModel,
@@ -151,7 +151,7 @@ def global_service_config():
 
 
 def clean_db():
-    with get_sa_session() as session:
+    with sa_session_transaction() as session:
 
         session.query(SourceGitPRDistGitPRModel).delete()
 
@@ -1054,7 +1054,7 @@ def installation_events():
 
 @pytest.fixture()
 def multiple_installation_entries(installation_events):
-    with get_sa_session() as session:
+    with sa_session_transaction() as session:
         session.query(GithubInstallationModel).delete()
         yield [
             GithubInstallationModel.create_or_update(

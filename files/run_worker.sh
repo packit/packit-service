@@ -30,7 +30,8 @@ elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     DEFAULT_QUEUES="short-running,long-running"
     QUEUES="${QUEUES:-$DEFAULT_QUEUES}"
 
-    # Min,max number of concurrent worker processes/threads executing tasks.
+    # Max,min number of concurrent worker processes/threads executing tasks.
+    # pool support: prefork, gevent
     # https://docs.celeryq.dev/en/stable/userguide/workers.html#autoscaling
     DEFAULT_AUTOSCALE="1,1"
     AUTOSCALE="${AUTOSCALE:-$DEFAULT_AUTOSCALE}"
