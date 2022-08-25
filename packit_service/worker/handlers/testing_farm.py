@@ -403,4 +403,11 @@ class TestingFarmResultsHandler(JobHandler):
         return TaskResults(success=True, details={})
 
     def pre_check(self) -> bool:
-        return self.data.identifier == self.job_config.identifier
+        if self.data.identifier != self.job_config.identifier:
+            logger.debug(
+                f"Skipping reporting, identifiers don't match "
+                f"(identifier of the test job to report: {self.data.identifier}, "
+                f"identifier from job config: {self.job_config.identifier})."
+            )
+            return False
+        return True

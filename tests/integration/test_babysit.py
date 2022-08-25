@@ -311,3 +311,75 @@ def test_check_pending_testing_farm_runs_timeout(status):
         TestingFarmResult.new, TestingFarmResult.queued, TestingFarmResult.running
     ).and_return([run]).once()
     check_pending_testing_farm_runs()
+
+
+@pytest.mark.parametrize(
+    "identifier",
+    [None, "first", "second"],
+)
+def test_check_pending_testing_farm_runs_identifiers(identifier):
+    pipeline_id = 1
+    run = (
+        flexmock(
+            pipeline_id=pipeline_id,
+            submitted_time=datetime.datetime.utcnow(),
+            commit_sha="123456",
+            target="fedora-rawhide-x86_64",
+            data={},
+            job_trigger=flexmock(type=JobTriggerModelType.pull_request),
+            identifier=identifier,
+        )
+        .should_receive("get_trigger_object")
+        .and_return(
+            flexmock(
+                project=flexmock(
+                    repo_name="repo_name",
+                    namespace="the-namespace",
+                    project_url="https://github.com/the-namespace/repo_name",
+                ),
+                pr_id=5,
+                job_config_trigger_type=JobConfigTriggerType.pull_request,
+                job_trigger_model_type=JobTriggerModelType.pull_request,
+                id=123,
+            )
+        )
+        .mock()
+    )
+    flexmock(TFTTestRunTargetModel).should_receive("get_all_by_status").with_args(
+        TestingFarmResult.new, TestingFarmResult.queued, TestingFarmResult.running
+    ).and_return([run]).once()
+    flexmock(TFTTestRunTargetModel).should_receive("get_by_pipeline_id").with_args(
+        pipeline_id=pipeline_id
+    ).and_return(run)
+    url = "https://api.dev.testing-farm.io/v0.1/requests/1"
+    flexmock(requests).should_receive("get").with_args(url).and_return(
+        flexmock(
+            json=lambda: {
+                "id": pipeline_id,
+                "state": TestingFarmResult.passed,
+                "created": "2021-11-01 17:22:36.061250",
+            },
+            ok=lambda: True,
+        )
+    ).once()
+    flexmock(TestingFarmResultsEvent).should_receive("get_package_config").and_return(
+        PackageConfig(
+            jobs=[
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    identifier="first",
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    identifier="second",
+                ),
+                JobConfig(
+                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+                ),
+            ]
+        )
+    )
+    flexmock(TestingFarmResultsHandler).should_receive("run").and_return().once()
+    check_pending_testing_farm_runs()
