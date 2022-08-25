@@ -83,7 +83,14 @@ def sa_session() -> SQLASession:
 
 @contextmanager
 def sa_session_transaction() -> SQLASession:
-    """get SQLAlchemy session"""
+    """
+    Context manager for 'framing' of a transaction for cases where we
+    commit data to the database. If all operations succeed
+    the transaction is committed, otherwise rolled back.
+    https://docs.sqlalchemy.org/en/14/orm/session_basics.html#framing-out-a-begin-commit-rollback-block
+    TODO: Replace usages of this function with the sessionmaker.begin[_nested]() as described in
+    https://docs.sqlalchemy.org/en/14/orm/session_basics.html#using-a-sessionmaker
+    """
     session = sa_session()
     try:
         yield session
