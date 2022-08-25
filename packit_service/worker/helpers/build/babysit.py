@@ -110,11 +110,14 @@ def check_pending_testing_farm_runs() -> None:
         )
 
         for job_config in job_configs:
-            TestingFarmResultsHandler(
+            handler = TestingFarmResultsHandler(
                 package_config=event.package_config,
                 job_config=job_config,
                 event=event.get_dict(),
-            ).run()
+            )
+            # check for identifiers equality
+            if handler.pre_check():
+                handler.run()
 
 
 def check_pending_copr_builds() -> None:
