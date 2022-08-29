@@ -34,10 +34,9 @@ class SRPMBuildsList(Resource):
                 "log_url": get_srpm_build_info_url(build.id),
                 "build_submitted_time": optional_timestamp(build.build_submitted_time),
             }
-            project = build.get_project()
 
             # It's possible that jobtrigger isn't stored in db
-            if project:
+            if project := build.get_project():
                 build_dict["repo_namespace"] = project.namespace
                 build_dict["repo_name"] = project.repo_name
                 build_dict["project_url"] = project.project_url

@@ -71,8 +71,7 @@ def process_runs(runs):
             "propose_downstream": [],
         }
 
-        srpm_build = SRPMBuildModel.get_by_id(pipeline.srpm_build_id)
-        if srpm_build:
+        if srpm_build := SRPMBuildModel.get_by_id(pipeline.srpm_build_id):
             response_dict["srpm"] = {
                 "packit_id": srpm_build.id,
                 "status": srpm_build.status,
@@ -159,8 +158,7 @@ class Run(Resource):
     @ns.response(HTTPStatus.NOT_FOUND.value, "Run ID not found in DB")
     def get(self, id):
         """Return details for given run."""
-        run = PipelineModel.get_run(id_=id)
-        if not run:
+        if not (run := PipelineModel.get_run(id_=id)):
             return response_maker(
                 {"error": "No run has been found in DB"},
                 status=HTTPStatus.NOT_FOUND,

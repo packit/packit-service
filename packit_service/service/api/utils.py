@@ -33,8 +33,7 @@ def get_project_info_from_build(
         ProposeDownstreamModel,
     ]
 ) -> Dict[str, Any]:
-    project = build.get_project()
-    if not project:
+    if not (project := build.get_project()):
         return {}
 
     return {
