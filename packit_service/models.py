@@ -342,9 +342,8 @@ class GitProjectModel(Base):
         return (
             sa_session()
             .query(PullRequestModel)
-            .join(GitProjectModel)
+            .join(PullRequestModel.project)
             .filter(
-                PullRequestModel.project_id == GitProjectModel.id,
                 GitProjectModel.instance_url == forge,
                 GitProjectModel.namespace == namespace,
                 GitProjectModel.repo_name == repo_name,
@@ -360,9 +359,8 @@ class GitProjectModel(Base):
         return (
             sa_session()
             .query(IssueModel)
-            .join(GitProjectModel)
+            .join(IssueModel.project)
             .filter(
-                IssueModel.project_id == GitProjectModel.id,
                 GitProjectModel.instance_url == forge,
                 GitProjectModel.namespace == namespace,
                 GitProjectModel.repo_name == repo_name,
@@ -376,9 +374,8 @@ class GitProjectModel(Base):
         return (
             sa_session()
             .query(GitBranchModel)
-            .join(GitProjectModel)
+            .join(GitBranchModel.project)
             .filter(
-                GitBranchModel.project_id == GitProjectModel.id,
                 GitProjectModel.instance_url == forge,
                 GitProjectModel.namespace == namespace,
                 GitProjectModel.repo_name == repo_name,
@@ -392,9 +389,8 @@ class GitProjectModel(Base):
         return (
             sa_session()
             .query(ProjectReleaseModel)
-            .join(GitProjectModel)
+            .join(ProjectReleaseModel.project)
             .filter(
-                ProjectReleaseModel.project_id == GitProjectModel.id,
                 GitProjectModel.instance_url == forge,
                 GitProjectModel.namespace == namespace,
                 GitProjectModel.repo_name == repo_name,
