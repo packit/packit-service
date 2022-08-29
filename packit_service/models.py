@@ -40,6 +40,7 @@ from sqlalchemy import (
     case,
 )
 from sqlalchemy.dialects.postgresql import array as psql_array
+from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     Session as SQLASession,
@@ -156,20 +157,18 @@ class BuildsAndTestsConnector:
     job_trigger_model_type: JobTriggerModelType
 
     def get_runs(self) -> List["PipelineModel"]:
-        trigger_list = (
-            sa_session()
-            .query(JobTriggerModel)
-            .filter_by(type=self.job_trigger_model_type, trigger_id=self.id)
-            .all()
-        )
-        if len(trigger_list) > 1:
-            msg = (
-                f"There are multiple run models for type {self.job_trigger_model_type}"
-                f"and id={self.id}."
+        try:
+            trigger = (
+                sa_session()
+                .query(JobTriggerModel)
+                .filter_by(type=self.job_trigger_model_type, trigger_id=self.id)
+                .one_or_none()
             )
+        except MultipleResultsFound as e:
+            msg = f"Multiple run models for type {self.job_trigger_model_type} and id {self.id}."
             logger.error(msg)
-            raise PackitException(msg)
-        return trigger_list[0].runs if trigger_list else []
+            raise PackitException(msg) from e
+        return trigger.runs if trigger else []
 
     def _get_run_item(
         self, model_type: Type["AbstractBuildTestDbType"]
