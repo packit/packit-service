@@ -274,7 +274,7 @@ def test_errors_while_doing_db(clean_before_and_after):
 def test_get_srpm_builds_in_give_range(
     clean_before_and_after, srpm_build_model_with_new_run_for_pr
 ):
-    builds_list = list(SRPMBuildModel.get(0, 10))
+    builds_list = list(SRPMBuildModel.get_range(0, 10))
     assert len(builds_list) == 1
     assert builds_list[0].status == "success"
 
@@ -630,7 +630,7 @@ def test_project_property_for_copr_build(a_copr_build_for_pr):
 
 
 def test_get_projects(clean_before_and_after, a_copr_build_for_pr):
-    projects = GitProjectModel.get_projects(0, 10)
+    projects = GitProjectModel.get_range(0, 10)
     assert isinstance(projects[0], GitProjectModel)
     assert projects[0].namespace == "the-namespace"
     assert projects[0].repo_name == "the-repo-name"

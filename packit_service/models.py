@@ -293,7 +293,7 @@ class GitProjectModel(Base):
             return project
 
     @classmethod
-    def get_projects(cls, first: int, last: int) -> Iterable["GitProjectModel"]:
+    def get_range(cls, first: int, last: int) -> Iterable["GitProjectModel"]:
         return (
             sa_session()
             .query(GitProjectModel)
@@ -663,7 +663,7 @@ class PipelineModel(Base):
 
     __tablename__ = "pipelines"
     id = Column(Integer, primary_key=True)  # our database PK
-    # datetime.utcnow instead of datetime.utcnow() because its an argument to the function
+    # datetime.utcnow instead of datetime.utcnow() because it's an argument to the function,
     # so it will run when the model is initiated, not when the table is made
     datetime = Column(DateTime, default=datetime.utcnow)
 
@@ -1231,7 +1231,7 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
         return sa_session().query(SRPMBuildModel).filter_by(id=id_).first()
 
     @classmethod
-    def get(cls, first: int, last: int) -> Iterable["SRPMBuildModel"]:
+    def get_range(cls, first: int, last: int) -> Iterable["SRPMBuildModel"]:
         return (
             sa_session()
             .query(SRPMBuildModel)

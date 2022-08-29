@@ -22,8 +22,8 @@ class CoprBuildsList(Resource):
     def get(self):
         """List all Copr builds."""
 
-        # Return relevant info thats concise
-        # Usecases like the packit-dashboard copr-builds table
+        # Return relevant info that's concise
+        # Use-cases like the packit-dashboard copr-builds table
 
         result = []
 
