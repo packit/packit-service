@@ -201,6 +201,7 @@ class Parser:
         )
 
         commit_sha = nested_get(event, "object_attributes", "last_commit", "id")
+        oldrev = nested_get(event, "object_attributes", "oldrev")
 
         title = nested_get(event, "object_attributes", "title")
         description = nested_get(event, "object_attributes", "description")
@@ -220,6 +221,7 @@ class Parser:
             target_repo_branch=target_repo_branch,
             project_url=target_project_url,
             commit_sha=commit_sha,
+            oldrev=oldrev,
             title=title,
             description=description,
             url=url,

@@ -320,6 +320,7 @@ class TestEvents:
         assert isinstance(event_object, MergeRequestGitlabEvent)
         assert event_object.action == GitlabEventAction.update
         assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
+        assert event_object.oldrev == "94ccba9f986629e24b432c11d9c7fd20bb2ea51d"
         assert event_object.identifier == "2"
 
         assert isinstance(event_object.project, GitlabProject)

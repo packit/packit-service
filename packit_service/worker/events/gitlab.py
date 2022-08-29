@@ -58,6 +58,7 @@ class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
         target_repo_branch: str,
         project_url: str,
         commit_sha: str,
+        oldrev: Optional[str],
         title: str,
         description: str,
         url: str,
@@ -79,6 +80,7 @@ class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
         self.target_repo_branch = target_repo_branch
         self.project_url = project_url
         self.commit_sha = commit_sha
+        self.oldrev = oldrev
         self.title = title
         self.description = description
         self.url = url
