@@ -55,7 +55,7 @@ class ProposeDownstreamList(Resource):
 
             result.append(result_dict)
 
-        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT.value)
+        resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT)
         resp.headers["Content-Range"] = f"propose-downstreams {first + 1}-{last}/*"
         return resp
 
@@ -77,7 +77,7 @@ class ProposeResult(Resource):
         if not dowstream_pr:
             return response_maker(
                 {"error": "No info about propose downstream target stored in DB"},
-                status=HTTPStatus.NOT_FOUND.value,
+                status=HTTPStatus.NOT_FOUND,
             )
 
         job_result_dict = {

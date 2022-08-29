@@ -16,9 +16,9 @@ from packit_service.models import (
 )
 
 
-def response_maker(result, status=HTTPStatus.OK.value):
+def response_maker(result: Any, status: HTTPStatus = HTTPStatus.OK):
     """response_maker is a wrapper around flask's make_response"""
-    resp = make_response(dumps(result), status)
+    resp = make_response(dumps(result), status.value)
     resp.headers["Content-Type"] = "application/json"
     resp.headers["Access-Control-Allow-Origin"] = "*"
     return resp

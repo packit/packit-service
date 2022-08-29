@@ -131,7 +131,7 @@ class RunsList(Resource):
         result = process_runs(PipelineModel.get_merged_chroots(first, last))
         resp = response_maker(
             result,
-            status=HTTPStatus.PARTIAL_CONTENT.value,
+            status=HTTPStatus.PARTIAL_CONTENT,
         )
         resp.headers["Content-Range"] = f"runs {first + 1}-{last}/*"
         return resp
@@ -148,7 +148,7 @@ class MergedRun(Resource):
             return response_maker(result[0])
 
         return response_maker(
-            {"error": "No run has been found in DB"}, status=HTTPStatus.NOT_FOUND.value
+            {"error": "No run has been found in DB"}, status=HTTPStatus.NOT_FOUND
         )
 
 
@@ -163,7 +163,7 @@ class Run(Resource):
         if not run:
             return response_maker(
                 {"error": "No run has been found in DB"},
-                status=HTTPStatus.NOT_FOUND.value,
+                status=HTTPStatus.NOT_FOUND,
             )
 
         result = {

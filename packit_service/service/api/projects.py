@@ -41,12 +41,9 @@ class ProjectsList(Resource):
             }
             result.append(project_info)
 
-        if not result:
-            return response_maker([])
-
         resp = response_maker(
             result,
-            status=HTTPStatus.PARTIAL_CONTENT.value,
+            status=HTTPStatus.PARTIAL_CONTENT if result else HTTPStatus.OK,
         )
         resp.headers["Content-Range"] = f"git-projects {first + 1}-{last}/*"
         return resp
@@ -102,12 +99,9 @@ class ProjectsForge(Resource):
             }
             result.append(project_info)
 
-        if not result:
-            return response_maker([])
-
         resp = response_maker(
             result,
-            status=HTTPStatus.PARTIAL_CONTENT.value,
+            status=HTTPStatus.PARTIAL_CONTENT if result else HTTPStatus.OK,
         )
         resp.headers["Content-Range"] = f"git-projects {first + 1}-{last}/*"
         return resp
@@ -142,7 +136,7 @@ class ProjectsNamespace(Resource):
 class ProjectsPRs(Resource):
     @ns.expect(pagination_arguments)
     @ns.response(
-        HTTPStatus.PARTIAL_CONTENT, "Project PRs handled by Packit Service follow"
+        HTTPStatus.PARTIAL_CONTENT.value, "Project PRs handled by Packit Service follow"
     )
     @ns.response(HTTPStatus.OK.value, "OK")
     def get(self, forge, namespace, repo_name):
@@ -199,12 +193,9 @@ class ProjectsPRs(Resource):
 
             result.append(pr_info)
 
-        if not result:
-            return response_maker([])
-
         resp = response_maker(
             result,
-            status=HTTPStatus.PARTIAL_CONTENT.value,
+            status=HTTPStatus.PARTIAL_CONTENT if result else HTTPStatus.OK,
         )
 
         resp.headers["Content-Range"] = f"git-project-prs {first + 1}-{last}/*"
