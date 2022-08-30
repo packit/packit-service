@@ -410,7 +410,7 @@ class PullRequestModel(BuildsAndTestsConnector, Base):
     #   2) we want sensible auto-incremented ID, not random numbers
     #   3) it's not unique across projects obviously, so why am I even writing this?
     pr_id = Column(Integer, index=True)
-    project_id = Column(Integer, ForeignKey("git_projects.id"))
+    project_id = Column(Integer, ForeignKey("git_projects.id"), index=True)
     project = relationship("GitProjectModel", back_populates="pull_requests")
 
     job_config_trigger_type = JobConfigTriggerType.pull_request
@@ -448,7 +448,7 @@ class IssueModel(BuildsAndTestsConnector, Base):
     __tablename__ = "project_issues"
     id = Column(Integer, primary_key=True)  # our database PK
     issue_id = Column(Integer, index=True)
-    project_id = Column(Integer, ForeignKey("git_projects.id"))
+    project_id = Column(Integer, ForeignKey("git_projects.id"), index=True)
     project = relationship("GitProjectModel", back_populates="issues")
     # TODO: Fix this hardcoding! This is only to make propose-downstream work!
     job_config_trigger_type = JobConfigTriggerType.release
@@ -486,7 +486,7 @@ class GitBranchModel(BuildsAndTestsConnector, Base):
     __tablename__ = "git_branches"
     id = Column(Integer, primary_key=True)  # our database PK
     name = Column(String)
-    project_id = Column(Integer, ForeignKey("git_projects.id"))
+    project_id = Column(Integer, ForeignKey("git_projects.id"), index=True)
     project = relationship("GitProjectModel", back_populates="branches")
 
     job_config_trigger_type = JobConfigTriggerType.commit
@@ -525,7 +525,7 @@ class ProjectReleaseModel(Base):
     id = Column(Integer, primary_key=True)  # our database PK
     tag_name = Column(String)
     commit_hash = Column(String)
-    project_id = Column(Integer, ForeignKey("git_projects.id"))
+    project_id = Column(Integer, ForeignKey("git_projects.id"), index=True)
     project = relationship("GitProjectModel", back_populates="releases")
 
     job_config_trigger_type = JobConfigTriggerType.release
