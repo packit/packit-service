@@ -251,7 +251,6 @@ class GitProjectModel(Base):
     __tablename__ = "git_projects"
     id = Column(Integer, primary_key=True)
     # github.com/NAMESPACE/REPO_NAME
-    # git.centos.org/NAMESPACE/REPO_NAME
     namespace = Column(String, index=True)
     repo_name = Column(String, index=True)
     pull_requests = relationship("PullRequestModel", back_populates="project")
@@ -298,7 +297,7 @@ class GitProjectModel(Base):
         )
 
     @classmethod
-    def get_forge(
+    def get_by_forge(
         cls, first: int, last: int, forge: str
     ) -> Iterable["GitProjectModel"]:
         """Return projects of given forge"""
@@ -311,12 +310,14 @@ class GitProjectModel(Base):
         )
 
     @classmethod
-    def get_namespace(cls, forge: str, namespace: str) -> Iterable["GitProjectModel"]:
+    def get_by_forge_namespace(
+        cls, forge: str, namespace: str
+    ) -> Iterable["GitProjectModel"]:
         """Return projects of given forge and namespace"""
         return (
-            p
-            for p in sa_session().query(GitProjectModel).filter_by(namespace=namespace)
-            if forge == urlparse(p.project_url).hostname
+            sa_session()
+            .query(GitProjectModel)
+            .filter_by(instance_url=forge, namespace=namespace)
         )
 
     @classmethod
