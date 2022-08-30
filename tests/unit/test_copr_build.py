@@ -2178,6 +2178,7 @@ def test_copr_build_targets_override(github_pr_event):
                 buildopts={
                     "chroots": ["bright-future-x86_64"],
                     "enable_net": True,
+                    "packit_forge_project": helper.forge_project,
                 },
             )
             .and_return(
