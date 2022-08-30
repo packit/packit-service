@@ -663,16 +663,16 @@ class PipelineModel(Base):
     job_trigger_id = Column(Integer, ForeignKey("job_triggers.id"))
     job_trigger = relationship("JobTriggerModel", back_populates="runs")
 
-    srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"))
+    srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"), index=True)
     srpm_build = relationship("SRPMBuildModel", back_populates="runs")
-    copr_build_id = Column(Integer, ForeignKey("copr_build_targets.id"))
+    copr_build_id = Column(Integer, ForeignKey("copr_build_targets.id"), index=True)
     copr_build = relationship("CoprBuildTargetModel", back_populates="runs")
-    koji_build_id = Column(Integer, ForeignKey("koji_build_targets.id"))
+    koji_build_id = Column(Integer, ForeignKey("koji_build_targets.id"), index=True)
     koji_build = relationship("KojiBuildTargetModel", back_populates="runs")
-    test_run_id = Column(Integer, ForeignKey("tft_test_run_targets.id"))
+    test_run_id = Column(Integer, ForeignKey("tft_test_run_targets.id"), index=True)
     test_run = relationship("TFTTestRunTargetModel", back_populates="runs")
     propose_downstream_run_id = Column(
-        Integer, ForeignKey("propose_downstream_runs.id")
+        Integer, ForeignKey("propose_downstream_runs.id"), index=True
     )
     propose_downstream_run = relationship(
         "ProposeDownstreamModel", back_populates="runs"
