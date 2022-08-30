@@ -19,6 +19,7 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,
     CONTACTS_URL,
+    DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,
     DOCS_HOW_TO_CONFIGURE_URL,
     PG_BUILD_STATUS_SUCCESS,
     TASK_ACCEPTED,
@@ -26,6 +27,7 @@ from packit_service.constants import (
 )
 from packit_service.models import (
     CoprBuildTargetModel,
+    GithubInstallationModel,
     JobTriggerModel,
     JobTriggerModelType,
     PipelineModel,
@@ -174,6 +176,14 @@ def test_pr_comment_copr_build_handler(
     ).and_return(
         flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
     )
+    flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
+        account_login="packit-service"
+    ).and_return(
+        flexmock(
+            created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
+            repositories=[flexmock(repo_name="hello-world")],
+        )
+    )
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     ).once()
@@ -238,6 +248,14 @@ def test_pr_comment_build_handler(
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(
         flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
+    flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
+        account_login="packit-service"
+    ).and_return(
+        flexmock(
+            created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
+            repositories=[flexmock(repo_name="hello-world")],
+        )
     )
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
@@ -578,6 +596,14 @@ def test_pr_embedded_command_handler(
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(
         flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
+    flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
+        account_login="packit-service"
+    ).and_return(
+        flexmock(
+            created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
+            repositories=[flexmock(repo_name="hello-world")],
+        )
     )
     ServiceConfig.get_service_config().comment_command_prefix = command
     pr_embedded_command_comment_event["comment"]["body"] = comments_list
@@ -1770,6 +1796,14 @@ def test_rebuild_failed(
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(
         flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    )
+    flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
+        account_login="packit-service"
+    ).and_return(
+        flexmock(
+            created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
+            repositories=[flexmock(repo_name="hello-world")],
+        )
     )
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit rebuild-failed"

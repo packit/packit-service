@@ -18,6 +18,7 @@ from packit.config.package_config import PackageConfig
 from packit_service.constants import (
     COPR_API_SUCC_STATE,
     COPR_SRPM_CHROOT,
+    DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,
     PG_BUILD_STATUS_FAILURE,
     PG_BUILD_STATUS_SUCCESS,
     INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
@@ -25,6 +26,7 @@ from packit_service.constants import (
 from packit_service.models import (
     AbstractTriggerDbType,
     CoprBuildTargetModel,
+    GithubInstallationModel,
     SRPMBuildModel,
 )
 from packit_service.worker.events import (
@@ -135,8 +137,20 @@ class CoprBuildHandler(RetriableJobHandler):
             return False
         return True
 
+    def get_packit_github_installation_time(self) -> Optional[datetime]:
+        if isinstance(self.project, GithubProject) and (
+            installation := GithubInstallationModel.get_for_github_project(
+                namespace=self.project.namespace, repo_name=self.project.repo
+            )
+        ):
+            return installation.created_at
+        return None
+
     def run(self) -> TaskResults:
-        if self.package_config.srpm_build_deps is not None:
+        installed_at = self.get_packit_github_installation_time()
+        if self.package_config.srpm_build_deps is not None or (
+            installed_at and installed_at > DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR
+        ):
             return self.copr_build_helper.run_copr_build_from_source_script()
         return self.copr_build_helper.run_copr_build()
 

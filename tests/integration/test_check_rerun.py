@@ -11,9 +11,14 @@ from ogr.services.github import GithubProject
 
 from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
-from packit_service.constants import PG_BUILD_STATUS_SUCCESS, TASK_ACCEPTED
+from packit_service.constants import (
+    DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,
+    PG_BUILD_STATUS_SUCCESS,
+    TASK_ACCEPTED,
+)
 from packit_service.models import (
     GitBranchModel,
+    GithubInstallationModel,
     JobTriggerModel,
     ProjectReleaseModel,
     PullRequestModel,
@@ -220,6 +225,14 @@ def mock_release_functionality(request):
 def test_check_rerun_pr_copr_build_handler(
     mock_pr_functionality, check_rerun_event_copr_build
 ):
+    flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
+        account_login="packit"
+    ).and_return(
+        flexmock(
+            created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
+            repositories=[flexmock(repo_name="hello-world")],
+        )
+    )
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     ).once()
@@ -391,6 +404,14 @@ def test_check_rerun_pr_koji_build_handler(
 def test_check_rerun_push_copr_build_handler(
     mock_push_functionality, check_rerun_event_copr_build
 ):
+    flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
+        account_login="packit"
+    ).and_return(
+        flexmock(
+            created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
+            repositories=[flexmock(repo_name="hello-world")],
+        )
+    )
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     ).once()
@@ -564,6 +585,14 @@ def test_check_rerun_push_koji_build_handler(
 def test_check_rerun_release_copr_build_handler(
     mock_release_functionality, check_rerun_event_copr_build
 ):
+    flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
+        account_login="packit"
+    ).and_return(
+        flexmock(
+            created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
+            repositories=[flexmock(repo_name="hello-world")],
+        )
+    )
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     ).once()
