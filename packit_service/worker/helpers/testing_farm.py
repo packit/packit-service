@@ -190,7 +190,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         Testing Farm API: https://testing-farm.gitlab.io/api/
 
-        Currently we use the same secret to authenticate both,
+        Currently, we use the same secret to authenticate both,
         packit service (when sending request to testing farm)
         and testing farm (when sending notification to packit service's webhook).
         We might later use a different secret for those use cases.
@@ -319,6 +319,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 },
             },
         }
+
+    @staticmethod
+    def _payload_without_token(payload: Dict) -> Dict:
+        """Return a copy of the payload with token/api_key removed."""
+        payload_ = payload.copy()
+        payload_.pop("api_key")
+        payload_["notification"]["webhook"].pop("token")
+        return payload_
 
     def is_fmf_configured(self) -> bool:
 
@@ -532,20 +540,18 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             )
             return TaskResults(success=True, details={"msg": "No FMF metadata found."})
         endpoint = "requests"
-        logger.debug(f"POSTing {payload} to {self.tft_api_url}{endpoint}")
         req = self.send_testing_farm_request(
             endpoint=endpoint,
             method="POST",
             data=payload,
         )
-        logger.debug(f"Request sent: {req}")
 
         if not req:
             msg = "Failed to post request to testing farm API."
             if not self.celery_task.is_last_try():
                 return self.retry_on_submit_failure(msg)
 
-            logger.debug("Failed to post request to testing farm API.")
+            logger.error(f"{msg} {self._payload_without_token(payload)}")
             self.report_status_to_test_for_test_target(
                 state=BaseCommitStatus.error,
                 description=msg,
@@ -565,7 +571,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 msg = f"Failed to submit tests: {req.reason}."
                 if not self.celery_task.is_last_try():
                     return self.retry_on_submit_failure(req.reason)
-            logger.error(msg)
+            logger.error(f"{msg}, {self._payload_without_token(payload)}")
             self.report_status_to_test_for_test_target(
                 state=BaseCommitStatus.failure,
                 description=msg,
@@ -573,12 +579,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             )
             return TaskResults(success=False, details={"msg": msg})
 
-        # Response: {"id": "9fa3cbd1-83f2-4326-a118-aad59f5", ...}
-
         pipeline_id = req.json()["id"]
-        logger.debug(
-            f"Submitted ({req.status_code}) to testing farm as request {pipeline_id}"
-        )
+        logger.info(f"Request {pipeline_id} submitted to testing farm.")
 
         run_model = (
             PipelineModel.create(
