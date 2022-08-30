@@ -262,9 +262,6 @@ class GitProjectModel(Base):
         "ProjectAuthenticationIssueModel", back_populates="project"
     )
 
-    # Git URL of the repo
-    # Example: https://github.com/packit/hello-world.git
-    https_url = Column(String)
     project_url = Column(String)
     instance_url = Column(String, nullable=False)
 
