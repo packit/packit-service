@@ -602,7 +602,7 @@ class JobTriggerModel(Base):
     __tablename__ = "job_triggers"
     id = Column(Integer, primary_key=True)  # our database PK
     type = Column(Enum(JobTriggerModelType))
-    trigger_id = Column(Integer)
+    trigger_id = Column(Integer, index=True)
 
     runs = relationship("PipelineModel", back_populates="job_trigger")
 
@@ -758,7 +758,7 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
     build_id = Column(String, index=True)  # copr build id
 
     # commit sha of the PR (or a branch, release) we used for a build
-    commit_sha = Column(String)
+    commit_sha = Column(String, index=True)
     # what's the build status?
     status = Column(String)
     # chroot, but we use the word target in our docs
@@ -1695,7 +1695,7 @@ class ProjectAuthenticationIssueModel(Base):
     project = relationship(
         "GitProjectModel", back_populates="project_authentication_issue"
     )
-    # Check to know if we created a issue for the repo.
+    # Check to know if we created an issue for the repo.
     issue_created = Column(Boolean)
     project_id = Column(Integer, ForeignKey("git_projects.id"))
 
