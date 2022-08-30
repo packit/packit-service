@@ -5,14 +5,14 @@ import logging
 from typing import Dict, Any, Optional, Set, List, Union
 
 import requests
+
 from ogr.abstract import GitProject, PullRequest
 from ogr.utils import RequestResponse
 from packit.config import JobType, JobConfigTriggerType
 from packit.config.job_config import JobConfig
 from packit.config.package_config import PackageConfig
-from packit.exceptions import PackitConfigException
+from packit.exceptions import PackitConfigException, PackitException
 from packit.utils import nested_get
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     CONTACTS_URL,
@@ -27,9 +27,9 @@ from packit_service.models import (
     PipelineModel,
 )
 from packit_service.sentry_integration import send_to_sentry
+from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.utils import get_package_nvrs
 from packit_service.worker.events import EventData
-from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
@@ -649,7 +649,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             )
         except requests.exceptions.ConnectionError as er:
             logger.error(er)
-            raise Exception(f"Cannot connect to url: `{url}`.", er)
+            raise PackitException(f"Cannot connect to url: `{url}`") from er
         return response
 
     def get_raw_request(
