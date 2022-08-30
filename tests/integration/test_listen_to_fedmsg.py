@@ -527,7 +527,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
     flexmock(TestingFarmJobHelper).should_receive("distro2compose").with_args(
-        "fedora-rawhide", "x86_64"
+        "fedora-rawhide-x86_64"
     ).and_return("Fedora-Rawhide")
 
     pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
@@ -689,6 +689,9 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
+    flexmock(TestingFarmJobHelper).should_receive("distro2compose").with_args(
+        "fedora-rawhide-x86_64"
+    ).and_return("Fedora-Rawhide")
     flexmock(TestingFarmJobHelper).should_receive(
         "send_testing_farm_request"
     ).and_return(
@@ -827,6 +830,9 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
+    flexmock(TestingFarmJobHelper).should_receive("distro2compose").with_args(
+        "fedora-rawhide-x86_64"
+    ).and_return("Fedora-Rawhide")
     flexmock(TestingFarmJobHelper).should_receive(
         "send_testing_farm_request"
     ).and_return(

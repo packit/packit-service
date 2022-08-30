@@ -179,6 +179,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     def _payload(
         self,
         target: str,
+        compose: str,
         artifact: Optional[Dict[str, Union[List[str], str]]] = None,
         build: Optional["CoprBuildTargetModel"] = None,
     ) -> dict:
@@ -197,7 +198,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             build: The related copr build.
         """
         distro, arch = target.rsplit("-", 1)
-        compose = self.distro2compose(distro, arch)
         fmf = {"url": self.fmf_url}
         if self.fmf_ref:
             fmf["ref"] = self.fmf_ref
@@ -283,7 +283,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             },
         }
 
-    def _payload_install_test(self, build_id: int, target: str) -> dict:
+    def _payload_install_test(self, build_id: int, target: str, compose: str) -> dict:
         """
         If the project doesn't use fmf, but still wants to run tests in TF.
         TF provides 'installation test', we request it in ['test']['fmf']['url'].
@@ -291,7 +291,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """
         copr_build = CoprBuildTargetModel.get_by_build_id(build_id)
         distro, arch = target.rsplit("-", 1)
-        compose = self.distro2compose(distro, arch)
         return {
             "api_key": self.service_config.testing_farm_secret,
             "test": {
@@ -331,7 +330,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         except FileNotFoundError:
             return False
 
-    def distro2compose(self, distro: str, arch: str) -> str:
+    def distro2compose(self, target: str) -> Optional[str]:
         """
         Create a compose string from distro, e.g. fedora-33 -> Fedora-33
         https://api.dev.testing-farm.io/v0.1/composes
@@ -339,7 +338,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         The internal TF has a different set and behaves differently:
         * Fedora-3x -> Fedora-3x-Updated
         * CentOS-x ->  CentOS-x-latest
+
+        Returns:
+            compose if we were able to map the distro to compose present
+            in the list of available composes, otherwise None
         """
+        distro, arch = target.rsplit("-", 1)
         compose = (
             distro.title()
             .replace("Centos", "CentOS")
@@ -354,40 +358,73 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             # TF has separate composes for aarch64 architecture
             compose += "-aarch64"
 
+        endpoint = (
+            f"composes/{'redhat' if self.job_config.use_internal_tf else 'public' }"
+        )
+        response = self.send_testing_farm_request(endpoint=endpoint)
+
+        if response.status_code != 200:
+            msg = "We were not able to get the available TF composes."
+            logger.error(msg)
+            self.report_status_to_test_for_test_target(
+                state=BaseCommitStatus.error,
+                description=msg,
+                target=target,
+            )
+            return None
+
+        # {'composes': [{'name': 'CentOS-Stream-8'}, {'name': 'Fedora-Rawhide'}]}
+        composes = [c["name"] for c in response.json()["composes"]]
+
         if self.job_config.use_internal_tf:
-            # Internal TF does not have own endpoint for composes
-            # This should be solved on the TF side.
-            # For more information on the composes
-            # see https://api.dev.testing-farm.io/v0.1/composes/redhat
+            if compose in composes:
+                return compose
+
             if compose == "Fedora-Rawhide":
-                return "Fedora-Rawhide-Nightly"
-            if compose.startswith("Fedora-"):
-                return f"{compose}-Updated"
-            if compose.startswith("CentOS") and len(compose) == len("CentOS-7"):
+                compose = "Fedora-Rawhide-Nightly"
+            elif compose.startswith("Fedora-"):
+                compose = f"{compose}-Updated"
+            elif compose.startswith("CentOS") and len(compose) == len("CentOS-7"):
                 # Attach latest suffix only to major versions:
                 # CentOS-7 -> CentOS-7-latest
                 # CentOS-8 -> CentOS-8-latest
                 # CentOS-8.4 -> CentOS-8.4
                 # CentOS-8-latest -> CentOS-8-latest
                 # CentOS-Stream-8 -> CentOS-Stream-8
-                return f"{compose}-latest"
-            if compose == "RHEL-6":
-                return "RHEL-6-LatestReleased"
-            if compose == "RHEL-7":
-                return "RHEL-7-LatestReleased"
-            if compose == "RHEL-8":
-                return "RHEL-8.5.0-Nightly"
-            if compose == "Oracle-Linux-7":
-                return "Oracle-Linux-7.9"
-            if compose == "Oracle-Linux-8":
-                return "Oracle-Linux-8.6"
-        else:
-            response = self.send_testing_farm_request(endpoint="composes")
-            if response.status_code == 200:
-                # {'composes': [{'name': 'CentOS-Stream-8'}, {'name': 'Fedora-Rawhide'}]}
-                composes = [c["name"] for c in response.json()["composes"]]
-                if compose not in composes:
-                    logger.error(f"Can't map {compose} (from {distro}) to {composes}")
+                compose = f"{compose}-latest"
+            elif compose == "RHEL-6":
+                compose = "RHEL-6-LatestReleased"
+            elif compose == "RHEL-7":
+                compose = "RHEL-7-LatestReleased"
+            elif compose == "RHEL-8":
+                compose = "RHEL-8.5.0-Nightly"
+            elif compose == "Oracle-Linux-7":
+                compose = "Oracle-Linux-7.9"
+            elif compose == "Oracle-Linux-8":
+                compose = "Oracle-Linux-8.6"
+
+        if compose not in composes:
+            msg = (
+                f"The compose {compose} (from target {distro}) is not in the list of "
+                f"available composes:\n{composes}. "
+            )
+            logger.error(msg)
+            msg += (
+                "Please, check the targets defined in your test job configuration. If you think"
+                f" your configuration is correct, get in touch with [us]({CONTACTS_URL})."
+            )
+            description = (
+                f"The compose {compose} is not available in the "
+                f"{'internal' if self.job_config.use_internal_tf else 'public'} "
+                f"Testing Farm infrastructure."
+            )
+            self.report_status_to_test_for_test_target(
+                state=BaseCommitStatus.error,
+                description=description,
+                target=target,
+                markdown_content=msg,
+            )
+            return None
 
         return compose
 
@@ -455,13 +492,18 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 success=True,
                 details={"msg": "Project not allowed to use internal TF."},
             )
-
         self.report_status_to_test_for_test_target(
             state=BaseCommitStatus.running,
             description=f"{'Build succeeded. ' if not self.skip_build else ''}"
             f"Submitting the tests ...",
             target=target,
         )
+
+        compose = self.distro2compose(target)
+
+        if not compose:
+            msg = "We were not able to map distro to TF compose."
+            return TaskResults(success=False, details={"msg": msg})
 
         logger.info("Sending testing farm request...")
 
@@ -471,9 +513,13 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 if not self.skip_build
                 else None
             )
-            payload = self._payload(target, artifact, build)
+            payload = self._payload(
+                target=target, compose=compose, artifact=artifact, build=build
+            )
         elif not self.is_fmf_configured() and not self.skip_build:
-            payload = self._payload_install_test(int(build.build_id), target)
+            payload = self._payload_install_test(
+                build_id=int(build.build_id), target=target, compose=compose
+            )
         else:
             self.report_status_to_test_for_test_target(
                 state=BaseCommitStatus.neutral,
