@@ -241,7 +241,7 @@ class CeleryTask:
 
     def retry(
         self,
-        ex: Exception,
+        ex: Optional[Exception] = None,
         delay: Optional[int] = None,
         max_retries: Optional[int] = None,
     ) -> None:

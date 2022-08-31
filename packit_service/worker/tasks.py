@@ -176,8 +176,9 @@ def run_github_fas_verification_handler(
     return get_handlers_task_results(handler.run_job(), event)
 
 
-@celery_app.task(name=TaskName.testing_farm, base=HandlerTaskWithRetry)
+@celery_app.task(bind=True, name=TaskName.testing_farm, base=HandlerTaskWithRetry)
 def run_testing_farm_handler(
+    self,
     event: dict,
     package_config: dict,
     job_config: dict,
@@ -188,6 +189,7 @@ def run_testing_farm_handler(
         job_config=load_job_config(job_config),
         event=event,
         build_id=build_id,
+        celery_task=self,
     )
     return get_handlers_task_results(handler.run_job(), event)
 

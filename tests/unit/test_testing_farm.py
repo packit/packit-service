@@ -788,7 +788,12 @@ def test_trigger_build(copr_build, run_new_build):
         {"target-x86_64", "another-target-x86_64"}
     )
 
-    tf_handler = TestingFarmHandler(package_config, job_config, event)
+    tf_handler = TestingFarmHandler(
+        package_config,
+        job_config,
+        event,
+        celery_task=flexmock(request=flexmock(retries=0)),
+    )
     tf_handler._db_trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request
     )

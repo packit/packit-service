@@ -18,6 +18,7 @@ from packit_service.constants import (
     CONTACTS_URL,
     TESTING_FARM_INSTALLABILITY_TEST_URL,
     TESTING_FARM_INSTALLABILITY_TEST_REF,
+    BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
 )
 from packit_service.models import (
     CoprBuildTargetModel,
@@ -29,6 +30,7 @@ from packit_service.sentry_integration import send_to_sentry
 from packit_service.utils import get_package_nvrs
 from packit_service.worker.events import EventData
 from packit_service.service.urls import get_testing_farm_info_url
+from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
@@ -47,6 +49,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         job_config: JobConfig,
         build_targets_override: Optional[Set[str]] = None,
         tests_targets_override: Optional[Set[str]] = None,
+        celery_task: Optional[CeleryTask] = None,
     ):
         super().__init__(
             service_config=service_config,
@@ -58,7 +61,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             build_targets_override=build_targets_override,
             tests_targets_override=tests_targets_override,
         )
-
+        self.celery_task = celery_task
         self.session = requests.session()
         adapter = requests.adapters.HTTPAdapter(max_retries=5)
         self.insecure = False
@@ -539,6 +542,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         if not req:
             msg = "Failed to post request to testing farm API."
+            if not self.celery_task.is_last_try():
+                return self.retry_on_submit_failure(msg)
+
             logger.debug("Failed to post request to testing farm API.")
             self.report_status_to_test_for_test_target(
                 state=BaseCommitStatus.error,
@@ -556,7 +562,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 if nested_get(req.json(), "errors", "environments", "0", "arch"):
                     msg = req.json()["errors"]["environments"]["0"]["arch"]
             else:
-                msg = f"Failed to submit tests: {req.reason}"
+                msg = f"Failed to submit tests: {req.reason}."
+                if not self.celery_task.is_last_try():
+                    return self.retry_on_submit_failure(req.reason)
             logger.error(msg)
             self.report_status_to_test_for_test_target(
                 state=BaseCommitStatus.failure,
@@ -602,6 +610,31 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
         return TaskResults(success=True, details={})
+
+    def retry_on_submit_failure(self, message: str) -> TaskResults:
+        """
+        Retry when there was a failure when submitting TF tests.
+
+        Args:
+            message: message to report to the user
+        """
+        interval = (
+            BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES * 2**self.celery_task.retries
+        )
+
+        self.report_status_to_tests(
+            state=BaseCommitStatus.pending,
+            description="Failed to submit tests. The task will be"
+            f" retried in {interval} {'minute' if interval == 1 else 'minutes'}.",
+            markdown_content=message,
+        )
+        self.celery_task.retry(delay=interval * 60)
+        return TaskResults(
+            success=True,
+            details={
+                "msg": f"Task will be retried because of failure when submitting tests: {message}"
+            },
+        )
 
     def send_testing_farm_request(
         self, endpoint: str, method: str = None, params: dict = None, data=None

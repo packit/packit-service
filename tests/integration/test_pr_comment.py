@@ -35,13 +35,14 @@ from packit_service.models import (
 )
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.helpers.build import copr_build
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
 from packit_service.worker.jobs import SteveJobs, get_packit_commands_from_comment
 from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.reporting import BaseCommitStatus
+from packit_service.worker.reporting import BaseCommitStatus, StatusReporterGithubChecks
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import TaskResults
 from packit_service.worker.tasks import (
@@ -770,6 +771,276 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     assert json.dumps(event_dict)
 
     run_testing_farm_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+
+@pytest.mark.parametrize(
+    "retry_number,description,markdown_content,status,response,delay",
+    (
+        [
+            (
+                0,
+                "Failed to submit tests. The task will be retried in 1 minute.",
+                "Reason",
+                BaseCommitStatus.pending,
+                RequestResponse(
+                    status_code=500,
+                    ok=True,
+                    content=json.dumps({}).encode(),
+                    json={},
+                    reason="Reason",
+                ),
+                60,
+            ),
+            (
+                0,
+                "Failed to submit tests. The task will be retried in 1 minute.",
+                "Failed to post request to testing farm API.",
+                BaseCommitStatus.pending,
+                None,
+                60,
+            ),
+            (
+                1,
+                "Failed to submit tests. The task will be retried in 2 minutes.",
+                "Reason",
+                BaseCommitStatus.pending,
+                RequestResponse(
+                    status_code=500,
+                    ok=True,
+                    content=json.dumps({}).encode(),
+                    json={},
+                    reason="Reason",
+                ),
+                120,
+            ),
+            (
+                1,
+                "Failed to submit tests. The task will be retried in 2 minutes.",
+                "Failed to post request to testing farm API.",
+                BaseCommitStatus.pending,
+                None,
+                120,
+            ),
+            (
+                2,
+                "Failed to post request to testing farm API.",
+                None,
+                BaseCommitStatus.error,
+                None,
+                None,
+            ),
+            (
+                2,
+                "Failed to submit tests: reason.",
+                None,
+                BaseCommitStatus.failure,
+                RequestResponse(
+                    status_code=500,
+                    ok=True,
+                    content=json.dumps({}).encode(),
+                    json={},
+                    reason="reason",
+                ),
+                None,
+            ),
+        ]
+    ),
+)
+def test_pr_test_command_handler_retries(
+    pr_embedded_command_comment_event,
+    retry_number,
+    description,
+    markdown_content,
+    status,
+    response,
+    delay,
+):
+    jobs = [
+        {
+            "trigger": "pull_request",
+            "job": "tests",
+            "metadata": {"targets": "fedora-rawhide-x86_64", "skip_build": True},
+        }
+    ]
+    packit_yaml = (
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
+        + str(jobs)
+        + "}"
+    )
+    pr = flexmock(
+        source_project=flexmock(
+            get_web_url=lambda: "https://github.com/someone/hello-world"
+        ),
+        target_project=flexmock(
+            get_web_url=lambda: "https://github.com/packit-service/hello-world"
+        ),
+        head_commit="0011223344",
+        target_branch_head_commit="deadbeef",
+        source_branch="the-source-branch",
+        target_branch="the-target-branch",
+    )
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
+    flexmock(
+        GithubProject,
+        full_repo_name="packit-service/hello-world",
+        get_file_content=lambda path, ref: packit_yaml,
+        get_files=lambda ref, filter_regex: ["the-specfile.spec"],
+        get_web_url=lambda: "https://github.com/packit-service/hello-world",
+    )
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+
+    ServiceConfig.get_service_config().testing_farm_api_url = (
+        "https://api.dev.testing-farm.io/v0.1/"
+    )
+    ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
+
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+    )
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
+        trigger
+    )
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(Allowlist, check_and_report=True)
+    pr_model = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+    )
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(pr_model)
+
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=9
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=123
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+
+    pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
+    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+        {"fedora-rawhide-x86_64"}
+    )
+    flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
+    flexmock(Pushgateway).should_receive("push").twice().and_return()
+
+    payload = {
+        "api_key": "secret-token",
+        "test": {
+            "fmf": {
+                "url": "https://github.com/someone/hello-world",
+                "ref": "0011223344",
+            }
+        },
+        "environments": [
+            {
+                "arch": "x86_64",
+                "os": {"compose": "Fedora-Rawhide"},
+                "tmt": {
+                    "context": {
+                        "distro": "fedora-rawhide",
+                        "arch": "x86_64",
+                        "trigger": "commit",
+                    }
+                },
+                "variables": {
+                    "PACKIT_FULL_REPO_NAME": "packit-service/hello-world",
+                    "PACKIT_UPSTREAM_NAME": "hello-world",
+                    "PACKIT_DOWNSTREAM_NAME": "hello-world",
+                    "PACKIT_DOWNSTREAM_URL": "https://src.fedoraproject.org/rpms/hello-world.git",
+                    "PACKIT_PACKAGE_NAME": "hello-world",
+                    "PACKIT_COMMIT_SHA": "0011223344",
+                    "PACKIT_SOURCE_SHA": "0011223344",
+                    "PACKIT_TARGET_SHA": "deadbeef",
+                    "PACKIT_SOURCE_BRANCH": "the-source-branch",
+                    "PACKIT_TARGET_BRANCH": "the-target-branch",
+                    "PACKIT_SOURCE_URL": "https://github.com/someone/hello-world",
+                    "PACKIT_TARGET_URL": "https://github.com/packit-service/hello-world",
+                    "PACKIT_PR_ID": 9,
+                },
+            }
+        ],
+        "notification": {
+            "webhook": {
+                "url": "https://prod.packit.dev/api/testing-farm/results",
+                "token": "secret-token",
+            }
+        },
+    }
+
+    flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
+    flexmock(TestingFarmJobHelper).should_receive("distro2compose").and_return(
+        "Fedora-Rawhide"
+    )
+
+    flexmock(TestingFarmJobHelper).should_receive(
+        "send_testing_farm_request"
+    ).with_args(endpoint="requests", method="POST", data=payload).and_return(response)
+
+    flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
+        state=BaseCommitStatus.pending,
+        description=TASK_ACCEPTED,
+        check_name="testing-farm:fedora-rawhide-x86_64",
+        url="",
+        links_to_external_services=None,
+        markdown_content=None,
+    ).once()
+
+    flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
+        state=BaseCommitStatus.running,
+        description="Submitting the tests ...",
+        check_name="testing-farm:fedora-rawhide-x86_64",
+        url="",
+        links_to_external_services=None,
+        markdown_content=None,
+    ).once()
+
+    flexmock(GithubProject).should_receive("get_web_url").and_return(
+        "https://github.com/packit-service/hello-world"
+    )
+
+    flexmock(PipelineModel).should_receive("create").never()
+    flexmock(TFTTestRunTargetModel).should_receive("create").never()
+
+    flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
+        state=status,
+        description=description,
+        check_name="testing-farm:fedora-rawhide-x86_64",
+        url="",
+        links_to_external_services=None,
+        markdown_content=markdown_content,
+    ).once()
+    flexmock(Signature).should_receive("apply_async").once()
+
+    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+
+    if delay is not None:
+        flexmock(CeleryTask).should_receive("retry").with_args(delay=delay).once()
+
+    assert json.dumps(event_dict)
+    task = run_testing_farm_handler.__wrapped__.__func__
+    task(
+        flexmock(request=flexmock(retries=retry_number)),
         package_config=package_config,
         event=event_dict,
         job_config=job_config,

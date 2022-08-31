@@ -5,6 +5,7 @@
 This file defines classes for job handlers specific for Testing farm
 """
 import logging
+from celery import Task
 from datetime import datetime, timezone
 from typing import Optional, Dict, List
 
@@ -45,6 +46,7 @@ from packit_service.worker.handlers.abstract import (
     run_for_comment,
     run_for_check_rerun,
     get_packit_commands_from_comment,
+    RetriableJobHandler,
 )
 from packit_service.worker.monitoring import measure_time
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
@@ -73,7 +75,7 @@ logger = logging.getLogger(__name__)
 @reacts_to(CheckRerunPullRequestEvent)
 @reacts_to(CheckRerunCommitEvent)
 @configured_as(job_type=JobType.tests)
-class TestingFarmHandler(JobHandler):
+class TestingFarmHandler(RetriableJobHandler):
     """
     The automatic matching is now used only for /packit test
     TODO: We can react directly to the finished Copr build.
@@ -87,11 +89,13 @@ class TestingFarmHandler(JobHandler):
         job_config: JobConfig,
         event: dict,
         build_id: Optional[int] = None,
+        celery_task: Optional[Task] = None,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
             event=event,
+            celery_task=celery_task,
         )
         self.build_id = build_id
         self._db_trigger: Optional[AbstractTriggerDbType] = None
@@ -154,6 +158,7 @@ class TestingFarmHandler(JobHandler):
                 job_config=self.job_config,
                 build_targets_override=self.data.build_targets_override,
                 tests_targets_override=self.data.tests_targets_override,
+                celery_task=self.celery_task,
             )
         return self._testing_farm_job_helper
 
@@ -258,7 +263,8 @@ class TestingFarmHandler(JobHandler):
         failed: Dict,
         build: Optional[CoprBuildTargetModel] = None,
     ):
-        self.pushgateway.test_runs_queued.inc()
+        if self.celery_task.retries == 0:
+            self.pushgateway.test_runs_queued.inc()
         result = self.testing_farm_job_helper.run_testing_farm(
             build=build, target=target
         )
