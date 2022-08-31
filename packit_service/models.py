@@ -251,7 +251,6 @@ class GitProjectModel(Base):
     __tablename__ = "git_projects"
     id = Column(Integer, primary_key=True)
     # github.com/NAMESPACE/REPO_NAME
-    # git.centos.org/NAMESPACE/REPO_NAME
     namespace = Column(String, index=True)
     repo_name = Column(String, index=True)
     pull_requests = relationship("PullRequestModel", back_populates="project")
@@ -262,9 +261,6 @@ class GitProjectModel(Base):
         "ProjectAuthenticationIssueModel", back_populates="project"
     )
 
-    # Git URL of the repo
-    # Example: https://github.com/packit/hello-world.git
-    https_url = Column(String)
     project_url = Column(String)
     instance_url = Column(String, nullable=False)
 
@@ -301,7 +297,7 @@ class GitProjectModel(Base):
         )
 
     @classmethod
-    def get_forge(
+    def get_by_forge(
         cls, first: int, last: int, forge: str
     ) -> Iterable["GitProjectModel"]:
         """Return projects of given forge"""
@@ -314,12 +310,14 @@ class GitProjectModel(Base):
         )
 
     @classmethod
-    def get_namespace(cls, forge: str, namespace: str) -> Iterable["GitProjectModel"]:
+    def get_by_forge_namespace(
+        cls, forge: str, namespace: str
+    ) -> Iterable["GitProjectModel"]:
         """Return projects of given forge and namespace"""
         return (
-            p
-            for p in sa_session().query(GitProjectModel).filter_by(namespace=namespace)
-            if forge == urlparse(p.project_url).hostname
+            sa_session()
+            .query(GitProjectModel)
+            .filter_by(instance_url=forge, namespace=namespace)
         )
 
     @classmethod
@@ -412,7 +410,7 @@ class PullRequestModel(BuildsAndTestsConnector, Base):
     #   2) we want sensible auto-incremented ID, not random numbers
     #   3) it's not unique across projects obviously, so why am I even writing this?
     pr_id = Column(Integer, index=True)
-    project_id = Column(Integer, ForeignKey("git_projects.id"))
+    project_id = Column(Integer, ForeignKey("git_projects.id"), index=True)
     project = relationship("GitProjectModel", back_populates="pull_requests")
 
     job_config_trigger_type = JobConfigTriggerType.pull_request
@@ -450,7 +448,7 @@ class IssueModel(BuildsAndTestsConnector, Base):
     __tablename__ = "project_issues"
     id = Column(Integer, primary_key=True)  # our database PK
     issue_id = Column(Integer, index=True)
-    project_id = Column(Integer, ForeignKey("git_projects.id"))
+    project_id = Column(Integer, ForeignKey("git_projects.id"), index=True)
     project = relationship("GitProjectModel", back_populates="issues")
     # TODO: Fix this hardcoding! This is only to make propose-downstream work!
     job_config_trigger_type = JobConfigTriggerType.release
@@ -488,7 +486,7 @@ class GitBranchModel(BuildsAndTestsConnector, Base):
     __tablename__ = "git_branches"
     id = Column(Integer, primary_key=True)  # our database PK
     name = Column(String)
-    project_id = Column(Integer, ForeignKey("git_projects.id"))
+    project_id = Column(Integer, ForeignKey("git_projects.id"), index=True)
     project = relationship("GitProjectModel", back_populates="branches")
 
     job_config_trigger_type = JobConfigTriggerType.commit
@@ -527,7 +525,7 @@ class ProjectReleaseModel(Base):
     id = Column(Integer, primary_key=True)  # our database PK
     tag_name = Column(String)
     commit_hash = Column(String)
-    project_id = Column(Integer, ForeignKey("git_projects.id"))
+    project_id = Column(Integer, ForeignKey("git_projects.id"), index=True)
     project = relationship("GitProjectModel", back_populates="releases")
 
     job_config_trigger_type = JobConfigTriggerType.release
@@ -604,7 +602,7 @@ class JobTriggerModel(Base):
     __tablename__ = "job_triggers"
     id = Column(Integer, primary_key=True)  # our database PK
     type = Column(Enum(JobTriggerModelType))
-    trigger_id = Column(Integer)
+    trigger_id = Column(Integer, index=True)
 
     runs = relationship("PipelineModel", back_populates="job_trigger")
 
@@ -665,16 +663,16 @@ class PipelineModel(Base):
     job_trigger_id = Column(Integer, ForeignKey("job_triggers.id"))
     job_trigger = relationship("JobTriggerModel", back_populates="runs")
 
-    srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"))
+    srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"), index=True)
     srpm_build = relationship("SRPMBuildModel", back_populates="runs")
-    copr_build_id = Column(Integer, ForeignKey("copr_build_targets.id"))
+    copr_build_id = Column(Integer, ForeignKey("copr_build_targets.id"), index=True)
     copr_build = relationship("CoprBuildTargetModel", back_populates="runs")
-    koji_build_id = Column(Integer, ForeignKey("koji_build_targets.id"))
+    koji_build_id = Column(Integer, ForeignKey("koji_build_targets.id"), index=True)
     koji_build = relationship("KojiBuildTargetModel", back_populates="runs")
-    test_run_id = Column(Integer, ForeignKey("tft_test_run_targets.id"))
+    test_run_id = Column(Integer, ForeignKey("tft_test_run_targets.id"), index=True)
     test_run = relationship("TFTTestRunTargetModel", back_populates="runs")
     propose_downstream_run_id = Column(
-        Integer, ForeignKey("propose_downstream_runs.id")
+        Integer, ForeignKey("propose_downstream_runs.id"), index=True
     )
     propose_downstream_run = relationship(
         "ProposeDownstreamModel", back_populates="runs"
@@ -760,7 +758,7 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
     build_id = Column(String, index=True)  # copr build id
 
     # commit sha of the PR (or a branch, release) we used for a build
-    commit_sha = Column(String)
+    commit_sha = Column(String, index=True)
     # what's the build status?
     status = Column(String)
     # chroot, but we use the word target in our docs
@@ -1697,7 +1695,7 @@ class ProjectAuthenticationIssueModel(Base):
     project = relationship(
         "GitProjectModel", back_populates="project_authentication_issue"
     )
-    # Check to know if we created a issue for the repo.
+    # Check to know if we created an issue for the repo.
     issue_created = Column(Boolean)
     project_id = Column(Integer, ForeignKey("git_projects.id"))
 

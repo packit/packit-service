@@ -87,7 +87,7 @@ class ProjectsForge(Resource):
         result = []
         first, last = indices()
 
-        for project in GitProjectModel.get_forge(first, last, forge):
+        for project in GitProjectModel.get_by_forge(first, last, forge):
             project_info = {
                 "namespace": project.namespace,
                 "repo_name": project.repo_name,
@@ -115,7 +115,7 @@ class ProjectsNamespace(Resource):
     def get(self, forge, namespace):
         """List of projects of given forge and namespace"""
         result = []
-        for project in GitProjectModel.get_namespace(forge, namespace):
+        for project in GitProjectModel.get_by_forge_namespace(forge, namespace):
             project_info = {
                 "namespace": project.namespace,
                 "repo_name": project.repo_name,

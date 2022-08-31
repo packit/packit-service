@@ -646,20 +646,22 @@ def test_get_project(clean_before_and_after, a_copr_build_for_pr):
     assert project.project_url == "https://github.com/the-namespace/the-repo-name"
 
 
-def test_get_forge(clean_before_and_after, multiple_forge_projects):
-    projects = list(GitProjectModel.get_forge(0, 10, "github.com"))
+def test_get_by_forge(clean_before_and_after, multiple_forge_projects):
+    projects = list(GitProjectModel.get_by_forge(0, 10, "github.com"))
     assert projects
     assert len(projects) == 2
 
-    projects = list(GitProjectModel.get_forge(0, 10, "gitlab.com"))
+    projects = list(GitProjectModel.get_by_forge(0, 10, "gitlab.com"))
     assert len(projects) == 1
 
-    projects = list(GitProjectModel.get_forge(0, 10, "git.stg.centos.org"))
+    projects = list(GitProjectModel.get_by_forge(0, 10, "git.stg.centos.org"))
     assert len(projects) == 1
 
 
-def test_get_namespace(clean_before_and_after, multiple_copr_builds):
-    projects = list(GitProjectModel.get_namespace("github.com", "the-namespace"))
+def test_get_by_forge_namespace(clean_before_and_after, multiple_copr_builds):
+    projects = list(
+        GitProjectModel.get_by_forge_namespace("github.com", "the-namespace")
+    )
     assert projects[0].namespace == "the-namespace"
     assert projects[0].repo_name == "the-repo-name"
 
