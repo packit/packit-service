@@ -129,7 +129,7 @@ class TestingFarmResults(Resource):
 
         resp = response_maker(
             result,
-            status=HTTPStatus.PARTIAL_CONTENT.value,
+            status=HTTPStatus.PARTIAL_CONTENT,
         )
         resp.headers["Content-Range"] = f"test-results {first + 1}-{last}/*"
         return resp
@@ -147,7 +147,7 @@ class TestingFarmResult(Resource):
         if not test_run_model:
             return response_maker(
                 {"error": "No info about build stored in DB"},
-                status=HTTPStatus.NOT_FOUND.value,
+                status=HTTPStatus.NOT_FOUND,
             )
 
         test_result_dict = {

@@ -22,8 +22,8 @@ class CoprBuildsList(Resource):
     def get(self):
         """List all Copr builds."""
 
-        # Return relevant info thats concise
-        # Usecases like the packit-dashboard copr-builds table
+        # Return relevant info that's concise
+        # Use-cases like the packit-dashboard copr-builds table
 
         result = []
 
@@ -62,7 +62,7 @@ class CoprBuildsList(Resource):
 
         resp = response_maker(
             result,
-            status=HTTPStatus.PARTIAL_CONTENT.value,
+            status=HTTPStatus.PARTIAL_CONTENT,
         )
         resp.headers["Content-Range"] = f"copr-builds {first + 1}-{last}/*"
         return resp
@@ -79,7 +79,7 @@ class CoprBuildItem(Resource):
         if not build:
             return response_maker(
                 {"error": "No info about build stored in DB"},
-                status=HTTPStatus.NOT_FOUND.value,
+                status=HTTPStatus.NOT_FOUND,
             )
 
         build_dict = {

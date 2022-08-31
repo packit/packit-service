@@ -29,7 +29,7 @@ class ProjectsList(Resource):
         result = []
         first, last = indices()
 
-        for project in GitProjectModel.get_projects(first, last):
+        for project in GitProjectModel.get_range(first, last):
             project_info = {
                 "namespace": project.namespace,
                 "repo_name": project.repo_name,
@@ -41,12 +41,9 @@ class ProjectsList(Resource):
             }
             result.append(project_info)
 
-        if not result:
-            return response_maker([])
-
         resp = response_maker(
             result,
-            status=HTTPStatus.PARTIAL_CONTENT.value,
+            status=HTTPStatus.PARTIAL_CONTENT if result else HTTPStatus.OK,
         )
         resp.headers["Content-Range"] = f"git-projects {first + 1}-{last}/*"
         return resp
@@ -102,12 +99,9 @@ class ProjectsForge(Resource):
             }
             result.append(project_info)
 
-        if not result:
-            return response_maker([])
-
         resp = response_maker(
             result,
-            status=HTTPStatus.PARTIAL_CONTENT.value,
+            status=HTTPStatus.PARTIAL_CONTENT if result else HTTPStatus.OK,
         )
         resp.headers["Content-Range"] = f"git-projects {first + 1}-{last}/*"
         return resp
@@ -142,7 +136,7 @@ class ProjectsNamespace(Resource):
 class ProjectsPRs(Resource):
     @ns.expect(pagination_arguments)
     @ns.response(
-        HTTPStatus.PARTIAL_CONTENT, "Project PRs handled by Packit Service follow"
+        HTTPStatus.PARTIAL_CONTENT.value, "Project PRs handled by Packit Service follow"
     )
     @ns.response(HTTPStatus.OK.value, "OK")
     def get(self, forge, namespace, repo_name):
@@ -161,10 +155,6 @@ class ProjectsPRs(Resource):
                 "srpm_builds": [],
                 "tests": [],
             }
-            copr_builds = []
-            koji_builds = []
-            test_runs = []
-            srpm_builds = []
 
             for build in pr.get_copr_builds():
                 build_info = {
@@ -173,8 +163,7 @@ class ProjectsPRs(Resource):
                     "status": build.status,
                     "web_url": build.web_url,
                 }
-                copr_builds.append(build_info)
-            pr_info["builds"] = copr_builds
+                pr_info["builds"].append(build_info)
 
             for build in pr.get_koji_builds():
                 build_info = {
@@ -183,8 +172,7 @@ class ProjectsPRs(Resource):
                     "status": build.status,
                     "web_url": build.web_url,
                 }
-                koji_builds.append(build_info)
-            pr_info["koji_builds"] = koji_builds
+                pr_info["koji_builds"].append(build_info)
 
             for build in pr.get_srpm_builds():
                 build_info = {
@@ -192,8 +180,7 @@ class ProjectsPRs(Resource):
                     "status": build.status,
                     "log_url": get_srpm_build_info_url(build.id),
                 }
-                srpm_builds.append(build_info)
-            pr_info["srpm_builds"] = srpm_builds
+                pr_info["srpm_builds"].append(build_info)
 
             for test_run in pr.get_test_runs():
                 test_info = {
@@ -202,18 +189,15 @@ class ProjectsPRs(Resource):
                     "status": str(test_run.status),
                     "web_url": test_run.web_url,
                 }
-                test_runs.append(test_info)
-            pr_info["tests"] = test_runs
+                pr_info["tests"].append(test_info)
 
             result.append(pr_info)
 
-        if not result:
-            return response_maker([])
-
         resp = response_maker(
             result,
-            status=HTTPStatus.PARTIAL_CONTENT.value,
+            status=HTTPStatus.PARTIAL_CONTENT if result else HTTPStatus.OK,
         )
+
         resp.headers["Content-Range"] = f"git-project-prs {first + 1}-{last}/*"
         return resp
 

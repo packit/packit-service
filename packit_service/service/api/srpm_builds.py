@@ -26,7 +26,7 @@ class SRPMBuildsList(Resource):
         result = []
 
         first, last = indices()
-        for build in SRPMBuildModel.get(first, last):
+        for build in SRPMBuildModel.get_range(first, last):
 
             build_dict = {
                 "srpm_build_id": build.id,
@@ -34,10 +34,9 @@ class SRPMBuildsList(Resource):
                 "log_url": get_srpm_build_info_url(build.id),
                 "build_submitted_time": optional_timestamp(build.build_submitted_time),
             }
-            project = build.get_project()
 
-            # Its possible that jobtrigger isnt stored in db
-            if project:
+            # It's possible that jobtrigger isn't stored in db
+            if project := build.get_project():
                 build_dict["repo_namespace"] = project.namespace
                 build_dict["repo_name"] = project.repo_name
                 build_dict["project_url"] = project.project_url
@@ -48,7 +47,7 @@ class SRPMBuildsList(Resource):
 
         resp = response_maker(
             result,
-            status=HTTPStatus.PARTIAL_CONTENT.value,
+            status=HTTPStatus.PARTIAL_CONTENT,
         )
         resp.headers["Content-Range"] = f"srpm-builds {first + 1}-{last}/*"
         return resp
@@ -65,7 +64,7 @@ class SRPMBuildItem(Resource):
         if not build:
             return response_maker(
                 {"error": "No info about build stored in DB"},
-                status=HTTPStatus.NOT_FOUND.value,
+                status=HTTPStatus.NOT_FOUND,
             )
 
         build_dict = {

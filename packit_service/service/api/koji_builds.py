@@ -40,8 +40,7 @@ class KojiBuildsList(Resource):
                 "release": build.get_release_tag(),
             }
 
-            project = build.get_project()
-            if project:
+            if project := build.get_project():
                 build_dict["project_url"] = project.project_url
                 build_dict["repo_namespace"] = project.namespace
                 build_dict["repo_name"] = project.repo_name
@@ -50,7 +49,7 @@ class KojiBuildsList(Resource):
 
         resp = response_maker(
             result,
-            status=HTTPStatus.PARTIAL_CONTENT.value,
+            status=HTTPStatus.PARTIAL_CONTENT,
         )
         resp.headers["Content-Range"] = f"koji-builds {first + 1}-{last}/*"
         return resp
@@ -70,7 +69,7 @@ class KojiBuildItem(Resource):
         if not build:
             return response_maker(
                 {"error": "No info about build stored in DB"},
-                status=HTTPStatus.NOT_FOUND.value,
+                status=HTTPStatus.NOT_FOUND,
             )
 
         build_dict = {

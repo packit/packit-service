@@ -40,6 +40,7 @@ from sqlalchemy import (
     case,
 )
 from sqlalchemy.dialects.postgresql import array as psql_array
+from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     Session as SQLASession,
@@ -83,7 +84,14 @@ def sa_session() -> SQLASession:
 
 @contextmanager
 def sa_session_transaction() -> SQLASession:
-    """get SQLAlchemy session"""
+    """
+    Context manager for 'framing' of a transaction for cases where we
+    commit data to the database. If all operations succeed
+    the transaction is committed, otherwise rolled back.
+    https://docs.sqlalchemy.org/en/14/orm/session_basics.html#framing-out-a-begin-commit-rollback-block
+    TODO: Replace usages of this function with the sessionmaker.begin[_nested]() as described in
+    https://docs.sqlalchemy.org/en/14/orm/session_basics.html#using-a-sessionmaker
+    """
     session = sa_session()
     try:
         yield session
@@ -149,20 +157,18 @@ class BuildsAndTestsConnector:
     job_trigger_model_type: JobTriggerModelType
 
     def get_runs(self) -> List["PipelineModel"]:
-        trigger_list = (
-            sa_session()
-            .query(JobTriggerModel)
-            .filter_by(type=self.job_trigger_model_type, trigger_id=self.id)
-            .all()
-        )
-        if len(trigger_list) > 1:
-            msg = (
-                f"There are multiple run models for type {self.job_trigger_model_type}"
-                f"and id={self.id}."
+        try:
+            trigger = (
+                sa_session()
+                .query(JobTriggerModel)
+                .filter_by(type=self.job_trigger_model_type, trigger_id=self.id)
+                .one_or_none()
             )
+        except MultipleResultsFound as e:
+            msg = f"Multiple run models for type {self.job_trigger_model_type} and id {self.id}."
             logger.error(msg)
-            raise PackitException(msg)
-        return trigger_list[0].runs if trigger_list else []
+            raise PackitException(msg) from e
+        return trigger.runs if trigger else []
 
     def _get_run_item(
         self, model_type: Type["AbstractBuildTestDbType"]
@@ -286,7 +292,7 @@ class GitProjectModel(Base):
             return project
 
     @classmethod
-    def get_projects(cls, first: int, last: int) -> Iterable["GitProjectModel"]:
+    def get_range(cls, first: int, last: int) -> Iterable["GitProjectModel"]:
         return (
             sa_session()
             .query(GitProjectModel)
@@ -335,9 +341,8 @@ class GitProjectModel(Base):
         return (
             sa_session()
             .query(PullRequestModel)
-            .join(GitProjectModel)
+            .join(PullRequestModel.project)
             .filter(
-                PullRequestModel.project_id == GitProjectModel.id,
                 GitProjectModel.instance_url == forge,
                 GitProjectModel.namespace == namespace,
                 GitProjectModel.repo_name == repo_name,
@@ -353,9 +358,8 @@ class GitProjectModel(Base):
         return (
             sa_session()
             .query(IssueModel)
-            .join(GitProjectModel)
+            .join(IssueModel.project)
             .filter(
-                IssueModel.project_id == GitProjectModel.id,
                 GitProjectModel.instance_url == forge,
                 GitProjectModel.namespace == namespace,
                 GitProjectModel.repo_name == repo_name,
@@ -369,9 +373,8 @@ class GitProjectModel(Base):
         return (
             sa_session()
             .query(GitBranchModel)
-            .join(GitProjectModel)
+            .join(GitBranchModel.project)
             .filter(
-                GitBranchModel.project_id == GitProjectModel.id,
                 GitProjectModel.instance_url == forge,
                 GitProjectModel.namespace == namespace,
                 GitProjectModel.repo_name == repo_name,
@@ -385,9 +388,8 @@ class GitProjectModel(Base):
         return (
             sa_session()
             .query(ProjectReleaseModel)
-            .join(GitProjectModel)
+            .join(ProjectReleaseModel.project)
             .filter(
-                ProjectReleaseModel.project_id == GitProjectModel.id,
                 GitProjectModel.instance_url == forge,
                 GitProjectModel.namespace == namespace,
                 GitProjectModel.repo_name == repo_name,
@@ -656,7 +658,7 @@ class PipelineModel(Base):
 
     __tablename__ = "pipelines"
     id = Column(Integer, primary_key=True)  # our database PK
-    # datetime.utcnow instead of datetime.utcnow() because its an argument to the function
+    # datetime.utcnow instead of datetime.utcnow() because it's an argument to the function,
     # so it will run when the model is initiated, not when the table is made
     datetime = Column(DateTime, default=datetime.utcnow)
 
@@ -1224,7 +1226,7 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
         return sa_session().query(SRPMBuildModel).filter_by(id=id_).first()
 
     @classmethod
-    def get(cls, first: int, last: int) -> Iterable["SRPMBuildModel"]:
+    def get_range(cls, first: int, last: int) -> Iterable["SRPMBuildModel"]:
         return (
             sa_session()
             .query(SRPMBuildModel)
