@@ -2,22 +2,22 @@
 # SPDX-License-Identifier: MIT
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Type, Optional
+from typing import Optional, Type
 
 import gitlab
 import pytest
 from celery import Celery
-from copr.v3 import CoprRequestException
 from copr.v3 import Client
+from copr.v3 import CoprRequestException
 from flexmock import flexmock
 from munch import Munch
-from ogr.exceptions import GitlabAPIException, OgrNetworkError, GitForgeInternalError
 
 import packit
 import packit_service
 from ogr.abstract import CommitStatus, GitProject
+from ogr.exceptions import GitForgeInternalError, GitlabAPIException, OgrNetworkError
 from ogr.services.github import GithubProject
 from ogr.services.github.check_run import (
     GithubCheckRunResult,
@@ -32,9 +32,14 @@ from packit.copr_helper import CoprHelper
 from packit.exceptions import FailedCreateSRPM, PackitCoprSettingsException
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
-from packit_service.constants import DEFAULT_RETRY_LIMIT, DEFAULT_RETRY_LIMIT_OUTAGE
+from packit_service.constants import (
+    DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,
+    DEFAULT_RETRY_LIMIT,
+    DEFAULT_RETRY_LIMIT_OUTAGE,
+)
 from packit_service.models import (
     CoprBuildTargetModel,
+    GithubInstallationModel,
     JobTriggerModel,
     JobTriggerModelType,
     SRPMBuildModel,
@@ -44,19 +49,19 @@ from packit_service.service.db_triggers import (
     AddPullRequestDbTrigger,
     AddReleaseDbTrigger,
 )
-from packit_service.worker.handlers.abstract import CeleryTask
-
-from packit_service.worker.helpers.build import copr_build
-from packit_service.worker.helpers.build.copr_build import (
-    CoprBuildJobHelper,
-    BaseBuildJobHelper,
-)
 from packit_service.worker.events import (
     MergeRequestGitlabEvent,
     PullRequestGithubEvent,
     PushGitHubEvent,
     PushGitlabEvent,
     ReleaseEvent,
+)
+from packit_service.worker.handlers import CoprBuildHandler
+from packit_service.worker.handlers.abstract import CeleryTask
+from packit_service.worker.helpers.build import copr_build
+from packit_service.worker.helpers.build.copr_build import (
+    BaseBuildJobHelper,
+    CoprBuildJobHelper,
 )
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.parser import Parser
@@ -2193,7 +2198,27 @@ def test_copr_build_targets_override(github_pr_event):
     assert helper.run_copr_build()["success"]
 
 
-def test_run_copr_build_from_source_script(github_pr_event):
+@pytest.mark.parametrize(
+    "srpm_build_deps,installation_date",
+    [
+        pytest.param(
+            None,
+            DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR + timedelta(days=1),
+            id="new_installation",
+        ),
+        pytest.param(
+            [], DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR, id="explicitly_defined_empty_key"
+        ),  # user defines this key (it's None by default)
+        pytest.param(
+            ["make", "findutils"],
+            DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,
+            id="explicitly_defined_key_with_custom_deps",
+        ),
+    ],
+)
+def test_run_copr_build_from_source_script(
+    github_pr_event, srpm_build_deps, installation_date
+):
     helper = build_helper(
         event=github_pr_event,
         db_trigger=flexmock(
@@ -2202,10 +2227,18 @@ def test_run_copr_build_from_source_script(github_pr_event):
             job_trigger_model_type=JobTriggerModelType.pull_request,
         ),
     )
-    helper.package_config.srpm_build_deps = ["make", "findutils"]
+    helper.package_config.srpm_build_deps = srpm_build_deps
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
         type=JobTriggerModelType.pull_request, trigger_id=123
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
+        account_login="packit-service"
+    ).and_return(
+        flexmock(
+            created_at=installation_date,
+            repositories=[flexmock(repo_name="packit")],
+        )
+    )
     flexmock(GithubProject).should_receive("create_check_run").and_return().times(4)
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock(), target_branch="main")
@@ -2229,6 +2262,10 @@ def test_run_copr_build_from_source_script(github_pr_event):
     flexmock(helper).should_receive("get_latest_fedora_stable_chroot").and_return(
         "fedora-35-x86_64"
     )
+
+    flexmock(helper).should_call("run_copr_build").times(0)
+    flexmock(helper).should_call("run_copr_build_from_source_script").once()
+
     flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
             config={"copr_url": "https://copr.fedorainfracloud.org/"},
@@ -2250,7 +2287,14 @@ def test_run_copr_build_from_source_script(github_pr_event):
     )
 
     flexmock(Celery).should_receive("send_task").once()
-    assert helper.run_copr_build_from_source_script()["success"]
+    handler = CoprBuildHandler(
+        package_config=helper.package_config,
+        job_config=helper.job_config,
+        event=github_pr_event.get_dict(),
+        celery_task=flexmock(),
+    )
+    handler._copr_build_helper = helper
+    assert handler.run()["success"]
 
 
 @pytest.mark.parametrize(
