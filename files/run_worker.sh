@@ -30,13 +30,13 @@ elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     DEFAULT_QUEUES="short-running,long-running"
     QUEUES="${QUEUES:-$DEFAULT_QUEUES}"
 
-    # Number of concurrent worker processes/threads executing tasks.
-    # https://docs.celeryq.dev/en/stable/userguide/workers.html#autoscaling
+    # Number of concurrent worker threads executing tasks.
     DEFAULT_CONCURRENCY="1"
     CONCURRENCY="${CONCURRENCY:-$DEFAULT_CONCURRENCY}"
 
     # Options: prefork | eventlet | gevent | solo
-    DEFAULT_POOL="prefork"
+    # https://www.distributedpython.com/2018/10/26/celery-execution-pool/
+    DEFAULT_POOL="solo"
     POOL="${POOL:-$DEFAULT_POOL}"
 
     # if this worker serves the long-running queue, it needs the repository cache
