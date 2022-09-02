@@ -40,6 +40,7 @@ from packit_service.constants import (
 from packit_service.models import (
     CoprBuildTargetModel,
     GithubInstallationModel,
+    GitProjectModel,
     JobTriggerModel,
     JobTriggerModelType,
     SRPMBuildModel,
@@ -2238,6 +2239,9 @@ def test_run_copr_build_from_source_script(
             created_at=installation_date,
             repositories=[flexmock(repo_name="packit")],
         )
+    )
+    flexmock(GitProjectModel).should_receive("get_by_id").and_return(
+        flexmock(repo_name="packit")
     )
     flexmock(GithubProject).should_receive("create_check_run").and_return().times(4)
     flexmock(GithubProject).should_receive("get_pr").and_return(

@@ -7,8 +7,8 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
-from ogr.services.github import GithubProject
 
+from ogr.services.github import GithubProject
 from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
 from packit_service.constants import (
@@ -19,6 +19,7 @@ from packit_service.constants import (
 from packit_service.models import (
     GitBranchModel,
     GithubInstallationModel,
+    GitProjectModel,
     JobTriggerModel,
     ProjectReleaseModel,
     PullRequestModel,
@@ -233,6 +234,9 @@ def test_check_rerun_pr_copr_build_handler(
             repositories=[flexmock(repo_name="hello-world")],
         )
     )
+    flexmock(GitProjectModel).should_receive("get_by_id").and_return(
+        flexmock(repo_name="hello-world")
+    )
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     ).once()
@@ -411,6 +415,9 @@ def test_check_rerun_push_copr_build_handler(
             created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
             repositories=[flexmock(repo_name="hello-world")],
         )
+    )
+    flexmock(GitProjectModel).should_receive("get_by_id").and_return(
+        flexmock(repo_name="hello-world")
     )
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
@@ -592,6 +599,9 @@ def test_check_rerun_release_copr_build_handler(
             created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
             repositories=[flexmock(repo_name="hello-world")],
         )
+    )
+    flexmock(GitProjectModel).should_receive("get_by_id").and_return(
+        flexmock(repo_name="hello-world")
     )
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})

@@ -28,6 +28,7 @@ from packit_service.constants import (
 from packit_service.models import (
     CoprBuildTargetModel,
     GithubInstallationModel,
+    GitProjectModel,
     JobTriggerModel,
     JobTriggerModelType,
     PipelineModel,
@@ -37,11 +38,12 @@ from packit_service.models import (
 )
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.events.event import AbstractForgeIndependentEvent
 from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.helpers.build import copr_build
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
-from packit_service.worker.events.event import AbstractForgeIndependentEvent
+from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.jobs import SteveJobs, get_packit_commands_from_comment
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporterGithubChecks
@@ -52,7 +54,6 @@ from packit_service.worker.tasks import (
     run_koji_build_handler,
     run_testing_farm_handler,
 )
-from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
@@ -184,6 +185,9 @@ def test_pr_comment_copr_build_handler(
             repositories=[flexmock(repo_name="hello-world")],
         )
     )
+    flexmock(GitProjectModel).should_receive("get_by_id").and_return(
+        flexmock(repo_name="hello-world")
+    )
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
     ).once()
@@ -256,6 +260,9 @@ def test_pr_comment_build_handler(
             created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
             repositories=[flexmock(repo_name="hello-world")],
         )
+    )
+    flexmock(GitProjectModel).should_receive("get_by_id").and_return(
+        flexmock(repo_name="hello-world")
     )
     flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
         TaskResults(success=True, details={})
@@ -604,6 +611,9 @@ def test_pr_embedded_command_handler(
             created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
             repositories=[flexmock(repo_name="hello-world")],
         )
+    )
+    flexmock(GitProjectModel).should_receive("get_by_id").and_return(
+        flexmock(repo_name="hello-world")
     )
     ServiceConfig.get_service_config().comment_command_prefix = command
     pr_embedded_command_comment_event["comment"]["body"] = comments_list
@@ -1804,6 +1814,9 @@ def test_rebuild_failed(
             created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
             repositories=[flexmock(repo_name="hello-world")],
         )
+    )
+    flexmock(GitProjectModel).should_receive("get_by_id").and_return(
+        flexmock(repo_name="hello-world")
     )
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit rebuild-failed"
