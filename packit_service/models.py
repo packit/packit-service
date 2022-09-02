@@ -288,6 +288,10 @@ class GitProjectModel(Base):
             return project
 
     @classmethod
+    def get_by_id(cls, id_: int) -> Optional["GitProjectModel"]:
+        return sa_session().query(GitProjectModel).filter_by(id=id_).first()
+
+    @classmethod
     def get_range(cls, first: int, last: int) -> Iterable["GitProjectModel"]:
         return (
             sa_session()
@@ -1772,8 +1776,9 @@ class GithubInstallationModel(Base):
         if not namespace_installation:
             return None
 
-        for project in namespace_installation.repositories:
-            if project.repo_name == repo_name:
+        for project_id in namespace_installation.repositories:
+            project = GitProjectModel.get_by_id(project_id)
+            if project and project.repo_name == repo_name:
                 return namespace_installation
         return None
 
