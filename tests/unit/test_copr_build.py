@@ -2208,6 +2208,11 @@ def test_copr_build_targets_override(github_pr_event):
             id="new_installation",
         ),
         pytest.param(
+            None,
+            DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR.replace(tzinfo=None) + timedelta(days=1),
+            id="new_installation_without_timezone",
+        ),
+        pytest.param(
             [], DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR, id="explicitly_defined_empty_key"
         ),  # user defines this key (it's None by default)
         pytest.param(

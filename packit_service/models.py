@@ -1769,20 +1769,6 @@ class GithubInstallationModel(Base):
         return sa_session().query(GithubInstallationModel).filter_by(id=id).first()
 
     @classmethod
-    def get_for_github_project(
-        cls, namespace: str, repo_name: str
-    ) -> Optional["GithubInstallationModel"]:
-        namespace_installation = cls.get_by_account_login(account_login=namespace)
-        if not namespace_installation:
-            return None
-
-        for project_id in namespace_installation.repositories:
-            project = GitProjectModel.get_by_id(project_id)
-            if project and project.repo_name == repo_name:
-                return namespace_installation
-        return None
-
-    @classmethod
     def get_by_account_login(
         cls, account_login: str
     ) -> Optional["GithubInstallationModel"]:

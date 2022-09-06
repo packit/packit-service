@@ -139,8 +139,8 @@ class CoprBuildHandler(RetriableJobHandler):
 
     def get_packit_github_installation_time(self) -> Optional[datetime]:
         if isinstance(self.project, GithubProject) and (
-            installation := GithubInstallationModel.get_for_github_project(
-                namespace=self.project.namespace, repo_name=self.project.repo
+            installation := GithubInstallationModel.get_by_account_login(
+                account_login=self.project.namespace
             )
         ):
             return installation.created_at
@@ -148,6 +148,13 @@ class CoprBuildHandler(RetriableJobHandler):
 
     def run(self) -> TaskResults:
         installed_at = self.get_packit_github_installation_time()
+        # transform timezone-naive datetime
+        # https://docs.python.org/3/library/datetime.html#determining-if-an-object-is-aware-or-naive
+        if installed_at and (
+            installed_at.tzinfo is None
+            or installed_at.tzinfo.utcoffset(installed_at) is None
+        ):
+            installed_at = installed_at.replace(tzinfo=timezone.utc)
         if self.package_config.srpm_build_deps is not None or (
             installed_at and installed_at > DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR
         ):
