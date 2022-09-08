@@ -30,14 +30,13 @@ elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     DEFAULT_QUEUES="short-running,long-running"
     QUEUES="${QUEUES:-$DEFAULT_QUEUES}"
 
-    # Max,min number of concurrent worker processes/threads executing tasks.
-    # pool support: prefork, gevent
-    # https://docs.celeryq.dev/en/stable/userguide/workers.html#autoscaling
-    DEFAULT_AUTOSCALE="1,1"
-    AUTOSCALE="${AUTOSCALE:-$DEFAULT_AUTOSCALE}"
+    # Number of concurrent worker threads executing tasks.
+    DEFAULT_CONCURRENCY="1"
+    CONCURRENCY="${CONCURRENCY:-$DEFAULT_CONCURRENCY}"
 
     # Options: prefork | eventlet | gevent | solo
-    DEFAULT_POOL="prefork"
+    # https://www.distributedpython.com/2018/10/26/celery-execution-pool/
+    DEFAULT_POOL="solo"
     POOL="${POOL:-$DEFAULT_POOL}"
 
     # if this worker serves the long-running queue, it needs the repository cache
@@ -48,5 +47,5 @@ elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     fi
 
     # https://docs.celeryq.dev/en/stable/userguide/optimizing.html#optimizing-prefetch-limit
-    exec celery --app="${APP}" worker --loglevel="${LOGLEVEL:-DEBUG}" --autoscale="${AUTOSCALE}" --pool="${POOL}" --prefetch-multiplier=1 --queues="${QUEUES}"
+    exec celery --app="${APP}" worker --loglevel="${LOGLEVEL:-DEBUG}" --concurrency="${CONCURRENCY}" --pool="${POOL}" --prefetch-multiplier=1 --queues="${QUEUES}"
 fi
