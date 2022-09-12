@@ -3,9 +3,11 @@
 
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 
 from prometheus_client import CollectorRegistry, Counter, push_to_gateway, Histogram
+
+from packit_service.utils import is_timezone_naive_datetime, get_timezone_aware_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -18,10 +20,10 @@ def measure_time(begin: datetime, end: datetime) -> float:
     Returns:
         float seconds between begin and end
     """
-    if begin.tzinfo is None or begin.tzinfo.utcoffset(begin) is None:
-        begin = begin.replace(tzinfo=timezone.utc)
-    if end.tzinfo is None or end.tzinfo.utcoffset(end) is None:
-        end = end.replace(tzinfo=timezone.utc)
+    if is_timezone_naive_datetime(begin):
+        begin = get_timezone_aware_datetime(begin)
+    if is_timezone_naive_datetime(end):
+        end = get_timezone_aware_datetime(end)
 
     return (end - begin).total_seconds()
 

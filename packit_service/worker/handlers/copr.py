@@ -45,7 +45,12 @@ from packit_service.worker.events import (
     AbstractPRCommentEvent,
 )
 from packit_service.service.urls import get_copr_build_info_url, get_srpm_build_info_url
-from packit_service.utils import dump_job_config, dump_package_config
+from packit_service.utils import (
+    dump_job_config,
+    dump_package_config,
+    is_timezone_naive_datetime,
+    get_timezone_aware_datetime,
+)
 from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.handlers.abstract import (
@@ -148,13 +153,8 @@ class CoprBuildHandler(RetriableJobHandler):
 
     def run(self) -> TaskResults:
         installed_at = self.get_packit_github_installation_time()
-        # transform timezone-naive datetime
-        # https://docs.python.org/3/library/datetime.html#determining-if-an-object-is-aware-or-naive
-        if installed_at and (
-            installed_at.tzinfo is None
-            or installed_at.tzinfo.utcoffset(installed_at) is None
-        ):
-            installed_at = installed_at.replace(tzinfo=timezone.utc)
+        if installed_at and is_timezone_naive_datetime(installed_at):
+            installed_at = get_timezone_aware_datetime(installed_at)
         if self.package_config.srpm_build_deps is not None or (
             installed_at and installed_at > DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR
         ):
