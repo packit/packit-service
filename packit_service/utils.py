@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+from datetime import datetime, timezone
 from io import StringIO
 from logging import StreamHandler
 from typing import List, Tuple
@@ -121,3 +122,33 @@ def collect_packit_logs(buffer: StringIO, handler: StreamHandler) -> str:
     packit_logger.removeHandler(handler)
     buffer.seek(0)
     return buffer.read()
+
+
+def is_timezone_naive_datetime(datetime_to_check: datetime) -> bool:
+    """
+    Check whether the given datetime is timezone naive.
+
+    Args:
+        datetime_to_check: datetime to check for timezone naiveness
+
+    Returns:
+        bool: whether the given datetime is timezone naive
+    """
+    # https://docs.python.org/3/library/datetime.html#determining-if-an-object-is-aware-or-naive
+    return (
+        datetime_to_check.tzinfo is None
+        or datetime_to_check.tzinfo.utcoffset(datetime_to_check) is None
+    )
+
+
+def get_timezone_aware_datetime(datetime_to_update: datetime) -> datetime:
+    """
+    Set timezone for datetime so that it is timezone-aware.
+
+    Args:
+        datetime_to_update: datetime to update
+
+    Result:
+        timezone-aware datetime
+    """
+    return datetime_to_update.replace(tzinfo=timezone.utc)
