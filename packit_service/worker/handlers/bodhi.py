@@ -6,16 +6,19 @@ This file defines classes for job handlers related to Bodhi
 """
 import logging
 from typing import Optional
+from dataclasses import dataclass
 
 from celery import Task
 from fedora.client import AuthError
+from koji import ClientSession
 
-from packit.constants import DEFAULT_BODHI_NOTE
+from packit.constants import DEFAULT_BODHI_NOTE, KOJI_BASEURL
 
 from packit.exceptions import PackitException
 
 from packit.api import PackitAPI
 from packit.config.aliases import get_branches
+from packit.distgit import DistGit
 
 from packit.config import JobConfig, JobType, PackageConfig
 from packit.local_project import LocalProject
@@ -26,6 +29,7 @@ from packit_service.constants import (
     KojiBuildState,
     RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED,
 )
+from packit_service.worker.events import PullRequestCommentPagureEvent
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
     TaskName,
@@ -36,6 +40,14 @@ from packit_service.worker.handlers.abstract import (
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class KojiBuildEventWrapper:
+    build_id: int
+    state: KojiBuildState
+    dist_git_branch: str
+    nvr: str
 
 
 @configured_as(job_type=JobType.bodhi_update)
@@ -63,15 +75,44 @@ class CreateBodhiUpdateHandler(RetriableJobHandler):
         )
 
         # lazy properties
-        self._koji_build_event: Optional[KojiBuildEvent] = None
+        self._koji_build_event_data: Optional[KojiBuildEvent] = None
+
+    def _build_from_event_dict(self) -> KojiBuildEventWrapper:
+        koji_build_event = KojiBuildEvent.from_event_dict(self.data.event_dict)
+        return KojiBuildEventWrapper(
+            build_id=koji_build_event.build_id,
+            state=koji_build_event.state,
+            dist_git_branch=koji_build_event.git_ref,
+            nvr=koji_build_event.nvr,
+        )
+
+    def _build_from_koji_api(self) -> KojiBuildEventWrapper:
+        dist_git_branch = self.project.get_pr(self.data.pr_id).target_branch
+        nvr = DistGit.get_latest_build_in_tag(
+            downstream_package_name=self.project.repo, dist_git_branch=dist_git_branch
+        )
+
+        session = ClientSession(baseurl=KOJI_BASEURL)
+        build = session.getBuild(buildInfo=nvr)
+        return KojiBuildEventWrapper(
+            build_id=build["build_id"],
+            state=KojiBuildState.from_number(build["state"]),
+            dist_git_branch=dist_git_branch,
+            nvr=nvr,
+        )
+
+    def _build_koji_event_data(self) -> KojiBuildEventWrapper:
+        if self.data.event_type == PullRequestCommentPagureEvent.__name__:
+            return self._build_from_koji_api()
+
+        return self._build_from_event_dict()
 
     @property
-    def koji_build_event(self):
-        if not self._koji_build_event:
-            self._koji_build_event = KojiBuildEvent.from_event_dict(
-                self.data.event_dict
-            )
-        return self._koji_build_event
+    def koji_build_event_data(self) -> Optional[KojiBuildEventWrapper]:
+        if self._koji_build_event_data is None:
+            self._koji_build_event_data = self._build_koji_event_data()
+
+        return self._koji_build_event_data
 
     def pre_check(self) -> bool:
         """
