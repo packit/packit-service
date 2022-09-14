@@ -5,6 +5,7 @@ from enum import Enum
 
 CONTACTS_URL = "https://packit.dev/#contact"
 DOCS_URL = "https://packit.dev/docs"
+DOCS_CONFIGURATION_URL = f"{DOCS_URL}/configuration"
 DOCS_FAQ_URL = f"{DOCS_URL}/faq"
 DOCS_HOW_TO_RETRIGGER_URL = (
     f"{DOCS_URL}/guide/#how-to-re-trigger-packit-actions-in-your-pull-request"
