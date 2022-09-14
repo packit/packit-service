@@ -36,6 +36,7 @@ from packit_service.worker.handlers.abstract import (
     configured_as,
     reacts_to,
     RetriableJobHandler,
+    run_for_comment,
 )
 from packit_service.worker.result import TaskResults
 
@@ -51,6 +52,8 @@ class KojiBuildEventWrapper:
 
 
 @configured_as(job_type=JobType.bodhi_update)
+@run_for_comment(command="create-update")
+@reacts_to(event=PullRequestCommentPagureEvent)
 @reacts_to(event=KojiBuildEvent)
 class CreateBodhiUpdateHandler(RetriableJobHandler):
     """
@@ -75,7 +78,9 @@ class CreateBodhiUpdateHandler(RetriableJobHandler):
         )
 
         # lazy properties
-        self._koji_build_event_data: Optional[KojiBuildEvent] = None
+        self._koji_build_event_data: Optional[KojiBuildEventWrapper] = None
+        self._packit_api: Optional[PackitAPI] = None
+        self._local_project: Optional[LocalProject] = None
 
     def _build_from_event_dict(self) -> KojiBuildEventWrapper:
         koji_build_event = KojiBuildEvent.from_event_dict(self.data.event_dict)
@@ -114,6 +119,52 @@ class CreateBodhiUpdateHandler(RetriableJobHandler):
 
         return self._koji_build_event_data
 
+    @property
+    def packit_api(self) -> Optional[PackitAPI]:
+        if self._packit_api is None:
+            self._packit_api = PackitAPI(
+                self.service_config,
+                self.job_config,
+                downstream_local_project=self.local_project,
+            )
+
+        return self._packit_api
+
+    @property
+    def local_project(self) -> LocalProject:
+        if self._local_project is None:
+            self._local_project = LocalProject(
+                git_project=self.project,
+                working_dir=self.service_config.command_handler_work_dir,
+                cache=RepositoryCache(
+                    cache_path=self.service_config.repository_cache,
+                    add_new=self.service_config.add_repositories_to_repository_cache,
+                )
+                if self.service_config.repository_cache
+                else None,
+            )
+
+        return self._local_project
+
+    def _write_access_to_dist_git_repo_is_not_needed_or_satisfied(self) -> bool:
+        if self.data.event_type != PullRequestCommentPagureEvent.__name__:
+            # not needed
+            return True
+
+        user = self.data.actor
+        logger.debug(
+            f"Bodhi update will be re-triggered via dist-git PR comment by user {user}."
+        )
+
+        if not self.project.has_write_access(user=user):
+            logger.info(
+                f"Re-triggering Bodhi update via dist-git comment in PR#{self.data.pr_id}"
+                f" and project {self.project.repo} is not allowed for the user: {user}."
+            )
+            return False
+
+        return True
+
     def pre_check(self) -> bool:
         """
         We react only on finished builds (=KojiBuildState.complete)
@@ -121,15 +172,15 @@ class CreateBodhiUpdateHandler(RetriableJobHandler):
         By default, we use `fedora-stable` alias.
         (Rawhide updates are already created automatically.)
         """
-        if self.koji_build_event.state != KojiBuildState.complete:
+        if self.koji_build_event_data.state != KojiBuildState.complete:
             logger.debug(
-                f"Skipping build '{self.koji_build_event.build_id}' "
-                f"on '{self.koji_build_event.git_ref}'. "
+                f"Skipping build '{self.koji_build_event_data.build_id}' "
+                f"on '{self.koji_build_event_data.dist_git_branch}'. "
                 f"Build not finished yet."
             )
             return False
 
-        if self.koji_build_event.git_ref not in (
+        if self.koji_build_event_data.dist_git_branch not in (
             configured_branches := get_branches(
                 *(self.job_config.dist_git_branches or {"fedora-stable"}),
                 default_dg_branch="rawhide",  # Koji calls it rawhide, not main
@@ -140,68 +191,58 @@ class CreateBodhiUpdateHandler(RetriableJobHandler):
                 f"Bodhi update configured only for '{configured_branches}'."
             )
             return False
-        return True
+
+        return self._write_access_to_dist_git_repo_is_not_needed_or_satisfied()
+
+    def _error_message_for_auth_error(self, packit_exception: PackitException) -> str:
+        body = (
+            f"Bodhi update creation failed for `{self.koji_build_event_data.nvr}` "
+            f"because of the missing permissions.\n\n"
+            f"Please, give {self.service_config.fas_user} user `commit` rights in the "
+            f"[dist-git settings]({self.data.project_url}/adduser).\n\n"
+        )
+
+        body += (
+            f"*Try {self.celery_task.retries + 1}/"
+            f"{self.celery_task.get_retry_limit() + 1}"
+        )
+
+        # Notify user on each task run and set a more generous retry interval
+        # to let the user fix this issue in the meantime.
+        if not self.celery_task.is_last_try():
+            body += (
+                f": Task will be retried in "
+                f"{RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED} minutes.*"
+            )
+            self.celery_task.retry(
+                delay=RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED * 60,
+                ex=packit_exception,
+            )
+        else:
+            body += "*"
+
+        return body
 
     def run(self) -> TaskResults:
-        self.local_project = LocalProject(
-            git_project=self.project,
-            working_dir=self.service_config.command_handler_work_dir,
-            cache=RepositoryCache(
-                cache_path=self.service_config.repository_cache,
-                add_new=self.service_config.add_repositories_to_repository_cache,
-            )
-            if self.service_config.repository_cache
-            else None,
-        )
-        packit_api = PackitAPI(
-            self.service_config,
-            self.job_config,
-            downstream_local_project=self.local_project,
-        )
         try:
-            packit_api.create_update(
-                dist_git_branch=self.koji_build_event.git_ref,
+            self.packit_api.create_update(
+                dist_git_branch=self.koji_build_event_data.dist_git_branch,
                 update_type="enhancement",
                 update_notes=DEFAULT_BODHI_NOTE,
                 koji_builds=[
-                    self.koji_build_event.nvr  # it accepts NVRs, not build IDs
+                    self.koji_build_event_data.nvr  # it accepts NVRs, not build IDs
                 ],
             )
         except PackitException as ex:
             logger.debug(f"Bodhi update failed to be created: {ex}")
 
             if isinstance(ex.__cause__, AuthError):
-                body = (
-                    f"Bodhi update creation failed for `{self.koji_build_event.nvr}` "
-                    f"because of the missing permissions.\n\n"
-                    f"Please, give {self.service_config.fas_user} user `commit` rights in the "
-                    f"[dist-git settings]({self.data.project_url}/adduser).\n\n"
-                )
-
-                body += (
-                    f"*Try {self.celery_task.retries + 1}/"
-                    f"{self.celery_task.get_retry_limit() + 1}"
-                )
-
-                # Notify user on each task run and set a more generous retry interval
-                # to let the user fix this issue in the meantime.
-                if not self.celery_task.is_last_try():
-                    body += (
-                        f": Task will be retried in "
-                        f"{RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED} minutes.*"
-                    )
-                    self.celery_task.retry(
-                        delay=RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED * 60,
-                        ex=ex,
-                    )
-                else:
-                    body += "*"
-
+                body = self._error_message_for_auth_error(packit_exception=ex)
                 notify = True
                 known_error = True
             else:
                 body = (
-                    f"Bodhi update creation failed for `{self.koji_build_event.nvr}`:\n"
+                    f"Bodhi update creation failed for `{self.koji_build_event_data.nvr}`:\n"
                     "```\n"
                     f"{ex}\n"
                     "```"

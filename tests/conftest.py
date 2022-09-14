@@ -411,3 +411,9 @@ def koji_build_completed_f35():
 def koji_build_completed_epel8():
     with open(DATA_DIR / "fedmsg" / "koji_build_completed_epel8.json", "r") as outfile:
         return load_the_message_from_file(outfile)
+
+
+@pytest.fixture()
+def pagure_pr_comment_added():
+    with open(DATA_DIR / "fedmsg" / "pagure_pr_comment.json") as outfile:
+        return json.load(outfile)
