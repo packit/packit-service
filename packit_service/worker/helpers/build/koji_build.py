@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 class KojiBuildJobHelper(BaseBuildJobHelper):
     job_type_build = JobType.production_build
     job_type_test = None
-    status_name_build: str = "production-build"
+    status_name_build: str = "koji-build"
     status_name_test: str = None
 
     def __init__(
@@ -55,7 +55,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         )
         self.msg_retrigger: str = MSG_RETRIGGER.format(
             job="build",
-            command="production-build",
+            command="upstream-koji-build",
             place="pull request",
             packit_comment_command_prefix=self.service_config.comment_command_prefix,
         )

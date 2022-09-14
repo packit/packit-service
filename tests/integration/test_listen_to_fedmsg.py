@@ -123,7 +123,7 @@ def pc_koji_build_pr():
         specfile_path="test.spec",
         jobs=[
             JobConfig(
-                type=JobType.production_build,
+                type=JobType.upstream_koji_build,
                 trigger=JobConfigTriggerType.pull_request,
                 _targets=["fedora-all"],
             )
@@ -1093,7 +1093,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
         state=BaseCommitStatus.running,
         description="RPM build is in progress...",
         url=url,
-        check_names="production-build:rawhide",
+        check_names="koji-build:rawhide",
         markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
@@ -1155,7 +1155,7 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
         state=BaseCommitStatus.success,
         description="RPM build succeeded.",
         url=url,
-        check_names="production-build:rawhide",
+        check_names="koji-build:rawhide",
         markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()

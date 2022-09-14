@@ -228,10 +228,7 @@ class CheckRerunEvent(AbstractGithubEvent):
 
     @property
     def build_targets_override(self) -> Optional[Set[str]]:
-        if (
-            self.check_name_job == "rpm-build"
-            or self.check_name_job == "production-build"
-        ):
+        if self.check_name_job in {"rpm-build", "production-build", "koji-build"}:
             return {self.check_name_target}
         return None
 

@@ -342,7 +342,7 @@ def test_check_rerun_pr_testing_farm_handler(
             [
                 {
                     "trigger": "pull_request",
-                    "job": "production_build",
+                    "job": "upstream_koji_build",
                     "metadata": {"targets": "fedora-all", "scratch": "true"},
                 }
             ]
@@ -367,7 +367,7 @@ def test_check_rerun_pr_koji_build_handler(
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
         description=TASK_ACCEPTED,
-        check_name="production-build:f34",
+        check_name="koji-build:f34",
         url="",
         links_to_external_services=None,
         markdown_content=None,
@@ -526,7 +526,7 @@ def test_check_rerun_push_testing_farm_handler(
             [
                 {
                     "trigger": "commit",
-                    "job": "production_build",
+                    "job": "upstream_koji_build",
                     "metadata": {"targets": "fedora-all", "scratch": "true"},
                 }
             ]
@@ -551,7 +551,7 @@ def test_check_rerun_push_koji_build_handler(
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
         description=TASK_ACCEPTED,
-        check_name="production-build:f34",
+        check_name="koji-build:f34",
         url="",
         links_to_external_services=None,
         markdown_content=None,
@@ -675,7 +675,7 @@ def test_check_rerun_release_koji_build_handler(
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
         description=TASK_ACCEPTED,
-        check_name="production-build:f34",
+        check_name="koji-build:f34",
         url="",
         links_to_external_services=None,
         markdown_content=None,
