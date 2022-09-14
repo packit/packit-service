@@ -245,7 +245,7 @@ class SteveJobs:
             job_config: Job config that is being used.
         """
         number_of_build_targets = None
-        if isinstance(
+        if not isinstance(
             handler,
             (
                 CoprBuildHandler,
@@ -254,30 +254,29 @@ class SteveJobs:
                 ProposeDownstreamHandler,
             ),
         ):
-            job_helper = self.initialize_job_helper(handler, job_config)
-            reporting_method = None
-
-            if isinstance(job_helper, ProposeDownstreamJobHelper):
-                reporting_method = job_helper.report_status_to_all
-
-            elif isinstance(job_helper, BaseBuildJobHelper):
-                reporting_method = (
-                    job_helper.report_status_to_tests
-                    if isinstance(handler, TestingFarmHandler)
-                    else job_helper.report_status_to_build
-                )
-                number_of_build_targets = len(job_helper.build_targets)
-
-            task_accepted_time = datetime.now(timezone.utc)
-            reporting_method(
-                description=TASK_ACCEPTED,
-                state=BaseCommitStatus.pending,
-                url="",
-            )
-
-        else:
             # no reporting, no metrics
             return
+
+        job_helper = self.initialize_job_helper(handler, job_config)
+        reporting_method = None
+
+        if isinstance(job_helper, ProposeDownstreamJobHelper):
+            reporting_method = job_helper.report_status_to_all
+
+        elif isinstance(job_helper, BaseBuildJobHelper):
+            reporting_method = (
+                job_helper.report_status_to_tests
+                if isinstance(handler, TestingFarmHandler)
+                else job_helper.report_status_to_build
+            )
+            number_of_build_targets = len(job_helper.build_targets)
+
+        task_accepted_time = datetime.now(timezone.utc)
+        reporting_method(
+            description=TASK_ACCEPTED,
+            state=BaseCommitStatus.pending,
+            url="",
+        )
 
         self.push_initial_metrics(task_accepted_time, handler, number_of_build_targets)
 
