@@ -778,7 +778,7 @@ def a_new_test_run_pr(srpm_build_model_with_new_run_for_pr, a_copr_build_for_pr)
         web_url=SampleValues.testing_farm_url,
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_model=run_model,
+        run_models=[run_model],
     )
 
 
@@ -793,7 +793,7 @@ def a_new_test_run_branch_push(
         web_url=SampleValues.testing_farm_url,
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_model=run_model,
+        run_models=[run_model],
     )
 
 
@@ -851,7 +851,7 @@ def multiple_new_test_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=SampleValues.target,
             status=TestingFarmResult.new,
-            run_model=run_model_for_pr,
+            run_models=[run_model_for_pr],
         ),
         # Same commit_sha but different chroot and pipeline_id
         TFTTestRunTargetModel.create(
@@ -860,7 +860,7 @@ def multiple_new_test_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=SampleValues.different_target,
             status=TestingFarmResult.new,
-            run_model=run_model_for_pr,
+            run_models=[run_model_for_pr],
         ),
         # Same PR, different run model
         TFTTestRunTargetModel.create(
@@ -869,7 +869,7 @@ def multiple_new_test_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=SampleValues.different_target,
             status=TestingFarmResult.new,
-            run_model=run_model_for_same_pr,
+            run_models=[run_model_for_same_pr],
         ),
         # Completely different build
         TFTTestRunTargetModel.create(
@@ -878,7 +878,7 @@ def multiple_new_test_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=SampleValues.different_target,
             status=TestingFarmResult.running,
-            run_model=run_model_for_a_different_pr,
+            run_models=[run_model_for_a_different_pr],
         ),
     ]
 
@@ -1873,7 +1873,7 @@ def few_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=target,
             status=TestingFarmResult.new,
-            run_model=copr_build.runs[0],
+            run_models=[copr_build.runs[0]],
         )
 
     _, run_model_for_different_pr = SRPMBuildModel.create_with_new_run(
@@ -1900,7 +1900,7 @@ def few_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=target,
             status=TestingFarmResult.new,
-            run_model=runs[-1],
+            run_models=[runs[-1]],
         )
 
     for i, target in enumerate((SampleValues.target, SampleValues.different_target)):
@@ -1910,7 +1910,7 @@ def few_runs(pr_model, different_pr_model):
             web_url=SampleValues.testing_farm_url,
             target=target,
             status=TestingFarmResult.new,
-            run_model=runs[i],
+            run_models=[runs[i]],
         )
 
     yield run_model_for_pr.id, run_model_for_different_pr.id
@@ -1931,7 +1931,7 @@ def runs_without_build(pr_model, branch_model):
         web_url=SampleValues.testing_farm_url,
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_model=run_model_for_pr_only_test,
+        run_models=[run_model_for_pr_only_test],
     ),
     TFTTestRunTargetModel.create(
         pipeline_id=SampleValues.pipeline_id,
@@ -1939,7 +1939,7 @@ def runs_without_build(pr_model, branch_model):
         web_url=SampleValues.testing_farm_url,
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_model=run_model_for_branch_only_test,
+        run_models=[run_model_for_branch_only_test],
     )
     yield [run_model_for_pr_only_test, run_model_for_branch_only_test]
 
