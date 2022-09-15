@@ -15,6 +15,7 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     TestingFarmResult,
     BuildStatus,
+    filter_most_recent_target_names_by_status,
 )
 from packit_service.worker.events import (
     ReleaseEvent,
@@ -29,10 +30,9 @@ from packit_service.worker.events import (
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
-    AbstractForgeIndependentEvent,
 )
-from packit_service.worker.parser import Parser
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+from packit_service.worker.parser import Parser
 from tests_openshift.conftest import SampleValues
 
 
@@ -464,11 +464,9 @@ def test_filter_failed_models_targets_copr(
     builds_list[1].set_status(BuildStatus.failure)
     builds_list[2].set_status(BuildStatus.failure)
 
-    filtered_models = (
-        AbstractForgeIndependentEvent._filter_most_recent_models_targets_by_status(
-            models=builds_list,
-            statuses_to_filter_with=[BuildStatus.failure],
-        )
+    filtered_models = filter_most_recent_target_names_by_status(
+        models=builds_list,
+        statuses_to_filter_with=[BuildStatus.failure],
     )
 
     assert len(filtered_models) == 2  # we don't do duplicate models here
@@ -492,14 +490,12 @@ def test_filter_failed_models_targets_tf(
     test_list[1].set_status(TestingFarmResult.error)
     test_list[2].set_status(TestingFarmResult.failed)
 
-    filtered_models = (
-        AbstractForgeIndependentEvent._filter_most_recent_models_targets_by_status(
-            models=test_list,
-            statuses_to_filter_with=[
-                TestingFarmResult.failed,
-                TestingFarmResult.error,
-            ],
-        )
+    filtered_models = filter_most_recent_target_names_by_status(
+        models=test_list,
+        statuses_to_filter_with=[
+            TestingFarmResult.failed,
+            TestingFarmResult.error,
+        ],
     )
 
     assert len(filtered_models) == 2  # we don't do duplicates here

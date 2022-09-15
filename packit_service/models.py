@@ -20,6 +20,8 @@ from typing import (
     Tuple,
     Type,
     Union,
+    Set,
+    overload,
 )
 from urllib.parse import urlparse
 
@@ -131,6 +133,110 @@ def optional_timestamp(datetime_object: Optional[datetime]) -> Optional[int]:
         UNIX timestamp or `None` if no datetime object is provided.
     """
     return None if datetime_object is None else int(datetime_object.timestamp())
+
+
+def get_submitted_time_from_model(
+    model: Union["CoprBuildTargetModel", "TFTTestRunTargetModel"]
+) -> datetime:
+    # TODO: unify `submitted_name` (or better -> create for both models `task_accepted_time`)
+    # to delete this mess plz
+    if isinstance(model, CoprBuildTargetModel):
+        return model.build_submitted_time
+
+    return model.submitted_time
+
+
+@overload
+def get_most_recent_targets(
+    models: Iterable["CoprBuildTargetModel"],
+) -> List["CoprBuildTargetModel"]:
+    """Overload for type-checking"""
+
+
+@overload
+def get_most_recent_targets(
+    models: Iterable["TFTTestRunTargetModel"],
+) -> List["TFTTestRunTargetModel"]:
+    """Overload for type-checking"""
+
+
+def get_most_recent_targets(
+    models: Union[
+        Iterable["CoprBuildTargetModel"],
+        Iterable["TFTTestRunTargetModel"],
+    ],
+) -> Union[List["CoprBuildTargetModel"], List["TFTTestRunTargetModel"]]:
+    """
+    Gets most recent models from an iterable (regarding submission time).
+
+    Args:
+        models: Copr or TF models - if there are any duplicates in them then use the most
+         recent model
+
+    Returns:
+        list of the most recent target models
+    """
+    most_recent_models: dict = {}
+    for model in models:
+        submitted_time_of_current_model = get_submitted_time_from_model(model)
+        if (
+            most_recent_models.get(model.target) is None
+            or get_submitted_time_from_model(most_recent_models[model.target])
+            < submitted_time_of_current_model
+        ):
+            most_recent_models[model.target] = model
+
+    return list(most_recent_models.values())
+
+
+@overload
+def filter_most_recent_target_models_by_status(
+    models: Iterable["CoprBuildTargetModel"],
+    statuses_to_filter_with: List[str],
+) -> Set["CoprBuildTargetModel"]:
+    """Overload for type-checking"""
+
+
+@overload
+def filter_most_recent_target_models_by_status(
+    models: Iterable["TFTTestRunTargetModel"],
+    statuses_to_filter_with: List[str],
+) -> Set["TFTTestRunTargetModel"]:
+    """Overload for type-checking"""
+
+
+def filter_most_recent_target_models_by_status(
+    models: Union[
+        Iterable["CoprBuildTargetModel"],
+        Iterable["TFTTestRunTargetModel"],
+    ],
+    statuses_to_filter_with: List[str],
+) -> Union[Set["CoprBuildTargetModel"], Set["TFTTestRunTargetModel"]]:
+    logger.info(
+        f"Trying to filter targets with possible status: {statuses_to_filter_with} in {models}"
+    )
+
+    filtered_target_models = {
+        model
+        for model in get_most_recent_targets(models)
+        if model.status in statuses_to_filter_with
+    }
+
+    logger.info(f"Models found: {filtered_target_models}")
+    return filtered_target_models  # type: ignore
+
+
+def filter_most_recent_target_names_by_status(
+    models: Union[
+        Iterable["CoprBuildTargetModel"],
+        Iterable["TFTTestRunTargetModel"],
+    ],
+    statuses_to_filter_with: List[str],
+) -> Optional[Set[str]]:
+    filtered_models = filter_most_recent_target_models_by_status(
+        models, statuses_to_filter_with
+    )
+    return {model.target for model in filtered_models} if filtered_models else None
 
 
 # https://github.com/python/mypy/issues/2477#issuecomment-313984522 ^_^
