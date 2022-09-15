@@ -2,12 +2,13 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Dict, Any, Optional, Set, List, Union
+from typing import Dict, Any, Optional, Set, List, Union, Tuple
 
 import requests
 
 from ogr.abstract import GitProject, PullRequest
 from ogr.utils import RequestResponse
+
 from packit.config import JobType, JobConfigTriggerType
 from packit.config.job_config import JobConfig
 from packit.config.package_config import PackageConfig
@@ -25,12 +26,23 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     TestingFarmResult,
     PipelineModel,
+    PullRequestModel,
+    filter_most_recent_target_models_by_status,
+    BuildStatus,
 )
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.utils import get_package_nvrs
-from packit_service.worker.events import EventData
-from packit_service.worker.handlers.abstract import CeleryTask
+from packit_service.worker.handlers.abstract import (
+    CeleryTask,
+    get_packit_commands_from_comment,
+)
+from packit_service.worker.events import (
+    EventData,
+    PullRequestCommentGithubEvent,
+    MergeRequestCommentGitlabEvent,
+    PullRequestCommentPagureEvent,
+)
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
@@ -69,6 +81,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self._tft_api_url: str = ""
         self._tft_token: str = ""
         self.__pr = None
+        self._comment_command_parts: Optional[List[str]] = None
+        self._copr_builds_from_other_pr: Optional[
+            Dict[str, CoprBuildTargetModel]
+        ] = None
 
     @property
     def tft_api_url(self) -> str:
@@ -165,6 +181,59 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             self.__pr = self.project.get_pr(int(self.metadata.pr_id))
         return self.__pr
 
+    @property
+    def comment_command_parts(self) -> Optional[List[str]]:
+        """
+        List of packit comment command parts if the testing farm was triggered by a comment.
+
+        Example:
+            '/packit test' -> ["test"]
+            '/packit test namespace/repo#pr' -> ["test", "namespace/repo#pr"]
+        """
+        if not self._comment_command_parts and (
+            comment := self.metadata.event_dict.get("comment")
+        ):
+            self._comment_command_parts = get_packit_commands_from_comment(
+                comment,
+                packit_comment_command_prefix=self.service_config.comment_command_prefix,
+            )
+        return self._comment_command_parts
+
+    def is_comment_event(self) -> bool:
+        return self.metadata.event_type in (
+            PullRequestCommentGithubEvent.__name__,
+            MergeRequestCommentGitlabEvent.__name__,
+            PullRequestCommentPagureEvent.__name__,
+        )
+
+    def is_copr_build_comment_event(self) -> bool:
+        return self.is_comment_event() and self.comment_command_parts[0] in (
+            "build",
+            "copr-build",
+        )
+
+    def is_test_comment_event(self) -> bool:
+        return self.is_comment_event() and self.comment_command_parts[0] == "test"
+
+    def is_test_comment_pr_argument_present(self):
+        return self.is_test_comment_event() and len(self.comment_command_parts) == 2
+
+    @property
+    def copr_builds_from_other_pr(
+        self,
+    ) -> Optional[Dict[str, CoprBuildTargetModel]]:
+        """
+        Dictionary containing copr build target model for each chroot
+        if the testing farm was triggered by a comment with PR argument
+        and we store any Copr builds for the given PR, otherwise None.
+        """
+        if (
+            not self._copr_builds_from_other_pr
+            and self.is_test_comment_pr_argument_present()
+        ):
+            self._copr_builds_from_other_pr = self.get_copr_builds_from_other_pr()
+        return self._copr_builds_from_other_pr
+
     @staticmethod
     def _artifact(
         chroot: str, build_id: Optional[int], built_packages: Optional[List[Dict]]
@@ -179,11 +248,19 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         return artifact
 
+    @staticmethod
+    def _payload_without_token(payload: Dict) -> Dict:
+        """Return a copy of the payload with token/api_key removed."""
+        payload_ = payload.copy()
+        payload_.pop("api_key")
+        payload_["notification"]["webhook"].pop("token")
+        return payload_
+
     def _payload(
         self,
         target: str,
         compose: str,
-        artifact: Optional[Dict[str, Union[List[str], str]]] = None,
+        artifacts: Optional[List[Dict[str, Union[List[str], str]]]] = None,
         build: Optional["CoprBuildTargetModel"] = None,
     ) -> dict:
         """Prepare a Testing Farm request payload.
@@ -220,6 +297,17 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         else:
             build_log_url = nvr = srpm_url = None
 
+        packit_copr_rpms = (
+            [
+                package
+                for artifact in artifacts
+                if artifact.get("packages")
+                for package in artifact["packages"]
+            ]
+            if artifacts
+            else None
+        )
+
         predefined_environment = {
             "PACKIT_FULL_REPO_NAME": self.project.full_repo_name,
             "PACKIT_UPSTREAM_NAME": self.job_config.upstream_package_name,
@@ -243,8 +331,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "PACKIT_COPR_PROJECT": f"{build.owner}/{build.project_name}"
             if build
             else None,
-            "PACKIT_COPR_RPMS": " ".join(artifact["packages"])
-            if artifact and artifact.get("packages")
+            "PACKIT_COPR_RPMS": " ".join(packit_copr_rpms)
+            if packit_copr_rpms
             else None,
         }
         predefined_environment = {
@@ -260,8 +348,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             "tmt": {"context": {"distro": distro, "arch": arch, "trigger": "commit"}},
             "variables": predefined_environment,
         }
-        if artifact:
-            environment["artifacts"] = [artifact]
+        if artifacts:
+            environment["artifacts"] = artifacts
 
         if self.tf_post_install_script:
             environment["settings"] = {
@@ -320,16 +408,28 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             },
         }
 
-    @staticmethod
-    def _payload_without_token(payload: Dict) -> Dict:
-        """Return a copy of the payload with token/api_key removed."""
-        payload_ = payload.copy()
-        payload_.pop("api_key")
-        payload_["notification"]["webhook"].pop("token")
-        return payload_
+    def check_comment_pr_argument_and_report(self) -> bool:
+        """
+        Check whether there are successful recent Copr builds for the additional PR given
+        in the test comment command argument.
+        """
+        if not self.copr_builds_from_other_pr:
+            self.report_status_to_tests(
+                description="We were not able to get any Copr builds for given additional PR. "
+                "Please, make sure the comment command is in correct format "
+                "`/packit test repo/namespace#pr_id`",
+                state=BaseCommitStatus.error,
+                url="",
+            )
+            return False
+
+        return True
 
     def is_fmf_configured(self) -> bool:
-
+        """
+        Check whether `fmf_url` is configured in the test job
+        or `.fmf/version` file exists in the particular ref.
+        """
         if self.job_config.fmf_url is not None:
             return True
 
@@ -370,7 +470,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             compose += "-aarch64"
 
         endpoint = (
-            f"composes/{'redhat' if self.job_config.use_internal_tf else 'public' }"
+            f"composes/{'redhat' if self.job_config.use_internal_tf else 'public'}"
         )
         response = self.send_testing_farm_request(endpoint=endpoint)
 
@@ -463,6 +563,33 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         except StopIteration:
             return None
 
+    def _get_artifacts(
+        self,
+        chroot: str,
+        build: CoprBuildTargetModel,
+        additional_build: Optional[CoprBuildTargetModel],
+    ) -> List[Dict]:
+        """
+        Get the artifacts list from the build (if the skip_build option is not defined)
+        and additional build (from other PR) if present.
+        """
+        artifacts = []
+        if not self.skip_build:
+            artifacts.append(
+                self._artifact(chroot, int(build.build_id), build.built_packages)
+            )
+
+        if additional_build:
+            artifacts.append(
+                self._artifact(
+                    chroot,
+                    int(additional_build.build_id),
+                    additional_build.built_packages,
+                )
+            )
+
+        return artifacts
+
     def run_testing_farm(
         self, target: str, build: Optional["CoprBuildTargetModel"]
     ) -> TaskResults:
@@ -503,6 +630,24 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 success=True,
                 details={"msg": "Project not allowed to use internal TF."},
             )
+
+        additional_build = None
+        if self.copr_builds_from_other_pr and not (
+            additional_build := self.copr_builds_from_other_pr.get(chroot)
+        ):
+            self.report_status_to_test_for_test_target(
+                state=BaseCommitStatus.failure,
+                description="No latest successful Copr build from the other PR found.",
+                target=target,
+                url="",
+            )
+            return TaskResults(
+                success=True,
+                details={
+                    "msg": "No latest successful Copr build from the other PR found."
+                },
+            )
+
         self.report_status_to_test_for_test_target(
             state=BaseCommitStatus.running,
             description=f"{'Build succeeded. ' if not self.skip_build else ''}"
@@ -510,22 +655,36 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             target=target,
         )
 
+        return self.prepare_and_send_tf_request(
+            target=target, chroot=chroot, build=build, additional_build=additional_build
+        )
+
+    def prepare_and_send_tf_request(
+        self,
+        target: str,
+        chroot: str,
+        build: CoprBuildTargetModel,
+        additional_build: Optional[CoprBuildTargetModel],
+    ) -> TaskResults:
+        """
+        Prepare the payload that will be sent to Testing Farm, submit it to
+        TF API and handle the response (report whether the request was sent
+        successfully, store the new TF run in DB or retry if needed).
+        """
+        logger.info("Preparing testing farm request...")
+
         compose = self.distro2compose(target)
 
         if not compose:
             msg = "We were not able to map distro to TF compose."
             return TaskResults(success=False, details={"msg": msg})
 
-        logger.info("Sending testing farm request...")
-
         if self.is_fmf_configured():
-            artifact = (
-                self._artifact(chroot, int(build.build_id), build.built_packages)
-                if not self.skip_build
-                else None
-            )
             payload = self._payload(
-                target=target, compose=compose, artifact=artifact, build=build
+                target=target,
+                compose=compose,
+                artifacts=self._get_artifacts(chroot, build, additional_build),
+                build=build,
             )
         elif not self.is_fmf_configured() and not self.skip_build:
             payload = self._payload_install_test(
@@ -539,103 +698,28 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 target=target,
             )
             return TaskResults(success=True, details={"msg": "No FMF metadata found."})
+
         endpoint = "requests"
-        req = self.send_testing_farm_request(
+
+        response = self.send_testing_farm_request(
             endpoint=endpoint,
             method="POST",
             data=payload,
         )
 
-        if not req:
-            msg = "Failed to post request to testing farm API."
-            if not self.celery_task.is_last_try():
-                return self.retry_on_submit_failure(msg)
+        if not response:
+            return self._handle_tf_submit_no_response(target=target, payload=payload)
 
-            logger.error(f"{msg} {self._payload_without_token(payload)}")
-            self.report_status_to_test_for_test_target(
-                state=BaseCommitStatus.error,
-                description=msg,
-                target=target,
+        if response.status_code != 200:
+            return self._handle_tf_submit_failure(
+                response=response, target=target, payload=payload
             )
-            return TaskResults(success=False, details={"msg": msg})
 
-        # success set check on pending
-        if req.status_code != 200:
-            # something went wrong
-            if req.json() and "errors" in req.json():
-                msg = req.json()["errors"]
-                # specific case, unsupported arch
-                if nested_get(req.json(), "errors", "environments", "0", "arch"):
-                    msg = req.json()["errors"]["environments"]["0"]["arch"]
-            else:
-                msg = f"Failed to submit tests: {req.reason}."
-                if not self.celery_task.is_last_try():
-                    return self.retry_on_submit_failure(req.reason)
-            logger.error(f"{msg}, {self._payload_without_token(payload)}")
-            self.report_status_to_test_for_test_target(
-                state=BaseCommitStatus.failure,
-                description=msg,
-                target=target,
-            )
-            return TaskResults(success=False, details={"msg": msg})
-
-        pipeline_id = req.json()["id"]
-        logger.info(f"Request {pipeline_id} submitted to testing farm.")
-
-        run_model = (
-            PipelineModel.create(
-                type=self.db_trigger.job_trigger_model_type,
-                trigger_id=self.db_trigger.id,
-            )
-            if self.skip_build
-            else build.runs[-1]
-        )
-
-        created_model = TFTTestRunTargetModel.create(
-            pipeline_id=pipeline_id,
-            identifier=self.job_config.identifier,
-            commit_sha=self.metadata.commit_sha,
-            status=TestingFarmResult.new,
+        return self._handle_tf_submit_successful(
+            response=response,
             target=target,
-            web_url=None,
-            run_model=run_model,
-            # In _payload() we ask TF to test commit_sha of fork (PR's source).
-            # Store original url. If this proves to work, make it a separate column.
-            data={"base_project_url": self.project.get_web_url()},
-        )
-
-        self.report_status_to_test_for_test_target(
-            state=BaseCommitStatus.running,
-            description="Tests have been submitted ...",
-            url=get_testing_farm_info_url(created_model.id),
-            target=target,
-        )
-
-        return TaskResults(success=True, details={})
-
-    def retry_on_submit_failure(self, message: str) -> TaskResults:
-        """
-        Retry when there was a failure when submitting TF tests.
-
-        Args:
-            message: message to report to the user
-        """
-        interval = (
-            BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES * 2**self.celery_task.retries
-        )
-
-        self.report_status_to_tests(
-            state=BaseCommitStatus.pending,
-            description="Failed to submit tests. The task will be"
-            f" retried in {interval} {'minute' if interval == 1 else 'minutes'}.",
-            markdown_content=message,
-        )
-        self.celery_task.retry(delay=interval * 60)
-        return TaskResults(
-            success=True,
-            details={
-                "msg": f"Task will be retried because of failure when submitting tests: {message}"
-            },
+            build=build,
+            additional_build=additional_build,
         )
 
     def send_testing_farm_request(
@@ -711,3 +795,232 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         # logger.debug(f"Request/pipeline {request_id} details: {details}")
 
         return details
+
+    def _handle_tf_submit_successful(
+        self,
+        response: RequestResponse,
+        target: str,
+        build: CoprBuildTargetModel,
+        additional_build: Optional[CoprBuildTargetModel],
+    ):
+        """
+        Create the model for the TF run in the database and report
+        the state to user.
+        """
+        pipeline_id = response.json()["id"]
+        logger.info(f"Request {pipeline_id} submitted to testing farm.")
+
+        run_models = [
+            PipelineModel.create(
+                type=self.db_trigger.job_trigger_model_type,
+                trigger_id=self.db_trigger.id,
+            )
+            if self.skip_build
+            else build.runs[-1]
+        ]
+
+        if additional_build:
+            run_models.append(additional_build.runs[-1])
+
+        created_model = TFTTestRunTargetModel.create(
+            pipeline_id=pipeline_id,
+            identifier=self.job_config.identifier,
+            commit_sha=self.metadata.commit_sha,
+            status=TestingFarmResult.new,
+            target=target,
+            web_url=None,
+            run_models=run_models,
+            # In _payload() we ask TF to test commit_sha of fork (PR's source).
+            # Store original url. If this proves to work, make it a separate column.
+            data={"base_project_url": self.project.get_web_url()},
+        )
+
+        self.report_status_to_test_for_test_target(
+            state=BaseCommitStatus.running,
+            description="Tests have been submitted ...",
+            url=get_testing_farm_info_url(created_model.id),
+            target=target,
+        )
+
+        return TaskResults(success=True, details={})
+
+    def _handle_tf_submit_no_response(self, target: str, payload: dict):
+        """
+        Retry the task and report it to user or report the error state to user.
+        """
+        msg = "Failed to post request to testing farm API."
+        if not self.celery_task.is_last_try():
+            return self._retry_on_submit_failure(msg)
+
+        logger.error(f"{msg} {self._payload_without_token(payload)}")
+        self.report_status_to_test_for_test_target(
+            state=BaseCommitStatus.error,
+            description=msg,
+            target=target,
+        )
+        return TaskResults(success=False, details={"msg": msg})
+
+    def _handle_tf_submit_failure(
+        self, response: RequestResponse, target: str, payload: dict
+    ) -> TaskResults:
+        """
+        Retry the task and report it to user or report the failure state to user.
+        """
+        # something went wrong
+        if response.json() and "errors" in response.json():
+            msg = response.json()["errors"]
+            # specific case, unsupported arch
+            if nested_get(response.json(), "errors", "environments", "0", "arch"):
+                msg = response.json()["errors"]["environments"]["0"]["arch"]
+        else:
+            msg = f"Failed to submit tests: {response.reason}."
+            if not self.celery_task.is_last_try():
+                return self._retry_on_submit_failure(response.reason)
+
+        logger.error(f"{msg}, {self._payload_without_token(payload)}")
+        self.report_status_to_test_for_test_target(
+            state=BaseCommitStatus.failure,
+            description=msg,
+            target=target,
+        )
+        return TaskResults(success=False, details={"msg": msg})
+
+    def _retry_on_submit_failure(self, message: str) -> TaskResults:
+        """
+        Retry when there was a failure when submitting TF tests.
+
+        Args:
+            message: message to report to the user
+        """
+        interval = (
+            BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES * 2**self.celery_task.retries
+        )
+
+        self.report_status_to_tests(
+            state=BaseCommitStatus.pending,
+            description="Failed to submit tests. The task will be"
+            f" retried in {interval} {'minute' if interval == 1 else 'minutes'}.",
+            markdown_content=message,
+        )
+        self.celery_task.retry(delay=interval * 60)
+        return TaskResults(
+            success=True,
+            details={
+                "msg": f"Task will be retried because of failure when submitting tests: {message}"
+            },
+        )
+
+    def get_copr_builds_from_other_pr(
+        self,
+    ) -> Optional[Dict[str, CoprBuildTargetModel]]:
+        """
+        Get additional Copr builds if there was a PR argument in the
+        test comment command:
+
+        1. parse the PR argument to get the repo, namespace and PR ID
+        2. get the PR from the DB
+        3. get the copr builds from DB for the given PR model
+        4. filter the most recent successful copr build target models
+        5. construct a dictionary to map the target names to actual models
+
+        Returns:
+            dict
+        """
+        parsed_pr_argument = self._parse_comment_pr_argument()
+
+        if not parsed_pr_argument:
+            return None
+        else:
+            namespace, repo, pr_id = parsed_pr_argument
+
+        # for now let's default to github.com
+        project_url = f"https://github.com/{namespace}/{repo}"
+        pr_model = PullRequestModel.get(
+            pr_id=int(pr_id),
+            namespace=namespace,
+            repo_name=repo,
+            project_url=project_url,
+        )
+
+        if not pr_model:
+            logger.debug(f"No PR for {project_url} and PR ID {pr_id} found in DB.")
+            return None
+
+        copr_builds = pr_model.get_copr_builds()
+        if not copr_builds:
+            logger.debug(
+                f"No copr builds for {project_url} and PR ID {pr_id} found in DB."
+            )
+            return None
+
+        successful_most_recent_builds = filter_most_recent_target_models_by_status(
+            models=copr_builds, statuses_to_filter_with=[BuildStatus.success]
+        )
+
+        return self._construct_copr_builds_from_other_pr_dict(
+            successful_most_recent_builds
+        )
+
+    def _parse_comment_pr_argument(self) -> Optional[Tuple[str, str, str]]:
+        """
+        Parse the PR argument from test comment command if there is any.
+
+        Returns:
+            tuple of strings for namespace, repo and pr_id
+        """
+        if not self.comment_command_parts or len(self.comment_command_parts) != 2:
+            return None
+
+        pr_argument = self.comment_command_parts[1]
+        # pr_argument should be in format namespace/repo#pr_id
+        pr_argument_parts = pr_argument.split("#")
+        if len(pr_argument_parts) != 2:
+            logger.debug(
+                "Unexpected format of the test argument:"
+                f" not able to split the test argument {pr_argument} with '#'."
+            )
+            return None
+
+        pr_id = pr_argument_parts[1]
+        namespace_repo = pr_argument_parts[0].split("/")
+        if len(namespace_repo) != 2:
+            logger.debug(
+                "Unexpected format of the test argument: "
+                f"not able to split the test argument {pr_argument} with '/'."
+            )
+            return None
+        namespace, repo = namespace_repo
+
+        logger.debug(
+            f"Parsed test argument -> namespace: {namespace}, repo: {repo}, PR ID: {pr_id}"
+        )
+
+        return namespace, repo, pr_id
+
+    def _construct_copr_builds_from_other_pr_dict(
+        self, successful_most_recent_builds
+    ) -> Optional[Dict[str, CoprBuildTargetModel]]:
+        """
+        Construct a dictionary that will contain for each build target name
+        a build target model from the given models if there is one
+        with matching target name.
+
+        Args:
+            successful_most_recent_builds: models to get the values from
+
+        Returns:
+            dict
+        """
+        result: Dict[str, CoprBuildTargetModel] = {}
+
+        for build_target in self.build_targets_for_tests:
+            additional_build = [
+                build
+                for build in successful_most_recent_builds
+                if build.target == build_target
+            ]
+            result[build_target] = additional_build[0] if additional_build else None
+
+        logger.debug(f"Additional builds dictionary: {result}")
+
+        return result

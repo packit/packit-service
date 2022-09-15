@@ -547,6 +547,20 @@ class PullRequestModel(BuildsAndTestsConnector, Base):
             return pr
 
     @classmethod
+    def get(
+        cls, pr_id: int, namespace: str, repo_name: str, project_url: str
+    ) -> Optional["PullRequestModel"]:
+        with sa_session_transaction() as session:
+            project = GitProjectModel.get_or_create(
+                namespace=namespace, repo_name=repo_name, project_url=project_url
+            )
+            return (
+                session.query(PullRequestModel)
+                .filter_by(pr_id=pr_id, project_id=project.id)
+                .first()
+            )
+
+    @classmethod
     def get_by_id(cls, id_: int) -> Optional["PullRequestModel"]:
         return sa_session().query(PullRequestModel).filter_by(id=id_).first()
 
@@ -685,7 +699,6 @@ AbstractTriggerDbType = Union[
     GitBranchModel,
     IssueModel,
 ]
-
 
 MODEL_FOR_TRIGGER: Dict[JobTriggerModelType, Type[AbstractTriggerDbType]] = {
     JobTriggerModelType.pull_request: PullRequestModel,
@@ -1564,7 +1577,7 @@ class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
         commit_sha: str,
         status: TestingFarmResult,
         target: str,
-        run_model: "PipelineModel",
+        run_models: List["PipelineModel"],
         web_url: Optional[str] = None,
         data: dict = None,
         identifier: Optional[str] = None,
@@ -1580,19 +1593,20 @@ class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
             test_run.data = data
             session.add(test_run)
 
-            if run_model.test_run:
-                # Clone run model
-                new_run_model = PipelineModel.create(
-                    type=run_model.job_trigger.type,
-                    trigger_id=run_model.job_trigger.trigger_id,
-                )
-                new_run_model.srpm_build = run_model.srpm_build
-                new_run_model.copr_build = run_model.copr_build
-                new_run_model.test_run = test_run
-                session.add(new_run_model)
-            else:
-                run_model.test_run = test_run
-                session.add(run_model)
+            for run_model in run_models:
+                if run_model.test_run:
+                    # Clone run model
+                    new_run_model = PipelineModel.create(
+                        type=run_model.job_trigger.type,
+                        trigger_id=run_model.job_trigger.trigger_id,
+                    )
+                    new_run_model.srpm_build = run_model.srpm_build
+                    new_run_model.copr_build = run_model.copr_build
+                    new_run_model.test_run = test_run
+                    session.add(new_run_model)
+                else:
+                    run_model.test_run = test_run
+                    session.add(run_model)
 
             return test_run
 

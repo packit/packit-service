@@ -5,14 +5,18 @@
 This file defines classes for job handlers specific for Testing farm
 """
 import logging
-from celery import Task
 from datetime import datetime, timezone
 from typing import Optional, Dict, List
 
+from celery import Task
 from celery import signature
+
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
-
+from packit_service.constants import (
+    INTERNAL_TF_TESTS_NOT_ALLOWED,
+    INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
+)
 from packit_service.models import (
     AbstractTriggerDbType,
     TFTTestRunTargetModel,
@@ -21,11 +25,13 @@ from packit_service.models import (
     TestingFarmResult,
     JobTriggerModel,
 )
+from packit_service.service.urls import (
+    get_testing_farm_info_url,
+    get_copr_build_info_url,
+)
+from packit_service.utils import dump_job_config, dump_package_config
 from packit_service.worker.events import (
     TestingFarmResultsEvent,
-    PullRequestCommentGithubEvent,
-    MergeRequestCommentGitlabEvent,
-    PullRequestCommentPagureEvent,
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     PullRequestGithubEvent,
@@ -33,10 +39,6 @@ from packit_service.worker.events import (
     PushGitlabEvent,
     MergeRequestGitlabEvent,
     AbstractPRCommentEvent,
-)
-from packit_service.service.urls import (
-    get_testing_farm_info_url,
-    get_copr_build_info_url,
 )
 from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.handlers import JobHandler
@@ -46,18 +48,12 @@ from packit_service.worker.handlers.abstract import (
     reacts_to,
     run_for_comment,
     run_for_check_rerun,
-    get_packit_commands_from_comment,
     RetriableJobHandler,
 )
+from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.monitoring import measure_time
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.result import TaskResults
-from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
-from packit_service.constants import (
-    INTERNAL_TF_TESTS_NOT_ALLOWED,
-    INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
-)
-from packit_service.utils import dump_job_config, dump_package_config
 
 logger = logging.getLogger(__name__)
 
@@ -129,9 +125,12 @@ class TestingFarmHandler(RetriableJobHandler):
             # Not interested in closed merge requests
             return False
 
+        if self.testing_farm_job_helper.is_test_comment_pr_argument_present():
+            return self.testing_farm_job_helper.check_comment_pr_argument_and_report()
+
         return not (
             self.testing_farm_job_helper.skip_build
-            and self.is_copr_build_comment_event()
+            and self.testing_farm_job_helper.is_copr_build_comment_event()
         )
 
     @property
@@ -171,21 +170,8 @@ class TestingFarmHandler(RetriableJobHandler):
                 PullRequestGithubEvent.__name__,
                 MergeRequestGitlabEvent.__name__,
             )
-            or self.is_copr_build_comment_event()
+            or self.testing_farm_job_helper.is_copr_build_comment_event()
         )
-
-    def is_comment_event(self) -> bool:
-        return self.data.event_type in (
-            PullRequestCommentGithubEvent.__name__,
-            MergeRequestCommentGitlabEvent.__name__,
-            PullRequestCommentPagureEvent.__name__,
-        )
-
-    def is_copr_build_comment_event(self) -> bool:
-        return self.is_comment_event() and get_packit_commands_from_comment(
-            self.data.event_dict.get("comment"),
-            packit_comment_command_prefix=self.service_config.comment_command_prefix,
-        )[0] in ("build", "copr-build")
 
     def run_copr_build_handler(self, event_data: dict, number_of_builds: int):
         for _ in range(number_of_builds):
