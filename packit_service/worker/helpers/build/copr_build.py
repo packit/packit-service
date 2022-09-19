@@ -52,7 +52,7 @@ from packit_service.service.urls import (
     get_srpm_build_info_url,
 )
 from packit_service.utils import get_package_nvrs
-from packit_service.worker.handlers.abstract import CeleryTask
+from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.helpers.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.events import EventData
 from packit_service.worker.monitoring import Pushgateway, measure_time

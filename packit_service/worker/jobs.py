@@ -19,6 +19,7 @@ from packit_service.constants import (
     COMMENT_REACTION,
     PACKIT_VERIFY_FAS_COMMAND,
 )
+from packit_service.utils import get_packit_commands_from_comment
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
     Event,
@@ -44,7 +45,6 @@ from packit_service.worker.handlers.abstract import (
     MAP_REQUIRED_JOB_TYPE_TO_HANDLER,
     SUPPORTED_EVENTS_FOR_HANDLER,
     MAP_CHECK_PREFIX_TO_HANDLER,
-    get_packit_commands_from_comment,
 )
 from packit_service.worker.helpers.build import (
     CoprBuildJobHelper,

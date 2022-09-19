@@ -52,6 +52,7 @@ from packit_service.service.db_triggers import (
     AddPullRequestDbTrigger,
     AddReleaseDbTrigger,
 )
+from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events import (
     MergeRequestGitlabEvent,
     PullRequestGithubEvent,
@@ -60,7 +61,6 @@ from packit_service.worker.events import (
     ReleaseEvent,
 )
 from packit_service.worker.handlers import CoprBuildHandler
-from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.helpers.build import copr_build
 from packit_service.worker.helpers.build.copr_build import (
     BaseBuildJobHelper,

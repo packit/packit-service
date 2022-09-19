@@ -20,7 +20,7 @@ from packit.local_project import LocalProject
 from packit_service.constants import DEFAULT_RETRY_LIMIT
 from packit_service.models import GitBranchModel, KojiBuildTargetModel, PipelineModel
 from packit_service.utils import load_job_config, load_package_config
-from packit_service.worker.handlers.abstract import CeleryTask
+from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway

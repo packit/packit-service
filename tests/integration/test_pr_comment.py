@@ -36,15 +36,16 @@ from packit_service.models import (
     TestingFarmResult,
     BuildStatus,
 )
+from packit_service.utils import get_packit_commands_from_comment
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
-from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.helpers.build import copr_build
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
-from packit_service.worker.jobs import SteveJobs, get_packit_commands_from_comment
+from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporterGithubChecks
 from packit_service.worker.reporting import StatusReporter
