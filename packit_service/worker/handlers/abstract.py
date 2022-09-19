@@ -434,7 +434,8 @@ class JobHandler(Handler):
 
         for result in job_results.values():
             if not (result and result["success"]):
-                logger.error(result["details"]["msg"])
+                if msg := result["details"].get("msg"):
+                    logger.error(msg)
 
         # push the metrics from job
         self.pushgateway.push()

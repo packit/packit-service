@@ -5,14 +5,14 @@ import logging
 from typing import Dict, Any, Optional, Set, List, Union
 
 import requests
+
 from ogr.abstract import GitProject, PullRequest
 from ogr.utils import RequestResponse
 from packit.config import JobType, JobConfigTriggerType
 from packit.config.job_config import JobConfig
 from packit.config.package_config import PackageConfig
-from packit.exceptions import PackitConfigException
+from packit.exceptions import PackitConfigException, PackitException
 from packit.utils import nested_get
-
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     CONTACTS_URL,
@@ -27,9 +27,9 @@ from packit_service.models import (
     PipelineModel,
 )
 from packit_service.sentry_integration import send_to_sentry
+from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.utils import get_package_nvrs
 from packit_service.worker.events import EventData
-from packit_service.service.urls import get_testing_farm_info_url
 from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
@@ -190,7 +190,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         Testing Farm API: https://testing-farm.gitlab.io/api/
 
-        Currently we use the same secret to authenticate both,
+        Currently, we use the same secret to authenticate both,
         packit service (when sending request to testing farm)
         and testing farm (when sending notification to packit service's webhook).
         We might later use a different secret for those use cases.
@@ -319,6 +319,14 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 },
             },
         }
+
+    @staticmethod
+    def _payload_without_token(payload: Dict) -> Dict:
+        """Return a copy of the payload with token/api_key removed."""
+        payload_ = payload.copy()
+        payload_.pop("api_key")
+        payload_["notification"]["webhook"].pop("token")
+        return payload_
 
     def is_fmf_configured(self) -> bool:
 
@@ -532,20 +540,18 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             )
             return TaskResults(success=True, details={"msg": "No FMF metadata found."})
         endpoint = "requests"
-        logger.debug(f"POSTing {payload} to {self.tft_api_url}{endpoint}")
         req = self.send_testing_farm_request(
             endpoint=endpoint,
             method="POST",
             data=payload,
         )
-        logger.debug(f"Request sent: {req}")
 
         if not req:
             msg = "Failed to post request to testing farm API."
             if not self.celery_task.is_last_try():
                 return self.retry_on_submit_failure(msg)
 
-            logger.debug("Failed to post request to testing farm API.")
+            logger.error(f"{msg} {self._payload_without_token(payload)}")
             self.report_status_to_test_for_test_target(
                 state=BaseCommitStatus.error,
                 description=msg,
@@ -565,7 +571,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 msg = f"Failed to submit tests: {req.reason}."
                 if not self.celery_task.is_last_try():
                     return self.retry_on_submit_failure(req.reason)
-            logger.error(msg)
+            logger.error(f"{msg}, {self._payload_without_token(payload)}")
             self.report_status_to_test_for_test_target(
                 state=BaseCommitStatus.failure,
                 description=msg,
@@ -573,12 +579,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             )
             return TaskResults(success=False, details={"msg": msg})
 
-        # Response: {"id": "9fa3cbd1-83f2-4326-a118-aad59f5", ...}
-
         pipeline_id = req.json()["id"]
-        logger.debug(
-            f"Submitted ({req.status_code}) to testing farm as request {pipeline_id}"
-        )
+        logger.info(f"Request {pipeline_id} submitted to testing farm.")
 
         run_model = (
             PipelineModel.create(
@@ -647,7 +649,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             )
         except requests.exceptions.ConnectionError as er:
             logger.error(er)
-            raise Exception(f"Cannot connect to url: `{url}`.", er)
+            raise PackitException(f"Cannot connect to url: `{url}`") from er
         return response
 
     def get_raw_request(
