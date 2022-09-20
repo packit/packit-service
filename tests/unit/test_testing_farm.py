@@ -735,22 +735,29 @@ def test_get_request_details():
 
 
 @pytest.mark.parametrize(
-    ("copr_build," "run_new_build"),
+    ("copr_build", "run_new_build", "wait_for_build"),
     [
-        (
-            None,
-            True,
-        ),
+        (None, True, False),
         (
             flexmock(
                 commit_sha="1111111111111111111111111111111111111111",
                 status=BuildStatus.success,
             ),
             False,
+            False,
+        ),
+        (
+            flexmock(
+                id=1,
+                commit_sha="1111111111111111111111111111111111111111",
+                status=BuildStatus.pending,
+            ),
+            False,
+            True,
         ),
     ],
 )
-def test_trigger_build(copr_build, run_new_build):
+def test_trigger_build(copr_build, run_new_build, wait_for_build):
 
     valid_commit_sha = "1111111111111111111111111111111111111111"
 
@@ -782,10 +789,20 @@ def test_trigger_build(copr_build, run_new_build):
         flexmock(TFJobHelper).should_receive("run_testing_farm").and_return(
             TaskResults(success=True, details={})
         )
+    targets = {"target-x86_64", "another-target-x86_64"}
+    if wait_for_build:
+        for target in targets:
+            flexmock(TFJobHelper).should_receive(
+                "report_status_to_test_for_test_target"
+            ).with_args(
+                state=BaseCommitStatus.pending,
+                description="The latest build has not finished yet, "
+                "waiting until it finishes before running tests for it.",
+                target=target,
+                url="https://dashboard.localhost/results/copr-builds/1",
+            )
 
-    flexmock(cb).should_receive("get_valid_build_targets").and_return(
-        {"target-x86_64", "another-target-x86_64"}
-    )
+    flexmock(cb).should_receive("get_valid_build_targets").and_return(targets)
 
     tf_handler = TestingFarmHandler(
         package_config,
