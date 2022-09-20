@@ -152,9 +152,19 @@ def test_precheck_push(github_push_event):
         job_config=jc,
         event=github_push_event.get_dict(),
     )
-    copr_build_handler.service_config.allowed_forge_projects_for_copr_project = {
-        "@foo/bar": ["github.com/packit-service/hello-world"]
-    }
+    api = flexmock(
+        copr_helper=flexmock(
+            copr_client=flexmock(
+                config={"username": "nobody"},
+                project_proxy=flexmock(
+                    get=lambda owner, project: {
+                        "packit_forge_projects_allowed": "github.com/packit-service/hello-world"
+                    }
+                ),
+            )
+        )
+    )
+    flexmock(CoprBuildJobHelper).should_receive("api").and_return(api)
 
     assert copr_build_handler.pre_check()
 

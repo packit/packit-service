@@ -246,11 +246,22 @@ CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS = (
     "Not allowed to build in {copr_project} Copr project."
 )
 CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT = (
-    "Your git-forge project is not allowed to use the configured `{copr_project}` Copr project.\n\n"
-    f"Please, [let us know]({CONTACTS_URL}) "
-    "if you need this git project to be allowed. "
-    "We are working with the Copr team on a way "
-    "how to make this easily configurable in the Copr web interface.\n"
+    "Your git-forge project is not allowed to use "
+    "the configured `{copr_project}` Copr project.\n\n"
+    "Please, add this git-forge project `{forge_project}` "
+    "to `Packit allowed forge projects`"
+    "in the [Copr project settings](https://copr.fedorainfracloud.org/coprs/{copr_project}/edit/#packit_forge_projects_allowed). "  # noqa
+)
+
+CUSTOM_COPR_PROJECT_ALLOWED_IN_PACKIT_CONFIG = (
+    "Your git-forge project `{forge_project}` has permissions "
+    "to build in `{copr_project}` Copr project configured in Packit. "
+    "However, we migrated to the solution where you can configure"
+    "the allowed git-forge projects in Copr yourself and will remove the configuration"
+    "in Packit for the allowed projects soon. "
+    "Therefore, please, add this git-forge project `{forge_project}` "
+    "to `Packit allowed forge projects`"
+    "in the [Copr project settings](https://copr.fedorainfracloud.org/coprs/{copr_project}/edit/#packit_forge_projects_allowed). "  # noqa
 )
 
 FASJSON_URL = "https://fasjson.fedoraproject.org"
@@ -261,3 +272,4 @@ MISSING_PERMISSIONS_TO_BUILD_IN_COPR = (
     "You don't have permissions to build in this copr."
 )
 NOT_ALLOWED_TO_BUILD_IN_COPR = "is not allowed to build in the copr"
+GIT_FORGE_PROJECT_NOT_ALLOWED_TO_BUILD_IN_COPR = "can't build in this Copr via Packit."

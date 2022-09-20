@@ -29,8 +29,10 @@ from packit_service.constants import (
     COPR_CHROOT_CHANGE_MSG,
     CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT,
     CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS,
+    CUSTOM_COPR_PROJECT_ALLOWED_IN_PACKIT_CONFIG,
     DEFAULT_MAPPING_INTERNAL_TF,
     DEFAULT_MAPPING_TF,
+    GIT_FORGE_PROJECT_NOT_ALLOWED_TO_BUILD_IN_COPR,
     MSG_RETRIGGER,
     PG_BUILD_STATUS_SUCCESS,
     MISSING_PERMISSIONS_TO_BUILD_IN_COPR,
@@ -212,6 +214,14 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             targets.update(self.build_target2test_targets(chroot))
         return targets
 
+    @property
+    def configured_copr_project(self):
+        return f"{self.job_owner}/{self.job_project}"
+
+    @property
+    def forge_project(self):
+        return f"{self.project.service.hostname}/{self.project.namespace}/{self.project.repo}"
+
     def build_target2test_targets(self, build_target: str) -> Set[str]:
         """
         Return all test targets defined for the build target
@@ -323,6 +333,45 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             or self.job_project != self.default_project_name
         )
 
+    def is_forge_project_allowed_to_build_in_copr(self) -> bool:
+        """Is this forge project allowed to build in COPR project?
+        Ask to COPR server if the forge project has been granted permissions.
+
+        Returns:
+            bool: True if the forge project is allowed to build in COPR project.
+        """
+        copr_project = self.api.copr_helper.copr_client.project_proxy.get(
+            self.job_owner, self.job_project
+        )
+        allowed_projects = copr_project["packit_forge_projects_allowed"]
+        allowed = self.forge_project in allowed_projects
+        if not allowed:
+            logger.warning(
+                f"git-forge project {self.forge_project} "
+                f"can't use {self.configured_copr_project} Copr project "
+                f"(Only {allowed_projects} are allowed.)"
+            )
+        return allowed
+
+    def is_forge_project_allowed_to_build_in_copr_by_config(self) -> bool:
+        """Is this forge project allowed to build in COPR project?
+        Check into packit configuration if the forge project has been granted permissions.
+
+        TODO: This method should be removed in the future!
+
+        Returns:
+            bool: True if the forge project is allowed to build in COPR project.
+        """
+        allowed = False
+        allowed_projects = (
+            self.service_config.allowed_forge_projects_for_copr_project.get(
+                self.configured_copr_project, []
+            )
+        )
+        if self.forge_project in allowed_projects:
+            allowed = True
+        return allowed
+
     def check_if_custom_copr_can_be_used_and_report(self) -> bool:
         """
         Check if the git-forge project can build in the configured Copr project.
@@ -333,31 +382,29 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         :return: True if the matching is configured.
         """
-        configured_copr_project = f"{self.job_owner}/{self.job_project}"
-        if (
-            forge_project := (
-                f"{self.project.service.hostname}/{self.project.namespace}/{self.project.repo}"
+        if self.is_forge_project_allowed_to_build_in_copr():
+            return True
+
+        # TODO: to be removed in the future (if statement)
+        if self.is_forge_project_allowed_to_build_in_copr_by_config():
+            markdown_content = CUSTOM_COPR_PROJECT_ALLOWED_IN_PACKIT_CONFIG.format(
+                copr_project=self.configured_copr_project,
+                forge_project=self.forge_project,
             )
-        ) not in (
-            allowed_projects := self.service_config.allowed_forge_projects_for_copr_project.get(
-                configured_copr_project, []
-            )
-        ):
-            logger.warning(
-                f"{forge_project} can't use {configured_copr_project} "
-                f"(Only {allowed_projects} are allowed.)"
-            )
-            self.report_status_to_build(
-                description=CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS.format(
-                    copr_project=configured_copr_project
-                ),
-                state=BaseCommitStatus.neutral,
-                markdown_content=CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT.format(
-                    copr_project=configured_copr_project
-                ),
-            )
-            return False
-        return True
+            self.status_reporter.comment(body=markdown_content)
+            return True
+
+        self.report_status_to_build(
+            description=CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS.format(
+                copr_project=self.configured_copr_project
+            ),
+            state=BaseCommitStatus.neutral,
+            markdown_content=CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT.format(
+                copr_project=self.configured_copr_project,
+                forge_project=self.forge_project,
+            ),
+        )
+        return False
 
     def get_built_packages(self, build_id: int, chroot: str) -> List:
         return self.api.copr_helper.copr_client.build_chroot_proxy.get_built_packages(
@@ -481,6 +528,22 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         owner = self.create_copr_project_if_not_exists()
         try:
+            # TODO: the second check is to be removed in future
+            buildopts = (
+                {
+                    "packit_forge_project": self.forge_project,
+                }
+                if self.is_custom_copr_project_defined
+                and not self.is_forge_project_allowed_to_build_in_copr_by_config()
+                else {}
+            )
+            buildopts.update(
+                {
+                    "chroots": list(self.build_targets),
+                    "enable_net": self.job_config.enable_net,
+                }
+            )
+
             if script:
                 build = self.api.copr_helper.copr_client.build_proxy.create_from_custom(
                     ownername=owner,
@@ -490,20 +553,14 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     script_chroot=self.get_latest_fedora_stable_chroot(),
                     script_builddeps=self.get_packit_copr_download_urls()
                     + (self.package_config.srpm_build_deps or []),
-                    buildopts={
-                        "chroots": list(self.build_targets),
-                        "enable_net": self.job_config.enable_net,
-                    },
+                    buildopts=buildopts,
                 )
             else:
                 build = self.api.copr_helper.copr_client.build_proxy.create_from_file(
                     ownername=owner,
                     projectname=self.job_project,
                     path=self.srpm_path,
-                    buildopts={
-                        "chroots": list(self.build_targets),
-                        "enable_net": self.job_config.enable_net,
-                    },
+                    buildopts=buildopts,
                 )
 
         except (CoprRequestException, CoprAuthException) as ex:
@@ -531,6 +588,12 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     " and retrigger the build by a `/packit build` pull-request comment"
                     " or click on a `Re-run` button.",
                 )
+            elif GIT_FORGE_PROJECT_NOT_ALLOWED_TO_BUILD_IN_COPR in str(ex):
+                markdown_content = CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT.format(
+                    copr_project=self.configured_copr_project,
+                    forge_project=self.forge_project,
+                )
+                self.status_reporter.comment(body=markdown_content)
 
             raise ex
 

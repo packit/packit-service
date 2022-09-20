@@ -1572,7 +1572,7 @@ def test_copr_project_and_namespace(
 
 
 @pytest.mark.parametrize(
-    "job,configured_projects,allowed",
+    "job,git_forge_allowed_list,allowed",
     [
         pytest.param(
             JobConfig(
@@ -1581,9 +1581,9 @@ def test_copr_project_and_namespace(
                 owner="the-owner",
                 project="the-project",
             ),
-            {},
+            "",
             False,
-            id="not-configured",
+            id="empty",
         ),
         pytest.param(
             JobConfig(
@@ -1592,9 +1592,9 @@ def test_copr_project_and_namespace(
                 owner="the-owner",
                 project="the-project",
             ),
-            {"the-owner/the-project": []},
+            "something/different",
             False,
-            id="configured-but-empty",
+            id="not-present",
         ),
         pytest.param(
             JobConfig(
@@ -1603,24 +1603,9 @@ def test_copr_project_and_namespace(
                 owner="the-owner",
                 project="the-project",
             ),
-            {"the-owner/the-project": ["something-different"]},
-            False,
-            id="configured-but-not-present",
-        ),
-        pytest.param(
-            JobConfig(
-                type=JobType.copr_build,
-                trigger=JobConfigTriggerType.pull_request,
-                owner="the-owner",
-                project="the-project",
-            ),
-            {
-                "the-owner/the-project": [
-                    "git.instance.io/the/example/namespace/the-example-repo"
-                ]
-            },
+            "git.instance.io/the/example/namespace/the-example-repo",
             True,
-            id="configured-and-present",
+            id="present",
         ),
         pytest.param(
             JobConfig(
@@ -1629,24 +1614,18 @@ def test_copr_project_and_namespace(
                 owner="the-owner",
                 project="the-project",
             ),
-            {
-                "the-owner/the-project": [
-                    "something-different",
-                    "git.instance.io/the/example/namespace/the-example-repo",
-                ]
-            },
+            "something/different\ngit.instance.io/the/example/namespace/the-example-repo",
             True,
-            id="configured-and-present-more-values",
+            id="present-more-values",
         ),
     ],
 )
 def test_check_if_custom_copr_can_be_used_and_report(
     job,
-    configured_projects,
+    git_forge_allowed_list,
     allowed,
 ):
     service_config = ServiceConfig.get_service_config()
-    service_config.allowed_forge_projects_for_copr_project = configured_projects
     copr_build_helper = CoprBuildJobHelper(
         service_config=service_config,
         package_config=PackageConfig(jobs=[job]),
@@ -1665,7 +1644,16 @@ def test_check_if_custom_copr_can_be_used_and_report(
         ),
     )
     copr_build_helper._api = flexmock(
-        copr_helper=flexmock(copr_client=flexmock(config={"username": "nobody"}))
+        copr_helper=flexmock(
+            copr_client=flexmock(
+                config={"username": "nobody"},
+                project_proxy=flexmock(
+                    get=lambda owner, project: {
+                        "packit_forge_projects_allowed": git_forge_allowed_list
+                    }
+                ),
+            )
+        )
     )
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").times(
         0 if allowed else 1
