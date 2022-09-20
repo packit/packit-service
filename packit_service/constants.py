@@ -256,8 +256,8 @@ CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT = (
 CUSTOM_COPR_PROJECT_ALLOWED_IN_PACKIT_CONFIG = (
     "Your git-forge project `{forge_project}` has permissions "
     "to build in `{copr_project}` Copr project configured in Packit. "
-    "However, we migrated to the solution where you can configure"
-    "the allowed git-forge projects in Copr yourself and will remove the configuration"
+    "However, we migrated to the solution where you can configure "
+    "the allowed git-forge projects in Copr yourself and will remove the configuration "
     "in Packit for the allowed projects soon. "
     "Therefore, please, add this git-forge project `{forge_project}` "
     "to `Packit allowed forge projects`"
