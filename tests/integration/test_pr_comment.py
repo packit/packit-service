@@ -21,9 +21,7 @@ from packit_service.constants import (
     CONTACTS_URL,
     DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,
     DOCS_HOW_TO_CONFIGURE_URL,
-    PG_BUILD_STATUS_SUCCESS,
     TASK_ACCEPTED,
-    PG_BUILD_STATUS_FAILURE,
 )
 from packit_service.models import (
     CoprBuildTargetModel,
@@ -35,6 +33,7 @@ from packit_service.models import (
     PullRequestModel,
     TFTTestRunTargetModel,
     TestingFarmResult,
+    BuildStatus,
 )
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.allowlist import Allowlist
@@ -788,7 +787,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
         {"test-target"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=PG_BUILD_STATUS_SUCCESS)
+        flexmock(status=BuildStatus.success)
     )
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})
@@ -1579,7 +1578,7 @@ def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event
         {"test-target", "test-target-without-build"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=PG_BUILD_STATUS_SUCCESS)
+        flexmock(status=BuildStatus.success)
     ).and_return()
 
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("owner")
@@ -1836,20 +1835,20 @@ def test_rebuild_failed(
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
 
     model = flexmock(
-        CoprBuildTargetModel, status=PG_BUILD_STATUS_FAILURE, target="some_target"
+        CoprBuildTargetModel, status=BuildStatus.failure, target="some_target"
     )
     flexmock(model).should_receive("get_all_by_commit").with_args(
         commit_sha="12345"
     ).and_return(model)
     flexmock(AbstractForgeIndependentEvent).should_receive(
         "get_all_build_targets_by_status"
-    ).with_args(statuses_to_filter_with=[PG_BUILD_STATUS_FAILURE]).and_return(
+    ).with_args(statuses_to_filter_with=[BuildStatus.failure]).and_return(
         {"some_target"}
     )
     flexmock(AbstractForgeIndependentEvent).should_receive(
         "_filter_most_recent_models_targets_by_status"
     ).with_args(
-        models=[model], statuses_to_filter_with=[PG_BUILD_STATUS_FAILURE]
+        models=[model], statuses_to_filter_with=[BuildStatus.failure]
     ).and_return(
         {"some_target"}
     )
@@ -1918,7 +1917,7 @@ def test_retest_failed(
         {"test-target"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=PG_BUILD_STATUS_SUCCESS)
+        flexmock(status=BuildStatus.success)
     )
 
     model = flexmock(

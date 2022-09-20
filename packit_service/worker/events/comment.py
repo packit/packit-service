@@ -9,8 +9,7 @@ from typing import Dict, Optional, Set
 
 from ogr.abstract import Comment
 
-from packit_service.constants import PG_BUILD_STATUS_FAILURE
-from packit_service.models import TestingFarmResult
+from packit_service.models import TestingFarmResult, BuildStatus
 from packit_service.service.db_triggers import (
     AddIssueDbTrigger,
     AddPullRequestDbTrigger,
@@ -92,7 +91,7 @@ class AbstractPRCommentEvent(AddPullRequestDbTrigger, AbstractCommentEvent):
         if not self._build_targets_override and "rebuild-failed" in self.comment:
             self._build_targets_override = (
                 super().get_all_build_targets_by_status(
-                    statuses_to_filter_with=[PG_BUILD_STATUS_FAILURE]
+                    statuses_to_filter_with=[BuildStatus.failure]
                 )
                 or None
             )

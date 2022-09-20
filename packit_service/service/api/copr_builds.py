@@ -6,7 +6,7 @@ from logging import getLogger
 
 from flask_restx import Namespace, Resource
 
-from packit_service.models import CoprBuildTargetModel, optional_timestamp
+from packit_service.models import CoprBuildTargetModel, optional_timestamp, BuildStatus
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import get_project_info_from_build, response_maker
 
@@ -30,7 +30,7 @@ class CoprBuildsList(Resource):
         first, last = indices()
         for build in CoprBuildTargetModel.get_merged_chroots(first, last):
             build_info = CoprBuildTargetModel.get_by_build_id(build.build_id, None)
-            if build_info.status == "waiting_for_srpm":
+            if build_info.status == BuildStatus.waiting_for_srpm:
                 continue
             project_info = build_info.get_project()
             build_dict = {

@@ -5,7 +5,7 @@ from operator import attrgetter
 from flexmock import flexmock
 from ogr.services.github import GithubProject
 
-from packit_service.constants import KojiTaskState, PG_BUILD_STATUS_FAILURE
+from packit_service.constants import KojiTaskState
 from packit_service.models import (
     ProjectReleaseModel,
     GitProjectModel,
@@ -14,6 +14,7 @@ from packit_service.models import (
     CoprBuildTargetModel,
     TFTTestRunTargetModel,
     TestingFarmResult,
+    BuildStatus,
 )
 from packit_service.worker.events import (
     ReleaseEvent,
@@ -459,14 +460,14 @@ def test_filter_failed_models_targets_copr(
     # these targets should be different
     assert builds_list[0].target != builds_list[2].target
     # 2 builds with failed status and one with success
-    builds_list[0].set_status(PG_BUILD_STATUS_FAILURE)
-    builds_list[1].set_status(PG_BUILD_STATUS_FAILURE)
-    builds_list[2].set_status(PG_BUILD_STATUS_FAILURE)
+    builds_list[0].set_status(BuildStatus.failure)
+    builds_list[1].set_status(BuildStatus.failure)
+    builds_list[2].set_status(BuildStatus.failure)
 
     filtered_models = (
         AbstractForgeIndependentEvent._filter_most_recent_models_targets_by_status(
             models=builds_list,
-            statuses_to_filter_with=[PG_BUILD_STATUS_FAILURE],
+            statuses_to_filter_with=[BuildStatus.failure],
         )
     )
 

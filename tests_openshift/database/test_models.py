@@ -27,6 +27,7 @@ from packit_service.models import (
     ProposeDownstreamTargetModel,
     ProposeDownstreamModel,
     Session,
+    BuildStatus,
 )
 from tests_openshift.conftest import SampleValues
 
@@ -79,7 +80,7 @@ def test_create_copr_build(clean_before_and_after, a_copr_build_for_pr):
     assert a_copr_build_for_pr.web_url == "https://copr.something.somewhere/123456"
     assert a_copr_build_for_pr.get_srpm_build().logs == "some\nboring\nlogs"
     assert a_copr_build_for_pr.target == "fedora-42-x86_64"
-    assert a_copr_build_for_pr.status == "pending"
+    assert a_copr_build_for_pr.status == BuildStatus.pending
     # Since datetime.utcnow() will return different results in every time its called,
     # we will check if a_copr_build has build_submitted_time value that's within the past hour
     time_last_hour = datetime.utcnow() - timedelta(hours=1)
@@ -145,13 +146,13 @@ def test_get_copr_build(clean_before_and_after, a_copr_build_for_pr):
 
 
 def test_copr_build_set_status(clean_before_and_after, a_copr_build_for_pr):
-    assert a_copr_build_for_pr.status == "pending"
-    a_copr_build_for_pr.set_status("awesome")
-    assert a_copr_build_for_pr.status == "awesome"
+    assert a_copr_build_for_pr.status == BuildStatus.pending
+    a_copr_build_for_pr.set_status(BuildStatus.success)
+    assert a_copr_build_for_pr.status == BuildStatus.success
     b = CoprBuildTargetModel.get_by_build_id(
         a_copr_build_for_pr.build_id, SampleValues.target
     )
-    assert b.status == "awesome"
+    assert b.status == BuildStatus.success
 
 
 def test_copr_build_set_build_logs_url(clean_before_and_after, a_copr_build_for_pr):
@@ -412,13 +413,13 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
         trigger_model=pr1, commit_sha="687abc76d67d"
     )
     srpm_build_for_copr.set_logs("asd\nqwe\n")
-    srpm_build_for_copr.set_status("success")
+    srpm_build_for_copr.set_status(BuildStatus.success)
 
     srpm_build_for_koji, run_model_for_koji = SRPMBuildModel.create_with_new_run(
         trigger_model=pr1, commit_sha="687abc76d67d"
     )
     srpm_build_for_copr.set_logs("asd\nqwe\n")
-    srpm_build_for_copr.set_status("success")
+    srpm_build_for_copr.set_status(BuildStatus.success)
 
     copr_build = CoprBuildTargetModel.create(
         build_id="123456",
@@ -427,7 +428,7 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
         owner="packit",
         web_url="https://copr.something.somewhere/123456",
         target=SampleValues.target,
-        status="pending",
+        status=BuildStatus.pending,
         run_model=run_model_for_copr,
     )
     koji_build = KojiBuildTargetModel.create(

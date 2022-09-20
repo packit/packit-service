@@ -13,7 +13,6 @@ from packit.config import JobConfigTriggerType
 from packit.local_project import LocalProject
 from packit_service.constants import (
     DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,
-    PG_BUILD_STATUS_SUCCESS,
     TASK_ACCEPTED,
 )
 from packit_service.models import (
@@ -23,6 +22,7 @@ from packit_service.models import (
     JobTriggerModel,
     ProjectReleaseModel,
     PullRequestModel,
+    BuildStatus,
 )
 from packit_service.service.db_triggers import (
     AddBranchPushDbTrigger,
@@ -305,7 +305,7 @@ def test_check_rerun_pr_testing_farm_handler(
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=PG_BUILD_STATUS_SUCCESS)
+        flexmock(status=BuildStatus.success)
     )
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64", "fedora-34-x86_64"}
@@ -489,7 +489,7 @@ def test_check_rerun_push_testing_farm_handler(
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=PG_BUILD_STATUS_SUCCESS)
+        flexmock(status=BuildStatus.success)
     )
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64", "fedora-34-x86_64"}
