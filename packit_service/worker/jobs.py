@@ -496,6 +496,10 @@ class SteveJobs:
         for job in self.event.package_config.jobs:
             if (
                 job.trigger == self.event.job_config_trigger_type
+                and (
+                    not isinstance(self.event, CheckRerunEvent)
+                    or self.event.job_identifier == job.identifier
+                )
                 and job not in jobs_matching_trigger
             ):
                 jobs_matching_trigger.append(job)
@@ -555,12 +559,6 @@ class SteveJobs:
 
         matching_handlers: Set[Type["JobHandler"]] = set()
         for job in jobs_matching_trigger:
-            if (
-                isinstance(self.event, CheckRerunEvent)
-                and self.event.job_identifier != job.identifier
-            ):
-                continue
-
             for handler in (
                 MAP_JOB_TYPE_TO_HANDLER[job.type]
                 | MAP_REQUIRED_JOB_TYPE_TO_HANDLER[job.type]
