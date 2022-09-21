@@ -10,7 +10,8 @@ import gitlab
 import pytest
 from celery import Celery
 from copr.v3 import Client
-from copr.v3 import CoprRequestException
+from copr.v3 import CoprRequestException, CoprAuthException
+from copr.v3.proxies.build import BuildProxy
 from flexmock import flexmock
 from munch import Munch
 
@@ -2547,3 +2548,62 @@ def test_get_job_config_index(package_config, job_config, result):
         ).get_job_config_index()
         == result
     )
+
+
+@pytest.mark.parametrize(
+    "is_custom_copr_project,is_project_allowed_in_copr_by_config,copr_server_raise_exc,buildopts",
+    [
+        (True, True, False, {"chroots": [], "enable_net": True}),
+        (False, True, False, {"chroots": [], "enable_net": True}),
+        (
+            True,
+            False,
+            False,
+            {"chroots": [], "enable_net": True, "packit_forge_project": ""},
+        ),
+        (False, False, False, {"chroots": [], "enable_net": True}),
+        (False, False, True, {"chroots": [], "enable_net": True}),
+    ],
+)
+def test_submit_copr_build(
+    github_pr_event,
+    is_custom_copr_project,
+    is_project_allowed_in_copr_by_config,
+    copr_server_raise_exc,
+    buildopts,
+):
+    helper = build_helper(event=github_pr_event)
+    flexmock(helper).should_receive("create_copr_project_if_not_exists").and_return("")
+    flexmock(helper).should_receive("is_custom_copr_project_defined").and_return(
+        is_custom_copr_project
+    )
+    flexmock(helper).should_receive(
+        "is_forge_project_allowed_to_build_in_copr_by_config"
+    ).and_return(is_project_allowed_in_copr_by_config)
+    flexmock(helper).should_receive("job_project").and_return("")
+    flexmock(helper).should_receive("srpm_path").and_return("")
+    flexmock(helper).should_receive("forge_project").and_return("")
+    flexmock(helper).should_receive("configured_copr_project").and_return("")
+    flexmock(helper).should_receive("status_reporter").and_return(
+        flexmock()
+        .should_receive("comment")
+        .with_args(
+            body="Your git-forge project is not allowed to use the configured `` Copr project.\n\n"
+            "Please, add this git-forge project `` to `Packit allowed forge projects`in the "
+            "[Copr project settings]"
+            "(https://copr.fedorainfracloud.org/coprs//edit/#packit_forge_projects_allowed). "
+        )
+        .mock()
+    )
+    if copr_server_raise_exc:
+        flexmock(BuildProxy).should_receive("create_from_file").and_raise(
+            CoprAuthException("Forge project .... can't build in this Copr via Packit.")
+        )
+        with pytest.raises(CoprAuthException):
+            helper.submit_copr_build()
+
+    else:
+        flexmock(BuildProxy).should_receive("create_from_file").with_args(
+            ownername="", projectname="", path="", buildopts=buildopts
+        ).and_return(flexmock(id=0))
+        helper.submit_copr_build()
