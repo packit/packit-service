@@ -22,6 +22,7 @@ from packit_service.models import (
     CoprBuildTargetModel,
     TFTTestRunTargetModel,
     TestingFarmResult,
+    BuildStatus,
 )
 from packit_service.worker.events import AbstractCoprBuildEvent, TestingFarmResultsEvent
 from packit_service.worker.events.enums import FedmsgTopic
@@ -122,7 +123,7 @@ def check_pending_testing_farm_runs() -> None:
 
 def check_pending_copr_builds() -> None:
     """Checks the status of pending copr builds and updates it if needed."""
-    pending_copr_builds = CoprBuildTargetModel.get_all_by_status("pending")
+    pending_copr_builds = CoprBuildTargetModel.get_all_by_status(BuildStatus.pending)
     builds_grouped_by_id = collections.defaultdict(list)
     for build in pending_copr_builds:
         builds_grouped_by_id[build.build_id].append(build)
@@ -172,7 +173,7 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
             f"not checking it anymore."
         )
         for build in builds:
-            build.set_status("error")
+            build.set_status(BuildStatus.error)
         return True
 
     if not build_copr.ended_on:
@@ -190,9 +191,9 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
                 f"{elapsed.total_seconds()}, probably an internal error"
                 f"occurred. Not checking it anymore."
             )
-            build.set_status("error")
+            build.set_status(BuildStatus.error)
             continue
-        if build.status != "pending":
+        if build.status != BuildStatus.pending:
             logger.info(
                 f"DB state says {build.status!r}, "
                 "things were taken care of already, skipping."

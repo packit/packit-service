@@ -23,6 +23,7 @@ from packit_service.models import (
     KojiBuildTargetModel,
     JobTriggerModel,
     JobTriggerModelType,
+    BuildStatus,
 )
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.events import (
@@ -499,7 +500,7 @@ def test_koji_build_failed_srpm(github_pr_event):
     flexmock(PackitAPI).should_receive("create_srpm").and_raise(Exception, "some error")
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(status="failure", id=2)
+            flexmock(status=BuildStatus.failure, id=2)
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
             .mock()

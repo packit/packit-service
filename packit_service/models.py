@@ -752,6 +752,16 @@ class PipelineModel(Base):
         return sa_session().query(PipelineModel).filter_by(id=id_).first()
 
 
+class BuildStatus(str, enum.Enum):
+    """An enum of all possible build statuses"""
+
+    success = "success"
+    pending = "pending"
+    failure = "failure"
+    error = "error"
+    waiting_for_srpm = "waiting_for_srpm"
+
+
 class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
     """
     Representation of Copr build for one target.
@@ -764,7 +774,7 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
     # commit sha of the PR (or a branch, release) we used for a build
     commit_sha = Column(String, index=True)
     # what's the build status?
-    status = Column(String)
+    status = Column(Enum(BuildStatus))
     # chroot, but we use the word target in our docs
     target = Column(String)
     # URL to copr web ui for the particular build
@@ -816,7 +826,7 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
             self.build_finished_time = end_time
             session.add(self)
 
-    def set_status(self, status: str):
+    def set_status(self, status: BuildStatus):
         with sa_session_transaction() as session:
             self.status = status
             session.add(self)
@@ -862,7 +872,7 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
                 func.array_agg(psql_array([CoprBuildTargetModel.target])).label(
                     "target"
                 ),
-                func.array_agg(psql_array([CoprBuildTargetModel.status])).label(
+                func.json_agg(psql_array([CoprBuildTargetModel.status])).label(
                     "status"
                 ),
                 func.array_agg(psql_array([CoprBuildTargetModel.id])).label(
@@ -885,7 +895,7 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
         return sa_session().query(CoprBuildTargetModel).filter_by(build_id=build_id)
 
     @classmethod
-    def get_all_by_status(cls, status: str) -> Iterable["CoprBuildTargetModel"]:
+    def get_all_by_status(cls, status: BuildStatus) -> Iterable["CoprBuildTargetModel"]:
         """Returns all builds which currently have the given status."""
         return sa_session().query(CoprBuildTargetModel).filter_by(status=status)
 
@@ -941,7 +951,7 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
         owner: str,
         web_url: str,
         target: str,
-        status: str,
+        status: BuildStatus,
         run_model: "PipelineModel",
         task_accepted_time: Optional[datetime] = None,
     ) -> "CoprBuildTargetModel":
@@ -1156,7 +1166,7 @@ class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
 class SRPMBuildModel(ProjectAndTriggersConnector, Base):
     __tablename__ = "srpm_builds"
     id = Column(Integer, primary_key=True)
-    status = Column(String)
+    status = Column(Enum(BuildStatus))
     # our logs we want to show to the user
     logs = Column(Text)
     build_submitted_time = Column(DateTime, default=datetime.utcnow)
@@ -1205,7 +1215,7 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
         """
         with sa_session_transaction() as session:
             srpm_build = cls()
-            srpm_build.status = "pending"
+            srpm_build.status = BuildStatus.pending
             srpm_build.commit_sha = commit_sha
             srpm_build.copr_build_id = copr_build_id
             srpm_build.copr_web_url = copr_web_url
@@ -1287,7 +1297,7 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
             self.logs_url = logs_url
             session.add(self)
 
-    def set_status(self, status: str) -> None:
+    def set_status(self, status: BuildStatus) -> None:
         with sa_session_transaction() as session:
             self.status = status
             session.add(self)

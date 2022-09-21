@@ -19,8 +19,6 @@ from packit_service.constants import (
     COPR_API_SUCC_STATE,
     COPR_SRPM_CHROOT,
     DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,
-    PG_BUILD_STATUS_FAILURE,
-    PG_BUILD_STATUS_SUCCESS,
     INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
 )
 from packit_service.models import (
@@ -28,6 +26,7 @@ from packit_service.models import (
     CoprBuildTargetModel,
     GithubInstallationModel,
     SRPMBuildModel,
+    BuildStatus,
 )
 from packit_service.worker.events import (
     CoprBuildEndEvent,
@@ -320,7 +319,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
 
         self.pushgateway.copr_builds_started.inc()
         url = get_copr_build_info_url(self.build.id)
-        self.build.set_status("pending")
+        self.build.set_status(BuildStatus.pending)
 
         self.copr_build_helper.report_status_to_all_for_chroot(
             description="RPM build is in progress...",
@@ -394,8 +393,8 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             return TaskResults(success=False, details={"msg": msg})
 
         if self.build.status in [
-            PG_BUILD_STATUS_FAILURE,
-            PG_BUILD_STATUS_SUCCESS,
+            BuildStatus.success,
+            BuildStatus.failure,
         ]:
             msg = (
                 f"Copr build {self.copr_event.build_id} is already"
@@ -428,11 +427,11 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 url=get_copr_build_info_url(self.build.id),
                 chroot=self.copr_event.chroot,
             )
-            self.build.set_status(PG_BUILD_STATUS_FAILURE)
+            self.build.set_status(BuildStatus.failure)
             return TaskResults(success=False, details={"msg": failed_msg})
 
         self.report_successful_build()
-        self.build.set_status(PG_BUILD_STATUS_SUCCESS)
+        self.build.set_status(BuildStatus.success)
 
         built_packages = self.copr_build_helper.get_built_packages(
             int(self.build.build_id), self.build.target
@@ -488,7 +487,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 description=failed_msg,
                 url=url,
             )
-            self.build.set_status(PG_BUILD_STATUS_FAILURE)
+            self.build.set_status(BuildStatus.failure)
             self.copr_build_helper.monitor_not_submitted_copr_builds(
                 len(self.copr_build_helper.build_targets), "srpm_failure"
             )
@@ -498,9 +497,9 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             str(self.copr_event.build_id)
         ):
             # from waiting_for_srpm to pending
-            build.set_status("pending")
+            build.set_status(BuildStatus.pending)
 
-        self.build.set_status(PG_BUILD_STATUS_SUCCESS)
+        self.build.set_status(BuildStatus.success)
         self.copr_build_helper.report_status_to_all(
             state=BaseCommitStatus.running,
             description="SRPM build succeeded. Waiting for RPM build to start...",

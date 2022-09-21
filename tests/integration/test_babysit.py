@@ -15,6 +15,7 @@ from packit_service.models import (
     JobTriggerModelType,
     TFTTestRunTargetModel,
     TestingFarmResult,
+    BuildStatus,
 )
 from packit_service.worker.events import AbstractCoprBuildEvent, TestingFarmResultsEvent
 from packit_service.worker.helpers.build.babysit import (
@@ -56,7 +57,12 @@ def test_check_copr_build_already_successful():
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").with_args(
         1
     ).and_return(
-        [flexmock(status="success", build_submitted_time=datetime.datetime.utcnow())]
+        [
+            flexmock(
+                status=BuildStatus.success,
+                build_submitted_time=datetime.datetime.utcnow(),
+            )
+        ]
     )
     flexmock(Client).should_receive("create_from_config_file").and_return(
         flexmock(
@@ -77,7 +83,7 @@ def test_check_copr_build_updated():
     ).and_return(
         [
             flexmock(
-                status="pending",
+                status=BuildStatus.pending,
                 build_submitted_time=datetime.datetime.utcnow(),
                 target="the-target",
                 owner="the-owner",
@@ -152,10 +158,10 @@ def test_check_copr_build_not_exists():
     )
     builds = []
     for i in range(2):
-        builds.append(flexmock(status="pending", build_id=1))
-        builds[i].should_receive("set_status").with_args("error").once()
+        builds.append(flexmock(status=BuildStatus.pending, build_id=1))
+        builds[i].should_receive("set_status").with_args(BuildStatus.error).once()
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_status").with_args(
-        "pending"
+        BuildStatus.pending
     ).and_return(builds)
     check_pending_copr_builds()
 
@@ -185,21 +191,21 @@ def test_check_update_copr_builds_timeout():
         )
     )
     build = flexmock(
-        status="pending",
+        status=BuildStatus.pending,
         build_id=1,
         build_submitted_time=datetime.datetime.utcnow() - datetime.timedelta(weeks=2),
     )
-    build.should_receive("set_status").with_args("error").once()
+    build.should_receive("set_status").with_args(BuildStatus.error).once()
 
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_status").with_args(
-        "pending"
+        BuildStatus.pending
     ).and_return([build])
     update_copr_builds(1, [build])
 
 
 def test_check_pending_copr_builds_no_builds():
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_status").with_args(
-        "pending"
+        BuildStatus.pending
     ).and_return([])
     flexmock(packit_service.worker.helpers.build.babysit).should_receive(
         "update_copr_builds"
@@ -208,11 +214,11 @@ def test_check_pending_copr_builds_no_builds():
 
 
 def test_check_pending_copr_builds():
-    build1 = flexmock(status="pending", build_id=1)
-    build2 = flexmock(status="pending", build_id=2)
-    build3 = flexmock(status="pending", build_id=1)
+    build1 = flexmock(status=BuildStatus.pending, build_id=1)
+    build2 = flexmock(status=BuildStatus.pending, build_id=2)
+    build3 = flexmock(status=BuildStatus.pending, build_id=1)
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_status").with_args(
-        "pending"
+        BuildStatus.pending
     ).and_return([build1, build2, build3])
     flexmock(packit_service.worker.helpers.build.babysit).should_receive(
         "update_copr_builds"

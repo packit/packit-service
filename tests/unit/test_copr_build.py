@@ -44,6 +44,7 @@ from packit_service.models import (
     JobTriggerModel,
     JobTriggerModelType,
     SRPMBuildModel,
+    BuildStatus,
 )
 from packit_service.service.db_triggers import (
     AddBranchPushDbTrigger,
@@ -204,7 +205,7 @@ def test_copr_build_check_names(github_pr_event):
     flexmock(GithubProject).should_receive("create_check_run").and_return().never()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(status="success")
+            flexmock(status=BuildStatus.success)
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
             .mock()
@@ -949,7 +950,7 @@ def test_copr_build_for_branch_failed(branch_push_event):
     flexmock(GithubProject).should_receive("commit_comment").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(status="failure", id=2)
+            flexmock(status=BuildStatus.failure, id=2)
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
             .mock()
@@ -1200,7 +1201,7 @@ def test_copr_build_fails_in_packit(github_pr_event):
     )
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(status="failure", id=2)
+            flexmock(status=BuildStatus.failure, id=2)
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
             .mock()
@@ -1908,7 +1909,7 @@ def test_copr_build_fails_in_packit_gitlab(gitlab_mr_event):
         ).and_return().once()
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(status="failure", id=2)
+            flexmock(status=BuildStatus.failure, id=2)
             .should_receive("set_url")
             .with_args("https://some.host/my.srpm")
             .mock()

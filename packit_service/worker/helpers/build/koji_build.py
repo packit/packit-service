@@ -12,8 +12,8 @@ from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitCommandFailedError
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
-from packit_service.constants import MSG_RETRIGGER, PG_BUILD_STATUS_SUCCESS
-from packit_service.models import KojiBuildTargetModel
+from packit_service.constants import MSG_RETRIGGER
+from packit_service.models import KojiBuildTargetModel, BuildStatus
 from packit_service.worker.events import EventData
 from packit_service.service.urls import (
     get_koji_build_info_url,
@@ -95,7 +95,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         if results := self.create_srpm_if_needed():
             return results
 
-        if self.srpm_model.status != PG_BUILD_STATUS_SUCCESS:
+        if self.srpm_model.status != BuildStatus.success:
             msg = "SRPM build failed, check the logs for details."
             self.report_status_to_all(
                 state=BaseCommitStatus.failure,

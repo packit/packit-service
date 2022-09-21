@@ -13,7 +13,7 @@ from ogr import GithubService, GitlabService, PagureService
 from packit.config import JobConfigTriggerType
 from packit.config.common_package_config import Deployment
 from packit_service.config import ServiceConfig
-from packit_service.models import JobTriggerModelType, JobTriggerModel
+from packit_service.models import JobTriggerModelType, JobTriggerModel, BuildStatus
 from packit_service.worker.events import (
     PullRequestGithubEvent,
     PushGitHubEvent,
@@ -117,7 +117,7 @@ def srpm_build_model(
         id=1,
         build_id="1",
         commit_sha="0011223344",
-        status="pending",
+        status=BuildStatus.pending,
         runs=runs,
         set_status=lambda x: None,
         set_end_time=lambda x: None,

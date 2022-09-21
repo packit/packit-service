@@ -17,6 +17,7 @@ from packit_service.models import (
     AbstractTriggerDbType,
     TFTTestRunTargetModel,
     CoprBuildTargetModel,
+    BuildStatus,
     TestingFarmResult,
     JobTriggerModel,
 )
@@ -53,7 +54,6 @@ from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.result import TaskResults
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.constants import (
-    PG_BUILD_STATUS_SUCCESS,
     INTERNAL_TF_TESTS_NOT_ALLOWED,
     INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
 )
@@ -241,7 +241,7 @@ class TestingFarmHandler(RetriableJobHandler):
             self.run_copr_build_handler(event_data, len(targets_without_builds))
 
         for target, copr_build in targets_with_builds.items():
-            if copr_build.status != PG_BUILD_STATUS_SUCCESS:
+            if copr_build.status in (BuildStatus.failure, BuildStatus.error):
                 logger.info(
                     "The latest build was not successful, not running tests for it."
                 )
@@ -249,6 +249,22 @@ class TestingFarmHandler(RetriableJobHandler):
                     state=BaseCommitStatus.failure,
                     description="The latest build was not successful, "
                     "not running tests for it.",
+                    target=target,
+                    url=get_copr_build_info_url(copr_build.id),
+                )
+                continue
+            elif copr_build.status in (
+                BuildStatus.pending,
+                BuildStatus.waiting_for_srpm,
+            ):
+                logger.info(
+                    "The latest build has not finished yet, "
+                    "waiting until it finishes before running tests for it."
+                )
+                self.testing_farm_job_helper.report_status_to_test_for_test_target(
+                    state=BaseCommitStatus.pending,
+                    description="The latest build has not finished yet, "
+                    "waiting until it finishes before running tests for it.",
                     target=target,
                     url=get_copr_build_info_url(copr_build.id),
                 )

@@ -9,11 +9,11 @@ from munch import Munch
 import packit_service
 from ogr.services.github import GithubProject
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
-from packit_service.constants import PG_BUILD_STATUS_SUCCESS
 from packit_service.models import (
     CoprBuildTargetModel,
     SRPMBuildModel,
     PullRequestModel,
+    BuildStatus,
 )
 from packit_service.worker.events import AbstractCoprBuildEvent
 from packit_service.worker.helpers.build.babysit import check_copr_build
@@ -70,7 +70,7 @@ def packit_build_752():
             "results/packit/packit-service-packit-752"
         ),
         target="fedora-rawhide-x86_64",
-        status="pending",
+        status=BuildStatus.pending,
         run_model=run_model,
     )
 
@@ -197,4 +197,4 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
     )
 
     check_copr_build(BUILD_ID)
-    assert packit_build_752.status == PG_BUILD_STATUS_SUCCESS
+    assert packit_build_752.status == BuildStatus.success

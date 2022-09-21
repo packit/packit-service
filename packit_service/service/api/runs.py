@@ -15,6 +15,7 @@ from packit_service.models import (
     SRPMBuildModel,
     TFTTestRunTargetModel,
     optional_timestamp,
+    BuildStatus,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import (
@@ -88,7 +89,7 @@ def process_runs(runs):
         ):
             for packit_id in set(flatten_and_remove_none(packit_ids)):
                 row = Model.get_by_id(packit_id)
-                if row.status == "waiting_for_srpm":
+                if row.status == BuildStatus.waiting_for_srpm:
                     continue
                 response_dict[model_type].append(
                     {

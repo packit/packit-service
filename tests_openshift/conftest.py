@@ -41,6 +41,7 @@ from packit_service.models import (
     ProposeDownstreamModel,
     ProposeDownstreamStatus,
     SourceGitPRDistGitPRModel,
+    BuildStatus,
 )
 from packit_service.worker.events import InstallationEvent
 
@@ -79,11 +80,11 @@ class SampleValues:
     build_id = "123456"
     different_build_id = "987654"
     another_different_build_id = "78912"
-    status_success = "success"
-    status_pending = "pending"
-    status_error = "error"
-    status_failed = "failed"
-    status_waiting_for_srpm = "waiting_for_srpm"
+    status_success = BuildStatus.success
+    status_pending = BuildStatus.pending
+    status_error = BuildStatus.error
+    status_failed = BuildStatus.failure
+    status_waiting_for_srpm = BuildStatus.waiting_for_srpm
     target = "fedora-42-x86_64"
     different_target = "fedora-43-x86_64"
     chroots = ["fedora-43-x86_64", "fedora-42-x86_64"]
@@ -361,7 +362,7 @@ def srpm_build_model_with_new_run_for_pr(pr_model):
         trigger_model=pr_model, commit_sha=SampleValues.commit_sha
     )
     srpm_model.set_logs(SampleValues.srpm_logs)
-    srpm_model.set_status("success")
+    srpm_model.set_status(BuildStatus.success)
     yield srpm_model, run_model
 
 
@@ -371,7 +372,7 @@ def srpm_build_model_with_new_run_for_branch(branch_model):
         trigger_model=branch_model, commit_sha=SampleValues.commit_sha
     )
     srpm_model.set_logs(SampleValues.srpm_logs)
-    srpm_model.set_status("success")
+    srpm_model.set_status(BuildStatus.success)
     yield srpm_model, run_model
 
 
@@ -381,7 +382,7 @@ def srpm_build_model_with_new_run_for_release(release_model):
         trigger_model=release_model, commit_sha=SampleValues.commit_sha
     )
     srpm_model.set_logs(SampleValues.srpm_logs)
-    srpm_model.set_status("success")
+    srpm_model.set_status(BuildStatus.success)
     yield srpm_model, run_model
 
 
@@ -393,7 +394,7 @@ def srpm_build_in_copr_model(pr_model):
         copr_build_id="123",
         copr_web_url="example-url",
     )
-    srpm_model.set_status("success")
+    srpm_model.set_status(BuildStatus.success)
     yield srpm_model, run_model
 
 

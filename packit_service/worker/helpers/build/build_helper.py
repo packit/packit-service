@@ -15,8 +15,7 @@ from packit.exceptions import PackitMergeException
 from packit.utils import PackitFormatter
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
-from packit_service.constants import PG_BUILD_STATUS_SUCCESS, PG_BUILD_STATUS_FAILURE
-from packit_service.models import PipelineModel, SRPMBuildModel
+from packit_service.models import PipelineModel, SRPMBuildModel, BuildStatus
 from packit_service.service.urls import get_srpm_build_info_url
 from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.helpers.job_helper import BaseJobHelper
@@ -463,7 +462,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                 f"\nMessage: {exception}\nException: {exception!r}\n{self.msg_retrigger}"
                 "\nPlease join #packit on irc.libera.chat if you need help with the error above.\n"
             )
-        pg_status = PG_BUILD_STATUS_SUCCESS if srpm_success else PG_BUILD_STATUS_FAILURE
+        pg_status = BuildStatus.success if srpm_success else BuildStatus.failure
         self._srpm_model.set_status(pg_status)
 
         self._srpm_model.set_logs(srpm_logs)

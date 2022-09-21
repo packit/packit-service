@@ -34,7 +34,6 @@ from packit_service.constants import (
     DEFAULT_MAPPING_TF,
     GIT_FORGE_PROJECT_NOT_ALLOWED_TO_BUILD_IN_COPR,
     MSG_RETRIGGER,
-    PG_BUILD_STATUS_SUCCESS,
     MISSING_PERMISSIONS_TO_BUILD_IN_COPR,
     NOT_ALLOWED_TO_BUILD_IN_COPR,
     BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
@@ -44,6 +43,7 @@ from packit_service.constants import (
 from packit_service.models import (
     AbstractTriggerDbType,
     CoprBuildTargetModel,
+    BuildStatus,
     SRPMBuildModel,
     JobTriggerModelType,
 )
@@ -612,7 +612,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         if results := self.create_srpm_if_needed():
             return results
 
-        if self.srpm_model.status != PG_BUILD_STATUS_SUCCESS:
+        if self.srpm_model.status != BuildStatus.success:
             msg = "SRPM build failed, check the logs for details."
             self.report_status_to_all(
                 state=BaseCommitStatus.failure,
@@ -729,7 +729,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 owner=self.job_owner,
                 web_url=web_url,
                 target=chroot,
-                status="waiting_for_srpm" if waiting_for_srpm else "pending",
+                status=BuildStatus.waiting_for_srpm
+                if waiting_for_srpm
+                else BuildStatus.pending,
                 run_model=self.run_model,
                 task_accepted_time=self.metadata.task_accepted_time,
             )
