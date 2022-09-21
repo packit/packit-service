@@ -533,7 +533,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 {
                     "packit_forge_project": self.forge_project,
                 }
-                if self.is_custom_copr_project_defined
+                if self.is_custom_copr_project_defined()
                 and not self.is_forge_project_allowed_to_build_in_copr_by_config()
                 else {}
             )
