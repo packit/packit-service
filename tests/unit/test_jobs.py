@@ -2278,7 +2278,7 @@ def test_handler_doesnt_match_to_job(
 
 
 @pytest.mark.parametrize(
-    "event_kls,job_config_trigger_type,jobs,result",
+    "event_kls,job_config_trigger_type,jobs,result,kwargs",
     [
         pytest.param(
             PullRequestCommentGithubEvent,
@@ -2299,6 +2299,7 @@ def test_handler_doesnt_match_to_job(
                     trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
+            {},
         ),
         pytest.param(
             PullRequestCommentGithubEvent,
@@ -2319,6 +2320,7 @@ def test_handler_doesnt_match_to_job(
                     trigger=JobConfigTriggerType.release,
                 ),
             ],
+            {},
         ),
         pytest.param(
             PullRequestCommentGithubEvent,
@@ -2343,6 +2345,7 @@ def test_handler_doesnt_match_to_job(
                     trigger=JobConfigTriggerType.release,
                 ),
             ],
+            {},
         ),
         pytest.param(
             PullRequestCommentGithubEvent,
@@ -2358,6 +2361,7 @@ def test_handler_doesnt_match_to_job(
                 ),
             ],
             [],
+            {},
         ),
         pytest.param(
             PullRequestCommentPagureEvent,
@@ -2374,6 +2378,7 @@ def test_handler_doesnt_match_to_job(
                     trigger=JobConfigTriggerType.commit,
                 ),
             ],
+            {},
         ),
         pytest.param(
             PullRequestCommentPagureEvent,
@@ -2398,13 +2403,40 @@ def test_handler_doesnt_match_to_job(
                     trigger=JobConfigTriggerType.commit,
                 ),
             ],
+            {},
+        ),
+        pytest.param(
+            CheckRerunPullRequestEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    identifier="first",
+                ),
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    identifier="second",
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    identifier="first",
+                ),
+            ],
+            {"job_identifier": "first"},
         ),
     ],
 )
-def test_get_jobs_matching_trigger(event_kls, job_config_trigger_type, jobs, result):
+def test_get_jobs_matching_trigger(
+    event_kls, job_config_trigger_type, jobs, result, kwargs
+):
     class Event(event_kls):
-        def __init__(self):
-            pass
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
 
         @property
         def job_config_trigger_type(self):
@@ -2414,7 +2446,7 @@ def test_get_jobs_matching_trigger(event_kls, job_config_trigger_type, jobs, res
         def package_config(self):
             return flexmock(jobs=jobs)
 
-    event = Event()
+    event = Event(**kwargs)
     assert result == SteveJobs(event).get_jobs_matching_event()
 
 
