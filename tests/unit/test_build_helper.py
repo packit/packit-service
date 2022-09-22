@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from flexmock import flexmock
 
+from packit.copr_helper import CoprHelper
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.aliases import get_build_targets
 from packit.local_project import LocalProject
@@ -30,8 +31,27 @@ STABLE_KOJI_TARGETS = {f"f{version[-2:]}" for version in STABLE_VERSIONS}
 ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
 
 
+def _mock_targets(jobs, job, job_type):
+    job_config_trigger_type, job_trigger_model_type = job_type
+
+    project_service = flexmock(instance_url="https://github.com")
+    return CoprBuildJobHelper(
+        service_config=ServiceConfig.get_service_config(),
+        package_config=PackageConfig(jobs=jobs),
+        job_config=job,  # BuildHelper looks at all jobs in the end
+        project=flexmock(
+            service=project_service, namespace="packit", repo="testing_package"
+        ),
+        metadata=flexmock(pr_id=None, identifier=None),
+        db_trigger=flexmock(
+            job_config_trigger_type=job_config_trigger_type,
+            job_trigger_model_type=job_trigger_model_type,
+        ),
+    )
+
+
 @pytest.mark.parametrize(
-    "jobs,job_config_trigger_type,build_chroots,test_chroots",
+    "jobs,job_type,build_chroots,test_chroots",
     [
         pytest.param(
             [
@@ -41,7 +61,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     _targets=STABLE_VERSIONS,
                 )
             ],
-            JobConfigTriggerType.pull_request,
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(STABLE_VERSIONS),
             set(),
             id="build_with_targets",
@@ -54,7 +74,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     _targets=STABLE_VERSIONS,
                 )
             ],
-            JobConfigTriggerType.pull_request,
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(STABLE_VERSIONS),
             set(),
             id="build_with_targets&pr_comment",
@@ -67,7 +87,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     _targets=STABLE_VERSIONS,
                 )
             ],
-            JobConfigTriggerType.release,
+            (JobConfigTriggerType.release, JobTriggerModelType.release),
             set(STABLE_VERSIONS),
             set(),
             id="build_with_targets&release",
@@ -80,7 +100,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     _targets=STABLE_VERSIONS,
                 )
             ],
-            JobConfigTriggerType.commit,
+            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
             set(STABLE_VERSIONS),
             set(),
             id="build_with_targets&push",
@@ -98,7 +118,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     _targets=["different", "os", "target"],
                 ),
             ],
-            JobConfigTriggerType.pull_request,
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(STABLE_VERSIONS),
             set(),
             id="build_with_targets&pull_request_with_pr_and_push_defined",
@@ -116,7 +136,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     _targets=["different", "os", "target"],
                 ),
             ],
-            JobConfigTriggerType.pull_request,
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(STABLE_VERSIONS),
             set(),
             id="build_with_targets&pr_comment_with_pr_and_push_defined",
@@ -134,7 +154,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     _targets=STABLE_VERSIONS,
                 ),
             ],
-            JobConfigTriggerType.commit,
+            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
             set(STABLE_VERSIONS),
             set(),
             id="build_with_targets&push_with_pr_and_push_defined",
@@ -146,7 +166,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     trigger=JobConfigTriggerType.pull_request,
                 )
             ],
-            JobConfigTriggerType.pull_request,
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             {"fedora-stable"},
             set(),
             id="build_without_targets",
@@ -158,7 +178,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     trigger=JobConfigTriggerType.pull_request,
                 )
             ],
-            JobConfigTriggerType.pull_request,
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             {"fedora-stable"},
             {"fedora-stable"},
             id="test_without_targets",
@@ -171,7 +191,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     _targets=STABLE_VERSIONS,
                 )
             ],
-            JobConfigTriggerType.pull_request,
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(STABLE_VERSIONS),
             set(STABLE_VERSIONS),
             id="test_with_targets",
@@ -187,7 +207,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
-            JobConfigTriggerType.pull_request,
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             {"fedora-stable"},
             {"fedora-stable"},
             id="build_without_target&test_without_targets",
@@ -204,7 +224,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     trigger=JobConfigTriggerType.pull_request,
                 ),
             ],
-            JobConfigTriggerType.pull_request,
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(STABLE_VERSIONS),
             set(STABLE_VERSIONS),
             id="build_with_target&test_without_targets",
@@ -221,7 +241,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     _targets=STABLE_VERSIONS,
                 ),
             ],
-            JobConfigTriggerType.pull_request,
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(STABLE_VERSIONS),
             set(STABLE_VERSIONS),
             id="build_without_target&test_with_targets",
@@ -238,7 +258,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     _targets=list(ONE_CHROOT_SET),
                 ),
             ],
-            JobConfigTriggerType.pull_request,
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             ONE_CHROOT_SET,
             ONE_CHROOT_SET,
             id="build_without_target&test_with_one_str_target",
@@ -258,7 +278,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     trigger=JobConfigTriggerType.commit,
                 ),
             ],
-            JobConfigTriggerType.commit,
+            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
             {"fedora-stable"},
             set(),
             id="build[pr+commit]&test[pr]&commit",
@@ -278,7 +298,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     trigger=JobConfigTriggerType.commit,
                 ),
             ],
-            JobConfigTriggerType.pull_request,
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             {"fedora-stable"},
             {"fedora-stable"},
             id="build[pr+commit]&test[pr]&pr",
@@ -295,7 +315,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     trigger=JobConfigTriggerType.commit,
                 ),
             ],
-            JobConfigTriggerType.commit,
+            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
             {"fedora-stable"},
             {"fedora-stable"},
             id="build[pr+commit]&test[commit]&commit",
@@ -312,7 +332,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                 ),
                 JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.commit),
             ],
-            JobConfigTriggerType.pull_request,
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             {"fedora-stable"},
             set(),
             id="build[pr+commit]&test[commit]&pr",
@@ -335,7 +355,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     type=JobType.tests, trigger=JobConfigTriggerType.pull_request
                 ),
             ],
-            JobConfigTriggerType.commit,
+            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
             {"fedora-stable"},
             set(),
             id="build[pr+commit+release]&test[pr]&commit",
@@ -352,7 +372,7 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     _targets=list(ONE_CHROOT_SET),
                 ),
             ],
-            JobConfigTriggerType.pull_request,
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             ONE_CHROOT_SET,
             ONE_CHROOT_SET,
             id="build_with_mixed_build_alias",
@@ -370,28 +390,56 @@ ONE_KOJI_TARGET_SET = {list(STABLE_KOJI_TARGETS)[0]}
                     _targets=["fedora-rawhide"],
                 ),
             ],
-            JobConfigTriggerType.pull_request,
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(STABLE_VERSIONS + ["fedora-rawhide"]),
             {"fedora-rawhide"},
             id="build_with_mixed_build_tests",
         ),
     ],
 )
-def test_targets(jobs, job_config_trigger_type, build_chroots, test_chroots):
-    copr_build_helper = CoprBuildJobHelper(
-        service_config=ServiceConfig.get_service_config(),
-        package_config=PackageConfig(jobs=jobs),
-        job_config=jobs[0],  # BuildHelper looks at all jobs in the end
-        project=flexmock(),
-        metadata=flexmock(pr_id=None),
-        db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
-    )
+def test_targets(jobs, job_type, build_chroots, test_chroots):
+    copr_build_helper = _mock_targets(jobs, jobs[0], job_type)
 
     assert copr_build_helper.package_config.jobs
     assert [j.type for j in copr_build_helper.package_config.jobs]
 
     assert copr_build_helper.configured_build_targets == build_chroots
     assert copr_build_helper.configured_tests_targets == test_chroots
+
+
+def test_deduced_copr_targets():
+    jobs = [
+        JobConfig(
+            type=JobType.copr_build,
+            trigger=JobConfigTriggerType.commit,
+            owner="mf",
+            project="custom-copr-targets",
+        ),
+        JobConfig(
+            type=JobType.copr_build,
+            trigger=JobConfigTriggerType.release,
+        ),
+        JobConfig(
+            type=JobType.copr_build,
+            trigger=JobConfigTriggerType.pull_request,
+        ),
+        JobConfig(
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.commit,
+        ),
+    ]
+    job_type = (JobConfigTriggerType.commit, JobTriggerModelType.branch_push)
+    copr_build_helper = _mock_targets(jobs, jobs[0], job_type)
+    flexmock(CoprHelper).should_receive("get_chroots").with_args(
+        owner=jobs[0].owner,
+        project=jobs[0].project,
+    ).and_return({"opensuse-tumbleweed-x86_64"})
+
+    assert copr_build_helper.package_config.jobs
+    assert [j.type for j in copr_build_helper.package_config.jobs]
+
+    assert copr_build_helper.configured_build_targets == {"opensuse-tumbleweed-x86_64"}
+    assert copr_build_helper.configured_tests_targets == {"opensuse-tumbleweed-x86_64"}
 
 
 @pytest.mark.parametrize(
