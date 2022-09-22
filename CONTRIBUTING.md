@@ -211,16 +211,16 @@ Look inside a table
 
 Here is a list of commands to run if you need a local database with real data from stg or prod:
 
-1. Obtain a DB dump: `oc rsh $POSTGRES_POD pg_dump -Fc -Z3 packit >dump.$ENV.$DATE`
+1. Obtain a DB dump: `oc rsh $POSTGRES_POD pg_dump packit >dump-$ENV-$DATE.sql`
 
 2. Load them into your local postgres instance:
 
    1. Create a database named packit and owned by the packit user: `postgres=# create database packit owner=packit;`
 
-   2. Copy the dump file in the database container: `sudo podman cp ./dump.$ENV.$DATE postgres:/tmp`
-      This is a more reliable option than a direct load.
+   2. Copy the dump file into the database container: `podman cp ./dump-$ENV-$DATE.sql postgres:/tmp`
+      This is a more reliable option than a direct load from your local filesystem.
 
-   3. Load the dump as a packit user `pg_restore -U packit -d packit /tmp/dump.$ENV.$DATE`
+   3. Load the dump as a packit user `psql -U packit -d packit < /tmp/dump-$ENV-$DATE.sql`
       It's important to do this as a packit user because that's how worker and service pods connect.
 
 ## Testing
