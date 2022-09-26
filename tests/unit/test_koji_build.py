@@ -71,7 +71,7 @@ def build_helper(
     jobs = jobs or []
     jobs.append(
         JobConfig(
-            type=JobType.production_build,
+            type=JobType.upstream_koji_build,
             trigger=trigger or JobConfigTriggerType.pull_request,
             _targets=_targets,
             owner=owner,
@@ -122,7 +122,7 @@ def test_koji_build_check_names(github_pr_event):
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Building SRPM ...",
-        check_name="production-build:bright-future",
+        check_name="koji-build:bright-future",
         url="",
         links_to_external_services=None,
         markdown_content=None,
@@ -130,7 +130,7 @@ def test_koji_build_check_names(github_pr_event):
     flexmock(StatusReporter).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Building RPM ...",
-        check_name="production-build:bright-future",
+        check_name="koji-build:bright-future",
         url=koji_build_url,
         links_to_external_services=None,
         markdown_content=None,

@@ -72,7 +72,7 @@ def check_rerun_event_koji_build():
     event = json.loads(
         (DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json").read_text()
     )
-    event["check_run"]["name"] = "production-build:f34"
+    event["check_run"]["name"] = "koji-build:f34"
     return event
 
 
@@ -650,7 +650,7 @@ def test_check_rerun_release_copr_build_handler(
             [
                 {
                     "trigger": "release",
-                    "job": "production_build",
+                    "job": "upstream_koji_build",
                     "metadata": {"targets": "fedora-all", "scratch": "true"},
                 }
             ]
