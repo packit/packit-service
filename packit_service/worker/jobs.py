@@ -170,9 +170,9 @@ class SteveJobs:
         elif isinstance(
             self.event, IssueCommentEvent
         ) and self.is_fas_verification_comment(self.event.comment):
-            if GithubFasVerificationHandler(
+            if GithubFasVerificationHandler.pre_check(
                 package_config=None, job_config=None, event=self.event.get_dict()
-            ).pre_check():
+            ):
                 self.event.comment_object.add_reaction(COMMENT_REACTION)
                 GithubFasVerificationHandler.get_signature(
                     event=self.event, job=None
@@ -196,14 +196,14 @@ class SteveJobs:
         return processing_results
 
     def initialize_job_helper(
-        self, handler: JobHandler, job_config: JobConfig
+        self, handler_kls: Type[JobHandler], job_config: JobConfig
     ) -> Union[ProposeDownstreamJobHelper, BaseBuildJobHelper]:
         """
         Initialize job helper with arguments
         based on what type of handler is used.
 
         Args:
-            handler: Handler that will handle the job.
+            handler_kls: The class for the Handler that will handle the job.
             job_config: Corresponding job config.
 
         Returns:
@@ -218,14 +218,14 @@ class SteveJobs:
             "job_config": job_config,
         }
 
-        if isinstance(handler, ProposeDownstreamHandler):
+        if handler_kls == ProposeDownstreamHandler:
             propose_downstream_helper = ProposeDownstreamJobHelper
             params.update({"branches_override": self.event.branches_override})
             return propose_downstream_helper(**params)
 
         build_helper = (
             CoprBuildJobHelper
-            if isinstance(handler, (CoprBuildHandler, TestingFarmHandler))
+            if handler_kls in (CoprBuildHandler, TestingFarmHandler)
             else KojiBuildJobHelper
         )
         params.update(
@@ -236,30 +236,29 @@ class SteveJobs:
         )
         return build_helper(**params)
 
-    def report_task_accepted(self, handler: JobHandler, job_config: JobConfig):
+    def report_task_accepted(
+        self, handler_kls: Type[JobHandler], job_config: JobConfig
+    ):
         """
         For the upstream events report the initial status "Task was accepted" to
         inform user we are working on the request. Measure the time how much did it
         take to set the status from the time when the event was triggered.
 
         Args:
-            handler: Handler that is being used.
+            handler_kls: The class for the Handler that will be used.
             job_config: Job config that is being used.
         """
         number_of_build_targets = None
-        if not isinstance(
-            handler,
-            (
-                CoprBuildHandler,
-                KojiBuildHandler,
-                TestingFarmHandler,
-                ProposeDownstreamHandler,
-            ),
+        if handler_kls not in (
+            CoprBuildHandler,
+            KojiBuildHandler,
+            TestingFarmHandler,
+            ProposeDownstreamHandler,
         ):
             # no reporting, no metrics
             return
 
-        job_helper = self.initialize_job_helper(handler, job_config)
+        job_helper = self.initialize_job_helper(handler_kls, job_config)
         reporting_method = None
 
         if isinstance(job_helper, ProposeDownstreamJobHelper):
@@ -268,7 +267,7 @@ class SteveJobs:
         elif isinstance(job_helper, BaseBuildJobHelper):
             reporting_method = (
                 job_helper.report_status_to_tests
-                if isinstance(handler, TestingFarmHandler)
+                if handler_kls == TestingFarmHandler
                 else job_helper.report_status_to_build
             )
             number_of_build_targets = len(job_helper.build_targets)
@@ -280,7 +279,9 @@ class SteveJobs:
             url="",
         )
 
-        self.push_initial_metrics(task_accepted_time, handler, number_of_build_targets)
+        self.push_initial_metrics(
+            task_accepted_time, handler_kls, number_of_build_targets
+        )
 
     def is_packit_config_present(self) -> bool:
         """
@@ -411,25 +412,15 @@ class SteveJobs:
             )
             return False
 
-        handler = handler_kls(
+        if not handler_kls.pre_check(
             package_config=self.event.package_config,
             job_config=job_config,
             event=self.event.get_dict(),
-        )
-        if not handler.pre_check():
-            return False
-
-        if self.event.actor and not handler.check_if_actor_can_run_job_and_report(
-            actor=self.event.actor
         ):
-            # For external contributors, we need to be more careful when running jobs.
-            # This is a handler-specific permission check
-            # for a user who trigger the action on a PR.
-            # e.g. We don't allow using internal TF for external contributors.
             return False
 
         if deprecation_msg := DEPRECATED_JOB_TYPES.get(job_config.type):
-            job_helper = self.initialize_job_helper(handler, job_config)
+            job_helper = self.initialize_job_helper(handler_kls, job_config)
             job_helper.status_reporter.report(
                 state=BaseCommitStatus.neutral,  # TODO: change to warning in Nov 2022
                 description=f"Job name `{job_config.type.name}` deprecated.",
@@ -441,7 +432,7 @@ class SteveJobs:
                 "by the end of the year.",
             )
 
-        self.report_task_accepted(handler=handler, job_config=job_config)
+        self.report_task_accepted(handler_kls=handler_kls, job_config=job_config)
         return True
 
     def is_project_public_or_enabled_private(self) -> bool:
@@ -662,7 +653,7 @@ class SteveJobs:
     def push_initial_metrics(
         self,
         task_accepted_time: datetime,
-        handler: JobHandler,
+        handler_kls: Type[JobHandler],
         number_of_build_targets: Optional[int] = None,
     ):
         """
@@ -671,7 +662,7 @@ class SteveJobs:
 
         Args:
             task_accepted_time: Time when we put the initial status.
-            handler: Handler that is being used.
+            handler_kls: The class for the Handler that will handle the job.
             number_of_build_targets: Number of build targets in case of CoprBuildHandler.
         """
         pushgateway = Pushgateway()
@@ -686,7 +677,7 @@ class SteveJobs:
         # set the time when the accepted status was set so that we can use it later for measurements
         self.event.task_accepted_time = task_accepted_time
 
-        if isinstance(handler, CoprBuildHandler) and number_of_build_targets:
+        if handler_kls == CoprBuildHandler and number_of_build_targets:
             for _ in range(number_of_build_targets):
                 pushgateway.copr_builds_queued.inc()
 

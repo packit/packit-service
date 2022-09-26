@@ -6,6 +6,7 @@ This file defines classes for job handlers specific for Github hooks
 TODO: The build and test handlers are independent and should be moved away.
 """
 import logging
+from typing import Tuple
 
 from packit.config import (
     JobConfig,
@@ -18,6 +19,7 @@ from packit_service.models import (
 )
 from packit_service.utils import get_packit_commands_from_comment
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.checker.forges import Permission
 from packit_service.worker.events import (
     InstallationEvent,
     IssueCommentEvent,
@@ -27,6 +29,7 @@ from packit_service.worker.handlers.abstract import (
     TaskName,
     reacts_to,
 )
+from packit_service.worker.mixin import GetIssueMixin
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -121,7 +124,7 @@ class GithubAppInstallationHandler(JobHandler):
 
 
 @reacts_to(event=IssueCommentEvent)
-class GithubFasVerificationHandler(JobHandler):
+class GithubFasVerificationHandler(JobHandler, GetIssueMixin):
     task_name = TaskName.github_fas_verification
 
     def __init__(
@@ -137,36 +140,10 @@ class GithubFasVerificationHandler(JobHandler):
         )
         self.sender_login = self.data.actor
         self.comment = self.data.event_dict.get("comment")
-        self._issue = None
 
-    @property
-    def issue(self):
-        if not self._issue:
-            self._issue = self.project.get_issue(self.data.issue_id)
-        return self._issue
-
-    def pre_check(self) -> bool:
-        """
-        Checks whether the Packit verification command is placed in
-        packit/notifications repository in the issue our service created.
-        """
-        if not (
-            self.project.namespace == "packit" and self.project.repo == "notifications"
-        ):
-            logger.debug(
-                "Packit verification comment command not placed in packit/notifications repository."
-            )
-            return False
-
-        issue_author = self.issue.author
-        if issue_author != self.service_config.get_github_account_name():
-            logger.debug(
-                f"Packit verification comment command placed on issue with author "
-                f"other than our app: {issue_author}"
-            )
-            return False
-
-        return True
+    @staticmethod
+    def get_checkers() -> Tuple:
+        return (Permission,)
 
     def run(self) -> TaskResults:
         """

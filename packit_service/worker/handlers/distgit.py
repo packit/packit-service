@@ -8,24 +8,17 @@ import logging
 import shutil
 from celery import Task
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple, Type
 
-from fasjson_client import Client
-from fasjson_client.errors import APIError
-from ogr.abstract import PullRequest, PRStatus
+from ogr.abstract import PullRequest
 
-from packit.api import PackitAPI
 from packit.config import JobConfig, JobType
-from packit.config.aliases import get_branches
 from packit.config.package_config import PackageConfig
 from packit.exceptions import PackitException, PackitDownloadFailedException
-from packit.local_project import LocalProject
-from packit.utils.repo import RepositoryCache
 from packit_service import sentry_integration
-from packit_service.config import PackageConfigGetter, ProjectToSync
+from packit_service.config import PackageConfigGetter
 from packit_service.constants import (
     CONTACTS_URL,
-    FASJSON_URL,
     MSG_RETRIGGER,
 )
 from packit_service.models import (
@@ -36,6 +29,8 @@ from packit_service.models import (
 )
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.utils import gather_packit_logs_to_buffer, collect_packit_logs
+from packit_service.worker.checker.abstract import Checker
+from packit_service.worker.checker.distgit import IsProjectOk, Permission
 from packit_service.worker.events import (
     PushPagureEvent,
     ReleaseEvent,
@@ -52,7 +47,14 @@ from packit_service.worker.handlers.abstract import (
     run_for_check_rerun,
     RetriableJobHandler,
 )
+from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
 from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
+from packit_service.worker.mixin import (
+    LocalProjectMixin,
+    PackitAPIWithUpstreamMixin,
+    PackitAPIWithDownstreamMixin,
+    GetPagurePullRequestMixin,
+)
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 
@@ -61,7 +63,9 @@ logger = logging.getLogger(__name__)
 
 @configured_as(job_type=JobType.sync_from_downstream)
 @reacts_to(event=PushPagureEvent)
-class SyncFromDownstream(JobHandler):
+class SyncFromDownstream(
+    JobHandler, GetProjectToSyncMixin, LocalProjectMixin, PackitAPIWithUpstreamMixin
+):
     """Sync new specfile changes to upstream after a new git push in the dist-git."""
 
     task_name = TaskName.sync_from_downstream
@@ -77,46 +81,22 @@ class SyncFromDownstream(JobHandler):
             job_config=job_config,
             event=event,
         )
-        self.dg_repo_name = event.get("repo_name")
-        self.dg_branch = event.get("git_ref")
-        self._project_to_sync: Optional[ProjectToSync] = None
+
+    @staticmethod
+    def get_checkers() -> Tuple:
+        return (IsProjectOk,)
 
     @property
-    def project_to_sync(self) -> Optional[ProjectToSync]:
-        if self._project_to_sync is None:
-            if project_to_sync := self.service_config.get_project_to_sync(
-                dg_repo_name=self.dg_repo_name, dg_branch=self.dg_branch
-            ):
-                self._project_to_sync = project_to_sync
-        return self._project_to_sync
-
-    def pre_check(self) -> bool:
-        return self.project_to_sync is not None
+    def project_url(self) -> str:
+        url = f"{self.project_to_sync.forge}/"
+        f"{self.project_to_sync.repo_namespace}/{self.project_to_sync.repo_name}"
+        return url
 
     def run(self) -> TaskResults:
-        ogr_project_to_sync = self.service_config.get_project(
-            url=f"{self.project_to_sync.forge}/"
-            f"{self.project_to_sync.repo_namespace}/{self.project_to_sync.repo_name}"
-        )
-        upstream_local_project = LocalProject(
-            git_project=ogr_project_to_sync,
-            working_dir=self.service_config.command_handler_work_dir,
-            cache=RepositoryCache(
-                cache_path=self.service_config.repository_cache,
-                add_new=self.service_config.add_repositories_to_repository_cache,
-            )
-            if self.service_config.repository_cache
-            else None,
-        )
-        packit_api = PackitAPI(
-            self.service_config,
-            self.job_config,
-            upstream_local_project=upstream_local_project,
-        )
         # rev is a commit
         # we use branch on purpose so we get the latest thing
         # TODO: check if rev is HEAD on {branch}, warn then?
-        packit_api.sync_from_downstream(
+        self.packit_api.sync_from_downstream(
             dist_git_branch=self.dg_branch,
             upstream_branch=self.project_to_sync.branch,
             sync_only_specfile=True,
@@ -135,7 +115,9 @@ class AbortProposeDownstream(Exception):
 @reacts_to(event=ReleaseEvent)
 @reacts_to(event=AbstractIssueCommentEvent)
 @reacts_to(event=CheckRerunReleaseEvent)
-class ProposeDownstreamHandler(RetriableJobHandler):
+class ProposeDownstreamHandler(
+    PackitAPIWithUpstreamMixin, LocalProjectMixin, RetriableJobHandler
+):
     topic = "org.fedoraproject.prod.git.receive"
     task_name = TaskName.propose_downstream
 
@@ -174,7 +156,7 @@ class ProposeDownstreamHandler(RetriableJobHandler):
         self, branch: str, model: ProposeDownstreamModel
     ) -> Optional[PullRequest]:
         try:
-            downstream_pr = self.api.sync_release(
+            downstream_pr = self.packit_api.sync_release(
                 dist_git_branch=branch, tag=self.data.tag_name, create_pr=True
             )
         except PackitDownloadFailedException as ex:
@@ -202,7 +184,7 @@ class ProposeDownstreamHandler(RetriableJobHandler):
                 raise AbortProposeDownstream()
             raise ex
         finally:
-            self.api.up.local_project.git_repo.head.reset(
+            self.packit_api.up.local_project.git_repo.head.reset(
                 "HEAD", index=True, working_tree=True
             )
 
@@ -260,24 +242,6 @@ class ProposeDownstreamHandler(RetriableJobHandler):
         """
         Sync the upstream release to dist-git as a pull request.
         """
-        # TODO use local project and api from BaseJobHelper when LocalProject refactored
-        self.local_project = LocalProject(
-            git_project=self.project,
-            working_dir=self.service_config.command_handler_work_dir,
-            cache=RepositoryCache(
-                cache_path=self.service_config.repository_cache,
-                add_new=self.service_config.add_repositories_to_repository_cache,
-            )
-            if self.service_config.repository_cache
-            else None,
-        )
-
-        self.api = PackitAPI(
-            self.service_config,
-            self.job_config,
-            self.local_project,
-        )
-
         errors = {}
         propose_downstream_model = self._get_or_create_propose_downstream_run()
         branches_to_run = [
@@ -367,7 +331,7 @@ class ProposeDownstreamHandler(RetriableJobHandler):
             # 1. the dist-git repo is cloned on worker, not sandbox
             # 2. it's stored in /tmp, not in the mirrored sandbox PV
             # 3. it's not being cleaned up and it wastes pod's filesystem space
-            shutil.rmtree(self.api.dg.local_project.working_dir)
+            shutil.rmtree(self.packit_api.dg.local_project.working_dir)
 
         if errors:
             self._report_errors_for_each_branch(errors)
@@ -385,7 +349,12 @@ class ProposeDownstreamHandler(RetriableJobHandler):
 @run_for_comment(command="koji-build")
 @reacts_to(event=PushPagureEvent)
 @reacts_to(event=PullRequestCommentPagureEvent)
-class DownstreamKojiBuildHandler(RetriableJobHandler):
+class DownstreamKojiBuildHandler(
+    RetriableJobHandler,
+    LocalProjectMixin,
+    PackitAPIWithDownstreamMixin,
+    GetPagurePullRequestMixin,
+):
     """
     This handler can submit a build in Koji from a dist-git.
     """
@@ -410,114 +379,11 @@ class DownstreamKojiBuildHandler(RetriableJobHandler):
         self._pull_request: Optional[PullRequest] = None
         self._packit_api = None
 
-    @property
-    def pull_request(self):
-        if not self._pull_request and self.data.event_dict["committer"] == "pagure":
-            logger.debug(
-                f"Getting pull request with head commit {self.data.commit_sha}"
-                f"for repo {self.project.namespace}/{self.project.repo}"
-            )
-            prs = [
-                pr
-                for pr in self.project.get_pr_list(status=PRStatus.all)
-                if pr.head_commit == self.data.commit_sha
-            ]
-            if prs:
-                self._pull_request = prs[0]
-        return self._pull_request
-
-    @property
-    def packit_api(self):
-        if not self._packit_api:
-            self._packit_api = PackitAPI(
-                self.service_config,
-                self.job_config,
-                downstream_local_project=self.local_project,
-            )
-        return self._packit_api
-
-    def get_pr_author(self):
-        """Get the login of the author of the PR (if there is any corresponding PR)."""
-        return self.pull_request.author if self.pull_request else None
-
-    def is_packager(self, user):
-        """Check that the given FAS user
-        is a packager
-
-        Args:
-            user (str) FAS user account name
-        Returns:
-            true if a packager false otherwise
-        """
-        self.packit_api.init_kerberos_ticket()
-        client = Client(FASJSON_URL)
-        try:
-            groups = client.list_user_groups(username=user)
-        except APIError:
-            logger.debug(f"Unable to get groups for user {user}.")
-            return False
-        return "packager" in [group["groupname"] for group in groups.result]
-
-    def pre_check(self) -> bool:
-        if self.data.event_type in (PushPagureEvent.__name__,):
-            if self.data.git_ref not in (
-                configured_branches := get_branches(
-                    *self.job_config.dist_git_branches,
-                    default="main",
-                    with_aliases=True,
-                )
-            ):
-                logger.info(
-                    f"Skipping build on '{self.data.git_ref}'. "
-                    f"Koji build configured only for '{configured_branches}'."
-                )
-                return False
-
-            if self.data.event_dict["committer"] == "pagure":
-                pr_author = self.get_pr_author()
-                logger.debug(f"PR author: {pr_author}")
-                if pr_author not in self.job_config.allowed_pr_authors:
-                    logger.info(
-                        f"Push event {self.data.identifier} with corresponding PR created by"
-                        f" {pr_author} that is not allowed in project "
-                        f"configuration: {self.job_config.allowed_pr_authors}."
-                    )
-                    return False
-            else:
-                committer = self.data.event_dict["committer"]
-                logger.debug(f"Committer: {committer}")
-                if committer not in self.job_config.allowed_committers:
-                    logger.info(
-                        f"Push event {self.data.identifier} done by "
-                        f"{committer} that is not allowed in project "
-                        f"configuration: {self.job_config.allowed_committers}."
-                    )
-                    return False
-        elif self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
-            commenter = self.data.actor
-            logger.debug(
-                f"Triggering downstream koji build through comment by: {commenter}"
-            )
-            if not self.is_packager(commenter):
-                logger.info(
-                    f"koji-build retrigger comment event on PR identifier {self.data.pr_id} "
-                    f"done by {commenter} which is not a packager."
-                )
-                return False
-
-        return True
+    @staticmethod
+    def get_checkers() -> Tuple[Type[Checker]]:
+        return (Permission,)
 
     def run(self) -> TaskResults:
-        self.local_project = LocalProject(
-            git_project=self.project,
-            working_dir=self.service_config.command_handler_work_dir,
-            cache=RepositoryCache(
-                cache_path=self.service_config.repository_cache,
-                add_new=self.service_config.add_repositories_to_repository_cache,
-            )
-            if self.service_config.repository_cache
-            else None,
-        )
         branch = (
             self.project.get_pr(self.data.pr_id).target_branch
             if self.data.event_type in (PullRequestCommentPagureEvent.__name__,)
