@@ -10,7 +10,7 @@ DOCS_HOW_TO_RETRIGGER_URL = (
     f"{DOCS_URL}/guide/#how-to-re-trigger-packit-actions-in-your-pull-request"
 )
 DOCS_HOW_TO_CONFIGURE_URL = f"{DOCS_URL}/guide/#3-configuration"
-DOCS_APPROVAL_URL = f"{DOCS_URL}/docs/guide/#2-approval"
+DOCS_APPROVAL_URL = f"{DOCS_URL}/guide/#2-approval"
 
 KOJI_PRODUCTION_BUILDS_ISSUE = "https://pagure.io/releng/issue/9801"
 
