@@ -1691,18 +1691,20 @@ def test_check_if_custom_copr_can_be_used_and_report(
             job_trigger_model_type=JobTriggerModelType.pull_request,
         ),
     )
-    copr_build_helper._api = flexmock(
-        copr_helper=flexmock(
-            copr_client=flexmock(
-                config={"username": "nobody"},
-                project_proxy=flexmock(
-                    get=lambda owner, project: {
-                        "packit_forge_projects_allowed": git_forge_allowed_list
-                    }
-                ),
-            )
+    copr_helper = flexmock(
+        copr_client=flexmock(
+            config={"username": "nobody"},
+            project_proxy=flexmock(
+                get=lambda owner, project: {
+                    "packit_forge_projects_allowed": git_forge_allowed_list
+                }
+            ),
         )
     )
+    copr_helper.should_receive("get_copr_settings_url").with_args(
+        "the-owner", "the-project"
+    ).and_return().times(0 if allowed else 1)
+    copr_build_helper._api = flexmock(copr_helper=copr_helper)
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").times(
         0 if allowed else 1
     )

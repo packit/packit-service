@@ -247,7 +247,7 @@ CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT = (
     "the configured `{copr_project}` Copr project.\n\n"
     "Please, add this git-forge project `{forge_project}` "
     "to `Packit allowed forge projects`"
-    "in the [Copr project settings](https://copr.fedorainfracloud.org/coprs/{copr_project}/edit/#packit_forge_projects_allowed). "  # noqa
+    "in the [Copr project settings]({copr_settings_url}#packit_forge_projects_allowed). "
 )
 
 CUSTOM_COPR_PROJECT_ALLOWED_IN_PACKIT_CONFIG = (
@@ -258,7 +258,7 @@ CUSTOM_COPR_PROJECT_ALLOWED_IN_PACKIT_CONFIG = (
     "in Packit for the allowed projects soon. "
     "Therefore, please, add this git-forge project `{forge_project}` "
     "to `Packit allowed forge projects`"
-    "in the [Copr project settings](https://copr.fedorainfracloud.org/coprs/{copr_project}/edit/#packit_forge_projects_allowed). "  # noqa
+    "in the [Copr project settings]({copr_settings_url}#packit_forge_projects_allowed). "
 )
 
 FASJSON_URL = "https://fasjson.fedoraproject.org"
