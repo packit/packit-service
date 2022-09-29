@@ -16,6 +16,7 @@ from packit_service.constants import CONTACTS_URL, DOCS_APPROVAL_URL, NOTIFICATI
 from packit_service.models import (
     GithubInstallationModel,
 )
+from packit_service.utils import get_packit_commands_from_comment
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
     InstallationEvent,
@@ -25,7 +26,6 @@ from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,
     reacts_to,
-    get_packit_commands_from_comment,
 )
 from packit_service.worker.result import TaskResults
 

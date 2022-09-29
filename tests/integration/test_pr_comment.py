@@ -8,10 +8,11 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
-
-import packit_service.service.urls as urls
 from ogr.services.github import GithubProject
 from ogr.utils import RequestResponse
+
+import packit_service.models
+import packit_service.service.urls as urls
 from packit.config import JobConfigTriggerType
 from packit.exceptions import PackitConfigException
 from packit.local_project import LocalProject
@@ -35,15 +36,16 @@ from packit_service.models import (
     TestingFarmResult,
     BuildStatus,
 )
+from packit_service.utils import get_packit_commands_from_comment
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
-from packit_service.worker.handlers.abstract import CeleryTask
 from packit_service.worker.helpers.build import copr_build
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
-from packit_service.worker.jobs import SteveJobs, get_packit_commands_from_comment
+from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, StatusReporterGithubChecks
 from packit_service.worker.reporting import StatusReporter
@@ -1245,7 +1247,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
         web_url=None,
-        run_model=run_model,
+        run_models=[run_model],
         data={"base_project_url": "https://github.com/packit-service/hello-world"},
     ).and_return(tft_test_run_model)
 
@@ -1845,8 +1847,8 @@ def test_rebuild_failed(
     ).with_args(statuses_to_filter_with=[BuildStatus.failure]).and_return(
         {"some_target"}
     )
-    flexmock(AbstractForgeIndependentEvent).should_receive(
-        "_filter_most_recent_models_targets_by_status"
+    flexmock(packit_service.models).should_receive(
+        "filter_most_recent_target_names_by_status"
     ).with_args(
         models=[model], statuses_to_filter_with=[BuildStatus.failure]
     ).and_return(
@@ -1933,8 +1935,8 @@ def test_retest_failed(
     ).and_return(
         {"some_tf_target"}
     )
-    flexmock(AbstractForgeIndependentEvent).should_receive(
-        "_filter_most_recent_models_targets_by_status"
+    flexmock(packit_service.models).should_receive(
+        "filter_most_recent_target_names_by_status"
     ).with_args(
         models=[model],
         statuses_to_filter_with=[TestingFarmResult.failed, TestingFarmResult.error],
@@ -2028,9 +2030,11 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(pr_model)
+
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
         type=JobTriggerModelType.pull_request, trigger_id=9
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
@@ -2148,4 +2152,281 @@ def test_invalid_packit_command_without_config(
     assert (
         processing_result["details"]["msg"]
         == "No packit config found in the repository."
+    )
+
+
+def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_event):
+    pr_embedded_command_comment_event["comment"][
+        "body"
+    ] = "/packit test packit/packit-service#16"
+    jobs = [
+        {
+            "trigger": "pull_request",
+            "job": "tests",
+            "metadata": {"targets": ["fedora-rawhide-x86_64", "fedora-35-x86_64"]},
+        }
+    ]
+    packit_yaml = (
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
+        + str(jobs)
+        + "}"
+    )
+    pr = flexmock(
+        source_project=flexmock(
+            get_web_url=lambda: "https://github.com/someone/hello-world"
+        ),
+        target_project=flexmock(
+            get_web_url=lambda: "https://github.com/packit-service/hello-world"
+        ),
+        head_commit="0011223344",
+        target_branch_head_commit="deadbeef",
+        source_branch="the-source-branch",
+        target_branch="the-target-branch",
+    )
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
+    flexmock(
+        GithubProject,
+        full_repo_name="packit-service/hello-world",
+        get_file_content=lambda path, ref: packit_yaml,
+        get_files=lambda ref, filter_regex: ["the-specfile.spec"],
+        get_web_url=lambda: "https://github.com/packit-service/hello-world",
+    )
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+
+    ServiceConfig.get_service_config().testing_farm_api_url = (
+        "https://api.dev.testing-farm.io/v0.1/"
+    )
+    ServiceConfig.get_service_config().testing_farm_secret = "secret-token"
+
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
+        trigger
+    )
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(Allowlist, check_and_report=True)
+    pr_model = flexmock(
+        id=9,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+    )
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(pr_model)
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=9
+    ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
+    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+        {"fedora-rawhide-x86_64", "fedora-35-x86_64"}
+    )
+
+    run_model = flexmock(PipelineModel)
+
+    build = flexmock(
+        build_id="123456",
+        built_packages=[
+            {
+                "name": "repo",
+                "version": "0.1",
+                "release": "1",
+                "arch": "noarch",
+                "epoch": "0",
+            }
+        ],
+        build_logs_url=None,
+        owner="mf",
+        project_name="tree",
+        status=BuildStatus.success,
+        runs=[run_model],
+    )
+    build.should_receive("get_srpm_build").and_return(flexmock(url=None))
+
+    flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
+        build
+    )
+    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+        description=TASK_ACCEPTED,
+        state=BaseCommitStatus.pending,
+        url="",
+    ).once()
+
+    payload = {
+        "api_key": "secret-token",
+        "test": {
+            "fmf": {
+                "url": "https://github.com/someone/hello-world",
+                "ref": "0011223344",
+            }
+        },
+        "environments": [
+            {
+                "arch": "x86_64",
+                "os": {"compose": "Fedora-Rawhide"},
+                "tmt": {
+                    "context": {
+                        "distro": "fedora-rawhide",
+                        "arch": "x86_64",
+                        "trigger": "commit",
+                    }
+                },
+                "variables": {
+                    "PACKIT_FULL_REPO_NAME": "packit-service/hello-world",
+                    "PACKIT_UPSTREAM_NAME": "hello-world",
+                    "PACKIT_DOWNSTREAM_NAME": "hello-world",
+                    "PACKIT_DOWNSTREAM_URL": "https://src.fedoraproject.org/rpms/hello-world.git",
+                    "PACKIT_PACKAGE_NAME": "hello-world",
+                    "PACKIT_PACKAGE_NVR": "repo-0.1-1",
+                    "PACKIT_COMMIT_SHA": "0011223344",
+                    "PACKIT_SOURCE_SHA": "0011223344",
+                    "PACKIT_TARGET_SHA": "deadbeef",
+                    "PACKIT_SOURCE_BRANCH": "the-source-branch",
+                    "PACKIT_TARGET_BRANCH": "the-target-branch",
+                    "PACKIT_SOURCE_URL": "https://github.com/someone/hello-world",
+                    "PACKIT_TARGET_URL": "https://github.com/packit-service/hello-world",
+                    "PACKIT_PR_ID": 9,
+                    "PACKIT_COPR_PROJECT": "mf/tree",
+                    "PACKIT_COPR_RPMS": "repo-0:0.1-1.noarch another-repo-0:0.1-1.noarch",
+                },
+                "artifacts": [
+                    {
+                        "id": "123456:fedora-rawhide-x86_64",
+                        "type": "fedora-copr-build",
+                        "packages": ["repo-0:0.1-1.noarch"],
+                    },
+                    {
+                        "id": "54321:fedora-rawhide-x86_64",
+                        "type": "fedora-copr-build",
+                        "packages": ["another-repo-0:0.1-1.noarch"],
+                    },
+                ],
+            }
+        ],
+        "notification": {
+            "webhook": {
+                "url": "https://prod.packit.dev/api/testing-farm/results",
+                "token": "secret-token",
+            }
+        },
+    }
+
+    flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
+    flexmock(TestingFarmJobHelper).should_receive("distro2compose").and_return(
+        "Fedora-Rawhide"
+    )
+
+    pipeline_id = "5e8079d8-f181-41cf-af96-28e99774eb68"
+    flexmock(TestingFarmJobHelper).should_receive(
+        "send_testing_farm_request"
+    ).with_args(endpoint="requests", method="POST", data=payload).and_return(
+        RequestResponse(
+            status_code=200,
+            ok=True,
+            content=json.dumps({"id": pipeline_id}).encode(),
+            json={"id": pipeline_id},
+        )
+    )
+
+    flexmock(StatusReporter).should_receive("report").with_args(
+        state=BaseCommitStatus.running,
+        description="Build succeeded. Submitting the tests ...",
+        check_names="testing-farm:fedora-rawhide-x86_64",
+        url="",
+        markdown_content=None,
+    ).once()
+
+    flexmock(StatusReporter).should_receive("report").with_args(
+        description="No latest successful Copr build from the other PR found.",
+        state=BaseCommitStatus.failure,
+        url="",
+        check_names="testing-farm:fedora-35-x86_64",
+        markdown_content=None,
+    ).once()
+
+    flexmock(GithubProject).should_receive("get_web_url").and_return(
+        "https://github.com/packit-service/hello-world"
+    )
+
+    tft_test_run_model = flexmock(id=5)
+
+    run_model2 = flexmock(PipelineModel)
+    additional_copr_build = flexmock(
+        target="fedora-rawhide-x86_64",
+        build_id="54321",
+        built_packages=[
+            {
+                "name": "another-repo",
+                "version": "0.1",
+                "release": "1",
+                "arch": "noarch",
+                "epoch": "0",
+            }
+        ],
+        runs=[run_model2],
+    )
+
+    flexmock(PullRequestModel).should_receive("get").with_args(
+        pr_id=16,
+        namespace="packit",
+        repo_name="packit-service",
+        project_url="https://github.com/packit/packit-service",
+    ).and_return(
+        flexmock(id=16, job_config_trigger_type=JobConfigTriggerType.pull_request)
+        .should_receive("get_copr_builds")
+        .and_return([additional_copr_build])
+        .mock()
+    )
+
+    flexmock(packit_service.worker.helpers.testing_farm).should_receive(
+        "filter_most_recent_target_models_by_status"
+    ).with_args(
+        models=[additional_copr_build],
+        statuses_to_filter_with=[BuildStatus.success],
+    ).and_return(
+        {additional_copr_build}
+    ).times(
+        2
+    )
+
+    flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
+        pipeline_id=pipeline_id,
+        identifier=None,
+        commit_sha="0011223344",
+        status=TestingFarmResult.new,
+        target="fedora-rawhide-x86_64",
+        web_url=None,
+        run_models=[run_model, run_model2],
+        data={"base_project_url": "https://github.com/packit-service/hello-world"},
+    ).and_return(tft_test_run_model)
+
+    urls.DASHBOARD_URL = "https://dashboard.localhost"
+    flexmock(StatusReporter).should_receive("report").with_args(
+        description="Tests have been submitted ...",
+        state=BaseCommitStatus.running,
+        url="https://dashboard.localhost/results/testing-farm/5",
+        check_names="testing-farm:fedora-rawhide-x86_64",
+        markdown_content=None,
+    ).once()
+    flexmock(Signature).should_receive("apply_async").once()
+
+    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    run_testing_farm_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
     )

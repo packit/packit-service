@@ -3,13 +3,21 @@
 from datetime import datetime
 
 import pytest
+from celery import Signature
 from flexmock import flexmock
-from packit.config import JobConfig, JobType, JobConfigTriggerType
-from packit.local_project import LocalProject
 
+import packit_service.models
 import packit_service.service.urls as urls
+from packit.config import JobConfig, JobType, JobConfigTriggerType
+from packit.config.package_config import PackageConfig
+from packit.local_project import LocalProject
 from packit_service.config import PackageConfigGetter, ServiceConfig
-from packit_service.models import TFTTestRunTargetModel
+from packit_service.models import JobTriggerModel, JobTriggerModelType, BuildStatus
+from packit_service.models import (
+    TFTTestRunTargetModel,
+    PullRequestModel,
+)
+from packit_service.models import TestingFarmResult as TFResult
 
 # These names are definitely not nice, still they help with making classes
 # whose names start with Testing* or Test* to become invisible for pytest,
@@ -17,19 +25,14 @@ from packit_service.models import TFTTestRunTargetModel
 from packit_service.worker.events import (
     TestingFarmResultsEvent as TFResultsEvent,
 )
-from packit_service.models import JobTriggerModel, JobTriggerModelType, BuildStatus
-from packit_service.models import TestingFarmResult as TFResult
-
-from packit_service.worker.helpers.build import copr_build as cb
-from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
 from packit_service.worker.handlers import TestingFarmHandler
-from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
-from packit_service.worker.result import TaskResults
+from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
+from packit_service.worker.helpers.build import copr_build as cb
 from packit_service.worker.helpers.testing_farm import (
     TestingFarmJobHelper as TFJobHelper,
 )
-from packit.config.package_config import PackageConfig
-from celery import Signature
+from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
+from packit_service.worker.result import TaskResults
 
 
 @pytest.mark.parametrize(
@@ -263,7 +266,6 @@ def test_artifact(
     built_packages,
     packages_to_send,
 ):
-
     result = TFJobHelper._artifact(chroot, build_id, built_packages)
 
     artifact = {"id": f"{build_id}:{chroot}", "type": "fedora-copr-build"}
@@ -290,13 +292,13 @@ def test_artifact(
         "copr_project,"
         "build_id,"
         "chroot,"
-        "built_packages,"
         "distro,"
         "compose,"
         "arch,"
-        "packages_to_send,"
+        "artifacts,"
         "tmt_plan,"
-        "tf_post_install_script"
+        "tf_post_install_script,"
+        "copr_rpms"
     ),
     [
         (
@@ -314,10 +316,10 @@ def test_artifact(
             "cool-project",
             "123456",
             "centos-stream-x86_64",
-            None,
             "centos-stream",
             "Fedora-Rawhide",
             "x86_64",
+            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
             None,
             None,
             None,
@@ -337,10 +339,10 @@ def test_artifact(
             "cool-project",
             "123456",
             "centos-stream-x86_64",
-            None,
             "centos-stream",
             "Fedora-Rawhide",
             "x86_64",
+            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
             None,
             None,
             None,
@@ -360,10 +362,10 @@ def test_artifact(
             "cool-project",
             "123456",
             "centos-stream-x86_64",
-            None,
             "centos-stream",
             "Fedora-Rawhide",
             "x86_64",
+            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
             None,
             None,
             None,
@@ -384,28 +386,19 @@ def test_artifact(
             "cool-project",
             "123456",
             "centos-stream-x86_64",
-            [
-                {
-                    "arch": "x86_64",
-                    "epoch": 0,
-                    "name": "cool-project",
-                    "release": "2.el8",
-                    "version": "0.1.0",
-                },
-                {
-                    "arch": "src",
-                    "epoch": 0,
-                    "name": "cool-project",
-                    "release": "2.el8",
-                    "version": "0.1.0",
-                },
-            ],
             "centos-stream",
             "Fedora-Rawhide",
             "x86_64",
-            ["cool-project-0:0.1.0-2.el8.x86_64"],
+            [
+                {
+                    "id": "123456:centos-stream-x86_64",
+                    "type": "fedora-copr-build",
+                    "packages": ["cool-project-0:0.1.0-2.el8.x86_64"],
+                }
+            ],
             None,
             None,
+            "cool-project-0:0.1.0-2.el8.x86_64",
         ),
         # Test tmt_plan and tf_post_install_script
         (
@@ -423,13 +416,89 @@ def test_artifact(
             "cool-project",
             "123456",
             "centos-stream-x86_64",
-            None,
             "centos-stream",
             "Fedora-Rawhide",
             "x86_64",
-            None,
+            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
             "^packit",
             "echo 'hi packit'",
+            None,
+        ),
+        # Testing built_packages for more builds (additional build from other PR)
+        (
+            "https://api.dev.testing-farm.io/v0.1/",
+            "very-secret",
+            "internal-very-secret",  # internal TF configured
+            True,  # internal TF enabled in the config
+            "test",
+            "packit",
+            "packit-service",
+            "feb41e5",
+            "https://github.com/source/packit",
+            "master",
+            "me",
+            "cool-project",
+            "123456",
+            "centos-stream-x86_64",
+            "centos-stream",
+            "Fedora-Rawhide",
+            "x86_64",
+            [
+                {
+                    "id": "123456:centos-stream-x86_64",
+                    "type": "fedora-copr-build",
+                },
+                {
+                    "id": "54321:centos-stream-x86_64",
+                    "type": "fedora-copr-build",
+                    "packages": ["not-cool-project-0:0.1.0-2.el8.x86_64"],
+                },
+            ],
+            None,
+            None,
+            "not-cool-project-0:0.1.0-2.el8.x86_64",
+        ),
+        # Testing built_packages for more builds (additional build from other PR) and more packages
+        (
+            "https://api.dev.testing-farm.io/v0.1/",
+            "very-secret",
+            "internal-very-secret",  # internal TF configured
+            True,  # internal TF enabled in the config
+            "test",
+            "packit",
+            "packit-service",
+            "feb41e5",
+            "https://github.com/source/packit",
+            "master",
+            "me",
+            "cool-project",
+            "123456",
+            "centos-stream-x86_64",
+            "centos-stream",
+            "Fedora-Rawhide",
+            "x86_64",
+            [
+                {
+                    "id": "123456:centos-stream-x86_64",
+                    "type": "fedora-copr-build",
+                    "packages": [
+                        "cool-project-0:0.1.0-2.el8.x86_64",
+                        "cool-project-2-0:0.1.0-2.el8.x86_64",
+                    ],
+                },
+                {
+                    "id": "54321:centos-stream-x86_64",
+                    "type": "fedora-copr-build",
+                    "packages": [
+                        "not-cool-project-0:0.1.0-2.el8.x86_64",
+                        "not-cool-project-2-0:0.1.0-2.el8.x86_64",
+                    ],
+                },
+            ],
+            None,
+            None,
+            "cool-project-0:0.1.0-2.el8.x86_64 cool-project-2-0:0.1.0-2.el8.x86_64 "
+            "not-cool-project-0:0.1.0-2.el8.x86_64 not-cool-project-2-0:0.1.0-2.el8.x86_64",
         ),
     ],
 )
@@ -448,13 +517,13 @@ def test_payload(
     copr_project,
     build_id,
     chroot,
-    built_packages,
     distro,
     compose,
     arch,
-    packages_to_send,
+    artifacts,
     tmt_plan,
     tf_post_install_script,
+    copr_rpms,
 ):
     service_config = ServiceConfig.get_service_config()
     service_config.testing_farm_api_url = tf_api
@@ -510,10 +579,6 @@ def test_payload(
 
     job_helper.should_receive("job_owner").and_return(copr_owner)
     job_helper.should_receive("job_project").and_return(copr_project)
-    artifact = {"id": f"{build_id}:{chroot}", "type": "fedora-copr-build"}
-
-    if packages_to_send:
-        artifact["packages"] = packages_to_send
 
     # URLs shortened for clarity
     log_url = "https://copr-be.cloud.fedoraproject.org/results/.../builder-live.log.gz"
@@ -538,7 +603,7 @@ def test_payload(
     copr_build.should_receive("get_srpm_build").and_return(flexmock(url=srpm_url))
 
     payload = job_helper._payload(
-        target=chroot, compose=compose, artifact=artifact, build=copr_build
+        target=chroot, compose=compose, artifacts=artifacts, build=copr_build
     )
 
     assert payload["api_key"] == token_to_use
@@ -556,7 +621,7 @@ def test_payload(
         {
             "arch": arch,
             "os": {"compose": compose},
-            "artifacts": [artifact],
+            "artifacts": artifacts,
             "tmt": {"context": {"distro": distro, "arch": arch, "trigger": "commit"}},
             "variables": {
                 "PACKIT_BUILD_LOG_URL": log_url,
@@ -575,10 +640,8 @@ def test_payload(
             },
         }
     ]
-    if packages_to_send:
-        expected_environments[0]["variables"]["PACKIT_COPR_RPMS"] = " ".join(
-            packages_to_send
-        )
+    if copr_rpms:
+        expected_environments[0]["variables"]["PACKIT_COPR_RPMS"] = copr_rpms
 
     if tf_post_install_script:
         expected_environments[0]["settings"] = {
@@ -758,7 +821,6 @@ def test_get_request_details():
     ],
 )
 def test_trigger_build(copr_build, run_new_build, wait_for_build):
-
     valid_commit_sha = "1111111111111111111111111111111111111111"
 
     package_config = PackageConfig()
@@ -862,3 +924,270 @@ def test_fmf_url(job_fmf_url, pr_id, fmf_url):
     )
 
     assert helper.fmf_url == fmf_url
+
+
+def test_get_additional_builds():
+    job_config = JobConfig(
+        trigger=JobConfigTriggerType.pull_request,
+        type=JobType.tests,
+        _targets=["test-target", "another-test-target"],
+    )
+    metadata = flexmock(
+        event_dict={"comment": "/packit-dev test my-namespace/my-repo#10"}
+    )
+
+    git_project = flexmock()
+
+    helper = TFJobHelper(
+        service_config=flexmock(comment_command_prefix="/packit-dev"),
+        package_config=flexmock(jobs=[]),
+        project=git_project,
+        metadata=metadata,
+        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+        job_config=job_config,
+    )
+    additional_copr_build = flexmock(
+        target="test-target",
+    )
+    pr = flexmock(id=16, job_config_trigger_type=JobConfigTriggerType.pull_request)
+    pr.should_receive("get_copr_builds").and_return([additional_copr_build])
+
+    flexmock(PullRequestModel).should_receive("get").with_args(
+        pr_id=10,
+        namespace="my-namespace",
+        repo_name="my-repo",
+        project_url="https://github.com/my-namespace/my-repo",
+    ).and_return(pr)
+
+    flexmock(cb).should_receive("get_valid_build_targets").and_return(
+        {"test-target", "another-test-target"}
+    )
+
+    flexmock(packit_service.worker.helpers.testing_farm).should_receive(
+        "filter_most_recent_target_models_by_status"
+    ).with_args(
+        models=[additional_copr_build],
+        statuses_to_filter_with=[BuildStatus.success],
+    ).and_return(
+        {additional_copr_build}
+    ).once()
+
+    additional_copr_builds = helper.get_copr_builds_from_other_pr()
+
+    assert additional_copr_builds.get("test-target") == additional_copr_build
+    assert additional_copr_builds.get("another-test-target") is None
+
+
+def test_get_additional_builds_pr_not_in_db():
+    job_config = JobConfig(
+        trigger=JobConfigTriggerType.pull_request,
+        type=JobType.tests,
+        _targets=["test-target", "another-test-target"],
+    )
+    metadata = flexmock(
+        event_dict={"comment": "/packit-dev test my-namespace/my-repo#10"}
+    )
+
+    git_project = flexmock()
+
+    helper = TFJobHelper(
+        service_config=flexmock(comment_command_prefix="/packit-dev"),
+        package_config=flexmock(jobs=[]),
+        project=git_project,
+        metadata=metadata,
+        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+        job_config=job_config,
+    )
+
+    flexmock(PullRequestModel).should_receive("get").with_args(
+        pr_id=10,
+        namespace="my-namespace",
+        repo_name="my-repo",
+        project_url="https://github.com/my-namespace/my-repo",
+    ).and_return()
+
+    additional_copr_builds = helper.get_copr_builds_from_other_pr()
+
+    assert additional_copr_builds is None
+
+
+def test_get_additional_builds_builds_not_in_db():
+    job_config = JobConfig(
+        trigger=JobConfigTriggerType.pull_request,
+        type=JobType.tests,
+        _targets=["test-target", "another-test-target"],
+    )
+    metadata = flexmock(
+        event_dict={"comment": "/packit-dev test my-namespace/my-repo#10"}
+    )
+
+    git_project = flexmock()
+
+    helper = TFJobHelper(
+        service_config=flexmock(comment_command_prefix="/packit-dev"),
+        package_config=flexmock(jobs=[]),
+        project=git_project,
+        metadata=metadata,
+        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+        job_config=job_config,
+    )
+
+    flexmock(PullRequestModel).should_receive("get").with_args(
+        pr_id=10,
+        namespace="my-namespace",
+        repo_name="my-repo",
+        project_url="https://github.com/my-namespace/my-repo",
+    ).and_return(
+        flexmock(id=16, job_config_trigger_type=JobConfigTriggerType.pull_request)
+        .should_receive("get_copr_builds")
+        .and_return([])
+        .mock()
+    )
+    flexmock(cb).should_receive("get_valid_build_targets").and_return(
+        {"test-target", "another-test-target"}
+    )
+    additional_copr_builds = helper.get_copr_builds_from_other_pr()
+
+    assert additional_copr_builds is None
+
+
+def test_get_additional_builds_wrong_format():
+    job_config = JobConfig(
+        trigger=JobConfigTriggerType.pull_request,
+        type=JobType.tests,
+        _targets=["test-target", "another-test-target"],
+    )
+    metadata = flexmock(
+        event_dict={"comment": "/packit-dev test my/namespace/my-repo#10"}
+    )
+
+    git_project = flexmock()
+
+    helper = TFJobHelper(
+        service_config=flexmock(comment_command_prefix="/packit-dev"),
+        package_config=flexmock(jobs=[]),
+        project=git_project,
+        metadata=metadata,
+        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+        job_config=job_config,
+    )
+
+    additional_copr_builds = helper.get_copr_builds_from_other_pr()
+
+    assert additional_copr_builds is None
+
+
+@pytest.mark.parametrize(
+    ("chroot," "build," "additional_build," "result"),
+    [
+        (
+            "centos-stream-x86_64",
+            flexmock(
+                build_id="123456",
+                built_packages=[
+                    {
+                        "arch": "x86_64",
+                        "epoch": 0,
+                        "name": "cool-project",
+                        "release": "2.el8",
+                        "version": "0.1.0",
+                    },
+                    {
+                        "arch": "src",
+                        "epoch": 0,
+                        "name": "cool-project",
+                        "release": "2.el8",
+                        "version": "0.1.0",
+                    },
+                ],
+            ),
+            flexmock(
+                build_id="54321",
+                built_packages=[
+                    {
+                        "arch": "x86_64",
+                        "epoch": 0,
+                        "name": "not-cool-project",
+                        "release": "2.el8",
+                        "version": "0.1.0",
+                    },
+                    {
+                        "arch": "src",
+                        "epoch": 0,
+                        "name": "not-cool-project",
+                        "release": "2.el8",
+                        "version": "0.1.0",
+                    },
+                ],
+            ),
+            [
+                {
+                    "id": "123456:centos-stream-x86_64",
+                    "type": "fedora-copr-build",
+                    "packages": ["cool-project-0.1.0-2.el8.x86_64"],
+                },
+                {
+                    "id": "54321:centos-stream-x86_64",
+                    "type": "fedora-copr-build",
+                    "packages": ["not-cool-project-0.1.0-2.el8.x86_64"],
+                },
+            ],
+        ),
+        (
+            "centos-stream-x86_64",
+            flexmock(
+                build_id="123456",
+                built_packages=[
+                    {
+                        "arch": "x86_64",
+                        "epoch": 0,
+                        "name": "cool-project",
+                        "release": "2.el8",
+                        "version": "0.1.0",
+                    },
+                    {
+                        "arch": "src",
+                        "epoch": 0,
+                        "name": "cool-project",
+                        "release": "2.el8",
+                        "version": "0.1.0",
+                    },
+                ],
+            ),
+            None,
+            [
+                {
+                    "id": "123456:centos-stream-x86_64",
+                    "type": "fedora-copr-build",
+                    "packages": ["cool-project-0.1.0-2.el8.x86_64"],
+                }
+            ],
+        ),
+    ],
+)
+def test_get_artifacts(chroot, build, additional_build, result):
+    job_config = JobConfig(
+        trigger=JobConfigTriggerType.pull_request,
+        type=JobType.tests,
+        _targets=["test-target", "another-test-target"],
+    )
+    metadata = flexmock(
+        event_dict={"comment": "/packit-dev test my/namespace/my-repo#10"}
+    )
+
+    git_project = flexmock()
+
+    helper = TFJobHelper(
+        service_config=flexmock(comment_command_prefix="/packit-dev"),
+        package_config=flexmock(jobs=[]),
+        project=git_project,
+        metadata=metadata,
+        db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+        job_config=job_config,
+    )
+
+    artifacts = helper._get_artifacts(
+        chroot=chroot, build=build, additional_build=additional_build
+    )
+
+    assert artifacts == result

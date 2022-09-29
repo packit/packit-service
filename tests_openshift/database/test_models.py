@@ -527,7 +527,7 @@ def test_tmt_test_run_set_web_url(
         commit_sha="687abc76d67d",
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_model=run_model,
+        run_models=[run_model],
     )
     assert not test_run_model.web_url
     new_url = (
@@ -553,7 +553,7 @@ def test_tmt_test_get_by_pipeline_id_pr(
         commit_sha="687abc76d67d",
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_model=run_model,
+        run_models=[run_model],
     )
 
     test_run_for_pipeline_id = TFTTestRunTargetModel.get_by_pipeline_id(
@@ -581,7 +581,7 @@ def test_tmt_test_get_by_pipeline_id_branch_push(
         commit_sha="687abc76d67d",
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_model=run_model,
+        run_models=[run_model],
     )
 
     test_run = TFTTestRunTargetModel.get_by_pipeline_id(test_run_model.pipeline_id)
@@ -601,7 +601,7 @@ def test_tmt_test_get_by_pipeline_id_release(
         commit_sha="687abc76d67d",
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_model=run_model,
+        run_models=[run_model],
     )
 
     test_run = TFTTestRunTargetModel.get_by_pipeline_id(test_run_model.pipeline_id)

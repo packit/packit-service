@@ -563,7 +563,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
         web_url=None,
-        run_model=copr_build_pr.runs[0],
+        run_models=[copr_build_pr.runs[0]],
         data={"base_project_url": "https://github.com/foo/bar"},
     ).and_return(tft_test_run_model)
 

@@ -9,11 +9,11 @@ from datetime import datetime, timezone, timedelta
 
 import pytest
 from flexmock import flexmock
-from ogr import PagureService
 from ogr.services.github import GithubProject, GithubService
 from ogr.services.gitlab import GitlabProject, GitlabService
 from ogr.services.pagure import PagureProject
 
+from ogr import PagureService
 from packit_service.config import ServiceConfig, PackageConfigGetter
 from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import (
@@ -26,6 +26,8 @@ from packit_service.models import (
     GitBranchModel,
     ProjectReleaseModel,
     PullRequestModel,
+    get_submitted_time_from_model,
+    get_most_recent_targets,
 )
 from packit_service.worker.events import (
     KojiTaskEvent,
@@ -47,7 +49,6 @@ from packit_service.worker.events import (
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
-    AbstractForgeIndependentEvent,
 )
 from packit_service.worker.events.enums import (
     PullRequestAction,
@@ -1511,7 +1512,7 @@ class TestEvents:
         flexmock(TFTTestRunTargetModel).new_instances(fake_tf)
         tf = TFTTestRunTargetModel()
         tf.__class__ = TFTTestRunTargetModel
-        assert date == AbstractForgeIndependentEvent._get_submitted_time_from_model(tf)
+        assert date == get_submitted_time_from_model(tf)
 
         fake_copr = flexmock(build_submitted_time=date)
         flexmock(CoprBuildTargetModel).new_instances(fake_copr)
@@ -1519,22 +1520,16 @@ class TestEvents:
         copr.__class__ = (
             CoprBuildTargetModel  # to pass in isinstance(model, CoprBuildTargetModel)
         )
-        assert date == AbstractForgeIndependentEvent._get_submitted_time_from_model(
-            copr
-        )
+        assert date == get_submitted_time_from_model(copr)
 
     def test_get_most_recent_targets(self, copr_models, tf_models):
-        latest_copr_models = AbstractForgeIndependentEvent.get_most_recent_targets(
-            copr_models
-        )
+        latest_copr_models = get_most_recent_targets(copr_models)
         assert len(latest_copr_models) == 1
         assert datetime.utcnow() - latest_copr_models[
             0
         ].build_submitted_time < timedelta(seconds=2)
 
-        latest_tf_models = AbstractForgeIndependentEvent.get_most_recent_targets(
-            tf_models
-        )
+        latest_tf_models = get_most_recent_targets(tf_models)
         assert len(latest_tf_models) == 1
         assert datetime.utcnow() - latest_tf_models[0].submitted_time < timedelta(
             seconds=2
