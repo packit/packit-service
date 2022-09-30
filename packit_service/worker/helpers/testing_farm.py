@@ -231,6 +231,25 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             self._copr_builds_from_other_pr = self.get_copr_builds_from_other_pr()
         return self._copr_builds_from_other_pr
 
+    @property
+    def available_composes(self) -> Optional[Set[str]]:
+        """
+        Fetches available composes from the Testing Farm endpoint.
+
+        Returns:
+            Set of all available composes or `None` if error occurs.
+        """
+        endpoint = (
+            f"composes/{'redhat' if self.job_config.use_internal_tf else 'public' }"
+        )
+
+        response = self.send_testing_farm_request(endpoint=endpoint)
+        if response.status_code != 200:
+            return None
+
+        # {'composes': [{'name': 'CentOS-Stream-8'}, {'name': 'Fedora-Rawhide'}]}
+        return {c["name"] for c in response.json()["composes"]}
+
     @staticmethod
     def _artifact(
         chroot: str, build_id: Optional[int], built_packages: Optional[List[Dict]]
@@ -451,6 +470,20 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             compose if we were able to map the distro to compose present
             in the list of available composes, otherwise None
         """
+        composes = self.available_composes
+        if composes is None:
+            msg = "We were not able to get the available TF composes."
+            logger.error(msg)
+            self.report_status_to_test_for_test_target(
+                state=BaseCommitStatus.error,
+                description=msg,
+                target=target,
+            )
+            return None
+
+        if target in composes:
+            return target
+
         distro, arch = target.rsplit("-", 1)
         compose = (
             distro.title()
@@ -465,24 +498,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if arch == "aarch64":
             # TF has separate composes for aarch64 architecture
             compose += "-aarch64"
-
-        endpoint = (
-            f"composes/{'redhat' if self.job_config.use_internal_tf else 'public'}"
-        )
-        response = self.send_testing_farm_request(endpoint=endpoint)
-
-        if response.status_code != 200:
-            msg = "We were not able to get the available TF composes."
-            logger.error(msg)
-            self.report_status_to_test_for_test_target(
-                state=BaseCommitStatus.error,
-                description=msg,
-                target=target,
-            )
-            return None
-
-        # {'composes': [{'name': 'CentOS-Stream-8'}, {'name': 'Fedora-Rawhide'}]}
-        composes = [c["name"] for c in response.json()["composes"]]
 
         if self.job_config.use_internal_tf:
             if compose in composes:

@@ -1381,7 +1381,7 @@ def test_pr_test_command_handler_compose_not_present(
         url="",
         markdown_content="The compose Fedora-Rawhide (from target fedora-rawhide) is not in "
         "the list of available composes:\n"
-        "['some-other-compose']. Please, check the targets defined in your test job configuration. "
+        "{'some-other-compose'}. Please, check the targets defined in your test job configuration. "
         "If you think your configuration is correct, get "
         "in touch with [us](https://packit.dev/#contact).",
     ).once()
