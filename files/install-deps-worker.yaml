@@ -27,7 +27,6 @@
           - python3-redis # celery[redis]
           - python3-lazy-object-proxy
           - python3-flask-restx
-          - python3-xmltodict # parse Testing Farm results
           - dnf-utils
           - make
           # for pip-installing sandcastle from git repo
