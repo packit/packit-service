@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Iterable, List, Optional, Set, Tuple
 
@@ -126,10 +127,20 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             f"-{self.job_config.identifier}" if self.job_config.identifier else ""
         )
 
-        return (
+        copr_project_name = (
             f"{service_prefix}{namespace}-{self.project.repo}-{ref_identifier}"
             f"{configured_identifier}"
         )
+
+        return self.normalise_copr_project_name(copr_project_name)
+
+    @staticmethod
+    def normalise_copr_project_name(copr_project_name: str) -> str:
+        """
+        Transform not allowed characters for Copr project name to '-'
+        (name must contain only letters, digits, underscores, dashes and dots).
+        """
+        return re.sub(r"[^\w.-]", "-", copr_project_name)
 
     @property
     def job_project(self) -> Optional[str]:

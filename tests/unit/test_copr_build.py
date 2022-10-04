@@ -14,9 +14,6 @@ from copr.v3 import CoprRequestException, CoprAuthException
 from copr.v3.proxies.build import BuildProxy
 from flexmock import flexmock
 from munch import Munch
-
-import packit
-import packit_service
 from ogr.abstract import CommitStatus, GitProject
 from ogr.exceptions import GitForgeInternalError, GitlabAPIException, OgrNetworkError
 from ogr.services.github import GithubProject
@@ -26,6 +23,9 @@ from ogr.services.github.check_run import (
     create_github_check_run_output,
 )
 from ogr.services.gitlab import GitlabProject
+
+import packit
+import packit_service
 from packit.actions import ActionName
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobConfigTriggerType, JobType, PackageConfig
@@ -2610,3 +2610,21 @@ def test_submit_copr_build(
             ownername="", projectname="", path="", buildopts=buildopts
         ).and_return(flexmock(id=0))
         helper.submit_copr_build()
+
+
+@pytest.mark.parametrize(
+    "raw_name,expected_name",
+    [
+        ("packit-specfile-91-fedora-epel", "packit-specfile-91-fedora-epel"),
+        ("packit-specfile-91-fedora+epel", "packit-specfile-91-fedora-epel"),
+        ("packit-specfile-my@fancy@branch", "packit-specfile-my-fancy-branch"),
+        ("packit-specfile-v23:1", "packit-specfile-v23-1"),
+    ],
+)
+def test_normalise_copr_project_name(raw_name, expected_name):
+    assert (
+        CoprBuildJobHelper.normalise_copr_project_name(raw_name)
+        == expected_name
+    )
+
+
