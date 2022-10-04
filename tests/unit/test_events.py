@@ -431,7 +431,7 @@ class TestEvents:
         assert (
             event_object.project_url == "https://gitlab.com/testing/packit/hello-there"
         )
-        assert event_object.user_login == "shreyaspapi"
+        assert event_object.actor == "shreyaspapi"
         assert event_object.comment == "must be reopened"
         assert event_object.commit_sha == "45e272a57335e4e308f3176df6e9226a9e7805a9"
 
@@ -571,7 +571,7 @@ class TestEvents:
         assert (
             event_object.project_url == "https://gitlab.com/testing/packit/hello-there"
         )
-        assert event_object.user_login == "shreyaspapi"
+        assert event_object.actor == "shreyaspapi"
         assert event_object.comment == "testing comment"
 
         assert isinstance(event_object.project, GitlabProject)
