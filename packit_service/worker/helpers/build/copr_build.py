@@ -222,6 +222,12 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
     def forge_project(self):
         return f"{self.project.service.hostname}/{self.project.namespace}/{self.project.repo}"
 
+    @property
+    def copr_settings_url(self):
+        return self.api.copr_helper.get_copr_settings_url(
+            self.job_owner, self.job_project
+        )
+
     def build_target2test_targets(self, build_target: str) -> Set[str]:
         """
         Return all test targets defined for the build target
@@ -390,6 +396,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             markdown_content = CUSTOM_COPR_PROJECT_ALLOWED_IN_PACKIT_CONFIG.format(
                 copr_project=self.configured_copr_project,
                 forge_project=self.forge_project,
+                copr_settings_url=self.copr_settings_url,
             )
             self.status_reporter.comment(body=markdown_content)
             return True
@@ -402,6 +409,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             markdown_content=CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT.format(
                 copr_project=self.configured_copr_project,
                 forge_project=self.forge_project,
+                copr_settings_url=self.copr_settings_url,
             ),
         )
         return False
@@ -592,6 +600,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 markdown_content = CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT.format(
                     copr_project=self.configured_copr_project,
                     forge_project=self.forge_project,
+                    copr_settings_url=self.copr_settings_url,
                 )
                 self.status_reporter.comment(body=markdown_content)
 

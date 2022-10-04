@@ -2584,6 +2584,9 @@ def test_submit_copr_build(
     flexmock(helper).should_receive("srpm_path").and_return("")
     flexmock(helper).should_receive("forge_project").and_return("")
     flexmock(helper).should_receive("configured_copr_project").and_return("")
+    flexmock(CoprHelper).should_receive("get_copr_settings_url").and_return(
+        "https://copr.fedorainfracloud.org/coprs//edit/"
+    )
     flexmock(helper).should_receive("status_reporter").and_return(
         flexmock()
         .should_receive("comment")
