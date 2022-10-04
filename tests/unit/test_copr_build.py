@@ -30,7 +30,11 @@ from packit.actions import ActionName
 from packit.api import PackitAPI
 from packit.config import JobConfig, JobConfigTriggerType, JobType, PackageConfig
 from packit.copr_helper import CoprHelper
-from packit.exceptions import FailedCreateSRPM, PackitCoprSettingsException
+from packit.exceptions import (
+    FailedCreateSRPM,
+    PackitCoprSettingsException,
+    PackitCoprProjectException,
+)
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
@@ -2622,9 +2626,60 @@ def test_submit_copr_build(
     ],
 )
 def test_normalise_copr_project_name(raw_name, expected_name):
-    assert (
-        CoprBuildJobHelper.normalise_copr_project_name(raw_name)
-        == expected_name
+    assert CoprBuildJobHelper.normalise_copr_project_name(raw_name) == expected_name
+
+
+def test_copr_build_invalid_copr_project_name(github_pr_event):
+    """Verify that comment we post when we fail to update chroots on our projects
+    is correct and not the one about permissions"""
+    helper = build_helper(
+        event=github_pr_event,
+        db_trigger=flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
+        ),
+    )
+    # enforce that we are reporting on our own Copr project
+    helper.job_build.owner = "packit"
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+        {"f31", "f32"}
+    )
+    flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_raise(
+        PackitCoprProjectException(
+            "Cannot create a new Copr project (owner=packit-stg project="
+            "packit-specfile-91-fedora+epel chroots=['fedora-rawhide-x86_64', "
+            "'epel-9-x86_64', 'fedora-36-x86_64', 'fedora-35-x86_64']): name: "
+            "Name must contain only letters, digits, underscores, dashes and dots.",
+        )
+    )
+    expected_body = (
+        "We were not able to find or create Copr project "
+        "`packit/the-example-namespace-the-example-repo-342` "
+        "specified in the config with the following error:\n"
+        "```\nCannot create a new Copr project (owner=packit-stg project="
+        "packit-specfile-91-fedora+epel chroots=['fedora-rawhide-x86_64', "
+        "'epel-9-x86_64', 'fedora-36-x86_64', 'fedora-35-x86_64']): name: "
+        "Name must contain only letters, digits, underscores, dashes and dots.\n```\n---\n"
+        "Please check your configuration for:\n\n"
+        "1. typos in owner and project name (groups need to be prefixed with `@`)\n"
+        "2. whether the project name doesn't contain not allowed characters (only letters, "
+        "digits, underscores, dashes and dots must be used)\n"
+        "3. whether the project itself exists (Packit creates projects"
+        " only in its own namespace)\n"
+        "4. whether Packit is allowed to build in your Copr project\n"
+        "5. whether your Copr project/group is not private"
+    )
+    status_reporter = (
+        flexmock()
+        .should_receive("comment")
+        .with_args(body=expected_body)
+        .and_return()
+        .mock()
     )
 
-
+    flexmock(CoprBuildJobHelper).should_receive("status_reporter").and_return(
+        status_reporter
+    )
+    with pytest.raises(PackitCoprProjectException):
+        helper.create_copr_project_if_not_exists()
