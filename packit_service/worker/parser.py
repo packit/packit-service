@@ -157,8 +157,8 @@ class Parser:
         if action not in {"reopen", "update"}:
             action = state
 
-        username = event["user"]["username"]
-        if not username:
+        actor = event["user"]["username"]
+        if not actor:
             logger.warning("No Gitlab username from event.")
             return None
 
@@ -209,7 +209,7 @@ class Parser:
 
         return MergeRequestGitlabEvent(
             action=GitlabEventAction[action],
-            username=username,
+            actor=actor,
             object_id=object_id,
             object_iid=object_iid,
             source_repo_namespace=parsed_source_url.namespace,
@@ -493,8 +493,8 @@ class Parser:
             f"url={project_url}."
         )
 
-        username = nested_get(event, "user", "username")
-        if not username:
+        actor = nested_get(event, "user", "username")
+        if not actor:
             logger.warning("No Gitlab username from event.")
             return None
 
@@ -504,7 +504,7 @@ class Parser:
             repo_namespace=parsed_url.namespace,
             repo_name=parsed_url.repo,
             project_url=project_url,
-            username=username,
+            actor=actor,
             comment=comment,
             comment_id=comment_id,
         )
@@ -568,8 +568,8 @@ class Parser:
             f"url={target_project_url}."
         )
 
-        username = nested_get(event, "user", "username")
-        if not username:
+        actor = nested_get(event, "user", "username")
+        if not actor:
             logger.warning("No Gitlab username from event.")
             return None
 
@@ -587,7 +587,7 @@ class Parser:
             target_repo_namespace=parsed_target_url.namespace,
             target_repo_name=parsed_target_url.repo,
             project_url=target_project_url,
-            username=username,
+            actor=actor,
             comment=comment,
             commit_sha=commit_sha,
             comment_id=comment_id,

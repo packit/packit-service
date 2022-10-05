@@ -46,7 +46,7 @@ class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
     def __init__(
         self,
         action: GitlabEventAction,
-        username: str,
+        actor: str,
         object_id: int,
         object_iid: int,
         source_repo_namespace: str,
@@ -68,7 +68,7 @@ class MergeRequestGitlabEvent(AddPullRequestDbTrigger, AbstractGitlabEvent):
             pr_id=object_iid,
         )
         self.action = action
-        self.user_login = username
+        self.actor = actor
         self.object_id = object_id
         self.identifier = str(object_iid)
         self.source_repo_namespace = source_repo_namespace
@@ -108,7 +108,7 @@ class MergeRequestCommentGitlabEvent(AbstractPRCommentEvent, AbstractGitlabEvent
         target_repo_namespace: str,
         target_repo_name: str,
         project_url: str,
-        username: str,
+        actor: str,
         comment: str,
         comment_id: int,
         commit_sha: str,
@@ -128,7 +128,7 @@ class MergeRequestCommentGitlabEvent(AbstractPRCommentEvent, AbstractGitlabEvent
         self.source_repo_namespace = source_repo_namespace
         self.target_repo_namespace = target_repo_namespace
         self.target_repo_name = target_repo_name
-        self.user_login = username
+        self.actor = actor
         self.identifier = str(object_iid)
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
@@ -151,7 +151,7 @@ class IssueCommentGitlabEvent(AbstractIssueCommentEvent, AbstractGitlabEvent):
         repo_namespace: str,
         repo_name: str,
         project_url: str,
-        username: str,
+        actor: str,
         comment: str,
         comment_id: int,
         tag_name: str = "",
@@ -168,7 +168,7 @@ class IssueCommentGitlabEvent(AbstractIssueCommentEvent, AbstractGitlabEvent):
             comment_object=comment_object,
         )
         self.action = action
-        self.user_login = username
+        self.actor = actor
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         result = super().get_dict()
