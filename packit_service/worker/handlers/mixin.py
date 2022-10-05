@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class GetKojiBuildEvent(Protocol):
-    _koji_build_event: Optional[KojiBuildEvent] = None
+    data: EventData
 
     @property
     def koji_build_event(self) -> KojiBuildEvent:
@@ -39,7 +39,7 @@ class GetKojiBuildEvent(Protocol):
 
 
 class GetKojiBuildEventMixin(ConfigMixin, GetKojiBuildEvent):
-    data: EventData
+    _koji_build_event: Optional[KojiBuildEvent] = None
 
     @property
     def koji_build_event(self):
@@ -51,14 +51,13 @@ class GetKojiBuildEventMixin(ConfigMixin, GetKojiBuildEvent):
 
 
 class GetKojiBuildJobHelper(Protocol):
-    _koji_build_helper: Optional[KojiBuildJobHelper] = None
-
     @property
     def koji_build_helper(self) -> KojiBuildJobHelper:
         ...
 
 
 class GetKojiBuildJobHelperMixin(GetKojiBuildJobHelper, ConfigMixin):
+    _koji_build_helper: Optional[KojiBuildJobHelper] = None
     package_config: PackageConfig
     job_config: JobConfig
 
@@ -79,7 +78,7 @@ class GetKojiBuildJobHelperMixin(GetKojiBuildJobHelper, ConfigMixin):
 
 
 class GetCoprBuildEvent(Protocol):
-    _copr_build_event: Optional[KojiBuildEvent] = None
+    data: EventData
 
     @property
     def copr_build_event(self) -> KojiBuildEvent:
@@ -87,7 +86,7 @@ class GetCoprBuildEvent(Protocol):
 
 
 class GetCoprBuildEventMixin(ConfigMixin, GetCoprBuildEvent):
-    data: EventData
+    _copr_build_event: Optional[KojiBuildEvent] = None
 
     @property
     def copr_event(self):
@@ -99,9 +98,6 @@ class GetCoprBuildEventMixin(ConfigMixin, GetCoprBuildEvent):
 
 
 class GetSRPMBuild(Protocol):
-    _build: Optional[SRPMBuildModel] = None
-    _db_trigger: Optional[AbstractTriggerDbType] = None
-
     @property
     def build(self) -> Optional[SRPMBuildModel]:
         ...
@@ -112,6 +108,9 @@ class GetSRPMBuild(Protocol):
 
 
 class GetCoprSRPMBuildMixin(GetSRPMBuild, GetCoprBuildEventMixin):
+    _build: Optional[SRPMBuildModel] = None
+    _db_trigger: Optional[AbstractTriggerDbType] = None
+
     @property
     def build(self):
         if not self._build:
@@ -132,8 +131,7 @@ class GetCoprSRPMBuildMixin(GetSRPMBuild, GetCoprBuildEventMixin):
 
 
 class GetCoprBuild(Protocol):
-    _build: Optional[CoprBuildTargetModel] = None
-    _db_trigger: Optional[AbstractTriggerDbType] = None
+    build_id: Optional[int] = None
 
     @property
     def build(self) -> Optional[CoprBuildTargetModel]:
@@ -145,7 +143,8 @@ class GetCoprBuild(Protocol):
 
 
 class GetCoprBuildMixin(GetCoprBuild, ConfigMixin):
-    build_id: Optional[int] = None
+    _build: Optional[CoprBuildTargetModel] = None
+    _db_trigger: Optional[AbstractTriggerDbType] = None
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
@@ -161,7 +160,10 @@ class GetCoprBuildMixin(GetCoprBuild, ConfigMixin):
 
 
 class GetCoprBuildJobHelper(Protocol):
-    _copr_build_helper: Optional[CoprBuildJobHelper] = None
+    package_config: PackageConfig
+    job_config: JobConfig
+    celery_task: Optional[CeleryTask] = None
+    pushgateway: Optional[Pushgateway] = None
 
     @property
     def copr_build_helper(self) -> CoprBuildJobHelper:
@@ -169,10 +171,7 @@ class GetCoprBuildJobHelper(Protocol):
 
 
 class GetCoprBuildJobHelperMixin(GetCoprBuildJobHelper, ConfigMixin):
-    package_config: PackageConfig
-    job_config: JobConfig
-    celery_task: Optional[CeleryTask] = None
-    pushgateway: Optional[Pushgateway] = None
+    _copr_build_helper: Optional[CoprBuildJobHelper] = None
 
     @property
     def copr_build_helper(self) -> CoprBuildJobHelper:
@@ -195,10 +194,7 @@ class GetCoprBuildJobHelperMixin(GetCoprBuildJobHelper, ConfigMixin):
 class GetCoprBuildJobHelperForIdMixin(
     GetCoprBuildJobHelper, GetCoprSRPMBuildMixin, ConfigMixin
 ):
-    package_config: PackageConfig
-    job_config: JobConfig
-    celery_task: Optional[CeleryTask] = None
-    pushgateway: Optional[Pushgateway] = None
+    _copr_build_helper: Optional[CoprBuildJobHelper] = None
 
     @property
     def copr_build_helper(self) -> CoprBuildJobHelper:
@@ -228,7 +224,9 @@ class GetCoprBuildJobHelperForIdMixin(
 
 
 class GetTestingFarmJobHelper(Protocol):
-    _testing_farm_job_helper: Optional[TestingFarmJobHelper] = None
+    package_config: PackageConfig
+    job_config: JobConfig
+    celery_task: Optional[CeleryTask] = None
 
     @property
     def copr_build_helper(self) -> TestingFarmJobHelper:
@@ -238,9 +236,7 @@ class GetTestingFarmJobHelper(Protocol):
 class GetTestingFarmJobHelperMixin(
     GetTestingFarmJobHelper, GetCoprBuildMixin, ConfigMixin
 ):
-    package_config: PackageConfig
-    job_config: JobConfig
-    celery_task: Optional[CeleryTask] = None
+    _testing_farm_job_helper: Optional[TestingFarmJobHelper] = None
 
     @property
     def testing_farm_job_helper(self) -> TestingFarmJobHelper:
@@ -283,8 +279,6 @@ class GetGithubCommentEventMixin(GetGithubCommentEvent, ConfigMixin):
 
 
 class GetProjectToSync(Protocol):
-    _project_to_sync: Optional[ProjectToSync] = None
-
     @property
     def dg_repo_name(self) -> str:
         ...
@@ -299,6 +293,8 @@ class GetProjectToSync(Protocol):
 
 
 class GetProjectToSyncMixin(ConfigMixin, GetProjectToSync):
+    _project_to_sync: Optional[ProjectToSync] = None
+
     @property
     def dg_repo_name(self) -> str:
         return self.data.event_dict.get("repo_name")

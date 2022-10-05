@@ -26,8 +26,6 @@ logger = logging.getLogger(__name__)
 
 
 class Config(Protocol):
-    _project: Optional[GitProject] = None
-    _service_config: Optional[ServiceConfig] = None
     data: EventData
 
     @property
@@ -44,6 +42,8 @@ class Config(Protocol):
 
 
 class ConfigMixin(Config):
+    _project: Optional[GitProject] = None
+    _service_config: Optional[ServiceConfig] = None
     data: EventData
 
     @property
@@ -65,7 +65,6 @@ class ConfigMixin(Config):
 
 class PackitAPIProtocol(Protocol):
     api: Optional[PackitAPI] = None
-    _packit_api: Optional[PackitAPI] = None
     local_project: Optional[LocalProject] = None
 
     @property
@@ -74,6 +73,8 @@ class PackitAPIProtocol(Protocol):
 
 
 class PackitAPIWithDownstreamProtocol(PackitAPIProtocol):
+    _packit_api: Optional[PackitAPI] = None
+
     def is_packager(self, user) -> bool:
         """Check that the given FAS user
         is a packager
@@ -87,6 +88,8 @@ class PackitAPIWithDownstreamProtocol(PackitAPIProtocol):
 
 
 class PackitAPIWithDownstreamMixin(PackitAPIWithDownstreamProtocol):
+    _packit_api: Optional[PackitAPI] = None
+
     @property
     def packit_api(self):
         if not self._packit_api:
@@ -109,6 +112,8 @@ class PackitAPIWithDownstreamMixin(PackitAPIWithDownstreamProtocol):
 
 
 class PackitAPIWithUpstreamMixin(PackitAPIProtocol):
+    _packit_api: Optional[PackitAPI] = None
+
     @property
     def packit_api(self):
         if not self._packit_api:
@@ -140,8 +145,6 @@ class LocalProjectMixin(ConfigMixin):
 
 
 class GetPagurePullRequest(Protocol):
-    _pull_request: Optional[PullRequest] = None
-
     @property
     def pull_request(self) -> PullRequest:
         ...
@@ -151,6 +154,8 @@ class GetPagurePullRequest(Protocol):
 
 
 class GetPagurePullRequestMixin(GetPagurePullRequest):
+    _pull_request: Optional[PullRequest] = None
+
     @property
     def pull_request(self):
         if not self._pull_request and self.data.event_dict["committer"] == "pagure":
@@ -173,14 +178,14 @@ class GetPagurePullRequestMixin(GetPagurePullRequest):
 
 
 class GetIssue(Protocol):
-    _issue: Optional[Issue] = None
-
     @property
     def issue(self) -> Issue:
         ...
 
 
 class GetIssueMixin(GetIssue, ConfigMixin):
+    _issue: Optional[Issue] = None
+
     @property
     def issue(self):
         if not self._issue:
