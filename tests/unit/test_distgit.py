@@ -44,7 +44,7 @@ def test_create_one_issue_for_pr():
         ]
     )
     flexmock(ProposeDownstreamHandler).should_receive("project").and_return(project)
-    handler = ProposeDownstreamHandler(None, None, {})
+    handler = ProposeDownstreamHandler(None, None, {}, flexmock())
     handler._report_errors_for_each_branch(
         {
             "f34": "Propose downstream failed for release 056",

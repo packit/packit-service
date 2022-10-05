@@ -126,8 +126,8 @@ class ProposeDownstreamHandler(
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
+        celery_task: Task,
         propose_downstream_run_id: Optional[int] = None,
-        celery_task: Task = None,
     ):
         super().__init__(
             package_config=package_config,
@@ -367,7 +367,7 @@ class DownstreamKojiBuildHandler(
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
-        celery_task: Optional[Task] = None,
+        celery_task: Task,
     ):
         super().__init__(
             package_config=package_config,

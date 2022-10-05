@@ -5,7 +5,7 @@
 This file defines classes for job handlers related to Bodhi
 """
 import logging
-from typing import Optional, Tuple
+from typing import Tuple
 
 from celery import Task
 from fedora.client import AuthError
@@ -52,7 +52,7 @@ class CreateBodhiUpdateHandler(
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
-        celery_task: Optional[Task] = None,
+        celery_task: Task,
     ):
         super().__init__(
             package_config=package_config,

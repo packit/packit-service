@@ -94,8 +94,8 @@ class TestingFarmHandler(
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
+        celery_task: Task,
         build_id: Optional[int] = None,
-        celery_task: Optional[Task] = None,
     ):
         super().__init__(
             package_config=package_config,

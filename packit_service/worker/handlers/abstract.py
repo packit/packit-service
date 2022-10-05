@@ -382,7 +382,7 @@ class RetriableJobHandler(JobHandler):
         super().__init__(
             package_config=package_config, job_config=job_config, event=event
         )
-        self.celery_task = CeleryTask(celery_task) if celery_task else None
+        self.celery_task = CeleryTask(celery_task)
 
     def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")
