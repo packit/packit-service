@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Iterable, List, Optional, Set, Tuple
 
@@ -126,10 +127,20 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             f"-{self.job_config.identifier}" if self.job_config.identifier else ""
         )
 
-        return (
+        copr_project_name = (
             f"{service_prefix}{namespace}-{self.project.repo}-{ref_identifier}"
             f"{configured_identifier}"
         )
+
+        return self.normalise_copr_project_name(copr_project_name)
+
+    @staticmethod
+    def normalise_copr_project_name(copr_project_name: str) -> str:
+        """
+        Transform not allowed characters for Copr project name to '-'
+        (name must contain only letters, digits, underscores, dashes and dots).
+        """
+        return re.sub(r"[^\w.-]", "-", copr_project_name)
 
     @property
     def job_project(self) -> Optional[str]:
@@ -912,16 +923,18 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             raise ex
         except PackitCoprProjectException as ex:
             msg = (
-                "We were not able to find Copr project"
-                f"({owner}/{self.job_project}) "
+                "We were not able to find or create Copr project"
+                f" `{owner}/{self.job_project}` "
                 "specified in the config with the following error:\n"
-                f"```\n{str(ex.__cause__)}\n```\n---\n"
+                f"```\n{str(ex)}\n```\n---\n"
                 "Please check your configuration for:\n\n"
                 "1. typos in owner and project name (groups need to be prefixed with `@`)\n"
-                "2. whether the project itself exists (Packit creates projects"
+                "2. whether the project name doesn't contain not allowed characters (only letters, "
+                "digits, underscores, dashes and dots must be used)\n"
+                "3. whether the project itself exists (Packit creates projects"
                 " only in its own namespace)\n"
-                "3. whether Packit is allowed to build in your Copr project\n"
-                "4. whether your Copr project/group is not private"
+                "4. whether Packit is allowed to build in your Copr project\n"
+                "5. whether your Copr project/group is not private"
             )
             self.status_reporter.comment(body=msg)
             raise ex
