@@ -19,7 +19,7 @@ from packit_service.worker.mixin import (
 logger = logging.getLogger(__name__)
 
 
-class Permission(Checker, GetPagurePullRequestMixin):
+class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
     def pre_check(self) -> bool:
         if self.data.event_type in (PushPagureEvent.__name__,):
             if self.data.git_ref not in (

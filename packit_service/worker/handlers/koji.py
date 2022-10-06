@@ -48,7 +48,7 @@ from packit_service.worker.handlers.abstract import (
 )
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
-from packit_service.worker.checker import koji
+from packit_service.worker.checker.koji import PermissionOnKoji
 from packit_service.worker.handlers.mixin import GetKojiBuildJobHelperMixin
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ class KojiBuildHandler(JobHandler, GetKojiBuildJobHelperMixin):
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker]]:
-        return (koji.Permission,)
+        return (PermissionOnKoji,)
 
     def run(self) -> TaskResults:
         return self.koji_build_helper.run_koji_build()

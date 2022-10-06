@@ -19,7 +19,7 @@ from packit_service.models import (
 )
 from packit_service.utils import get_packit_commands_from_comment
 from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.checker.forges import Permission
+from packit_service.worker.checker.forges import PermissionOnForge
 from packit_service.worker.events import (
     InstallationEvent,
     IssueCommentEvent,
@@ -143,7 +143,7 @@ class GithubFasVerificationHandler(JobHandler, GetIssueMixin):
 
     @staticmethod
     def get_checkers() -> Tuple:
-        return (Permission,)
+        return (PermissionOnForge,)
 
     def run(self) -> TaskResults:
         """

@@ -23,7 +23,7 @@ from packit_service.worker.reporting import BaseCommitStatus
 logger = logging.getLogger(__name__)
 
 
-class Permission(Checker, GetCoprBuildJobHelperMixin):
+class PermissionOnCopr(Checker, GetCoprBuildJobHelperMixin):
     def pre_check(
         self,
     ) -> bool:

@@ -22,7 +22,7 @@ from packit_service.worker.handlers.mixin import GetKojiBuildJobHelperMixin
 logger = logging.getLogger(__name__)
 
 
-class Permission(Checker, GetKojiBuildJobHelperMixin):
+class PermissionOnKoji(Checker, GetKojiBuildJobHelperMixin):
     def pre_check(self) -> bool:
         if (
             self.data.event_type == MergeRequestGitlabEvent.__name__

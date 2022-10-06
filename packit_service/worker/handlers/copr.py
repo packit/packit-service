@@ -28,7 +28,7 @@ from packit_service.models import (
 from packit_service.worker.checker.copr import (
     CanActorRunJob,
     CoprBuildPermission,
-    Permission,
+    PermissionOnCopr,
 )
 from packit_service.worker.events import (
     CoprBuildEndEvent,
@@ -105,7 +105,7 @@ class CoprBuildHandler(RetriableJobHandler, GetCoprBuildJobHelperMixin):
 
     @staticmethod
     def get_checkers() -> Tuple:
-        return (Permission, CanActorRunJob)
+        return (PermissionOnCopr, CanActorRunJob)
 
     def get_packit_github_installation_time(self) -> Optional[datetime]:
         if isinstance(self.project, GithubProject) and (

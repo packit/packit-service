@@ -30,7 +30,7 @@ from packit_service.models import (
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.utils import gather_packit_logs_to_buffer, collect_packit_logs
 from packit_service.worker.checker.abstract import Checker
-from packit_service.worker.checker.distgit import IsProjectOk, Permission
+from packit_service.worker.checker.distgit import IsProjectOk, PermissionOnDistgit
 from packit_service.worker.events import (
     PushPagureEvent,
     ReleaseEvent,
@@ -381,7 +381,7 @@ class DownstreamKojiBuildHandler(
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker]]:
-        return (Permission,)
+        return (PermissionOnDistgit,)
 
     def run(self) -> TaskResults:
         branch = (
