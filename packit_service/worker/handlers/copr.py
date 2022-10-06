@@ -3,7 +3,7 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Type
 
 from celery import signature, Task
 from ogr.services.github import GithubProject
@@ -25,6 +25,7 @@ from packit_service.models import (
     GithubInstallationModel,
     BuildStatus,
 )
+from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.copr import (
     CanActorRunJob,
     CoprBuildPermission,
@@ -104,7 +105,7 @@ class CoprBuildHandler(RetriableJobHandler, GetCoprBuildJobHelperMixin):
         )
 
     @staticmethod
-    def get_checkers() -> Tuple:
+    def get_checkers() -> Tuple[Type[Checker], ...]:
         return (PermissionOnCopr, CanActorRunJob)
 
     def get_packit_github_installation_time(self) -> Optional[datetime]:
@@ -129,7 +130,7 @@ class CoprBuildHandler(RetriableJobHandler, GetCoprBuildJobHelperMixin):
 
 class AbstractCoprBuildReportHandler(JobHandler, GetCoprBuildJobHelperForIdMixin):
     @staticmethod
-    def get_checkers() -> Tuple:
+    def get_checkers() -> Tuple[Type[Checker], ...]:
         return (CoprBuildPermission,)
 
 

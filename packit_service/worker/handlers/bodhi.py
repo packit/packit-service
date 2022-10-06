@@ -5,7 +5,7 @@
 This file defines classes for job handlers related to Bodhi
 """
 import logging
-from typing import Tuple
+from typing import Tuple, Type
 
 from celery import Task
 from fedora.client import AuthError
@@ -20,6 +20,7 @@ from packit_service.constants import (
     CONTACTS_URL,
     RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED,
 )
+from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.bodhi import IsKojiBuildComplete
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
@@ -62,7 +63,7 @@ class CreateBodhiUpdateHandler(
         )
 
     @staticmethod
-    def get_checkers() -> Tuple:
+    def get_checkers() -> Tuple[Type[Checker], ...]:
         """We react only on finished builds (=KojiBuildState.complete)
         and configured branches.
         """

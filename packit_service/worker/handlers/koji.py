@@ -89,7 +89,7 @@ class KojiBuildHandler(JobHandler, GetKojiBuildJobHelperMixin):
         self._project: Optional[GitProject] = None
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker]]:
+    def get_checkers() -> Tuple[Type[Checker], ...]:
         return (PermissionOnKoji,)
 
     def run(self) -> TaskResults:

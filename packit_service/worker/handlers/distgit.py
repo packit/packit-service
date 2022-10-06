@@ -83,7 +83,7 @@ class SyncFromDownstream(
         )
 
     @staticmethod
-    def get_checkers() -> Tuple:
+    def get_checkers() -> Tuple[Type[Checker], ...]:
         return (IsProjectOk,)
 
     @property
@@ -380,7 +380,7 @@ class DownstreamKojiBuildHandler(
         self._packit_api = None
 
     @staticmethod
-    def get_checkers() -> Tuple[Type[Checker]]:
+    def get_checkers() -> Tuple[Type[Checker], ...]:
         return (PermissionOnDistgit,)
 
     def run(self) -> TaskResults:

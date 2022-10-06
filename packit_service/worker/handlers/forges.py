@@ -6,7 +6,7 @@ This file defines classes for job handlers specific for Github hooks
 TODO: The build and test handlers are independent and should be moved away.
 """
 import logging
-from typing import Tuple
+from typing import Tuple, Type
 
 from packit.config import (
     JobConfig,
@@ -19,6 +19,7 @@ from packit_service.models import (
 )
 from packit_service.utils import get_packit_commands_from_comment
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.forges import PermissionOnForge
 from packit_service.worker.events import (
     InstallationEvent,
@@ -142,7 +143,7 @@ class GithubFasVerificationHandler(JobHandler, GetIssueMixin):
         self.comment = self.data.event_dict.get("comment")
 
     @staticmethod
-    def get_checkers() -> Tuple:
+    def get_checkers() -> Tuple[Type[Checker], ...]:
         return (PermissionOnForge,)
 
     def run(self) -> TaskResults:

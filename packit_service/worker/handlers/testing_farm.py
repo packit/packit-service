@@ -6,7 +6,7 @@ This file defines classes for job handlers specific for Testing farm
 """
 import logging
 from datetime import datetime, timezone
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict, List, Tuple, Type
 
 from celery import Task
 from celery import signature
@@ -26,6 +26,7 @@ from packit_service.service.urls import (
     get_copr_build_info_url,
 )
 from packit_service.utils import dump_job_config, dump_package_config
+from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.testing_farm import (
     CanActorRunJob,
     IsEventForJob,
@@ -107,7 +108,7 @@ class TestingFarmHandler(
         self._testing_farm_job_helper: Optional[TestingFarmJobHelper] = None
 
     @staticmethod
-    def get_checkers() -> Tuple:
+    def get_checkers() -> Tuple[Type[Checker], ...]:
         return (
             IsEventOk,
             CanActorRunJob,
@@ -292,7 +293,7 @@ class TestingFarmResultsHandler(JobHandler):
         self.created = event.get("created")
 
     @staticmethod
-    def get_checkers() -> Tuple:
+    def get_checkers() -> Tuple[Type[Checker], ...]:
         return (IsEventForJob,)
 
     @property

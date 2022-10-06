@@ -29,6 +29,7 @@ from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events import Event, EventData
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.result import TaskResults
+from packit_service.worker.checker.abstract import Checker
 
 from packit_service.worker.mixin import (
     ConfigMixin,
@@ -264,7 +265,7 @@ class Handler(ConfigMixin, PackitAPIWithDownstreamMixin):
                 shutil.rmtree(item)
 
     @staticmethod
-    def get_checkers() -> Tuple:
+    def get_checkers() -> Tuple[Type[Checker], ...]:
         return ()
 
     @classmethod
