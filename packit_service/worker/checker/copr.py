@@ -80,8 +80,7 @@ class CoprBuildPermission(Checker, GetCoprBuildJobHelperForIdMixin):
 
 
 class CanActorRunJob(ActorChecker, GetCoprBuildJobHelperMixin):
-    """
-    For external contributors, we need to be more careful when running jobs.
+    """For external contributors, we need to be more careful when running jobs.
     This is a handler-specific permission check
     for a user who trigger the action on a PR.
     """

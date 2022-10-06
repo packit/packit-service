@@ -275,7 +275,8 @@ class Handler(ConfigMixin, PackitAPIWithDownstreamMixin):
         event: dict,
     ) -> bool:
         """
-        :return: False if we have to skip the job execution.
+        Returns
+            bool: False if we have to skip the job execution.
         """
         checks_pass = True
         for checker_cls in cls.get_checkers():

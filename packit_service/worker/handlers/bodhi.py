@@ -63,8 +63,7 @@ class CreateBodhiUpdateHandler(
 
     @staticmethod
     def get_checkers() -> Tuple:
-        """
-        We react only on finished builds (=KojiBuildState.complete)
+        """We react only on finished builds (=KojiBuildState.complete)
         and configured branches.
         """
         return (IsKojiBuildComplete,)

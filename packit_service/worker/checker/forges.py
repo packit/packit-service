@@ -11,8 +11,7 @@ logger = logging.getLogger(__name__)
 
 class PermissionOnForge(Checker, GetIssueMixin):
     def pre_check(self) -> bool:
-        """
-        Checks whether the Packit verification command is placed in
+        """Checks whether the Packit verification command is placed in
         packit/notifications repository in the issue our service created.
         """
         if not (
