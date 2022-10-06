@@ -63,7 +63,7 @@ class ConfigMixin(Config):
         return self.data.project_url
 
 
-class PackitAPIProtocol(Protocol):
+class PackitAPIProtocol(Config):
     api: Optional[PackitAPI] = None
     local_project: Optional[LocalProject] = None
 
