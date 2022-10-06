@@ -1,6 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+from abc import abstractmethod, abstractproperty
 import logging
 from typing import Optional, Protocol
 
@@ -28,15 +29,15 @@ logger = logging.getLogger(__name__)
 class Config(Protocol):
     data: EventData
 
-    @property
+    @abstractproperty
     def project(self) -> Optional[GitProject]:
         ...
 
-    @property
+    @abstractproperty
     def service_config(self) -> Optional[ServiceConfig]:
         ...
 
-    @property
+    @abstractproperty
     def project_url(self) -> str:
         ...
 
@@ -67,7 +68,7 @@ class PackitAPIProtocol(Config):
     api: Optional[PackitAPI] = None
     local_project: Optional[LocalProject] = None
 
-    @property
+    @abstractproperty
     def packit_api(self) -> PackitAPI:
         ...
 
@@ -75,6 +76,7 @@ class PackitAPIProtocol(Config):
 class PackitAPIWithDownstreamProtocol(PackitAPIProtocol):
     _packit_api: Optional[PackitAPI] = None
 
+    @abstractmethod
     def is_packager(self, user) -> bool:
         """Check that the given FAS user
         is a packager
@@ -145,10 +147,11 @@ class LocalProjectMixin(ConfigMixin):
 
 
 class GetPagurePullRequest(Protocol):
-    @property
+    @abstractproperty
     def pull_request(self) -> PullRequest:
         ...
 
+    @abstractmethod
     def get_pr_author(self) -> Optional[str]:
         ...
 
@@ -178,7 +181,7 @@ class GetPagurePullRequestMixin(GetPagurePullRequest):
 
 
 class GetIssue(Protocol):
-    @property
+    @abstractproperty
     def issue(self) -> Issue:
         ...
 

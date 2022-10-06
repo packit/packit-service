@@ -52,6 +52,7 @@ from packit_service.utils import (
     get_timezone_aware_datetime,
 )
 from packit_service.worker.handlers.mixin import (
+    GetCoprBuildEventMixin,
     GetCoprBuildJobHelperForIdMixin,
     GetCoprBuildJobHelperMixin,
 )
@@ -128,7 +129,9 @@ class CoprBuildHandler(RetriableJobHandler, GetCoprBuildJobHelperMixin):
         return self.copr_build_helper.run_copr_build()
 
 
-class AbstractCoprBuildReportHandler(JobHandler, GetCoprBuildJobHelperForIdMixin):
+class AbstractCoprBuildReportHandler(
+    JobHandler, GetCoprBuildJobHelperForIdMixin, GetCoprBuildEventMixin
+):
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
         return (CoprBuildPermission,)
