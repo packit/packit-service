@@ -65,11 +65,14 @@ class ConfigMixin(Config):
 
 
 class PackitAPIProtocol(Config):
-    api: Optional[PackitAPI] = None
     local_project: Optional[LocalProject] = None
 
     @abstractproperty
     def packit_api(self) -> PackitAPI:
+        ...
+
+    @abstractmethod
+    def clean_api(self) -> None:
         ...
 
 
@@ -112,6 +115,12 @@ class PackitAPIWithDownstreamMixin(PackitAPIWithDownstreamProtocol):
             return False
         return "packager" in [group["groupname"] for group in groups.result]
 
+    def clean_api(self) -> None:
+        """TODO: probably we should clean something even here
+        but for now let it do the same as before the refactoring
+        """
+        pass
+
 
 class PackitAPIWithUpstreamMixin(PackitAPIProtocol):
     _packit_api: Optional[PackitAPI] = None
@@ -125,6 +134,10 @@ class PackitAPIWithUpstreamMixin(PackitAPIProtocol):
                 upstream_local_project=self.local_project,
             )
         return self._packit_api
+
+    def clean_api(self) -> None:
+        if self._packit_api:
+            self._packit_api.clean()
 
 
 class LocalProjectMixin(ConfigMixin):

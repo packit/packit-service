@@ -293,8 +293,7 @@ class Handler(ConfigMixin, PackitAPIWithDownstreamMixin):
     def clean(self):
         """clean up the mess once we're done"""
         logger.info("Cleaning up the mess.")
-        if self.api:
-            self.api.clean()
+        self.clean_api()
         self._clean_workplace()
 
 
