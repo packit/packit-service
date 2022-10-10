@@ -17,6 +17,7 @@ from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
 
 from packit_service.constants import (
+    DOCS_URL,
     MSG_TABLE_HEADER_WITH_DETAILS,
 )
 
@@ -378,12 +379,19 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
     ) -> str:
         table_content = []
         if url:
-            table_content.append(f"| Dashboard | {url} |\n")
+            type_of_url = ""
+            if "dashboard.packit.dev" in url or "dashboard.stg.packit.dev":
+                type_of_url = "Dashboard"
+            elif DOCS_URL in url:
+                type_of_url = "Documentation"
+            table_content.append(f"| {type_of_url} | {url} |\n")
         if links_to_external_services is not None:
             table_content += [
                 f"| {name} | {link} |\n"
                 for name, link in links_to_external_services.items()
             ]
+        if table_content:
+            table_content += "\n"
 
         return (
             MSG_TABLE_HEADER_WITH_DETAILS + "".join(table_content)
