@@ -482,9 +482,19 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             return None
 
         if target in composes:
+            logger.debug(f"Target {target} is directly in the compose list.")
             return target
 
         distro, arch = target.rsplit("-", 1)
+
+        # we append -x86_64 to target by default
+        # when that happens and the user precisely specified the compose via target
+        # we should just use it instead of continuing below with our logic
+        # some of those changes can change the target and result in a failure
+        if distro in composes and arch == "x86_64":
+            logger.debug(f"Distro {distro} is directly in the compose list for x86_64.")
+            return distro
+
         compose = (
             distro.title()
             .replace("Centos", "CentOS")
@@ -616,6 +626,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 details={"msg": msg},
             )
         chroot = self.test_target2build_target(target)
+        logger.debug(f"Running testing farm for target {target}, chroot={chroot}.")
 
         if not self.skip_build and chroot not in self.build_targets:
             self.report_missing_build_chroot(chroot)
