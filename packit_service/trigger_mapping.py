@@ -8,4 +8,8 @@ def are_job_types_same(first: JobType, second: JobType) -> bool:
     """
     We need to treat `build` alias in a special way.
     """
-    return first == second or {first, second} == {JobType.build, JobType.copr_build}
+    return (
+        first == second
+        or {first, second} == {JobType.build, JobType.copr_build}
+        or {first, second} == {JobType.production_build, JobType.upstream_koji_build}
+    )

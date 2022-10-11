@@ -450,7 +450,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
             "jobs": [
                 {
                     "trigger": "pull_request",
-                    "job": "production_build",
+                    "job": "upstream_koji_build",
                     "metadata": {"targets": "fedora-rawhide-x86_64", "scratch": "true"},
                 }
             ],

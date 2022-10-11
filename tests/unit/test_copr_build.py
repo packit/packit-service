@@ -1004,7 +1004,7 @@ def test_copr_build_for_release(release_event):
     #  - Building SRPM ...
     #  - Starting RPM build...
     branch_build_job = JobConfig(
-        type=JobType.build,
+        type=JobType.copr_build,
         trigger=JobConfigTriggerType.release,
         _targets=DEFAULT_TARGETS,
         owner="nobody",
@@ -2397,7 +2397,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
         flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
             state=BaseCommitStatus.error,
             description=f"Submit of the build failed: {exc}",
-            check_name="rpm-build:bright-fugure-x86_64",
+            check_name="rpm-build:bright-future-x86_64",
             url="",
             links_to_external_services=None,
             markdown_content=None,

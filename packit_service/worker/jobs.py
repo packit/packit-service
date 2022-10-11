@@ -13,8 +13,10 @@ import celery
 
 from ogr.exceptions import GithubAppNotInstalledError
 from packit.config import JobConfig, JobType, JobConfigTriggerType
+from packit.config.job_config import DEPRECATED_JOB_TYPES
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
+    DOCS_CONFIGURATION_URL,
     TASK_ACCEPTED,
     COMMENT_REACTION,
     PACKIT_VERIFY_FAS_COMMAND,
@@ -245,7 +247,7 @@ class SteveJobs:
             job_config: Job config that is being used.
         """
         number_of_build_targets = None
-        if isinstance(
+        if not isinstance(
             handler,
             (
                 CoprBuildHandler,
@@ -254,30 +256,29 @@ class SteveJobs:
                 ProposeDownstreamHandler,
             ),
         ):
-            job_helper = self.initialize_job_helper(handler, job_config)
-            reporting_method = None
-
-            if isinstance(job_helper, ProposeDownstreamJobHelper):
-                reporting_method = job_helper.report_status_to_all
-
-            elif isinstance(job_helper, BaseBuildJobHelper):
-                reporting_method = (
-                    job_helper.report_status_to_tests
-                    if isinstance(handler, TestingFarmHandler)
-                    else job_helper.report_status_to_build
-                )
-                number_of_build_targets = len(job_helper.build_targets)
-
-            task_accepted_time = datetime.now(timezone.utc)
-            reporting_method(
-                description=TASK_ACCEPTED,
-                state=BaseCommitStatus.pending,
-                url="",
-            )
-
-        else:
             # no reporting, no metrics
             return
+
+        job_helper = self.initialize_job_helper(handler, job_config)
+        reporting_method = None
+
+        if isinstance(job_helper, ProposeDownstreamJobHelper):
+            reporting_method = job_helper.report_status_to_all
+
+        elif isinstance(job_helper, BaseBuildJobHelper):
+            reporting_method = (
+                job_helper.report_status_to_tests
+                if isinstance(handler, TestingFarmHandler)
+                else job_helper.report_status_to_build
+            )
+            number_of_build_targets = len(job_helper.build_targets)
+
+        task_accepted_time = datetime.now(timezone.utc)
+        reporting_method(
+            description=TASK_ACCEPTED,
+            state=BaseCommitStatus.pending,
+            url="",
+        )
 
         self.push_initial_metrics(task_accepted_time, handler, number_of_build_targets)
 
@@ -426,6 +427,19 @@ class SteveJobs:
             # for a user who trigger the action on a PR.
             # e.g. We don't allow using internal TF for external contributors.
             return False
+
+        if deprecation_msg := DEPRECATED_JOB_TYPES.get(job_config.type):
+            job_helper = self.initialize_job_helper(handler, job_config)
+            job_helper.status_reporter.report(
+                state=BaseCommitStatus.neutral,  # TODO: change to warning in Nov 2022
+                description=f"Job name `{job_config.type.name}` deprecated.",
+                url=f"{DOCS_CONFIGURATION_URL}/#supported-jobs",
+                check_names=f"config-deprecation-{job_config.type.name}",
+                markdown_content=f"{deprecation_msg}\n\n"
+                "This status will be switched to a warning since November "
+                "and the support for the old name will be removed "
+                "by the end of the year.",
+            )
 
         self.report_task_accepted(handler=handler, job_config=job_config)
         return True
