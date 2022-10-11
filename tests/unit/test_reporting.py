@@ -449,12 +449,12 @@ def test_status_instead_check(
 
 def test_create_table():
     assert create_table_content(
-        "dashboard-url",
+        "dashboard.packit.dev-url",
         {"Testing Farm": "tf-url", "COPR build": "copr-build-url"},
     ) == (
         "| Name/Job | URL |\n"
         "| --- | --- |\n"
-        "| Dashboard | dashboard-url |\n"
+        "| Dashboard | dashboard.packit.dev-url |\n"
         "| Testing Farm | tf-url |\n"
-        "| COPR build | copr-build-url |\n"
+        "| COPR build | copr-build-url |\n\n"
     )
