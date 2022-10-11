@@ -73,6 +73,8 @@ engine = create_engine(get_pg_url(), echo=False)
 Session = sessionmaker(bind=engine)
 if Path("/usr/bin/run_worker.sh").exists():
     # Multi-(green)threaded workers can't use scoped_session()
+    # Downside of a single session is that if postgres is (oom)killed and a transaction
+    # fails to rollback you have to restart the workers so that they pick another session.
     singleton_session = Session()
 else:  # service/httpd
     Session = scoped_session(Session)
