@@ -271,3 +271,19 @@ MISSING_PERMISSIONS_TO_BUILD_IN_COPR = (
 )
 NOT_ALLOWED_TO_BUILD_IN_COPR = "is not allowed to build in the copr"
 GIT_FORGE_PROJECT_NOT_ALLOWED_TO_BUILD_IN_COPR = "can't build in this Copr via Packit."
+
+GITLAB_ISSUE = (
+    "To configure Packit you need to add secret for a webhook [here]({url}/hooks).\n\n"
+    "Click on `Edit` next to a Packit webhook you have configured and fill in "
+    "the following _Secret token_ to authenticate requests coming to Packit:\n"
+    "```\n"
+    "{token_project}\n"
+    "```\n\n"
+    "Or if you want to configure a _Group Hook_ (GitLab EE) the _Secret token_ would be:\n"
+    "```\n"
+    "{token_group}\n"
+    "```\n\n"
+    "Packit also needs rights to set commit statuses to merge requests. Please, "
+    "grant `{packit_user}` user `Developer` permissions on the `{namespace}/{repo}`"
+    " repository. You can do so [here]({url}/-/project_members)."
+)

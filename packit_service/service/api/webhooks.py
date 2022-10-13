@@ -17,7 +17,7 @@ from prometheus_client import Counter
 from ogr.parsing import parse_git_repo
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
-from packit_service.constants import CELERY_DEFAULT_MAIN_TASK_NAME
+from packit_service.constants import CELERY_DEFAULT_MAIN_TASK_NAME, GITLAB_ISSUE
 from packit_service.models import ProjectAuthenticationIssueModel
 from packit_service.service.api.errors import ValidationFailed
 
@@ -230,24 +230,15 @@ class GitlabWebhook(Resource):
             packit_user = project.service.user.get_username()
 
             project.create_issue(
-                title="Packit-Service Authentication",
-                body=f"To configure Packit-Service you need to configure a webhook.\n"
-                f"Head to {project.get_web_url()}/hooks and add\n"
-                "the following Secret token to authenticate requests coming to Packit:\n"
-                "```\n"
-                f"{token_project}\n"
-                "```\n"
-                "\n"
-                "Or if you want to configure a Group Hook (Gitlab EE) the Secret token would be:\n"
-                "```\n"
-                f"{token_group}\n"
-                "```\n"
-                "\n"
-                "Packit also needs rights to set commit status to merge requests. Please, grant\n"
-                f"[{packit_user}](https://gitlab.com/{packit_user}) user `Developer` permissions\n"
-                f"on the {parsed_url.namespace}/{parsed_url.repo} project. "
-                "You can add the rights by clicking\n"
-                f"[here]({project.get_web_url()}/-/project_members).",
+                title="Packit Authentication",
+                body=GITLAB_ISSUE.format(
+                    url=project.get_web_url(),
+                    token_project=token_project,
+                    token_group=token_group,
+                    packit_user=packit_user,
+                    namespace=parsed_url.namespace,
+                    repo=parsed_url.repo,
+                ),
                 private=True,
             )
 
