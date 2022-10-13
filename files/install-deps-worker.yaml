@@ -40,9 +40,8 @@
           # remove if we decide not to use concurrency
           - python3-eventlet
           - python3-gevent
-          # workaround for https://github.com/fedora-infra/bodhi/issues/4660
-          - https://kojipkgs.fedoraproject.org/packages/bodhi/5.7.5/1.fc35/noarch/python3-bodhi-5.7.5-1.fc35.noarch.rpm
-          - https://kojipkgs.fedoraproject.org/packages/bodhi/5.7.5/1.fc35/noarch/python3-bodhi-client-5.7.5-1.fc35.noarch.rpm
+          # v6 = bodhi-client, v5 = python3-bodhi{,-client}
+          - bodhi-client
         # needed when installing from koji - there are no GPG-signed packages
         disable_gpg_check: true
         state: present
