@@ -61,8 +61,10 @@ class CanActorRunJob(ActorChecker, GetTestingFarmJobHelperMixin):
     """
 
     def _pre_check(self) -> bool:
-        if self.job_config.use_internal_tf and not self.project.can_merge_pr(
-            self.actor
+        if (
+            self.job_config.use_internal_tf
+            and not self.project.can_merge_pr(self.actor)
+            and self.actor not in self.service_config.admins
         ):
             message = (
                 INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED

@@ -91,6 +91,7 @@ class CanActorRunTestsJob(ActorChecker, GetCoprBuildJobHelperMixin):
             test_job
             and test_job.use_internal_tf
             and not self.project.can_merge_pr(self.actor)
+            and self.actor not in self.service_config.admins
         ):
             self.copr_build_helper.report_status_to_build(
                 description=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[0].format(
