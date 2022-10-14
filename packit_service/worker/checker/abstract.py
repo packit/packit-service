@@ -34,7 +34,6 @@ class ActorChecker(Checker):
         ...
 
     def pre_check(self) -> bool:
-        if self.actor:
-            return self._pre_check()
-        else:
+        if not self.actor:
             return False
+        return self._pre_check()
