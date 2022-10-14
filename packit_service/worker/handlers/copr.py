@@ -27,9 +27,9 @@ from packit_service.models import (
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.copr import (
-    CanActorRunJob,
-    CoprBuildPermission,
-    PermissionOnCopr,
+    CanActorRunTestsJob,
+    AreOwnerAndProjectMatchingJob,
+    IsGitForgeProjectAndEventOk,
 )
 from packit_service.worker.events import (
     CoprBuildEndEvent,
@@ -107,7 +107,7 @@ class CoprBuildHandler(RetriableJobHandler, GetCoprBuildJobHelperMixin):
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
-        return (PermissionOnCopr, CanActorRunJob)
+        return (IsGitForgeProjectAndEventOk, CanActorRunTestsJob)
 
     def get_packit_github_installation_time(self) -> Optional[datetime]:
         if isinstance(self.project, GithubProject) and (
@@ -134,7 +134,7 @@ class AbstractCoprBuildReportHandler(
 ):
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
-        return (CoprBuildPermission,)
+        return (AreOwnerAndProjectMatchingJob,)
 
 
 @configured_as(job_type=JobType.copr_build)

@@ -21,7 +21,7 @@ from packit_service.constants import (
     RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED,
 )
 from packit_service.worker.checker.abstract import Checker
-from packit_service.worker.checker.bodhi import IsKojiBuildComplete
+from packit_service.worker.checker.bodhi import IsKojiBuildCompleteAndBranchConfigured
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
     TaskName,
@@ -67,7 +67,7 @@ class CreateBodhiUpdateHandler(
         """We react only on finished builds (=KojiBuildState.complete)
         and configured branches.
         """
-        return (IsKojiBuildComplete,)
+        return (IsKojiBuildCompleteAndBranchConfigured,)
 
     def run(self) -> TaskResults:
         try:

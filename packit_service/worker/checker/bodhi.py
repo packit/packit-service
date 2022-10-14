@@ -13,7 +13,7 @@ from packit_service.worker.handlers.mixin import GetKojiBuildEventMixin
 logger = logging.getLogger(__name__)
 
 
-class IsKojiBuildComplete(Checker, GetKojiBuildEventMixin):
+class IsKojiBuildCompleteAndBranchConfigured(Checker, GetKojiBuildEventMixin):
     def pre_check(self) -> bool:
         """Check if builds are finished (=KojiBuildState.complete)
         and branches are configured.

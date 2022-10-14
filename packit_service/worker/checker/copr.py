@@ -23,7 +23,7 @@ from packit_service.worker.reporting import BaseCommitStatus
 logger = logging.getLogger(__name__)
 
 
-class PermissionOnCopr(Checker, GetCoprBuildJobHelperMixin):
+class IsGitForgeProjectAndEventOk(Checker, GetCoprBuildJobHelperMixin):
     def pre_check(
         self,
     ) -> bool:
@@ -63,7 +63,7 @@ class PermissionOnCopr(Checker, GetCoprBuildJobHelperMixin):
         return True
 
 
-class CoprBuildPermission(Checker, GetCoprBuildJobHelperForIdMixin):
+class AreOwnerAndProjectMatchingJob(Checker, GetCoprBuildJobHelperForIdMixin):
     def pre_check(self) -> bool:
         if (
             self.copr_event.owner == self.copr_build_helper.job_owner
@@ -79,7 +79,7 @@ class CoprBuildPermission(Checker, GetCoprBuildJobHelperForIdMixin):
         return False
 
 
-class CanActorRunJob(ActorChecker, GetCoprBuildJobHelperMixin):
+class CanActorRunTestsJob(ActorChecker, GetCoprBuildJobHelperMixin):
     """For external contributors, we need to be more careful when running jobs.
     This is a handler-specific permission check
     for a user who trigger the action on a PR.
