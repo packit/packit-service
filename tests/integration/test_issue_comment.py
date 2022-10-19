@@ -58,12 +58,18 @@ def mock_release_class(release_class, project_class, **kwargs):
 def mock_comment(request):
     project_class, release_class, forge, author = request.param
 
-    packit_yaml = (
-        "{'specfile_path': 'packit.spec', 'synced_files': [],"
-        "'jobs': [{'trigger': 'release', 'job': 'propose_downstream',"
-        "'metadata': {'dist-git-branch': 'main'}}],"
-        "'downstream_package_name': 'packit'}"
-    )
+    packit_yaml = """\
+downstream_package_name: packit
+specfile_path: packit.spec
+files_to_sync:
+  - packit.spec
+
+jobs:
+  - job: propose_downstream
+    trigger: release
+    dist_git_branches:
+      - main
+"""
     flexmock(
         project_class,
         get_file_content=lambda path, ref: packit_yaml,

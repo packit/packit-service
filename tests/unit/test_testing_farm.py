@@ -8,8 +8,13 @@ from flexmock import flexmock
 
 import packit_service.models
 import packit_service.service.urls as urls
-from packit.config import JobConfig, JobType, JobConfigTriggerType
-from packit.config.package_config import PackageConfig
+from packit.config import (
+    CommonPackageConfig,
+    JobConfig,
+    JobConfigTriggerType,
+    JobType,
+    PackageConfig,
+)
 from packit.local_project import LocalProject
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.models import JobTriggerModel, JobTriggerModelType, BuildStatus
@@ -83,6 +88,7 @@ def test_testing_farm_response(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 )
             ],
         )
@@ -190,7 +196,11 @@ def test_distro2compose(target, compose, use_internal_tf):
         job_config=JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
-            use_internal_tf=use_internal_tf,
+            packages={
+                "package": CommonPackageConfig(
+                    use_internal_tf=use_internal_tf,
+                )
+            },
         ),
     )
     job_helper = flexmock(job_helper)
@@ -221,7 +231,11 @@ def test_distro2compose_for_aarch64(target, compose, use_internal_tf):
         job_config=JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
-            use_internal_tf=use_internal_tf,
+            packages={
+                "package": CommonPackageConfig(
+                    use_internal_tf=use_internal_tf,
+                )
+            },
         ),
     )
     job_helper = flexmock(job_helper)
@@ -572,9 +586,13 @@ def test_payload(
         job_config=JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
-            use_internal_tf=use_internal_tf,
-            tmt_plan=tmt_plan,
-            tf_post_install_script=tf_post_install_script,
+            packages={
+                "package": CommonPackageConfig(
+                    use_internal_tf=use_internal_tf,
+                    tmt_plan=tmt_plan,
+                    tf_post_install_script=tf_post_install_script,
+                )
+            },
         ),
     )
 
@@ -743,8 +761,12 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
         job_config=JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
-            fmf_url=fmf_url,
-            fmf_ref=fmf_ref,
+            packages={
+                "package": CommonPackageConfig(
+                    fmf_url=fmf_url,
+                    fmf_ref=fmf_ref,
+                )
+            },
         ),
     )
     job_helper = flexmock(job_helper)
@@ -829,11 +851,15 @@ def test_get_request_details():
 def test_trigger_build(copr_build, run_new_build, wait_for_build):
     valid_commit_sha = "1111111111111111111111111111111111111111"
 
-    package_config = PackageConfig()
+    package_config = PackageConfig(packages={"package": CommonPackageConfig()})
     job_config = JobConfig(
         type=JobType.tests,
-        spec_source_id=1,
         trigger=JobConfigTriggerType.pull_request,
+        packages={
+            "package": CommonPackageConfig(
+                spec_source_id=1,
+            )
+        },
     )
     job_config._files_to_sync_used = False
     package_config.jobs = [job_config]
@@ -897,7 +923,11 @@ def test_fmf_url(job_fmf_url, pr_id, fmf_url):
     job_config = JobConfig(
         trigger=JobConfigTriggerType.pull_request,
         type=JobType.tests,
-        fmf_url=job_fmf_url,
+        packages={
+            "package": CommonPackageConfig(
+                fmf_url=job_fmf_url,
+            )
+        },
     )
     metadata = flexmock(pr_id=pr_id)
 
@@ -934,7 +964,11 @@ def test_get_additional_builds():
     job_config = JobConfig(
         trigger=JobConfigTriggerType.pull_request,
         type=JobType.tests,
-        _targets=["test-target", "another-test-target"],
+        packages={
+            "package": CommonPackageConfig(
+                _targets=["test-target", "another-test-target"],
+            )
+        },
     )
     metadata = flexmock(
         event_dict={"comment": "/packit-dev test my-namespace/my-repo#10"}
@@ -986,7 +1020,11 @@ def test_get_additional_builds_pr_not_in_db():
     job_config = JobConfig(
         trigger=JobConfigTriggerType.pull_request,
         type=JobType.tests,
-        _targets=["test-target", "another-test-target"],
+        packages={
+            "package": CommonPackageConfig(
+                _targets=["test-target", "another-test-target"],
+            )
+        },
     )
     metadata = flexmock(
         event_dict={"comment": "/packit-dev test my-namespace/my-repo#10"}
@@ -1019,7 +1057,11 @@ def test_get_additional_builds_builds_not_in_db():
     job_config = JobConfig(
         trigger=JobConfigTriggerType.pull_request,
         type=JobType.tests,
-        _targets=["test-target", "another-test-target"],
+        packages={
+            "package": CommonPackageConfig(
+                _targets=["test-target", "another-test-target"],
+            )
+        },
     )
     metadata = flexmock(
         event_dict={"comment": "/packit-dev test my-namespace/my-repo#10"}
@@ -1059,7 +1101,11 @@ def test_get_additional_builds_wrong_format():
     job_config = JobConfig(
         trigger=JobConfigTriggerType.pull_request,
         type=JobType.tests,
-        _targets=["test-target", "another-test-target"],
+        packages={
+            "package": CommonPackageConfig(
+                _targets=["test-target", "another-test-target"],
+            )
+        },
     )
     metadata = flexmock(
         event_dict={"comment": "/packit-dev test my/namespace/my-repo#10"}
@@ -1173,7 +1219,11 @@ def test_get_artifacts(chroot, build, additional_build, result):
     job_config = JobConfig(
         trigger=JobConfigTriggerType.pull_request,
         type=JobType.tests,
-        _targets=["test-target", "another-test-target"],
+        packages={
+            "package": CommonPackageConfig(
+                _targets=["test-target", "another-test-target"],
+            )
+        },
     )
     metadata = flexmock(
         event_dict={"comment": "/packit-dev test my/namespace/my-repo#10"}
@@ -1205,7 +1255,11 @@ def test_get_artifacts(chroot, build, additional_build, result):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    use_internal_tf=True,
+                    packages={
+                        "package": CommonPackageConfig(
+                            use_internal_tf=True,
+                        )
+                    },
                 )
             ],
             {"event_type": "PullRequestGithubEvent"},
@@ -1217,12 +1271,20 @@ def test_get_artifacts(chroot, build, additional_build, result):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    identifier="public",
+                    packages={
+                        "package": CommonPackageConfig(
+                            identifier="public",
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    use_internal_tf=True,
+                    packages={
+                        "package": CommonPackageConfig(
+                            use_internal_tf=True,
+                        )
+                    },
                 ),
             ],
             {"event_type": "PullRequestGithubEvent"},
@@ -1234,13 +1296,21 @@ def test_get_artifacts(chroot, build, additional_build, result):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    identifier="public",
+                    packages={
+                        "package": CommonPackageConfig(
+                            identifier="public",
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    use_internal_tf=True,
-                    skip_build=True,
+                    packages={
+                        "package": CommonPackageConfig(
+                            use_internal_tf=True,
+                            skip_build=True,
+                        )
+                    },
                 ),
             ],
             {"event_type": "PullRequestGithubEvent"},
@@ -1252,12 +1322,20 @@ def test_get_artifacts(chroot, build, additional_build, result):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    identifier="public",
+                    packages={
+                        "package": CommonPackageConfig(
+                            identifier="public",
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    use_internal_tf=True,
+                    packages={
+                        "package": CommonPackageConfig(
+                            use_internal_tf=True,
+                        )
+                    },
                 ),
             ],
             {"event_type": "PullRequestCommentGithubEvent", "comment": "/packit test"},
@@ -1267,7 +1345,7 @@ def test_get_artifacts(chroot, build, additional_build, result):
     ],
 )
 def test_check_if_actor_can_run_job_and_report(jobs, event, should_pass):
-    package_config = PackageConfig()
+    package_config = PackageConfig(packages={"package": CommonPackageConfig()})
     package_config.jobs = jobs
 
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(

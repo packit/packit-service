@@ -9,7 +9,13 @@ from copr.v3 import Client, CoprNoResultException
 from flexmock import flexmock
 
 import packit_service.worker.helpers.build.babysit
-from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
+from packit.config import (
+    CommonPackageConfig,
+    JobConfig,
+    JobConfigTriggerType,
+    JobType,
+    PackageConfig,
+)
 from packit_service.models import (
     CoprBuildTargetModel,
     JobTriggerModelType,
@@ -138,8 +144,13 @@ def test_check_copr_build_updated():
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         PackageConfig(
             jobs=[
-                JobConfig(type=JobType.build, trigger=JobConfigTriggerType.pull_request)
-            ]
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                )
+            ],
+            packages={"package": CommonPackageConfig()},
         )
     )
     flexmock(CoprBuildEndHandler).should_receive("run").and_return().once()
@@ -294,8 +305,13 @@ def test_check_pending_testing_farm_runs(created):
     flexmock(TestingFarmResultsEvent).should_receive("get_package_config").and_return(
         PackageConfig(
             jobs=[
-                JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.pull_request)
-            ]
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
+                )
+            ],
+            packages={"package": CommonPackageConfig()},
         )
     )
     flexmock(TestingFarmResultsHandler).should_receive("run").and_return().once()
@@ -374,17 +390,28 @@ def test_check_pending_testing_farm_runs_identifiers(identifier):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    identifier="first",
+                    packages={
+                        "package": CommonPackageConfig(
+                            identifier="first",
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    identifier="second",
+                    packages={
+                        "package": CommonPackageConfig(
+                            identifier="second",
+                        )
+                    },
                 ),
                 JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
-            ]
+            ],
+            packages={"package": CommonPackageConfig()},
         )
     )
     flexmock(TestingFarmResultsHandler).should_receive("run").and_return().once()

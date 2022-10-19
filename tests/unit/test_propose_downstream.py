@@ -4,7 +4,7 @@
 import pytest
 from flexmock import flexmock
 
-from packit.config import PackageConfig, JobConfig, JobType
+from packit.config import CommonPackageConfig, PackageConfig, JobConfig, JobType
 from packit.config.job_config import JobConfigTriggerType
 from packit_service.config import ServiceConfig
 from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
@@ -18,7 +18,11 @@ from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJo
                 JobConfig(
                     type=JobType.propose_downstream,
                     trigger=JobConfigTriggerType.release,
-                    dist_git_branches=["main", "f34"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            dist_git_branches=["main", "f34"],
+                        )
+                    },
                 ),
             ],
             JobConfigTriggerType.release,
@@ -30,7 +34,11 @@ from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJo
                 JobConfig(
                     type=JobType.propose_downstream,
                     trigger=JobConfigTriggerType.release,
-                    dist_git_branches=["f34", "main"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            dist_git_branches=["f34", "main"],
+                        )
+                    },
                 ),
             ],
             JobConfigTriggerType.release,
@@ -42,7 +50,11 @@ from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJo
                 JobConfig(
                     type=JobType.propose_downstream,
                     trigger=JobConfigTriggerType.release,
-                    dist_git_branches=["f35", "f34"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            dist_git_branches=["f35", "f34"],
+                        )
+                    },
                 ),
             ],
             JobConfigTriggerType.release,
@@ -54,6 +66,7 @@ from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJo
                 JobConfig(
                     type=JobType.propose_downstream,
                     trigger=JobConfigTriggerType.release,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             JobConfigTriggerType.release,
@@ -69,7 +82,9 @@ def test_branches(jobs, job_config_trigger_type, branches_override, branches):
     flexmock(ServiceConfig, get_project=lambda url: project)
     propose_downstream_helper = ProposeDownstreamJobHelper(
         service_config=ServiceConfig(),
-        package_config=PackageConfig(jobs=jobs),
+        package_config=PackageConfig(
+            jobs=jobs, packages={"package": CommonPackageConfig()}
+        ),
         job_config=jobs[0],
         project=flexmock(),
         metadata=flexmock(pr_id=None),

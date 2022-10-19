@@ -8,7 +8,13 @@ from munch import Munch
 
 import packit_service
 from ogr.services.github import GithubProject
-from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
+from packit.config import (
+    CommonPackageConfig,
+    PackageConfig,
+    JobConfig,
+    JobType,
+    JobConfigTriggerType,
+)
 from packit_service.models import (
     CoprBuildTargetModel,
     SRPMBuildModel,
@@ -81,18 +87,23 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
     )
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         PackageConfig(
+            packages={"packit": CommonPackageConfig()},
             jobs=[
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=[
-                        "fedora-30-x86_64",
-                        "fedora-rawhide-x86_64",
-                        "fedora-31-x86_64",
-                        "fedora-32-x86_64",
-                    ],
+                    packages={
+                        "packit": CommonPackageConfig(
+                            _targets=[
+                                "fedora-30-x86_64",
+                                "fedora-rawhide-x86_64",
+                                "fedora-31-x86_64",
+                                "fedora-32-x86_64",
+                            ]
+                        )
+                    },
                 )
-            ]
+            ],
         )
     )
     coprs_response = Munch(
