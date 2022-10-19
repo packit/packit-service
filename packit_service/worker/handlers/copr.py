@@ -321,7 +321,7 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             url=url,
             chroot=self.copr_event.chroot,
         )
-        self.copr_build_helper.report_status_to_test_for_chroot(
+        self.copr_build_helper.report_status_to_all_test_jobs_for_chroot(
             state=BaseCommitStatus.pending,
             description="RPMs were built successfully.",
             url=url,
@@ -361,22 +361,28 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         return TaskResults(success=True, details={"msg": msg})
 
     def handle_testing_farm(self):
-        if (
-            self.copr_build_helper.job_tests
-            and self.copr_event.chroot in self.copr_build_helper.build_targets_for_tests
-        ):
+        if self.copr_build_helper.job_tests_all:
             event_dict = self.data.get_dict()
-            event_dict["tests_targets_override"] = list(
-                self.copr_build_helper.build_target2test_targets(self.copr_event.chroot)
-            )
-            signature(
-                TaskName.testing_farm.value,
-                kwargs={
-                    "package_config": dump_package_config(self.package_config),
-                    "job_config": dump_job_config(self.copr_build_helper.job_tests),
-                    "event": event_dict,
-                    "build_id": self.build.id,
-                },
-            ).apply_async()
+
+            for job_config in self.copr_build_helper.job_tests_all:
+                if (
+                    not job_config.skip_build
+                    and self.copr_event.chroot
+                    in self.copr_build_helper.build_targets_for_test_job(job_config)
+                ):
+                    event_dict["tests_targets_override"] = list(
+                        self.copr_build_helper.build_target2test_targets_for_test_job(
+                            self.copr_event.chroot, job_config
+                        )
+                    )
+                    signature(
+                        TaskName.testing_farm.value,
+                        kwargs={
+                            "package_config": dump_package_config(self.package_config),
+                            "job_config": dump_job_config(job_config),
+                            "event": event_dict,
+                            "build_id": self.build.id,
+                        },
+                    ).apply_async()
         else:
             logger.debug("Testing farm not in the job config.")

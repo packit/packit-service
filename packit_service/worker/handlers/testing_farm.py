@@ -167,7 +167,7 @@ class TestingFarmHandler(
             )
 
             for missing_target in targets_without_builds:
-                self.testing_farm_job_helper.report_status_to_test_for_chroot(
+                self.testing_farm_job_helper.report_status_to_tests_for_chroot(
                     state=BaseCommitStatus.pending,
                     description="Missing Copr build for this target, "
                     "running a new Copr build.",
@@ -184,7 +184,7 @@ class TestingFarmHandler(
                 logger.info(
                     "The latest build was not successful, not running tests for it."
                 )
-                self.testing_farm_job_helper.report_status_to_test_for_test_target(
+                self.testing_farm_job_helper.report_status_to_tests_for_test_target(
                     state=BaseCommitStatus.failure,
                     description="The latest build was not successful, "
                     "not running tests for it.",
@@ -200,7 +200,7 @@ class TestingFarmHandler(
                     "The latest build has not finished yet, "
                     "waiting until it finishes before running tests for it."
                 )
-                self.testing_farm_job_helper.report_status_to_test_for_test_target(
+                self.testing_farm_job_helper.report_status_to_tests_for_test_target(
                     state=BaseCommitStatus.pending,
                     description="The latest build has not finished yet, "
                     "waiting until it finishes before running tests for it.",
@@ -230,7 +230,7 @@ class TestingFarmHandler(
 
         # TODO: once we turn handlers into respective celery tasks, we should iterate
         #       here over *all* matching jobs and do them all, not just the first one
-        logger.debug(f"Test job config: {self.testing_farm_job_helper.job_tests}")
+        logger.debug(f"Test job config: {self.job_config}")
         targets = list(self.testing_farm_job_helper.tests_targets)
         logger.debug(f"Targets to run the tests: {targets}")
 

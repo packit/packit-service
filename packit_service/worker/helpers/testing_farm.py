@@ -5,7 +5,6 @@ import logging
 from typing import Dict, Any, Optional, Set, List, Union, Tuple
 
 import requests
-
 from ogr.abstract import GitProject, PullRequest
 from ogr.utils import RequestResponse
 
@@ -32,14 +31,14 @@ from packit_service.models import (
 )
 from packit_service.sentry_integration import send_to_sentry
 from packit_service.service.urls import get_testing_farm_info_url
+from packit_service.utils import get_package_nvrs, get_packit_commands_from_comment
+from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events import (
     EventData,
     PullRequestCommentGithubEvent,
     MergeRequestCommentGitlabEvent,
     PullRequestCommentPagureEvent,
 )
-from packit_service.utils import get_package_nvrs, get_packit_commands_from_comment
-from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
@@ -474,7 +473,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if composes is None:
             msg = "We were not able to get the available TF composes."
             logger.error(msg)
-            self.report_status_to_test_for_test_target(
+            self.report_status_to_tests_for_test_target(
                 state=BaseCommitStatus.error,
                 description=msg,
                 target=target,
@@ -551,7 +550,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 f"{'internal' if self.job_config.use_internal_tf else 'public'} "
                 f"Testing Farm infrastructure."
             )
-            self.report_status_to_test_for_test_target(
+            self.report_status_to_tests_for_test_target(
                 state=BaseCommitStatus.error,
                 description=description,
                 target=target,
@@ -562,7 +561,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return compose
 
     def report_missing_build_chroot(self, chroot: str):
-        self.report_status_to_test_for_chroot(
+        self.report_status_to_tests_for_chroot(
             state=BaseCommitStatus.error,
             description=f"No build defined for the target '{chroot}'.",
             chroot=chroot,
@@ -615,7 +614,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
     def run_testing_farm(
         self, target: str, build: Optional["CoprBuildTargetModel"]
     ) -> TaskResults:
-        if target not in self.tests_targets:
+        if target not in self.tests_targets_for_test_job(self.job_config):
             # Leaving here just to be sure that we will discover this situation if it occurs.
             # Currently not possible to trigger this situation.
             msg = f"Target '{target}' not defined for tests but triggered."
@@ -643,7 +642,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             and f"{self.project.service.hostname}/{self.project.full_repo_name}"
             not in self.service_config.enabled_projects_for_internal_tf
         ):
-            self.report_status_to_test_for_test_target(
+            self.report_status_to_tests_for_test_target(
                 state=BaseCommitStatus.neutral,
                 description="Internal TF not allowed for this project. Let us know.",
                 target=target,
@@ -658,7 +657,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         if self.copr_builds_from_other_pr and not (
             additional_build := self.copr_builds_from_other_pr.get(chroot)
         ):
-            self.report_status_to_test_for_test_target(
+            self.report_status_to_tests_for_test_target(
                 state=BaseCommitStatus.failure,
                 description="No latest successful Copr build from the other PR found.",
                 target=target,
@@ -671,7 +670,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 },
             )
 
-        self.report_status_to_test_for_test_target(
+        self.report_status_to_tests_for_test_target(
             state=BaseCommitStatus.running,
             description=f"{'Build succeeded. ' if not self.skip_build else ''}"
             f"Submitting the tests ...",
@@ -714,7 +713,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 build_id=int(build.build_id), target=target, compose=compose
             )
         else:
-            self.report_status_to_test_for_test_target(
+            self.report_status_to_tests_for_test_target(
                 state=BaseCommitStatus.neutral,
                 description="No FMF metadata found. Please, initialize the metadata tree "
                 "with `fmf init`.",
@@ -858,7 +857,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             data={"base_project_url": self.project.get_web_url()},
         )
 
-        self.report_status_to_test_for_test_target(
+        self.report_status_to_tests_for_test_target(
             state=BaseCommitStatus.running,
             description="Tests have been submitted ...",
             url=get_testing_farm_info_url(created_model.id),
@@ -876,7 +875,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             return self._retry_on_submit_failure(msg)
 
         logger.error(f"{msg} {self._payload_without_token(payload)}")
-        self.report_status_to_test_for_test_target(
+        self.report_status_to_tests_for_test_target(
             state=BaseCommitStatus.error,
             description=msg,
             target=target,
@@ -901,7 +900,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 return self._retry_on_submit_failure(response.reason)
 
         logger.error(f"{msg}, {self._payload_without_token(payload)}")
-        self.report_status_to_test_for_test_target(
+        self.report_status_to_tests_for_test_target(
             state=BaseCommitStatus.failure,
             description=msg,
             target=target,
@@ -1047,3 +1046,98 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         logger.debug(f"Additional builds dictionary: {result}")
 
         return result
+
+    @property
+    def configured_tests_targets(self) -> Set[str]:
+        """
+        Return the configured targets for the job.
+        """
+        return self.configured_targets_for_tests_job(self.job_config)
+
+    @property
+    def tests_targets(self) -> Set[str]:
+        """
+        Return valid test targets (mapped) to test in for the job
+        (considering the overrides).
+        """
+        return self.tests_targets_for_test_job(self.job_config)
+
+    def get_test_check(self, chroot: str = None) -> str:
+        return self.get_test_check_cls(chroot, self.job_config.identifier)
+
+    @property
+    def test_check_names(self) -> List[str]:
+        """
+        List of full names of the commit statuses.
+
+        e.g. ["testing-farm:fedora-rawhide-x86_64"]
+        """
+        if not self._test_check_names:
+            self._test_check_names = [
+                self.get_test_check(target) for target in self.tests_targets
+            ]
+        return self._test_check_names
+
+    def test_target2build_target(self, test_target: str) -> str:
+        """
+        Return build target to be built for a given test target
+        (from configuration or from default mapping).
+        """
+        return self.test_target2build_target_for_test_job(test_target, self.job_config)
+
+    @property
+    def build_targets_for_tests(self) -> Set[str]:
+        """
+        Return valid targets/chroots to build in needed to run the job.
+        (considering the overrides).
+        """
+        return self.build_targets_for_test_job(self.job_config)
+
+    def report_status_to_tests_for_chroot(
+        self,
+        description,
+        state,
+        url: str = "",
+        chroot: str = "",
+        markdown_content: str = None,
+    ) -> None:
+        if chroot in self.build_targets_for_tests:
+            test_targets = self.build_target2test_targets_for_test_job(
+                chroot, self.job_config
+            )
+            for target in test_targets:
+                self._report(
+                    description=description,
+                    state=state,
+                    url=url,
+                    check_names=self.get_test_check(target),
+                    markdown_content=markdown_content,
+                )
+
+    def report_status_to_tests_for_test_target(
+        self,
+        description,
+        state,
+        url: str = "",
+        target: str = "",
+        markdown_content: str = None,
+    ) -> None:
+        if target in self.tests_targets:
+            self._report(
+                description=description,
+                state=state,
+                url=url,
+                check_names=self.get_test_check(target),
+                markdown_content=markdown_content,
+            )
+
+    def report_status_to_tests(
+        self, description, state, url: str = "", markdown_content: str = None
+    ) -> None:
+        self._report(
+            description=description,
+            state=state,
+            url=url,
+            check_names=self.test_check_names,
+            markdown_content=markdown_content,
+        )

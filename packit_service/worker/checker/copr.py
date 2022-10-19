@@ -47,7 +47,7 @@ class IsGitForgeProjectAndEventOk(Checker, GetCoprBuildJobHelperMixin):
                 )
                 return False
 
-        if not (self.copr_build_helper.job_build or self.copr_build_helper.job_tests):
+        if not (self.copr_build_helper.job_build or self.copr_build_helper.job_tests_all):
             logger.info("No copr_build or tests job defined.")
             # we can't report it to end-user at this stage
             return False

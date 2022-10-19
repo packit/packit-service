@@ -75,14 +75,6 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         return get_koji_targets(*self.configured_build_targets)
 
     @property
-    def tests_targets_all(self) -> Set[str]:
-        """
-        [not used now]
-        Return all valid test targets/chroots from config.
-        """
-        return get_koji_targets(*self.configured_tests_targets)
-
-    @property
     def supported_koji_targets(self):
         if self._supported_koji_targets is None:
             self._supported_koji_targets = get_all_koji_targets()
