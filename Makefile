@@ -12,7 +12,7 @@ CONTAINER_ENGINE ?= $(shell command -v podman 2> /dev/null || echo docker)
 ANSIBLE_PYTHON ?= $(shell command -v /usr/bin/python3 2> /dev/null || echo /usr/bin/python2)
 AP ?= ansible-playbook -vv -c local -i localhost, -e ansible_python_interpreter=$(ANSIBLE_PYTHON)
 PATH_TO_SECRETS ?= $(CURDIR)/secrets/
-COV_REPORT ?= term-missing
+COV_REPORT ?= --cov=packit_service --cov-report=term-missing
 COLOR ?= yes
 SOURCE_BRANCH ?= $(shell git branch --show-current)
 CONTAINER_RUN_INTERACTIVE ?= -it
@@ -37,7 +37,7 @@ worker: files/install-deps-worker.yaml files/recipe-worker.yaml
 
 check:
 	find . -name "*.pyc" -exec rm {} \;
-	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=$(COLOR) --verbose --showlocals --cov=packit_service --cov-report=$(COV_REPORT) $(TEST_TARGET)
+	PYTHONPATH=$(CURDIR) PYTHONDONTWRITEBYTECODE=1 python3 -m pytest --color=$(COLOR) --verbose --showlocals $(COV_REPORT) $(TEST_TARGET)
 
 # In most cases you don't need to build your test-image, the one in registry should be all you need.
 build-test-image: files/install-deps-worker.yaml files/install-deps.yaml files/recipe-tests.yaml
