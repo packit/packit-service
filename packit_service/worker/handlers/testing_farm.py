@@ -88,6 +88,8 @@ class TestingFarmHandler(
     TODO: We can react directly to the finished Copr build.
     """
 
+    __test__ = False
+
     task_name = TaskName.testing_farm
 
     def __init__(
@@ -258,6 +260,7 @@ class TestingFarmHandler(
 @configured_as(job_type=JobType.tests)
 @reacts_to(event=TestingFarmResultsEvent)
 class TestingFarmResultsHandler(JobHandler):
+    __test__ = False
     task_name = TaskName.testing_farm_results
 
     def __init__(

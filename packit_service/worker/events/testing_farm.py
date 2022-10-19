@@ -16,6 +16,8 @@ from packit_service.worker.events.event import AbstractForgeIndependentEvent
 
 
 class TestingFarmResultsEvent(AbstractForgeIndependentEvent):
+    __test__ = False
+
     def __init__(
         self,
         pipeline_id: str,

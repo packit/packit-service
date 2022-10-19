@@ -51,6 +51,8 @@ logger = logging.getLogger(__name__)
 
 
 class TestingFarmJobHelper(CoprBuildJobHelper):
+    __test__ = False
+
     def __init__(
         self,
         service_config: ServiceConfig,
