@@ -57,7 +57,7 @@ from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.helpers.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.events import EventData
 from packit_service.worker.monitoring import Pushgateway, measure_time
-from packit_service.worker.reporting import BaseCommitStatus
+from packit_service.worker.reporting import BaseCommitStatus, DuplicateCheckMode
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -409,7 +409,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 forge_project=self.forge_project,
                 copr_settings_url=self.copr_settings_url,
             )
-            self.status_reporter.comment(body=markdown_content)
+            self.status_reporter.comment(
+                body=markdown_content,
+                duplicate_check=DuplicateCheckMode.check_all_comments,
+            )
             return True
 
         self.report_status_to_build(

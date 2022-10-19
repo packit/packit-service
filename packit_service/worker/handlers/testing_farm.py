@@ -393,6 +393,7 @@ class TestingFarmResultsHandler(JobHandler):
         status_reporter = StatusReporter.get_instance(
             project=self.project,
             commit_sha=self.data.commit_sha,
+            packit_user=self.service_config.get_github_account_name(),
             trigger_id=trigger.id if trigger else None,
             pr_id=self.data.pr_id,
         )

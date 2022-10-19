@@ -141,6 +141,7 @@ class BaseJobHelper:
             self._status_reporter = StatusReporter.get_instance(
                 project=self.project,
                 commit_sha=self.metadata.commit_sha,
+                packit_user=self.service_config.get_github_account_name(),
                 trigger_id=trigger.id if trigger else None,
                 pr_id=self.metadata.pr_id,
             )

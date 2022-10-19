@@ -63,7 +63,7 @@ from packit_service.worker.handlers.abstract import (
     RetriableJobHandler,
 )
 from packit_service.worker.monitoring import measure_time
-from packit_service.worker.reporting import BaseCommitStatus
+from packit_service.worker.reporting import BaseCommitStatus, DuplicateCheckMode
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -339,20 +339,6 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.end"
     task_name = TaskName.copr_build_end
 
-    def was_last_packit_comment_with_congratulation(self):
-        """
-        Check if the last comment by the packit app
-        was about successful build to not duplicate it.
-
-        :return: bool
-        """
-        comments = self.project.get_pr(self.copr_event.pr_id).get_comments(reverse=True)
-        for comment in comments:
-            if comment.author.startswith("packit-as-a-service"):
-                return "Congratulations!" in comment.body
-        # if there is no comment from p-s
-        return False
-
     def set_srpm_url(self) -> None:
         # TODO how to do better
         srpm_build = (
@@ -448,7 +434,6 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
             == JobConfigTriggerType.pull_request
             and self.copr_event.pr_id
             and isinstance(self.project, (GithubProject, GitlabProject))
-            and not self.was_last_packit_comment_with_congratulation()
             and self.job_config.notifications.pull_request.successful_build
         ):
             msg = (
@@ -460,7 +445,9 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 "* And now you can install the packages.\n"
                 "\nPlease note that the RPMs should be used only in a testing environment."
             )
-            self.project.get_pr(self.copr_event.pr_id).comment(msg)
+            self.copr_build_helper.status_reporter.comment(
+                msg, duplicate_check=DuplicateCheckMode.check_last_comment
+            )
 
         url = get_copr_build_info_url(self.build.id)
 

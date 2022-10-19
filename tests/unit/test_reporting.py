@@ -21,6 +21,7 @@ from packit_service.worker.reporting import (
     StatusReporterGithubStatuses,
     StatusReporterGitlab,
     StatusReporterGithubChecks,
+    DuplicateCheckMode,
 )
 
 create_table_content = StatusReporterGithubChecks._create_table
@@ -76,7 +77,7 @@ def test_set_status_pagure(
 ):
     project = PagureProject(None, None, PagureService())
     reporter = StatusReporter.get_instance(
-        project=project, commit_sha=commit_sha, pr_id=pr_id
+        project=project, commit_sha=commit_sha, pr_id=pr_id, packit_user="packit"
     )
     act_upon = flexmock(pr_object.source_project) if pr_id else flexmock(PagureProject)
 
@@ -124,7 +125,7 @@ def test_set_status_gitlab(
 ):
     project = GitlabProject(None, None, None)
     reporter = StatusReporter.get_instance(
-        project=project, commit_sha=commit_sha, pr_id=pr_id
+        project=project, commit_sha=commit_sha, pr_id=pr_id, packit_user="packit"
     )
     act_upon = flexmock(pr_object.source_project) if pr_id else flexmock(GitlabProject)
 
@@ -218,7 +219,11 @@ def test_set_status_github_check(
 ):
     project = GithubProject(None, None, None)
     reporter = StatusReporter.get_instance(
-        project=project, commit_sha=commit_sha, pr_id=pr_id, trigger_id=trigger_id
+        project=project,
+        commit_sha=commit_sha,
+        pr_id=pr_id,
+        trigger_id=trigger_id,
+        packit_user="packit",
     )
     act_upon = flexmock(GithubProject)
 
@@ -350,7 +355,7 @@ def test_report_status_by_comment(
 ):
     project = GitlabProject(None, None, None)
     reporter = StatusReporter.get_instance(
-        project=project, commit_sha=commit_sha, pr_id=pr_id
+        project=project, commit_sha=commit_sha, pr_id=pr_id, packit_user="packit"
     )
     act_upon = flexmock(GitlabProject)
 
@@ -426,7 +431,11 @@ def test_status_instead_check(
 ):
     project = GithubProject(None, None, None)
     reporter = StatusReporter.get_instance(
-        project=project, commit_sha=commit_sha, trigger_id=trigger_id, pr_id=pr_id
+        project=project,
+        commit_sha=commit_sha,
+        trigger_id=trigger_id,
+        pr_id=pr_id,
+        packit_user="packit",
     )
     act_upon = flexmock(GithubProject)
 
@@ -458,3 +467,157 @@ def test_create_table():
         "| Testing Farm | tf-url |\n"
         "| COPR build | copr-build-url |\n\n"
     )
+
+
+@pytest.mark.parametrize(
+    "pr_id,commit_sha,duplicate_check,existing_comments,should_comment",
+    [
+        # Basic cases, no duplicate check
+        (1, None, DuplicateCheckMode.do_not_check, [], True),
+        (None, "1234abd", DuplicateCheckMode.do_not_check, [], True),
+        # PR comment with duplicate check
+        (1, None, DuplicateCheckMode.check_last_comment, [], True),
+        (
+            1,
+            None,
+            DuplicateCheckMode.check_last_comment,
+            [flexmock(author="Foo")],
+            True,
+        ),
+        (
+            1,
+            None,
+            DuplicateCheckMode.check_last_comment,
+            [flexmock(author="packit-as-a-service", body="bar")],
+            True,
+        ),
+        (
+            1,
+            None,
+            DuplicateCheckMode.check_last_comment,
+            [flexmock(author="packit-as-a-service", body="foo")],
+            False,
+        ),
+        # Ogr project reverses the order for us
+        (
+            1,
+            None,
+            DuplicateCheckMode.check_last_comment,
+            [
+                flexmock(author="packit-as-a-service", body="bar"),
+                flexmock(author="packit-as-a-service", body="foo"),
+            ],
+            True,
+        ),
+        (
+            1,
+            None,
+            DuplicateCheckMode.check_last_comment,
+            [
+                flexmock(author="packit-as-a-service", body="foo"),
+                flexmock(author="packit-as-a-service", body="bar"),
+            ],
+            False,
+        ),
+        # Commit comment with duplicate check
+        (None, "1234abd", DuplicateCheckMode.check_last_comment, [], True),
+        (
+            None,
+            "1234abd",
+            DuplicateCheckMode.check_last_comment,
+            [flexmock(author="Foo")],
+            True,
+        ),
+        (
+            None,
+            "1234abd",
+            DuplicateCheckMode.check_last_comment,
+            [flexmock(author="packit-as-a-service", body="bar")],
+            True,
+        ),
+        (
+            None,
+            "1234abd",
+            DuplicateCheckMode.check_last_comment,
+            [flexmock(author="packit-as-a-service", body="foo")],
+            False,
+        ),
+        # Github returns this from oldest to newest and we reverse it on our end
+        (
+            None,
+            "1234abd",
+            DuplicateCheckMode.check_last_comment,
+            [
+                flexmock(author="packit-as-a-service", body="foo"),
+                flexmock(author="packit-as-a-service", body="bar"),
+            ],
+            True,
+        ),
+        (
+            None,
+            "1234abd",
+            DuplicateCheckMode.check_last_comment,
+            [
+                flexmock(author="packit-as-a-service", body="bar"),
+                flexmock(author="packit-as-a-service", body="foo"),
+            ],
+            False,
+        ),
+        # Check all comments
+        (
+            1,
+            None,
+            DuplicateCheckMode.check_all_comments,
+            [
+                flexmock(author="packit-as-a-service", body="bar"),
+                flexmock(author="packit-as-a-service", body="foo"),
+            ],
+            False,
+        ),
+        (
+            None,
+            "1234abd",
+            DuplicateCheckMode.check_all_comments,
+            [
+                flexmock(author="packit-as-a-service", body="foo"),
+                flexmock(author="packit-as-a-service", body="bar"),
+            ],
+            False,
+        ),
+    ],
+)
+def test_comment(pr_id, commit_sha, duplicate_check, existing_comments, should_comment):
+    project = GithubProject(None, None, None)
+    reporter = StatusReporter.get_instance(
+        project=project,
+        commit_sha=commit_sha,
+        pr_id=pr_id,
+        packit_user="packit-as-a-service",
+    )
+
+    act_upon = flexmock(project)
+
+    if pr_id:
+        pr = flexmock()
+        act_upon.should_receive("get_pr").with_args(pr_id=pr_id).and_return(pr)
+        if duplicate_check != DuplicateCheckMode.do_not_check:
+            flexmock(pr).should_receive("get_comments").with_args(
+                reverse=True
+            ).and_return(existing_comments)
+
+        if should_comment:
+            pr.should_receive("comment").once()
+        else:
+            pr.should_receive("comment").never()
+    else:
+        if duplicate_check != DuplicateCheckMode.do_not_check:
+            act_upon.should_receive("get_commit_comments").with_args(
+                commit_sha
+            ).and_return(existing_comments)
+
+        if should_comment:
+            act_upon.should_receive("commit_comment").once()
+        else:
+            act_upon.should_receive("commit_comment").never()
+
+    reporter.comment(body="foo", duplicate_check=duplicate_check)
