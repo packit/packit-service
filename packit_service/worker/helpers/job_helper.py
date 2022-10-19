@@ -184,3 +184,15 @@ class BaseJobHelper:
             check_names=check_names,
             markdown_content=markdown_content,
         )
+
+    def report_status_to_configured_job(
+        self,
+        description: str,
+        state: BaseCommitStatus,
+        url: str = "",
+        markdown_content: str = None,
+    ):
+        """
+        Report status to the particular job from job_config attribute of the helper.
+        """
+        raise NotImplementedError()

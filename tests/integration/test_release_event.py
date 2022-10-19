@@ -71,6 +71,7 @@ def propose_downstream_model():
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     yield propose_downstream_model
 

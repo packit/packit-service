@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Any, Iterable, Optional, Union, Callable, List, Tuple, Dict
+from typing import Any, Iterable, Optional, Union, Callable, List, Tuple, Dict, Type
 
 from fasjson_client import Client
 from fasjson_client.errors import APIError
 from ogr.abstract import GitProject
 
 from packit.api import PackitAPI
-from packit.config.job_config import JobConfig
+from packit.config.job_config import JobConfig, JobType
 from packit.exceptions import PackitException, PackitCommandFailedError
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
@@ -42,6 +42,7 @@ from packit_service.worker.events import (
 )
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.helpers.build import CoprBuildJobHelper
+from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
@@ -337,7 +338,13 @@ class Allowlist:
             project.get_pr(event.pr_id).comment(msg)
         else:
             for job_config in job_configs:
-                job_helper = CoprBuildJobHelper(
+                job_helper_kls: Type[Union[TestingFarmJobHelper, CoprBuildJobHelper]]
+                if job_config.type == JobType.tests:
+                    job_helper_kls = TestingFarmJobHelper
+                else:
+                    job_helper_kls = CoprBuildJobHelper
+
+                job_helper = job_helper_kls(
                     service_config=self.service_config,
                     package_config=event.get_package_config(),
                     project=project,
@@ -353,7 +360,7 @@ class Allowlist:
                     else "User cannot trigger!"
                 )
                 issue_url = self.get_approval_issue(namespace=project.namespace)
-                job_helper.report_status_to_all(
+                job_helper.report_status_to_configured_job(
                     description=msg,
                     state=BaseCommitStatus.neutral,
                     url=issue_url or DOCS_APPROVAL_URL,

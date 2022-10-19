@@ -205,6 +205,7 @@ def test_pr_comment_copr_build_handler(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -278,6 +279,7 @@ def test_pr_comment_build_handler(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -337,6 +339,7 @@ def test_pr_comment_build_test_handler(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").twice()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -401,11 +404,13 @@ def test_pr_comment_build_build_and_test_handler(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(CoprBuildJobHelper).should_receive(
         "is_custom_copr_project_defined"
@@ -496,6 +501,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -636,6 +642,7 @@ def test_pr_embedded_command_handler(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -799,6 +806,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
@@ -1162,6 +1170,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
 
     payload = {
@@ -1354,6 +1363,7 @@ def test_pr_test_command_handler_compose_not_present(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
@@ -1481,6 +1491,7 @@ def test_pr_test_command_handler_composes_not_available(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
@@ -1861,6 +1872,7 @@ def test_rebuild_failed(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -1951,6 +1963,7 @@ def test_retest_failed(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
@@ -2049,6 +2062,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -2261,6 +2275,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
 
     payload = {

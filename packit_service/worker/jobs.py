@@ -54,6 +54,7 @@ from packit_service.worker.helpers.build import (
     BaseBuildJobHelper,
 )
 from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
+from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.monitoring import Pushgateway, measure_time
 from packit_service.worker.parser import Parser
 from packit_service.worker.reporting import BaseCommitStatus
@@ -223,18 +224,24 @@ class SteveJobs:
             params.update({"branches_override": self.event.branches_override})
             return propose_downstream_helper(**params)
 
-        build_helper = (
-            CoprBuildJobHelper
-            if handler_kls in (CoprBuildHandler, TestingFarmHandler)
-            else KojiBuildJobHelper
-        )
+        helper_kls: Type[
+            Union[TestingFarmJobHelper, CoprBuildJobHelper, KojiBuildJobHelper]
+        ]
+
+        if handler_kls == TestingFarmHandler:
+            helper_kls = TestingFarmJobHelper
+        elif handler_kls == CoprBuildHandler:
+            helper_kls = CoprBuildJobHelper
+        else:
+            helper_kls = KojiBuildJobHelper
+
         params.update(
             {
                 "build_targets_override": self.event.build_targets_override,
                 "tests_targets_override": self.event.tests_targets_override,
             }
         )
-        return build_helper(**params)
+        return helper_kls(**params)
 
     def report_task_accepted(
         self, handler_kls: Type[JobHandler], job_config: JobConfig
@@ -259,21 +266,12 @@ class SteveJobs:
             return
 
         job_helper = self.initialize_job_helper(handler_kls, job_config)
-        reporting_method = None
 
-        if isinstance(job_helper, ProposeDownstreamJobHelper):
-            reporting_method = job_helper.report_status_to_all
-
-        elif isinstance(job_helper, BaseBuildJobHelper):
-            reporting_method = (
-                job_helper.report_status_to_tests
-                if handler_kls == TestingFarmHandler
-                else job_helper.report_status_to_build
-            )
+        if isinstance(job_helper, CoprBuildJobHelper):
             number_of_build_targets = len(job_helper.build_targets)
 
         task_accepted_time = datetime.now(timezone.utc)
-        reporting_method(
+        job_helper.report_status_to_configured_job(
             description=TASK_ACCEPTED,
             state=BaseCommitStatus.pending,
             url="",

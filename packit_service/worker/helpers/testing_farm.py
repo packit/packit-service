@@ -1141,3 +1141,17 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             check_names=self.test_check_names,
             markdown_content=markdown_content,
         )
+
+    def report_status_to_configured_job(
+        self,
+        description: str,
+        state: BaseCommitStatus,
+        url: str = "",
+        markdown_content: str = None,
+    ):
+        self.report_status_to_tests(
+            description=description,
+            state=state,
+            url=url,
+            markdown_content=markdown_content,
+        )

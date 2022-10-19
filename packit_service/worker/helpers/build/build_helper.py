@@ -616,3 +616,17 @@ class BaseBuildJobHelper(BaseJobHelper):
         :return: task_id, task_url
         """
         raise NotImplementedError()
+
+    def report_status_to_configured_job(
+        self,
+        description: str,
+        state: BaseCommitStatus,
+        url: str = "",
+        markdown_content: str = None,
+    ):
+        self.report_status_to_build(
+            description=description,
+            state=state,
+            url=url,
+            markdown_content=markdown_content,
+        )
