@@ -12,7 +12,7 @@ from requre.online_replacing import (
 from requre.helpers.files import StoreFiles
 from requre.helpers.simple_object import Simple
 from requre.helpers.git.pushinfo import PushInfoStorageList
-from requre.helpers.tempfile import TempFile
+from requre.helpers.tempfile import MkTemp, MkDTemp
 from requre.helpers.git.fetchinfo import FetchInfoStorageList
 from requre.helpers.git.repo import Repo
 
@@ -64,10 +64,10 @@ from packit.pkgtool import PkgTool
     )
 )
 @apply_decorator_to_all_methods(
-    replace_module_match(what="tempfile.mkdtemp", decorate=TempFile.mkdtemp())
+    replace_module_match(what="tempfile.mkdtemp", decorate=MkDTemp.decorator_plain())
 )
 @apply_decorator_to_all_methods(
-    replace_module_match(what="tempfile.mktemp", decorate=TempFile.mktemp())
+    replace_module_match(what="tempfile.mktemp", decorate=MkTemp.decorator_plain())
 )
 # Be aware that decorator stores login and token to test_data, replace it by some value.
 # Default precommit hook doesn't do that for copr.v3.helpers, see README.md
