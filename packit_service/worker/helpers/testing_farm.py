@@ -38,6 +38,10 @@ from packit_service.worker.events import (
     PullRequestCommentGithubEvent,
     MergeRequestCommentGitlabEvent,
     PullRequestCommentPagureEvent,
+    PushGitHubEvent,
+    PushGitlabEvent,
+    PullRequestGithubEvent,
+    MergeRequestGitlabEvent,
 )
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
@@ -213,6 +217,20 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def is_test_comment_pr_argument_present(self):
         return self.is_test_comment_event() and len(self.comment_command_parts) == 2
+
+    def build_required(self) -> bool:
+        return not self.skip_build and (
+            # build is required for push/pull-request events and
+            # for comment event requesting copr build
+            self.metadata.event_type
+            in (
+                PushGitHubEvent.__name__,
+                PushGitlabEvent.__name__,
+                PullRequestGithubEvent.__name__,
+                MergeRequestGitlabEvent.__name__,
+            )
+            or self.is_copr_build_comment_event()
+        )
 
     @property
     def copr_builds_from_other_pr(

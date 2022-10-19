@@ -114,18 +114,6 @@ class TestingFarmHandler(
             CanActorRunJob,
         )
 
-    def build_required(self) -> bool:
-        return not self.testing_farm_job_helper.skip_build and (
-            self.data.event_type
-            in (
-                PushGitHubEvent.__name__,
-                PushGitlabEvent.__name__,
-                PullRequestGithubEvent.__name__,
-                MergeRequestGitlabEvent.__name__,
-            )
-            or self.testing_farm_job_helper.is_copr_build_comment_event()
-        )
-
     def run_copr_build_handler(self, event_data: dict, number_of_builds: int):
         for _ in range(number_of_builds):
             self.pushgateway.copr_builds_queued.inc()
@@ -234,7 +222,7 @@ class TestingFarmHandler(
         targets = list(self.testing_farm_job_helper.tests_targets)
         logger.debug(f"Targets to run the tests: {targets}")
 
-        if self.build_required():
+        if self.testing_farm_job_helper.build_required():
             if self.testing_farm_job_helper.job_build:
                 msg = "Build required, already handled by build job."
             else:

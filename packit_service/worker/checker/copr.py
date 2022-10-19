@@ -47,7 +47,9 @@ class IsGitForgeProjectAndEventOk(Checker, GetCoprBuildJobHelperMixin):
                 )
                 return False
 
-        if not (self.copr_build_helper.job_build or self.copr_build_helper.job_tests_all):
+        if not (
+            self.copr_build_helper.job_build or self.copr_build_helper.job_tests_all
+        ):
             logger.info("No copr_build or tests job defined.")
             # we can't report it to end-user at this stage
             return False
@@ -86,21 +88,24 @@ class CanActorRunTestsJob(ActorChecker, GetCoprBuildJobHelperMixin):
     """
 
     def _pre_check(self) -> bool:
-        test_job = self.copr_build_helper.job_tests
-        if (
-            test_job
-            and test_job.use_internal_tf
-            and not self.project.can_merge_pr(self.actor)
-            and self.actor not in self.service_config.admins
-        ):
-            self.copr_build_helper.report_status_to_build(
-                description=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[0].format(
-                    actor=self.actor
-                ),
-                state=BaseCommitStatus.neutral,
-                markdown_content=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[1].format(
-                    packit_comment_command_prefix=self.service_config.comment_command_prefix
-                ),
-            )
-            return False
+        # check the actor if there is any test job which requires
+        # builds and uses internal TF
+        for test_job in self.copr_build_helper.job_tests_all:
+            if (
+                test_job
+                and test_job.use_internal_tf
+                and not test_job.skip_build
+                and not self.project.can_merge_pr(self.actor)
+                and self.actor not in self.service_config.admins
+            ):
+                self.copr_build_helper.report_status_to_build(
+                    description=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[0].format(
+                        actor=self.actor
+                    ),
+                    state=BaseCommitStatus.neutral,
+                    markdown_content=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[1].format(
+                        packit_comment_command_prefix=self.service_config.comment_command_prefix
+                    ),
+                )
+                return False
         return True
