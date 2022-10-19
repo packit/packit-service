@@ -10,8 +10,6 @@ from typing import Tuple, Type
 from celery import Task
 from fedora.client import AuthError
 
-from packit.constants import DEFAULT_BODHI_NOTE
-
 from packit.exceptions import PackitException
 
 from packit.config import JobConfig, JobType, PackageConfig
@@ -74,7 +72,6 @@ class CreateBodhiUpdateHandler(
             self.packit_api.create_update(
                 dist_git_branch=self.koji_build_event.git_ref,
                 update_type="enhancement",
-                update_notes=DEFAULT_BODHI_NOTE,
                 koji_builds=[
                     self.koji_build_event.nvr  # it accepts NVRs, not build IDs
                 ],
