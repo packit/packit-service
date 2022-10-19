@@ -849,9 +849,7 @@ def test_trigger_build(copr_build, run_new_build, wait_for_build):
 
     if run_new_build:
         flexmock(TFJobHelper, job_owner="owner", job_project="project")
-        flexmock(cb.CoprBuildJobHelper).should_receive(
-            "report_status_to_test_for_chroot"
-        )
+        flexmock(TFJobHelper).should_receive("report_status_to_tests_for_chroot")
         flexmock(Signature).should_receive("apply_async").once()
     else:
         flexmock(TFJobHelper).should_receive("run_testing_farm").and_return(
@@ -861,7 +859,7 @@ def test_trigger_build(copr_build, run_new_build, wait_for_build):
     if wait_for_build:
         for target in targets:
             flexmock(TFJobHelper).should_receive(
-                "report_status_to_test_for_test_target"
+                "report_status_to_tests_for_test_target"
             ).with_args(
                 state=BaseCommitStatus.pending,
                 description="The latest build has not finished yet, "
