@@ -8,9 +8,7 @@ import requests
 from ogr.abstract import GitProject, PullRequest
 from ogr.utils import RequestResponse
 
-from packit.config import JobType, JobConfigTriggerType
-from packit.config.job_config import JobConfig
-from packit.config.package_config import PackageConfig
+from packit.config import JobConfig, PackageConfig
 from packit.exceptions import PackitConfigException, PackitException
 from packit.utils import nested_get
 from packit_service.config import ServiceConfig
@@ -815,15 +813,11 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         We need to get more details ourselves."""
         self = cls(
             service_config=ServiceConfig.get_service_config(),
-            package_config=PackageConfig(),
+            package_config=None,
             project=None,
             metadata=None,
             db_trigger=None,
-            job_config=JobConfig(
-                # dummy values to be able to construct the object
-                type=JobType.tests,
-                trigger=JobConfigTriggerType.pull_request,
-            ),
+            job_config=None,
         )
 
         response = self.send_testing_farm_request(
