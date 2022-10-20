@@ -76,7 +76,8 @@ def setup_loggers(logger, *args, **kwargs):
         logger.info(f"{syslog_host}:{syslog_port} not available")
     else:
         handler.setLevel(logging.DEBUG)
-        handler.setFormatter(RFC5424Formatter(msgid="packit"))
+        project = getenv("PROJECT", "packit")
+        handler.setFormatter(RFC5424Formatter(msgid=project))
         logger.addHandler(handler)
 
     log_worker_versions()

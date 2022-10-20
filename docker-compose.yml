@@ -81,12 +81,13 @@ services:
 
   fluentd:
     container_name: fluentd
-    image: splunk/fluentd-hec
+    image: quay.io/packit/fluentd-splunk-hec
     environment:
-      SPLUNK_HEC_URL: https://splunk-url
-      SPLUNK_HEC_TOKEN: "token"
+      SPLUNK_HEC_HOST: splunk-hec-host
+      SPLUNK_HEC_PORT: "443"
+      SPLUNK_HEC_TOKEN: token
     ports:
-      - 5140:5140
+      - 5140:5140/udp
     volumes:
       - ./secrets/packit/dev/fluentd-config:/fluentd/etc/fluent.conf:ro,Z
     user: "1024"
