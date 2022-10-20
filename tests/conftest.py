@@ -10,7 +10,7 @@ import pytest
 from flexmock import flexmock
 
 from ogr import GithubService, GitlabService, PagureService
-from packit.config import JobConfigTriggerType
+from packit.config import JobConfigTriggerType, JobConfig, PackageConfig
 from packit.config.common_package_config import Deployment
 from packit_service.config import ServiceConfig
 from packit_service.models import JobTriggerModelType, JobTriggerModel, BuildStatus
@@ -23,6 +23,7 @@ from packit_service.worker.events import (
 )
 from packit_service.worker.parser import Parser
 from tests.spellbook import SAVED_HTTPD_REQS, DATA_DIR, load_the_message_from_file
+from deepdiff import DeepDiff
 
 
 @pytest.fixture(autouse=True)
@@ -411,3 +412,20 @@ def koji_build_completed_f35():
 def koji_build_completed_epel8():
     with open(DATA_DIR / "fedmsg" / "koji_build_completed_epel8.json", "r") as outfile:
         return load_the_message_from_file(outfile)
+
+
+def pytest_assertrepr_compare(op, left, right):
+    if isinstance(left, JobConfig) and isinstance(right, JobConfig) and op == "==":
+        from packit.schema import JobConfigSchema
+
+        schema = JobConfigSchema()
+        return [str(DeepDiff(schema.dump(left), schema.dump(right)))]
+    elif (
+        isinstance(left, PackageConfig)
+        and isinstance(right, PackageConfig)
+        and op == "=="
+    ):
+        from packit.schema import PackageConfigSchema
+
+        schema = PackageConfigSchema()
+        return [str(DeepDiff(schema.dump(left), schema.dump(right)))]
