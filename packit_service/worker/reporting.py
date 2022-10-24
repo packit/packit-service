@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from enum import Enum
+from enum import Enum, auto
 from typing import Optional, Union, Dict
 
 from ogr.abstract import CommitStatus, GitProject
@@ -33,6 +33,17 @@ class BaseCommitStatus(Enum):
     error = "error"
 
 
+class DuplicateCheckMode(Enum):
+    """Enum of possible behaviour for handling duplicates when commenting."""
+
+    # Do not check for duplicates
+    do_not_check = auto()
+    # Check only last comment from us for duplicate
+    check_last_comment = auto()
+    # Check the whole comment list for duplicate
+    check_all_comments = auto()
+
+
 MAP_TO_COMMIT_STATUS: Dict[BaseCommitStatus, CommitStatus] = {
     BaseCommitStatus.pending: CommitStatus.pending,
     BaseCommitStatus.running: CommitStatus.running,
@@ -59,6 +70,7 @@ class StatusReporter:
         self,
         project: GitProject,
         commit_sha: str,
+        packit_user: str,
         trigger_id: int = None,
         pr_id: Optional[int] = None,
     ):
@@ -67,6 +79,7 @@ class StatusReporter:
         )
         self.project: GitProject = project
         self._project_with_commit: Optional[GitProject] = None
+        self._packit_user = packit_user
 
         self.commit_sha: str = commit_sha
         self.trigger_id: int = trigger_id
@@ -77,6 +90,7 @@ class StatusReporter:
         cls,
         project: GitProject,
         commit_sha: str,
+        packit_user,
         trigger_id: Optional[int] = None,
         pr_id: Optional[int] = None,
     ) -> "StatusReporter":
@@ -90,7 +104,7 @@ class StatusReporter:
             reporter = StatusReporterGitlab
         elif isinstance(project, PagureProject):
             reporter = StatusReporterPagure
-        return reporter(project, commit_sha, trigger_id, pr_id)
+        return reporter(project, commit_sha, packit_user, trigger_id, pr_id)
 
     @property
     def project_with_commit(self) -> GitProject:
@@ -186,7 +200,7 @@ class StatusReporter:
 
     def _commit_comment_already_added(self, comment: str) -> bool:
         commit_comments = self.project.get_commit_comments(self.commit_sha)
-        if exists := any(c.comment == comment for c in commit_comments):
+        if exists := any(c.body == comment for c in commit_comments):
             logger.debug(
                 "The following comment already exists for commit "
                 f"{self.commit_sha}\n{comment}"
@@ -240,7 +254,47 @@ class StatusReporter:
     def get_statuses(self):
         self.project_with_commit.get_commit_statuses(commit=self.commit_sha)
 
-    def comment(self, body: str):
+    def _has_identical_comment(self, body: str, mode: DuplicateCheckMode) -> bool:
+        """Checks if the body is the same as the last or any comment based on mode."""
+        comments = (
+            self.project.get_pr(pr_id=self.pr_id).get_comments(reverse=True)
+            if self.pr_id
+            else reversed(self.project.get_commit_comments(self.commit_sha))
+        )
+        for comment in comments:
+            if comment.author.startswith(self._packit_user):
+                if mode == DuplicateCheckMode.check_last_comment:
+                    return body == comment.body
+                elif (
+                    mode == DuplicateCheckMode.check_all_comments
+                    and body == comment.body
+                ):
+                    return True
+
+        return False
+
+    def comment(
+        self,
+        body: str,
+        duplicate_check: DuplicateCheckMode = DuplicateCheckMode.do_not_check,
+    ):
+        """Reports status by adding a comment.
+
+        If the instance is tied to a PR, the comment is added to the PR,
+        otherwise, it is added to the tied commit (if the forge supports
+        commit comments).
+
+        Args:
+            body: The comment text.
+            duplicate_check: Determines if the comment will be added if the same comment
+                is already present in the PR.
+        """
+        if (
+            duplicate_check != DuplicateCheckMode.do_not_check
+            and self._has_identical_comment(body, duplicate_check)
+        ):
+            return
+
         if self.pr_id:
             self.project.get_pr(pr_id=self.pr_id).comment(body=body)
         else:

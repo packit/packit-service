@@ -195,10 +195,11 @@ def copr_build_release():
 
 
 @pytest.mark.parametrize(
-    "pc_comment_pr_succ,pr_comment_called",
+    "pc_comment_pr_succ,pr_comment_called,pr_comment_exists",
     (
-        (True, True),
-        (False, False),
+        (True, True, True),
+        (True, True, False),
+        (False, False, False),
     ),
 )
 def test_copr_build_end(
@@ -207,8 +208,26 @@ def test_copr_build_end(
     copr_build_pr,
     pc_comment_pr_succ,
     pr_comment_called,
+    pr_comment_exists,
 ):
-    pr = flexmock(source_project=flexmock())
+    def get_comments(*args, **kwargs):
+        if pr_comment_exists:
+            return [
+                flexmock(
+                    author="packit-as-a-service[bot]",
+                    body="Congratulations! One of the builds has completed. :champagne:\n\n"
+                    "You can install the built RPMs by following these steps:\n\n* "
+                    "`sudo yum install -y dnf-plugins-core` on RHEL 8\n* "
+                    "`sudo dnf install -y dnf-plugins-core` on Fedora\n* "
+                    "`dnf copr enable packit/packit-service-hello-world-24`\n* "
+                    "And now you can install the packages.\n\n"
+                    "Please note that the RPMs should be used only in a testing environment.",
+                )
+            ]
+        else:
+            return []
+
+    pr = flexmock(source_project=flexmock(), get_comments=get_comments)
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
     pc_build_pr.jobs[0].notifications.pull_request.successful_build = pc_comment_pr_succ
@@ -218,10 +237,7 @@ def test_copr_build_end(
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(config={"username": "packit", "copr_url": "https://dummy.url"})
     )
-    flexmock(CoprBuildEndHandler).should_receive(
-        "was_last_packit_comment_with_congratulation"
-    ).and_return(False)
-    if pr_comment_called:
+    if pr_comment_called and not pr_comment_exists:
         pr.should_receive("comment")
     else:
         pr.should_receive("comment").never()
@@ -292,9 +308,6 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(config={"username": "packit", "copr_url": "https://dummy.url"})
     )
-    flexmock(CoprBuildEndHandler).should_receive(
-        "was_last_packit_comment_with_congratulation"
-    ).and_return(False)
 
     flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
         copr_build_branch_push
@@ -353,9 +366,6 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
     flexmock(CoprHelper).should_receive("get_copr_client").and_return(
         Client(config={"username": "packit", "copr_url": "https://dummy.url"})
     )
-    flexmock(CoprBuildEndHandler).should_receive(
-        "was_last_packit_comment_with_congratulation"
-    ).and_return(False)
 
     flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
         copr_build_release
@@ -448,9 +458,6 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(config)
-    flexmock(CoprBuildEndHandler).should_receive(
-        "was_last_packit_comment_with_congratulation"
-    ).and_return(False)
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
@@ -657,9 +664,6 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(config)
-    flexmock(CoprBuildEndHandler).should_receive(
-        "was_last_packit_comment_with_congratulation"
-    ).and_return(False)
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
@@ -798,9 +802,6 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
     ).and_return(config)
-    flexmock(CoprBuildEndHandler).should_receive(
-        "was_last_packit_comment_with_congratulation"
-    ).and_return(False)
 
     flexmock(LocalProject).should_receive("refresh_the_arguments").and_return(None)
 
@@ -1023,10 +1024,6 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
     flexmock(CoprBuildJobHelper).should_receive("get_build_check").and_return(
         EXPECTED_BUILD_CHECK_NAME
     )
-
-    flexmock(CoprBuildEndHandler).should_receive(
-        "was_last_packit_comment_with_congratulation"
-    ).and_return(True)
 
     flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
         copr_build_pr

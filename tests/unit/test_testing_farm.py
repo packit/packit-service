@@ -92,6 +92,7 @@ def test_testing_farm_response(
     config.should_receive("get_project").with_args(
         url="https://github.com/packit/ogr"
     ).and_return()
+    config.should_receive("get_github_account_name").and_return("packit-as-a-service")
     created_dt = datetime.utcnow()
     event_dict = TFResultsEvent(
         pipeline_id="id",
