@@ -251,20 +251,6 @@ class Event:
         # lazy properties:
         self._db_trigger: Optional[AbstractTriggerDbType] = None
 
-    @staticmethod
-    def ts2str(event: dict):
-        """
-        Convert 'created_at' key from timestamp to iso 8601 time format.
-        This would normally be in a from_dict(), but we don't have such method.
-        In api/* we read events from db and directly serve them to clients.
-        Deserialize (from_dict) and serialize (to_dict) every entry
-        just to do this ts2str would be waste of resources.
-        """
-        created_at = event.get("created_at")
-        if isinstance(created_at, int):
-            event["created_at"] = datetime.fromtimestamp(created_at).isoformat()
-        return event
-
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         d = default_dict or self.__dict__
         d = copy.deepcopy(d)
