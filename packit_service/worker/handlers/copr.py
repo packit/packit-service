@@ -3,7 +3,7 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Tuple, Type
 
 from celery import signature, Task
 from ogr.services.github import GithubProject
@@ -19,24 +19,25 @@ from packit_service.constants import (
     COPR_API_SUCC_STATE,
     COPR_SRPM_CHROOT,
     DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,
-    INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
 )
 from packit_service.models import (
-    AbstractTriggerDbType,
     CoprBuildTargetModel,
     GithubInstallationModel,
-    SRPMBuildModel,
     BuildStatus,
+)
+from packit_service.worker.checker.abstract import Checker
+from packit_service.worker.checker.copr import (
+    CanActorRunTestsJob,
+    AreOwnerAndProjectMatchingJob,
+    IsGitForgeProjectAndEventOk,
 )
 from packit_service.worker.events import (
     CoprBuildEndEvent,
-    AbstractCoprBuildEvent,
     CoprBuildStartEvent,
     MergeRequestGitlabEvent,
     PullRequestGithubEvent,
     PushGitHubEvent,
     PushGitlabEvent,
-    PushPagureEvent,
     ReleaseEvent,
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
@@ -50,8 +51,11 @@ from packit_service.utils import (
     is_timezone_naive_datetime,
     get_timezone_aware_datetime,
 )
-from packit_service.worker.events.enums import GitlabEventAction
-from packit_service.worker.helpers.build import CoprBuildJobHelper
+from packit_service.worker.handlers.mixin import (
+    GetCoprBuildEventMixin,
+    GetCoprBuildJobHelperForIdMixin,
+    GetCoprBuildJobHelperMixin,
+)
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,
@@ -84,7 +88,7 @@ logger = logging.getLogger(__name__)
 @reacts_to(CheckRerunPullRequestEvent)
 @reacts_to(CheckRerunCommitEvent)
 @reacts_to(CheckRerunReleaseEvent)
-class CoprBuildHandler(RetriableJobHandler):
+class CoprBuildHandler(RetriableJobHandler, GetCoprBuildJobHelperMixin):
     task_name = TaskName.copr_build
 
     def __init__(
@@ -92,7 +96,7 @@ class CoprBuildHandler(RetriableJobHandler):
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
-        celery_task: Optional[Task] = None,
+        celery_task: Task,
     ):
         super().__init__(
             package_config=package_config,
@@ -100,46 +104,10 @@ class CoprBuildHandler(RetriableJobHandler):
             event=event,
             celery_task=celery_task,
         )
-        self._copr_build_helper: Optional[CoprBuildJobHelper] = None
 
-    @property
-    def copr_build_helper(self) -> CoprBuildJobHelper:
-        if not self._copr_build_helper:
-            self._copr_build_helper = CoprBuildJobHelper(
-                service_config=self.service_config,
-                package_config=self.package_config,
-                project=self.project,
-                metadata=self.data,
-                db_trigger=self.data.db_trigger,
-                job_config=self.job_config,
-                build_targets_override=self.data.build_targets_override,
-                tests_targets_override=self.data.tests_targets_override,
-                pushgateway=self.pushgateway,
-                celery_task=self.celery_task,
-            )
-        return self._copr_build_helper
-
-    def check_if_actor_can_run_job_and_report(self, actor: str) -> bool:
-        """
-        The job is not allowed for external contributors when using internal TF.
-        """
-        test_job = self.copr_build_helper.job_tests
-        if (
-            test_job
-            and test_job.use_internal_tf
-            and not self.project.can_merge_pr(actor)
-        ):
-            self.copr_build_helper.report_status_to_build(
-                description=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[0].format(
-                    actor=actor
-                ),
-                state=BaseCommitStatus.neutral,
-                markdown_content=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[1].format(
-                    packit_comment_command_prefix=self.service_config.comment_command_prefix
-                ),
-            )
-            return False
-        return True
+    @staticmethod
+    def get_checkers() -> Tuple[Type[Checker], ...]:
+        return (IsGitForgeProjectAndEventOk, CanActorRunTestsJob)
 
     def get_packit_github_installation_time(self) -> Optional[datetime]:
         if isinstance(self.project, GithubProject) and (
@@ -160,117 +128,13 @@ class CoprBuildHandler(RetriableJobHandler):
             return self.copr_build_helper.run_copr_build_from_source_script()
         return self.copr_build_helper.run_copr_build()
 
-    def pre_check(self) -> bool:
-        if (
-            self.data.event_type == MergeRequestGitlabEvent.__name__
-            and self.data.event_dict["action"] == GitlabEventAction.closed.value
-        ):
-            # Not interested in closed merge requests
-            return False
 
-        if self.data.event_type in (
-            PushGitHubEvent.__name__,
-            PushGitlabEvent.__name__,
-            PushPagureEvent.__name__,
-        ):
-            configured_branch = self.copr_build_helper.job_build_branch
-            if self.data.git_ref != configured_branch:
-                logger.info(
-                    f"Skipping build on '{self.data.git_ref}'. "
-                    f"Push configured only for '{configured_branch}'."
-                )
-                return False
-
-        if not (self.copr_build_helper.job_build or self.copr_build_helper.job_tests):
-            logger.info("No copr_build or tests job defined.")
-            # we can't report it to end-user at this stage
-            return False
-
-        if self.copr_build_helper.is_custom_copr_project_defined():
-            logger.debug(
-                "Custom Copr owner/project set. "
-                "Checking if this GitHub project can use this Copr project."
-            )
-            if not self.copr_build_helper.check_if_custom_copr_can_be_used_and_report():
-                return False
-
-        return True
-
-
-class AbstractCoprBuildReportHandler(JobHandler):
-    def __init__(
-        self,
-        package_config: PackageConfig,
-        job_config: JobConfig,
-        event: dict,
-    ):
-        super().__init__(
-            package_config=package_config,
-            job_config=job_config,
-            event=event,
-        )
-        self.copr_event = AbstractCoprBuildEvent.from_event_dict(event)
-        self._build = None
-        self._db_trigger = None
-        self._copr_build_helper: Optional[CoprBuildJobHelper] = None
-
-    def pre_check(self) -> bool:
-        if (
-            self.copr_event.owner == self.copr_build_helper.job_owner
-            and self.copr_event.project_name == self.copr_build_helper.job_project
-        ):
-            return True
-
-        logger.debug(
-            f"The Copr project {self.copr_event.owner}/{self.copr_event.project_name} "
-            f"does not match the configuration "
-            f"({self.copr_build_helper.job_owner}/{self.copr_build_helper.job_project} expected)."
-        )
-        return False
-
-    @property
-    def copr_build_helper(self) -> CoprBuildJobHelper:
-        # when reporting state of SRPM build built in Copr
-        build_targets_override = (
-            {
-                build.target
-                for build in CoprBuildTargetModel.get_all_by_build_id(
-                    str(self.copr_event.build_id)
-                )
-            }
-            if self.copr_event.chroot == COPR_SRPM_CHROOT
-            else None
-        )
-        if not self._copr_build_helper:
-            self._copr_build_helper = CoprBuildJobHelper(
-                service_config=self.service_config,
-                package_config=self.package_config,
-                project=self.project,
-                metadata=self.data,
-                db_trigger=self.db_trigger,
-                job_config=self.job_config,
-                pushgateway=self.pushgateway,
-                build_targets_override=build_targets_override,
-            )
-        return self._copr_build_helper
-
-    @property
-    def build(self):
-        if not self._build:
-            build_id = str(self.copr_event.build_id)
-            if self.copr_event.chroot == COPR_SRPM_CHROOT:
-                self._build = SRPMBuildModel.get_by_copr_build_id(build_id)
-            else:
-                self._build = CoprBuildTargetModel.get_by_build_id(
-                    build_id, self.copr_event.chroot
-                )
-        return self._build
-
-    @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        if not self._db_trigger:
-            self._db_trigger = self.build.get_trigger_object()
-        return self._db_trigger
+class AbstractCoprBuildReportHandler(
+    JobHandler, GetCoprBuildJobHelperForIdMixin, GetCoprBuildEventMixin
+):
+    @staticmethod
+    def get_checkers() -> Tuple[Type[Checker], ...]:
+        return (AreOwnerAndProjectMatchingJob,)
 
 
 @configured_as(job_type=JobType.copr_build)

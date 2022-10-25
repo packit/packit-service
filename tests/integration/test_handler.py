@@ -72,29 +72,28 @@ def test_precheck(github_pr_event):
         flexmock(id=342, job_config_trigger_type=JobConfigTriggerType.pull_request)
     )
 
-    copr_build_handler = CoprBuildHandler(
-        package_config=PackageConfig(
-            jobs=[
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-            ]
-        ),
-        job_config=JobConfig(
-            type=JobType.copr_build,
-            trigger=JobConfigTriggerType.pull_request,
-        ),
-        event=github_pr_event.get_dict(),
+    package_config = PackageConfig(
+        jobs=[
+            JobConfig(
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
+            ),
+            JobConfig(
+                type=JobType.tests,
+                trigger=JobConfigTriggerType.pull_request,
+            ),
+        ]
     )
+    job_config = JobConfig(
+        type=JobType.copr_build,
+        trigger=JobConfigTriggerType.pull_request,
+    )
+    event = github_pr_event.get_dict()
+
     flexmock(CoprBuildJobHelper).should_receive(
         "is_custom_copr_project_defined"
     ).and_return(False).once()
-    assert copr_build_handler.pre_check()
+    assert CoprBuildHandler.pre_check(package_config, job_config, event)
 
 
 def test_precheck_gitlab(gitlab_mr_event):
@@ -106,29 +105,28 @@ def test_precheck_gitlab(gitlab_mr_event):
     ).and_return(
         flexmock(id=1, job_config_trigger_type=JobConfigTriggerType.pull_request)
     )
-    copr_build_handler = CoprBuildHandler(
-        package_config=PackageConfig(
-            jobs=[
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                ),
-            ]
-        ),
-        job_config=JobConfig(
-            type=JobType.copr_build,
-            trigger=JobConfigTriggerType.pull_request,
-        ),
-        event=gitlab_mr_event.get_dict(),
+    package_config = PackageConfig(
+        jobs=[
+            JobConfig(
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
+            ),
+            JobConfig(
+                type=JobType.tests,
+                trigger=JobConfigTriggerType.pull_request,
+            ),
+        ]
     )
+    job_config = JobConfig(
+        type=JobType.copr_build,
+        trigger=JobConfigTriggerType.pull_request,
+    )
+    event = gitlab_mr_event.get_dict()
+
     flexmock(CoprBuildJobHelper).should_receive(
         "is_custom_copr_project_defined"
     ).and_return(False).once()
-    assert copr_build_handler.pre_check()
+    assert CoprBuildHandler.pre_check(package_config, job_config, event)
 
 
 def test_precheck_push(github_push_event):
@@ -147,11 +145,8 @@ def test_precheck_push(github_push_event):
         project="bar",
     )
 
-    copr_build_handler = CoprBuildHandler(
-        package_config=PackageConfig(jobs=[jc]),
-        job_config=jc,
-        event=github_push_event.get_dict(),
-    )
+    package_config = PackageConfig(jobs=[jc])
+    event = github_push_event.get_dict()
     api = flexmock(
         copr_helper=flexmock(
             copr_client=flexmock(
@@ -166,7 +161,8 @@ def test_precheck_push(github_push_event):
     )
     flexmock(CoprBuildJobHelper).should_receive("api").and_return(api)
 
-    assert copr_build_handler.pre_check()
+    permission_checker = CoprBuildHandler.get_checkers()[0]
+    assert permission_checker(package_config, jc, event).pre_check()
 
 
 def test_precheck_push_to_a_different_branch(github_push_event):
@@ -174,24 +170,22 @@ def test_precheck_push_to_a_different_branch(github_push_event):
         flexmock(id=1, job_config_trigger_type=JobConfigTriggerType.commit)
     )
 
-    copr_build_handler = CoprBuildHandler(
-        package_config=PackageConfig(
-            jobs=[
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.commit,
-                    branch="bad-branch",
-                ),
-            ]
-        ),
-        job_config=JobConfig(
-            type=JobType.copr_build,
-            trigger=JobConfigTriggerType.commit,
-            branch="bad-branch",
-        ),
-        event=github_push_event.get_dict(),
+    package_config = PackageConfig(
+        jobs=[
+            JobConfig(
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.commit,
+                branch="bad-branch",
+            ),
+        ]
     )
-    assert not copr_build_handler.pre_check()
+    job_config = JobConfig(
+        type=JobType.copr_build,
+        trigger=JobConfigTriggerType.commit,
+        branch="bad-branch",
+    )
+    event = github_push_event.get_dict()
+    assert not CoprBuildHandler.pre_check(package_config, job_config, event)
 
 
 def test_precheck_koji_build_non_scratch(github_pr_event):
@@ -219,23 +213,22 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
         markdown_content=None,
     ).and_return().once()
     flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
-    koji_build_handler = KojiBuildHandler(
-        package_config=PackageConfig(
-            jobs=[
-                JobConfig(
-                    type=JobType.production_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    _targets=["bright-future"],
-                    scratch=False,
-                ),
-            ]
-        ),
-        job_config=JobConfig(
-            type=JobType.production_build,
-            trigger=JobConfigTriggerType.pull_request,
-            _targets=["bright-future"],
-            scratch=False,
-        ),
-        event=github_pr_event.get_dict(),
+
+    package_config = PackageConfig(
+        jobs=[
+            JobConfig(
+                type=JobType.production_build,
+                trigger=JobConfigTriggerType.pull_request,
+                _targets=["bright-future"],
+                scratch=False,
+            ),
+        ]
     )
-    assert not koji_build_handler.pre_check()
+    job_config = JobConfig(
+        type=JobType.production_build,
+        trigger=JobConfigTriggerType.pull_request,
+        _targets=["bright-future"],
+        scratch=False,
+    )
+    event = github_pr_event.get_dict()
+    assert not KojiBuildHandler.pre_check(package_config, job_config, event)

@@ -1650,7 +1650,7 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(
         flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
-    ).once()
+    ).twice()
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False).once()
@@ -1715,7 +1715,9 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(
         flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
-    ).twice()
+    ).times(
+        4
+    )
     pr_embedded_command_comment_event["comment"]["body"] = "/packit build"
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False).once()

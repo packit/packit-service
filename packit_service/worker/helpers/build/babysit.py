@@ -110,14 +110,15 @@ def check_pending_testing_farm_runs() -> None:
             handler_kls=TestingFarmResultsHandler,
         )
 
+        event_dict = event.get_dict()
         for job_config in job_configs:
             handler = TestingFarmResultsHandler(
                 package_config=event.package_config,
                 job_config=job_config,
-                event=event.get_dict(),
+                event=event_dict,
             )
             # check for identifiers equality
-            if handler.pre_check():
+            if handler.pre_check(package_config, job_config, event_dict):
                 handler.run()
 
 

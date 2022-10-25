@@ -6,17 +6,13 @@ This file defines classes for job handlers specific for Testing farm
 """
 import logging
 from datetime import datetime, timezone
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple, Type
 
 from celery import Task
 from celery import signature
 
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
-from packit_service.constants import (
-    INTERNAL_TF_TESTS_NOT_ALLOWED,
-    INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
-)
 from packit_service.models import (
     AbstractTriggerDbType,
     TFTTestRunTargetModel,
@@ -30,6 +26,12 @@ from packit_service.service.urls import (
     get_copr_build_info_url,
 )
 from packit_service.utils import dump_job_config, dump_package_config
+from packit_service.worker.checker.abstract import Checker
+from packit_service.worker.checker.testing_farm import (
+    CanActorRunJob,
+    IsEventForJob,
+    IsEventOk,
+)
 from packit_service.worker.events import (
     TestingFarmResultsEvent,
     CheckRerunCommitEvent,
@@ -40,7 +42,6 @@ from packit_service.worker.events import (
     MergeRequestGitlabEvent,
     AbstractPRCommentEvent,
 )
-from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.handlers import JobHandler
 from packit_service.worker.handlers.abstract import (
     TaskName,
@@ -54,6 +55,11 @@ from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.monitoring import measure_time
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.result import TaskResults
+from packit_service.worker.handlers.mixin import (
+    GetCoprBuildMixin,
+    GetTestingFarmJobHelperMixin,
+)
+from packit_service.worker.handlers.mixin import GetGithubCommentEventMixin
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +77,12 @@ logger = logging.getLogger(__name__)
 @reacts_to(CheckRerunPullRequestEvent)
 @reacts_to(CheckRerunCommitEvent)
 @configured_as(job_type=JobType.tests)
-class TestingFarmHandler(RetriableJobHandler):
+class TestingFarmHandler(
+    RetriableJobHandler,
+    GetTestingFarmJobHelperMixin,
+    GetCoprBuildMixin,
+    GetGithubCommentEventMixin,
+):
     """
     The automatic matching is now used only for /packit test
     TODO: We can react directly to the finished Copr build.
@@ -84,8 +95,8 @@ class TestingFarmHandler(RetriableJobHandler):
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
+        celery_task: Task,
         build_id: Optional[int] = None,
-        celery_task: Optional[Task] = None,
     ):
         super().__init__(
             package_config=package_config,
@@ -94,72 +105,14 @@ class TestingFarmHandler(RetriableJobHandler):
             celery_task=celery_task,
         )
         self.build_id = build_id
-        self._db_trigger: Optional[AbstractTriggerDbType] = None
         self._testing_farm_job_helper: Optional[TestingFarmJobHelper] = None
 
-    def check_if_actor_can_run_job_and_report(self, actor: str) -> bool:
-        """
-        The job is not allowed for external contributors when using internal TF.
-        """
-        if self.job_config.use_internal_tf and not self.project.can_merge_pr(actor):
-            message = (
-                INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED
-                if self.testing_farm_job_helper.job_build
-                else INTERNAL_TF_TESTS_NOT_ALLOWED
-            )
-            self.testing_farm_job_helper.report_status_to_tests(
-                description=message[0].format(actor=actor),
-                state=BaseCommitStatus.neutral,
-                markdown_content=message[1].format(
-                    packit_comment_command_prefix=self.service_config.comment_command_prefix
-                ),
-            )
-            return False
-        return True
-
-    def pre_check(self) -> bool:
-        if (
-            self.data.event_type == MergeRequestGitlabEvent.__name__
-            and self.data.event_dict["action"] == GitlabEventAction.closed.value
-        ):
-            # Not interested in closed merge requests
-            return False
-
-        if self.testing_farm_job_helper.is_test_comment_pr_argument_present():
-            return self.testing_farm_job_helper.check_comment_pr_argument_and_report()
-
-        return not (
-            self.testing_farm_job_helper.skip_build
-            and self.testing_farm_job_helper.is_copr_build_comment_event()
+    @staticmethod
+    def get_checkers() -> Tuple[Type[Checker], ...]:
+        return (
+            IsEventOk,
+            CanActorRunJob,
         )
-
-    @property
-    def db_trigger(self) -> Optional[AbstractTriggerDbType]:
-        if not self._db_trigger:
-            # copr build end
-            if self.build_id:
-                build = CoprBuildTargetModel.get_by_id(self.build_id)
-                self._db_trigger = build.get_trigger_object()
-            # other events
-            else:
-                self._db_trigger = self.data.db_trigger
-        return self._db_trigger
-
-    @property
-    def testing_farm_job_helper(self) -> TestingFarmJobHelper:
-        if not self._testing_farm_job_helper:
-            self._testing_farm_job_helper = TestingFarmJobHelper(
-                service_config=self.service_config,
-                package_config=self.package_config,
-                project=self.project,
-                metadata=self.data,
-                db_trigger=self.db_trigger,
-                job_config=self.job_config,
-                build_targets_override=self.data.build_targets_override,
-                tests_targets_override=self.data.tests_targets_override,
-                celery_task=self.celery_task,
-            )
-        return self._testing_farm_job_helper
 
     def build_required(self) -> bool:
         return not self.testing_farm_job_helper.skip_build and (
@@ -339,6 +292,10 @@ class TestingFarmResultsHandler(JobHandler):
         self._db_trigger: Optional[AbstractTriggerDbType] = None
         self.created = event.get("created")
 
+    @staticmethod
+    def get_checkers() -> Tuple[Type[Checker], ...]:
+        return (IsEventForJob,)
+
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         if not self._db_trigger:
@@ -410,13 +367,3 @@ class TestingFarmResultsHandler(JobHandler):
         )
 
         return TaskResults(success=True, details={})
-
-    def pre_check(self) -> bool:
-        if self.data.identifier != self.job_config.identifier:
-            logger.debug(
-                f"Skipping reporting, identifiers don't match "
-                f"(identifier of the test job to report: {self.data.identifier}, "
-                f"identifier from job config: {self.job_config.identifier})."
-            )
-            return False
-        return True

@@ -655,14 +655,17 @@ def test_precheck_koji_build_push(
             allowed_committers=allowed_committers,
         ),
     ]
-    koji_build_handler = DownstreamKojiBuildHandler(
-        package_config=PackageConfig(
+    package_config = (
+        PackageConfig(
             jobs=jobs,
         ),
-        job_config=jobs[0],
-        event=distgit_push_event.get_dict(),
     )
-    assert koji_build_handler.pre_check() == should_pass
+    job_config = jobs[0]
+    event = distgit_push_event.get_dict()
+    assert (
+        DownstreamKojiBuildHandler.pre_check(package_config, job_config, event)
+        == should_pass
+    )
 
 
 @pytest.mark.parametrize(
@@ -723,11 +726,14 @@ def test_precheck_koji_build_push_pr(
             )
         ]
     )
-    koji_build_handler = DownstreamKojiBuildHandler(
-        package_config=PackageConfig(
+    package_config = (
+        PackageConfig(
             jobs=jobs,
         ),
-        job_config=jobs[0],
-        event=distgit_push_event.get_dict(),
     )
-    assert koji_build_handler.pre_check() == should_pass
+    job_config = jobs[0]
+    event = distgit_push_event.get_dict()
+    assert (
+        DownstreamKojiBuildHandler.pre_check(package_config, job_config, event)
+        == should_pass
+    )

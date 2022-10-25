@@ -5,7 +5,7 @@
 This file defines classes for job handlers related to Bodhi
 """
 import logging
-from typing import Optional
+from typing import Tuple, Type
 
 from celery import Task
 from fedora.client import AuthError
@@ -14,18 +14,14 @@ from packit.constants import DEFAULT_BODHI_NOTE
 
 from packit.exceptions import PackitException
 
-from packit.api import PackitAPI
-from packit.config.aliases import get_branches
-
 from packit.config import JobConfig, JobType, PackageConfig
-from packit.local_project import LocalProject
-from packit.utils.repo import RepositoryCache
 from packit_service.config import PackageConfigGetter
 from packit_service.constants import (
     CONTACTS_URL,
-    KojiBuildState,
     RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED,
 )
+from packit_service.worker.checker.abstract import Checker
+from packit_service.worker.checker.bodhi import IsKojiBuildCompleteAndBranchConfigured
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
     TaskName,
@@ -33,6 +29,8 @@ from packit_service.worker.handlers.abstract import (
     reacts_to,
     RetriableJobHandler,
 )
+from packit_service.worker.handlers.mixin import GetKojiBuildEventMixin
+from packit_service.worker.mixin import LocalProjectMixin
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -40,7 +38,9 @@ logger = logging.getLogger(__name__)
 
 @configured_as(job_type=JobType.bodhi_update)
 @reacts_to(event=KojiBuildEvent)
-class CreateBodhiUpdateHandler(RetriableJobHandler):
+class CreateBodhiUpdateHandler(
+    RetriableJobHandler, LocalProjectMixin, GetKojiBuildEventMixin
+):
     """
     This handler can create a bodhi update for successful Koji builds.
     """
@@ -53,7 +53,7 @@ class CreateBodhiUpdateHandler(RetriableJobHandler):
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
-        celery_task: Optional[Task] = None,
+        celery_task: Task,
     ):
         super().__init__(
             package_config=package_config,
@@ -62,63 +62,16 @@ class CreateBodhiUpdateHandler(RetriableJobHandler):
             celery_task=celery_task,
         )
 
-        # lazy properties
-        self._koji_build_event: Optional[KojiBuildEvent] = None
-
-    @property
-    def koji_build_event(self):
-        if not self._koji_build_event:
-            self._koji_build_event = KojiBuildEvent.from_event_dict(
-                self.data.event_dict
-            )
-        return self._koji_build_event
-
-    def pre_check(self) -> bool:
-        """
-        We react only on finished builds (=KojiBuildState.complete)
+    @staticmethod
+    def get_checkers() -> Tuple[Type[Checker], ...]:
+        """We react only on finished builds (=KojiBuildState.complete)
         and configured branches.
-        By default, we use `fedora-stable` alias.
-        (Rawhide updates are already created automatically.)
         """
-        if self.koji_build_event.state != KojiBuildState.complete:
-            logger.debug(
-                f"Skipping build '{self.koji_build_event.build_id}' "
-                f"on '{self.koji_build_event.git_ref}'. "
-                f"Build not finished yet."
-            )
-            return False
-
-        if self.koji_build_event.git_ref not in (
-            configured_branches := get_branches(
-                *(self.job_config.dist_git_branches or {"fedora-stable"}),
-                default_dg_branch="rawhide",  # Koji calls it rawhide, not main
-            )
-        ):
-            logger.info(
-                f"Skipping build on '{self.data.git_ref}'. "
-                f"Bodhi update configured only for '{configured_branches}'."
-            )
-            return False
-        return True
+        return (IsKojiBuildCompleteAndBranchConfigured,)
 
     def run(self) -> TaskResults:
-        self.local_project = LocalProject(
-            git_project=self.project,
-            working_dir=self.service_config.command_handler_work_dir,
-            cache=RepositoryCache(
-                cache_path=self.service_config.repository_cache,
-                add_new=self.service_config.add_repositories_to_repository_cache,
-            )
-            if self.service_config.repository_cache
-            else None,
-        )
-        packit_api = PackitAPI(
-            self.service_config,
-            self.job_config,
-            downstream_local_project=self.local_project,
-        )
         try:
-            packit_api.create_update(
+            self.packit_api.create_update(
                 dist_git_branch=self.koji_build_event.git_ref,
                 update_type="enhancement",
                 update_notes=DEFAULT_BODHI_NOTE,

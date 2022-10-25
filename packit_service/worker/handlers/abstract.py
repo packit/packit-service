@@ -11,18 +11,15 @@ from collections import defaultdict
 from datetime import datetime
 from os import getenv
 from pathlib import Path
-from typing import Dict, Optional, Set, Type
+from typing import Dict, Optional, Set, Type, Tuple
 
 from celery import Task
 from celery import signature
 from celery.canvas import Signature
 from ogr.abstract import GitProject
-
-from packit.api import PackitAPI
 from packit.config import JobConfig, JobType, PackageConfig
 from packit.constants import DATETIME_FORMAT
-from packit.local_project import LocalProject
-from packit_service.config import ServiceConfig
+
 from packit_service.models import (
     AbstractTriggerDbType,
 )
@@ -32,6 +29,12 @@ from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events import Event, EventData
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.result import TaskResults
+from packit_service.worker.checker.abstract import Checker
+
+from packit_service.worker.mixin import (
+    ConfigMixin,
+    PackitAPIWithDownstreamMixin,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -210,21 +213,7 @@ class TaskName(str, enum.Enum):
     github_fas_verification = "task.github_fas_verification"
 
 
-class Handler:
-    api: Optional[PackitAPI] = None
-    local_project: Optional[LocalProject] = None
-    _service_config: Optional[ServiceConfig] = None
-
-    @property
-    def service_config(self) -> ServiceConfig:
-        if not self._service_config:
-            self._service_config = ServiceConfig.get_service_config()
-        return self._service_config
-
-    @property
-    def project(self) -> Optional[GitProject]:
-        return None
-
+class Handler(ConfigMixin, PackitAPIWithDownstreamMixin):
     def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")
 
@@ -275,20 +264,36 @@ class Handler:
             else:
                 shutil.rmtree(item)
 
-    def pre_check(self) -> bool:
-        """
-        Implement this method for those handlers, where you want to check if the properties are
-        correct. If this method returns False during runtime, execution of service code is skipped.
+    @staticmethod
+    def get_checkers() -> Tuple[Type[Checker], ...]:
+        return ()
 
-        :return: False if we can skip the job execution.
+    @classmethod
+    def pre_check(
+        cls,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        event: dict,
+    ) -> bool:
         """
-        return True
+        Returns
+            bool: False if we have to skip the job execution.
+        """
+        checks_pass = True
+        for checker_cls in cls.get_checkers():
+            checker = checker_cls(
+                package_config=package_config,
+                job_config=job_config,
+                event=event,
+            )
+            checks_pass = checks_pass and checker.pre_check()
+
+        return checks_pass
 
     def clean(self):
         """clean up the mess once we're done"""
         logger.info("Cleaning up the mess.")
-        if self.api:
-            self.api.clean()
+        self.clean_api()
         self._clean_workplace()
 
 
@@ -314,26 +319,11 @@ class JobHandler(Handler):
         self._project: Optional[GitProject] = None
         self._clean_workplace()
 
-    @property
-    def project(self) -> Optional[GitProject]:
-        if not self._project and self.data.project_url:
-            self._project = self.service_config.get_project(url=self.data.project_url)
-        return self._project
-
     @classmethod
     def get_all_subclasses(cls) -> Set[Type["JobHandler"]]:
         return set(cls.__subclasses__()).union(
             [s for c in cls.__subclasses__() for s in c.get_all_subclasses()]
         )
-
-    def check_if_actor_can_run_job_and_report(self, actor: str) -> bool:
-        """
-        Here, handlers can specify additional check of permissions for a given user
-        by overriding this method.
-
-        In case of False, we expect the method provides a feedback to the user.
-        """
-        return True
 
     def run_job(self):
         """
@@ -388,12 +378,12 @@ class RetriableJobHandler(JobHandler):
         package_config: PackageConfig,
         job_config: JobConfig,
         event: dict,
-        celery_task: Optional[Task] = None,
+        celery_task: Task,
     ):
         super().__init__(
             package_config=package_config, job_config=job_config, event=event
         )
-        self.celery_task = CeleryTask(celery_task) if celery_task else None
+        self.celery_task = CeleryTask(celery_task)
 
     def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")

@@ -44,7 +44,7 @@ def test_create_one_issue_for_pr():
         ]
     )
     flexmock(ProposeDownstreamHandler).should_receive("project").and_return(project)
-    handler = ProposeDownstreamHandler(None, None, {})
+    handler = ProposeDownstreamHandler(None, None, {}, flexmock())
     handler._report_errors_for_each_branch(
         {
             "f34": "Propose downstream failed for release 056",
@@ -79,11 +79,10 @@ PAGURE_PULL_REQUEST_COMMENT_PROCESSED = '{"created_at": 1658228337, "project_url
 )
 def test_retrigger_downstream_koji_build_pre_check(user_groups, data, check_passed):
     data_dict = json.loads(data)
-    handler = DownstreamKojiBuildHandler(None, None, data_dict)
     flexmock(PackitAPI).should_receive("init_kerberos_ticket").and_return(None)
     flexmock(Client).should_receive("__getattr__").with_args(
         "list_user_groups"
     ).and_return(lambda username: user_groups)
 
-    result = handler.pre_check()
+    result = DownstreamKojiBuildHandler.pre_check(None, None, data_dict)
     assert result == check_passed
