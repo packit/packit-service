@@ -1,7 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from abc import abstractmethod, abstractproperty
+from abc import abstractmethod
 import logging
 from typing import Optional, Protocol
 from packit.config import PackageConfig, JobConfig
@@ -34,7 +34,8 @@ logger = logging.getLogger(__name__)
 class GetKojiBuildEvent(Protocol):
     data: EventData
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def koji_build_event(self) -> KojiBuildEvent:
         ...
 
@@ -52,7 +53,8 @@ class GetKojiBuildEventMixin(ConfigMixin, GetKojiBuildEvent):
 
 
 class GetKojiBuildJobHelper(Protocol):
-    @abstractproperty
+    @property
+    @abstractmethod
     def koji_build_helper(self) -> KojiBuildJobHelper:
         ...
 
@@ -81,7 +83,8 @@ class GetKojiBuildJobHelperMixin(GetKojiBuildJobHelper, ConfigMixin):
 class GetCoprBuildEvent(Protocol):
     data: EventData
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def copr_event(self) -> KojiBuildEvent:
         ...
 
@@ -99,11 +102,13 @@ class GetCoprBuildEventMixin(ConfigMixin, GetCoprBuildEvent):
 
 
 class GetSRPMBuild(Protocol):
-    @abstractproperty
+    @property
+    @abstractmethod
     def build(self) -> Optional[SRPMBuildModel]:
         ...
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         ...
 
@@ -134,7 +139,8 @@ class GetCoprSRPMBuildMixin(GetSRPMBuild, GetCoprBuildEventMixin):
 class GetCoprBuild(Protocol):
     build_id: Optional[int] = None
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         ...
 
@@ -162,7 +168,8 @@ class GetCoprBuildJobHelper(Protocol):
     celery_task: Optional[CeleryTask] = None
     pushgateway: Optional[Pushgateway] = None
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def copr_build_helper(self) -> CoprBuildJobHelper:
         ...
 
@@ -225,7 +232,8 @@ class GetTestingFarmJobHelper(Protocol):
     job_config: JobConfig
     celery_task: Optional[CeleryTask] = None
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def testing_farm_job_helper(self) -> TestingFarmJobHelper:
         ...
 
@@ -278,15 +286,18 @@ class GetGithubCommentEventMixin(GetGithubCommentEvent, ConfigMixin):
 
 
 class GetProjectToSync(Protocol):
-    @abstractproperty
+    @property
+    @abstractmethod
     def dg_repo_name(self) -> str:
         ...
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def dg_branch(self) -> str:
         ...
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def project_to_sync(self) -> Optional[ProjectToSync]:
         ...
 
