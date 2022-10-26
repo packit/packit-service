@@ -62,7 +62,6 @@ class BaseBuildJobHelper(BaseJobHelper):
         self.pushgateway = pushgateway
 
         # lazy properties
-        self._test_check_names: Optional[List[str]] = None
         self._build_check_names: Optional[List[str]] = None
         self._srpm_model: Optional[SRPMBuildModel] = None
         self._srpm_path: Optional[Path] = None
@@ -372,12 +371,10 @@ class BaseBuildJobHelper(BaseJobHelper):
 
         e.g. ["testing-farm:fedora-rawhide-x86_64"]
         """
-        if not self._test_check_names:
-            self._test_check_names = [
-                self.get_test_check_cls(target, test_job_config.identifier)
-                for target in self.tests_targets_for_test_job(test_job_config)
-            ]
-        return self._test_check_names
+        return [
+            self.get_test_check_cls(target, test_job_config.identifier)
+            for target in self.tests_targets_for_test_job(test_job_config)
+        ]
 
     def create_srpm_if_needed(self) -> Optional[TaskResults]:
         """
