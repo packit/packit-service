@@ -204,6 +204,7 @@ def test_issue_comment_propose_downstream_handler(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(shutil).should_receive("rmtree").with_args("")
 

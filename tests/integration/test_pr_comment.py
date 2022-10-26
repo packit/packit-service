@@ -36,8 +36,8 @@ from packit_service.models import (
     TestingFarmResult,
     BuildStatus,
 )
-from packit_service.utils import get_packit_commands_from_comment
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
+from packit_service.utils import get_packit_commands_from_comment
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
@@ -205,6 +205,7 @@ def test_pr_comment_copr_build_handler(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -278,6 +279,7 @@ def test_pr_comment_build_handler(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -333,10 +335,11 @@ def test_pr_comment_build_test_handler(
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").twice()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -401,11 +404,13 @@ def test_pr_comment_build_build_and_test_handler(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(CoprBuildJobHelper).should_receive(
         "is_custom_copr_project_defined"
@@ -496,6 +501,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -636,6 +642,7 @@ def test_pr_embedded_command_handler(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -795,10 +802,11 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
         TaskResults(success=True, details={})
     )
     flexmock(Pushgateway).should_receive("push").twice().and_return()
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
@@ -1158,10 +1166,11 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
 
     payload = {
@@ -1350,10 +1359,11 @@ def test_pr_test_command_handler_compose_not_present(
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
@@ -1477,10 +1487,11 @@ def test_pr_test_command_handler_composes_not_available(
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
@@ -1585,9 +1596,9 @@ def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event
 
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("owner")
     flexmock(TestingFarmJobHelper).should_receive("job_project").and_return("project")
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").once()
-    flexmock(CoprBuildJobHelper).should_receive(
-        "report_status_to_test_for_chroot"
+    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").once()
+    flexmock(TestingFarmJobHelper).should_receive(
+        "report_status_to_tests_for_chroot"
     ).once()
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=False, details={})
@@ -1656,7 +1667,7 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
     flexmock(GithubProject).should_receive("is_private").and_return(False).once()
     flexmock(Signature).should_receive("apply_async").times(0)
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").times(0)
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description="phracek can't run tests internally",
         state=BaseCommitStatus.neutral,
         markdown_content="*As a project maintainer, "
@@ -1730,7 +1741,7 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
         "you can trigger the build and test jobs manually via `/packit build` comment "
         "or only test job via `/packit test` comment.*",
     ).once()
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description="phracek can't run tests (and builds) internally",
         state=BaseCommitStatus.neutral,
         markdown_content="*As a project maintainer, "
@@ -1861,6 +1872,7 @@ def test_rebuild_failed(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -1917,7 +1929,7 @@ def test_retest_failed(
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(copr_build).should_receive("get_valid_build_targets").times(5).and_return(
+    flexmock(copr_build).should_receive("get_valid_build_targets").times(3).and_return(
         {"test-target"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
@@ -1947,10 +1959,11 @@ def test_retest_failed(
     )
 
     flexmock(Pushgateway).should_receive("push").twice().and_return()
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
@@ -2045,10 +2058,11 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -2257,10 +2271,11 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         build
     )
     flexmock(Pushgateway).should_receive("push").twice().and_return()
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_tests").with_args(
+    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
 
     payload = {

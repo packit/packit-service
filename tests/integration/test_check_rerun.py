@@ -805,6 +805,7 @@ def test_check_rerun_release_propose_downstream_handler(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()

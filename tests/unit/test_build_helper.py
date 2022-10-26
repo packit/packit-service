@@ -5,9 +5,9 @@ from pathlib import Path
 import pytest
 from flexmock import flexmock
 
-from packit.copr_helper import CoprHelper
 from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
 from packit.config.aliases import get_build_targets
+from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 from packit_service.config import ServiceConfig
@@ -17,6 +17,8 @@ from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 
 # packit.config.aliases.get_aliases() return value example
+from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+
 ALIASES = {
     "fedora-development": ["fedora-33", "fedora-rawhide"],
     "fedora-stable": ["fedora-31", "fedora-32"],
@@ -51,7 +53,7 @@ def _mock_targets(jobs, job, job_type):
 
 
 @pytest.mark.parametrize(
-    "jobs,job_type,build_chroots,test_chroots",
+    "jobs,job_type,build_chroots",
     [
         pytest.param(
             [
@@ -63,7 +65,6 @@ def _mock_targets(jobs, job, job_type):
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(STABLE_VERSIONS),
-            set(),
             id="build_with_targets",
         ),
         pytest.param(
@@ -76,7 +77,6 @@ def _mock_targets(jobs, job, job_type):
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(STABLE_VERSIONS),
-            set(),
             id="build_with_targets&pr_comment",
         ),
         pytest.param(
@@ -89,7 +89,6 @@ def _mock_targets(jobs, job, job_type):
             ],
             (JobConfigTriggerType.release, JobTriggerModelType.release),
             set(STABLE_VERSIONS),
-            set(),
             id="build_with_targets&release",
         ),
         pytest.param(
@@ -102,7 +101,6 @@ def _mock_targets(jobs, job, job_type):
             ],
             (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
             set(STABLE_VERSIONS),
-            set(),
             id="build_with_targets&push",
         ),
         pytest.param(
@@ -120,7 +118,6 @@ def _mock_targets(jobs, job, job_type):
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(STABLE_VERSIONS),
-            set(),
             id="build_with_targets&pull_request_with_pr_and_push_defined",
         ),
         pytest.param(
@@ -138,7 +135,6 @@ def _mock_targets(jobs, job, job_type):
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(STABLE_VERSIONS),
-            set(),
             id="build_with_targets&pr_comment_with_pr_and_push_defined",
         ),
         pytest.param(
@@ -156,7 +152,6 @@ def _mock_targets(jobs, job, job_type):
             ],
             (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
             set(STABLE_VERSIONS),
-            set(),
             id="build_with_targets&push_with_pr_and_push_defined",
         ),
         pytest.param(
@@ -168,7 +163,6 @@ def _mock_targets(jobs, job, job_type):
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             {"fedora-stable"},
-            set(),
             id="build_without_targets",
         ),
         pytest.param(
@@ -179,7 +173,6 @@ def _mock_targets(jobs, job, job_type):
                 )
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
-            {"fedora-stable"},
             {"fedora-stable"},
             id="test_without_targets",
         ),
@@ -192,7 +185,6 @@ def _mock_targets(jobs, job, job_type):
                 )
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
-            set(STABLE_VERSIONS),
             set(STABLE_VERSIONS),
             id="test_with_targets",
         ),
@@ -208,7 +200,6 @@ def _mock_targets(jobs, job, job_type):
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
-            {"fedora-stable"},
             {"fedora-stable"},
             id="build_without_target&test_without_targets",
         ),
@@ -226,7 +217,6 @@ def _mock_targets(jobs, job, job_type):
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(STABLE_VERSIONS),
-            set(STABLE_VERSIONS),
             id="build_with_target&test_without_targets",
         ),
         pytest.param(
@@ -243,7 +233,6 @@ def _mock_targets(jobs, job, job_type):
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(STABLE_VERSIONS),
-            set(STABLE_VERSIONS),
             id="build_without_target&test_with_targets",
         ),
         pytest.param(
@@ -259,7 +248,6 @@ def _mock_targets(jobs, job, job_type):
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
-            ONE_CHROOT_SET,
             ONE_CHROOT_SET,
             id="build_without_target&test_with_one_str_target",
         ),
@@ -280,7 +268,6 @@ def _mock_targets(jobs, job, job_type):
             ],
             (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
             {"fedora-stable"},
-            set(),
             id="build[pr+commit]&test[pr]&commit",
         ),
         pytest.param(
@@ -300,7 +287,6 @@ def _mock_targets(jobs, job, job_type):
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             {"fedora-stable"},
-            {"fedora-stable"},
             id="build[pr+commit]&test[pr]&pr",
         ),
         pytest.param(
@@ -316,7 +302,6 @@ def _mock_targets(jobs, job, job_type):
                 ),
             ],
             (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
-            {"fedora-stable"},
             {"fedora-stable"},
             id="build[pr+commit]&test[commit]&commit",
         ),
@@ -334,7 +319,6 @@ def _mock_targets(jobs, job, job_type):
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             {"fedora-stable"},
-            set(),
             id="build[pr+commit]&test[commit]&pr",
         ),
         pytest.param(
@@ -357,7 +341,6 @@ def _mock_targets(jobs, job, job_type):
             ],
             (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
             {"fedora-stable"},
-            set(),
             id="build[pr+commit+release]&test[pr]&commit",
         ),
         pytest.param(
@@ -373,7 +356,6 @@ def _mock_targets(jobs, job, job_type):
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
-            ONE_CHROOT_SET,
             ONE_CHROOT_SET,
             id="build_with_mixed_build_alias",
         ),
@@ -392,19 +374,257 @@ def _mock_targets(jobs, job, job_type):
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(STABLE_VERSIONS + ["fedora-rawhide"]),
-            {"fedora-rawhide"},
             id="build_with_mixed_build_tests",
         ),
     ],
 )
-def test_targets(jobs, job_type, build_chroots, test_chroots):
+def test_configured_build_targets(jobs, job_type, build_chroots):
     copr_build_helper = _mock_targets(jobs, jobs[0], job_type)
 
     assert copr_build_helper.package_config.jobs
     assert [j.type for j in copr_build_helper.package_config.jobs]
 
     assert copr_build_helper.configured_build_targets == build_chroots
-    assert copr_build_helper.configured_tests_targets == test_chroots
+
+
+@pytest.mark.parametrize(
+    "jobs,job_type,test_chroots",
+    [
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                )
+            ],
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            {"fedora-stable"},
+            id="test_without_targets",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets=STABLE_VERSIONS,
+                )
+            ],
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            set(STABLE_VERSIONS),
+            id="test_with_targets",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            {"fedora-stable"},
+            id="build_without_target&test_without_targets",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets=STABLE_VERSIONS,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            set(STABLE_VERSIONS),
+            id="build_with_target&test_without_targets",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets=STABLE_VERSIONS,
+                ),
+            ],
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            set(STABLE_VERSIONS),
+            id="build_without_target&test_with_targets",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets=list(ONE_CHROOT_SET),
+                ),
+            ],
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            ONE_CHROOT_SET,
+            id="build_without_target&test_with_one_str_target",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
+            set(),
+            id="build[pr+commit]&test[pr]&commit",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            {"fedora-stable"},
+            id="build[pr+commit]&test[pr]&pr",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.commit),
+            ],
+            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
+            {"fedora-stable"},
+            id="build[pr+commit]&test[commit]&commit",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.commit),
+            ],
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            set(),
+            id="build[pr+commit]&test[commit]&pr",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.commit,
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.release,
+                ),
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+                ),
+            ],
+            (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
+            set(),
+            id="build[pr+commit+release]&test[pr]&commit",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets=list(ONE_CHROOT_SET),
+                ),
+            ],
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            ONE_CHROOT_SET,
+            id="build_with_mixed_build_alias",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets=STABLE_VERSIONS,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets=["fedora-rawhide"],
+                ),
+            ],
+            (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
+            {"fedora-rawhide"},
+            id="build_with_mixed_build_tests",
+        ),
+    ],
+)
+def test_configured_tests_targets(jobs, job_type, test_chroots):
+    job_config_trigger_type, job_trigger_model_type = job_type
+
+    project_service = flexmock(instance_url="https://github.com")
+    helper = TestingFarmJobHelper(
+        service_config=ServiceConfig.get_service_config(),
+        package_config=PackageConfig(jobs=jobs),
+        job_config=jobs[-1],  # test job is always the last in the list
+        project=flexmock(
+            service=project_service, namespace="packit", repo="testing_package"
+        ),
+        metadata=flexmock(pr_id=None, identifier=None),
+        db_trigger=flexmock(
+            job_config_trigger_type=job_config_trigger_type,
+            job_trigger_model_type=job_trigger_model_type,
+        ),
+    )
+
+    assert helper.package_config.jobs
+    assert [j.type for j in helper.package_config.jobs]
+
+    assert helper.configured_tests_targets == test_chroots
 
 
 def test_deduced_copr_targets():
@@ -439,12 +659,24 @@ def test_deduced_copr_targets():
     assert [j.type for j in copr_build_helper.package_config.jobs]
 
     assert copr_build_helper.configured_build_targets == {"opensuse-tumbleweed-x86_64"}
-    assert copr_build_helper.configured_tests_targets == {"opensuse-tumbleweed-x86_64"}
+    assert TestingFarmJobHelper(
+        service_config=ServiceConfig.get_service_config(),
+        package_config=PackageConfig(jobs=jobs),
+        job_config=jobs[-1],  # BuildHelper looks at all jobs in the end
+        project=flexmock(
+            service=flexmock(), namespace="packit", repo="testing_package"
+        ),
+        metadata=flexmock(pr_id=None, identifier=None),
+        db_trigger=flexmock(
+            job_config_trigger_type=job_type[0],
+            job_trigger_model_type=job_type[1],
+        ),
+    ).configured_tests_targets == {"opensuse-tumbleweed-x86_64"}
 
 
 @pytest.mark.parametrize(
     "jobs,job_config_trigger_type,build_targets_override,"
-    "tests_targets_override,build_targets,test_targets",
+    "tests_targets_override,build_targets",
     [
         pytest.param(
             [
@@ -462,7 +694,6 @@ def test_deduced_copr_targets():
             {"fedora-32-x86_64"},
             None,
             {"fedora-32-x86_64"},
-            {"fedora-32-x86_64"},
             id="target_in_config_for_both",
         ),
         pytest.param(
@@ -477,7 +708,6 @@ def test_deduced_copr_targets():
             {"fedora-32-x86_64"},
             None,
             {"fedora-32-x86_64"},
-            set(),
             id="target_in_config",
         ),
         pytest.param(
@@ -491,7 +721,6 @@ def test_deduced_copr_targets():
             JobConfigTriggerType.pull_request,
             {"fedora-33-x86_64"},
             None,
-            set(),
             set(),
             id="target_not_in_config",
         ),
@@ -507,7 +736,6 @@ def test_deduced_copr_targets():
             None,
             {"centos-7-x86_64"},
             {"epel-7-x86_64"},
-            {"centos-7-x86_64"},
             id="build_test_mapping_test_overrides",
         ),
         pytest.param(
@@ -522,7 +750,6 @@ def test_deduced_copr_targets():
             {"epel-7-x86_64"},
             None,
             {"epel-7-x86_64"},
-            {"centos-7-x86_64", "rhel-7-x86_64"},
             id="build_test_mapping_build_overrides",
         ),
         pytest.param(
@@ -535,7 +762,6 @@ def test_deduced_copr_targets():
             ],
             JobConfigTriggerType.pull_request,
             None,
-            {"centos-stream-8-x86_64"},
             {"centos-stream-8-x86_64"},
             {"centos-stream-8-x86_64"},
             id="targets_in_tests_no_mapping",
@@ -556,7 +782,6 @@ def test_deduced_copr_targets():
             None,
             {"centos-stream-8-x86_64"},
             {"centos-stream-8-x86_64"},
-            {"centos-stream-8-x86_64"},
             id="targets_in_build_no_mapping",
         ),
         pytest.param(
@@ -571,7 +796,6 @@ def test_deduced_copr_targets():
             {"epel-7-x86_64"},
             None,
             {"epel-7-x86_64"},
-            {"centos-7-x86_64"},
             id="default_mapping_build_override",
         ),
         pytest.param(
@@ -586,7 +810,6 @@ def test_deduced_copr_targets():
             None,
             {"centos-7-x86_64"},
             {"epel-7-x86_64"},
-            {"centos-7-x86_64"},
             id="default_mapping_test_override",
         ),
         pytest.param(
@@ -601,7 +824,6 @@ def test_deduced_copr_targets():
             {"epel-7-ppc64le"},
             None,
             {"epel-7-ppc64le"},
-            {"centos-7-ppc64le"},
             id="default_mapping_build_override_different_arch",
         ),
         pytest.param(
@@ -616,23 +838,21 @@ def test_deduced_copr_targets():
             None,
             {"centos-7-ppc64le"},
             {"epel-7-ppc64le"},
-            {"centos-7-ppc64le"},
             id="default_mapping_test_override_different_arch",
         ),
     ],
 )
-def test_copr_targets_overrides(
+def test_build_targets_overrides(
     jobs,
     job_config_trigger_type,
     build_targets_override,
     tests_targets_override,
     build_targets,
-    test_targets,
 ):
     copr_build_helper = CoprBuildJobHelper(
         service_config=ServiceConfig.get_service_config(),
         package_config=PackageConfig(jobs=jobs),
-        job_config=jobs[0],  # BuildHelper looks at all jobs in the end
+        job_config=jobs[-1],  # BuildHelper looks at all jobs in the end
         project=flexmock(),
         metadata=flexmock(pr_id=None),
         db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
@@ -658,7 +878,184 @@ def test_copr_targets_overrides(
         "centos-stream-8", default=None
     ).and_return({"centos-stream-8-x86_64"})
     assert copr_build_helper.build_targets == build_targets
-    assert copr_build_helper.tests_targets == test_targets
+
+
+@pytest.mark.parametrize(
+    "jobs,job_config_trigger_type,build_targets_override,"
+    "tests_targets_override,test_targets",
+    [
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.copr_build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets=STABLE_VERSIONS,
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            JobConfigTriggerType.pull_request,
+            {"fedora-32-x86_64"},
+            None,
+            {"fedora-32-x86_64"},
+            id="target_in_config_for_both",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            None,
+            {"centos-7-x86_64"},
+            {"centos-7-x86_64"},
+            id="build_test_mapping_test_overrides",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            {"epel-7-x86_64"},
+            None,
+            {"centos-7-x86_64", "rhel-7-x86_64"},
+            id="build_test_mapping_build_overrides",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets=["centos-stream-8"],
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            None,
+            {"centos-stream-8-x86_64"},
+            {"centos-stream-8-x86_64"},
+            id="targets_in_tests_no_mapping",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.build,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets=["centos-stream-8"],
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                ),
+            ],
+            JobConfigTriggerType.pull_request,
+            None,
+            {"centos-stream-8-x86_64"},
+            {"centos-stream-8-x86_64"},
+            id="targets_in_build_no_mapping",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets=["epel-7-x86_64"],
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            {"epel-7-x86_64"},
+            None,
+            {"centos-7-x86_64"},
+            id="default_mapping_build_override",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets=["epel-7-x86_64"],
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            None,
+            {"centos-7-x86_64"},
+            {"centos-7-x86_64"},
+            id="default_mapping_test_override",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets=["epel-7-ppc64le"],
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            {"epel-7-ppc64le"},
+            None,
+            {"centos-7-ppc64le"},
+            id="default_mapping_build_override_different_arch",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    _targets=["epel-7-ppc64le"],
+                )
+            ],
+            JobConfigTriggerType.pull_request,
+            None,
+            {"centos-7-ppc64le"},
+            {"centos-7-ppc64le"},
+            id="default_mapping_test_override_different_arch",
+        ),
+    ],
+)
+def test_tests_targets_overrides(
+    jobs,
+    job_config_trigger_type,
+    build_targets_override,
+    tests_targets_override,
+    test_targets,
+):
+    testing_farm_helper = TestingFarmJobHelper(
+        service_config=ServiceConfig.get_service_config(),
+        package_config=PackageConfig(jobs=jobs),
+        job_config=jobs[-1],  # BuildHelper looks at all jobs in the end
+        project=flexmock(),
+        metadata=flexmock(pr_id=None),
+        db_trigger=flexmock(job_config_trigger_type=job_config_trigger_type),
+        build_targets_override=build_targets_override,
+        tests_targets_override=tests_targets_override,
+    )
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        "fedora-31", "fedora-32", default=None
+    ).and_return(STABLE_CHROOTS)
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        "fedora-32", "fedora-31", default=None
+    ).and_return(STABLE_CHROOTS)
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        default=None
+    ).and_return(set())
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        "epel-7-x86_64", default=None
+    ).and_return({"epel-7-x86_64"})
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        "epel-7-ppc64le", default=None
+    ).and_return({"epel-7-ppc64le"})
+    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+        "centos-stream-8", default=None
+    ).and_return({"centos-stream-8-x86_64"})
+    assert testing_farm_helper.tests_targets == test_targets
 
 
 @pytest.mark.parametrize(
@@ -735,7 +1132,10 @@ def test_copr_build_target2test_targets(
         db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
     )
     flexmock(copr_build, get_valid_build_targets=get_build_targets)
-    assert copr_build_helper.build_target2test_targets(build_target) == test_targets
+    assert (
+        copr_build_helper.build_target2test_targets_for_test_job(build_target, jobs[0])
+        == test_targets
+    )
 
 
 def test_copr_build_and_test_targets_both_jobs_defined():
@@ -756,7 +1156,12 @@ def test_copr_build_and_test_targets_both_jobs_defined():
     ]
     flexmock(copr_build, get_valid_build_targets=get_build_targets)
     for i in [0, 1]:
-        copr_build_helper = CoprBuildJobHelper(
+        helper = (
+            CoprBuildJobHelper
+            if jobs[i].type == JobType.copr_build
+            else TestingFarmJobHelper
+        )
+        helper = helper(
             service_config=ServiceConfig.get_service_config(),
             package_config=PackageConfig(jobs=jobs),
             job_config=jobs[i],
@@ -766,28 +1171,34 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 job_config_trigger_type=JobConfigTriggerType.pull_request
             ),
         )
-        assert copr_build_helper.build_target2test_targets("fedora-35-x86_64") == {
+        assert helper.build_target2test_targets_for_test_job(
+            "fedora-35-x86_64", jobs[0]
+        ) == {
             "fedora-35-x86_64",
             "fedora-36-x86_64",
         }
-        assert copr_build_helper.build_target2test_targets("fedora-36-x86_64") == set()
-        assert copr_build_helper.build_target2test_targets("epel-8-x86_64") == {
-            "centos-stream-8-x86_64"
-        }
-        assert copr_build_helper.build_targets_for_tests == {
-            "fedora-35-x86_64",
-            "epel-8-x86_64",
-        }
-        assert copr_build_helper.tests_targets == {
-            "fedora-35-x86_64",
-            "fedora-36-x86_64",
-            "centos-stream-8-x86_64",
-        }
-        assert copr_build_helper.build_targets == {
+        assert (
+            helper.build_target2test_targets_for_test_job("fedora-36-x86_64", jobs[0])
+            == set()
+        )
+        assert helper.build_target2test_targets_for_test_job(
+            "epel-8-x86_64", jobs[0]
+        ) == {"centos-stream-8-x86_64"}
+        assert helper.build_targets == {
             "fedora-35-x86_64",
             "fedora-36-x86_64",
             "epel-8-x86_64",
         }
+        if isinstance(helper, TestingFarmJobHelper):
+            assert helper.build_targets_for_tests == {
+                "fedora-35-x86_64",
+                "epel-8-x86_64",
+            }
+            assert helper.tests_targets == {
+                "fedora-35-x86_64",
+                "fedora-36-x86_64",
+                "centos-stream-8-x86_64",
+            }
 
 
 @pytest.mark.parametrize(
@@ -911,7 +1322,7 @@ def test_copr_build_and_test_targets_both_jobs_defined():
 )
 def test_copr_test_target2build_target(job_config, test_target, build_target):
     jobs = job_config
-    copr_build_helper = CoprBuildJobHelper(
+    testing_farm_helper = TestingFarmJobHelper(
         service_config=ServiceConfig.get_service_config(),
         package_config=PackageConfig(jobs=jobs),
         job_config=jobs[0],
@@ -931,7 +1342,7 @@ def test_copr_test_target2build_target(job_config, test_target, build_target):
     flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
         "epel-7-x86_64", default=None
     ).and_return({"epel-7-x86_64"})
-    assert copr_build_helper.test_target2build_target(test_target) == build_target
+    assert testing_farm_helper.test_target2build_target(test_target) == build_target
 
 
 @pytest.mark.parametrize(
@@ -1328,7 +1739,6 @@ def test_build_handler_job_and_test_properties(
     assert [j.type for j in copr_build_helper.package_config.jobs]
 
     assert copr_build_helper.job_build == result_job_build
-    assert copr_build_helper.job_tests == result_job_tests
 
 
 @pytest.mark.parametrize(

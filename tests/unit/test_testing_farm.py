@@ -24,6 +24,7 @@ from packit_service.models import TestingFarmResult as TFResult
 # and so stop the test discovery warnings.
 from packit_service.worker.events import (
     TestingFarmResultsEvent as TFResultsEvent,
+    EventData,
 )
 from packit_service.worker.handlers import TestingFarmHandler
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
@@ -848,9 +849,7 @@ def test_trigger_build(copr_build, run_new_build, wait_for_build):
 
     if run_new_build:
         flexmock(TFJobHelper, job_owner="owner", job_project="project")
-        flexmock(cb.CoprBuildJobHelper).should_receive(
-            "report_status_to_test_for_chroot"
-        )
+        flexmock(TFJobHelper).should_receive("report_status_to_tests_for_chroot")
         flexmock(Signature).should_receive("apply_async").once()
     else:
         flexmock(TFJobHelper).should_receive("run_testing_farm").and_return(
@@ -860,7 +859,7 @@ def test_trigger_build(copr_build, run_new_build, wait_for_build):
     if wait_for_build:
         for target in targets:
             flexmock(TFJobHelper).should_receive(
-                "report_status_to_test_for_test_target"
+                "report_status_to_tests_for_test_target"
             ).with_args(
                 state=BaseCommitStatus.pending,
                 description="The latest build has not finished yet, "
@@ -1196,3 +1195,97 @@ def test_get_artifacts(chroot, build, additional_build, result):
     )
 
     assert artifacts == result
+
+
+@pytest.mark.parametrize(
+    "jobs,event,should_pass",
+    [
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    use_internal_tf=True,
+                )
+            ],
+            {"event_type": "PullRequestGithubEvent"},
+            False,
+            id="one_internal_test_job",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    identifier="public",
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    use_internal_tf=True,
+                ),
+            ],
+            {"event_type": "PullRequestGithubEvent"},
+            False,
+            id="multiple_test_jobs_build_required",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    identifier="public",
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    use_internal_tf=True,
+                    skip_build=True,
+                ),
+            ],
+            {"event_type": "PullRequestGithubEvent"},
+            True,
+            id="multiple_test_jobs_build_required_internal_job_skip_build",
+        ),
+        pytest.param(
+            [
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    identifier="public",
+                ),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    use_internal_tf=True,
+                ),
+            ],
+            {"event_type": "PullRequestCommentGithubEvent", "comment": "/packit test"},
+            True,
+            id="multiple_test_jobs_build_not_required",
+        ),
+    ],
+)
+def test_check_if_actor_can_run_job_and_report(jobs, event, should_pass):
+    package_config = PackageConfig()
+    package_config.jobs = jobs
+
+    flexmock(PullRequestModel).should_receive("get_or_create").and_return(
+        flexmock(
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            id=123,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
+        )
+    )
+
+    gh_project = flexmock(namespace="n", repo="r")
+    gh_project.should_receive("can_merge_pr").with_args("actor").and_return(False)
+    flexmock(EventData).should_receive("get_project").and_return(gh_project)
+    flexmock(ServiceConfig).should_receive("get_project").and_return(gh_project)
+
+    if not should_pass:
+        flexmock(TFJobHelper).should_receive("report_status_to_tests").once()
+
+    event.update({"actor": "actor", "project_url": "url"})
+
+    assert TestingFarmHandler.pre_check(package_config, jobs[0], event) == should_pass

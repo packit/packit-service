@@ -150,8 +150,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         if self.job_build and self.job_build.project:
             return self.job_build.project
 
-        if self.job_tests and self.job_tests.project:
-            return self.job_tests.project
+        for test_job in self.job_tests_all:
+            # return the project from first test job where present
+            if test_job and test_job.project:
+                return test_job.project
 
         return self.default_project_name
 
@@ -163,8 +165,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         if self.job_build and self.job_build.owner:
             return self.job_build.owner
 
-        if self.job_tests and self.job_tests.owner:
-            return self.job_tests.owner
+        for test_job in self.job_tests_all:
+            # return the owner from first test job where present
+            if test_job and test_job.owner:
+                return test_job.owner
 
         return self.api.copr_helper.copr_client.config.get("username")
 
@@ -196,34 +200,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         return get_valid_build_targets(*self.configured_build_targets, default=None)
 
-    @property
-    def tests_targets_all(self) -> Set[str]:
-        """
-        Return all valid test targets/chroots from config.
-        """
-        return get_valid_build_targets(*self.configured_tests_targets, default=None)
-
-    @property
-    def tests_targets_all_mapped(self) -> Set[str]:
-        """
-        Return all valid mapped test targets from config.
-
-        Examples:
-        test job configuration:
-          - job: tests
-            trigger: pull_request
-            metadata:
-                targets:
-                      epel-7-x86_64:
-                        distros: [centos-7, rhel-7]
-                      fedora-35-x86_64: {}
-
-        helper.tests_targets_all_mapped -> {"centos-7", "rhel-7", "fedora-35-x86_64"}
-        """
-        targets = set()
-        for chroot in self.tests_targets_all:
-            targets.update(self.build_target2test_targets(chroot))
-        return targets
+    def build_targets_for_test_job_all(self, job: JobConfig):
+        return get_valid_build_targets(
+            *self.configured_targets_for_tests_job(job), default=None
+        )
 
     @property
     def configured_copr_project(self):
@@ -239,7 +219,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             self.job_owner, self.job_project
         )
 
-    def build_target2test_targets(self, build_target: str) -> Set[str]:
+    def build_target2test_targets_for_test_job(
+        self, build_target: str, test_job_config: JobConfig
+    ) -> Set[str]:
         """
         Return all test targets defined for the build target
         (from configuration or from default mapping).
@@ -253,7 +235,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                       epel-7-x86_64:
                         distros: [centos-7, rhel-7]
 
-        helper.build_target2test_targets("epel-7-x86_64") -> {"centos-7-x86_64", "rhel-7-x86_64"}
+        helper.build_target2test_targets_for_test_job("epel-7-x86_64") ->
+        {"centos-7-x86_64", "rhel-7-x86_64"}
 
         test job configuration:
           - job: tests
@@ -262,13 +245,16 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 targets:
                       fedora-35-x86_64
 
-        helper.build_target2test_targets("fedora-35-x86_64") -> {"fedora-35-x86_64"}
+        helper.build_target2test_targets_for_test_job("fedora-35-x86_64") -> {"fedora-35-x86_64"}
         """
-        if not self.job_tests or build_target not in self.tests_targets_all:
+        if (
+            not test_job_config
+            or build_target not in self.build_targets_for_test_job_all(test_job_config)
+        ):
             return set()
 
         distro, arch = build_target.rsplit("-", 1)
-        configured_distros = self.job_tests.targets_dict.get(build_target, {}).get(
+        configured_distros = test_job_config.targets_dict.get(build_target, {}).get(
             "distros"
         )
 
@@ -277,7 +263,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         else:
             mapping = (
                 DEFAULT_MAPPING_INTERNAL_TF
-                if self.job_config.use_internal_tf
+                if test_job_config.use_internal_tf
                 else DEFAULT_MAPPING_TF
             )
             distro = mapping.get(distro, distro)
@@ -285,46 +271,17 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         return {f"{distro}-{arch}" for (distro, arch) in distro_arch_list}
 
-    def test_target2build_target(self, test_target: str) -> str:
+    def test_target2build_target_for_test_job(
+        self, test_target: str, test_job_config: JobConfig
+    ) -> str:
         """
-        Return build target to build in needed for testing in test target.
-        Go through the not mapped test targets (self.test_targets_all)
-        and for each check the mapped test targets, if test_target is
-        in mapped test targets, return the target that was mapped.
-
-        Examples:
-        configuration:
-          - job: tests
-            trigger: pull_request
-            metadata:
-                targets:
-                      epel-7-x86_64:
-                        distros: [centos-7, rhel-7]
-
-        helper.test_target2build_target("centos-7") -> "epel-7-x86_64"
-
-        configuration:
-          - job: tests
-            trigger: pull_request
-            metadata:
-                targets:
-                      fedora-35-x86_64
-
-
-        helper.test_target2build_target("fedora-35-x86_64") -> "fedora-35-x86_64"
-
-        configuration:
-          - job: tests
-            trigger: pull_request
-            metadata:
-                targets:
-                      centos-stream-8-x86_64
-
-
-        helper.test_target2build_target("centos-stream-8-x86_64") -> "centos-stream-8-x86_64"
+        Return build target to be built for a given test target
+        (from configuration or from default mapping).
         """
-        for target in self.tests_targets_all:
-            if test_target in self.build_target2test_targets(target):
+        for target in self.build_targets_for_test_job_all(test_job_config):
+            if test_target in self.build_target2test_targets_for_test_job(
+                target, test_job_config
+            ):
                 logger.debug(f"Build target corresponding to {test_target}: {target}")
                 return target
 

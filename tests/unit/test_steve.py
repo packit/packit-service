@@ -160,6 +160,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
+        markdown_content=None,
     ).times(
         1 if success else 0
     )
