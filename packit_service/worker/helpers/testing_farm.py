@@ -85,6 +85,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self._copr_builds_from_other_pr: Optional[
             Dict[str, CoprBuildTargetModel]
         ] = None
+        self._test_check_names: Optional[List[str]] = None
 
     @property
     def tft_api_url(self) -> str:
