@@ -85,12 +85,12 @@ class GetCoprBuildEvent(Protocol):
 
     @property
     @abstractmethod
-    def copr_event(self) -> KojiBuildEvent:
+    def copr_event(self) -> AbstractCoprBuildEvent:
         ...
 
 
 class GetCoprBuildEventMixin(ConfigMixin, GetCoprBuildEvent):
-    _copr_build_event: Optional[KojiBuildEvent] = None
+    _copr_build_event: Optional[AbstractCoprBuildEvent] = None
 
     @property
     def copr_event(self):

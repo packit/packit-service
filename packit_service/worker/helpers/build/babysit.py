@@ -229,9 +229,12 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
         )
 
         for job_config in job_configs:
-            CoprBuildEndHandler(
+            event_dict = event.get_dict()
+            handler = CoprBuildEndHandler(
                 package_config=event.package_config,
                 job_config=job_config,
-                event=event.get_dict(),
-            ).run()
+                event=event_dict,
+            )
+            if handler.pre_check(package_config, job_config, event_dict):
+                handler.run()
     return True
