@@ -120,11 +120,13 @@ class TestingFarmHandler(
         for _ in range(number_of_builds):
             self.pushgateway.copr_builds_queued.inc()
 
+        # if there is a build job configured, pass that one
+        job_config_to_pass = self.testing_farm_job_helper.job_build or self.job_config
         signature(
             TaskName.copr_build.value,
             kwargs={
                 "package_config": dump_package_config(self.package_config),
-                "job_config": dump_job_config(self.job_config),
+                "job_config": dump_job_config(job_config_to_pass),
                 "event": event_data,
             },
         ).apply_async()
