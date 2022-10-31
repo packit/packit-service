@@ -126,8 +126,14 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             if self.db_trigger.job_trigger_model_type == JobTriggerModelType.release
             else self.metadata.identifier
         )
+
+        # if we call default_project_name when running TF, we want to get the default name
+        # for the build job
+        job_config_identifier = (
+            self.job_build.identifier if self.job_build else self.job_config.identifier
+        )
         configured_identifier = (
-            f"-{self.job_config.identifier}" if self.job_config.identifier else ""
+            f"-{job_config_identifier}" if job_config_identifier else ""
         )
 
         copr_project_name = (
@@ -172,7 +178,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             # return the owner from first test job where present
             if test_job and test_job.owner:
                 return test_job.owner
-
         return self.api.copr_helper.copr_client.config.get("username")
 
     @property

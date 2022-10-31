@@ -822,6 +822,99 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     )
 
 
+def test_pr_test_command_handler_identifiers(pr_embedded_command_comment_event):
+    jobs = [
+        {
+            "trigger": "pull_request",
+            "job": "tests",
+            "metadata": {"targets": "fedora-rawhide-x86_64"},
+            "identifier": "test-job",
+        },
+        {
+            "trigger": "pull_request",
+            "job": "copr_build",
+            "metadata": {"targets": "fedora-rawhide-x86_64"},
+        },
+    ]
+    packit_yaml = (
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
+        + str(jobs)
+        + "}"
+    )
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
+    flexmock(
+        GithubProject,
+        full_repo_name="packit-service/hello-world",
+        get_file_content=lambda path, ref: packit_yaml,
+        get_files=lambda ref, filter_regex: ["the-specfile.spec"],
+        get_web_url=lambda: "https://github.com/the-namespace/the-repo",
+    )
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        id=123,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+    )
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
+        trigger
+    )
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(Allowlist, check_and_report=True)
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(
+        flexmock(
+            id=9,
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
+        )
+    )
+    pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
+    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(copr_build).should_receive("get_valid_build_targets").times(5).and_return(
+        {"test-target"}
+    )
+    flexmock(CoprBuildTargetModel).should_receive("get_all_by").with_args(
+        project_name="packit-service-hello-world-9",
+        commit_sha="12345",
+        owner=None,
+        target="test-target",
+    ).and_return([flexmock(status=BuildStatus.success)])
+    flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
+        TaskResults(success=True, details={})
+    )
+    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
+        description=TASK_ACCEPTED,
+        state=BaseCommitStatus.pending,
+        url="",
+        markdown_content=None,
+    ).once()
+
+    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    run_testing_farm_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+
 @pytest.mark.parametrize(
     "retry_number,description,markdown_content,status,response,delay",
     (
