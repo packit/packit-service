@@ -15,7 +15,6 @@ from packit.exceptions import PackitException
 from ogr.services.pagure import PagureProject
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
-from packit.constants import DEFAULT_BODHI_NOTE
 from packit.local_project import LocalProject
 from packit_service.constants import DEFAULT_RETRY_LIMIT
 from packit_service.models import GitBranchModel, KojiBuildTargetModel, PipelineModel
@@ -61,7 +60,6 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="rawhide",
         update_type="enhancement",
-        update_notes=DEFAULT_BODHI_NOTE,
         koji_builds=["packit-0.43.0-1.fc36"],
     )
 
@@ -133,7 +131,6 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="rawhide",
         update_type="enhancement",
-        update_notes=DEFAULT_BODHI_NOTE,
         koji_builds=["packit-0.43.0-1.fc36"],
     ).and_raise(PackitException, "Failed to create an update")
 
@@ -209,7 +206,6 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="rawhide",
         update_type="enhancement",
-        update_notes=DEFAULT_BODHI_NOTE,
         koji_builds=["packit-0.43.0-1.fc36"],
     ).and_raise(PackitException, "Failed to create an update")
 
@@ -290,7 +286,6 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="rawhide",
         update_type="enhancement",
-        update_notes=DEFAULT_BODHI_NOTE,
         koji_builds=["packit-0.43.0-1.fc36"],
     ).and_raise(PackitException, "Failed to create an update")
 
@@ -384,7 +379,6 @@ def test_bodhi_update_auth_error(
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="rawhide",
         update_type="enhancement",
-        update_notes=DEFAULT_BODHI_NOTE,
         koji_builds=["packit-0.43.0-1.fc36"],
     ).and_raise(bodhi_exception)
 
@@ -534,7 +528,6 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="rawhide",
         update_type="enhancement",
-        update_notes=DEFAULT_BODHI_NOTE,
         koji_builds=["packit-0.43.0-1.fc36"],
     )
 
@@ -651,7 +644,6 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f35):
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="f35",
         update_type="enhancement",
-        update_notes=DEFAULT_BODHI_NOTE,
         koji_builds=["python-ogr-0.34.0-1.fc35"],
     ).once()
 
