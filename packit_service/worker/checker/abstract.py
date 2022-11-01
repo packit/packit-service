@@ -1,3 +1,4 @@
+import logging
 from abc import abstractmethod
 from typing import Optional
 
@@ -6,6 +7,8 @@ from packit.config.package_config import PackageConfig
 
 from packit_service.worker.events import EventData
 from packit_service.worker.mixin import ConfigMixin, PackitAPIWithDownstreamMixin
+
+logger = logging.getLogger(__name__)
 
 
 class Checker(ConfigMixin, PackitAPIWithDownstreamMixin):
@@ -35,5 +38,6 @@ class ActorChecker(Checker):
 
     def pre_check(self) -> bool:
         if not self.actor:
-            return False
+            logger.debug("Actor not set for this event, skipping the actor check.")
+            return True
         return self._pre_check()
