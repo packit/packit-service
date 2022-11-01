@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 LoggingLevel = int
 
 
-class only_once(object):
+class only_once:
     """
     Use as a function decorator to run function only once.
     """
