@@ -188,6 +188,30 @@ def test_precheck_push_to_a_different_branch(github_push_event):
     assert not CoprBuildHandler.pre_check(package_config, job_config, event)
 
 
+def test_precheck_push_actor_check(github_push_event):
+    flexmock(GitBranchModel).should_receive("get_or_create").and_return(
+        flexmock(id=1, job_config_trigger_type=JobConfigTriggerType.commit)
+    )
+
+    package_config = PackageConfig(
+        jobs=[
+            JobConfig(
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.commit,
+                branch="branch",
+            ),
+        ]
+    )
+    job_config = JobConfig(
+        type=JobType.copr_build,
+        trigger=JobConfigTriggerType.commit,
+        branch="branch",
+    )
+    event = github_push_event.get_dict()
+    actor_checker = CoprBuildHandler.get_checkers()[1]
+    assert actor_checker(package_config, job_config, event).pre_check()
+
+
 def test_precheck_koji_build_non_scratch(github_pr_event):
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
         pr_id=342,
