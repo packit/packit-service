@@ -53,15 +53,18 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             build_targets_override=build_targets_override,
             tests_targets_override=tests_targets_override,
         )
-        self.msg_retrigger: str = MSG_RETRIGGER.format(
+
+        # Lazy properties
+        self._supported_koji_targets = None
+
+    @property
+    def msg_retrigger(self) -> str:
+        return MSG_RETRIGGER.format(
             job="build",
             command="upstream-koji-build",
             place="pull request",
             packit_comment_command_prefix=self.service_config.comment_command_prefix,
         )
-
-        # Lazy properties
-        self._supported_koji_targets = None
 
     @property
     def is_scratch(self) -> bool:

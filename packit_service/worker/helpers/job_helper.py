@@ -39,7 +39,6 @@ class BaseJobHelper:
         self.package_config = package_config
         self.project: GitProject = project
         self.db_trigger = db_trigger
-        self.msg_retrigger: Optional[str] = ""
         self.metadata: EventData = metadata
         self.run_model: Optional[PipelineModel] = None
         self.pushgateway = pushgateway
@@ -52,6 +51,10 @@ class BaseJobHelper:
         self._pr_id: Optional[int] = None
         self._is_reporting_allowed: Optional[bool] = None
         self._is_gitlab_instance: Optional[bool] = None
+
+    @property
+    def msg_retrigger(self) -> str:
+        return ""
 
     @property
     def local_project(self) -> LocalProject:

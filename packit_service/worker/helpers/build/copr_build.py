@@ -94,7 +94,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             pushgateway=pushgateway,
         )
         self.celery_task = celery_task
-        self.msg_retrigger: str = MSG_RETRIGGER.format(
+
+    @property
+    def msg_retrigger(self) -> str:
+        return MSG_RETRIGGER.format(
             job="build",
             command="copr-build" if self.job_build else "build",
             place="pull request",
