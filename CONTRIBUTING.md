@@ -416,7 +416,28 @@ Both images `packit-service` and `packit-worker` are built from source of curren
 
 As the last step playbook [zuul-tests.yaml](/files/zuul-tests.yaml) is executed.
 
+### Updating the test image
+
+The image in which tests are running
+(`quay.io/packit/packit-service-tests:stg`) is rebuilt every time a new commit
+shows up in the `main` branch. It is during this build when new dependencies
+can be installed or new versions of existing dependencies are pulled in.
+
+This is why adding a new test dependency (or modifying the Ansible playbooks
+configuring the test image in some other way) should be done in a PR
+_preceding_ the one in which this dependency is used the first time.
+
+In order to have `packit`, `ogr` or `specfile` updated to a version
+corresponding to the latest commit of the `main` branch in the respective
+project, you should first wait for Copr to [build the RPM] for this commit,
+and then retrigger [the last test image build from the main branch] so that
+the new RPM is installed.
+
 ---
 
 Thank you for your interest!
 Packit team.
+
+[packit/packit]: https://github.com/packit/packit
+[build the rpm]: https://copr.fedorainfracloud.org/coprs/packit/packit-dev/builds/
+[the last test image build from the main branch]: https://github.com/packit/packit-service/actions/workflows/rebuild-and-push-images.yml?query=branch%3Amain
