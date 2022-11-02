@@ -44,7 +44,10 @@ class PermissionOnKoji(Checker, GetKojiBuildJobHelperMixin):
                 )
                 return False
 
-        if self.data.event_type == PullRequestGithubEvent.__name__:
+        if self.data.event_type in (
+            PullRequestGithubEvent.__name__,
+            MergeRequestGitlabEvent.__name__,
+        ):
             user_can_merge_pr = self.project.can_merge_pr(self.data.actor)
             if not (user_can_merge_pr or self.data.actor in self.service_config.admins):
                 self.koji_build_helper.report_status_to_all(
