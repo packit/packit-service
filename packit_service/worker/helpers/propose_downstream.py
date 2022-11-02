@@ -41,7 +41,6 @@ class ProposeDownstreamJobHelper(BaseJobHelper):
             job_config=job_config,
         )
         self.branches_override = branches_override
-        self.msg_retrigger: str = ""
         self._check_names: Optional[List[str]] = None
         self._default_dg_branch: Optional[str] = None
         self._job: Optional[JobConfig] = None
@@ -58,6 +57,10 @@ class ProposeDownstreamJobHelper(BaseJobHelper):
 
     def get_check(self, branch: str = None) -> str:
         return self.get_check_cls(branch, identifier=self.job_config.identifier)
+
+    @property
+    def msg_retrigger(self) -> str:
+        return ""
 
     @property
     def check_names(self) -> List[str]:

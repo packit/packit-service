@@ -819,7 +819,6 @@ def test_get_request_details():
     flexmock(
         TFJobHelper,
         send_testing_farm_request=request_response,
-        job_build=None,
     )
     details = TFJobHelper.get_request_details(request_id)
     assert details == request
