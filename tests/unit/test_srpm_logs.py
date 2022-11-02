@@ -11,10 +11,11 @@ from flexmock import flexmock
 from ogr.abstract import GitProject
 from packit.api import PackitAPI
 from packit.config import (
-    PackageConfig,
+    CommonPackageConfig,
     JobConfig,
-    JobType,
     JobConfigTriggerType,
+    JobType,
+    PackageConfig,
 )
 from packit_service.config import ServiceConfig
 from packit_service.models import SRPMBuildModel
@@ -48,13 +49,20 @@ def build_helper(
         JobConfig(
             type=JobType.production_build,
             trigger=trigger or JobConfigTriggerType.pull_request,
-            _targets=_targets,
-            owner="nobody",
-            scratch=scratch,
+            packages={
+                "package": CommonPackageConfig(
+                    _targets=_targets,
+                    owner="nobody",
+                    scratch=scratch,
+                )
+            },
         )
     )
 
-    pkg_conf = PackageConfig(jobs=jobs, downstream_package_name="dummy")
+    pkg_conf = PackageConfig(
+        jobs=jobs,
+        packages={"package": CommonPackageConfig(downstream_package_name="dummy")},
+    )
     handler = KojiBuildJobHelper(
         service_config=ServiceConfig(),
         package_config=pkg_conf,

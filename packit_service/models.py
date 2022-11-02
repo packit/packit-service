@@ -1530,6 +1530,8 @@ class AllowlistModel(Base):
 
 
 class TestingFarmResult(str, enum.Enum):
+    __test__ = False
+
     new = "new"
     queued = "queued"
     running = "running"

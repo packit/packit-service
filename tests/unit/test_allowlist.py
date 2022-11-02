@@ -13,7 +13,7 @@ from ogr.services.github import GithubProject, GithubService
 
 import packit_service
 from packit.api import PackitAPI
-from packit.config import JobType, JobConfig, JobConfigTriggerType
+from packit.config import CommonPackageConfig, JobType, JobConfig, JobConfigTriggerType
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 from packit_service.config import ServiceConfig
@@ -479,7 +479,11 @@ def test_check_and_report(
         JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
-            _targets=["fedora-rawhide"],
+            packages={
+                "package": CommonPackageConfig(
+                    _targets=["fedora-rawhide"],
+                )
+            },
         )
     ]
     flexmock(PullRequestGithubEvent).should_receive("get_package_config").and_return(

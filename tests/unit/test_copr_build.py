@@ -28,7 +28,13 @@ import packit
 import packit_service
 from packit.actions import ActionName
 from packit.api import PackitAPI
-from packit.config import JobConfig, JobConfigTriggerType, JobType, PackageConfig
+from packit.config import (
+    CommonPackageConfig,
+    JobConfig,
+    JobConfigTriggerType,
+    JobType,
+    PackageConfig,
+)
 from packit.copr_helper import CoprHelper
 from packit.exceptions import (
     FailedCreateSRPM,
@@ -132,12 +138,19 @@ def build_helper(
         JobConfig(
             type=JobType.copr_build,
             trigger=trigger or JobConfigTriggerType.pull_request,
-            _targets=_targets,
-            owner=owner,
+            packages={
+                "package": CommonPackageConfig(
+                    _targets=_targets,
+                    owner=owner,
+                )
+            },
         )
     ]
 
-    pkg_conf = PackageConfig(jobs=jobs, downstream_package_name="dummy")
+    pkg_conf = PackageConfig(
+        jobs=jobs,
+        packages={"package": CommonPackageConfig(downstream_package_name="dummy")},
+    )
     helper = CoprBuildJobHelper(
         service_config=ServiceConfig.get_service_config(),
         package_config=pkg_conf,
@@ -559,25 +572,37 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                _targets=["fedora-rawhide-x86_64"],
-                owner="nobody",
-                actions={ActionName.post_upstream_clone: "ls /*"},
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-rawhide-x86_64"],
+                        owner="nobody",
+                        actions={ActionName.post_upstream_clone: "ls /*"},
+                    )
+                },
             ),
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                _targets=["fedora-32-x86_64"],
-                owner="nobody",
-                actions={ActionName.post_upstream_clone: 'bash -c "ls /*"'},
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-32-x86_64"],
+                        owner="nobody",
+                        actions={ActionName.post_upstream_clone: 'bash -c "ls /*"'},
+                    )
+                },
             ),
         ],
         db_trigger=trigger,
         selected_job=JobConfig(
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.pull_request,
-            _targets=["fedora-32-x86_64"],
-            owner="nobody",
-            actions={ActionName.post_upstream_clone: 'bash -c "ls /*"'},
+            packages={
+                "package": CommonPackageConfig(
+                    _targets=["fedora-32-x86_64"],
+                    owner="nobody",
+                    actions={ActionName.post_upstream_clone: 'bash -c "ls /*"'},
+                )
+            },
         ),
     )
     # we need to make sure that pr_id is set
@@ -777,8 +802,12 @@ def test_copr_build_success_set_test_check(github_pr_event):
     test_job = JobConfig(
         type=JobType.tests,
         trigger=JobConfigTriggerType.pull_request,
-        owner="nobody",
-        _targets=["bright-future-x86_64", "brightest-future-x86_64"],
+        packages={
+            "package": CommonPackageConfig(
+                owner="nobody",
+                _targets=["bright-future-x86_64", "brightest-future-x86_64"],
+            )
+        },
     )
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
@@ -854,9 +883,13 @@ def test_copr_build_for_branch(branch_push_event):
     branch_build_job = JobConfig(
         type=JobType.build,
         trigger=JobConfigTriggerType.commit,
-        _targets=DEFAULT_TARGETS,
-        owner="nobody",
-        dist_git_branches=["build-branch"],
+        packages={
+            "package": CommonPackageConfig(
+                _targets=DEFAULT_TARGETS,
+                owner="nobody",
+                dist_git_branches=["build-branch"],
+            )
+        },
     )
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.commit,
@@ -933,9 +966,13 @@ def test_copr_build_for_branch_failed(branch_push_event):
     branch_build_job = JobConfig(
         type=JobType.build,
         trigger=JobConfigTriggerType.commit,
-        _targets=DEFAULT_TARGETS,
-        owner="nobody",
-        dist_git_branches=["build-branch"],
+        packages={
+            "package": CommonPackageConfig(
+                _targets=DEFAULT_TARGETS,
+                owner="nobody",
+                dist_git_branches=["build-branch"],
+            )
+        },
     )
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.commit,
@@ -1009,9 +1046,13 @@ def test_copr_build_for_release(release_event):
     branch_build_job = JobConfig(
         type=JobType.copr_build,
         trigger=JobConfigTriggerType.release,
-        _targets=DEFAULT_TARGETS,
-        owner="nobody",
-        dist_git_branches=["build-branch"],
+        packages={
+            "package": CommonPackageConfig(
+                _targets=DEFAULT_TARGETS,
+                owner="nobody",
+                dist_git_branches=["build-branch"],
+            )
+        },
     )
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.release,
@@ -1633,8 +1674,12 @@ def test_copr_build_success_set_test_check_gitlab(gitlab_mr_event):
     test_job = JobConfig(
         type=JobType.tests,
         trigger=JobConfigTriggerType.pull_request,
-        owner="nobody",
-        _targets=["bright-future-x86_64", "brightest-future-x86_64"],
+        packages={
+            "package": CommonPackageConfig(
+                owner="nobody",
+                _targets=["bright-future-x86_64", "brightest-future-x86_64"],
+            )
+        },
     )
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
         type=JobTriggerModelType.pull_request, trigger_id=123
@@ -1717,9 +1762,13 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
     branch_build_job = JobConfig(
         type=JobType.build,
         trigger=JobConfigTriggerType.commit,
-        _targets=DEFAULT_TARGETS,
-        owner="nobody",
-        dist_git_branches=["build-branch"],
+        packages={
+            "package": CommonPackageConfig(
+                _targets=DEFAULT_TARGETS,
+                owner="nobody",
+                dist_git_branches=["build-branch"],
+            )
+        },
     )
     flexmock(CoprBuildJobHelper).should_receive("is_reporting_allowed").and_return(True)
     trigger = flexmock(
@@ -2128,8 +2177,12 @@ def test_copr_build_targets_override(github_pr_event):
     test_job = JobConfig(
         type=JobType.tests,
         trigger=JobConfigTriggerType.pull_request,
-        owner="nobody",
-        _targets=["bright-future-x86_64", "brightest-future-x86_64"],
+        packages={
+            "package": CommonPackageConfig(
+                owner="nobody",
+                _targets=["bright-future-x86_64", "brightest-future-x86_64"],
+            )
+        },
     )
     trigger = flexmock(
         job_config_trigger_type=JobConfigTriggerType.pull_request,
@@ -2496,18 +2549,28 @@ def test_get_packit_copr_download_urls(github_pr_event):
                     JobConfig(
                         type=JobType.copr_build,
                         trigger=JobConfigTriggerType.pull_request,
-                        _targets=["fedora-all"],
+                        packages={
+                            "package": CommonPackageConfig(
+                                _targets=["fedora-all"],
+                            )
+                        },
                     ),
                     JobConfig(
                         type=JobType.tests,
                         trigger=JobConfigTriggerType.pull_request,
+                        packages={"package": CommonPackageConfig()},
                     ),
-                ]
+                ],
+                packages={"package": CommonPackageConfig()},
             ),
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                _targets=["fedora-all"],
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-all"],
+                    )
+                },
             ),
             0,
         ),
@@ -2517,27 +2580,42 @@ def test_get_packit_copr_download_urls(github_pr_event):
                     JobConfig(
                         type=JobType.tests,
                         trigger=JobConfigTriggerType.commit,
+                        packages={"package": CommonPackageConfig()},
                     ),
                     JobConfig(
                         type=JobType.copr_build,
                         trigger=JobConfigTriggerType.commit,
-                        _targets=["fedora-all"],
+                        packages={
+                            "package": CommonPackageConfig(
+                                _targets=["fedora-all"],
+                            )
+                        },
                     ),
                     JobConfig(
                         type=JobType.copr_build,
                         trigger=JobConfigTriggerType.pull_request,
-                        _targets=["fedora-all"],
+                        packages={
+                            "package": CommonPackageConfig(
+                                _targets=["fedora-all"],
+                            )
+                        },
                     ),
                     JobConfig(
                         type=JobType.tests,
                         trigger=JobConfigTriggerType.pull_request,
+                        packages={"package": CommonPackageConfig()},
                     ),
-                ]
+                ],
+                packages={"package": CommonPackageConfig()},
             ),
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                _targets=["fedora-all"],
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-all"],
+                    )
+                },
             ),
             2,
         ),
@@ -2696,11 +2774,16 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    use_internal_tf=True,
+                    packages={
+                        "package": CommonPackageConfig(
+                            use_internal_tf=True,
+                        )
+                    },
                 ),
             ],
             False,
@@ -2711,16 +2794,25 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    identifier="public",
+                    packages={
+                        "package": CommonPackageConfig(
+                            identifier="public",
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    use_internal_tf=True,
+                    packages={
+                        "package": CommonPackageConfig(
+                            use_internal_tf=True,
+                        )
+                    },
                 ),
             ],
             False,
@@ -2731,17 +2823,26 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    identifier="public",
+                    packages={
+                        "package": CommonPackageConfig(
+                            identifier="public",
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    use_internal_tf=True,
-                    skip_build=True,
+                    packages={
+                        "package": CommonPackageConfig(
+                            use_internal_tf=True,
+                            skip_build=True,
+                        )
+                    },
                 ),
             ],
             True,
@@ -2752,17 +2853,26 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    skip_build=True,
-                    identifier="public",
+                    packages={
+                        "package": CommonPackageConfig(
+                            skip_build=True,
+                            identifier="public",
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    use_internal_tf=True,
+                    packages={
+                        "package": CommonPackageConfig(
+                            use_internal_tf=True,
+                        )
+                    },
                 ),
             ],
             False,
@@ -2771,7 +2881,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
     ],
 )
 def test_check_if_actor_can_run_job_and_report(jobs, should_pass):
-    package_config = PackageConfig()
+    package_config = PackageConfig(packages={"package": CommonPackageConfig()})
     package_config.jobs = jobs
 
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(

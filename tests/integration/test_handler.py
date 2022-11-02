@@ -7,7 +7,13 @@ import pytest
 from flexmock import flexmock
 
 from ogr.services.github import GithubProject
-from packit.config import JobConfig, JobConfigTriggerType, JobType, PackageConfig
+from packit.config import (
+    CommonPackageConfig,
+    JobConfig,
+    JobConfigTriggerType,
+    JobType,
+    PackageConfig,
+)
 from packit_service.config import ServiceConfig
 from packit_service.constants import KOJI_PRODUCTION_BUILDS_ISSUE
 from packit_service.models import (
@@ -48,6 +54,7 @@ def test_handler_cleanup(tmp_path, trick_p_s_with_k8s):
     jc = JobConfig(
         type=JobType.copr_build,
         trigger=JobConfigTriggerType.pull_request,
+        packages={"package": CommonPackageConfig()},
     )
     j = JobHandler(
         package_config=pc,
@@ -77,16 +84,20 @@ def test_precheck(github_pr_event):
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"package": CommonPackageConfig()},
             ),
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"package": CommonPackageConfig()},
             ),
-        ]
+        ],
+        packages={"package": CommonPackageConfig()},
     )
     job_config = JobConfig(
         type=JobType.copr_build,
         trigger=JobConfigTriggerType.pull_request,
+        packages={"package": CommonPackageConfig()},
     )
     event = github_pr_event.get_dict()
 
@@ -110,16 +121,26 @@ def test_precheck_gitlab(gitlab_mr_event):
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"package": CommonPackageConfig()},
             ),
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"package": CommonPackageConfig()},
             ),
-        ]
+        ],
+        packages={"package": CommonPackageConfig()},
     )
     job_config = JobConfig(
         type=JobType.copr_build,
         trigger=JobConfigTriggerType.pull_request,
+        packages={"package": CommonPackageConfig()},
+    )
+    event = gitlab_mr_event.get_dict()
+    job_config = JobConfig(
+        type=JobType.copr_build,
+        trigger=JobConfigTriggerType.pull_request,
+        packages={"package": CommonPackageConfig()},
     )
     event = gitlab_mr_event.get_dict()
 
@@ -140,12 +161,18 @@ def test_precheck_push(github_push_event):
     jc = JobConfig(
         type=JobType.copr_build,
         trigger=JobConfigTriggerType.commit,
-        branch="build-branch",
-        owner="@foo",
-        project="bar",
+        packages={
+            "package": CommonPackageConfig(
+                branch="build-branch",
+                owner="@foo",
+                project="bar",
+            )
+        },
     )
 
-    package_config = PackageConfig(jobs=[jc])
+    package_config = PackageConfig(
+        jobs=[jc], packages={"package": CommonPackageConfig()}
+    )
     event = github_push_event.get_dict()
     api = flexmock(
         copr_helper=flexmock(
@@ -175,14 +202,23 @@ def test_precheck_push_to_a_different_branch(github_push_event):
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.commit,
-                branch="bad-branch",
+                packages={
+                    "package": CommonPackageConfig(
+                        branch="bad-branch",
+                    )
+                },
             ),
-        ]
+        ],
+        packages={"package": CommonPackageConfig()},
     )
     job_config = JobConfig(
         type=JobType.copr_build,
         trigger=JobConfigTriggerType.commit,
-        branch="bad-branch",
+        packages={
+            "package": CommonPackageConfig(
+                branch="bad-branch",
+            )
+        },
     )
     event = github_push_event.get_dict()
     assert not CoprBuildHandler.pre_check(package_config, job_config, event)
@@ -194,18 +230,19 @@ def test_precheck_push_actor_check(github_push_event):
     )
 
     package_config = PackageConfig(
+        packages={"package": {}},
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.commit,
-                branch="branch",
+                packages={"package": CommonPackageConfig(branch="branch")},
             ),
-        ]
+        ],
     )
     job_config = JobConfig(
         type=JobType.copr_build,
         trigger=JobConfigTriggerType.commit,
-        branch="branch",
+        packages={"package": CommonPackageConfig(branch="branch")},
     )
     event = github_push_event.get_dict()
     actor_checker = CoprBuildHandler.get_checkers()[1]
@@ -243,16 +280,25 @@ def test_precheck_koji_build_non_scratch(github_pr_event):
             JobConfig(
                 type=JobType.production_build,
                 trigger=JobConfigTriggerType.pull_request,
-                _targets=["bright-future"],
-                scratch=False,
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["bright-future"],
+                        scratch=False,
+                    )
+                },
             ),
-        ]
+        ],
+        packages={"package": CommonPackageConfig()},
     )
     job_config = JobConfig(
         type=JobType.production_build,
         trigger=JobConfigTriggerType.pull_request,
-        _targets=["bright-future"],
-        scratch=False,
+        packages={
+            "package": CommonPackageConfig(
+                _targets=["bright-future"],
+                scratch=False,
+            )
+        },
     )
     event = github_pr_event.get_dict()
     assert not KojiBuildHandler.pre_check(package_config, job_config, event)

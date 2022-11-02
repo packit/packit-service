@@ -5,9 +5,15 @@ from pathlib import Path
 import pytest
 from flexmock import flexmock
 
-from packit.config import PackageConfig, JobConfig, JobType, JobConfigTriggerType
-from packit.config.aliases import get_build_targets
 from packit.copr_helper import CoprHelper
+from packit.config import (
+    CommonPackageConfig,
+    JobConfig,
+    JobConfigTriggerType,
+    JobType,
+    PackageConfig,
+)
+from packit.config.aliases import get_build_targets
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 from packit_service.config import ServiceConfig
@@ -39,7 +45,9 @@ def _mock_targets(jobs, job, job_type):
     project_service = flexmock(instance_url="https://github.com")
     return CoprBuildJobHelper(
         service_config=ServiceConfig.get_service_config(),
-        package_config=PackageConfig(jobs=jobs),
+        package_config=PackageConfig(
+            jobs=jobs, packages={"package": CommonPackageConfig()}
+        ),
         job_config=job,  # BuildHelper looks at all jobs in the end
         project=flexmock(
             service=project_service, namespace="packit", repo="testing_package"
@@ -60,7 +68,11 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 )
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -72,7 +84,11 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 )
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -84,7 +100,11 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.release,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 )
             ],
             (JobConfigTriggerType.release, JobTriggerModelType.release),
@@ -96,7 +116,11 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 )
             ],
             (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
@@ -108,12 +132,20 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    _targets=["different", "os", "target"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["different", "os", "target"],
+                        )
+                    },
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -125,12 +157,20 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    _targets=["different", "os", "target"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["different", "os", "target"],
+                        )
+                    },
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -142,12 +182,20 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["different", "os", "target"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["different", "os", "target"],
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 ),
             ],
             (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
@@ -159,6 +207,7 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 )
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -170,6 +219,7 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 )
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -181,7 +231,11 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 )
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -193,10 +247,12 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -208,11 +264,16 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -224,11 +285,16 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -240,11 +306,16 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=list(ONE_CHROOT_SET),
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=list(ONE_CHROOT_SET),
+                        )
+                    },
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -256,14 +327,17 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
@@ -275,14 +349,17 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -294,11 +371,17 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
-                JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.commit),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.commit,
+                    packages={"packages": CommonPackageConfig()},
+                ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
@@ -310,12 +393,18 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
-                JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.commit),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.commit,
+                    packages={"packages": CommonPackageConfig()},
+                ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             {"fedora-stable"},
@@ -326,17 +415,22 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.release,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
@@ -348,11 +442,16 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=list(ONE_CHROOT_SET),
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=list(ONE_CHROOT_SET),
+                        )
+                    },
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -364,12 +463,20 @@ def _mock_targets(jobs, job, job_type):
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["fedora-rawhide"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["fedora-rawhide"],
+                        )
+                    },
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -395,6 +502,7 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 )
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -406,7 +514,11 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 )
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -418,10 +530,12 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -433,11 +547,16 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -449,11 +568,16 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -465,11 +589,16 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=list(ONE_CHROOT_SET),
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=list(ONE_CHROOT_SET),
+                        )
+                    },
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -481,14 +610,17 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
             ],
             (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
@@ -500,14 +632,17 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -519,12 +654,18 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"package": CommonPackageConfig()},
                 ),
-                JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.commit),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.commit,
+                    packages={"package": CommonPackageConfig()},
+                ),
             ],
             (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
             {"fedora-stable"},
@@ -535,12 +676,18 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
-                JobConfig(type=JobType.tests, trigger=JobConfigTriggerType.commit),
+                JobConfig(
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.commit,
+                    packages={"package": CommonPackageConfig()},
+                ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
             set(),
@@ -551,17 +698,22 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.release,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
-                    type=JobType.tests, trigger=JobConfigTriggerType.pull_request
+                    type=JobType.tests,
+                    trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
             ],
             (JobConfigTriggerType.commit, JobTriggerModelType.branch_push),
@@ -573,11 +725,16 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=list(ONE_CHROOT_SET),
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=list(ONE_CHROOT_SET),
+                        )
+                    },
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -589,12 +746,20 @@ def test_configured_build_targets(jobs, job_type, build_chroots):
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["fedora-rawhide"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["fedora-rawhide"],
+                        )
+                    },
                 ),
             ],
             (JobConfigTriggerType.pull_request, JobTriggerModelType.pull_request),
@@ -609,7 +774,9 @@ def test_configured_tests_targets(jobs, job_type, test_chroots):
     project_service = flexmock(instance_url="https://github.com")
     helper = TestingFarmJobHelper(
         service_config=ServiceConfig.get_service_config(),
-        package_config=PackageConfig(jobs=jobs),
+        package_config=PackageConfig(
+            jobs=jobs, packages={"package": CommonPackageConfig()}
+        ),
         job_config=jobs[-1],  # test job is always the last in the list
         project=flexmock(
             service=project_service, namespace="packit", repo="testing_package"
@@ -632,20 +799,27 @@ def test_deduced_copr_targets():
         JobConfig(
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.commit,
-            owner="mf",
-            project="custom-copr-targets",
+            packages={
+                "package": CommonPackageConfig(
+                    owner="mf",
+                    project="custom-copr-targets",
+                )
+            },
         ),
         JobConfig(
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.release,
+            packages={"packages": CommonPackageConfig()},
         ),
         JobConfig(
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.pull_request,
+            packages={"packages": CommonPackageConfig()},
         ),
         JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.commit,
+            packages={"packages": CommonPackageConfig()},
         ),
     ]
     job_type = (JobConfigTriggerType.commit, JobTriggerModelType.branch_push)
@@ -661,7 +835,9 @@ def test_deduced_copr_targets():
     assert copr_build_helper.configured_build_targets == {"opensuse-tumbleweed-x86_64"}
     assert TestingFarmJobHelper(
         service_config=ServiceConfig.get_service_config(),
-        package_config=PackageConfig(jobs=jobs),
+        package_config=PackageConfig(
+            jobs=jobs, packages={"package": CommonPackageConfig()}
+        ),
         job_config=jobs[-1],  # BuildHelper looks at all jobs in the end
         project=flexmock(
             service=flexmock(), namespace="packit", repo="testing_package"
@@ -683,11 +859,16 @@ def test_deduced_copr_targets():
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -701,7 +882,11 @@ def test_deduced_copr_targets():
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -715,7 +900,11 @@ def test_deduced_copr_targets():
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -729,7 +918,13 @@ def test_deduced_copr_targets():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets={
+                                "epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}
+                            },
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -743,7 +938,13 @@ def test_deduced_copr_targets():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets={
+                                "epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}
+                            },
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -757,7 +958,11 @@ def test_deduced_copr_targets():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["centos-stream-8"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["centos-stream-8"],
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -771,11 +976,16 @@ def test_deduced_copr_targets():
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["centos-stream-8"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["centos-stream-8"],
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -789,7 +999,11 @@ def test_deduced_copr_targets():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["epel-7-x86_64"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["epel-7-x86_64"],
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -803,7 +1017,11 @@ def test_deduced_copr_targets():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["epel-7-x86_64"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["epel-7-x86_64"],
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -817,7 +1035,11 @@ def test_deduced_copr_targets():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["epel-7-ppc64le"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["epel-7-ppc64le"],
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -831,7 +1053,11 @@ def test_deduced_copr_targets():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["epel-7-ppc64le"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["epel-7-ppc64le"],
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -851,7 +1077,9 @@ def test_build_targets_overrides(
 ):
     copr_build_helper = CoprBuildJobHelper(
         service_config=ServiceConfig.get_service_config(),
-        package_config=PackageConfig(jobs=jobs),
+        package_config=PackageConfig(
+            jobs=jobs, packages={"package": CommonPackageConfig()}
+        ),
         job_config=jobs[-1],  # BuildHelper looks at all jobs in the end
         project=flexmock(),
         metadata=flexmock(pr_id=None),
@@ -889,11 +1117,16 @@ def test_build_targets_overrides(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -907,7 +1140,13 @@ def test_build_targets_overrides(
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets={
+                                "epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}
+                            },
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -921,7 +1160,13 @@ def test_build_targets_overrides(
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets={
+                                "epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}
+                            },
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -935,7 +1180,11 @@ def test_build_targets_overrides(
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["centos-stream-8"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["centos-stream-8"],
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -949,11 +1198,16 @@ def test_build_targets_overrides(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["centos-stream-8"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["centos-stream-8"],
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"package": CommonPackageConfig()},
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -967,7 +1221,11 @@ def test_build_targets_overrides(
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["epel-7-x86_64"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["epel-7-x86_64"],
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -981,7 +1239,11 @@ def test_build_targets_overrides(
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["epel-7-x86_64"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["epel-7-x86_64"],
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -995,7 +1257,11 @@ def test_build_targets_overrides(
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["epel-7-ppc64le"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["epel-7-ppc64le"],
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1009,7 +1275,11 @@ def test_build_targets_overrides(
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["epel-7-ppc64le"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["epel-7-ppc64le"],
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1029,7 +1299,9 @@ def test_tests_targets_overrides(
 ):
     testing_farm_helper = TestingFarmJobHelper(
         service_config=ServiceConfig.get_service_config(),
-        package_config=PackageConfig(jobs=jobs),
+        package_config=PackageConfig(
+            jobs=jobs, packages={"package": CommonPackageConfig()}
+        ),
         job_config=jobs[-1],  # BuildHelper looks at all jobs in the end
         project=flexmock(),
         metadata=flexmock(pr_id=None),
@@ -1119,13 +1391,19 @@ def test_copr_build_target2test_targets(
         JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
-            _targets=configured_targets,
-            use_internal_tf=use_internal_tf,
+            packages={
+                "package": CommonPackageConfig(
+                    _targets=configured_targets,
+                    use_internal_tf=use_internal_tf,
+                )
+            },
         )
     ]
     copr_build_helper = CoprBuildJobHelper(
         service_config=ServiceConfig.get_service_config(),
-        package_config=PackageConfig(jobs=jobs),
+        package_config=PackageConfig(
+            jobs=jobs, packages={"package": CommonPackageConfig()}
+        ),
         job_config=jobs[0],
         project=flexmock(),
         metadata=flexmock(pr_id=None),
@@ -1143,15 +1421,23 @@ def test_copr_build_and_test_targets_both_jobs_defined():
         JobConfig(
             type=JobType.tests,
             trigger=JobConfigTriggerType.pull_request,
-            _targets={
-                "epel-8-x86_64": {},
-                "fedora-35-x86_64": {"distros": ["fedora-35", "fedora-36"]},
+            packages={
+                "package": CommonPackageConfig(
+                    _targets={
+                        "epel-8-x86_64": {},
+                        "fedora-35-x86_64": {"distros": ["fedora-35", "fedora-36"]},
+                    },
+                )
             },
         ),
         JobConfig(
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.pull_request,
-            _targets=["fedora-35", "fedora-36", "epel-8"],
+            packages={
+                "package": CommonPackageConfig(
+                    _targets=["fedora-35", "fedora-36", "epel-8"],
+                )
+            },
         ),
     ]
     flexmock(copr_build, get_valid_build_targets=get_build_targets)
@@ -1163,7 +1449,9 @@ def test_copr_build_and_test_targets_both_jobs_defined():
         )
         helper = helper(
             service_config=ServiceConfig.get_service_config(),
-            package_config=PackageConfig(jobs=jobs),
+            package_config=PackageConfig(
+                jobs=jobs, packages={"package": CommonPackageConfig()}
+            ),
             job_config=jobs[i],
             project=flexmock(),
             metadata=flexmock(pr_id=None),
@@ -1209,7 +1497,11 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 )
             ],
             "fedora-32-x86_64",
@@ -1221,7 +1513,13 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets={
+                                "epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}
+                            },
+                        )
+                    },
                 )
             ],
             "centos-7-x86_64",
@@ -1233,7 +1531,13 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets={
+                                "epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}
+                            },
+                        )
+                    },
                 )
             ],
             "rhel-7-x86_64",
@@ -1245,7 +1549,13 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets={"epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}},
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets={
+                                "epel-7-x86_64": {"distros": ["centos-7", "rhel-7"]}
+                            },
+                        )
+                    },
                 )
             ],
             "rhel-7-x86_64",
@@ -1257,7 +1567,11 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["epel-7-x86_64"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["epel-7-x86_64"],
+                        )
+                    },
                 )
             ],
             "centos-7-x86_64",
@@ -1269,8 +1583,12 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["epel-7-x86_64"],
-                    use_internal_tf=True,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["epel-7-x86_64"],
+                            use_internal_tf=True,
+                        )
+                    },
                 )
             ],
             "rhel-7-x86_64",
@@ -1282,7 +1600,11 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["centos-stream-9-x86_64"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["centos-stream-9-x86_64"],
+                        )
+                    },
                 )
             ],
             "centos-stream-9-x86_64",
@@ -1294,11 +1616,16 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["centos-stream-9-x86_64"],
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["centos-stream-9-x86_64"],
+                        )
+                    },
                 ),
             ],
             "centos-stream-9-x86_64",
@@ -1310,8 +1637,12 @@ def test_copr_build_and_test_targets_both_jobs_defined():
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=["centos-stream-9-x86_64"],
-                    use_internal_tf=True,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=["centos-stream-9-x86_64"],
+                            use_internal_tf=True,
+                        )
+                    },
                 )
             ],
             "centos-stream-9-x86_64",
@@ -1324,7 +1655,9 @@ def test_copr_test_target2build_target(job_config, test_target, build_target):
     jobs = job_config
     testing_farm_helper = TestingFarmJobHelper(
         service_config=ServiceConfig.get_service_config(),
-        package_config=PackageConfig(jobs=jobs),
+        package_config=PackageConfig(
+            jobs=jobs, packages={"package": CommonPackageConfig()}
+        ),
         job_config=jobs[0],
         project=flexmock(),
         metadata=flexmock(pr_id=None),
@@ -1353,7 +1686,11 @@ def test_copr_test_target2build_target(job_config, test_target, build_target):
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1366,7 +1703,11 @@ def test_copr_test_target2build_target(job_config, test_target, build_target):
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1381,7 +1722,9 @@ def test_koji_targets_overrides(
 ):
     koji_build_helper = KojiBuildJobHelper(
         service_config=ServiceConfig.get_service_config(),
-        package_config=PackageConfig(jobs=jobs),
+        package_config=PackageConfig(
+            jobs=jobs, packages={"package": CommonPackageConfig()}
+        ),
         job_config=jobs[0],
         project=flexmock(),
         metadata=flexmock(),
@@ -1399,16 +1742,19 @@ def test_koji_targets_overrides(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 )
             ],
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             None,
             id="copr_build&pull_request",
@@ -1418,16 +1764,19 @@ def test_koji_targets_overrides(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 )
             ],
             JobConfig(
                 type=JobType.build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             None,
             id="build&pull_request",
@@ -1437,16 +1786,19 @@ def test_koji_targets_overrides(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 )
             ],
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             None,
             id="copr_build&pr_comment",
@@ -1456,16 +1808,19 @@ def test_koji_targets_overrides(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.release,
+                    packages={"packages": CommonPackageConfig()},
                 )
             ],
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.release,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.release,
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.release,
+                packages={"packages": CommonPackageConfig()},
             ),
             None,
             id="copr_build&release",
@@ -1475,16 +1830,19 @@ def test_koji_targets_overrides(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"packages": CommonPackageConfig()},
                 )
             ],
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.commit,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.commit,
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.commit,
+                packages={"packages": CommonPackageConfig()},
             ),
             None,
             id="copr_build&push",
@@ -1494,20 +1852,24 @@ def test_koji_targets_overrides(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             None,
             id="copr_build[pr+commit]&pull_request",
@@ -1517,20 +1879,24 @@ def test_koji_targets_overrides(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             None,
             id="copr_build[commit+pr]&pull_request",
@@ -1540,20 +1906,24 @@ def test_koji_targets_overrides(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.commit,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.commit,
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.commit,
+                packages={"packages": CommonPackageConfig()},
             ),
             None,
             id="copr_build[pr+commit]&push",
@@ -1563,17 +1933,20 @@ def test_koji_targets_overrides(
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 )
             ],
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.pull_request,
             None,
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             id="test&pr",
         ),
@@ -1582,24 +1955,29 @@ def test_koji_targets_overrides(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             id="copr_build+test&pr",
         ),
@@ -1608,24 +1986,29 @@ def test_koji_targets_overrides(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             JobConfig(
                 type=JobType.build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             id="build+test&pr",
         ),
@@ -1634,28 +2017,34 @@ def test_koji_targets_overrides(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.pull_request,
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
+                packages={"packages": CommonPackageConfig()},
             ),
             id="copr_build[pr+commit]+test[pr]&pr",
         ),
@@ -1664,24 +2053,29 @@ def test_koji_targets_overrides(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.commit,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.commit,
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.commit,
+                packages={"packages": CommonPackageConfig()},
             ),
             None,
             id="copr_build[pr+commit]+test[pr]&commit",
@@ -1691,28 +2085,34 @@ def test_koji_targets_overrides(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.release,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.release,
+                packages={"packages": CommonPackageConfig()},
             ),
             JobConfigTriggerType.release,
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.release,
+                packages={"packages": CommonPackageConfig()},
             ),
             None,
             id="copr_build[pr+commit]+test[pr]&commit",
@@ -1728,7 +2128,9 @@ def test_build_handler_job_and_test_properties(
 ):
     copr_build_helper = CoprBuildJobHelper(
         service_config=ServiceConfig.get_service_config(),
-        package_config=PackageConfig(jobs=jobs),
+        package_config=PackageConfig(
+            jobs=jobs, packages={"package": CommonPackageConfig()}
+        ),
         job_config=init_job,
         project=flexmock(),
         metadata=flexmock(pr_id=None),
@@ -1749,6 +2151,7 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1763,7 +2166,11 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    owner="custom-owner",
+                    packages={
+                        "package": CommonPackageConfig(
+                            owner="custom-owner",
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1778,7 +2185,11 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    project="custom-project",
+                    packages={
+                        "package": CommonPackageConfig(
+                            project="custom-project",
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1793,8 +2204,12 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    owner="custom-owner",
-                    project="custom-project",
+                    packages={
+                        "package": CommonPackageConfig(
+                            owner="custom-owner",
+                            project="custom-project",
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1809,8 +2224,12 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.build,
                     trigger=JobConfigTriggerType.pull_request,
-                    owner="custom-owner",
-                    project="custom-project",
+                    packages={
+                        "package": CommonPackageConfig(
+                            owner="custom-owner",
+                            project="custom-project",
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -1825,6 +2244,7 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
+                    packages={"packages": CommonPackageConfig()},
                 )
             ],
             JobConfigTriggerType.commit,
@@ -1839,6 +2259,7 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.release,
+                    packages={"packages": CommonPackageConfig()},
                 )
             ],
             JobConfigTriggerType.release,
@@ -1853,6 +2274,7 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.release,
+                    packages={"packages": CommonPackageConfig()},
                 )
             ],
             JobConfigTriggerType.release,
@@ -1867,14 +2289,22 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    owner="commit-owner",
-                    project="commit-project",
+                    packages={
+                        "package": CommonPackageConfig(
+                            owner="commit-owner",
+                            project="commit-project",
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    owner="pr-owner",
-                    project="pr-project",
+                    packages={
+                        "package": CommonPackageConfig(
+                            owner="pr-owner",
+                            project="pr-project",
+                        )
+                    },
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -1889,10 +2319,12 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -1907,12 +2339,17 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    owner="custom-owner",
-                    project="custom-project",
+                    packages={
+                        "package": CommonPackageConfig(
+                            owner="custom-owner",
+                            project="custom-project",
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -1927,12 +2364,17 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
-                    owner="custom-owner",
-                    project="custom-project",
+                    packages={
+                        "package": CommonPackageConfig(
+                            owner="custom-owner",
+                            project="custom-project",
+                        )
+                    },
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -1947,18 +2389,27 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    owner="pr-owner",
-                    project="pr-project",
+                    packages={
+                        "package": CommonPackageConfig(
+                            owner="pr-owner",
+                            project="pr-project",
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    owner="commit-owner",
-                    project="commit-project",
+                    packages={
+                        "package": CommonPackageConfig(
+                            owner="commit-owner",
+                            project="commit-project",
+                        )
+                    },
                 ),
             ],
             JobConfigTriggerType.pull_request,
@@ -1973,18 +2424,27 @@ def test_build_handler_job_and_test_properties(
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    owner="pr-owner",
-                    project="pr-project",
+                    packages={
+                        "package": CommonPackageConfig(
+                            owner="pr-owner",
+                            project="pr-project",
+                        )
+                    },
                 ),
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    packages={"packages": CommonPackageConfig()},
                 ),
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.commit,
-                    owner="commit-owner",
-                    project="commit-project",
+                    packages={
+                        "package": CommonPackageConfig(
+                            owner="commit-owner",
+                            project="commit-project",
+                        )
+                    },
                 ),
             ],
             JobConfigTriggerType.commit,
@@ -2006,7 +2466,9 @@ def test_copr_project_and_namespace(
 ):
     copr_build_helper = CoprBuildJobHelper(
         service_config=ServiceConfig.get_service_config(),
-        package_config=PackageConfig(jobs=jobs),
+        package_config=PackageConfig(
+            jobs=jobs, packages={"package": CommonPackageConfig()}
+        ),
         job_config=jobs[0],  # BuildHelper looks at all jobs in the end
         project=flexmock(
             namespace="the/example/namespace",
@@ -2036,8 +2498,12 @@ def test_copr_project_and_namespace(
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                owner="the-owner",
-                project="the-project",
+                packages={
+                    "package": CommonPackageConfig(
+                        owner="the-owner",
+                        project="the-project",
+                    )
+                },
             ),
             "",
             False,
@@ -2047,8 +2513,12 @@ def test_copr_project_and_namespace(
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                owner="the-owner",
-                project="the-project",
+                packages={
+                    "package": CommonPackageConfig(
+                        owner="the-owner",
+                        project="the-project",
+                    )
+                },
             ),
             "something/different",
             False,
@@ -2058,8 +2528,12 @@ def test_copr_project_and_namespace(
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                owner="the-owner",
-                project="the-project",
+                packages={
+                    "package": CommonPackageConfig(
+                        owner="the-owner",
+                        project="the-project",
+                    )
+                },
             ),
             "git.instance.io/the/example/namespace/the-example-repo",
             True,
@@ -2069,8 +2543,12 @@ def test_copr_project_and_namespace(
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                owner="the-owner",
-                project="the-project",
+                packages={
+                    "package": CommonPackageConfig(
+                        owner="the-owner",
+                        project="the-project",
+                    )
+                },
             ),
             "something/different\ngit.instance.io/the/example/namespace/the-example-repo",
             True,
@@ -2086,7 +2564,9 @@ def test_check_if_custom_copr_can_be_used_and_report(
     service_config = ServiceConfig.get_service_config()
     copr_build_helper = CoprBuildJobHelper(
         service_config=service_config,
-        package_config=PackageConfig(jobs=[job]),
+        package_config=PackageConfig(
+            jobs=[job], packages={"package": CommonPackageConfig()}
+        ),
         job_config=job,  # BuildHelper looks at all jobs in the end
         project=flexmock(
             namespace="the/example/namespace",
@@ -2129,7 +2609,11 @@ def test_check_if_custom_copr_can_be_used_and_report(
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.pull_request,
@@ -2142,8 +2626,12 @@ def test_check_if_custom_copr_can_be_used_and_report(
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.commit,
-                    _targets=STABLE_VERSIONS,
-                    branch="build-branch",
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                            branch="build-branch",
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.commit,
@@ -2156,8 +2644,12 @@ def test_check_if_custom_copr_can_be_used_and_report(
                 JobConfig(
                     type=JobType.production_build,
                     trigger=JobConfigTriggerType.release,
-                    _targets=STABLE_VERSIONS,
-                    branch="build-branch",
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                            branch="build-branch",
+                        )
+                    },
                 )
             ],
             JobConfigTriggerType.release,
@@ -2173,7 +2665,9 @@ def test_targets_for_koji_build(
     pr_id = 41 if job_config_trigger_type == JobConfigTriggerType.pull_request else None
     koji_build_helper = KojiBuildJobHelper(
         service_config=ServiceConfig.get_service_config(),
-        package_config=PackageConfig(jobs=jobs),
+        package_config=PackageConfig(
+            jobs=jobs, packages={"package": CommonPackageConfig()}
+        ),
         job_config=jobs[0],
         project=flexmock(),
         metadata=flexmock(pr_id=pr_id),
@@ -2200,14 +2694,23 @@ def test_repository_cache_invocation():
                 JobConfig(
                     type=JobType.copr_build,
                     trigger=JobConfigTriggerType.pull_request,
-                    _targets=STABLE_VERSIONS,
+                    packages={
+                        "package": CommonPackageConfig(
+                            _targets=STABLE_VERSIONS,
+                        )
+                    },
                 )
             ],
+            packages={"package": CommonPackageConfig()},
         ),
         job_config=JobConfig(
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.pull_request,
-            _targets=STABLE_VERSIONS,
+            packages={
+                "package": CommonPackageConfig(
+                    _targets=STABLE_VERSIONS,
+                )
+            },
         ),
         project=flexmock(
             service=flexmock(),
@@ -2239,11 +2742,14 @@ def test_local_project_not_called_when_initializing_api():
         JobConfig(
             type=JobType.copr_build,
             trigger=JobConfigTriggerType.pull_request,
+            packages={"packages": CommonPackageConfig()},
         )
     ]
     copr_build_helper = CoprBuildJobHelper(
         service_config=ServiceConfig.get_service_config(),
-        package_config=PackageConfig(jobs=jobs),
+        package_config=PackageConfig(
+            jobs=jobs, packages={"package": CommonPackageConfig()}
+        ),
         job_config=jobs[0],
         project=flexmock(),
         metadata=flexmock(pr_id=1),

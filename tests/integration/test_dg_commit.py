@@ -10,8 +10,14 @@ from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
 
 from packit.api import PackitAPI
-from packit.config import JobConfigTriggerType, PackageConfig, JobConfig, JobType
-from packit.config.common_package_config import Deployment
+from packit.config import (
+    CommonPackageConfig,
+    Deployment,
+    JobConfig,
+    JobConfigTriggerType,
+    JobType,
+    PackageConfig,
+)
 from packit.constants import CONFIG_FILE_NAMES
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject
@@ -651,13 +657,18 @@ def test_precheck_koji_build_push(
         JobConfig(
             type=JobType.koji_build,
             trigger=JobConfigTriggerType.commit,
-            dist_git_branches=["f36"],
-            allowed_committers=allowed_committers,
+            packages={
+                "package": CommonPackageConfig(
+                    dist_git_branches=["f36"],
+                    allowed_committers=allowed_committers,
+                )
+            },
         ),
     ]
     package_config = (
         PackageConfig(
             jobs=jobs,
+            packages={"package": CommonPackageConfig()},
         ),
     )
     job_config = jobs[0]
@@ -714,8 +725,12 @@ def test_precheck_koji_build_push_pr(
         JobConfig(
             type=JobType.koji_build,
             trigger=JobConfigTriggerType.commit,
-            dist_git_branches=["f36"],
-            allowed_pr_authors=allowed_pr_authors,
+            packages={
+                "package": CommonPackageConfig(
+                    dist_git_branches=["f36"],
+                    allowed_pr_authors=allowed_pr_authors,
+                )
+            },
         ),
     ]
     flexmock(PagureProject).should_receive("get_pr_list").and_return(
@@ -729,6 +744,7 @@ def test_precheck_koji_build_push_pr(
     package_config = (
         PackageConfig(
             jobs=jobs,
+            packages={"package": CommonPackageConfig()},
         ),
     )
     job_config = jobs[0]

@@ -14,8 +14,13 @@ import packit_service
 import packit_service.service.urls as urls
 from ogr.services.github import GithubProject
 from ogr.utils import RequestResponse
-from packit.config import JobConfig, JobConfigTriggerType, JobType
-from packit.config.package_config import PackageConfig
+from packit.config import (
+    CommonPackageConfig,
+    JobConfig,
+    JobConfigTriggerType,
+    JobType,
+    PackageConfig,
+)
 from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 from packit_service.config import PackageConfigGetter, ServiceConfig
@@ -106,70 +111,115 @@ def koji_build_scratch_end():
 @pytest.fixture(scope="module")
 def pc_build_pr():
     return PackageConfig(
-        specfile_path="test.spec",
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                _targets=["fedora-all"],
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-all"],
+                        specfile_path="test.spec",
+                    )
+                },
             )
         ],
+        packages={
+            "package": CommonPackageConfig(
+                specfile_path="test.spec",
+            )
+        },
     )
 
 
 @pytest.fixture(scope="module")
 def pc_koji_build_pr():
     return PackageConfig(
-        specfile_path="test.spec",
         jobs=[
             JobConfig(
                 type=JobType.upstream_koji_build,
                 trigger=JobConfigTriggerType.pull_request,
-                _targets=["fedora-all"],
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-all"],
+                        specfile_path="test.spec",
+                    )
+                },
             )
         ],
+        packages={
+            "package": CommonPackageConfig(
+                specfile_path="test.spec",
+            )
+        },
     )
 
 
 @pytest.fixture(scope="module")
 def pc_build_push():
     return PackageConfig(
-        specfile_path="test.spec",
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.commit,
-                _targets=["fedora-all"],
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-all"],
+                        specfile_path="test.spec",
+                    )
+                },
             )
         ],
+        packages={
+            "package": CommonPackageConfig(
+                specfile_path="test.spec",
+            )
+        },
     )
 
 
 @pytest.fixture(scope="module")
 def pc_build_release():
     return PackageConfig(
-        specfile_path="test.spec",
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.release,
-                _targets=["fedora-all"],
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-all"],
+                        specfile_path="test.spec",
+                    )
+                },
             )
         ],
+        packages={
+            "package": CommonPackageConfig(
+                specfile_path="test.spec",
+            )
+        },
     )
 
 
 @pytest.fixture(scope="module")
 def pc_tests():
     return PackageConfig(
-        specfile_path="test.spec",
         jobs=[
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
-                _targets=["fedora-all"],
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-all"],
+                        specfile_path="test.spec",
+                    )
+                },
             )
         ],
+        packages={
+            "package": CommonPackageConfig(
+                specfile_path="test.spec",
+            )
+        },
     )
 
 
@@ -430,17 +480,31 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     urls.DASHBOARD_URL = "https://dashboard.localhost"
 
     config = PackageConfig(
-        specfile_path="test.spec",
+        packages={
+            "package": CommonPackageConfig(
+                specfile_path="test.spec",
+            )
+        },
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                _targets=["fedora-rawhide"],
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-rawhide"],
+                        specfile_path="test.spec",
+                    )
+                },
             ),
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
-                _targets=["fedora-rawhide"],
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-rawhide"],
+                        specfile_path="test.spec",
+                    )
+                },
             ),
         ],
     )
@@ -641,24 +705,43 @@ def test_copr_build_end_report_multiple_testing_farm_jobs(
     urls.DASHBOARD_URL = "https://dashboard.localhost"
 
     config = PackageConfig(
-        specfile_path="test.spec",
+        packages={
+            "package": CommonPackageConfig(
+                specfile_path="test.spec",
+            )
+        },
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                _targets=["fedora-rawhide"],
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-rawhide"],
+                        specfile_path="test.spec",
+                    )
+                },
             ),
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
-                identifier="test1",
-                _targets=["fedora-rawhide"],
+                packages={
+                    "package": CommonPackageConfig(
+                        identifier="test1",
+                        _targets=["fedora-rawhide"],
+                        specfile_path="test.spec",
+                    )
+                },
             ),
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
-                identifier="test2",
-                _targets=["fedora-rawhide", "other-target"],
+                packages={
+                    "package": CommonPackageConfig(
+                        identifier="test2",
+                        _targets=["fedora-rawhide", "other-target"],
+                        specfile_path="test.spec",
+                    )
+                },
             ),
         ],
     )
@@ -760,17 +843,31 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     )
 
     config = PackageConfig(
-        specfile_path="test.spec",
+        packages={
+            "package": CommonPackageConfig(
+                specfile_path="test.spec",
+            )
+        },
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                _targets=["fedora-rawhide"],
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-rawhide"],
+                        specfile_path="test.spec",
+                    )
+                },
             ),
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
-                _targets=["fedora-rawhide"],
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-rawhide"],
+                        specfile_path="test.spec",
+                    )
+                },
             ),
         ],
     )
@@ -898,17 +995,31 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     )
 
     config = PackageConfig(
-        specfile_path="test.spec",
+        packages={
+            "package": CommonPackageConfig(
+                specfile_path="test.spec",
+            )
+        },
         jobs=[
             JobConfig(
                 type=JobType.copr_build,
                 trigger=JobConfigTriggerType.pull_request,
-                _targets=["fedora-rawhide"],
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-rawhide"],
+                        specfile_path="test.spec",
+                    )
+                },
             ),
             JobConfig(
                 type=JobType.tests,
                 trigger=JobConfigTriggerType.pull_request,
-                _targets=["fedora-rawhide"],
+                packages={
+                    "package": CommonPackageConfig(
+                        _targets=["fedora-rawhide"],
+                        specfile_path="test.spec",
+                    )
+                },
             ),
         ],
     )
