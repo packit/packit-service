@@ -129,11 +129,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         # if we call default_project_name when running TF, we want to get the default name
         # for the build job
-        job_config_identifier = (
-            self.job_build.identifier if self.job_build else self.job_config.identifier
-        )
         configured_identifier = (
-            f"-{job_config_identifier}" if job_config_identifier else ""
+            f"-{self.job_build_or_job_config.identifier}"
+            if self.job_build_or_job_config.identifier
+            else ""
         )
 
         copr_project_name = (

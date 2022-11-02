@@ -119,6 +119,10 @@ class BaseBuildJobHelper(BaseJobHelper):
         return self._job_build
 
     @property
+    def job_build_or_job_config(self):
+        return self.job_build or self.job_config
+
+    @property
     def job_build_branch(self) -> Optional[str]:
         """
         Branch used for the build job or project's default branch.
@@ -355,7 +359,9 @@ class BaseBuildJobHelper(BaseJobHelper):
         return f"{cls.status_name_build}{chroot_str}{optional_suffix}"
 
     def get_build_check(self, chroot: str = None) -> str:
-        return self.get_build_check_cls(chroot, identifier=self.job_config.identifier)
+        return self.get_build_check_cls(
+            chroot, identifier=self.job_build_or_job_config.identifier
+        )
 
     @classmethod
     def get_test_check_cls(

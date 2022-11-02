@@ -37,7 +37,10 @@ from packit_service.models import (
     BuildStatus,
 )
 from packit_service.service.db_triggers import AddPullRequestDbTrigger
-from packit_service.utils import get_packit_commands_from_comment
+from packit_service.utils import (
+    get_packit_commands_from_comment,
+    load_job_config,
+)
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events.event import AbstractForgeIndependentEvent
@@ -1703,6 +1706,112 @@ def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event
         processing_results
     )
     assert json.dumps(event_dict)
+
+    flexmock(packit_service.worker.handlers.testing_farm).should_receive(
+        "dump_job_config"
+    ).with_args(job_config=load_job_config(job_config)).once()
+
+    run_testing_farm_handler(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+
+def test_pr_test_command_handler_missing_build_trigger_with_build_job_config(
+    pr_embedded_command_comment_event,
+):
+    jobs = [
+        {
+            "trigger": "pull_request",
+            "job": "copr_build",
+            "metadata": {"targets": "fedora-rawhide-x86_64"},
+        },
+        {
+            "trigger": "pull_request",
+            "job": "tests",
+            "metadata": {"targets": "fedora-rawhide-x86_64"},
+        },
+    ]
+    packit_yaml = (
+        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
+        + str(jobs)
+        + "}"
+    )
+    pr = flexmock(head_commit="12345")
+    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
+    comment = flexmock()
+    flexmock(pr).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
+    flexmock(
+        GithubProject,
+        full_repo_name="packit-service/hello-world",
+        get_file_content=lambda path, ref: packit_yaml,
+        get_files=lambda ref, filter_regex: ["the-specfile.spec"],
+        get_web_url=lambda: "https://github.com/the-namespace/the-repo",
+    )
+    flexmock(Github, get_repo=lambda full_name_or_id: None)
+
+    trigger = flexmock(
+        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    )
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
+        trigger
+    )
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    flexmock(Allowlist, check_and_report=True)
+    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
+        pr_id=9,
+        namespace="packit-service",
+        repo_name="hello-world",
+        project_url="https://github.com/packit-service/hello-world",
+    ).and_return(
+        flexmock(
+            id=9,
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
+        )
+    )
+    flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
+        type=JobTriggerModelType.pull_request, trigger_id=9
+    ).and_return(trigger)
+
+    pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
+    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+    flexmock(Signature).should_receive("apply_async").twice()
+    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+        {"test-target", "test-target-without-build"}
+    )
+    flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
+        flexmock(status=BuildStatus.success)
+    ).and_return()
+
+    flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("owner")
+    flexmock(TestingFarmJobHelper).should_receive("job_project").and_return("project")
+    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").once()
+    flexmock(TestingFarmJobHelper).should_receive(
+        "report_status_to_tests_for_chroot"
+    ).once()
+    flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
+        TaskResults(success=False, details={})
+    )
+    flexmock(Pushgateway).should_receive("push").twice().and_return()
+
+    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    build_job_config = [
+        job for job in package_config["jobs"] if job["job"] == "copr_build"
+    ][0]
+
+    flexmock(packit_service.worker.handlers.testing_farm).should_receive(
+        "dump_job_config"
+    ).with_args(job_config=load_job_config(build_job_config)).once()
 
     run_testing_farm_handler(
         package_config=package_config,
