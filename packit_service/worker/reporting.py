@@ -71,7 +71,7 @@ class StatusReporter:
         project: GitProject,
         commit_sha: str,
         packit_user: str,
-        trigger_id: int = None,
+        trigger_id: Optional[int] = None,
         pr_id: Optional[int] = None,
     ):
         logger.debug(
@@ -90,7 +90,7 @@ class StatusReporter:
         cls,
         project: GitProject,
         commit_sha: str,
-        packit_user,
+        packit_user: str,
         trigger_id: Optional[int] = None,
         pr_id: Optional[int] = None,
     ) -> "StatusReporter":
@@ -198,36 +198,26 @@ class StatusReporter:
             BaseCommitStatus.failure,
         }
 
-    def _commit_comment_already_added(self, comment: str) -> bool:
-        commit_comments = self.project.get_commit_comments(self.commit_sha)
-        if exists := any(c.body == comment for c in commit_comments):
-            logger.debug(
-                "The following comment already exists for commit "
-                f"{self.commit_sha}\n{comment}"
-            )
-        return exists
-
     def _add_commit_comment_with_status(
         self, state: BaseCommitStatus, description: str, check_name: str, url: str = ""
     ):
+        """Add a comment with status to the commit.
+
+        A fallback solution when setting commit status fails.
+        """
         body = (
             "\n".join(
                 [
                     f"- name: {check_name}",
                     f"- state: {state.name}",
-                    f"- url: {url if url else 'not provided'}",
+                    f"- url: {url or 'not provided'}",
                 ]
             )
             + f"\n\n{description}"
         )
-        if not self.is_final_state(state) or self._commit_comment_already_added(body):
-            logger.debug(f"Not adding a '{check_name} is {state.name}' comment.")
-            return
 
-        self.project.commit_comment(
-            commit=self.commit_sha,
-            body=body,
-        )
+        if self.is_final_state(state):
+            self.comment(body, DuplicateCheckMode.check_all_comments, to_commit=True)
 
     def report_status_by_comment(
         self,
@@ -254,12 +244,20 @@ class StatusReporter:
     def get_statuses(self):
         self.project_with_commit.get_commit_statuses(commit=self.commit_sha)
 
-    def _has_identical_comment(self, body: str, mode: DuplicateCheckMode) -> bool:
-        """Checks if the body is the same as the last or any comment based on mode."""
+    def _has_identical_comment(
+        self, body: str, mode: DuplicateCheckMode, check_commit: bool = False
+    ) -> bool:
+        """Checks if the body is the same as the last or any (based on mode) comment.
+
+        Check either commit comments or PR comments (if specified).
+        """
+        if mode == DuplicateCheckMode.do_not_check:
+            return False
+
         comments = (
-            self.project.get_pr(pr_id=self.pr_id).get_comments(reverse=True)
-            if self.pr_id
-            else reversed(self.project.get_commit_comments(self.commit_sha))
+            reversed(self.project.get_commit_comments(self.commit_sha))
+            if check_commit or not self.pr_id
+            else self.project.get_pr(pr_id=self.pr_id).get_comments(reverse=True)
         )
         for comment in comments:
             if comment.author.startswith(self._packit_user):
@@ -270,35 +268,32 @@ class StatusReporter:
                     and body == comment.body
                 ):
                     return True
-
         return False
 
     def comment(
         self,
         body: str,
         duplicate_check: DuplicateCheckMode = DuplicateCheckMode.do_not_check,
+        to_commit: bool = False,
     ):
-        """Reports status by adding a comment.
+        """Add a comment.
 
-        If the instance is tied to a PR, the comment is added to the PR,
-        otherwise, it is added to the tied commit (if the forge supports
-        commit comments).
+        It's added either to a commit or to a PR (if specified).
 
         Args:
             body: The comment text.
-            duplicate_check: Determines if the comment will be added if the same comment
-                is already present in the PR.
+            duplicate_check: Determines if the comment will be added if
+                the same comment is already present in the PR
+                (if the instance is tied to a PR) or in a commit.
+            to_commit: Add the comment to the commit even if PR is specified.
         """
-        if (
-            duplicate_check != DuplicateCheckMode.do_not_check
-            and self._has_identical_comment(body, duplicate_check)
-        ):
+        if self._has_identical_comment(body, duplicate_check, to_commit):
             return
 
-        if self.pr_id:
-            self.project.get_pr(pr_id=self.pr_id).comment(body=body)
-        else:
+        if to_commit or not self.pr_id:
             self.project.commit_comment(commit=self.commit_sha, body=body)
+        else:
+            self.project.get_pr(pr_id=self.pr_id).comment(body=body)
 
 
 class StatusReporterPagure(StatusReporter):
