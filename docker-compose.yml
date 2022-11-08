@@ -2,7 +2,7 @@ version: "2"
 
 services:
   redis:
-    image: quay.io/centos7/redis-5-centos7
+    image: quay.io/sclorg/redis-6-c9s
     container_name: redis
     ports:
       - 6379:6379
@@ -35,7 +35,7 @@ services:
 
   postgres:
     container_name: postgres
-    image: quay.io/centos7/postgresql-13-centos7
+    image: quay.io/sclorg/postgresql-13-c9s
     environment:
       POSTGRESQL_USER: packit
       POSTGRESQL_PASSWORD: secret-password
