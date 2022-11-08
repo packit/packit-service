@@ -8,7 +8,7 @@ ATTEMPTS=7
 n=0
 while [[ $n -lt $ATTEMPTS ]]; do
   alembic-3 upgrade head && break
-  n=$[$n+1]
+  n=$((n+1))
   sleep 2
 done
 
@@ -27,12 +27,12 @@ HTTPS_PORT=$(sed -nr 's/^server_name: ([^:]+)(:([0-9]+))?$/\3/p' "$PACKIT_SERVIC
 # these options, and the configuration documentation of mod_wsgi:
 # https://modwsgi.readthedocs.io/en/master/configuration.html
 exec mod_wsgi-express-3 start-server \
-    --https-port ${HTTPS_PORT:-8443} \
+    --https-port "${HTTPS_PORT:-8443}" \
     --access-log \
     --log-to-terminal \
     --ssl-certificate-file /secrets/fullchain.pem \
     --ssl-certificate-key-file /secrets/privkey.pem \
-    --server-name $SERVER_NAME \
+    --server-name "${SERVER_NAME}" \
     --processes 2 \
     --restart-interval 28800 \
     --graceful-timeout 15 \
