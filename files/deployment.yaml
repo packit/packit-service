@@ -10,7 +10,7 @@
     as_root: true # needs to run as root in zuul
   tasks:
     - name: Install packages for deployment
-      package:
+      ansible.builtin.package:
         name:
           - git
           - ansible
@@ -23,24 +23,24 @@
     # For "equalto" test in set-facts.yml we need Jinja2>=2.8.x, there's 2.7.2 in centos7
     # Needs to be installed before running the set-facts.yml playbook
     - name: Install Jinja-2.8.1
-      pip:
+      ansible.builtin.pip:
         name: Jinja2==2.8.1
       become: true
       when: (ansible_facts['distribution'] == "CentOS" and ansible_facts['distribution_major_version'] == "7")
 
     - name: clone deployment repo when not running in zuul
       block:
-        - set_fact: deployment_dir=/tmp/deployment
-        - set_fact: as_root=false
+        - ansible.builtin.set_fact: deployment_dir=/tmp/deployment
+        - ansible.builtin.set_fact: as_root=false
         - name: clone deployment repository (templates are there)
-          git:
+          ansible.builtin.git:
             repo: "https://github.com/packit/deployment.git"
             dest: "{{ deployment_dir }}"
             clone: true
       when: zuul is not defined
 
     - name: Generate secrets
-      command: make generate-local-secrets
+      ansible.builtin.command: make generate-local-secrets
       environment:
         DEPLOYMENT: dev
         ANSIBLE_STDOUT_CALLBACK: debug
@@ -50,27 +50,27 @@
       when: path_to_secrets is not defined
 
     - name: symlink provided path_to_secrets/packit/dev to secrets/packit/dev/
-      file:
+      ansible.builtin.file:
         state: link
         src: "{{ path_to_secrets }}/packit/dev"
         dest: "{{ deployment_dir }}/secrets/packit/dev"
       when: path_to_secrets is defined
 
     - name: get token
-      command: oc whoami -t
+      ansible.builtin.command: oc whoami -t
       register: kubeconfig_token
       become: "{{ as_root }}"
 
     - name: get minishift ip
-      command: minishift ip
+      ansible.builtin.command: minishift ip
       register: minishift_ip
       ignore_errors: true
 
-    - set_fact:
+    - ansible.builtin.set_fact:
         cluster_ip: "{{ minishift_ip.stdout if not minishift_ip.failed else '127.0.0.1' }}"
 
     - name: Create packit/dev.yml
-      copy:
+      ansible.builtin.copy:
         content: |
           # See https://github.com/packit/deployment/blob/main/vars/packit/dev_template.yml
           project: myproject
