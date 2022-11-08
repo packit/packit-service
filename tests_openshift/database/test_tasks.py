@@ -83,7 +83,12 @@ def packit_build_752():
 
 def test_check_copr_build(clean_before_and_after, packit_build_752):
     flexmock(Client).should_receive("create_from_config_file").and_return(
-        Client(config={"copr_url": "https://copr.fedorainfracloud.org/"})
+        Client(
+            config={
+                "username": "packit",
+                "copr_url": "https://copr.fedorainfracloud.org/",
+            }
+        )
     )
     flexmock(AbstractCoprBuildEvent).should_receive("get_package_config").and_return(
         PackageConfig(

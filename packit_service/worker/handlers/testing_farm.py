@@ -124,7 +124,9 @@ class TestingFarmHandler(
             TaskName.copr_build.value,
             kwargs={
                 "package_config": dump_package_config(self.package_config),
-                "job_config": dump_job_config(self.job_config),
+                "job_config": dump_job_config(
+                    job_config=self.testing_farm_job_helper.job_build_or_job_config
+                ),
                 "event": event_data,
             },
         ).apply_async()
