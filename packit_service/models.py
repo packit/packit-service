@@ -805,6 +805,10 @@ class PipelineModel(Base):
     copr_build = relationship("CoprBuildTargetModel", back_populates="runs")
     koji_build_id = Column(Integer, ForeignKey("koji_build_targets.id"), index=True)
     koji_build = relationship("KojiBuildTargetModel", back_populates="runs")
+    vm_image_build_id = Column(
+        Integer, ForeignKey("vm_image_build_targets.id"), index=True
+    )
+    vm_image_build = relationship("VMImageBuildTargetModel", back_populates="runs")
     test_run_id = Column(Integer, ForeignKey("tft_test_run_targets.id"), index=True)
     test_run = relationship("TFTTestRunTargetModel", back_populates="runs")
     propose_downstream_run_id = Column(
@@ -2048,4 +2052,201 @@ class SourceGitPRDistGitPRModel(Base):
             .query(SourceGitPRDistGitPRModel)
             .filter_by(dist_git_pull_request_id=id_)
             .one_or_none()
+        )
+
+
+class VMImageBuildStatus(str, enum.Enum):
+    """An enum of all possible build statuses"""
+
+    success = "success"
+    pending = "pending"
+    building = "building"
+    uploading = "uploading"
+    registering = "registering"
+    failure = "failure"
+    error = "error"
+
+
+class VMImageBuildTargetModel(ProjectAndTriggersConnector, Base):
+    """
+    Representation of VM Image build for one target.
+    """
+
+    __tablename__ = "vm_image_build_targets"
+    id = Column(Integer, primary_key=True)
+    build_id = Column(String, index=True)  # vm image build id
+
+    # git forge project url
+    project_url = Column(String)
+    # project name as shown in copr
+    project_name = Column(String)
+    owner = Column(String)
+    # commit sha of the PR (or a branch, release) we used for a build
+    commit_sha = Column(String, index=True)
+    # what's the build status?
+    status = Column(Enum(VMImageBuildStatus))
+    # chroot, but we use the word target in our docs
+    target = Column(String)
+    # the PR id where the triggering build comment comes from
+    pr_id = Column(String)
+    # for monitoring: time when we set the status about accepted task
+    task_accepted_time = Column(DateTime)
+    # datetime.utcnow instead of datetime.utcnow() because its an argument to the function
+    # so it will run when the copr build is initiated, not when the table is made
+    build_submitted_time = Column(DateTime, default=datetime.utcnow)
+    build_start_time = Column(DateTime)
+    build_finished_time = Column(DateTime)
+
+    # metadata for the build which didn't make it to schema yet
+    data = Column(JSON)
+
+    runs = relationship("PipelineModel", back_populates="vm_image_build")
+
+    def set_start_time(self, start_time: datetime):
+        with sa_session_transaction() as session:
+            self.build_start_time = start_time
+            session.add(self)
+
+    def set_end_time(self, end_time: datetime):
+        with sa_session_transaction() as session:
+            self.build_finished_time = end_time
+            session.add(self)
+
+    def set_status(self, status: VMImageBuildStatus):
+        with sa_session_transaction() as session:
+            self.status = status
+            session.add(self)
+
+    def set_build_logs_url(self, build_logs: str):
+        with sa_session_transaction() as session:
+            self.build_logs_url = build_logs
+            session.add(self)
+
+    @classmethod
+    def get_by_id(cls, id_: int) -> Optional["VMImageBuildTargetModel"]:
+        return sa_session().query(VMImageBuildTargetModel).filter_by(id=id_).first()
+
+    @classmethod
+    def get_all(cls) -> Iterable["VMImageBuildTargetModel"]:
+        return (
+            sa_session()
+            .query(VMImageBuildTargetModel)
+            .order_by(desc(VMImageBuildTargetModel.id))
+        )
+
+    @classmethod
+    def get_all_by_build_id(
+        cls, build_id: Union[str, int]
+    ) -> Iterable["VMImageBuildTargetModel"]:
+        """Returns all builds with that build_id, irrespective of target"""
+        if isinstance(build_id, int):
+            # See the comment in get_by_build_id()
+            build_id = str(build_id)
+        return sa_session().query(VMImageBuildTargetModel).filter_by(build_id=build_id)
+
+    @classmethod
+    def get_all_by_status(
+        cls, status: VMImageBuildStatus
+    ) -> Iterable["VMImageBuildTargetModel"]:
+        """Returns all builds which currently have the given status."""
+        return sa_session().query(VMImageBuildTargetModel).filter_by(status=status)
+
+    @classmethod
+    def get_by_build_id(
+        cls, build_id: Union[str, int], target: str = None
+    ) -> Optional["VMImageBuildTargetModel"]:
+        """Returns the build matching the build_id and the target"""
+
+        if isinstance(build_id, int):
+            # PG is pesky about this:
+            #   LINE 3: WHERE copr_builds.build_id = 1245767 AND copr_builds.target ...
+            #   HINT:  No operator matches the given name and argument type(s).
+            #   You might need to add explicit type casts.
+            build_id = str(build_id)
+        query = sa_session().query(VMImageBuildTargetModel).filter_by(build_id=build_id)
+        if target:
+            query = query.filter_by(target=target)
+        return query.first()
+
+    @staticmethod
+    def get_all_by(
+        project_name: str,
+        commit_sha: str,
+        owner: str = None,
+        target: str = None,
+    ) -> Iterable["VMImageBuildTargetModel"]:
+        """All owner/project_name builds sorted from latest to oldest
+        with the given commit_sha and optional target.
+        """
+        non_none_args = {
+            arg: value for arg, value in locals().items() if value is not None
+        }
+
+        return (
+            sa_session()
+            .query(VMImageBuildTargetModel)
+            .filter_by(**non_none_args)
+            .order_by(VMImageBuildTargetModel.build_id.desc())
+        )
+
+    @classmethod
+    def get_all_by_commit(cls, commit_sha: str) -> Iterable["VMImageBuildTargetModel"]:
+        """Returns all builds that match a given commit sha"""
+        return (
+            sa_session().query(VMImageBuildTargetModel).filter_by(commit_sha=commit_sha)
+        )
+
+    @classmethod
+    def create(
+        cls,
+        build_id: str,
+        commit_sha: str,
+        project_name: str,
+        owner: str,
+        project_url: str,
+        target: str,
+        status: VMImageBuildStatus,
+        run_model: "PipelineModel",
+        task_accepted_time: Optional[datetime] = None,
+    ) -> "VMImageBuildTargetModel":
+        with sa_session_transaction() as session:
+            build = cls()
+            build.build_id = build_id
+            build.status = status
+            build.project_name = project_name
+            build.owner = owner
+            build.commit_sha = commit_sha
+            build.project_url = project_url
+            build.target = target
+            build.task_accepted_time = task_accepted_time
+            session.add(build)
+
+            if run_model.vm_image_build:
+                # Clone run model
+                new_run_model = PipelineModel.create(
+                    type=run_model.job_trigger.type,
+                    trigger_id=run_model.job_trigger.trigger_id,
+                )
+                new_run_model.srpm_build = run_model.srpm_build
+                new_run_model.copr_build = run_model.copr_build
+                new_run_model.vm_image_build = build
+                session.add(new_run_model)
+            else:
+                run_model.vm_image_build = build
+                session.add(run_model)
+
+            return build
+
+    @classmethod
+    def get(
+        cls,
+        build_id: str,
+        target: str,
+    ) -> Optional["VMImageBuildTargetModel"]:
+        return cls.get_by_build_id(build_id, target)
+
+    def __repr__(self):
+        return (
+            f"VMImageBuildTargetModel(id={self.id}, "
+            f"build_submitted_time={self.build_submitted_time})"
         )

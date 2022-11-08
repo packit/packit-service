@@ -3,6 +3,7 @@
 
 import collections
 import logging
+from requests import HTTPError
 from datetime import datetime, timezone
 from typing import Iterable, Type, Any
 
@@ -19,6 +20,8 @@ from packit_service.constants import (
 )
 from packit_service.models import (
     CoprBuildTargetModel,
+    VMImageBuildTargetModel,
+    VMImageBuildStatus,
     TFTTestRunTargetModel,
     TestingFarmResult,
     BuildStatus,
@@ -29,12 +32,15 @@ from packit_service.worker.events import (
     CoprBuildStartEvent,
     CoprBuildEndEvent,
     TestingFarmResultsEvent,
+    VMImageBuildResultEvent,
 )
 from packit_service.worker.events.enums import FedmsgTopic
+from packit_service.worker.mixin import ConfigFromUrlMixin, GetVMImageBuilderMixin
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
     CoprBuildStartHandler,
     TestingFarmResultsHandler,
+    VMImageBuildResultHandler,
 )
 from packit_service.worker.handlers.copr import AbstractCoprBuildReportHandler
 from packit_service.worker.jobs import SteveJobs
@@ -285,3 +291,106 @@ def update_copr_build_state(
         )
         if handler.pre_check(package_config, job_config, event_dict):
             handler.run()
+
+
+class UpdateImageBuildHelper(ConfigFromUrlMixin, GetVMImageBuilderMixin):
+    def __init__(self, project_url) -> None:
+        self._project_url = project_url
+
+
+def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
+    """
+    Updates the state of a vm image build if ended.
+
+    Args:
+        build_id (int): ID of the built image to update.
+        build VMImageBuildTargetModel: build data for ``build_id``.
+
+    Returns:
+        bool: Whether the run was successful, False signals the need to retry.
+    """
+    helper = UpdateImageBuildHelper(build.project_url)
+
+    status = None
+    try:
+        response = helper.vm_image_builder.image_builder_request(
+            "GET", f"composes/{build_id}"
+        )
+        body = response.json()
+        status = body["image_status"]["status"]
+    except HTTPError as ex:
+        logger.error(f"No response for vm image build {build_id}: {ex}")
+        status = VMImageBuildStatus.error
+
+    if status in (
+        VMImageBuildStatus.pending,
+        VMImageBuildStatus.building,
+        VMImageBuildStatus.uploading,
+        VMImageBuildStatus.registering,
+    ):
+        return False  # keep polling; build not complete yet
+
+    if status == VMImageBuildStatus.failure:
+        error = body["image_status"]["error"]
+        logger.error(f"VM image build {build.build_id} failed: {error}")
+
+    event = VMImageBuildResultEvent(
+        build.build_id,
+        build.target,
+        build.get_pr_id(),
+        build.owner,
+        build.commit_sha,
+        build.project_url,
+        status,
+        str(datetime.utcnow()),
+    )
+
+    package_config = event.get_package_config()
+    if not package_config:
+        build.set_status(status)
+        logger.error(
+            f"No package config found for {build.build_id}. "
+            "No feedback can be given to the user."
+        )
+        return True
+
+    job_configs = SteveJobs(event).get_config_for_handler_kls(
+        handler_kls=VMImageBuildResultHandler,
+    )
+
+    event_dict = event.get_dict()
+    for job_config in job_configs:
+        handler = VMImageBuildResultHandler(
+            package_config=event.package_config,
+            job_config=job_config,
+            event=event_dict,
+        )
+
+    if handler.pre_check(package_config, job_config, event_dict):
+        handler.run()
+        return True
+
+    build.set_status(status)
+    logger.error(
+        f"Something went wrong retrieving job configs for {build.build_id}. "
+        "No feedback can be given to the user."
+    )
+    return True
+
+
+def check_pending_vm_image_builds() -> None:
+    """Checks the status of pending vm image builds and updates it if needed.
+
+    Inside our db all builds are just pending but if you check the
+    VM Image Build server you may find out that an image build could be:
+    - pending
+    - building
+    - uploading
+    - registering
+    """
+    pending_vm_image_builds = VMImageBuildTargetModel.get_all_by_status(
+        VMImageBuildStatus.pending
+    )
+
+    for build in pending_vm_image_builds:
+        update_vm_image_build(build.build_id, build)

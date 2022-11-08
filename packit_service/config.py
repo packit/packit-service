@@ -108,6 +108,7 @@ class ServiceConfig(Config):
         enabled_projects_for_srpm_in_copr: Union[Set[str], List[str]] = None,
         comment_command_prefix: str = "/packit",
         allowed_forge_projects_for_copr_project: Dict[str, List[str]] = None,
+        redhat_api_refresh_token: str = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -172,6 +173,10 @@ class ServiceConfig(Config):
             allowed_forge_projects_for_copr_project or {}
         )
 
+        # Token used by the VM Image Builder. Get it here:
+        # https://access.redhat.com/management/api
+        self.redhat_api_refresh_token = redhat_api_refresh_token
+
     service_config = None
 
     def __repr__(self):
@@ -200,6 +205,7 @@ class ServiceConfig(Config):
             f"enabled_projects_for_srpm_in_copr= '{self.enabled_projects_for_srpm_in_copr}', "
             f"forge_projects_for_copr_project={self.allowed_forge_projects_for_copr_project}"
             f"comment_command_prefix='{self.comment_command_prefix}')"
+            f"redhat_api_refresh_token='{hide(self.redhat_api_refresh_token)}')"
         )
 
     @classmethod

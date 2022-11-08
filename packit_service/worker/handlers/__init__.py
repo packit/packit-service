@@ -34,6 +34,10 @@ from packit_service.worker.handlers.testing_farm import (
     TestingFarmHandler,
     TestingFarmResultsHandler,
 )
+from packit_service.worker.handlers.vm_image import (
+    VMImageBuildHandler,
+    VMImageBuildResultHandler,
+)
 
 __all__ = [
     Handler.__name__,
@@ -49,4 +53,6 @@ __all__ = [
     TestingFarmHandler.__name__,
     TestingFarmResultsHandler.__name__,
     GithubFasVerificationHandler.__name__,
+    VMImageBuildHandler.__name__,
+    VMImageBuildResultHandler.__name__,
 ]

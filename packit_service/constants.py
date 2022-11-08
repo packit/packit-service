@@ -12,6 +12,7 @@ DOCS_HOW_TO_RETRIGGER_URL = (
 )
 DOCS_HOW_TO_CONFIGURE_URL = f"{DOCS_URL}/guide/#3-configuration"
 DOCS_APPROVAL_URL = f"{DOCS_URL}/guide/#2-approval"
+DOCS_VM_IMAGE_BUILD = f"{DOCS_URL}/cli/build/in-image-builder/"
 
 KOJI_PRODUCTION_BUILDS_ISSUE = "https://pagure.io/releng/issue/9801"
 

@@ -25,7 +25,7 @@ from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 
-from packit_service.worker.mixin import ConfigMixin
+from packit_service.worker.mixin import ConfigFromEventMixin
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.monitoring import Pushgateway
 
@@ -42,7 +42,7 @@ class GetKojiBuildEvent(Protocol):
         ...
 
 
-class GetKojiBuildEventMixin(ConfigMixin, GetKojiBuildEvent):
+class GetKojiBuildEventMixin(ConfigFromEventMixin, GetKojiBuildEvent):
     _koji_build_event: Optional[KojiBuildEvent] = None
 
     @property
@@ -61,7 +61,7 @@ class GetKojiBuildJobHelper(Protocol):
         ...
 
 
-class GetKojiBuildJobHelperMixin(GetKojiBuildJobHelper, ConfigMixin):
+class GetKojiBuildJobHelperMixin(GetKojiBuildJobHelper, ConfigFromEventMixin):
     _koji_build_helper: Optional[KojiBuildJobHelper] = None
     package_config: PackageConfig
     job_config: JobConfig
@@ -122,7 +122,7 @@ class GetKojiBuildDataFromKojiBuildEventMixin(GetKojiBuildData, GetKojiBuildEven
         return self.koji_build_event.state
 
 
-class GetKojiBuildDataFromKojiServiceMixin(ConfigMixin, GetKojiBuildData):
+class GetKojiBuildDataFromKojiServiceMixin(ConfigFromEventMixin, GetKojiBuildData):
     """See https://koji.fedoraproject.org/koji/api method listBuilds
     for a detailed description of a Koji build map.
     """
@@ -175,7 +175,7 @@ class GetCoprBuildEvent(Protocol):
         ...
 
 
-class GetCoprBuildEventMixin(ConfigMixin, GetCoprBuildEvent):
+class GetCoprBuildEventMixin(ConfigFromEventMixin, GetCoprBuildEvent):
     _copr_build_event: Optional[AbstractCoprBuildEvent] = None
 
     @property
@@ -231,7 +231,7 @@ class GetCoprBuild(Protocol):
         ...
 
 
-class GetCoprBuildMixin(GetCoprBuild, ConfigMixin):
+class GetCoprBuildMixin(GetCoprBuild, ConfigFromEventMixin):
     _build: Optional[CoprBuildTargetModel] = None
     _db_trigger: Optional[AbstractTriggerDbType] = None
 
@@ -260,7 +260,7 @@ class GetCoprBuildJobHelper(Protocol):
         ...
 
 
-class GetCoprBuildJobHelperMixin(GetCoprBuildJobHelper, ConfigMixin):
+class GetCoprBuildJobHelperMixin(GetCoprBuildJobHelper, ConfigFromEventMixin):
     _copr_build_helper: Optional[CoprBuildJobHelper] = None
 
     @property
@@ -282,7 +282,7 @@ class GetCoprBuildJobHelperMixin(GetCoprBuildJobHelper, ConfigMixin):
 
 
 class GetCoprBuildJobHelperForIdMixin(
-    GetCoprBuildJobHelper, GetCoprSRPMBuildMixin, ConfigMixin
+    GetCoprBuildJobHelper, GetCoprSRPMBuildMixin, ConfigFromEventMixin
 ):
     _copr_build_helper: Optional[CoprBuildJobHelper] = None
 
@@ -325,7 +325,7 @@ class GetTestingFarmJobHelper(Protocol):
 
 
 class GetTestingFarmJobHelperMixin(
-    GetTestingFarmJobHelper, GetCoprBuildMixin, ConfigMixin
+    GetTestingFarmJobHelper, GetCoprBuildMixin, ConfigFromEventMixin
 ):
     _testing_farm_job_helper: Optional[TestingFarmJobHelper] = None
 
@@ -356,7 +356,7 @@ class GetGithubCommentEvent(Protocol):
         ...
 
 
-class GetGithubCommentEventMixin(GetGithubCommentEvent, ConfigMixin):
+class GetGithubCommentEventMixin(GetGithubCommentEvent, ConfigFromEventMixin):
     def is_comment_event(self) -> bool:
         return self.data.event_type in (
             PullRequestCommentGithubEvent.__name__,
@@ -388,7 +388,7 @@ class GetProjectToSync(Protocol):
         ...
 
 
-class GetProjectToSyncMixin(ConfigMixin, GetProjectToSync):
+class GetProjectToSyncMixin(ConfigFromEventMixin, GetProjectToSync):
     _project_to_sync: Optional[ProjectToSync] = None
 
     @property

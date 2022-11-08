@@ -51,6 +51,7 @@ from packit_service.worker.events import (
     CheckRerunReleaseEvent,
     ReleaseGitlabEvent,
     TagPushGitlabEvent,
+    VMImageBuildResultEvent,
 )
 from packit_service.worker.events.enums import (
     GitlabEventAction,
@@ -106,6 +107,7 @@ class Parser:
             NewHotnessUpdateEvent,
             ReleaseGitlabEvent,
             TagPushGitlabEvent,
+            VMImageBuildResultEvent,
         ]
     ]:
         """
@@ -149,6 +151,7 @@ class Parser:
                 Parser.parse_new_hotness_update_event,
                 Parser.parse_gitlab_release_event,
                 Parser.parse_gitlab_tag_push_event,
+                Parser.parse_vm_image_build_result_event,
             ),
         ):
             if response:
@@ -1466,4 +1469,35 @@ class Parser:
             package_name=package_name,
             version=version,
             distgit_project_url=distgit_project_url,
+        )
+
+    @staticmethod
+    def parse_vm_image_build_result_event(event) -> Optional[VMImageBuildResultEvent]:
+        """a vm image build changed state"""
+        topic = event.get("topic")
+
+        if topic != "vm-image-build-state-change":
+            # Topic not supported.
+            return None
+
+        logger.info(f"VM image build state changed {event.get('status')}")
+
+        build_id = event.get("build_id")
+        copr_chroot = event.get("copr_chroot")
+        pr_id = event.get("pr_id")
+        actor = event.get("actor")
+        commit_sha = event.get("commit_sha")
+        project_url = event.get("project_url")
+        result = event.get("result")
+        created_at = event.get("created_at")
+
+        return VMImageBuildResultEvent(
+            build_id,
+            copr_chroot,
+            pr_id,
+            actor,
+            commit_sha,
+            project_url,
+            result,
+            created_at,
         )

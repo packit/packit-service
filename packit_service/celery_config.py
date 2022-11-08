@@ -19,6 +19,11 @@ beat_schedule = {
         "schedule": 600.0,
         "options": {"queue": "long-running"},
     },
+    "update-pending-vm-image-builds": {
+        "task": "packit_service.worker.tasks.babysit_pending_vm_image_builds",
+        "schedule": 3.0,
+        "options": {"queue": "long-running"},
+    },
     "database-maintenance": {
         "task": "packit_service.worker.tasks.database_maintenance",
         "schedule": crontab(minute=0, hour=1),  # nightly at 1AM
