@@ -1304,10 +1304,10 @@ def test_get_artifacts(chroot, build, additional_build, result):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    skip_build=True,
                     packages={
                         "package": CommonPackageConfig(
                             use_internal_tf=True,
-                            skip_build=True,
                         )
                     },
                 ),
