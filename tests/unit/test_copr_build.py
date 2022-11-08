@@ -2837,10 +2837,10 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    skip_build=True,
                     packages={
                         "package": CommonPackageConfig(
                             use_internal_tf=True,
-                            skip_build=True,
                         )
                     },
                 ),
@@ -2858,9 +2858,9 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
                 JobConfig(
                     type=JobType.tests,
                     trigger=JobConfigTriggerType.pull_request,
+                    skip_build=True,
                     packages={
                         "package": CommonPackageConfig(
-                            skip_build=True,
                             identifier="public",
                         )
                     },
