@@ -432,7 +432,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         self._srpm_model.set_start_time(datetime.datetime.utcnow())
 
         bump_version = (
-            self.job_config.release_suffix  # do not modify version if release suffix is ''
+            self.job_config.release_suffix != ""
             and self.job_config.trigger
             != JobConfigTriggerType.release  # do not modify version for release
         )
