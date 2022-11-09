@@ -86,7 +86,7 @@ DEFAULT_JOB_TIMEOUT = 7 * 24 * 3600
 
 # SRPM builds older than this number of days are considered
 # outdated and their logs can be discarded.
-SRPMBUILDS_OUTDATED_AFTER_DAYS = 90
+SRPMBUILDS_OUTDATED_AFTER_DAYS = 30
 
 DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR = datetime.datetime(
     year=2022,
