@@ -125,6 +125,7 @@ def srpm_build_model(
         set_start_time=lambda x: None,
         set_build_logs_url=lambda x: None,
         url=None,
+        build_start_time=None,
     )
 
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
@@ -199,6 +200,7 @@ def copr_build_model(
             }
         ],
         task_accepted_time=datetime.now(),
+        build_start_time=None,
         build_logs_url="https://log-url",
     )
 

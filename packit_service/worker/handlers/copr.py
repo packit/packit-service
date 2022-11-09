@@ -30,6 +30,7 @@ from packit_service.worker.checker.copr import (
     CanActorRunTestsJob,
     AreOwnerAndProjectMatchingJob,
     IsGitForgeProjectAndEventOk,
+    BuildNotAlreadyStarted,
 )
 from packit_service.worker.events import (
     CoprBuildEndEvent,
@@ -144,6 +145,12 @@ class AbstractCoprBuildReportHandler(
 class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
     topic = "org.fedoraproject.prod.copr.build.start"
     task_name = TaskName.copr_build_start
+
+    @staticmethod
+    def get_checkers() -> Tuple[Type[Checker], ...]:
+        return super(CoprBuildStartHandler, CoprBuildStartHandler).get_checkers() + (
+            BuildNotAlreadyStarted,
+        )
 
     def set_start_time(self):
         start_time = (

@@ -14,6 +14,7 @@ from packit_service.worker.events import (
 from packit_service.worker.handlers.mixin import (
     GetCoprBuildJobHelperForIdMixin,
     GetCoprBuildJobHelperMixin,
+    GetCoprSRPMBuildMixin,
 )
 from packit_service.constants import (
     INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
@@ -79,6 +80,14 @@ class AreOwnerAndProjectMatchingJob(Checker, GetCoprBuildJobHelperForIdMixin):
             f"({self.copr_build_helper.job_owner}/{self.copr_build_helper.job_project} expected)."
         )
         return False
+
+
+class BuildNotAlreadyStarted(Checker, GetCoprSRPMBuildMixin):
+    def pre_check(self) -> bool:
+        build = self.build
+        if not build:
+            return True
+        return not bool(build.build_start_time)
 
 
 class CanActorRunTestsJob(ActorChecker, GetCoprBuildJobHelperMixin):

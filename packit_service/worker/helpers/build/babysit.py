@@ -215,6 +215,7 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
             continue
         chroot_build = copr_client.build_chroot_proxy.get(build_id, build.target)
         update_copr_build_state(build, build_copr, chroot_build)
+    # Builds which we ran CoprBuildStartHandler for still need to be monitored.
     return bool(build_copr.ended_on)
 
 
