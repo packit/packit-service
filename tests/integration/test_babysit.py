@@ -83,10 +83,17 @@ def test_check_copr_build_already_successful():
     assert check_copr_build(build_id=1)
 
 
-def test_check_copr_build_updated():
+@pytest.mark.parametrize(
+    "build_status",
+    [
+        BuildStatus.pending,
+        BuildStatus.waiting_for_srpm,
+    ],
+)
+def test_check_copr_build_updated(build_status):
     db_build = (
         flexmock(
-            status=BuildStatus.pending,
+            status=build_status,
             build_submitted_time=datetime.datetime.utcnow(),
             target="the-target",
             owner="the-owner",

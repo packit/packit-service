@@ -194,7 +194,7 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
             )
             build.set_status(BuildStatus.error)
             continue
-        if build.status != BuildStatus.pending:
+        if build.status not in (BuildStatus.pending, BuildStatus.waiting_for_srpm):
             logger.info(
                 f"DB state says {build.status!r}, "
                 "things were taken care of already, skipping."
