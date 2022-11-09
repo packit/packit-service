@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 import collections
-import datetime
 import logging
+from datetime import datetime, timezone
 from typing import Iterable, Type, Any
 
 import copr.v3
@@ -17,13 +17,13 @@ from packit_service.constants import (
     TESTING_FARM_API_URL,
     DEFAULT_JOB_TIMEOUT,
 )
-from packit_service.worker.parser import Parser
 from packit_service.models import (
     CoprBuildTargetModel,
     TFTTestRunTargetModel,
     TestingFarmResult,
     BuildStatus,
 )
+from packit_service.utils import elapsed_seconds
 from packit_service.worker.events import (
     AbstractCoprBuildEvent,
     CoprBuildStartEvent,
@@ -38,6 +38,7 @@ from packit_service.worker.handlers import (
 )
 from packit_service.worker.handlers.copr import AbstractCoprBuildReportHandler
 from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.parser import Parser
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ logger = logging.getLogger(__name__)
 def check_pending_testing_farm_runs() -> None:
     """Checks the status of pending TFT runs and updates it if needed."""
     logger.info("Getting pending TFT runs from DB")
-    current_time = datetime.datetime.utcnow()
+    current_time = datetime.now(timezone.utc)
     not_completed = (
         TestingFarmResult.new,
         TestingFarmResult.queued,
@@ -56,11 +57,11 @@ def check_pending_testing_farm_runs() -> None:
         logger.debug(f"Checking status of TF pipeline {run.pipeline_id}")
         # .submitted_time can be None, we'll set it later
         if run.submitted_time:
-            elapsed = current_time - run.submitted_time
-            if elapsed.total_seconds() > DEFAULT_JOB_TIMEOUT:
+            elapsed = elapsed_seconds(begin=run.submitted_time, end=current_time)
+            if elapsed > DEFAULT_JOB_TIMEOUT:
                 logger.info(
                     f"TF pipeline {run.pipeline_id} has been running for "
-                    f"{elapsed.total_seconds()}, probably an internal error occurred. "
+                    f"{elapsed}s, probably an internal error occurred. "
                     "Not checking it anymore."
                 )
                 run.set_status(TestingFarmResult.error)
@@ -196,13 +197,13 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
 
     logger.info(f"The status is {build_copr.state!r}.")
 
-    current_time = datetime.datetime.utcnow()
+    current_time = datetime.now(timezone.utc)
     for build in builds:
-        elapsed = current_time - build.build_submitted_time
-        if elapsed.total_seconds() > DEFAULT_JOB_TIMEOUT:
+        elapsed = elapsed_seconds(begin=build.build_submitted_time, end=current_time)
+        if elapsed > DEFAULT_JOB_TIMEOUT:
             logger.info(
                 f"The build {build_id} has been running for "
-                f"{elapsed.total_seconds()}, probably an internal error"
+                f"{elapsed}s, probably an internal error"
                 f"occurred. Not checking it anymore."
             )
             build.set_status(BuildStatus.error)

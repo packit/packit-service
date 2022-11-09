@@ -49,8 +49,8 @@ from packit_service.service.urls import get_copr_build_info_url, get_srpm_build_
 from packit_service.utils import (
     dump_job_config,
     dump_package_config,
-    is_timezone_naive_datetime,
     get_timezone_aware_datetime,
+    elapsed_seconds,
 )
 from packit_service.worker.handlers.mixin import (
     GetCoprBuildEventMixin,
@@ -67,7 +67,6 @@ from packit_service.worker.handlers.abstract import (
     run_for_check_rerun,
     RetriableJobHandler,
 )
-from packit_service.worker.monitoring import measure_time
 from packit_service.worker.reporting import BaseCommitStatus, DuplicateCheckMode
 from packit_service.worker.result import TaskResults
 
@@ -121,7 +120,7 @@ class CoprBuildHandler(RetriableJobHandler, GetCoprBuildJobHelperMixin):
 
     def run(self) -> TaskResults:
         installed_at = self.get_packit_github_installation_time()
-        if installed_at and is_timezone_naive_datetime(installed_at):
+        if installed_at:
             installed_at = get_timezone_aware_datetime(installed_at)
         if self.package_config.srpm_build_deps is not None or (
             installed_at and installed_at > DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR
@@ -270,8 +269,8 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
 
         # if the build is needed only for test, it doesn't have the task_accepted_time
         if self.build.task_accepted_time:
-            copr_build_time = measure_time(
-                end=datetime.now(timezone.utc), begin=self.build.task_accepted_time
+            copr_build_time = elapsed_seconds(
+                begin=self.build.task_accepted_time, end=datetime.now(timezone.utc)
             )
             self.pushgateway.copr_build_finished_time.observe(copr_build_time)
 

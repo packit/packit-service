@@ -1,13 +1,16 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from packit_service.models import optional_time
-from datetime import datetime
+from datetime import datetime, timezone
+
 import pytest
+
+from packit_service.models import optional_time
 
 
 @pytest.mark.parametrize(
-    "input_object,expected_type", [(datetime.utcnow(), str), (None, type(None))]
+    "input_object,expected_type",
+    [(datetime.now(timezone.utc), str), (None, type(None))],
 )
 def test_optional_time(input_object, expected_type):
     # optional_time returns a string if its passed a datetime object

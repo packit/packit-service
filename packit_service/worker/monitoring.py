@@ -3,29 +3,10 @@
 
 import logging
 import os
-from datetime import datetime
 
 from prometheus_client import CollectorRegistry, Counter, push_to_gateway, Histogram
 
-from packit_service.utils import is_timezone_naive_datetime, get_timezone_aware_datetime
-
 logger = logging.getLogger(__name__)
-
-
-def measure_time(begin: datetime, end: datetime) -> float:
-    """
-    Make the datetime objects timezone aware (utc) if needed
-    and measure time between them in seconds.
-
-    Returns:
-        float seconds between begin and end
-    """
-    if is_timezone_naive_datetime(begin):
-        begin = get_timezone_aware_datetime(begin)
-    if is_timezone_naive_datetime(end):
-        end = get_timezone_aware_datetime(end)
-
-    return (end - begin).total_seconds()
 
 
 class Pushgateway:

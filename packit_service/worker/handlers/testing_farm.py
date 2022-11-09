@@ -25,7 +25,7 @@ from packit_service.service.urls import (
     get_testing_farm_info_url,
     get_copr_build_info_url,
 )
-from packit_service.utils import dump_job_config, dump_package_config
+from packit_service.utils import dump_job_config, dump_package_config, elapsed_seconds
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.testing_farm import (
     CanActorRunJob,
@@ -52,7 +52,6 @@ from packit_service.worker.handlers.abstract import (
     RetriableJobHandler,
 )
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
-from packit_service.worker.monitoring import measure_time
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 from packit_service.worker.result import TaskResults
 from packit_service.worker.handlers.mixin import (
@@ -329,8 +328,8 @@ class TestingFarmResultsHandler(JobHandler):
             self.pushgateway.test_runs_started.inc()
         else:
             self.pushgateway.test_runs_finished.inc()
-            test_run_time = measure_time(
-                end=datetime.now(timezone.utc), begin=test_run_model.submitted_time
+            test_run_time = elapsed_seconds(
+                begin=test_run_model.submitted_time, end=datetime.now(timezone.utc)
             )
             self.pushgateway.test_run_finished_time.observe(test_run_time)
 

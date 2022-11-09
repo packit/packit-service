@@ -21,7 +21,7 @@ from packit_service.constants import (
     COMMENT_REACTION,
     PACKIT_VERIFY_FAS_COMMAND,
 )
-from packit_service.utils import get_packit_commands_from_comment
+from packit_service.utils import get_packit_commands_from_comment, elapsed_seconds
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import (
     Event,
@@ -55,7 +55,7 @@ from packit_service.worker.helpers.build import (
 )
 from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
-from packit_service.worker.monitoring import Pushgateway, measure_time
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.parser import Parser
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
@@ -664,8 +664,8 @@ class SteveJobs:
             number_of_build_targets: Number of build targets in case of CoprBuildHandler.
         """
         pushgateway = Pushgateway()
-        response_time = measure_time(
-            end=task_accepted_time, begin=self.event.created_at
+        response_time = elapsed_seconds(
+            begin=self.event.created_at, end=task_accepted_time
         )
         logger.debug(f"Reporting initial status time: {response_time} seconds.")
         pushgateway.initial_status_time.observe(response_time)
