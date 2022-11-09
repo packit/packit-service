@@ -6,15 +6,18 @@ if [[ -z ${APP} ]]; then
     exit 1
 fi
 
+# https://www.shellcheck.net/wiki/SC1091
+# shellcheck source=/dev/null
 source /usr/bin/setup_env_in_openshift.sh
 
-mkdir --mode=0700 -p "${PACKIT_HOME}/.ssh"
-pushd "${PACKIT_HOME}/.ssh"
+mkdir -p "${PACKIT_HOME}/.ssh"
+chmod 0700 "${PACKIT_HOME}/.ssh"
+pushd "${PACKIT_HOME}/.ssh" || exit
 install -m 0400 /packit-ssh/id_rsa .
 install -m 0400 /packit-ssh/id_rsa.pub .
 if [[ -f /packit-ssh/config ]]; then install -m 0400 /packit-ssh/config .; fi
 grep -q pkgs.fedoraproject.org known_hosts || ssh-keyscan pkgs.fedoraproject.org >>known_hosts
-popd
+popd || exit
 
 DEFAULT_CELERY_COMMAND="worker"
 # Whether to run Celery worker or beat (task scheduler)

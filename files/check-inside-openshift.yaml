@@ -12,13 +12,13 @@
     tests_job_name: "packit-tests"
   tasks:
     - name: get kubeconfig token
-      command: oc whoami -t
+      ansible.builtin.command: oc whoami -t
       register: kubeconfig_token
     - name: get project
-      command: oc project --short=true
+      ansible.builtin.command: oc project --short=true
       register: oc_project
     - name: get server
-      command: oc whoami --show-server
+      ansible.builtin.command: oc whoami --show-server
       register: oc_server
 
     - name: Create PVC for volume to be mounted to /src
@@ -124,14 +124,14 @@
         name: "{{ tests_job_name }}"
       register: test_results
     - name: get test logs
-      command: oc logs job/{{ tests_job_name }}
+      ansible.builtin.command: oc logs job/{{ tests_job_name }}
       # if the tests fail, halt
     - name: get test result
-      shell: oc get job {{ tests_job_name }} -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' | grep True
+      ansible.builtin.shell: oc get job {{ tests_job_name }} -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' | grep True
 
       # run a new pod, mount the PV with the recorded responses to the new pod
     - name: start pod which will gather the data
-      shell: oc process -f {{ get_data_template_path }} | oc create -f -
+      ansible.builtin.shell: oc process -f {{ get_data_template_path }} | oc create -f -
     - name: wait for the pod to be in a running state so we can copy the files
       k8s:
         host: "{{ oc_server.stdout }}"
@@ -147,18 +147,18 @@
         wait_timeout: 100
     # rsync works only on a running pod
     - name: get generated responses from the pod
-      command: oc rsync pod/get-requre-data:{{ remote_data_dir }} {{ local_data_dir }}
+      ansible.builtin.command: oc rsync pod/get-requre-data:{{ remote_data_dir }} {{ local_data_dir }}
 
     - name: get the git config name in worker /src
-      command: oc exec packit-worker-0 -- bash -c "cd /src && git config --global user.name"
+      ansible.builtin.command: oc exec packit-worker-0 -- bash -c "cd /src && git config --global user.name"
       register: git_name
 
     - name: get the git config email in worker /src
-      command: oc exec packit-worker-0 -- bash -c "cd /src && git config --global user.email"
+      ansible.builtin.command: oc exec packit-worker-0 -- bash -c "cd /src && git config --global user.email"
       register: git_email
 
     - name: check the git config values
-      assert:
+      ansible.builtin.assert:
         that:
           - git_name.stdout == "Packit"
           - git_email.stdout == "hello@packit.dev"

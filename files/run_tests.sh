@@ -2,6 +2,8 @@
 
 set -x
 
+# https://www.shellcheck.net/wiki/SC1091
+# shellcheck source=/dev/null
 source /src/files/setup_env_in_openshift.sh
 
 id
