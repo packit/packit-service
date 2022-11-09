@@ -44,7 +44,7 @@ def test_check_copr_build_no_build():
     assert check_copr_build(build_id=1)
 
 
-def test_check_copr_build_not_ended():
+def test_check_copr_build_not_started():
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_build_id").with_args(
         1
     ).and_return([flexmock()])
@@ -53,7 +53,7 @@ def test_check_copr_build_not_ended():
             build_proxy=flexmock()
             .should_receive("get")
             .with_args(1)
-            .and_return(flexmock(ended_on=False))
+            .and_return(flexmock(ended_on=False, started_on=False))
             .mock()
         )
     )
@@ -93,6 +93,7 @@ def test_check_copr_build_already_successful():
 def test_check_copr_build_updated(build_status):
     db_build = (
         flexmock(
+            build_id=55,
             status=build_status,
             build_submitted_time=datetime.datetime.utcnow(),
             target="the-target",
