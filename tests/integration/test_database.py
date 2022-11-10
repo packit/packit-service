@@ -1,7 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from boto3.s3.transfer import S3Transfer
@@ -12,7 +12,7 @@ from packit_service.worker import database
 
 
 def test_cleanup_old_srpm_build_logs():
-    srpm_build = flexmock(id=1, build_submitted_time=datetime.utcnow())
+    srpm_build = flexmock(id=1, build_submitted_time=datetime.now(timezone.utc))
     flexmock(srpm_build).should_receive("set_logs").with_args(None).once()
     flexmock(srpm_build).should_receive("set_url").with_args(None).once()
     flexmock(SRPMBuildModel).should_receive("get_older_than").and_return(

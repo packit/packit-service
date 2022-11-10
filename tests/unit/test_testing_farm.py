@@ -1,6 +1,6 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from celery import Signature
@@ -100,7 +100,7 @@ def test_testing_farm_response(
         url="https://github.com/packit/ogr"
     ).and_return()
     config.should_receive("get_github_account_name").and_return("packit-as-a-service")
-    created_dt = datetime.utcnow()
+    created_dt = datetime.now(timezone.utc)
     event_dict = TFResultsEvent(
         pipeline_id="id",
         result=tests_result,

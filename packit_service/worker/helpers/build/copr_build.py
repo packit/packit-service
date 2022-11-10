@@ -52,11 +52,11 @@ from packit_service.service.urls import (
     get_copr_build_info_url,
     get_srpm_build_info_url,
 )
-from packit_service.utils import get_package_nvrs
+from packit_service.utils import get_package_nvrs, elapsed_seconds
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.helpers.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.events import EventData
-from packit_service.worker.monitoring import Pushgateway, measure_time
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus, DuplicateCheckMode
 from packit_service.worker.result import TaskResults
 
@@ -405,8 +405,8 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         Measure the time it took to set the failed status in case of event (e.g. failed SRPM)
         that prevents Copr build to be submitted.
         """
-        time = measure_time(
-            end=datetime.now(timezone.utc), begin=self.metadata.task_accepted_time
+        time = elapsed_seconds(
+            begin=self.metadata.task_accepted_time, end=datetime.now(timezone.utc)
         )
         for _ in range(number_of_builds):
             self.pushgateway.copr_build_not_submitted_time.labels(

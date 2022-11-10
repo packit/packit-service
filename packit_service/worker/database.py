@@ -1,7 +1,7 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
-from datetime import timedelta, datetime
+from datetime import timedelta
 from gzip import open as gzip_open
 from logging import getLogger, DEBUG, INFO
 from os import getenv
@@ -28,9 +28,8 @@ def discard_old_srpm_build_logs():
     )
     ago = timedelta(days=int(outdated_after_days))
     for build in SRPMBuildModel.get_older_than(ago):
-        age = datetime.utcnow() - build.build_submitted_time
         logger.debug(
-            f"SRPM build {build.id}, age '{age}' is older than '{ago}'. "
+            f"SRPM build {build.id} is older than '{ago}'. "
             "Discarding log and artifact url."
         )
         build.set_logs(None)

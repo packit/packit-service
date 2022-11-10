@@ -5,7 +5,7 @@
 A book with our finest spells
 """
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, List, Tuple
 from packit_service.worker.result import TaskResults
@@ -46,5 +46,5 @@ def squash_the_message_structure_like_listener(message):
     # Some older message used a `msg` key
     body = message.get("body") or message.get("msg")
     body["topic"] = message["topic"]
-    body["timestamp"] = datetime.utcnow().timestamp()
+    body["timestamp"] = datetime.now(timezone.utc).timestamp()
     return body

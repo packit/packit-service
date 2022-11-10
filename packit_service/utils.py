@@ -7,7 +7,6 @@ from io import StringIO
 from logging import StreamHandler
 from typing import List, Tuple
 
-
 from packit.config import JobConfig, PackageConfig
 from packit.schema import JobConfigSchema, PackageConfigSchema
 from packit.utils import PackitFormatter
@@ -143,15 +142,31 @@ def is_timezone_naive_datetime(datetime_to_check: datetime) -> bool:
 
 def get_timezone_aware_datetime(datetime_to_update: datetime) -> datetime:
     """
-    Set timezone for datetime so that it is timezone-aware.
+    Make the datetime object timezone aware (utc) if needed.
 
     Args:
-        datetime_to_update: datetime to update
+        datetime_to_update: datetime to check and update
 
     Result:
         timezone-aware datetime
     """
-    return datetime_to_update.replace(tzinfo=timezone.utc)
+    if is_timezone_naive_datetime(datetime_to_update):
+        return datetime_to_update.replace(tzinfo=timezone.utc)
+    return datetime_to_update
+
+
+def elapsed_seconds(begin: datetime, end: datetime) -> float:
+    """
+    Make the datetime objects timezone aware (utc) if needed
+    and measure time between them in seconds.
+
+    Returns:
+        elapsed seconds between begin and end
+    """
+    begin = get_timezone_aware_datetime(begin)
+    end = get_timezone_aware_datetime(end)
+
+    return (end - begin).total_seconds()
 
 
 def get_packit_commands_from_comment(

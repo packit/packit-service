@@ -55,6 +55,7 @@ from sqlalchemy.types import ARRAY
 from packit.config import JobConfigTriggerType
 from packit.exceptions import PackitException
 from packit_service.constants import ALLOWLIST_CONSTANTS
+from packit_service.utils import get_timezone_aware_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -1388,7 +1389,8 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
             sa_session()
             .query(SRPMBuildModel)
             .filter(
-                SRPMBuildModel.build_submitted_time < delta_ago,
+                get_timezone_aware_datetime(SRPMBuildModel.build_submitted_time)
+                < delta_ago,
                 SRPMBuildModel.logs.isnot(None),
             )
         )
