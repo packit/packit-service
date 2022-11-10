@@ -445,10 +445,12 @@ class AbstractForgeIndependentEvent(Event):
             fail_when_missing=self.fail_when_config_file_missing,
         )
 
+        # TODO do we need to do this?
         # job config change note:
         #   this is used in sync-from-downstream which is buggy - we don't need to change this
-        if package_config:
+        if package_config and self.__class__.__name__ != "NewHotnessUpdateEvent":
             package_config.upstream_project_url = self.project_url
+
         return package_config
 
     def get_all_tf_targets_by_status(
