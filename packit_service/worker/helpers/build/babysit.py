@@ -4,7 +4,7 @@
 import collections
 import datetime
 import logging
-from typing import Iterable
+from typing import Iterable, Type, Any
 
 import copr.v3
 import requests
@@ -24,12 +24,19 @@ from packit_service.models import (
     TestingFarmResult,
     BuildStatus,
 )
-from packit_service.worker.events import AbstractCoprBuildEvent, TestingFarmResultsEvent
+from packit_service.worker.events import (
+    AbstractCoprBuildEvent,
+    CoprBuildStartEvent,
+    CoprBuildEndEvent,
+    TestingFarmResultsEvent,
+)
 from packit_service.worker.events.enums import FedmsgTopic
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
+    CoprBuildStartHandler,
     TestingFarmResultsHandler,
 )
+from packit_service.worker.handlers.copr import AbstractCoprBuildReportHandler
 from packit_service.worker.jobs import SteveJobs
 
 logger = logging.getLogger(__name__)
@@ -140,10 +147,10 @@ def check_copr_build(build_id: int) -> bool:
     Used in the babysit task.
 
     Args:
-        build_id (int): ID of the copr build to check.
+        build_id: ID of the copr build to check.
 
     Returns:
-        bool: Whether the run was successful, False signals the need to retry.
+        Whether the run was successful, False signals the need to retry.
     """
     logger.debug(f"Getting copr build ID {build_id} from DB.")
     builds = list(CoprBuildTargetModel.get_all_by_build_id(build_id))
@@ -155,15 +162,21 @@ def check_copr_build(build_id: int) -> bool:
 
 def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) -> bool:
     """
-    Updates the state of copr builds if they have ended.
+    Updates the state of copr builds.
+
+    Builds which have ended will be updated into success/fail state.
+    Builds which have been pending for too long will be updated to error (timeout).
+    Builds which have started and are waiting for SRPM will get their
+        CoprBuildTargetModel and SRPMBuildModel updated (to cover the case
+        where we do not correctly react to fedmsg).
 
     Args:
-        build_id (int): ID of the copr build to update.
-        builds (Iterable[CoprBuildTargetModel]): List of builds corresponding to
-            the given ``build_id``.
+        build_id: ID of the copr build to update.
+        builds: List of builds corresponding to the given ``build_id``.
 
     Returns:
-        bool: Whether the run was successful, False signals the need to retry.
+        Whether the run was successful and the build has ended,
+        False signals the need to retry again.
     """
     copr_client = CoprClient.create_from_config_file()
     try:
@@ -177,8 +190,8 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
             build.set_status(BuildStatus.error)
         return True
 
-    if not build_copr.ended_on:
-        logger.info("The copr build is still in progress.")
+    if not build_copr.ended_on and not build_copr.started_on:
+        logger.info("The copr build has not started yet.")
         return False
 
     logger.info(f"The status is {build_copr.state!r}.")
@@ -194,47 +207,80 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
             )
             build.set_status(BuildStatus.error)
             continue
-        if build.status != BuildStatus.pending:
+        if build.status not in (BuildStatus.pending, BuildStatus.waiting_for_srpm):
             logger.info(
                 f"DB state says {build.status!r}, "
                 "things were taken care of already, skipping."
             )
             continue
         chroot_build = copr_client.build_chroot_proxy.get(build_id, build.target)
-        event = AbstractCoprBuildEvent(
-            topic=FedmsgTopic.copr_build_finished.value,
-            build_id=build_id,
-            build=build,
-            chroot=build.target,
-            status=(
-                COPR_API_SUCC_STATE
-                if chroot_build.state == COPR_SUCC_STATE
-                else COPR_API_FAIL_STATE
-            ),
-            owner=build.owner,
-            project_name=build.project_name,
-            pkg=build_copr.source_package.get(
-                "name", ""
-            ),  # this seems to be the SRPM name
-            timestamp=chroot_build.ended_on,
+        update_copr_build_state(build, build_copr, chroot_build)
+    # Builds which we ran CoprBuildStartHandler for still need to be monitored.
+    return bool(build_copr.ended_on)
+
+
+def update_copr_build_state(
+    build: CoprBuildTargetModel, build_copr: Any, chroot_build_copr: Any
+) -> None:
+    """
+    Updates the state of the given copr build chroot.
+
+    If the build ended, its state will be updated using CoprBuildEndHandler.
+    If the build is waiting for SRPM and only started (not ended), it will
+        be initialized using CoprBuildStartHandler.
+
+    Args:
+        build: Model of the copr build to update.
+        build_copr: Data of the whole copr build from the copr API.
+        chroot_build_copr: Data of the single build chroot from the copr API.
+
+    """
+    event_kls: Type[AbstractCoprBuildEvent]
+    handler_kls: Type[AbstractCoprBuildReportHandler]
+    if build_copr.ended_on:
+        event_kls = CoprBuildEndEvent
+        handler_kls = CoprBuildEndHandler
+        timestamp = chroot_build_copr.ended_on
+    elif build_copr.started_on and build.status == BuildStatus.waiting_for_srpm:
+        event_kls = CoprBuildStartEvent
+        handler_kls = CoprBuildStartHandler
+        timestamp = chroot_build_copr.started_on
+    else:
+        # Nothing to do
+        return
+    event = event_kls(
+        topic=FedmsgTopic.copr_build_finished.value,
+        build_id=build.build_id,
+        build=build,
+        chroot=build.target,
+        status=(
+            # This is fine even for CoprBuildStartHandler (it ignores the
+            # status value).
+            COPR_API_SUCC_STATE
+            if chroot_build_copr.state == COPR_SUCC_STATE
+            else COPR_API_FAIL_STATE
+        ),
+        owner=build.owner,
+        project_name=build.project_name,
+        pkg=build_copr.source_package.get("name", ""),  # this seems to be the SRPM name
+        timestamp=timestamp,
+    )
+
+    package_config = event.get_package_config()
+    if not package_config:
+        logger.info(f"No config found for {build.build_id}. Skipping.")
+        return
+
+    job_configs = SteveJobs(event).get_config_for_handler_kls(
+        handler_kls=handler_kls,
+    )
+
+    for job_config in job_configs:
+        event_dict = event.get_dict()
+        handler = handler_kls(
+            package_config=event.package_config,
+            job_config=job_config,
+            event=event_dict,
         )
-
-        package_config = event.get_package_config()
-        if not package_config:
-            logger.info(f"No config found for {build_id}. Skipping.")
-            continue
-
-        job_configs = SteveJobs(event).get_config_for_handler_kls(
-            handler_kls=CoprBuildEndHandler,
-        )
-
-        for job_config in job_configs:
-            event_dict = event.get_dict()
-            handler = CoprBuildEndHandler(
-                package_config=event.package_config,
-                job_config=job_config,
-                event=event_dict,
-            )
-            if handler.pre_check(package_config, job_config, event_dict):
-                handler.run()
-    return True
+        if handler.pre_check(package_config, job_config, event_dict):
+            handler.run()
