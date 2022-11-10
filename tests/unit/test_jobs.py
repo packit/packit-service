@@ -2958,6 +2958,33 @@ def test_handler_doesnt_match_to_job(
             ],
             {"job_identifier": "first"},
         ),
+        pytest.param(
+            PullRequestCommentPagureEvent,
+            JobConfigTriggerType.pull_request,
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.commit,
+                    packages={
+                        "package": CommonPackageConfig(
+                            identifier="first",
+                        )
+                    },
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.commit,
+                    packages={
+                        "package": CommonPackageConfig(
+                            identifier="first",
+                        )
+                    },
+                ),
+            ],
+            {},
+        ),
     ],
 )
 def test_get_jobs_matching_trigger(

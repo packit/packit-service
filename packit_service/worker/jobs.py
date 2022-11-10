@@ -470,7 +470,7 @@ class SteveJobs:
 
         return True
 
-    def check_explicit_matching(self):
+    def check_explicit_matching(self) -> List[JobConfig]:
         """Force explicit event/jobs matching for triggers
 
         Returns:
@@ -480,7 +480,7 @@ class SteveJobs:
         if isinstance(self.event, PullRequestCommentPagureEvent):
             for job in self.event.package_config.jobs:
                 if (
-                    job.type == JobType.koji_build
+                    job.type in [JobType.koji_build, JobType.bodhi_update]
                     and job.trigger == JobConfigTriggerType.commit
                     and self.event.job_config_trigger_type
                     == JobConfigTriggerType.pull_request

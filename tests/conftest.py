@@ -431,3 +431,9 @@ def pytest_assertrepr_compare(op, left, right):
 
         schema = PackageConfigSchema()
         return [str(DeepDiff(schema.dump(left), schema.dump(right)))]
+
+
+@pytest.fixture()
+def pagure_pr_comment_added():
+    with open(DATA_DIR / "fedmsg" / "pagure_pr_comment.json") as outfile:
+        return json.load(outfile)

@@ -191,11 +191,6 @@ class TestEvents:
             return json.load(outfile)
 
     @pytest.fixture()
-    def pagure_pr_comment_added(self):
-        with open(DATA_DIR / "fedmsg" / "pagure_pr_comment.json") as outfile:
-            return json.load(outfile)
-
-    @pytest.fixture()
     def distgit_commit(self):
         with open(DATA_DIR / "fedmsg" / "distgit_commit.json") as outfile:
             return json.load(outfile)

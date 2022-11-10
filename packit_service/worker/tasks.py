@@ -32,7 +32,10 @@ from packit_service.worker.handlers import (
     TestingFarmResultsHandler,
 )
 from packit_service.worker.handlers.abstract import TaskName
-from packit_service.worker.handlers.bodhi import CreateBodhiUpdateHandler
+from packit_service.worker.handlers.bodhi import (
+    CreateBodhiUpdateHandler,
+    RetriggerBodhiUpdateHandler,
+)
 from packit_service.worker.handlers.distgit import DownstreamKojiBuildHandler
 from packit_service.worker.handlers.forges import GithubFasVerificationHandler
 from packit_service.worker.handlers.koji import KojiBuildReportHandler
@@ -304,6 +307,24 @@ def run_downstream_koji_build_report(
 )
 def run_bodhi_update(self, event: dict, package_config: dict, job_config: dict):
     handler = CreateBodhiUpdateHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+        celery_task=self,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(
+    bind=True,
+    name=TaskName.retrigger_bodhi_update,
+    base=HandlerTaskWithRetry,
+    queue="long-running",
+)
+def run_retrigger_bodhi_update(
+    self, event: dict, package_config: dict, job_config: dict
+):
+    handler = RetriggerBodhiUpdateHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
