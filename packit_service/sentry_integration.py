@@ -7,6 +7,7 @@ from os import getenv
 from typing import List
 
 from sentry_sdk.integrations import Integration
+from sentry_sdk.integrations.logging import LoggingIntegration
 
 from packit_service.utils import only_once
 
@@ -53,6 +54,13 @@ def configure_sentry(
         from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
         integrations.append(SqlalchemyIntegration())
+
+    # https://docs.sentry.io/platforms/python/guides/logging/
+    sentry_logging = LoggingIntegration(
+        level=logging.DEBUG,  # Log everything, from DEBUG and above
+        event_level=logging.ERROR,  # Send errors as events
+    )
+    integrations.append(sentry_logging)
 
     sentry_sdk.init(
         secret_key,
