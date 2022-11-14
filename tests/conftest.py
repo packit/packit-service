@@ -352,67 +352,63 @@ def cache_clear(request):
 
 @pytest.fixture()
 def koji_build_scratch_start():
-    with open(DATA_DIR / "fedmsg" / "koji_build_scratch_start.json", "r") as outfile:
+    with open(DATA_DIR / "fedmsg" / "koji_build_scratch_start.json") as outfile:
         # We are using the final format used by parser.
         return json.load(outfile)
 
 
 @pytest.fixture()
 def koji_build_scratch_end():
-    with open(DATA_DIR / "fedmsg" / "koji_build_scratch_end.json", "r") as outfile:
+    with open(DATA_DIR / "fedmsg" / "koji_build_scratch_end.json") as outfile:
         # We are using the final format used by parser.
         return json.load(outfile)
 
 
 @pytest.fixture()
 def koji_build_start_old_format():
-    with open(DATA_DIR / "fedmsg" / "koji_build_start_old_format.json", "r") as outfile:
+    with open(DATA_DIR / "fedmsg" / "koji_build_start_old_format.json") as outfile:
         return load_the_message_from_file(outfile)
 
 
 @pytest.fixture()
 def koji_build_start_rawhide():
-    with open(DATA_DIR / "fedmsg" / "koji_build_start_rawhide.json", "r") as outfile:
+    with open(DATA_DIR / "fedmsg" / "koji_build_start_rawhide.json") as outfile:
         return load_the_message_from_file(outfile)
 
 
 @pytest.fixture()
 def koji_build_start_f35():
-    with open(DATA_DIR / "fedmsg" / "koji_build_start_f35.json", "r") as outfile:
+    with open(DATA_DIR / "fedmsg" / "koji_build_start_f35.json") as outfile:
         return load_the_message_from_file(outfile)
 
 
 @pytest.fixture()
 def koji_build_start_epel8():
-    with open(DATA_DIR / "fedmsg" / "koji_build_start_epel8.json", "r") as outfile:
+    with open(DATA_DIR / "fedmsg" / "koji_build_start_epel8.json") as outfile:
         return load_the_message_from_file(outfile)
 
 
 @pytest.fixture()
 def koji_build_completed_old_format():
-    with open(
-        DATA_DIR / "fedmsg" / "koji_build_completed_old_format.json", "r"
-    ) as outfile:
+    with open(DATA_DIR / "fedmsg" / "koji_build_completed_old_format.json") as outfile:
         return load_the_message_from_file(outfile)
 
 
 @pytest.fixture()
 def koji_build_completed_rawhide():
-    with open(
-        DATA_DIR / "fedmsg" / "koji_build_completed_rawhide.json", "r"
-    ) as outfile:
+    with open(DATA_DIR / "fedmsg" / "koji_build_completed_rawhide.json") as outfile:
         return load_the_message_from_file(outfile)
 
 
 @pytest.fixture()
 def koji_build_completed_f35():
-    with open(DATA_DIR / "fedmsg" / "koji_build_completed_f35.json", "r") as outfile:
+    with open(DATA_DIR / "fedmsg" / "koji_build_completed_f35.json") as outfile:
         return load_the_message_from_file(outfile)
 
 
 @pytest.fixture()
 def koji_build_completed_epel8():
-    with open(DATA_DIR / "fedmsg" / "koji_build_completed_epel8.json", "r") as outfile:
+    with open(DATA_DIR / "fedmsg" / "koji_build_completed_epel8.json") as outfile:
         return load_the_message_from_file(outfile)
 
 
