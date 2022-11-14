@@ -2296,7 +2296,7 @@ def test_run_copr_build_from_source_script(
             job_trigger_model_type=JobTriggerModelType.pull_request,
         ),
     )
-    helper.package_config.srpm_build_deps = srpm_build_deps
+    helper.job_config.srpm_build_deps = srpm_build_deps
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
         type=JobTriggerModelType.pull_request, trigger_id=123
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
@@ -2392,7 +2392,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
         ),
         task=CeleryTask(flexmock(request=flexmock(retries=retry_number))),
     )
-    helper.package_config.srpm_build_deps = ["make", "findutils"]
+    helper.job_config.srpm_build_deps = ["make", "findutils"]
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
         type=JobTriggerModelType.pull_request, trigger_id=123
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))

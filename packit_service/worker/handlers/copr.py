@@ -122,7 +122,7 @@ class CoprBuildHandler(RetriableJobHandler, GetCoprBuildJobHelperMixin):
         installed_at = self.get_packit_github_installation_time()
         if installed_at:
             installed_at = get_timezone_aware_datetime(installed_at)
-        if self.package_config.srpm_build_deps is not None or (
+        if self.job_config.srpm_build_deps is not None or (
             installed_at and installed_at > DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR
         ):
             return self.copr_build_helper.run_copr_build_from_source_script()
