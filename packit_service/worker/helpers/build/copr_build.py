@@ -538,7 +538,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     # use the latest stable chroot
                     script_chroot=self.get_latest_fedora_stable_chroot(),
                     script_builddeps=self.get_packit_copr_download_urls()
-                    + (self.package_config.srpm_build_deps or []),
+                    + (self.job_config.srpm_build_deps or []),
                     buildopts=buildopts,
                 )
             else:
