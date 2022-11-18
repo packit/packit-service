@@ -451,9 +451,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             self.report_status_to_tests(
                 description="We were not able to get any Copr builds for given additional PR. "
                 "Please, make sure the comment command is in correct format "
-                "`/packit test repo/namespace#pr_id`",
+                "`/packit test namespace/repo#pr_id`",
                 state=BaseCommitStatus.error,
-                url="",
             )
             return False
 
