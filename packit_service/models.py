@@ -10,7 +10,8 @@ import logging
 import os
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
+
+# from pathlib import Path
 from typing import (
     Dict,
     Iterable,
@@ -71,7 +72,10 @@ def get_pg_url() -> str:
 # To log SQL statements, set echo=True
 engine = create_engine(get_pg_url(), echo=False)
 Session = sessionmaker(bind=engine)
-if Path("/usr/bin/run_worker.sh").exists():
+
+# Temporary disable singleton session to ensure it's not causing #1728 & #1763
+# if Path("/usr/bin/run_worker.sh").exists():
+if False:
     # Multi-(green)threaded workers can't use scoped_session()
     # Downside of a single session is that if postgres is (oom)killed and a transaction
     # fails to rollback you have to restart the workers so that they pick another session.
