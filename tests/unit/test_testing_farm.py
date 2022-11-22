@@ -605,7 +605,7 @@ def test_payload(
     job_helper.should_receive("job_project").and_return(copr_project)
 
     # URLs shortened for clarity
-    log_url = "https://copr-be.cloud.fedoraproject.org/results/.../builder-live.log.gz"
+    log_url = "https://copr-be.cloud.fedoraproject.org/results/.../builder-live.log"
     srpm_url = (
         f"https://download.copr.fedorainfracloud.org/results/.../{repo}-0.1-1.src.rpm"
     )
@@ -777,7 +777,7 @@ def test_test_repo(fmf_url, fmf_ref, result_url, result_ref):
 
     build_id = 1
     # URLs shortened for clarity
-    log_url = "https://copr-be.cloud.fedoraproject.org/results/.../builder-live.log.gz"
+    log_url = "https://copr-be.cloud.fedoraproject.org/results/.../builder-live.log"
     srpm_url = (
         f"https://download.copr.fedorainfracloud.org/results/.../{repo}-0.1-1.src.rpm"
     )
