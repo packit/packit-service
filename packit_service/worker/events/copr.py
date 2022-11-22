@@ -151,7 +151,7 @@ class AbstractCoprBuildEvent(AbstractForgeIndependentEvent):
         return (
             "https://download.copr.fedorainfracloud.org/"
             f"results/{self.owner}/{self.project_name}/{self.chroot}/"
-            f"{self.build_id:08d}{pkg}/builder-live.log.gz"
+            f"{self.build_id:08d}{pkg}/builder-live.log"
         )
 
 

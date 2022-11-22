@@ -915,7 +915,7 @@ class TestEvents:
 
         assert event_object.get_copr_build_logs_url() == (
             "https://download.copr.fedorainfracloud.org/results/packit/"
-            "packit-service-hello-world-24/fedora-rawhide-x86_64/01044215-hello/builder-live.log.gz"
+            "packit-service-hello-world-24/fedora-rawhide-x86_64/01044215-hello/builder-live.log"
         )
 
         flexmock(PackageConfigGetter).should_receive(
