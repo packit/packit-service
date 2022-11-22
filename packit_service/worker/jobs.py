@@ -671,6 +671,12 @@ class SteveJobs:
         pushgateway.initial_status_time.observe(response_time)
         if response_time > 15:
             pushgateway.no_status_after_15_s.inc()
+            # https://github.com/packit/packit-service/issues/1728
+            # we need more info why this has happened
+            logger.debug(f"Event dict: {self.event}.")
+            logger.error(
+                f"Event {self.event.__class__.__name__} took ({response_time}s) to process."
+            )
 
         # set the time when the accepted status was set so that we can use it later for measurements
         self.event.task_accepted_time = task_accepted_time
