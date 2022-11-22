@@ -934,8 +934,9 @@ class TestEvents:
         assert event_object.project.full_repo_name == "packit/packit"
         assert not event_object.identifier
 
+    @pytest.mark.parametrize("build_id", (1044215, "1044215"))
     def test_parse_copr_build_event_start(
-        self, copr_build_results_start, copr_build_pr
+        self, copr_build_results_start, copr_build_pr, build_id
     ):
         flexmock(CoprBuildTargetModel).should_receive("get_by_build_id").and_return(
             copr_build_pr
@@ -945,7 +946,7 @@ class TestEvents:
 
         assert isinstance(event_object, AbstractCoprBuildEvent)
         assert event_object.topic == FedmsgTopic.copr_build_started
-        assert event_object.build_id == 1044215
+        assert event_object.build_id == int(build_id)
         assert event_object.chroot == "fedora-rawhide-x86_64"
         assert event_object.status == 3
         assert event_object.owner == "packit"

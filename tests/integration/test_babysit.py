@@ -94,7 +94,7 @@ def test_check_copr_build_already_successful():
 def test_check_copr_build_updated(build_status):
     db_build = (
         flexmock(
-            build_id=55,
+            build_id="55",
             status=build_status,
             build_submitted_time=datetime.datetime.utcnow(),
             target="the-target",
@@ -174,7 +174,7 @@ def test_check_copr_build_updated(build_status):
 def test_check_copr_build_waiting_started():
     db_build = (
         flexmock(
-            build_id=55,
+            build_id="55",
             status=BuildStatus.waiting_for_srpm,
             build_submitted_time=datetime.datetime.utcnow(),
             target="the-target",
@@ -258,7 +258,7 @@ def test_check_copr_build_waiting_started():
 def test_check_copr_build_waiting_already_started():
     db_build = (
         flexmock(
-            build_id=55,
+            build_id="55",
             status=BuildStatus.waiting_for_srpm,
             build_submitted_time=datetime.datetime.utcnow(),
             target="the-target",
@@ -385,7 +385,7 @@ def test_check_update_copr_builds_timeout():
     )
     build = flexmock(
         status=BuildStatus.pending,
-        build_id=1,
+        build_id="1",
         build_submitted_time=datetime.datetime.utcnow() - datetime.timedelta(weeks=2),
     )
     build.should_receive("set_status").with_args(BuildStatus.error).once()
@@ -407,9 +407,9 @@ def test_check_pending_copr_builds_no_builds():
 
 
 def test_check_pending_copr_builds():
-    build1 = flexmock(status=BuildStatus.pending, build_id=1)
-    build2 = flexmock(status=BuildStatus.pending, build_id=2)
-    build3 = flexmock(status=BuildStatus.pending, build_id=1)
+    build1 = flexmock(status=BuildStatus.pending, build_id="1")
+    build2 = flexmock(status=BuildStatus.pending, build_id="2")
+    build3 = flexmock(status=BuildStatus.pending, build_id="1")
     flexmock(CoprBuildTargetModel).should_receive("get_all_by_status").with_args(
         BuildStatus.pending
     ).and_return([build1, build2, build3])
