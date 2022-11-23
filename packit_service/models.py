@@ -86,6 +86,7 @@ if is_multi_threaded():
     # Downside of a single session is that if postgres is (oom)killed and a transaction
     # fails to rollback you have to restart the workers so that they pick another session.
     singleton_session = Session()
+    logger.debug("Going to use a single SQLAlchemy session.")
 else:  # service/httpd
     Session = scoped_session(Session)
     singleton_session = None
