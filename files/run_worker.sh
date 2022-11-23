@@ -40,7 +40,12 @@ elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     # Options: prefork | eventlet | gevent | solo
     # https://www.distributedpython.com/2018/10/26/celery-execution-pool/
     DEFAULT_POOL="solo"
-    POOL="${POOL:-$DEFAULT_POOL}"
+    DEFAULT_CONCURRENCY_POOL="gevent"
+    if ((CONCURRENCY > 1)); then
+      POOL="${POOL:-$DEFAULT_CONCURRENCY_POOL}"
+    else
+      POOL="${POOL:-$DEFAULT_POOL}"
+    fi
 
     # if this worker serves the long-running queue, it needs the repository cache
     if [[ "$QUEUES" == *"long-running"* ]]; then
