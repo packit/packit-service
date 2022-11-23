@@ -144,11 +144,17 @@ class BaseBuildJobHelper(BaseJobHelper):
         matching_jobs = []
 
         if not self._job_tests_all:
-            for job in self.package_config.jobs:
-                if are_job_types_same(
-                    job.type, self.job_type_test
-                ) and self.is_job_config_trigger_matching(job):
-                    matching_jobs.append(job)
+            # if the job config is for tests, only consider that one
+            if self.job_config.type == JobType.tests:
+                matching_jobs = [self.job_config]
+            # if the job config is for builds, get all test job configs
+            else:
+                for job in self.package_config.jobs:
+                    if are_job_types_same(
+                        job.type, self.job_type_test
+                    ) and self.is_job_config_trigger_matching(job):
+                        matching_jobs.append(job)
+
             self._job_tests_all = matching_jobs
 
         return self._job_tests_all
