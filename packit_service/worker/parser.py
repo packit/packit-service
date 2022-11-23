@@ -10,9 +10,9 @@ from os import getenv
 from typing import Optional, Type, Union, Dict, Any, Tuple
 
 from ogr.parsing import parse_git_repo
+
 from packit.constants import PROD_DISTGIT_URL
 from packit.utils import nested_get
-
 from packit_service.config import ServiceConfig, Deployment
 from packit_service.constants import (
     KojiBuildState,
@@ -57,6 +57,7 @@ from packit_service.worker.events.enums import (
     PullRequestCommentAction,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.events.pagure import PullRequestFlagPagureEvent
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
@@ -96,6 +97,7 @@ class Parser:
             CheckRerunCommitEvent,
             CheckRerunPullRequestEvent,
             CheckRerunReleaseEvent,
+            NewHotnessUpdateEvent,
         ]
     ]:
         """
@@ -136,6 +138,7 @@ class Parser:
                 Parser.parse_pipeline_event,
                 Parser.parse_pagure_pr_flag_event,
                 Parser.parse_pagure_pull_request_comment_event,
+                Parser.parse_new_hotness_update_event,
             ),
         ):
             if response:
@@ -1291,4 +1294,36 @@ class Parser:
             user_login=pagure_login,
             comment=comment,
             comment_id=comment_id,
+        )
+
+    @staticmethod
+    def parse_new_hotness_update_event(event) -> Optional[NewHotnessUpdateEvent]:
+        if "hotness.update.bug.file" not in event.get("topic", ""):
+            return None
+
+        # "package" should contain the Fedora package name directly
+        # see https://github.com/fedora-infra/the-new-hotness/blob/
+        # 363acd33623dadd5fc3b60a83a528926c7c21fc1/hotness/hotness_consumer.py#L385
+        # and https://github.com/fedora-infra/the-new-hotness/blob/
+        # 363acd33623dadd5fc3b60a83a528926c7c21fc1/hotness/hotness_consumer.py#L444-L455
+        #
+        # we could get it also like this:
+        # [package["package_name"]
+        #   for package in event["trigger"]["msg"]["message"]["packages"]
+        #   if package["distro"] == "Fedora"][0]
+        package_name = event.get("package")
+        dg_base_url = getenv("DISTGIT_URL", PROD_DISTGIT_URL)
+
+        distgit_project_url = f"{dg_base_url}rpms/{package_name}"
+
+        version = nested_get(event, "trigger", "msg", "project", "version")
+
+        logger.info(
+            f"New hotness update event for package: {package_name}, version: {version}"
+        )
+
+        return NewHotnessUpdateEvent(
+            package_name=package_name,
+            version=version,
+            distgit_project_url=distgit_project_url,
         )

@@ -58,6 +58,7 @@ from packit_service.worker.events.enums import (
     GitlabEventAction,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.events.pagure import PullRequestFlagPagureEvent
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.parser import Parser
@@ -200,6 +201,11 @@ class TestEvents:
         with open(
             DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json"
         ) as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def new_hotness_update(self):
+        with open(DATA_DIR / "fedmsg" / "new_hotness_update.json") as outfile:
             return json.load(outfile)
 
     @pytest.fixture()
@@ -1499,6 +1505,99 @@ class TestEvents:
         assert event_object.build_targets_override is None
         assert event_object.tests_targets_override == {"fedora-rawhide-x86_64"}
         assert event_object.actor == "lbarcziova"
+
+    @pytest.mark.parametrize(
+        "upstream_project_url, upstream_tag_template, pre_check_result, "
+        "tag_name, repo_namespace, repo_name",
+        [
+            (
+                "https://github.com/redis-namespace/redis",
+                None,
+                True,
+                "7.0.3",
+                "redis-namespace",
+                "redis",
+            ),
+            (
+                "https://github.com/redis-namespace/redis",
+                "no-version-tag",
+                True,
+                "no-version-tag",
+                "redis-namespace",
+                "redis",
+            ),
+            (
+                "https://github.com/redis-namespace/redis",
+                "v{version}",
+                True,
+                "v7.0.3",
+                "redis-namespace",
+                "redis",
+            ),
+            (
+                "https://github.com/redis-namespace",
+                None,
+                False,
+                "7.0.3",
+                None,
+                "redis-namespace",
+            ),
+            (
+                "https://github.com/redis-namespace/another-level/redis",
+                None,
+                True,
+                "7.0.3",
+                "redis-namespace/another-level",
+                "redis",
+            ),
+        ],
+    )
+    def test_parse_new_hotness_update(
+        self,
+        new_hotness_update,
+        upstream_project_url,
+        upstream_tag_template,
+        pre_check_result,
+        tag_name,
+        repo_namespace,
+        repo_name,
+    ):
+        event_object = Parser.parse_event(new_hotness_update)
+
+        flexmock(PackageConfigGetter).should_receive(
+            "get_package_config_from_repo"
+        ).with_args(
+            base_project=None,
+            project=event_object.project,
+            pr_id=None,
+            reference=None,
+            fail_when_missing=False,
+        ).and_return(
+            flexmock(
+                upstream_project_url=upstream_project_url,
+                upstream_tag_template=upstream_tag_template,
+            )
+        ).once()
+
+        flexmock(ProjectReleaseModel).should_receive("get_or_create").with_args(
+            tag_name=tag_name,
+            namespace=repo_namespace,
+            repo_name=repo_name,
+            project_url=upstream_project_url,
+            commit_hash=None,
+        ).and_return(flexmock())
+
+        assert isinstance(event_object, NewHotnessUpdateEvent)
+        assert isinstance(event_object.project, PagureProject)
+        assert event_object.package_name == "redis"
+        assert event_object.upstream_repo_namespace == repo_namespace
+        assert event_object.upstream_repo_name == repo_name
+        assert event_object.project_url == "https://src.fedoraproject.org/rpms/redis"
+        assert event_object.tag_name == tag_name
+        assert event_object.package_config
+        assert event_object.pre_check() is pre_check_result
+        if pre_check_result:
+            assert event_object.db_trigger
 
     def test_get_submitted_time_from_model(self):
         date = datetime.utcnow()
