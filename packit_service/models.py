@@ -10,8 +10,7 @@ import logging
 import os
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-
-# from pathlib import Path
+from os import getenv
 from typing import (
     Dict,
     Iterable,
@@ -73,9 +72,16 @@ def get_pg_url() -> str:
 engine = create_engine(get_pg_url(), echo=False)
 Session = sessionmaker(bind=engine)
 
-# Temporary disable singleton session to ensure it's not causing #1728 & #1763
-# if Path("/usr/bin/run_worker.sh").exists():
-if False:
+
+def is_multi_threaded() -> bool:
+    # See run_worker.sh
+    return (
+        getenv("POOL", "solo") in ("gevent", "eventlet")
+        and int(getenv("CONCURRENCY", 1)) > 1
+    )
+
+
+if is_multi_threaded():
     # Multi-(green)threaded workers can't use scoped_session()
     # Downside of a single session is that if postgres is (oom)killed and a transaction
     # fails to rollback you have to restart the workers so that they pick another session.
