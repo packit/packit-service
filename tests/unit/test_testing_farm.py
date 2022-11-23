@@ -27,6 +27,7 @@ from packit_service.models import TestingFarmResult as TFResult
 # These names are definitely not nice, still they help with making classes
 # whose names start with Testing* or Test* to become invisible for pytest,
 # and so stop the test discovery warnings.
+from packit_service.worker.checker.testing_farm import CanActorRunJob
 from packit_service.worker.events import (
     TestingFarmResultsEvent as TFResultsEvent,
     EventData,
@@ -1246,112 +1247,25 @@ def test_get_artifacts(chroot, build, additional_build, result):
     assert artifacts == result
 
 
-@pytest.mark.parametrize(
-    "jobs,event,should_pass",
-    [
-        pytest.param(
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            use_internal_tf=True,
-                        )
-                    },
-                )
-            ],
-            {"event_type": "PullRequestGithubEvent"},
-            False,
-            id="one_internal_test_job",
-        ),
-        pytest.param(
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            identifier="public",
-                        )
-                    },
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            use_internal_tf=True,
-                        )
-                    },
-                ),
-            ],
-            {"event_type": "PullRequestGithubEvent"},
-            False,
-            id="multiple_test_jobs_build_required",
-        ),
-        pytest.param(
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            identifier="public",
-                        )
-                    },
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    skip_build=True,
-                    packages={
-                        "package": CommonPackageConfig(
-                            use_internal_tf=True,
-                        )
-                    },
-                ),
-            ],
-            {"event_type": "PullRequestGithubEvent"},
-            True,
-            id="multiple_test_jobs_build_required_internal_job_skip_build",
-        ),
-        pytest.param(
-            [
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            identifier="public",
-                        )
-                    },
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            use_internal_tf=True,
-                        )
-                    },
-                ),
-            ],
-            {"event_type": "PullRequestCommentGithubEvent", "comment": "/packit test"},
-            True,
-            id="multiple_test_jobs_build_not_required",
-        ),
-    ],
-)
-def test_check_if_actor_can_run_job_and_report(jobs, event, should_pass):
+def test_check_if_actor_can_run_job_and_report():
+    job = JobConfig(
+        type=JobType.tests,
+        trigger=JobConfigTriggerType.pull_request,
+        packages={
+            "package": CommonPackageConfig(
+                use_internal_tf=True,
+            )
+        },
+    )
     package_config = PackageConfig(packages={"package": CommonPackageConfig()})
-    package_config.jobs = jobs
-
+    package_config.jobs = ([job],)
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(
         flexmock(
+            PullRequestModel(),
             job_config_trigger_type=JobConfigTriggerType.pull_request,
             id=123,
             job_trigger_model_type=JobTriggerModelType.pull_request,
+            actor="actor",
         )
     )
 
@@ -1360,9 +1274,7 @@ def test_check_if_actor_can_run_job_and_report(jobs, event, should_pass):
     flexmock(EventData).should_receive("get_project").and_return(gh_project)
     flexmock(ServiceConfig).should_receive("get_project").and_return(gh_project)
 
-    if not should_pass:
-        flexmock(TFJobHelper).should_receive("report_status_to_tests").once()
+    flexmock(TFJobHelper).should_receive("report_status_to_tests").once()
 
-    event.update({"actor": "actor", "project_url": "url"})
-
-    assert TestingFarmHandler.pre_check(package_config, jobs[0], event) == should_pass
+    event_dict = {"event_type": "PullRequestGithubEvent", "project_url": "Url"}
+    assert not CanActorRunJob(package_config, job, event_dict).pre_check()

@@ -3,23 +3,19 @@
 
 import logging
 
-from packit_service.worker.checker.abstract import ActorChecker, Checker
-from packit_service.worker.events.enums import GitlabEventAction
+from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.events import (
     MergeRequestGitlabEvent,
     PushGitHubEvent,
     PushGitlabEvent,
     PushPagureEvent,
 )
+from packit_service.worker.events.enums import GitlabEventAction
 from packit_service.worker.handlers.mixin import (
     GetCoprBuildJobHelperForIdMixin,
     GetCoprBuildJobHelperMixin,
     GetCoprSRPMBuildMixin,
 )
-from packit_service.constants import (
-    INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
-)
-from packit_service.worker.reporting import BaseCommitStatus
 
 logger = logging.getLogger(__name__)
 
@@ -88,33 +84,3 @@ class BuildNotAlreadyStarted(Checker, GetCoprSRPMBuildMixin):
         if not build:
             return True
         return not bool(build.build_start_time)
-
-
-class CanActorRunTestsJob(ActorChecker, GetCoprBuildJobHelperMixin):
-    """For external contributors, we need to be more careful when running jobs.
-    This is a handler-specific permission check
-    for a user who trigger the action on a PR.
-    """
-
-    def _pre_check(self) -> bool:
-        # check the actor if there is any test job which requires
-        # builds and uses internal TF
-        for test_job in self.copr_build_helper.job_tests_all:
-            if (
-                test_job
-                and test_job.use_internal_tf
-                and not test_job.skip_build
-                and not self.project.can_merge_pr(self.actor)
-                and self.actor not in self.service_config.admins
-            ):
-                self.copr_build_helper.report_status_to_build(
-                    description=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[0].format(
-                        actor=self.actor
-                    ),
-                    state=BaseCommitStatus.neutral,
-                    markdown_content=INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED[1].format(
-                        packit_comment_command_prefix=self.service_config.comment_command_prefix
-                    ),
-                )
-                return False
-        return True

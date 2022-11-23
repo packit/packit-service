@@ -2,14 +2,15 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+from typing import Optional
+
 from packit_service.constants import (
-    INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED,
     INTERNAL_TF_TESTS_NOT_ALLOWED,
 )
-
-from packit_service.worker.checker.abstract import ActorChecker, Checker
-from packit_service.worker.events.gitlab import MergeRequestGitlabEvent
+from packit_service.models import PullRequestModel
+from packit_service.worker.checker.abstract import Checker, ActorChecker
 from packit_service.worker.events.enums import GitlabEventAction
+from packit_service.worker.events.gitlab import MergeRequestGitlabEvent
 from packit_service.worker.handlers.mixin import (
     GetTestingFarmJobHelperMixin,
     GetCoprBuildMixin,
@@ -60,28 +61,25 @@ class CanActorRunJob(ActorChecker, GetTestingFarmJobHelperMixin):
     The job is not allowed for external contributors when using internal TF.
     """
 
+    @property
+    def actor(self) -> Optional[str]:
+        if isinstance(self.testing_farm_job_helper.db_trigger, PullRequestModel):
+            return self.testing_farm_job_helper.db_trigger.actor
+
+        logger.debug("DB trigger other than PullRequestModel.")
+        return None
+
     def _pre_check(self) -> bool:
-        any_internal_test_job_build_required = (
-            any(
-                test_job.use_internal_tf and not test_job.skip_build
-                for test_job in self.testing_farm_job_helper.job_tests_all
-            )
-            and self.testing_farm_job_helper.build_required()
-        )
+        logger.debug(f"Actor from the DB trigger: {self.actor}")
         if (
-            (self.job_config.use_internal_tf or any_internal_test_job_build_required)
+            self.job_config.use_internal_tf
             and not self.project.can_merge_pr(self.actor)
             and self.actor not in self.service_config.admins
         ):
-            message = (
-                INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED
-                if self.testing_farm_job_helper.job_build
-                else INTERNAL_TF_TESTS_NOT_ALLOWED
-            )
             self.testing_farm_job_helper.report_status_to_tests(
-                description=message[0].format(actor=self.actor),
+                description=INTERNAL_TF_TESTS_NOT_ALLOWED[0].format(actor=self.actor),
                 state=BaseCommitStatus.neutral,
-                markdown_content=message[1].format(
+                markdown_content=INTERNAL_TF_TESTS_NOT_ALLOWED[1].format(
                     packit_comment_command_prefix=self.service_config.comment_command_prefix
                 ),
             )

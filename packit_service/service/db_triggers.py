@@ -44,6 +44,7 @@ class AddPullRequestDbTrigger:
     pr_id: int
     project: GitProject
     project_url: str
+    actor: str
 
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
@@ -52,6 +53,7 @@ class AddPullRequestDbTrigger:
             namespace=self.project.namespace,
             repo_name=self.project.repo,
             project_url=self.project_url,
+            actor=self.actor,
         )
 
 

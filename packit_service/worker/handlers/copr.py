@@ -8,13 +8,13 @@ from typing import Optional, Tuple, Type
 from celery import signature, Task
 from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
+
 from packit.config import (
     JobConfig,
     JobType,
 )
 from packit.config import JobConfigTriggerType
 from packit.config.package_config import PackageConfig
-
 from packit_service.constants import (
     COPR_API_SUCC_STATE,
     COPR_SRPM_CHROOT,
@@ -25,13 +25,20 @@ from packit_service.models import (
     GithubInstallationModel,
     BuildStatus,
 )
+from packit_service.service.urls import get_copr_build_info_url, get_srpm_build_info_url
+from packit_service.utils import (
+    dump_job_config,
+    dump_package_config,
+    get_timezone_aware_datetime,
+    elapsed_seconds,
+)
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.copr import (
-    CanActorRunTestsJob,
     AreOwnerAndProjectMatchingJob,
     IsGitForgeProjectAndEventOk,
     BuildNotAlreadyStarted,
 )
+from packit_service.worker.checker.testing_farm import CanActorRunJob
 from packit_service.worker.events import (
     CoprBuildEndEvent,
     CoprBuildStartEvent,
@@ -45,18 +52,6 @@ from packit_service.worker.events import (
     CheckRerunReleaseEvent,
     AbstractPRCommentEvent,
 )
-from packit_service.service.urls import get_copr_build_info_url, get_srpm_build_info_url
-from packit_service.utils import (
-    dump_job_config,
-    dump_package_config,
-    get_timezone_aware_datetime,
-    elapsed_seconds,
-)
-from packit_service.worker.handlers.mixin import (
-    GetCoprBuildEventMixin,
-    GetCoprBuildJobHelperForIdMixin,
-    GetCoprBuildJobHelperMixin,
-)
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,
@@ -66,6 +61,11 @@ from packit_service.worker.handlers.abstract import (
     run_for_comment,
     run_for_check_rerun,
     RetriableJobHandler,
+)
+from packit_service.worker.handlers.mixin import (
+    GetCoprBuildEventMixin,
+    GetCoprBuildJobHelperForIdMixin,
+    GetCoprBuildJobHelperMixin,
 )
 from packit_service.worker.reporting import BaseCommitStatus, DuplicateCheckMode
 from packit_service.worker.result import TaskResults
@@ -107,7 +107,7 @@ class CoprBuildHandler(RetriableJobHandler, GetCoprBuildJobHelperMixin):
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
-        return (IsGitForgeProjectAndEventOk, CanActorRunTestsJob)
+        return (IsGitForgeProjectAndEventOk,)
 
     def get_packit_github_installation_time(self) -> Optional[datetime]:
         if isinstance(self.project, GithubProject) and (
@@ -376,19 +376,28 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                     and self.copr_event.chroot
                     in self.copr_build_helper.build_targets_for_test_job(job_config)
                 ):
-                    event_dict["tests_targets_override"] = list(
-                        self.copr_build_helper.build_target2test_targets_for_test_job(
-                            self.copr_event.chroot, job_config
+                    # improve this, best would be to call TestingFarmHandler.pre_check
+                    # to hide the logic behind checkers but it causes circular imports
+                    if CanActorRunJob(
+                        package_config=self.package_config,
+                        job_config=job_config,
+                        event=event_dict,
+                    ).pre_check():
+                        event_dict["tests_targets_override"] = list(
+                            self.copr_build_helper.build_target2test_targets_for_test_job(
+                                self.copr_event.chroot, job_config
+                            )
                         )
-                    )
-                    signature(
-                        TaskName.testing_farm.value,
-                        kwargs={
-                            "package_config": dump_package_config(self.package_config),
-                            "job_config": dump_job_config(job_config),
-                            "event": event_dict,
-                            "build_id": self.build.id,
-                        },
-                    ).apply_async()
+                        signature(
+                            TaskName.testing_farm.value,
+                            kwargs={
+                                "package_config": dump_package_config(
+                                    self.package_config
+                                ),
+                                "job_config": dump_job_config(job_config),
+                                "event": event_dict,
+                                "build_id": self.build.id,
+                            },
+                        ).apply_async()
         else:
             logger.debug("Testing farm not in the job config.")

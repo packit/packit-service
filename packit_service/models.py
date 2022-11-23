@@ -533,6 +533,7 @@ class PullRequestModel(BuildsAndTestsConnector, Base):
     #   2) we want sensible auto-incremented ID, not random numbers
     #   3) it's not unique across projects obviously, so why am I even writing this?
     pr_id = Column(Integer, index=True)
+    actor = Column(String)
     project_id = Column(Integer, ForeignKey("git_projects.id"), index=True)
     project = relationship("GitProjectModel", back_populates="pull_requests")
 
@@ -541,7 +542,12 @@ class PullRequestModel(BuildsAndTestsConnector, Base):
 
     @classmethod
     def get_or_create(
-        cls, pr_id: int, namespace: str, repo_name: str, project_url: str
+        cls,
+        pr_id: int,
+        namespace: str,
+        repo_name: str,
+        project_url: str,
+        actor: Optional[str] = "",
     ) -> "PullRequestModel":
         with sa_session_transaction() as session:
             project = GitProjectModel.get_or_create(
@@ -556,7 +562,15 @@ class PullRequestModel(BuildsAndTestsConnector, Base):
                 pr = PullRequestModel()
                 pr.pr_id = pr_id
                 pr.project_id = project.id
+                pr.actor = actor
                 session.add(pr)
+
+            # in case PR was already in the DB
+            # before adding the actor field to the table
+            if pr.actor is None:
+                pr.actor = actor
+                session.add(pr)
+
             return pr
 
     @classmethod

@@ -233,13 +233,6 @@ INTERNAL_TF_TESTS_NOT_ALLOWED = (
     "via `{packit_comment_command_prefix} test` comment.*",
 )
 
-INTERNAL_TF_BUILDS_AND_TESTS_NOT_ALLOWED = (
-    "{actor} can't run tests (and builds) internally",
-    "*As a project maintainer, you can trigger the build and test jobs manually "
-    "via `{packit_comment_command_prefix} build` comment "
-    "or only test job via `{packit_comment_command_prefix} test` comment.*",
-)
-
 CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS = (
     "Not allowed to build in {copr_project} Copr project."
 )

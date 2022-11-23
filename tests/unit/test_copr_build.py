@@ -56,7 +56,6 @@ from packit_service.models import (
     JobTriggerModelType,
     SRPMBuildModel,
     BuildStatus,
-    PullRequestModel,
 )
 from packit_service.service.db_triggers import (
     AddBranchPushDbTrigger,
@@ -64,14 +63,12 @@ from packit_service.service.db_triggers import (
     AddReleaseDbTrigger,
 )
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.checker.copr import IsGitForgeProjectAndEventOk
 from packit_service.worker.events import (
     MergeRequestGitlabEvent,
     PullRequestGithubEvent,
     PushGitHubEvent,
     PushGitlabEvent,
     ReleaseEvent,
-    EventData,
 )
 from packit_service.worker.handlers import CoprBuildHandler
 from packit_service.worker.helpers.build import copr_build
@@ -2764,153 +2761,3 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
     )
     with pytest.raises(PackitCoprProjectException):
         helper.create_copr_project_if_not_exists()
-
-
-@pytest.mark.parametrize(
-    "jobs,should_pass",
-    [
-        pytest.param(
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={"package": CommonPackageConfig()},
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            use_internal_tf=True,
-                        )
-                    },
-                ),
-            ],
-            False,
-            id="one_internal_test_job",
-        ),
-        pytest.param(
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={"package": CommonPackageConfig()},
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            identifier="public",
-                        )
-                    },
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            use_internal_tf=True,
-                        )
-                    },
-                ),
-            ],
-            False,
-            id="multiple_test_jobs_one_internal",
-        ),
-        pytest.param(
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={"package": CommonPackageConfig()},
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            identifier="public",
-                        )
-                    },
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    skip_build=True,
-                    packages={
-                        "package": CommonPackageConfig(
-                            use_internal_tf=True,
-                        )
-                    },
-                ),
-            ],
-            True,
-            id="multiple_test_jobs_one_internal_skip_build",
-        ),
-        pytest.param(
-            [
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={"package": CommonPackageConfig()},
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    skip_build=True,
-                    packages={
-                        "package": CommonPackageConfig(
-                            identifier="public",
-                        )
-                    },
-                ),
-                JobConfig(
-                    type=JobType.tests,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={
-                        "package": CommonPackageConfig(
-                            use_internal_tf=True,
-                        )
-                    },
-                ),
-            ],
-            False,
-            id="multiple_test_jobs_one_internal_another_skip_build",
-        ),
-    ],
-)
-def test_check_if_actor_can_run_job_and_report(jobs, should_pass):
-    package_config = PackageConfig(packages={"package": CommonPackageConfig()})
-    package_config.jobs = jobs
-
-    flexmock(PullRequestModel).should_receive("get_or_create").and_return(
-        flexmock(
-            job_config_trigger_type=JobConfigTriggerType.pull_request,
-            id=123,
-            job_trigger_model_type=JobTriggerModelType.pull_request,
-        )
-    )
-
-    gh_project = flexmock(namespace="n", repo="r")
-    gh_project.should_receive("can_merge_pr").with_args("actor").and_return(False)
-    flexmock(EventData).should_receive("get_project").and_return(gh_project)
-    flexmock(ServiceConfig).should_receive("get_project").and_return(gh_project)
-
-    flexmock(IsGitForgeProjectAndEventOk).should_receive("pre_check").and_return(True)
-
-    if not should_pass:
-        flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").once()
-
-    assert (
-        CoprBuildHandler.pre_check(
-            package_config,
-            jobs[0],
-            {
-                "event_type": "PullRequestGithubEvent",
-                "actor": "actor",
-                "project_url": "url",
-            },
-        )
-        == should_pass
-    )

@@ -1859,11 +1859,14 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
     )
     gh_project.should_receive("can_merge_pr").with_args("phracek").and_return(False)
     flexmock(Github, get_repo=lambda full_name_or_id: None)
-
-    trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
+    pr_model = PullRequestModel()
+    flexmock(
+        pr_model,
+        id=123,
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        actor="phracek",
     )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
+    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(pr_model)
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
     flexmock(PullRequestModel).should_receive("get_or_create").with_args(
@@ -1871,9 +1874,7 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
         namespace="packit-service",
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
-    ).and_return(
-        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
-    ).twice()
+    ).and_return(pr_model).twice()
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False).once()
@@ -1885,84 +1886,6 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
         markdown_content="*As a project maintainer, "
         "you can trigger the test job manually via `/packit test` comment.*",
     ).once()
-
-    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    assert not processing_results
-
-
-def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_TF(
-    pr_embedded_command_comment_event,
-):
-    jobs = [
-        {
-            "trigger": "pull_request",
-            "job": "tests",
-            "metadata": {"targets": "fedora-rawhide-x86_64", "use_internal_tf": True},
-        },
-        {
-            "trigger": "pull_request",
-            "job": "copr_build",
-            "metadata": {"targets": "fedora-rawhide-x86_64"},
-        },
-    ]
-    packit_yaml = (
-        "{'specfile_path': 'the-specfile.spec', 'synced_files': [], 'jobs': "
-        + str(jobs)
-        + "}"
-    )
-    pr = flexmock(head_commit="12345")
-    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
-    comment = flexmock()
-    flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
-    gh_project = flexmock(
-        GithubProject,
-        full_repo_name="packit-service/hello-world",
-        get_file_content=lambda path, ref: packit_yaml,
-        get_files=lambda ref, filter_regex: ["the-specfile.spec"],
-        get_web_url=lambda: "https://github.com/the-namespace/the-repo",
-    )
-    gh_project.should_receive("can_merge_pr").with_args("phracek").and_return(False)
-    flexmock(Github, get_repo=lambda full_name_or_id: None)
-
-    trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request, id=123
-    )
-    flexmock(AddPullRequestDbTrigger).should_receive("db_trigger").and_return(trigger)
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    flexmock(Allowlist, check_and_report=True)
-    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
-        pr_id=9,
-        namespace="packit-service",
-        repo_name="hello-world",
-        project_url="https://github.com/packit-service/hello-world",
-    ).and_return(
-        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
-    ).times(
-        4
-    )
-    pr_embedded_command_comment_event["comment"]["body"] = "/packit build"
-    flexmock(GithubProject, get_files="foo.spec")
-    flexmock(GithubProject).should_receive("is_private").and_return(False).once()
-    flexmock(Signature).should_receive("apply_async").times(0)
-    flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").times(0)
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
-        description="phracek can't run tests (and builds) internally",
-        state=BaseCommitStatus.neutral,
-        markdown_content="*As a project maintainer, "
-        "you can trigger the build and test jobs manually via `/packit build` comment "
-        "or only test job via `/packit test` comment.*",
-    ).once()
-    flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
-        description="phracek can't run tests (and builds) internally",
-        state=BaseCommitStatus.neutral,
-        markdown_content="*As a project maintainer, "
-        "you can trigger the build and test jobs manually via `/packit build` comment "
-        "or only test job via `/packit test` comment.*",
-    ).once()
-    flexmock(CoprBuildJobHelper).should_receive(
-        "is_custom_copr_project_defined"
-    ).and_return(False).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
     assert not processing_results
