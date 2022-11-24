@@ -36,6 +36,7 @@ elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     # Number of concurrent worker threads executing tasks.
     DEFAULT_CONCURRENCY="1"
     CONCURRENCY="${CONCURRENCY:-$DEFAULT_CONCURRENCY}"
+    export CONCURRENCY
 
     # Options: prefork | eventlet | gevent | solo
     # https://www.distributedpython.com/2018/10/26/celery-execution-pool/
@@ -46,6 +47,7 @@ elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     else
       POOL="${POOL:-$DEFAULT_POOL}"
     fi
+    export POOL
 
     # if this worker serves the long-running queue, it needs the repository cache
     if [[ "$QUEUES" == *"long-running"* ]]; then
