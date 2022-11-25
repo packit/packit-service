@@ -420,7 +420,7 @@ def test_check_rerun_pr_koji_build_handler_old_job_name(
         {"rawhide", "f34"}
     )
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
-        state=BaseCommitStatus.neutral,
+        state=BaseCommitStatus.error,
         description="Job name `production_build` deprecated.",
         check_name="config-deprecation-production_build",
         url="https://packit.dev/docs/configuration/#supported-jobs",
@@ -433,8 +433,7 @@ def test_check_rerun_pr_koji_build_handler_old_job_name(
         "non-scratch/production builds.) "
         "To be explicit, use `upstream_koji_build` for builds triggered in upstream and "
         "`koji_build` for builds triggered in downstream.\n\n"
-        "This status will be switched to a warning since November and "
-        "the support for the old name will be removed by the end of the year.",
+        "The support for the old name will be removed by the end of the year.",
     ).once()
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,

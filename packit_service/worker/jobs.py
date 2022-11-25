@@ -420,13 +420,12 @@ class SteveJobs:
         if deprecation_msg := DEPRECATED_JOB_TYPES.get(job_config.type):
             job_helper = self.initialize_job_helper(handler_kls, job_config)
             job_helper.status_reporter.report(
-                state=BaseCommitStatus.neutral,  # TODO: change to warning in Nov 2022
+                state=BaseCommitStatus.error,
                 description=f"Job name `{job_config.type.name}` deprecated.",
                 url=f"{DOCS_CONFIGURATION_URL}/#supported-jobs",
                 check_names=f"config-deprecation-{job_config.type.name}",
                 markdown_content=f"{deprecation_msg}\n\n"
-                "This status will be switched to a warning since November "
-                "and the support for the old name will be removed "
+                "The support for the old name will be removed "
                 "by the end of the year.",
             )
 
