@@ -49,6 +49,8 @@ from packit_service.worker.events import (
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
+    ReleaseGitlabEvent,
+    TagPushGitlabEvent,
 )
 from packit_service.worker.events.enums import (
     PullRequestAction,
@@ -187,6 +189,16 @@ class TestEvents:
             return json.load(outfile)
 
     @pytest.fixture()
+    def gitlab_tag_push(self):
+        with open(DATA_DIR / "webhooks" / "gitlab" / "tag_push.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
+    def gitlab_release(self):
+        with open(DATA_DIR / "webhooks" / "gitlab" / "release.json") as outfile:
+            return json.load(outfile)
+
+    @pytest.fixture()
     def pagure_pr_flag_updated(self):
         with open(DATA_DIR / "fedmsg" / "pagure_pr_flag_updated.json") as outfile:
             return json.load(outfile)
@@ -281,6 +293,39 @@ class TestEvents:
         assert (
             event_object.project_url == "https://github.com/packit-service/hello-world"
         )
+
+    def test_parse_gitlab_release(self, gitlab_release):
+        event_object = Parser.parse_event(gitlab_release)
+
+        flexmock(GitlabProject).should_receive("get_sha_from_tag").and_return("123456")
+
+        assert isinstance(event_object, ReleaseGitlabEvent)
+        assert event_object.repo_namespace == "fedora/src"
+        assert event_object.repo_name == "python-teamcity-messages"
+        assert event_object.tag_name == "v1.32"
+        assert (
+            event_object.project_url
+            == "https://gitlab.com/fedora/src/python-teamcity-messages"
+        )
+        assert event_object.commit_sha == "6147b3de219ecdda30ba727cf74a0414ca1e618a"
+        assert event_object.get_dict()
+
+    def test_parse_gitlab_tag_push(self, gitlab_tag_push):
+        event_object = Parser.parse_event(gitlab_tag_push)
+
+        assert isinstance(event_object, TagPushGitlabEvent)
+        assert event_object.repo_namespace == "fedora/src"
+        assert event_object.repo_name == "python-teamcity-messages"
+        assert event_object.commit_sha == "6147b3de219ecdda30ba727cf74a0414ca1e618a"
+        assert event_object.actor == "mmassari1"
+        assert event_object.git_ref == "v1.32"
+        assert event_object.title == "1.32"
+        assert event_object.message == "1.32\n"
+        assert (
+            event_object.project_url
+            == "https://gitlab.com/fedora/src/python-teamcity-messages"
+        )
+        assert event_object.get_dict()
 
     def test_parse_mr(self, merge_request):
         event_object = Parser.parse_event(merge_request)

@@ -35,6 +35,8 @@ from packit_service.worker.events.gitlab import (
     MergeRequestGitlabEvent,
     PushGitlabEvent,
     PipelineGitlabEvent,
+    ReleaseGitlabEvent,
+    TagPushGitlabEvent,
 )
 from packit_service.worker.events.koji import KojiTaskEvent
 from packit_service.worker.events.pagure import (
@@ -77,4 +79,6 @@ __all__ = [
     AbstractPRCommentEvent.__name__,
     AbstractIssueCommentEvent.__name__,
     AbstractForgeIndependentEvent.__name__,
+    ReleaseGitlabEvent.__name__,
+    TagPushGitlabEvent.__name__,
 ]

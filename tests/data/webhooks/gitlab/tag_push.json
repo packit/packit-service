@@ -1,0 +1,60 @@
+{
+  "object_kind": "tag_push",
+  "event_name": "tag_push",
+  "before": "0000000000000000000000000000000000000000",
+  "after": "6147b3de219ecdda30ba727cf74a0414ca1e618a",
+  "ref": "refs/tags/v1.32",
+  "checkout_sha": "6147b3de219ecdda30ba727cf74a0414ca1e618a",
+  "message": "",
+  "user_id": 10966922,
+  "user_name": "Maja Massarini",
+  "user_username": "mmassari1",
+  "user_email": "",
+  "user_avatar": "https://gitlab.com/uploads/-/system/user/avatar/10966922/avatar.png",
+  "project_id": 34007140,
+  "project": {
+    "id": 34007140,
+    "name": "python-teamcity-messages",
+    "description": "Source-git repository for python-teamcity-messages\r\n\r\nDownstream: https://src.fedoraproject.org/rpms/python-teamcity-messages",
+    "web_url": "https://gitlab.com/fedora/src/python-teamcity-messages",
+    "avatar_url": null,
+    "git_ssh_url": "git@gitlab.com:fedora/src/python-teamcity-messages.git",
+    "git_http_url": "https://gitlab.com/fedora/src/python-teamcity-messages.git",
+    "namespace": "Source Git",
+    "visibility_level": 20,
+    "path_with_namespace": "fedora/src/python-teamcity-messages",
+    "default_branch": "packit-src-git",
+    "ci_config_path": "",
+    "homepage": "https://gitlab.com/fedora/src/python-teamcity-messages",
+    "url": "git@gitlab.com:fedora/src/python-teamcity-messages.git",
+    "ssh_url": "git@gitlab.com:fedora/src/python-teamcity-messages.git",
+    "http_url": "https://gitlab.com/fedora/src/python-teamcity-messages.git"
+  },
+  "commits": [
+    {
+      "id": "6147b3de219ecdda30ba727cf74a0414ca1e618a",
+      "message": "1.32\n",
+      "title": "1.32",
+      "timestamp": "2022-09-27T17:43:47+02:00",
+      "url": "https://gitlab.com/fedora/src/python-teamcity-messages/-/commit/6147b3de219ecdda30ba727cf74a0414ca1e618a",
+      "author": {
+        "name": "Mikhail Kidiankin",
+        "email": "[REDACTED]"
+      },
+      "added": [],
+      "modified": ["CHANGELOG.txt", "teamcity/__init__.py"],
+      "removed": []
+    }
+  ],
+  "total_commits_count": 1,
+  "push_options": {},
+  "repository": {
+    "name": "python-teamcity-messages",
+    "url": "git@gitlab.com:fedora/src/python-teamcity-messages.git",
+    "description": "Source-git repository for python-teamcity-messages\r\n\r\nDownstream: https://src.fedoraproject.org/rpms/python-teamcity-messages",
+    "homepage": "https://gitlab.com/fedora/src/python-teamcity-messages",
+    "git_http_url": "https://gitlab.com/fedora/src/python-teamcity-messages.git",
+    "git_ssh_url": "git@gitlab.com:fedora/src/python-teamcity-messages.git",
+    "visibility_level": 20
+  }
+}
