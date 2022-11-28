@@ -214,6 +214,7 @@ class TaskName(str, enum.Enum):
     github_fas_verification = "task.github_fas_verification"
     vm_image_build = "task.run_vm_image_build_handler"
     vm_image_build_result = "task.run_vm_image_build_result_handler"
+    pull_from_upstream = "pull_from_upstream"
 
 
 class Handler(ConfigFromEventMixin, PackitAPIWithDownstreamMixin):

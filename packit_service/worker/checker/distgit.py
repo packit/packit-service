@@ -14,7 +14,7 @@ from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
 from packit_service.worker.mixin import (
     GetPagurePullRequestMixin,
 )
-
+from packit_service.worker.reporting import report_in_issue_repository
 
 logger = logging.getLogger(__name__)
 
@@ -73,3 +73,48 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
 class IsProjectOk(Checker, GetProjectToSyncMixin):
     def pre_check(self) -> bool:
         return self.project_to_sync is not None
+
+
+class ValidInformationForPullFromUpstream(Checker):
+    """
+    Check that package config (with upstream_project_url set) is present
+    and that we were able to parse repo namespace, name and the tag name.
+    Report in issue repository if not.
+    """
+
+    def pre_check(self) -> bool:
+        valid = True
+        msg_to_report = None
+
+        if not self.package_config.upstream_project_url:
+            msg_to_report = (
+                "upstream_project_url is not set in the package configuration."
+            )
+            valid = False
+
+        if not (
+            self.data.event_dict.get("repo_name")
+            and self.data.event_dict.get("repo_namespace")
+        ):
+            msg_to_report = (
+                "We were not able to parse repo name or repo namespace from the "
+                f"upstream_project_url '{self.package_config.upstream_project_url}' "
+                f"defined in the config."
+            )
+            valid = False
+
+        if not self.data.tag_name:
+            msg_to_report = "We were not able to get the upstream tag name."
+            valid = False
+
+        if msg_to_report:
+            logger.debug(msg_to_report)
+            report_in_issue_repository(
+                issue_repository=self.job_config.issue_repository,
+                service_config=self.service_config,
+                title=f"Pull from upstream could not be run for tag {self.data.tag_name}",
+                message=msg_to_report,
+                comment_to_existing=msg_to_report,
+            )
+
+        return valid

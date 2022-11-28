@@ -41,6 +41,7 @@ from packit_service.worker.events import (
     CheckRerunEvent,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
+from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.helpers.build import CoprBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.reporting import BaseCommitStatus
@@ -57,6 +58,7 @@ UncheckedEvent = Union[
     KojiTaskEvent,
     KojiBuildEvent,
     CheckRerunEvent,
+    NewHotnessUpdateEvent,
 ]
 
 
@@ -427,6 +429,7 @@ class Allowlist:
                 KojiTaskEvent,
                 KojiBuildEvent,
                 CheckRerunEvent,
+                NewHotnessUpdateEvent,
             ): self._check_unchecked_event,
             (
                 ReleaseEvent,

@@ -441,3 +441,9 @@ def pytest_assertrepr_compare(op, left, right):
 def pagure_pr_comment_added():
     with open(DATA_DIR / "fedmsg" / "pagure_pr_comment.json") as outfile:
         return json.load(outfile)
+
+
+@pytest.fixture()
+def new_hotness_update():
+    with open(DATA_DIR / "fedmsg" / "new_hotness_update.json") as outfile:
+        return json.load(outfile)

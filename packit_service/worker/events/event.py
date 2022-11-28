@@ -182,7 +182,11 @@ class EventData:
                     project_url=self.project_url,
                 )
 
-            elif self.event_type in {"ReleaseEvent", "CheckRerunReleaseEvent"}:
+            elif self.event_type in {
+                "ReleaseEvent",
+                "CheckRerunReleaseEvent",
+                "NewHotnessUpdateEvent",
+            }:
                 self._db_trigger = ProjectReleaseModel.get_or_create(
                     tag_name=self.tag_name,
                     namespace=self.project.namespace,
@@ -249,6 +253,10 @@ class Event:
             self.created_at = datetime.now(timezone.utc)
 
         # lazy properties:
+        self._project: Optional[GitProject] = None
+        self._base_project: Optional[GitProject] = None
+        self._package_config: Optional[PackageConfig] = None
+        self._package_config_searched: bool = False
         self._db_trigger: Optional[AbstractTriggerDbType] = None
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
@@ -276,6 +284,11 @@ class Event:
             d["tests_targets_override"] = list(self.tests_targets_override)
         if self.branches_override:
             d["branches_override"] = list(self.branches_override)
+
+        # so that it is JSON serializable (because of Celery tasks)
+        d.pop("_project")
+        d.pop("_base_project")
+        d.pop("_package_config")
         return d
 
     def get_db_trigger(self) -> Optional[AbstractTriggerDbType]:
@@ -384,12 +397,6 @@ class AbstractForgeIndependentEvent(Event):
         self.fail_when_config_file_missing = False
         self.actor = actor
 
-        # Lazy properties
-        self._project: Optional[GitProject] = None
-        self._base_project: Optional[GitProject] = None
-        self._package_config: Optional[PackageConfig] = None
-        self._package_config_searched: bool = False
-
     @property
     def project(self):
         if not self._project:
@@ -448,7 +455,7 @@ class AbstractForgeIndependentEvent(Event):
         # TODO do we need to do this?
         # job config change note:
         #   this is used in sync-from-downstream which is buggy - we don't need to change this
-        if package_config and self.__class__.__name__ != "NewHotnessUpdateEvent":
+        if package_config:
             package_config.upstream_project_url = self.project_url
 
         return package_config
@@ -482,11 +489,3 @@ class AbstractForgeIndependentEvent(Event):
             models=CoprBuildTargetModel.get_all_by_commit(commit_sha=self.commit_sha),
             statuses_to_filter_with=statuses_to_filter_with,
         )
-
-    def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
-        result = super().get_dict()
-        # so that it is JSON serializable (because of Celery tasks)
-        result.pop("_project")
-        result.pop("_base_project")
-        result.pop("_package_config")
-        return result

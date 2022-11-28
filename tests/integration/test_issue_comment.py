@@ -33,7 +33,9 @@ from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import IssueCommentEvent, IssueCommentGitlabEvent
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
+from packit_service.worker.helpers.sync_release.propose_downstream import (
+    ProposeDownstreamJobHelper,
+)
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.tasks import run_propose_downstream_handler
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results

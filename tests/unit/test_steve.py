@@ -33,7 +33,9 @@ from packit_service.models import (
 from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
+from packit_service.worker.helpers.sync_release.propose_downstream import (
+    ProposeDownstreamJobHelper,
+)
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus

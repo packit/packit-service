@@ -30,7 +30,11 @@ from packit_service.models import (
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.utils import gather_packit_logs_to_buffer, collect_packit_logs
 from packit_service.worker.checker.abstract import Checker
-from packit_service.worker.checker.distgit import IsProjectOk, PermissionOnDistgit
+from packit_service.worker.checker.distgit import (
+    IsProjectOk,
+    PermissionOnDistgit,
+    ValidInformationForPullFromUpstream,
+)
 from packit_service.worker.events import (
     PushPagureEvent,
     ReleaseEvent,
@@ -39,6 +43,7 @@ from packit_service.worker.events import (
     CheckRerunReleaseEvent,
     PullRequestCommentPagureEvent,
 )
+from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,
@@ -49,14 +54,20 @@ from packit_service.worker.handlers.abstract import (
     RetriableJobHandler,
 )
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
-from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
+from packit_service.worker.helpers.sync_release.propose_downstream import (
+    ProposeDownstreamJobHelper,
+)
+from packit_service.worker.helpers.sync_release.pull_from_upstream import (
+    PullFromUpstreamHelper,
+)
+from packit_service.worker.helpers.sync_release.sync_release import SyncReleaseHelper
 from packit_service.worker.mixin import (
     LocalProjectMixin,
     PackitAPIWithUpstreamMixin,
     PackitAPIWithDownstreamMixin,
     GetPagurePullRequestMixin,
 )
-from packit_service.worker.reporting import BaseCommitStatus
+from packit_service.worker.reporting import BaseCommitStatus, report_in_issue_repository
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -105,23 +116,10 @@ class SyncFromDownstream(
         return TaskResults(success=True, details={})
 
 
-class AbortProposeDownstream(Exception):
-    """Abort propose-downstream process"""
-
-
-@configured_as(job_type=JobType.propose_downstream)
-@run_for_comment(command="propose-downstream")
-@run_for_comment(command="propose-update")  # deprecated
-@run_for_check_rerun(prefix="propose-downstream")
-@reacts_to(event=ReleaseEvent)
-@reacts_to(event=ReleaseGitlabEvent)
-@reacts_to(event=AbstractIssueCommentEvent)
-@reacts_to(event=CheckRerunReleaseEvent)
-class ProposeDownstreamHandler(
+class AbstractSyncReleaseHandler(
     PackitAPIWithUpstreamMixin, LocalProjectMixin, RetriableJobHandler
 ):
-    topic = "org.fedoraproject.prod.git.receive"
-    task_name = TaskName.propose_downstream
+    helper_kls: type[SyncReleaseHelper]
 
     def __init__(
         self,
@@ -138,12 +136,12 @@ class ProposeDownstreamHandler(
             celery_task=celery_task,
         )
         self._propose_downstream_run_id = propose_downstream_run_id
-        self._propose_downstream_helper: Optional[ProposeDownstreamJobHelper] = None
+        self.helper: Optional[SyncReleaseHelper] = None
 
     @property
-    def propose_downstream_helper(self) -> ProposeDownstreamJobHelper:
-        if not self._propose_downstream_helper:
-            self._propose_downstream_helper = ProposeDownstreamJobHelper(
+    def sync_release_helper(self) -> SyncReleaseHelper:
+        if not self.helper:
+            self.helper = self.helper_kls(
                 service_config=self.service_config,
                 package_config=self.package_config,
                 project=self.project,
@@ -152,7 +150,7 @@ class ProposeDownstreamHandler(
                 job_config=self.job_config,
                 branches_override=self.data.branches_override,
             )
-        return self._propose_downstream_helper
+        return self.helper
 
     def sync_branch(
         self, branch: str, model: ProposeDownstreamModel
@@ -192,35 +190,6 @@ class ProposeDownstreamHandler(
 
         return downstream_pr
 
-    def _report_errors_for_each_branch(self, errors: Dict[str, str]) -> None:
-        branch_errors = ""
-        for branch, err in sorted(
-            errors.items(), key=lambda branch_error: branch_error[0]
-        ):
-            err_without_new_lines = err.replace("\n", " ")
-            branch_errors += f"| `{branch}` | `{err_without_new_lines}` |\n"
-
-        msg_retrigger = MSG_RETRIGGER.format(
-            job="update",
-            command="propose-downstream",
-            place="issue",
-            packit_comment_command_prefix=self.service_config.comment_command_prefix,
-        )
-        body_msg = (
-            f"Packit failed on creating pull-requests in dist-git:\n\n"
-            f"| dist-git branch | error |\n"
-            f"| --------------- | ----- |\n"
-            f"{branch_errors}\n\n"
-            f"{msg_retrigger}\n"
-        )
-
-        PackageConfigGetter.create_issue_if_needed(
-            project=self.project,
-            title=f"Propose downstream failed for release {self.data.tag_name}",
-            message=body_msg,
-            comment_to_existing=body_msg,
-        )
-
     def _get_or_create_propose_downstream_run(self) -> ProposeDownstreamModel:
         if self._propose_downstream_run_id is not None:
             return ProposeDownstreamModel.get_by_id(self._propose_downstream_run_id)
@@ -230,7 +199,7 @@ class ProposeDownstreamHandler(
             trigger_model=self.data.db_trigger,
         )
 
-        for branch in self.propose_downstream_helper.branches:
+        for branch in self.sync_release_helper.branches:
             propose_downstream_target = ProposeDownstreamTargetModel.create(
                 status=ProposeDownstreamTargetStatus.queued, branch=branch
             )
@@ -275,7 +244,7 @@ class ProposeDownstreamHandler(
 
                 try:
                     model.set_start_time(start_time=datetime.utcnow())
-                    self.propose_downstream_helper.report_status_to_branch(
+                    self.sync_release_helper.report_status_to_branch(
                         branch=branch,
                         description="Starting propose downstream...",
                         state=BaseCommitStatus.running,
@@ -287,7 +256,7 @@ class ProposeDownstreamHandler(
                     logger.debug("Downstream PR created successfully.")
                     model.set_downstream_pr_url(downstream_pr_url=downstream_pr.url)
                     model.set_status(status=ProposeDownstreamTargetStatus.submitted)
-                    self.propose_downstream_helper.report_status_to_branch(
+                    self.sync_release_helper.report_status_to_branch(
                         branch=branch,
                         description="Propose downstream finished successfully.",
                         state=BaseCommitStatus.success,
@@ -299,7 +268,7 @@ class ProposeDownstreamHandler(
                         "we were not able yet to download the archive. "
                     )
                     model.set_status(status=ProposeDownstreamTargetStatus.retry)
-                    self.propose_downstream_helper.report_status_to_branch(
+                    self.sync_release_helper.report_status_to_branch(
                         branch=branch,
                         description="Propose downstream is being retried because "
                         "we were not able yet to download the archive. ",
@@ -316,7 +285,7 @@ class ProposeDownstreamHandler(
                     logger.debug(f"Propose downstream failed: {ex}")
                     # eat the exception and continue with the execution
                     model.set_status(status=ProposeDownstreamTargetStatus.error)
-                    self.propose_downstream_helper.report_status_to_branch(
+                    self.sync_release_helper.report_status_to_branch(
                         branch=branch,
                         description=f"Propose downstream failed: {ex}",
                         state=BaseCommitStatus.failure,
@@ -345,6 +314,121 @@ class ProposeDownstreamHandler(
 
         propose_downstream_model.set_status(status=ProposeDownstreamStatus.finished)
         return TaskResults(success=True, details={})
+
+    def _report_errors_for_each_branch(self, errors):
+        raise NotImplementedError("Use subclass.")
+
+
+class AbortProposeDownstream(Exception):
+    """Abort propose-downstream process"""
+
+@configured_as(job_type=JobType.propose_downstream)
+@run_for_comment(command="propose-downstream")
+@run_for_comment(command="propose-update")  # deprecated
+@run_for_check_rerun(prefix="propose-downstream")
+@reacts_to(event=ReleaseEvent)
+@reacts_to(event=ReleaseGitlabEvent)
+@reacts_to(event=AbstractIssueCommentEvent)
+@reacts_to(event=CheckRerunReleaseEvent)
+class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
+    topic = "org.fedoraproject.prod.git.receive"
+    task_name = TaskName.propose_downstream
+    helper_kls = ProposeDownstreamJobHelper
+
+    def __init__(
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        event: dict,
+        celery_task: Task,
+        propose_downstream_run_id: Optional[int] = None,
+    ):
+        super().__init__(
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
+            celery_task=celery_task,
+            propose_downstream_run_id=propose_downstream_run_id,
+        )
+
+    def _report_errors_for_each_branch(self, errors: Dict[str, str]) -> None:
+        branch_errors = ""
+        for branch, err in sorted(
+            errors.items(), key=lambda branch_error: branch_error[0]
+        ):
+            err_without_new_lines = err.replace("\n", " ")
+            branch_errors += f"| `{branch}` | `{err_without_new_lines}` |\n"
+
+        msg_retrigger = MSG_RETRIGGER.format(
+            job="update",
+            command="propose-downstream",
+            place="issue",
+            packit_comment_command_prefix=self.service_config.comment_command_prefix,
+        )
+        body_msg = (
+            f"Packit failed on creating pull-requests in dist-git:\n\n"
+            f"| dist-git branch | error |\n"
+            f"| --------------- | ----- |\n"
+            f"{branch_errors}\n\n"
+            f"{msg_retrigger}\n"
+        )
+
+        PackageConfigGetter.create_issue_if_needed(
+            project=self.project,
+            title=f"Propose downstream failed for release {self.data.tag_name}",
+            message=body_msg,
+            comment_to_existing=body_msg,
+        )
+
+
+@configured_as(job_type=JobType.pull_from_upstream)
+@reacts_to(event=NewHotnessUpdateEvent)
+class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
+    task_name = TaskName.pull_from_upstream
+    helper_kls = PullFromUpstreamHelper
+
+    def __init__(
+        self,
+        package_config: PackageConfig,
+        job_config: JobConfig,
+        event: dict,
+        celery_task: Task,
+        propose_downstream_run_id: Optional[int] = None,
+    ):
+        super().__init__(
+            package_config=package_config,
+            job_config=job_config,
+            event=event,
+            celery_task=celery_task,
+            propose_downstream_run_id=propose_downstream_run_id,
+        )
+
+    @staticmethod
+    def get_checkers() -> Tuple[Type[Checker], ...]:
+        return (ValidInformationForPullFromUpstream,)
+
+    def _report_errors_for_each_branch(self, errors: Dict[str, str]) -> None:
+        branch_errors = ""
+        for branch, err in sorted(
+            errors.items(), key=lambda branch_error: branch_error[0]
+        ):
+            err_without_new_lines = err.replace("\n", " ")
+            branch_errors += f"| `{branch}` | `{err_without_new_lines}` |\n"
+        body_msg = (
+            f"Packit failed on creating pull-requests in dist-git:\n\n"
+            f"| dist-git branch | error |\n"
+            f"| --------------- | ----- |\n"
+            f"{branch_errors}\n\n"
+        )
+
+        report_in_issue_repository(
+            issue_repository=self.job_config.issue_repository,
+            service_config=self.service_config,
+            title=f"Pull from upstream failed for release {self.data.tag_name}",
+            message=body_msg
+            + f"\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
+            comment_to_existing=body_msg,
+        )
 
 
 @configured_as(job_type=JobType.koji_build)

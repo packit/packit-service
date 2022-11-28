@@ -16,6 +16,7 @@ from ogr.services.github.check_run import (
 from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
 
+from packit_service.config import ServiceConfig, PackageConfigGetter
 from packit_service.constants import (
     DOCS_URL,
     MSG_TABLE_HEADER_WITH_DETAILS,
@@ -492,3 +493,30 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
                 f"Failed to set status check, setting status as a fallback: {str(e)}"
             )
             super().set_status(state, description, check_name, url)
+
+
+def report_in_issue_repository(
+    issue_repository: str,
+    service_config: ServiceConfig,
+    title: str,
+    message: str,
+    comment_to_existing: str,
+):
+    if not issue_repository:
+        logger.debug(
+            "No issue repository configured. User will not be notified about the failure."
+        )
+        return
+
+    logger.debug(
+        f"Issue repository configured. We will create "
+        f"a new issue in {issue_repository} "
+        "or update the existing one."
+    )
+    issue_repo = service_config.get_project(url=issue_repository)
+    PackageConfigGetter.create_issue_if_needed(
+        project=issue_repo,
+        title=title,
+        message=message,
+        comment_to_existing=comment_to_existing,
+    )
