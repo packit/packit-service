@@ -26,6 +26,7 @@ from packit_service.worker.handlers.abstract import (
 )
 from packit_service.worker.result import TaskResults
 from packit_service.worker.checker.vm_image import (
+    HasAuthorWriteAccess,
     IsCoprBuildForChrootOk,
     GetVMImageBuildReporterFromJobHelperMixin,
 )
@@ -57,7 +58,10 @@ class VMImageBuildHandler(
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
-        return (IsCoprBuildForChrootOk,)
+        return (
+            HasAuthorWriteAccess,
+            IsCoprBuildForChrootOk,
+        )
 
     def run(self) -> TaskResults:
         if not self.job_config:

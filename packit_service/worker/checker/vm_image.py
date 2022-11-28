@@ -4,9 +4,10 @@
 import logging
 
 from packit_service.models import CoprBuildTargetModel, BuildStatus
-from packit_service.worker.checker.abstract import Checker
+from packit_service.worker.checker.abstract import Checker, ActorChecker
 from packit_service.worker.mixin import (
     GetVMImageDataMixin,
+    ConfigFromEventMixin,
     GetReporterFromJobHelperMixin,
 )
 from packit_service.models import (
@@ -95,3 +96,19 @@ class IsCoprBuildForChrootOk(Checker, GetVMImageBuildReporterFromJobHelperMixin)
         logger.debug(msg)
         self.report_pre_check_failure(msg)
         return False
+
+
+class HasAuthorWriteAccess(
+    ActorChecker, ConfigFromEventMixin, GetVMImageBuildReporterFromJobHelperMixin
+):
+    def _pre_check(self) -> bool:
+        if not self.project.has_write_access(user=self.actor):
+            msg = (
+                f"User {self.actor} is not allowed to build a VM Image"
+                f"for PR#{self.data.pr_id} and project {self.project.repo}."
+            )
+            logger.info(msg)
+            self.report_pre_check_failure(msg)
+            return False
+
+        return True

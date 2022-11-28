@@ -5,9 +5,13 @@ import pytest
 from flexmock import flexmock
 
 from packit.config.job_config import JobType, JobConfigTriggerType
+from packit_service.config import ServiceConfig
 from packit_service.models import CoprBuildTargetModel
 from packit_service.worker.checker.koji import PermissionOnKoji
-from packit_service.worker.checker.vm_image import IsCoprBuildForChrootOk
+from packit_service.worker.checker.vm_image import (
+    IsCoprBuildForChrootOk,
+    HasAuthorWriteAccess,
+)
 from packit_service.worker.events import (
     PullRequestGithubEvent,
 )
@@ -216,3 +220,51 @@ def test_vm_image_is_copr_build_ok_for_chroot(
         ).once()
 
     assert checker.pre_check() == success
+
+
+@pytest.mark.parametrize(
+    "has_write_access, result",
+    (
+        pytest.param(
+            True,
+            True,
+            id="Author has write access",
+        ),
+        pytest.param(
+            False,
+            False,
+            id="Author has not write access",
+        ),
+    ),
+)
+def test_vm_image_has_author_write_access(
+    fake_package_config_job_config_project_db_trigger, has_write_access, result
+):
+    package_config, job_config, _, _ = fake_package_config_job_config_project_db_trigger
+
+    actor = "maja"
+    project_url = "just an url"
+    checker = HasAuthorWriteAccess(
+        package_config,
+        job_config,
+        {
+            "event_type": PullRequestCommentGithubEvent.__name__,
+            "actor": actor,
+            "project_url": project_url,
+        },
+    )
+
+    flexmock(ServiceConfig).should_receive("get_project").with_args(
+        url=project_url
+    ).and_return(
+        flexmock(repo="a repo")
+        .should_receive("has_write_access")
+        .with_args(user=actor)
+        .and_return(has_write_access)
+        .mock()
+    )
+
+    if not has_write_access:
+        flexmock(checker).should_receive("report_pre_check_failure").once()
+
+    assert checker.pre_check() == result
