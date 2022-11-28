@@ -13,7 +13,6 @@ from copr.v3 import Client
 from copr.v3 import CoprRequestException, CoprAuthException
 from copr.v3.proxies.build import BuildProxy
 from flexmock import flexmock
-from munch import Munch
 from ogr.abstract import CommitStatus, GitProject
 from ogr.exceptions import GitForgeInternalError, GitlabAPIException, OgrNetworkError
 from ogr.services.github import GithubProject
@@ -2330,7 +2329,6 @@ def test_run_copr_build_from_source_script(
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
         None
     )
-    flexmock(helper).should_receive("get_packit_copr_download_urls").and_return([])
     flexmock(helper).should_receive("get_latest_fedora_stable_chroot").and_return(
         "fedora-35-x86_64"
     )
@@ -2409,7 +2407,6 @@ def test_run_copr_build_from_source_script_github_outage_retry(
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_return(
         None
     )
-    flexmock(helper).should_receive("get_packit_copr_download_urls").and_return([])
     flexmock(helper).should_receive("get_latest_fedora_stable_chroot").and_return(
         "fedora-35-x86_64"
     )
@@ -2473,71 +2470,6 @@ def test_get_latest_fedora_stable_chroot(github_pr_event):
         build_helper(github_pr_event).get_latest_fedora_stable_chroot()
         == "fedora-35-x86_64"
     )
-
-
-def test_get_packit_copr_download_urls(github_pr_event):
-    copr_response_built_packages = Munch(
-        {
-            "packages": [
-                {
-                    "arch": "noarch",
-                    "epoch": 0,
-                    "name": "python3-packit",
-                    "release": "1.2",
-                    "version": "0.38.0",
-                },
-                {
-                    "arch": "src",
-                    "epoch": 0,
-                    "name": "packit",
-                    "release": "1.2",
-                    "version": "0.38.0",
-                },
-                {
-                    "arch": "noarch",
-                    "epoch": 0,
-                    "name": "packit",
-                    "release": "1.2",
-                    "version": "0.38.0",
-                },
-            ],
-        }
-    )
-
-    flexmock(Client).should_receive("create_from_config_file").and_return(
-        flexmock(
-            config={"copr_url": "https://copr.fedorainfracloud.org/"},
-            package_proxy=flexmock()
-            .should_receive("get")
-            .with_args(
-                ownername="packit",
-                projectname="packit-stable",
-                packagename="packit",
-                with_latest_succeeded_build=True,
-            )
-            .and_return(Munch({"builds": {"latest_succeeded": {"id": 123}}}))
-            .mock(),
-            build_chroot_proxy=flexmock()
-            .should_receive("get")
-            .with_args(123, "fedora-35-x86_64")
-            .and_return(Munch({"result_url": "https://results/"}))
-            .mock()
-            .should_receive("get_built_packages")
-            .with_args(123, "fedora-35-x86_64")
-            .and_return(copr_response_built_packages)
-            .mock(),
-        )
-    )
-    helper = build_helper(event=github_pr_event)
-    flexmock(helper).should_receive("get_latest_fedora_stable_chroot").and_return(
-        "fedora-35-x86_64"
-    )
-    urls = [
-        "https://results/python3-packit-0.38.0-1.2.noarch.rpm",
-        "https://results/packit-0.38.0-1.2.noarch.rpm",
-    ]
-
-    assert helper.get_packit_copr_download_urls() == urls
 
 
 @pytest.mark.parametrize(
