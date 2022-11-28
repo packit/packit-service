@@ -43,6 +43,7 @@ from packit_service.constants import (
 from packit_service.models import (
     AbstractTriggerDbType,
     CoprBuildTargetModel,
+    CoprBuildGroupModel,
     BuildStatus,
     SRPMBuildModel,
     JobTriggerModelType,
@@ -80,6 +81,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         tests_targets_override: Optional[Set[str]] = None,
         pushgateway: Optional[Pushgateway] = None,
         celery_task: Optional[CeleryTask] = None,
+        copr_build_group_id: Optional[int] = None,
     ):
         super().__init__(
             service_config=service_config,
@@ -93,6 +95,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             pushgateway=pushgateway,
         )
         self.celery_task = celery_task
+        self._copr_build_group_id = copr_build_group_id
 
     @property
     def msg_retrigger(self) -> str:
@@ -418,6 +421,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         Run copr build using custom source method.
         """
+        group = self._get_or_create_build_group(True)
         try:
             pr_id = self.metadata.pr_id
             script = create_source_script(
@@ -434,7 +438,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
             build_id, web_url = self.submit_copr_build(script=script)
         except Exception as ex:
-            return self.handle_build_submit_error(ex)
+            return self.handle_build_submit_error(group, ex)
 
         self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
             copr_build_id=str(build_id),
@@ -449,9 +453,64 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             url=get_srpm_build_info_url(self.srpm_model.id),
         )
 
-        self.handle_rpm_build_start(build_id, web_url, waiting_for_srpm=True)
+        self.handle_rpm_build_start(group, build_id, web_url)
 
         return TaskResults(success=True, details={})
+
+    def _get_or_create_build_group(
+        self, wait_for_srpm: bool = False
+    ) -> CoprBuildGroupModel:
+        if self._copr_build_group_id is not None:
+            group = CoprBuildGroupModel.get_by_id(self._copr_build_group_id)
+            # Update the status, we are retrying
+            for target in group.grouped_targets:
+                target.set_status(
+                    BuildStatus.waiting_for_srpm
+                    if wait_for_srpm
+                    else BuildStatus.pending
+                )
+            return group
+
+        group = CoprBuildGroupModel.create(self.run_model)
+        unprocessed_chroots = []
+        for chroot in self.build_targets:
+            if chroot not in self.available_chroots:
+                self.report_status_to_all_for_chroot(
+                    state=BaseCommitStatus.error,
+                    description=f"Not supported target: {chroot}",
+                    url=get_srpm_build_info_url(self.srpm_model.id),
+                    chroot=chroot,
+                )
+                self.monitor_not_submitted_copr_builds(1, "not_supported_target")
+                unprocessed_chroots.append(chroot)
+                continue
+
+            CoprBuildTargetModel.create(
+                build_id=None,
+                commit_sha=self.metadata.commit_sha,
+                project_name=self.job_project,
+                owner=self.job_owner,
+                web_url=None,
+                target=chroot,
+                status=BuildStatus.waiting_for_srpm
+                if wait_for_srpm
+                else BuildStatus.pending,
+                copr_build_group=group,
+                task_accepted_time=self.metadata.task_accepted_time,
+            )
+
+        if unprocessed_chroots:
+            unprocessed = "\n".join(sorted(unprocessed_chroots))
+            available = "\n".join(sorted(self.available_chroots))
+            self.status_reporter.comment(
+                body="There are build targets that are not supported by COPR.\n"
+                "<details>\n<summary>Unprocessed build targets</summary>\n\n"
+                f"```\n{unprocessed}\n```\n</details>\n"
+                "<details>\n<summary>Available build targets</summary>\n\n"
+                f"```\n{available}\n```\n</details>",
+            )
+
+        return group
 
     def get_latest_fedora_stable_chroot(self) -> str:
         """
@@ -544,9 +603,15 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         return build.id, self.api.copr_helper.copr_web_build_url(build)
 
-    def handle_build_submit_error(self, ex) -> TaskResults:
+    def handle_build_submit_error(
+        self, group: CoprBuildGroupModel, ex: Exception
+    ) -> TaskResults:
         """
         Handle errors when submitting Copr build.
+
+        Args:
+            group: The copr build group currently in use.
+            ex: The exception that caused the build submit error.
 
         Returns:
             result of the task saying whether the task was retried
@@ -584,6 +649,11 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 description=f"Submit of the build failed due to a {what_failed} error, the task "
                 f"will be retried in {retry_in}.",
             )
+            # Set status
+            for chroot in group.grouped_targets:
+                chroot.set_status(BuildStatus.retry)
+            kargs = self.celery_task.task.request.kwargs.copy()
+            kargs["copr_build_group_id"] = group.id
             self.celery_task.retry(
                 delay=delay,
                 ex=ex,
@@ -596,6 +666,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 },
             )
 
+        # Set status
+        for chroot in group.grouped_targets:
+            chroot.set_status(BuildStatus.error)
         sentry_integration.send_to_sentry(ex)
         # TODO: Where can we show more info about failure?
         # TODO: Retry
@@ -615,57 +688,27 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         )
 
     def handle_rpm_build_start(
-        self, build_id: int, web_url: str, waiting_for_srpm: bool = False
+        self,
+        group: CoprBuildGroupModel,
+        build_id: int,
+        web_url: str,
     ):
         """
-        Create models for Copr build chroots and report start of RPM build
+        Update models for Copr build chroots and report start of RPM build
         if the SRPM is already built.
         """
-        unprocessed_chroots = []
-        for chroot in self.build_targets:
-            if chroot not in self.available_chroots:
-                self.report_status_to_all_for_chroot(
-                    state=BaseCommitStatus.error,
-                    description=f"Not supported target: {chroot}",
-                    url=get_srpm_build_info_url(self.srpm_model.id),
-                    chroot=chroot,
-                )
-                self.monitor_not_submitted_copr_builds(1, "not_supported_target")
-                unprocessed_chroots.append(chroot)
-                continue
-
-            copr_build = CoprBuildTargetModel.create(
-                build_id=str(build_id),
-                commit_sha=self.metadata.commit_sha,
-                project_name=self.job_project,
-                owner=self.job_owner,
-                web_url=web_url,
-                target=chroot,
-                status=BuildStatus.waiting_for_srpm
-                if waiting_for_srpm
-                else BuildStatus.pending,
-                run_model=self.run_model,
-                task_accepted_time=self.metadata.task_accepted_time,
-            )
-            if not waiting_for_srpm:
-                url = get_copr_build_info_url(id_=copr_build.id)
+        for target in group.grouped_targets:
+            # Add missing data
+            target.set_build_id(str(build_id))
+            target.set_web_url(web_url)
+            if target.status != BuildStatus.waiting_for_srpm:
+                url = get_copr_build_info_url(id_=target.id)
                 self.report_status_to_all_for_chroot(
                     state=BaseCommitStatus.running,
                     description="Starting RPM build...",
                     url=url,
-                    chroot=chroot,
+                    chroot=target.target,
                 )
-
-        if unprocessed_chroots:
-            unprocessed = "\n".join(sorted(unprocessed_chroots))
-            available = "\n".join(sorted(self.available_chroots))
-            self.status_reporter.comment(
-                body="There are build targets that are not supported by COPR.\n"
-                "<details>\n<summary>Unprocessed build targets</summary>\n\n"
-                f"```\n{unprocessed}\n```\n</details>\n"
-                "<details>\n<summary>Available build targets</summary>\n\n"
-                f"```\n{available}\n```\n</details>",
-            )
 
         # release the hounds!
         celery_app.send_task(

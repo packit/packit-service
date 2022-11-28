@@ -303,7 +303,10 @@ class BuildsAndTestsConnector:
         models = []
 
         if model_type == CoprBuildTargetModel:
-            models = [run.copr_build for run in runs]
+            for run in runs:
+                if not run.copr_build_group:
+                    continue
+                models.extend(run.copr_build_group.copr_build_targets)
 
         if model_type == KojiBuildTargetModel:
             models = [run.koji_build for run in runs]
@@ -817,7 +820,7 @@ class GitProjectModel(Base):
         trigger_model = MODEL_FOR_TRIGGER[trigger_type]
         pipeline_attribute = {
             SRPMBuildModel: PipelineModel.srpm_build_id,
-            CoprBuildTargetModel: PipelineModel.copr_build_id,
+            CoprBuildGroupModel: PipelineModel.copr_build_group_id,
             KojiBuildTargetModel: PipelineModel.koji_build_id,
             VMImageBuildTargetModel: PipelineModel.vm_image_build_id,
             TFTTestRunGroupModel: PipelineModel.test_run_group_id,
@@ -1169,8 +1172,10 @@ class PipelineModel(Base):
 
     srpm_build_id = Column(Integer, ForeignKey("srpm_builds.id"), index=True)
     srpm_build = relationship("SRPMBuildModel", back_populates="runs")
-    copr_build_id = Column(Integer, ForeignKey("copr_build_targets.id"), index=True)
-    copr_build = relationship("CoprBuildTargetModel", back_populates="runs")
+    copr_build_group_id = Column(
+        Integer, ForeignKey("copr_build_groups.id"), index=True
+    )
+    copr_build_group = relationship("CoprBuildGroupModel", back_populates="runs")
     koji_build_id = Column(Integer, ForeignKey("koji_build_targets.id"), index=True)
     koji_build = relationship("KojiBuildTargetModel", back_populates="runs")
     vm_image_build_id = Column(
@@ -1207,8 +1212,8 @@ class PipelineModel(Base):
         return sa_session().query(
             func.min(PipelineModel.id).label("merged_id"),
             PipelineModel.srpm_build_id,
-            func.array_agg(psql_array([PipelineModel.copr_build_id])).label(
-                "copr_build_id"
+            func.array_agg(psql_array([PipelineModel.copr_build_group_id])).label(
+                "copr_build_group_id"
             ),
             func.array_agg(psql_array([PipelineModel.koji_build_id])).label(
                 "koji_build_id"
@@ -1256,6 +1261,50 @@ class PipelineModel(Base):
         return sa_session().query(PipelineModel).filter_by(id=id_).first()
 
 
+class CoprBuildGroupModel(ProjectAndTriggersConnector, GroupModel, Base):
+    __tablename__ = "copr_build_groups"
+    id = Column(Integer, primary_key=True)
+    submitted_time = Column(DateTime, default=datetime.utcnow)
+
+    runs = relationship("PipelineModel", back_populates="copr_build_group")
+    copr_build_targets = relationship(
+        "CoprBuildTargetModel", back_populates="group_of_targets"
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"CoprBuildGroupModel(id={self.id}, submitted_time={self.submitted_time})"
+        )
+
+    @property
+    def grouped_targets(self) -> List["CoprBuildTargetModel"]:
+        return self.copr_build_targets
+
+    @classmethod
+    def create(cls, run_model: "PipelineModel") -> "CoprBuildGroupModel":
+        with sa_session_transaction() as session:
+            build_group = cls()
+            session.add(build_group)
+            if run_model.copr_build_group:
+                # Clone run model
+                new_run_model = PipelineModel.create(
+                    type=run_model.job_trigger.type,
+                    trigger_id=run_model.job_trigger.trigger_id,
+                )
+                new_run_model.srpm_build = run_model.srpm_build
+                new_run_model.copr_build_group = build_group
+                session.add(new_run_model)
+            else:
+                run_model.copr_build_group = build_group
+                session.add(run_model)
+
+            return build_group
+
+    @classmethod
+    def get_by_id(cls, group_id: int) -> Optional["CoprBuildGroupModel"]:
+        return sa_session().query(CoprBuildGroupModel).filter_by(id=group_id).first()
+
+
 class BuildStatus(str, enum.Enum):
     """An enum of all possible build statuses"""
 
@@ -1264,9 +1313,10 @@ class BuildStatus(str, enum.Enum):
     failure = "failure"
     error = "error"
     waiting_for_srpm = "waiting_for_srpm"
+    retry = "retry"
 
 
-class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
+class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
     """
     Representation of Copr build for one target.
     """
@@ -1312,8 +1362,11 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
     #   }
     # ]
     built_packages = Column(JSON)
+    copr_build_group_id = Column(Integer, ForeignKey("copr_build_groups.id"))
 
-    runs = relationship("PipelineModel", back_populates="copr_build")
+    group_of_targets = relationship(
+        "CoprBuildGroupModel", back_populates="copr_build_targets"
+    )
 
     def set_built_packages(self, built_packages):
         with sa_session_transaction() as session:
@@ -1340,9 +1393,23 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
             self.build_logs_url = build_logs
             session.add(self)
 
+    def set_web_url(self, web_url: str):
+        with sa_session_transaction() as session:
+            self.web_url = web_url
+            session.add(self)
+
+    def set_build_id(self, build_id: str):
+        with sa_session_transaction() as session:
+            self.build_id = build_id
+            session.add(self)
+
     def get_srpm_build(self) -> Optional["SRPMBuildModel"]:
         # All SRPMBuild models for all the runs have to be same.
-        return self.runs[0].srpm_build if self.runs else None
+        return (
+            self.group_of_targets.runs[0].srpm_build
+            if self.group_of_targets.runs
+            else None
+        )
 
     @classmethod
     def get_by_id(cls, id_: int) -> Optional["CoprBuildTargetModel"]:
@@ -1449,14 +1516,14 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
     @classmethod
     def create(
         cls,
-        build_id: str,
+        build_id: Optional[str],
         commit_sha: str,
         project_name: str,
         owner: str,
-        web_url: str,
+        web_url: Optional[str],
         target: str,
         status: BuildStatus,
-        run_model: "PipelineModel",
+        copr_build_group: "CoprBuildGroupModel",
         task_accepted_time: Optional[datetime] = None,
     ) -> "CoprBuildTargetModel":
         with sa_session_transaction() as session:
@@ -1471,18 +1538,8 @@ class CoprBuildTargetModel(ProjectAndTriggersConnector, Base):
             build.task_accepted_time = task_accepted_time
             session.add(build)
 
-            if run_model.copr_build:
-                # Clone run model
-                new_run_model = PipelineModel.create(
-                    type=run_model.job_trigger.type,
-                    trigger_id=run_model.job_trigger.trigger_id,
-                )
-                new_run_model.srpm_build = run_model.srpm_build
-                new_run_model.copr_build = build
-                session.add(new_run_model)
-            else:
-                run_model.copr_build = build
-                session.add(run_model)
+            copr_build_group.copr_build_targets.append(build)
+            session.add(copr_build_group)
 
             return build
 
@@ -1969,7 +2026,7 @@ class TFTTestRunGroupModel(ProjectAndTriggersConnector, GroupModel, Base):
                         trigger_id=run_model.job_trigger.trigger_id,
                     )
                     new_run_model.srpm_build = run_model.srpm_build
-                    new_run_model.copr_build = run_model.copr_build
+                    new_run_model.copr_build_group = run_model.copr_build_group
                     new_run_model.test_run_group = test_run_group
                     session.add(new_run_model)
                 else:
@@ -2679,7 +2736,7 @@ class VMImageBuildTargetModel(ProjectAndTriggersConnector, Base):
                     trigger_id=run_model.job_trigger.trigger_id,
                 )
                 new_run_model.srpm_build = run_model.srpm_build
-                new_run_model.copr_build = run_model.copr_build
+                new_run_model.copr_build_group = run_model.copr_build_group
                 new_run_model.vm_image_build = build
                 session.add(new_run_model)
             else:

@@ -571,7 +571,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
         flexmock(grouped_targets=[test_run])
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=BuildStatus.success, runs=[run])
+        flexmock(status=BuildStatus.success, group_of_targets=flexmock(runs=[run]))
     )
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})
@@ -677,7 +677,9 @@ def test_pr_test_command_handler_identifiers(pr_embedded_command_comment_event):
         commit_sha="12345",
         owner=None,
         target="test-target",
-    ).and_return([flexmock(status=BuildStatus.success, runs=[run])])
+    ).and_return(
+        [flexmock(status=BuildStatus.success, group_of_targets=flexmock(runs=[run]))]
+    )
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})
     )
@@ -991,7 +993,8 @@ def test_pr_test_command_handler_retries(
     task = run_testing_farm_handler.__wrapped__.__func__
     task(
         flexmock(
-            request=flexmock(retries=retry_number, kwargs={}), max_retries=DEFAULT_RETRY_LIMIT
+            request=flexmock(retries=retry_number, kwargs={}),
+            max_retries=DEFAULT_RETRY_LIMIT,
         ),
         package_config=package_config,
         event=event_dict,
@@ -2259,7 +2262,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         owner="mf",
         project_name="tree",
         status=BuildStatus.success,
-        runs=[run_model],
+        group_of_targets=flexmock(runs=[run_model]),
     )
     build.should_receive("get_srpm_build").and_return(flexmock(url=None))
 

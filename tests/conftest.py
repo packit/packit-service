@@ -187,7 +187,7 @@ def copr_build_model(
         web_url="https://some-url",
         target="some-target",
         status="some-status",
-        runs=runs,
+        group_of_targets=flexmock(runs=runs),
         set_status=lambda x: None,
         set_built_packages=lambda x: None,
         built_packages=[

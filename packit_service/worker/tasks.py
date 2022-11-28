@@ -184,12 +184,19 @@ def run_copr_build_end_handler(event: dict, package_config: dict, job_config: di
 @celery_app.task(
     bind=True, name=TaskName.copr_build, base=HandlerTaskWithRetry, queue="long-running"
 )
-def run_copr_build_handler(self, event: dict, package_config: dict, job_config: dict):
+def run_copr_build_handler(
+    self,
+    event: dict,
+    package_config: dict,
+    job_config: dict,
+    copr_build_group_id: Optional[int] = None,
+):
     handler = CoprBuildHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
         celery_task=self,
+        copr_build_group_id=copr_build_group_id,
     )
     return get_handlers_task_results(handler.run_job(), event)
 

@@ -8,7 +8,7 @@ from typing import Dict
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
-    CoprBuildTargetModel,
+    CoprBuildGroupModel,
     KojiBuildTargetModel,
     PipelineModel,
     SyncReleaseModel,
@@ -86,7 +86,7 @@ def process_runs(runs):
             response_dict["trigger"] = get_project_info_from_build(srpm_build)
 
         for model_type, Model, packit_ids in (
-            ("copr", CoprBuildTargetModel, pipeline.copr_build_id),
+            ("copr", CoprBuildGroupModel, pipeline.copr_build_group_id),
             ("koji", KojiBuildTargetModel, pipeline.koji_build_id),
             ("test_run", TFTTestRunGroupModel, pipeline.test_run_group_id),
         ):
@@ -180,7 +180,7 @@ class Run(Resource):
                 run.srpm_build or run.sync_release_run
             ),
             "srpm_build_id": run.srpm_build_id,
-            "copr_build_id": run.copr_build_id,
+            "copr_build_group_id": run.copr_build_group_id,
             "koji_build_id": run.koji_build_id,
             "test_run_group_id": run.test_run_group_id,
         }

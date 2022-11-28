@@ -9,7 +9,7 @@ from flask import request
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
-    CoprBuildTargetModel,
+    CoprBuildGroupModel,
     GitProjectModel,
     JobTriggerModelType,
     KojiBuildTargetModel,
@@ -279,7 +279,7 @@ def get_usage_data(datetime_from=None, datetime_to=None, top=10):
     jobs = {}
     for job_model in [
         SRPMBuildModel,
-        CoprBuildTargetModel,
+        CoprBuildGroupModel,
         KojiBuildTargetModel,
         VMImageBuildTargetModel,
         TFTTestRunGroupModel,
@@ -482,7 +482,7 @@ def get_project_usage_data(project: str, datetime_from=None, datetime_to=None):
     jobs: dict[str, Any] = {}
     for job_model in [
         SRPMBuildModel,
-        CoprBuildTargetModel,
+        CoprBuildGroupModel,
         KojiBuildTargetModel,
         VMImageBuildTargetModel,
         TFTTestRunGroupModel,

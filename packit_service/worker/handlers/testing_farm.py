@@ -137,7 +137,7 @@ class TestingFarmHandler(
                 trigger_id=self.db_trigger.id,
             )
             if self.testing_farm_job_helper.skip_build or not copr_build
-            else copr_build.runs[-1]
+            else copr_build.group_of_targets.runs[-1]
         )
         group = TFTTestRunGroupModel.create([run_model])
         for i, target in enumerate(targets):

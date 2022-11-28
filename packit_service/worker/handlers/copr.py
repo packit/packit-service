@@ -3,7 +3,7 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import Tuple, Type
+from typing import Tuple, Type, Optional
 
 from celery import signature, Task
 from ogr.services.github import GithubProject
@@ -97,6 +97,7 @@ class CoprBuildHandler(
         job_config: JobConfig,
         event: dict,
         celery_task: Task,
+        copr_build_group_id: Optional[int] = None,
     ):
         super().__init__(
             package_config=package_config,
@@ -104,6 +105,7 @@ class CoprBuildHandler(
             event=event,
             celery_task=celery_task,
         )
+        self._copr_build_group_id = copr_build_group_id
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
