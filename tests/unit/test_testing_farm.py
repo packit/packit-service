@@ -22,6 +22,9 @@ from packit_service.models import JobTriggerModel, JobTriggerModelType, BuildSta
 from packit_service.models import (
     TFTTestRunTargetModel,
     PullRequestModel,
+    PipelineModel,
+    TFTTestRunGroupModel,
+    TestingFarmResult,
 )
 from packit_service.models import TestingFarmResult as TFResult
 
@@ -928,6 +931,7 @@ def test_get_request_details():
             flexmock(
                 commit_sha="1111111111111111111111111111111111111111",
                 status=BuildStatus.success,
+                runs=[flexmock()],
             ),
             False,
             False,
@@ -937,6 +941,7 @@ def test_get_request_details():
                 id=1,
                 commit_sha="1111111111111111111111111111111111111111",
                 status=BuildStatus.pending,
+                runs=[flexmock()],
             ),
             False,
             True,
@@ -977,6 +982,26 @@ def test_trigger_build(copr_build, run_new_build, wait_for_build):
             TaskResults(success=True, details={})
         )
     targets = {"target-x86_64", "another-target-x86_64"}
+    tests = []
+    for target in targets:
+        tests.append(
+            flexmock(
+                copr_builds=[
+                    flexmock(
+                        id=1,
+                        status=copr_build.status if copr_build else BuildStatus.pending,
+                    )
+                ],
+                target=target,
+                status=TestingFarmResult.new,
+            )
+        )
+    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(*tests)
+    flexmock(PipelineModel).should_receive("create").and_return(flexmock())
+    flexmock(TFTTestRunGroupModel).should_receive("create").and_return(
+        flexmock(grouped_targets=tests)
+    )
+
     if wait_for_build:
         for target in targets:
             flexmock(TFJobHelper).should_receive(
@@ -997,8 +1022,13 @@ def test_trigger_build(copr_build, run_new_build, wait_for_build):
         event,
         celery_task=flexmock(request=flexmock(retries=0)),
     )
+    flexmock(tf_handler).should_receive("project").and_return(
+        flexmock().should_receive("get_web_url").and_return("https://foo.bar").mock()
+    )
     tf_handler._db_trigger = flexmock(
-        job_config_trigger_type=JobConfigTriggerType.pull_request
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+        id=11,
     )
     tf_handler.run()
 

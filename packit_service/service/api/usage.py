@@ -15,7 +15,7 @@ from packit_service.models import (
     KojiBuildTargetModel,
     SRPMBuildModel,
     SyncReleaseModel,
-    TFTTestRunTargetModel,
+    TFTTestRunGroupModel,
     VMImageBuildTargetModel,
 )
 from packit_service.service.api.utils import response_maker
@@ -282,7 +282,7 @@ def get_usage_data(datetime_from=None, datetime_to=None, top=10):
         CoprBuildTargetModel,
         KojiBuildTargetModel,
         VMImageBuildTargetModel,
-        TFTTestRunTargetModel,
+        TFTTestRunGroupModel,
         SyncReleaseModel,
     ]:
         jobs[job_model.__tablename__] = dict(
@@ -485,7 +485,7 @@ def get_project_usage_data(project: str, datetime_from=None, datetime_to=None):
         CoprBuildTargetModel,
         KojiBuildTargetModel,
         VMImageBuildTargetModel,
-        TFTTestRunTargetModel,
+        TFTTestRunGroupModel,
         SyncReleaseModel,
     ]:
         job_name: str = job_model.__tablename__  # type: ignore

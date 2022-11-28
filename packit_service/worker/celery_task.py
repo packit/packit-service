@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Optional, Any, Dict
 
 from celery import Task
 
@@ -42,6 +42,7 @@ class CeleryTask:
         ex: Optional[Exception] = None,
         delay: Optional[int] = None,
         max_retries: Optional[int] = None,
+        kargs: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Retries the celery task.
@@ -56,11 +57,12 @@ class CeleryTask:
             delay: Number of seconds the task will wait before being run again.
             max_retries: Maximum number of retries to use instead of the default within
                 HandlerTaskWithRetry.
+            kargs: Extra keyword arguments to pass to the task when retrying.
         """
         retries = self.retries
         delay = delay if delay is not None else 60 * 2**retries
         logger.info(f"Will retry for the {retries + 1}. time in {delay}s.")
-        kargs = self.task.request.kwargs.copy()
+        kargs = (kargs or self.task.request.kwargs).copy()
         self.task.retry(
             exc=ex,
             countdown=delay,

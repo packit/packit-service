@@ -312,7 +312,10 @@ class BuildsAndTestsConnector:
             models = [run.srpm_build for run in runs]
 
         if model_type == TFTTestRunTargetModel:
-            models = [run.test_run for run in runs]
+            for run in runs:
+                if not run.test_run_group:
+                    continue
+                models.extend(run.test_run_group.tft_test_run_targets)
 
         return list({model for model in models if model is not None})
 
@@ -401,6 +404,15 @@ class GroupAndTargetModelConnector:
 
     def get_release_tag(self) -> Optional[str]:
         return self.group_of_targets.get_release_tag()
+
+
+class GroupModel:
+    """An abstract class that all models grouping targets should inherit from."""
+
+    @property
+    def grouped_targets(self):
+        """Returns the list of grouped targets."""
+        raise NotImplementedError
 
 
 class GitProjectModel(Base):
@@ -808,7 +820,7 @@ class GitProjectModel(Base):
             CoprBuildTargetModel: PipelineModel.copr_build_id,
             KojiBuildTargetModel: PipelineModel.koji_build_id,
             VMImageBuildTargetModel: PipelineModel.vm_image_build_id,
-            TFTTestRunTargetModel: PipelineModel.test_run_id,
+            TFTTestRunGroupModel: PipelineModel.test_run_group_id,
             SyncReleaseModel: PipelineModel.sync_release_run_id,
         }[job_result_model]
 
@@ -1137,9 +1149,9 @@ class PipelineModel(Base):
 
     Connects JobTriggerModel (and triggers like PullRequestModel via that model) with
     build/test models like  SRPMBuildModel, CoprBuildTargetModel, KojiBuildTargetModel,
-    and TFTTestRunTargetModel.
+    and TFTTestRunGroupModel.
 
-    * One model of each build/test model can be connected.
+    * One model of each build/test target/group model can be connected.
     * Each build/test model can be connected to multiple PipelineModels (e.g. on retrigger).
     * Each PipelineModel has to be connected to exactly one JobTriggerModel.
     * There can be multiple PipelineModels for one JobTriggerModel.
@@ -1165,8 +1177,10 @@ class PipelineModel(Base):
         Integer, ForeignKey("vm_image_build_targets.id"), index=True
     )
     vm_image_build = relationship("VMImageBuildTargetModel", back_populates="runs")
-    test_run_id = Column(Integer, ForeignKey("tft_test_run_targets.id"), index=True)
-    test_run = relationship("TFTTestRunTargetModel", back_populates="runs")
+    test_run_group_id = Column(
+        Integer, ForeignKey("tft_test_run_groups.id"), index=True
+    )
+    test_run_group = relationship("TFTTestRunGroupModel", back_populates="runs")
     sync_release_run_id = Column(
         Integer, ForeignKey("sync_release_runs.id"), index=True
     )
@@ -1199,8 +1213,8 @@ class PipelineModel(Base):
             func.array_agg(psql_array([PipelineModel.koji_build_id])).label(
                 "koji_build_id"
             ),
-            func.array_agg(psql_array([PipelineModel.test_run_id])).label(
-                "test_run_id"
+            func.array_agg(psql_array([PipelineModel.test_run_group_id])).label(
+                "test_run_group_id"
             ),
             func.array_agg(psql_array([PipelineModel.sync_release_run_id])).label(
                 "sync_release_run_id",
@@ -1923,9 +1937,57 @@ class TestingFarmResult(str, enum.Enum):
     error = "error"
     unknown = "unknown"
     needs_inspection = "needs_inspection"
+    retry = "retry"
 
 
-class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
+class TFTTestRunGroupModel(ProjectAndTriggersConnector, GroupModel, Base):
+    __tablename__ = "tft_test_run_groups"
+    id = Column(Integer, primary_key=True)
+    submitted_time = Column(DateTime, default=datetime.utcnow)
+
+    runs = relationship("PipelineModel", back_populates="test_run_group")
+    tft_test_run_targets = relationship(
+        "TFTTestRunTargetModel", back_populates="group_of_targets"
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"TFTTestRunGroupModel(id={self.id}, submitted_time={self.submitted_time})"
+        )
+
+    @classmethod
+    def create(cls, run_models: List["PipelineModel"]) -> "TFTTestRunGroupModel":
+        with sa_session_transaction() as session:
+            test_run_group = cls()
+            session.add(test_run_group)
+
+            for run_model in run_models:
+                if run_model.test_run_group:
+                    # Clone run model
+                    new_run_model = PipelineModel.create(
+                        type=run_model.job_trigger.type,
+                        trigger_id=run_model.job_trigger.trigger_id,
+                    )
+                    new_run_model.srpm_build = run_model.srpm_build
+                    new_run_model.copr_build = run_model.copr_build
+                    new_run_model.test_run_group = test_run_group
+                    session.add(new_run_model)
+                else:
+                    run_model.test_run_group = test_run_group
+                    session.add(run_model)
+
+            return test_run_group
+
+    @property
+    def grouped_targets(self) -> List["TFTTestRunTargetModel"]:
+        return self.tft_test_run_targets
+
+    @classmethod
+    def get_by_id(cls, group_id: int) -> Optional["TFTTestRunGroupModel"]:
+        return sa_session().query(TFTTestRunGroupModel).filter_by(id=group_id).first()
+
+
+class TFTTestRunTargetModel(GroupAndTargetModelConnector, Base):
     __tablename__ = "tft_test_run_targets"
     id = Column(Integer, primary_key=True)
     pipeline_id = Column(String, index=True)
@@ -1938,13 +2000,16 @@ class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
     # so it will run when the model is initiated, not when the table is made
     submitted_time = Column(DateTime, default=datetime.utcnow)
     data = Column(JSON)
+    tft_test_run_group_id = Column(Integer, ForeignKey("tft_test_run_groups.id"))
+
     copr_builds = relationship(
         "CoprBuildTargetModel",
         secondary=tf_copr_association_table,
         backref="tft_test_run_targets",
     )
-
-    runs = relationship("PipelineModel", back_populates="test_run")
+    group_of_targets = relationship(
+        "TFTTestRunGroupModel", back_populates="tft_test_run_targets"
+    )
 
     def set_status(self, status: TestingFarmResult, created: Optional[DateTime] = None):
         """
@@ -1961,14 +2026,24 @@ class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
             self.web_url = web_url
             session.add(self)
 
+    def set_pipeline_id(self, pipeline_id: str) -> None:
+        with sa_session_transaction() as session:
+            self.pipeline_id = pipeline_id
+            session.add(self)
+
+    def add_copr_build(self, build: "CoprBuildTargetModel"):
+        with sa_session_transaction() as session:
+            self.copr_builds.append(build)
+            session.add(self)
+
     @classmethod
     def create(
         cls,
-        pipeline_id: str,
+        pipeline_id: Optional[str],
         commit_sha: str,
         status: TestingFarmResult,
         target: str,
-        run_models: List["PipelineModel"],
+        test_run_group: "TFTTestRunGroupModel",
         web_url: Optional[str] = None,
         data: dict = None,
         identifier: Optional[str] = None,
@@ -1986,21 +2061,8 @@ class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
             if copr_build_targets:
                 test_run.copr_builds.extend(copr_build_targets)
             session.add(test_run)
-
-            for run_model in run_models:
-                if run_model.test_run:
-                    # Clone run model
-                    new_run_model = PipelineModel.create(
-                        type=run_model.job_trigger.type,
-                        trigger_id=run_model.job_trigger.trigger_id,
-                    )
-                    new_run_model.srpm_build = run_model.srpm_build
-                    new_run_model.copr_build = run_model.copr_build
-                    new_run_model.test_run = test_run
-                    session.add(new_run_model)
-                else:
-                    run_model.test_run = test_run
-                    session.add(run_model)
+            test_run_group.tft_test_run_targets.append(test_run)
+            session.add(test_run_group)
 
             return test_run
 
