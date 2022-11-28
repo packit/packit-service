@@ -156,7 +156,7 @@ class TestingFarmResult(Resource):
             "chroot": test_run_model.target,
             "commit_sha": test_run_model.commit_sha,
             "web_url": test_run_model.web_url,
-            "copr_build_ids": [run.copr_build_id for run in test_run_model.runs],
+            "copr_build_ids": [build.id for build in test_run_model.copr_builds],
             "run_ids": sorted(run.id for run in test_run_model.runs),
             "submitted_time": optional_timestamp(test_run_model.submitted_time),
         }

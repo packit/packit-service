@@ -760,7 +760,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self,
         target: str,
         chroot: str,
-        build: CoprBuildTargetModel,
+        build: Optional[CoprBuildTargetModel],
         additional_build: Optional[CoprBuildTargetModel],
     ) -> TaskResults:
         """
@@ -893,7 +893,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         self,
         response: RequestResponse,
         target: str,
-        build: CoprBuildTargetModel,
+        build: Optional[CoprBuildTargetModel],
         additional_build: Optional[CoprBuildTargetModel],
     ):
         """
@@ -912,8 +912,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             else build.runs[-1]
         ]
 
+        builds = []
+        if build:
+            builds.append(build)
         if additional_build:
             run_models.append(additional_build.runs[-1])
+            builds.append(additional_build)
 
         created_model = TFTTestRunTargetModel.create(
             pipeline_id=pipeline_id,
@@ -923,6 +927,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             target=target,
             web_url=None,
             run_models=run_models,
+            copr_build_targets=builds,
             # In _payload() we ask TF to test commit_sha of fork (PR's source).
             # Store original url. If this proves to work, make it a separate column.
             data={"base_project_url": self.project.get_web_url()},

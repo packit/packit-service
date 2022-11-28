@@ -1116,6 +1116,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         target="fedora-rawhide-x86_64",
         web_url=None,
         run_models=[run_model],
+        copr_build_targets=[],
         data={"base_project_url": "https://github.com/packit-service/hello-world"},
     ).and_return(tft_test_run_model)
 
@@ -2292,6 +2293,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         target="fedora-rawhide-x86_64",
         web_url=None,
         run_models=[run_model, run_model2],
+        copr_build_targets=[build, additional_copr_build],
         data={"base_project_url": "https://github.com/packit-service/hello-world"},
     ).and_return(tft_test_run_model)
 

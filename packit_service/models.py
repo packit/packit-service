@@ -42,6 +42,7 @@ from sqlalchemy import (
     func,
     null,
     case,
+    Table,
 )
 from sqlalchemy.dialects.postgresql import array as psql_array
 from sqlalchemy.exc import MultipleResultsFound
@@ -1900,6 +1901,16 @@ class AllowlistModel(Base):
         )
 
 
+tf_copr_association_table = Table(
+    "tf_copr_build_association_table",
+    # TODO: sqlalchemy-stubs should now support declarative_base but there are too many
+    #       typing fixes necessary to do it now
+    Base.metadata,  # type: ignore
+    Column("copr_id", ForeignKey("copr_build_targets.id"), primary_key=True),
+    Column("tft_id", ForeignKey("tft_test_run_targets.id"), primary_key=True),
+)
+
+
 class TestingFarmResult(str, enum.Enum):
     __test__ = False
 
@@ -1927,6 +1938,11 @@ class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
     # so it will run when the model is initiated, not when the table is made
     submitted_time = Column(DateTime, default=datetime.utcnow)
     data = Column(JSON)
+    copr_builds = relationship(
+        "CoprBuildTargetModel",
+        secondary=tf_copr_association_table,
+        backref="tft_test_run_targets",
+    )
 
     runs = relationship("PipelineModel", back_populates="test_run")
 
@@ -1956,6 +1972,7 @@ class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
         web_url: Optional[str] = None,
         data: dict = None,
         identifier: Optional[str] = None,
+        copr_build_targets: Optional[List[CoprBuildTargetModel]] = None,
     ) -> "TFTTestRunTargetModel":
         with sa_session_transaction() as session:
             test_run = cls()
@@ -1966,6 +1983,8 @@ class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
             test_run.target = target
             test_run.web_url = web_url
             test_run.data = data
+            if copr_build_targets:
+                test_run.copr_builds.extend(copr_build_targets)
             session.add(test_run)
 
             for run_model in run_models:
