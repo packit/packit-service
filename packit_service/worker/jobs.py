@@ -668,8 +668,8 @@ class SteveJobs:
         )
         logger.debug(f"Reporting initial status time: {response_time} seconds.")
         pushgateway.initial_status_time.observe(response_time)
-        if response_time > 15:
-            pushgateway.no_status_after_15_s.inc()
+        if response_time > 30:
+            pushgateway.no_status_after_30_s.inc()
             # https://github.com/packit/packit-service/issues/1728
             # we need more info why this has happened
             logger.debug(f"Event dict: {self.event}.")
