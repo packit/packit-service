@@ -502,6 +502,12 @@ def report_in_issue_repository(
     message: str,
     comment_to_existing: str,
 ):
+    """
+    If `issue_repository` is not empty,
+    Packit will create there an issue with the details.
+    If the issue already exists and is opened, comment will be added
+    instead of creating a new issue.
+    """
     if not issue_repository:
         logger.debug(
             "No issue repository configured. User will not be notified about the failure."

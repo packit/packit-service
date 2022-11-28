@@ -483,35 +483,23 @@ class DownstreamKojiBuildHandler(
                 from_upstream=False,
             )
         except PackitException as ex:
-            if not self.job_config.issue_repository:
-                logger.debug(
-                    "No issue repository configured. "
-                    "User will not be notified about the failure."
-                )
-                raise ex
-
             if self.celery_task and not self.celery_task.is_last_try():
                 logger.debug(
                     "Celery task will be retried. User will not be notified about the failure."
                 )
                 raise ex
 
-            logger.debug(
-                f"Issue repository configured. We will create "
-                f"a new issue in {self.job_config.issue_repository}"
-                "or update the existing one."
-            )
-
-            issue_repo = self.service_config.get_project(
-                url=self.job_config.issue_repository
-            )
             body = f"Koji build on `{branch}` branch failed:\n" "```\n" f"{ex}\n" "```"
-            PackageConfigGetter.create_issue_if_needed(
-                project=issue_repo,
+
+            report_in_issue_repository(
+                issue_repository=self.job_config.issue_repository,
+                service_config=self.service_config,
                 title="Fedora Koji build failed to be triggered",
                 message=body
                 + f"\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
                 comment_to_existing=body,
             )
+
             raise ex
+
         return TaskResults(success=True, details={})
