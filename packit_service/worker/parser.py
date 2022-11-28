@@ -49,6 +49,8 @@ from packit_service.worker.events import (
     CheckRerunCommitEvent,
     CheckRerunPullRequestEvent,
     CheckRerunReleaseEvent,
+    ReleaseGitlabEvent,
+    TagPushGitlabEvent,
 )
 from packit_service.worker.events.enums import (
     GitlabEventAction,
@@ -63,6 +65,10 @@ from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 
 logger = logging.getLogger(__name__)
+
+
+class PackitParserException(Exception):
+    pass
 
 
 class Parser:
@@ -98,6 +104,8 @@ class Parser:
             CheckRerunPullRequestEvent,
             CheckRerunReleaseEvent,
             NewHotnessUpdateEvent,
+            ReleaseGitlabEvent,
+            TagPushGitlabEvent,
         ]
     ]:
         """
@@ -139,6 +147,8 @@ class Parser:
                 Parser.parse_pagure_pr_flag_event,
                 Parser.parse_pagure_pull_request_comment_event,
                 Parser.parse_new_hotness_update_event,
+                Parser.parse_gitlab_release_event,
+                Parser.parse_gitlab_tag_push_event,
             ),
         ):
             if response:
@@ -287,28 +297,83 @@ class Parser:
         )
 
     @staticmethod
-    def parse_gitlab_push_event(event) -> Optional[PushGitlabEvent]:
+    def parse_gitlab_release_event(event) -> Optional[ReleaseGitlabEvent]:
         """
         Look into the provided event and see if it's one for a new push to the gitlab branch.
-        https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#push-events
+        https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#release-events
         """
 
-        if event.get("object_kind") != "push":
+        if event.get("object_kind") != "release":
             return None
 
+        if event.get("action") != "create":
+            return None
+
+        project_url = nested_get(event, "project", "web_url")
+        if not project_url:
+            logger.warning("Target project url not found in the event.")
+            return None
+        parsed_url = parse_git_repo(potential_url=project_url)
+        tag_name = event.get("tag")
+
+        logger.info(
+            f"Gitlab release with tag {tag_name} event on Project: "
+            f"repo={parsed_url.repo} "
+            f"namespace={parsed_url.namespace} "
+            f"url={project_url}."
+        )
+        commit_sha = nested_get(event, "commit", "id")
+
+        return ReleaseGitlabEvent(
+            repo_namespace=parsed_url.namespace,
+            repo_name=parsed_url.repo,
+            project_url=project_url,
+            tag_name=tag_name,
+            git_ref=tag_name,
+            commit_sha=commit_sha,
+        )
+
+    @staticmethod
+    def is_gitlab_push_a_create_event(event) -> bool:
+        """The given push event is a create push event?
+
+        Returns:
+            True if the push event is a create
+            branch/tag event and not a delete one.
+            False otherwise.
+        """
+
+        ref = event.get("ref")
+        actor = event.get("user_username")
+
+        if not (ref and event.get("commits") and event.get("before") and actor):
+            return False
+        elif event.get("after").startswith("0000000"):
+            logger.info(f"GitLab push event on '{ref}' by {actor} to delete branch/tag")
+            return False
+
+        return True
+
+    @staticmethod
+    def get_gitlab_push_common_data(event) -> tuple:
+        """A gitlab push and a gitlab tag push have many common data
+        parsable in the same way.
+
+        Returns:
+            a tuple like (actor, project_url, parsed_url, ref, head_commit, head_commit_sha)
+        Raises:
+            PackitParserException
+        """
         raw_ref = event.get("ref")
         before = event.get("before")
-        pusher = event.get("user_username")
+        actor = event.get("user_username")
 
         commits = event.get("commits")
 
-        if not (raw_ref and commits and before and pusher):
-            return None
-        elif event.get("after").startswith("0000000"):
-            logger.info(
-                f"GitLab push event on '{raw_ref}' by {pusher} to delete branch"
+        if not Parser.is_gitlab_push_a_create_event(event):
+            raise PackitParserException(
+                "Event is not a push create event, stop parsing"
             )
-            return None
 
         number_of_commits = event.get("total_commits_count")
 
@@ -321,22 +386,24 @@ class Parser:
             logger.warning("No ref info from event.")
 
         ref = raw_ref[-1]
-
-        head_commit = commits[-1]["id"]
+        head_commit = commits[-1]
+        head_commit_sha = head_commit["id"]
 
         if not raw_ref:
             logger.warning("No commit_id info from event.")
 
         logger.info(
-            f"Gitlab push event on '{raw_ref}': {before[:8]} -> {head_commit[:8]} "
-            f"by {pusher} "
+            f"Gitlab push event on '{raw_ref}': {before[:8]} -> {head_commit_sha[:8]} "
+            f"by {actor} "
             f"({number_of_commits} {'commit' if number_of_commits == 1 else 'commits'})"
         )
 
         project_url = nested_get(event, "project", "web_url")
         if not project_url:
             logger.warning("Target project url not found in the event.")
-            return None
+            raise PackitParserException(
+                "Target project url not found in the event, stop parsing"
+            )
         parsed_url = parse_git_repo(potential_url=project_url)
         logger.info(
             f"Project: "
@@ -344,13 +411,86 @@ class Parser:
             f"namespace={parsed_url.namespace} "
             f"url={project_url}."
         )
+        return (actor, project_url, parsed_url, ref, head_commit, head_commit_sha)
+
+    @staticmethod
+    def parse_gitlab_tag_push_event(event) -> Optional[TagPushGitlabEvent]:
+        """
+        Look into the provided event and see if it's one for a new push to the gitlab branch.
+        https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#tag-events
+        """
+
+        if event.get("object_kind") != "tag_push":
+            return None
+
+        try:
+            (
+                actor,
+                project_url,
+                parsed_url,
+                ref,
+                head_commit,
+                head_commit_sha,
+            ) = Parser.get_gitlab_push_common_data(event)
+        except PackitParserException as e:
+            logger.debug(e)
+            return None
+
+        if head_commit:
+            title = head_commit["title"]
+            message = head_commit["message"]
+        else:
+            title = None
+            message = None
+
+        logger.info(
+            f"Gitlab tag push {ref} event with commit_sha {head_commit_sha} "
+            f"by actor {actor} on Project: "
+            f"repo={parsed_url.repo} "
+            f"namespace={parsed_url.namespace} "
+            f"url={project_url}."
+        )
+
+        return TagPushGitlabEvent(
+            repo_namespace=parsed_url.namespace,
+            repo_name=parsed_url.repo,
+            actor=actor,
+            git_ref=ref,
+            project_url=project_url,
+            commit_sha=head_commit_sha,
+            title=title,
+            message=message,
+        )
+
+    @staticmethod
+    def parse_gitlab_push_event(event) -> Optional[PushGitlabEvent]:
+        """
+        Look into the provided event and see if it's one for a new push to the gitlab branch.
+        https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#push-events
+        """
+
+        if event.get("object_kind") != "push":
+            return None
+
+        try:
+            (
+                _,
+                project_url,
+                parsed_url,
+                ref,
+                _,
+                head_commit_sha,
+            ) = Parser.get_gitlab_push_common_data(event)
+        except PackitParserException as e:
+            logger.debug(e)
+            return None
 
         return PushGitlabEvent(
             repo_namespace=parsed_url.namespace,
             repo_name=parsed_url.repo,
             git_ref=ref,
             project_url=project_url,
-            commit_sha=head_commit,
+            commit_sha=head_commit_sha,
         )
 
     @staticmethod

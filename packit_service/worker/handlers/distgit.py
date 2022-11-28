@@ -34,6 +34,7 @@ from packit_service.worker.checker.distgit import IsProjectOk, PermissionOnDistg
 from packit_service.worker.events import (
     PushPagureEvent,
     ReleaseEvent,
+    ReleaseGitlabEvent,
     AbstractIssueCommentEvent,
     CheckRerunReleaseEvent,
     PullRequestCommentPagureEvent,
@@ -113,6 +114,7 @@ class AbortProposeDownstream(Exception):
 @run_for_comment(command="propose-update")  # deprecated
 @run_for_check_rerun(prefix="propose-downstream")
 @reacts_to(event=ReleaseEvent)
+@reacts_to(event=ReleaseGitlabEvent)
 @reacts_to(event=AbstractIssueCommentEvent)
 @reacts_to(event=CheckRerunReleaseEvent)
 class ProposeDownstreamHandler(
