@@ -12,7 +12,7 @@ from packit_service.models import (
     CoprBuildGroupModel,
     GitProjectModel,
     JobTriggerModelType,
-    KojiBuildTargetModel,
+    KojiBuildGroupModel,
     SRPMBuildModel,
     SyncReleaseModel,
     TFTTestRunGroupModel,
@@ -280,7 +280,7 @@ def get_usage_data(datetime_from=None, datetime_to=None, top=10):
     for job_model in [
         SRPMBuildModel,
         CoprBuildGroupModel,
-        KojiBuildTargetModel,
+        KojiBuildGroupModel,
         VMImageBuildTargetModel,
         TFTTestRunGroupModel,
         SyncReleaseModel,
@@ -483,7 +483,7 @@ def get_project_usage_data(project: str, datetime_from=None, datetime_to=None):
     for job_model in [
         SRPMBuildModel,
         CoprBuildGroupModel,
-        KojiBuildTargetModel,
+        KojiBuildGroupModel,
         VMImageBuildTargetModel,
         TFTTestRunGroupModel,
         SyncReleaseModel,

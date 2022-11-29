@@ -14,6 +14,7 @@ from packit_service.models import (
     GithubInstallationModel,
     JobTriggerModelType,
     KojiBuildTargetModel,
+    KojiBuildGroupModel,
     ProjectAuthenticationIssueModel,
     ProjectReleaseModel,
     PullRequestModel,
@@ -422,6 +423,7 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
     srpm_build_for_koji, run_model_for_koji = SRPMBuildModel.create_with_new_run(
         trigger_model=pr1, commit_sha="687abc76d67d"
     )
+    koji_group = KojiBuildGroupModel.create(run_model_for_koji)
     srpm_build_for_copr.set_logs("asd\nqwe\n")
     srpm_build_for_copr.set_status(BuildStatus.success)
 
@@ -442,7 +444,7 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
         target=SampleValues.target,
         status="pending",
         scratch=True,
-        run_model=run_model_for_koji,
+        koji_build_group=koji_group,
     )
 
     assert copr_build in pr1.get_copr_builds()
@@ -458,8 +460,8 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
     assert copr_build.get_trigger_object() == pr1
     assert koji_build.get_trigger_object() == pr1
 
-    assert len(koji_build.runs) == 1
-    assert koji_build.runs[0] == run_model_for_koji
+    assert len(koji_build.group_of_targets.runs) == 1
+    assert koji_build.group_of_targets.runs[0] == run_model_for_koji
     assert len(copr_build.group_of_targets.runs) == 1
     assert copr_build.group_of_targets.runs[0] == run_model_for_copr
 

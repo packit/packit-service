@@ -33,6 +33,7 @@ from packit_service.models import (
     PipelineModel,
     JobTriggerModelType,
     KojiBuildTargetModel,
+    KojiBuildGroupModel,
     TFTTestRunTargetModel,
     TFTTestRunGroupModel,
     TestingFarmResult,
@@ -714,6 +715,7 @@ def copr_builds_with_different_triggers(
 @pytest.fixture()
 def a_koji_build_for_pr(srpm_build_model_with_new_run_for_pr):
     _, run_model = srpm_build_model_with_new_run_for_pr
+    group = KojiBuildGroupModel.create(run_model)
     koji_build_model = KojiBuildTargetModel.create(
         build_id=SampleValues.build_id,
         commit_sha=SampleValues.commit_sha,
@@ -721,7 +723,7 @@ def a_koji_build_for_pr(srpm_build_model_with_new_run_for_pr):
         target=SampleValues.target,
         status=SampleValues.status_pending,
         scratch=True,
-        run_model=run_model,
+        koji_build_group=group,
     )
     koji_build_model.set_build_logs_url(
         "https://koji.somewhere/results/owner/package/target/build.logs"
@@ -732,6 +734,7 @@ def a_koji_build_for_pr(srpm_build_model_with_new_run_for_pr):
 @pytest.fixture()
 def a_koji_build_for_branch_push(srpm_build_model_with_new_run_for_branch):
     _, run_model = srpm_build_model_with_new_run_for_branch
+    group = KojiBuildGroupModel.create(run_model)
 
     yield KojiBuildTargetModel.create(
         build_id=SampleValues.build_id,
@@ -740,13 +743,14 @@ def a_koji_build_for_branch_push(srpm_build_model_with_new_run_for_branch):
         target=SampleValues.target,
         status=SampleValues.status_pending,
         scratch=True,
-        run_model=run_model,
+        koji_build_group=group,
     )
 
 
 @pytest.fixture()
 def a_koji_build_for_release(srpm_build_model_with_new_run_for_release):
     _, run_model = srpm_build_model_with_new_run_for_release
+    group = KojiBuildGroupModel.create(run_model)
 
     yield KojiBuildTargetModel.create(
         build_id=SampleValues.build_id,
@@ -755,7 +759,7 @@ def a_koji_build_for_release(srpm_build_model_with_new_run_for_release):
         target=SampleValues.target,
         status=SampleValues.status_pending,
         scratch=True,
-        run_model=run_model,
+        koji_build_group=group,
     )
 
 
@@ -764,12 +768,15 @@ def multiple_koji_builds(pr_model, different_pr_model):
     _, run_model_for_pr = SRPMBuildModel.create_with_new_run(
         trigger_model=pr_model, commit_sha=SampleValues.commit_sha
     )
+    group_for_pr = KojiBuildGroupModel.create(run_model_for_pr)
     _, run_model_for_same_pr = SRPMBuildModel.create_with_new_run(
         trigger_model=pr_model, commit_sha=SampleValues.commit_sha
     )
+    group_for_same_pr = KojiBuildGroupModel.create(run_model_for_same_pr)
     _, run_model_for_a_different_pr = SRPMBuildModel.create_with_new_run(
         trigger_model=different_pr_model, commit_sha=SampleValues.commit_sha
     )
+    group_for_a_different_pr = KojiBuildGroupModel.create(run_model_for_a_different_pr)
 
     yield [
         # Two builds for same run
@@ -780,7 +787,7 @@ def multiple_koji_builds(pr_model, different_pr_model):
             target=SampleValues.target,
             status=SampleValues.status_pending,
             scratch=True,
-            run_model=run_model_for_pr,
+            koji_build_group=group_for_pr,
         ),
         KojiBuildTargetModel.create(
             build_id=SampleValues.different_build_id,
@@ -789,7 +796,7 @@ def multiple_koji_builds(pr_model, different_pr_model):
             target=SampleValues.different_target,
             status=SampleValues.status_pending,
             scratch=True,
-            run_model=run_model_for_pr,
+            koji_build_group=group_for_pr,
         ),
         # Same PR, different run
         KojiBuildTargetModel.create(
@@ -799,7 +806,7 @@ def multiple_koji_builds(pr_model, different_pr_model):
             target=SampleValues.different_target,
             status=SampleValues.status_pending,
             scratch=True,
-            run_model=run_model_for_same_pr,
+            koji_build_group=group_for_same_pr,
         ),
         # Completely different build
         KojiBuildTargetModel.create(
@@ -809,7 +816,7 @@ def multiple_koji_builds(pr_model, different_pr_model):
             target=SampleValues.target,
             status=SampleValues.status_pending,
             scratch=True,
-            run_model=run_model_for_a_different_pr,
+            koji_build_group=group_for_a_different_pr,
         ),
     ]
 

@@ -9,14 +9,13 @@ from flask_restx import Namespace, Resource
 
 from packit_service.models import (
     CoprBuildGroupModel,
-    KojiBuildTargetModel,
+    KojiBuildGroupModel,
     PipelineModel,
     SyncReleaseModel,
     SRPMBuildModel,
     TFTTestRunTargetModel,
     optional_timestamp,
     BuildStatus,
-    GroupModel,
     TFTTestRunGroupModel,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
@@ -87,17 +86,12 @@ def process_runs(runs):
 
         for model_type, Model, packit_ids in (
             ("copr", CoprBuildGroupModel, pipeline.copr_build_group_id),
-            ("koji", KojiBuildTargetModel, pipeline.koji_build_id),
+            ("koji", KojiBuildGroupModel, pipeline.koji_build_group_id),
             ("test_run", TFTTestRunGroupModel, pipeline.test_run_group_id),
         ):
             for packit_id in set(flatten_and_remove_none(packit_ids)):
                 group_row = Model.get_by_id(packit_id)
-                target_models = (
-                    group_row.grouped_targets
-                    if isinstance(group_row, GroupModel)
-                    else [group_row]
-                )
-                for row in target_models:
+                for row in group_row.grouped_targets:
                     if row.status == BuildStatus.waiting_for_srpm:
                         continue
                     response_dict[model_type].append(
@@ -181,7 +175,7 @@ class Run(Resource):
             ),
             "srpm_build_id": run.srpm_build_id,
             "copr_build_group_id": run.copr_build_group_id,
-            "koji_build_id": run.koji_build_id,
+            "koji_build_group_id": run.koji_build_group_id,
             "test_run_group_id": run.test_run_group_id,
         }
         return response_maker(result)
