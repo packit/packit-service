@@ -175,6 +175,6 @@ check-db: build-test-image compose-for-db-up
 		-w /src \
 		--network packit-service_default \
 		$(TEST_IMAGE) make check "TEST_TARGET=tests_openshift/database"
-		$(COMPproject=OSE) down
+		$(COMPOSE) down
 
 .PHONY: build-revdep-test-image
