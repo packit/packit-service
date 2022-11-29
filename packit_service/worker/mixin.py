@@ -3,7 +3,7 @@
 
 from abc import abstractmethod
 import logging
-from typing import Optional, Protocol
+from typing import Optional, Protocol, Union
 
 from fasjson_client import Client
 from fasjson_client.errors import APIError
@@ -13,11 +13,15 @@ from ogr.abstract import Issue
 from packit.api import PackitAPI
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
+from packit.config.job_config import JobConfig
+from packit.vm_image_build import ImageBuilder
 
 from ogr.abstract import GitProject, PullRequest, PRStatus
 
 from packit_service.config import ServiceConfig
+from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.events import EventData
+from packit_service.worker.helpers.job_helper import BaseJobHelper
 
 from packit_service.constants import (
     FASJSON_URL,
@@ -45,7 +49,7 @@ class Config(Protocol):
         ...
 
 
-class ConfigMixin(Config):
+class ConfigFromEventMixin(Config):
     _project: Optional[GitProject] = None
     _service_config: Optional[ServiceConfig] = None
     data: EventData
@@ -65,6 +69,29 @@ class ConfigMixin(Config):
     @property
     def project_url(self) -> str:
         return self.data.project_url
+
+
+class ConfigFromUrlMixin(Config):
+    _project: Optional[GitProject] = None
+    _service_config: Optional[ServiceConfig] = None
+    _project_url: str
+    data: EventData
+
+    @property
+    def service_config(self) -> ServiceConfig:
+        if not self._service_config:
+            self._service_config = ServiceConfig.get_service_config()
+        return self._service_config
+
+    @property
+    def project(self) -> Optional[GitProject]:
+        if not self._project and self.data.project_url:
+            self._project = self.service_config.get_project(url=self.project_url)
+        return self._project
+
+    @property
+    def project_url(self) -> str:
+        return self._project_url
 
 
 class PackitAPIProtocol(Config):
@@ -144,7 +171,7 @@ class PackitAPIWithUpstreamMixin(PackitAPIProtocol):
             self._packit_api.clean()
 
 
-class LocalProjectMixin(ConfigMixin):
+class LocalProjectMixin(ConfigFromEventMixin):
     _local_project: Optional[LocalProject] = None
 
     @property
@@ -205,7 +232,7 @@ class GetIssue(Protocol):
         ...
 
 
-class GetIssueMixin(GetIssue, ConfigMixin):
+class GetIssueMixin(GetIssue, ConfigFromEventMixin):
     _issue: Optional[Issue] = None
 
     @property
@@ -213,3 +240,152 @@ class GetIssueMixin(GetIssue, ConfigMixin):
         if not self._issue:
             self._issue = self.project.get_issue(self.data.issue_id)
         return self._issue
+
+
+class GetVMImageBuilder(Protocol):
+    @property
+    @abstractmethod
+    def vm_image_builder(self):
+        ...
+
+
+class GetVMImageData(Protocol):
+    @property
+    @abstractmethod
+    def build_id(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def chroot(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def identifier(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def owner(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def project_name(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def image_distribution(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def image_request(self) -> dict:
+        ...
+
+    @property
+    @abstractmethod
+    def image_customizations(self) -> dict:
+        ...
+
+
+class GetVMImageBuilderMixin(Config):
+    _vm_image_builder: Optional[ImageBuilder] = None
+
+    @property
+    def vm_image_builder(self):
+        if not self._vm_image_builder:
+            self._vm_image_builder = ImageBuilder(
+                self.service_config.redhat_api_refresh_token
+            )
+        return self._vm_image_builder
+
+
+class GetVMImageDataMixin(Config):
+    job_config: JobConfig
+
+    @property
+    def package_job_config(self):
+        if self.project.repo in self.job_config.packages:
+            return self.job_config.packages[self.project.repo]
+        else:
+            logging.debug(f"No job config found for package {self.project.repo}")
+            return None
+
+    @property
+    def chroot(self) -> str:
+        return self.package_job_config.copr_chroot
+
+    @property
+    def identifier(self) -> str:
+        return self.package_job_config.identifier
+
+    @property
+    def owner(self) -> str:
+        return self.package_job_config.owner
+
+    @property
+    def project_name(self) -> str:
+        return self.package_job_config.project
+
+    @property
+    def image_name(self) -> str:
+        return (
+            f"{self.package_job_config.owner}/"
+            f"{self.package_job_config.project}/{self.data.pr_id}"
+        )
+
+    @property
+    def image_distribution(self) -> str:
+        return self.package_job_config.image_distribution
+
+    @property
+    def image_request(self) -> dict:
+        return self.package_job_config.image_request
+
+    @property
+    def image_customizations(self) -> dict:
+        return self.package_job_config.image_customizations
+
+
+class GetReporter(Protocol):
+    @abstractmethod
+    def report(
+        self,
+        state: BaseCommitStatus,
+        description: str,
+        url: str = "",
+        check_names: Union[str, list, None] = None,
+        markdown_content: str = None,
+    ) -> None:
+        ...
+
+
+class GetReporterFromJobHelperMixin(Config):
+    _job_helper: BaseJobHelper = None
+
+    @property
+    def job_helper(self):
+        if not self._job_helper:
+            self._job_helper = BaseJobHelper(
+                self.service_config,
+                self.package_config,
+                self.project,
+                self.data,
+                self.data.db_trigger,
+                self.job_config,
+                None,
+            )
+        return self._job_helper
+
+    def report(
+        self,
+        state: BaseCommitStatus,
+        description: str,
+        url: str = "",
+        check_names: Union[str, list, None] = None,
+        markdown_content: str = None,
+    ) -> None:
+        self.job_helper._report(state, description, url, check_names, markdown_content)

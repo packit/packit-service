@@ -32,7 +32,7 @@ from packit_service.worker.result import TaskResults
 from packit_service.worker.checker.abstract import Checker
 
 from packit_service.worker.mixin import (
-    ConfigMixin,
+    ConfigFromEventMixin,
     PackitAPIWithDownstreamMixin,
 )
 
@@ -212,9 +212,11 @@ class TaskName(str, enum.Enum):
     bodhi_update = "task.bodhi_update"
     retrigger_bodhi_update = "task.retrigger_bodhi_update"
     github_fas_verification = "task.github_fas_verification"
+    vm_image_build = "task.run_vm_image_build_handler"
+    vm_image_build_result = "task.run_vm_image_build_result_handler"
 
 
-class Handler(ConfigMixin, PackitAPIWithDownstreamMixin):
+class Handler(ConfigFromEventMixin, PackitAPIWithDownstreamMixin):
     def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")
 

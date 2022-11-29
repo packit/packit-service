@@ -47,6 +47,8 @@ from packit_service.worker.events.pagure import (
 )
 from packit_service.worker.events.testing_farm import TestingFarmResultsEvent
 
+from packit_service.worker.events.vm_image import VMImageBuildResultEvent
+
 __all__ = [
     Event.__name__,
     EventData.__name__,
@@ -70,6 +72,7 @@ __all__ = [
     PullRequestCommentPagureEvent.__name__,
     PullRequestPagureEvent.__name__,
     TestingFarmResultsEvent.__name__,
+    VMImageBuildResultEvent.__name__,
     PipelineGitlabEvent.__name__,
     CheckRerunCommitEvent.__name__,
     CheckRerunPullRequestEvent.__name__,

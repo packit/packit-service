@@ -6,12 +6,15 @@ from packit.config import JobConfig
 from packit.config.package_config import PackageConfig
 
 from packit_service.worker.events import EventData
-from packit_service.worker.mixin import ConfigMixin, PackitAPIWithDownstreamMixin
+from packit_service.worker.mixin import (
+    ConfigFromEventMixin,
+    PackitAPIWithDownstreamMixin,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class Checker(ConfigMixin, PackitAPIWithDownstreamMixin):
+class Checker(ConfigFromEventMixin, PackitAPIWithDownstreamMixin):
     def __init__(
         self,
         package_config: PackageConfig,

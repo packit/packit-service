@@ -14,7 +14,10 @@ from packit_service.worker.handlers.mixin import (
     GetKojiBuildDataFromKojiServiceMixin,
     GetKojiBuildEventMixin,
 )
-from packit_service.worker.mixin import ConfigMixin, PackitAPIWithDownstreamMixin
+from packit_service.worker.mixin import (
+    ConfigFromEventMixin,
+    PackitAPIWithDownstreamMixin,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +65,7 @@ class IsKojiBuildCompleteAndBranchConfiguredCheckService(
     ...
 
 
-class HasAuthorWriteAccess(ActorChecker, ConfigMixin):
+class HasAuthorWriteAccess(ActorChecker, ConfigFromEventMixin):
     def _pre_check(self) -> bool:
         if not self.project.has_write_access(user=self.actor):
             logger.info(

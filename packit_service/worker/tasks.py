@@ -10,6 +10,7 @@ from celery import Task
 from celery.signals import after_setup_logger
 from syslog_rfc5424_formatter import RFC5424Formatter
 
+from packit_service.models import VMImageBuildTargetModel
 from packit_service.celerizer import celery_app
 from packit_service.constants import (
     DEFAULT_RETRY_LIMIT,
@@ -30,6 +31,8 @@ from packit_service.worker.handlers import (
     ProposeDownstreamHandler,
     TestingFarmHandler,
     TestingFarmResultsHandler,
+    VMImageBuildHandler,
+    VMImageBuildResultHandler,
 )
 from packit_service.worker.handlers.abstract import TaskName
 from packit_service.worker.handlers.bodhi import (
@@ -43,6 +46,8 @@ from packit_service.worker.helpers.build.babysit import (
     check_copr_build,
     check_pending_copr_builds,
     check_pending_testing_farm_runs,
+    update_vm_image_build,
+    check_pending_vm_image_builds,
 )
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import TaskResults
@@ -53,6 +58,10 @@ logger = logging.getLogger(__name__)
 
 class PackitCoprBuildTimeoutException(PackitException):
     """Copr build has timed out"""
+
+
+class PackitVMImageBuildTimeoutException(PackitException):
+    """VM image build has timed out"""
 
 
 @after_setup_logger.connect
@@ -333,6 +342,52 @@ def run_retrigger_bodhi_update(
     return get_handlers_task_results(handler.run_job(), event)
 
 
+@celery_app.task(
+    bind=True,
+    name=TaskName.vm_image_build,
+    base=HandlerTaskWithRetry,
+    queue="short-running",
+)
+def run_vm_image_build(self, event: dict, package_config: dict, job_config: dict):
+    handler = VMImageBuildHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+        celery_task=self,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(name=TaskName.vm_image_build_result, base=HandlerTaskWithRetry)
+def run_vm_image_build_result(
+    self, event: dict, package_config: dict, job_config: dict
+):
+    handler = VMImageBuildResultHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(
+    bind=True,
+    name="task.babysit_vm_image_build",
+    autoretry_for=(PackitVMImageBuildTimeoutException,),
+    retry_backoff=30,  # retry again in 30s, 60s, 120s, 240s...
+    retry_backoff_max=3600,  # at most, wait for an hour between retries
+    max_retries=14,  # retry 14 times; with the backoff values above this is ~8 hours
+    retry_jitter=False,  # do not jitter, as it might considerably reduce the total wait time
+)
+def babysit_vm_image_build(self, build_id: int):
+    """check status of a vm image build and update it in DB"""
+    model = VMImageBuildTargetModel.get_by_build_id(build_id)
+    if not update_vm_image_build(build_id, model):
+        raise PackitVMImageBuildTimeoutException(
+            f"No feedback for vm image build id={build_id} yet"
+        )
+
+
 def get_handlers_task_results(results: dict, event: dict) -> dict:
     # include original event to provide more info
     return {"job": results, "event": event}
@@ -355,3 +410,8 @@ def babysit_pending_tft_runs() -> None:
 def database_maintenance() -> None:
     discard_old_srpm_build_logs()
     backup()
+
+
+@celery_app.task
+def babysit_pending_vm_image_builds() -> None:
+    check_pending_vm_image_builds()
