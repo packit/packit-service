@@ -22,10 +22,11 @@ from packit_service.constants import (
     MSG_RETRIGGER,
 )
 from packit_service.models import (
-    ProposeDownstreamTargetStatus,
-    ProposeDownstreamTargetModel,
-    ProposeDownstreamModel,
-    ProposeDownstreamStatus,
+    SyncReleaseTargetStatus,
+    SyncReleaseTargetModel,
+    SyncReleaseModel,
+    SyncReleaseStatus,
+    SyncReleaseJobType,
 )
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.utils import gather_packit_logs_to_buffer, collect_packit_logs
@@ -120,6 +121,7 @@ class AbstractSyncReleaseHandler(
     PackitAPIWithUpstreamMixin, LocalProjectMixin, RetriableJobHandler
 ):
     helper_kls: type[SyncReleaseHelper]
+    sync_release_job_type: SyncReleaseJobType
 
     def __init__(
         self,
@@ -127,7 +129,7 @@ class AbstractSyncReleaseHandler(
         job_config: JobConfig,
         event: dict,
         celery_task: Task,
-        propose_downstream_run_id: Optional[int] = None,
+        sync_release_run_id: Optional[int] = None,
     ):
         super().__init__(
             package_config=package_config,
@@ -135,7 +137,7 @@ class AbstractSyncReleaseHandler(
             event=event,
             celery_task=celery_task,
         )
-        self._propose_downstream_run_id = propose_downstream_run_id
+        self._sync_release_run_id = sync_release_run_id
         self.helper: Optional[SyncReleaseHelper] = None
 
     @property
@@ -153,7 +155,7 @@ class AbstractSyncReleaseHandler(
         return self.helper
 
     def sync_branch(
-        self, branch: str, model: ProposeDownstreamModel
+        self, branch: str, model: SyncReleaseModel
     ) -> Optional[PullRequest]:
         try:
             downstream_pr = self.packit_api.sync_release(
@@ -171,17 +173,17 @@ class AbstractSyncReleaseHandler(
                 delay = 60 * 2**retries
                 logger.info(
                     f"Will retry for the {retries + 1}. time in {delay}s \
-                        with propose_downstream_run_id {model.id}."
+                        with sync_release_run_id {model.id}."
                 )
                 # throw=False so that exception is not raised and task
                 # is not retried also automatically
                 kargs = self.celery_task.task.request.kwargs.copy()
-                kargs["propose_downstream_run_id"] = model.id
+                kargs["sync_release_run_id"] = model.id
                 # https://docs.celeryq.dev/en/stable/userguide/tasks.html#retrying
                 self.celery_task.task.retry(
                     exc=ex, countdown=delay, throw=False, args=(), kwargs=kargs
                 )
-                raise AbortProposeDownstream()
+                raise AbortSyncRelease()
             raise ex
         finally:
             self.packit_api.up.local_project.git_repo.head.reset(
@@ -190,53 +192,55 @@ class AbstractSyncReleaseHandler(
 
         return downstream_pr
 
-    def _get_or_create_propose_downstream_run(self) -> ProposeDownstreamModel:
-        if self._propose_downstream_run_id is not None:
-            return ProposeDownstreamModel.get_by_id(self._propose_downstream_run_id)
+    def _get_or_create_sync_release_run(self) -> SyncReleaseModel:
+        if self._sync_release_run_id is not None:
+            return SyncReleaseModel.get_by_id(self._sync_release_run_id)
 
-        propose_downstream_model, _ = ProposeDownstreamModel.create_with_new_run(
-            status=ProposeDownstreamStatus.running,
+        sync_release_model, _ = SyncReleaseModel.create_with_new_run(
+            status=SyncReleaseStatus.running,
             trigger_model=self.data.db_trigger,
+            job_type=SyncReleaseJobType.propose_downstream
+            if self.job_config.type == JobType.propose_downstream
+            else SyncReleaseJobType.pull_from_upstream,
         )
 
         for branch in self.sync_release_helper.branches:
-            propose_downstream_target = ProposeDownstreamTargetModel.create(
-                status=ProposeDownstreamTargetStatus.queued, branch=branch
+            sync_release_target = SyncReleaseTargetModel.create(
+                status=SyncReleaseTargetStatus.queued, branch=branch
             )
-            propose_downstream_model.propose_downstream_targets.append(
-                propose_downstream_target
-            )
+            sync_release_model.sync_release_targets.append(sync_release_target)
 
-        return propose_downstream_model
+        return sync_release_model
 
     def run(self) -> TaskResults:
         """
         Sync the upstream release to dist-git as a pull request.
         """
         errors = {}
-        propose_downstream_model = self._get_or_create_propose_downstream_run()
+        sync_release_run_model = self._get_or_create_sync_release_run()
         branches_to_run = [
-            target.branch
-            for target in propose_downstream_model.propose_downstream_targets
+            target.branch for target in sync_release_run_model.sync_release_targets
         ]
-        logger.debug(f"Branches to run propose downstream: {branches_to_run}")
+        logger.debug(f"Branches to run {self.job_config.type}: {branches_to_run}")
 
         try:
-            for model in propose_downstream_model.propose_downstream_targets:
+            for model in sync_release_run_model.sync_release_targets:
                 branch = model.branch
                 # skip submitting a branch if we already did that (even if it failed)
                 if model.status not in [
-                    ProposeDownstreamTargetStatus.running,
-                    ProposeDownstreamTargetStatus.retry,
-                    ProposeDownstreamTargetStatus.queued,
+                    SyncReleaseTargetStatus.running,
+                    SyncReleaseTargetStatus.retry,
+                    SyncReleaseTargetStatus.queued,
                 ]:
                     logger.debug(
-                        f"Skipping propose downstream for branch {branch} "
+                        f"Skipping {self.sync_release_job_type} for branch {branch} "
                         f"that was already processed."
                     )
                     continue
-                logger.debug(f"Running propose downstream for {branch}")
-                model.set_status(status=ProposeDownstreamTargetStatus.running)
+                logger.debug(f"Running {self.sync_release_job_type} for {branch}")
+                model.set_status(status=SyncReleaseTargetStatus.running)
+                # for now the url is used only for propose-downstream
+                # so it does not matter URL may not be valid for pull-from-upstream
                 url = get_propose_downstream_info_url(model.id)
                 buffer, handler = gather_packit_logs_to_buffer(
                     logging_level=logging.DEBUG
@@ -251,23 +255,23 @@ class AbstractSyncReleaseHandler(
                         url=url,
                     )
                     downstream_pr = self.sync_branch(
-                        branch=branch, model=propose_downstream_model
+                        branch=branch, model=sync_release_run_model
                     )
                     logger.debug("Downstream PR created successfully.")
                     model.set_downstream_pr_url(downstream_pr_url=downstream_pr.url)
-                    model.set_status(status=ProposeDownstreamTargetStatus.submitted)
+                    model.set_status(status=SyncReleaseTargetStatus.submitted)
                     self.sync_release_helper.report_status_to_branch(
                         branch=branch,
                         description="Propose downstream finished successfully.",
                         state=BaseCommitStatus.success,
                         url=url,
                     )
-                except AbortProposeDownstream:
+                except AbortSyncRelease:
                     logger.debug(
-                        "Propose downstream is being retried because "
+                        f"{self.sync_release_job_type} is being retried because "
                         "we were not able yet to download the archive. "
                     )
-                    model.set_status(status=ProposeDownstreamTargetStatus.retry)
+                    model.set_status(status=SyncReleaseTargetStatus.retry)
                     self.sync_release_helper.report_status_to_branch(
                         branch=branch,
                         description="Propose downstream is being retried because "
@@ -282,9 +286,9 @@ class AbstractSyncReleaseHandler(
                         },
                     )
                 except Exception as ex:
-                    logger.debug(f"Propose downstream failed: {ex}")
+                    logger.debug(f"{self.sync_release_job_type} failed: {ex}")
                     # eat the exception and continue with the execution
-                    model.set_status(status=ProposeDownstreamTargetStatus.error)
+                    model.set_status(status=SyncReleaseTargetStatus.error)
                     self.sync_release_helper.report_status_to_branch(
                         branch=branch,
                         description=f"Propose downstream failed: {ex}",
@@ -306,21 +310,25 @@ class AbstractSyncReleaseHandler(
 
         if errors:
             self._report_errors_for_each_branch(errors)
-            propose_downstream_model.set_status(status=ProposeDownstreamStatus.error)
+            sync_release_run_model.set_status(status=SyncReleaseStatus.error)
             return TaskResults(
                 success=False,
-                details={"msg": "Propose downstream failed.", "errors": errors},
+                details={
+                    "msg": f"{self.sync_release_job_type}  failed.",
+                    "errors": errors,
+                },
             )
 
-        propose_downstream_model.set_status(status=ProposeDownstreamStatus.finished)
+        sync_release_run_model.set_status(status=SyncReleaseStatus.finished)
         return TaskResults(success=True, details={})
 
     def _report_errors_for_each_branch(self, errors):
         raise NotImplementedError("Use subclass.")
 
 
-class AbortProposeDownstream(Exception):
-    """Abort propose-downstream process"""
+class AbortSyncRelease(Exception):
+    """Abort sync-release process"""
+
 
 @configured_as(job_type=JobType.propose_downstream)
 @run_for_comment(command="propose-downstream")
@@ -334,6 +342,7 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
     topic = "org.fedoraproject.prod.git.receive"
     task_name = TaskName.propose_downstream
     helper_kls = ProposeDownstreamJobHelper
+    sync_release_job_type = SyncReleaseJobType.propose_downstream
 
     def __init__(
         self,
@@ -341,14 +350,14 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
         job_config: JobConfig,
         event: dict,
         celery_task: Task,
-        propose_downstream_run_id: Optional[int] = None,
+        sync_release_run_id: Optional[int] = None,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
             event=event,
             celery_task=celery_task,
-            propose_downstream_run_id=propose_downstream_run_id,
+            sync_release_run_id=sync_release_run_id,
         )
 
     def _report_errors_for_each_branch(self, errors: Dict[str, str]) -> None:
@@ -386,6 +395,7 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
 class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
     task_name = TaskName.pull_from_upstream
     helper_kls = PullFromUpstreamHelper
+    sync_release_job_type = SyncReleaseJobType.pull_from_upstream
 
     def __init__(
         self,
@@ -393,14 +403,14 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         job_config: JobConfig,
         event: dict,
         celery_task: Task,
-        propose_downstream_run_id: Optional[int] = None,
+        sync_release_run_id: Optional[int] = None,
     ):
         super().__init__(
             package_config=package_config,
             job_config=job_config,
             event=event,
             celery_task=celery_task,
-            propose_downstream_run_id=propose_downstream_run_id,
+            sync_release_run_id=sync_release_run_id,
         )
 
     @staticmethod

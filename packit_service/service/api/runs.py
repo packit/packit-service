@@ -11,7 +11,7 @@ from packit_service.models import (
     CoprBuildTargetModel,
     KojiBuildTargetModel,
     PipelineModel,
-    ProposeDownstreamModel,
+    SyncReleaseModel,
     SRPMBuildModel,
     TFTTestRunTargetModel,
     optional_timestamp,
@@ -28,10 +28,10 @@ logger = getLogger("packit_service")
 ns = Namespace("runs", description="Pipelines")
 
 
-def _add_propose_downstream(run: ProposeDownstreamModel, response_dict: Dict):
+def _add_propose_downstream(run: SyncReleaseModel, response_dict: Dict):
     targets = response_dict["propose_downstream"]
 
-    for target in run.propose_downstream_targets:
+    for target in run.sync_release_targets:
         targets.append(
             {
                 "packit_id": target.id,
@@ -109,10 +109,10 @@ def process_runs(runs):
 
         # handle propose-downstream
         if propose_downstream := list(
-            flatten_and_remove_none(pipeline.propose_downstream_run_id)
+            flatten_and_remove_none(pipeline.sync_release_run_id)
         ):
             _add_propose_downstream(
-                ProposeDownstreamModel.get_by_id(propose_downstream[0]),
+                SyncReleaseModel.get_by_id(propose_downstream[0]),
                 response_dict,
             )
 

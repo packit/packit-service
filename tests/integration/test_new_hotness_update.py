@@ -17,10 +17,11 @@ from packit_service.models import (
     JobTriggerModelType,
     PipelineModel,
     ProjectReleaseModel,
-    ProposeDownstreamStatus,
-    ProposeDownstreamModel,
-    ProposeDownstreamTargetModel,
-    ProposeDownstreamTargetStatus,
+    SyncReleaseStatus,
+    SyncReleaseModel,
+    SyncReleaseTargetModel,
+    SyncReleaseTargetStatus,
+    SyncReleaseJobType,
 )
 from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.worker.allowlist import Allowlist
@@ -49,13 +50,12 @@ def propose_downstream_model():
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
         commit_hash=None,
-    ).and_return(
-        trigger
-    )  # TODO kolkokrat?
-    propose_downstream_model = flexmock(id=123, propose_downstream_targets=[])
-    flexmock(ProposeDownstreamModel).should_receive("create_with_new_run").with_args(
-        status=ProposeDownstreamStatus.running,
+    ).and_return(trigger)
+    propose_downstream_model = flexmock(id=123, sync_release_targets=[])
+    flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
+        status=SyncReleaseStatus.running,
         trigger_model=trigger,
+        job_type=SyncReleaseJobType.pull_from_upstream,
     ).and_return(propose_downstream_model, run_model).once()
 
     yield propose_downstream_model
@@ -67,16 +67,16 @@ def propose_downstream_target_models(fedora_branches):
     for branch in fedora_branches:
         model = flexmock(status="queued", id=1234, branch=branch)
         models.append(model)
-        flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
-            status=ProposeDownstreamTargetStatus.queued, branch=branch
+        flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
+            status=SyncReleaseTargetStatus.queued, branch=branch
         ).and_return(model)
     yield models
 
 
 def test_new_hotness_update(new_hotness_update, propose_downstream_model):
     model = flexmock(status="queued", id=1234, branch="main")
-    flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
-        status=ProposeDownstreamTargetStatus.queued, branch="main"
+    flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
+        status=SyncReleaseTargetStatus.queued, branch="main"
     ).and_return(model)
 
     packit_yaml = (
@@ -134,19 +134,19 @@ def test_new_hotness_update(new_hotness_update, propose_downstream_model):
     flexmock(PackitAPI).should_receive("clean")
 
     flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.running
+        status=SyncReleaseTargetStatus.running
     ).once()
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="some_url"
     ).once()
     flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.submitted
+        status=SyncReleaseTargetStatus.submitted
     ).once()
     flexmock(model).should_receive("set_start_time").once()
     flexmock(model).should_receive("set_finished_time").once()
     flexmock(model).should_receive("set_logs").once()
     flexmock(propose_downstream_model).should_receive("set_status").with_args(
-        status=ProposeDownstreamStatus.finished
+        status=SyncReleaseStatus.finished
     ).once()
 
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(

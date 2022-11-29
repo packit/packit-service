@@ -233,13 +233,13 @@ def run_propose_downstream_handler(
     event: dict,
     package_config: dict,
     job_config: dict,
-    propose_downstream_run_id: Optional[int] = None,
+    sync_release_run_id: Optional[int] = None,
 ):
     handler = ProposeDownstreamHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
-        propose_downstream_run_id=propose_downstream_run_id,
+        sync_release_run_id=sync_release_run_id,
         celery_task=self,
     )
     return get_handlers_task_results(handler.run_job(), event)
@@ -256,13 +256,13 @@ def run_pull_from_upstream_handler(
     event: dict,
     package_config: dict,
     job_config: dict,
-    propose_downstream_run_id: Optional[int] = None,
+    sync_release_run_id: Optional[int] = None,
 ):
     handler = PullFromUpstreamHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,
-        propose_downstream_run_id=propose_downstream_run_id,
+        sync_release_run_id=sync_release_run_id,
         celery_task=self,
     )
     return get_handlers_task_results(handler.run_job(), event)

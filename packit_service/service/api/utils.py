@@ -12,7 +12,7 @@ from packit_service.models import (
     KojiBuildTargetModel,
     SRPMBuildModel,
     TFTTestRunTargetModel,
-    ProposeDownstreamModel,
+    SyncReleaseModel,
 )
 
 
@@ -30,7 +30,7 @@ def get_project_info_from_build(
         CoprBuildTargetModel,
         KojiBuildTargetModel,
         TFTTestRunTargetModel,
-        ProposeDownstreamModel,
+        SyncReleaseModel,
     ]
 ) -> Dict[str, Any]:
     if not (project := build.get_project()):

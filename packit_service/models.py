@@ -811,12 +811,10 @@ class PipelineModel(Base):
     vm_image_build = relationship("VMImageBuildTargetModel", back_populates="runs")
     test_run_id = Column(Integer, ForeignKey("tft_test_run_targets.id"), index=True)
     test_run = relationship("TFTTestRunTargetModel", back_populates="runs")
-    propose_downstream_run_id = Column(
-        Integer, ForeignKey("propose_downstream_runs.id"), index=True
+    sync_release_run_id = Column(
+        Integer, ForeignKey("sync_release_runs.id"), index=True
     )
-    propose_downstream_run = relationship(
-        "ProposeDownstreamModel", back_populates="runs"
-    )
+    sync_release_run = relationship("SyncReleaseModel", back_populates="runs")
 
     @classmethod
     def create(cls, type: JobTriggerModelType, trigger_id: int) -> "PipelineModel":
@@ -848,8 +846,8 @@ class PipelineModel(Base):
             func.array_agg(psql_array([PipelineModel.test_run_id])).label(
                 "test_run_id"
             ),
-            func.array_agg(psql_array([PipelineModel.propose_downstream_run_id])).label(
-                "propose_downstream_run_id",
+            func.array_agg(psql_array([PipelineModel.sync_release_run_id])).label(
+                "sync_release_run_id",
             ),
         )
 
@@ -1681,7 +1679,7 @@ class TFTTestRunTargetModel(ProjectAndTriggersConnector, Base):
         return f"TFTTestRunTargetModel(id={self.id}, pipeline_id={self.pipeline_id})"
 
 
-class ProposeDownstreamTargetStatus(str, enum.Enum):
+class SyncReleaseTargetStatus(str, enum.Enum):
     queued = "queued"
     running = "running"
     error = "error"
@@ -1689,37 +1687,37 @@ class ProposeDownstreamTargetStatus(str, enum.Enum):
     submitted = "submitted"
 
 
-class ProposeDownstreamTargetModel(ProjectAndTriggersConnector, Base):
-    __tablename__ = "propose_downstream_run_targets"
+class SyncReleaseTargetModel(ProjectAndTriggersConnector, Base):
+    __tablename__ = "sync_release_run_targets"
     id = Column(Integer, primary_key=True)
     branch = Column(String, default="unknown")
     downstream_pr_url = Column(String)
-    status = Column(Enum(ProposeDownstreamTargetStatus))
+    status = Column(Enum(SyncReleaseTargetStatus))
     submitted_time = Column(DateTime, default=datetime.utcnow)
     start_time = Column(DateTime)
     finished_time = Column(DateTime)
     logs = Column(Text)
-    propose_downstream_id = Column(Integer, ForeignKey("propose_downstream_runs.id"))
+    sync_release_id = Column(Integer, ForeignKey("sync_release_runs.id"))
 
-    propose_downstream = relationship(
-        "ProposeDownstreamModel", back_populates="propose_downstream_targets"
+    sync_release = relationship(
+        "SyncReleaseModel", back_populates="sync_release_targets"
     )
 
     def __repr__(self) -> str:
-        return f"ProposeDownstreamTargetModel(id={self.id})"
+        return f"SyncReleaseTargetModel(id={self.id})"
 
     @classmethod
     def create(
-        cls, status: ProposeDownstreamTargetStatus, branch: str
-    ) -> "ProposeDownstreamTargetModel":
+        cls, status: SyncReleaseTargetStatus, branch: str
+    ) -> "SyncReleaseTargetModel":
         with sa_session_transaction() as session:
-            propose_downstream_target = cls()
-            propose_downstream_target.status = status
-            propose_downstream_target.branch = branch
-            session.add(propose_downstream_target)
-            return propose_downstream_target
+            sync_release_target = cls()
+            sync_release_target.status = status
+            sync_release_target.branch = branch
+            session.add(sync_release_target)
+            return sync_release_target
 
-    def set_status(self, status: ProposeDownstreamTargetStatus) -> None:
+    def set_status(self, status: SyncReleaseTargetStatus) -> None:
         with sa_session_transaction() as session:
             self.status = status
             session.add(self)
@@ -1745,89 +1743,103 @@ class ProposeDownstreamTargetModel(ProjectAndTriggersConnector, Base):
             session.add(self)
 
     @classmethod
-    def get_by_id(cls, id_: int) -> Optional["ProposeDownstreamTargetModel"]:
-        return (
-            sa_session().query(ProposeDownstreamTargetModel).filter_by(id=id_).first()
-        )
+    def get_by_id(cls, id_: int) -> Optional["SyncReleaseTargetModel"]:
+        return sa_session().query(SyncReleaseTargetModel).filter_by(id=id_).first()
 
 
-class ProposeDownstreamStatus(str, enum.Enum):
+class SyncReleaseStatus(str, enum.Enum):
     running = "running"
     finished = "finished"
     error = "error"
 
 
-class ProposeDownstreamModel(ProjectAndTriggersConnector, Base):
-    __tablename__ = "propose_downstream_runs"
-    id = Column(Integer, primary_key=True)
-    status = Column(Enum(ProposeDownstreamStatus))
-    submitted_time = Column(DateTime, default=datetime.utcnow)
+class SyncReleaseJobType(str, enum.Enum):
+    pull_from_upstream = "pull_from_upstream"
+    propose_downstream = "propose_downstream"
 
-    runs = relationship("PipelineModel", back_populates="propose_downstream_run")
-    propose_downstream_targets = relationship(
-        "ProposeDownstreamTargetModel", back_populates="propose_downstream"
+
+class SyncReleaseModel(ProjectAndTriggersConnector, Base):
+    __tablename__ = "sync_release_runs"
+    id = Column(Integer, primary_key=True)
+    status = Column(Enum(SyncReleaseStatus))
+    submitted_time = Column(DateTime, default=datetime.utcnow)
+    job_type = Column(
+        Enum(SyncReleaseJobType), default=SyncReleaseJobType.propose_downstream
+    )
+
+    runs = relationship("PipelineModel", back_populates="sync_release_run")
+    sync_release_targets = relationship(
+        "SyncReleaseTargetModel", back_populates="sync_release"
     )
 
     def __repr__(self) -> str:
-        return f"ProposeDownstreamModel(id={self.id}, submitted_time={self.submitted_time})"
+        return (
+            f"SyncReleaseModel(id={self.id}, submitted_time={self.submitted_time}, "
+            f"job_type={self.job_type})"
+        )
 
     @classmethod
     def create_with_new_run(
         cls,
-        status: ProposeDownstreamStatus,
+        status: SyncReleaseStatus,
         trigger_model: AbstractTriggerDbType,
-    ) -> Tuple["ProposeDownstreamModel", "PipelineModel"]:
+        job_type: SyncReleaseJobType,
+    ) -> Tuple["SyncReleaseModel", "PipelineModel"]:
         """
-        Create a new model for ProposeDownstream and connect it to the PipelineModel.
+        Create a new model for SyncRelease and connect it to the PipelineModel.
 
-        * New ProposeDownstreamModel model will have connection to a new PipelineModel.
+        * New SyncReleaseModel model will have connection to a new PipelineModel.
         * The newly created PipelineModel can reuse existing JobTriggerModel
           (e.g.: one IssueModel can have multiple runs).
 
         More specifically:
         * On `/packit propose-downstream` issue comment:
-          -> ProposeDownstreamModel is created.
+          -> SyncReleaseModel is created.
           -> New PipelineModel is created.
           -> JobTriggerModel is created.
         * Something went wrong, after correction and another `/packit propose-downstream` comment:
-          -> ProposeDownstreamModel is created.
+          -> SyncReleaseModel is created.
           -> PipelineModel is created.
           -> JobTriggerModel is reused.
         * TODO: we will use propose-downstream in commit-checks - fill in once it's implemented
         """
         with sa_session_transaction() as session:
-            propose_downstream = cls()
-            propose_downstream.status = status
-            session.add(propose_downstream)
+            sync_release = cls()
+            sync_release.status = status
+            sync_release.job_type = job_type
+            session.add(sync_release)
 
             # Create a pipeline, reuse trigger_model if it exists:
             pipeline = PipelineModel.create(
                 type=trigger_model.job_trigger_model_type, trigger_id=trigger_model.id
             )
-            pipeline.propose_downstream_run = propose_downstream
+            pipeline.sync_release_run = sync_release
             session.add(pipeline)
 
-            return propose_downstream, pipeline
+            return sync_release, pipeline
 
-    def set_status(self, status: ProposeDownstreamStatus) -> None:
+    def set_status(self, status: SyncReleaseStatus) -> None:
         with sa_session_transaction() as session:
             self.status = status
             session.add(self)
 
     @classmethod
-    def get_by_id(cls, id_: int) -> Optional["ProposeDownstreamModel"]:
-        return sa_session().query(ProposeDownstreamModel).filter_by(id=id_).first()
+    def get_by_id(cls, id_: int) -> Optional["SyncReleaseModel"]:
+        return sa_session().query(SyncReleaseModel).filter_by(id=id_).first()
 
     @classmethod
-    def get_all_by_status(cls, status: str) -> Iterable["ProposeDownstreamModel"]:
-        return sa_session().query(ProposeDownstreamModel).filter_by(status=status)
+    def get_all_by_status(cls, status: str) -> Iterable["SyncReleaseModel"]:
+        return sa_session().query(SyncReleaseModel).filter_by(status=status)
 
     @classmethod
-    def get_range(cls, first: int, last: int) -> Iterable["ProposeDownstreamModel"]:
+    def get_range_propose_downstream(
+        cls, first: int, last: int
+    ) -> Iterable["SyncReleaseModel"]:
         return (
             sa_session()
-            .query(ProposeDownstreamModel)
-            .order_by(desc(ProposeDownstreamModel.id))
+            .query(SyncReleaseModel)
+            .order_by(desc(SyncReleaseModel.id))
+            .filter_by(job_type=SyncReleaseJobType.propose_downstream)
             .slice(first, last)
         )
 
@@ -1837,7 +1849,7 @@ AbstractBuildTestDbType = Union[
     KojiBuildTargetModel,
     SRPMBuildModel,
     TFTTestRunTargetModel,
-    ProposeDownstreamModel,
+    SyncReleaseModel,
 ]
 
 

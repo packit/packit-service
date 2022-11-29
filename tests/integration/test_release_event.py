@@ -23,19 +23,20 @@ from packit_service.models import (
     JobTriggerModelType,
     PipelineModel,
     ProjectReleaseModel,
-    ProposeDownstreamModel,
-    ProposeDownstreamStatus,
-    ProposeDownstreamTargetModel,
-    ProposeDownstreamTargetStatus,
+    SyncReleaseModel,
+    SyncReleaseStatus,
+    SyncReleaseTargetModel,
+    SyncReleaseTargetStatus,
+    SyncReleaseJobType,
 )
 from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.jobs import SteveJobs
-from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.helpers.sync_release.propose_downstream import (
     ProposeDownstreamJobHelper,
 )
+from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.tasks import run_propose_downstream_handler
 from tests.spellbook import first_dict_value, get_parameters_from_results
@@ -61,10 +62,11 @@ def propose_downstream_model():
         project_url="https://github.com/packit-service/hello-world",
         commit_hash="123456",
     ).and_return(trigger).once()
-    propose_downstream_model = flexmock(id=123, propose_downstream_targets=[])
-    flexmock(ProposeDownstreamModel).should_receive("create_with_new_run").with_args(
-        status=ProposeDownstreamStatus.running,
+    propose_downstream_model = flexmock(id=123, sync_release_targets=[])
+    flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
+        status=SyncReleaseStatus.running,
         trigger_model=trigger,
+        job_type=SyncReleaseJobType.propose_downstream,
     ).and_return(propose_downstream_model, run_model).once()
 
     flexmock(ProposeDownstreamJobHelper).should_receive(
@@ -84,16 +86,16 @@ def propose_downstream_target_models(fedora_branches):
     for branch in fedora_branches:
         model = flexmock(status="queued", id=1234, branch=branch)
         models.append(model)
-        flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
-            status=ProposeDownstreamTargetStatus.queued, branch=branch
+        flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
+            status=SyncReleaseTargetStatus.queued, branch=branch
         ).and_return(model)
     yield models
 
 
 def test_dist_git_push_release_handle(github_release_webhook, propose_downstream_model):
     model = flexmock(status="queued", id=1234, branch="main")
-    flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
-        status=ProposeDownstreamTargetStatus.queued, branch="main"
+    flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
+        status=SyncReleaseTargetStatus.queued, branch="main"
     ).and_return(model)
 
     packit_yaml = (
@@ -137,19 +139,19 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
     flexmock(PackitAPI).should_receive("clean")
 
     flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.running
+        status=SyncReleaseTargetStatus.running
     ).once()
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="some_url"
     ).once()
     flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.submitted
+        status=SyncReleaseTargetStatus.submitted
     ).once()
     flexmock(model).should_receive("set_start_time").once()
     flexmock(model).should_receive("set_finished_time").once()
     flexmock(model).should_receive("set_logs").once()
     flexmock(propose_downstream_model).should_receive("set_status").with_args(
-        status=ProposeDownstreamStatus.finished
+        status=SyncReleaseStatus.finished
     ).once()
 
     flexmock(AddReleaseDbTrigger).should_receive("db_trigger").and_return(
@@ -241,19 +243,19 @@ def test_dist_git_push_release_handle_multiple_branches(
         ).and_return(flexmock(url="some_url")).once()
     for model in propose_downstream_target_models:
         flexmock(model).should_receive("set_status").with_args(
-            status=ProposeDownstreamTargetStatus.running
+            status=SyncReleaseTargetStatus.running
         ).once()
         flexmock(model).should_receive("set_downstream_pr_url").with_args(
             downstream_pr_url="some_url"
         ).once()
         flexmock(model).should_receive("set_status").with_args(
-            status=ProposeDownstreamTargetStatus.submitted
+            status=SyncReleaseTargetStatus.submitted
         ).once()
         flexmock(model).should_receive("set_start_time").once()
         flexmock(model).should_receive("set_finished_time").once()
         flexmock(model).should_receive("set_logs").once()
     flexmock(propose_downstream_model).should_receive("set_status").with_args(
-        status=ProposeDownstreamStatus.finished
+        status=SyncReleaseStatus.finished
     ).once()
 
     flexmock(PkgTool).should_receive("clone").and_return(None)
@@ -361,7 +363,7 @@ def test_dist_git_push_release_handle_one_failed(
     for model in propose_downstream_target_models:
         url = get_propose_downstream_info_url(model.id)
         flexmock(model).should_receive("set_status").with_args(
-            status=ProposeDownstreamTargetStatus.running
+            status=SyncReleaseTargetStatus.running
         ).once()
         flexmock(model).should_receive("set_start_time").once()
         flexmock(model).should_receive("set_finished_time").once()
@@ -371,15 +373,15 @@ def test_dist_git_push_release_handle_one_failed(
                 downstream_pr_url="some_url"
             )
             flexmock(model).should_receive("set_status").with_args(
-                status=ProposeDownstreamTargetStatus.submitted
+                status=SyncReleaseTargetStatus.submitted
             ).once()
         else:
             flexmock(model).should_receive("set_status").with_args(
-                status=ProposeDownstreamTargetStatus.error
+                status=SyncReleaseTargetStatus.error
             ).once()  # this is the failed branch
 
     flexmock(propose_downstream_model).should_receive("set_status").with_args(
-        status=ProposeDownstreamStatus.error
+        status=SyncReleaseStatus.error
     ).once()
 
     flexmock(PkgTool).should_receive("clone").and_return(None)
@@ -514,16 +516,16 @@ def test_dist_git_push_release_handle_all_failed(
     for model in propose_downstream_target_models:
         url = get_propose_downstream_info_url(model.id)
         flexmock(model).should_receive("set_status").with_args(
-            status=ProposeDownstreamTargetStatus.running
+            status=SyncReleaseTargetStatus.running
         ).once()
         flexmock(model).should_receive("set_status").with_args(
-            status=ProposeDownstreamTargetStatus.error
+            status=SyncReleaseTargetStatus.error
         ).once()
         flexmock(model).should_receive("set_start_time").once()
         flexmock(model).should_receive("set_finished_time").once()
         flexmock(model).should_receive("set_logs").once()
     flexmock(propose_downstream_model).should_receive("set_status").with_args(
-        status=ProposeDownstreamStatus.error
+        status=SyncReleaseStatus.error
     ).once()
 
     flexmock(sentry_integration).should_receive("send_to_sentry").and_return().times(
@@ -571,8 +573,8 @@ def test_retry_propose_downstream_task(
     github_release_webhook, propose_downstream_model
 ):
     model = flexmock(status="queued", id=1234, branch="main")
-    flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
-        status=ProposeDownstreamTargetStatus.queued, branch="main"
+    flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
+        status=SyncReleaseTargetStatus.queued, branch="main"
     ).and_return(model)
 
     packit_yaml = (
@@ -627,10 +629,10 @@ def test_retry_propose_downstream_task(
     ).once()
 
     flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.running
+        status=SyncReleaseTargetStatus.running
     ).once()
     flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.retry
+        status=SyncReleaseTargetStatus.retry
     ).once()
     flexmock(model).should_receive("set_start_time").once()
     flexmock(model).should_receive("set_finished_time").once()
@@ -675,8 +677,8 @@ def test_dont_retry_propose_downstream_task(
     github_release_webhook, propose_downstream_model
 ):
     model = flexmock(status="queued", id=1234, branch="main")
-    flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
-        status=ProposeDownstreamTargetStatus.queued, branch="main"
+    flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
+        status=SyncReleaseTargetStatus.queued, branch="main"
     ).and_return(model)
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
@@ -726,16 +728,16 @@ def test_dont_retry_propose_downstream_task(
     ).once()
 
     flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.running
+        status=SyncReleaseTargetStatus.running
     ).once()
     flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.error
+        status=SyncReleaseTargetStatus.error
     ).once()
     flexmock(model).should_receive("set_start_time").once()
     flexmock(model).should_receive("set_finished_time").once()
     flexmock(model).should_receive("set_logs").once()
     flexmock(propose_downstream_model).should_receive("set_status").with_args(
-        status=ProposeDownstreamStatus.error
+        status=SyncReleaseStatus.error
     ).once()
 
     flexmock(LocalProject).should_receive("git_repo").and_return(

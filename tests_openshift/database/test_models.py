@@ -22,10 +22,10 @@ from packit_service.models import (
     TestingFarmResult,
     sa_session_transaction,
     PipelineModel,
-    ProposeDownstreamTargetStatus,
-    ProposeDownstreamStatus,
-    ProposeDownstreamTargetModel,
-    ProposeDownstreamModel,
+    SyncReleaseTargetStatus,
+    SyncReleaseStatus,
+    SyncReleaseTargetModel,
+    SyncReleaseModel,
     Session,
     BuildStatus,
 )
@@ -841,14 +841,14 @@ def test_tf_get_all_by_commit_target(clean_before_and_after, multiple_new_test_r
 
 
 def test_create_propose_model(clean_before_and_after, propose_model):
-    assert propose_model.status == ProposeDownstreamTargetStatus.running
+    assert propose_model.status == SyncReleaseTargetStatus.running
     # test if submitted time is something - datetime
     assert isinstance(propose_model.submitted_time, datetime)
 
 
 def test_set_propose_model_attributes(clean_before_and_after, propose_model):
-    propose_model.set_status(status=ProposeDownstreamTargetStatus.submitted)
-    assert propose_model.status == ProposeDownstreamTargetStatus.submitted
+    propose_model.set_status(status=SyncReleaseTargetStatus.submitted)
+    assert propose_model.status == SyncReleaseTargetStatus.submitted
 
     propose_model.set_downstream_pr_url(downstream_pr_url="not_for_kids")
     assert propose_model.downstream_pr_url == "not_for_kids"
@@ -867,14 +867,14 @@ def test_set_propose_model_attributes(clean_before_and_after, propose_model):
 def test_propose_model_get_by_id(clean_before_and_after, propose_model):
     assert propose_model.id
 
-    model = ProposeDownstreamTargetModel.get_by_id(id_=propose_model.id)
+    model = SyncReleaseTargetModel.get_by_id(id_=propose_model.id)
     assert model.id == propose_model.id
 
 
 def test_create_propose_downstream_model(
     clean_before_and_after, propose_downstream_model_release
 ):
-    assert propose_downstream_model_release.status == ProposeDownstreamStatus.running
+    assert propose_downstream_model_release.status == SyncReleaseStatus.running
     # test if submitted time is something - datetime
     assert isinstance(propose_downstream_model_release.submitted_time, datetime)
 
@@ -882,8 +882,8 @@ def test_create_propose_downstream_model(
 def test_set_propose_downstream_model_status(
     clean_before_and_after, propose_downstream_model_release
 ):
-    propose_downstream_model_release.set_status(ProposeDownstreamStatus.finished)
-    assert propose_downstream_model_release.status == ProposeDownstreamStatus.finished
+    propose_downstream_model_release.set_status(SyncReleaseStatus.finished)
+    assert propose_downstream_model_release.status == SyncReleaseStatus.finished
 
 
 def test_get_propose_downstream_model_by_id(
@@ -891,7 +891,7 @@ def test_get_propose_downstream_model_by_id(
 ):
     assert propose_downstream_model_release.id
 
-    model = ProposeDownstreamModel.get_by_id(id_=propose_downstream_model_release.id)
+    model = SyncReleaseModel.get_by_id(id_=propose_downstream_model_release.id)
     assert model.id == propose_downstream_model_release.id
 
 
@@ -901,13 +901,13 @@ def test_get_propose_downstream_model_by_status(
     assert multiple_propose_downstream_runs_release_trigger
 
     propose_downstream_list = list(
-        ProposeDownstreamModel.get_all_by_status(status=ProposeDownstreamStatus.running)
+        SyncReleaseModel.get_all_by_status(status=SyncReleaseStatus.running)
     )
     assert len(propose_downstream_list) == 2
     assert (
         propose_downstream_list[0].status
         == propose_downstream_list[1].status
-        == ProposeDownstreamStatus.running
+        == SyncReleaseStatus.running
     )
 
 
@@ -916,7 +916,9 @@ def test_get_propose_downstream_model_range(
 ):
     assert multiple_propose_downstream_runs_release_trigger
 
-    propose_downstream_list = list(ProposeDownstreamModel.get_range(first=0, last=10))
+    propose_downstream_list = list(
+        SyncReleaseModel.get_range_propose_downstream(first=0, last=10)
+    )
     assert len(propose_downstream_list) == 4
 
 

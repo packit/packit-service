@@ -8,12 +8,12 @@ from datetime import datetime
 import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
-
 from ogr.abstract import GitTag
 from ogr.abstract import PRStatus
 from ogr.read_only import PullRequestReadOnly
 from ogr.services.github import GithubProject, GithubRelease
 from ogr.services.gitlab import GitlabProject, GitlabRelease
+
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.distgit import DistGit
@@ -23,19 +23,20 @@ from packit_service.models import (
     IssueModel,
     JobTriggerModelType,
     PipelineModel,
-    ProposeDownstreamModel,
-    ProposeDownstreamStatus,
-    ProposeDownstreamTargetModel,
-    ProposeDownstreamTargetStatus,
+    SyncReleaseModel,
+    SyncReleaseStatus,
+    SyncReleaseTargetModel,
+    SyncReleaseTargetStatus,
+    SyncReleaseJobType,
 )
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.events import IssueCommentEvent, IssueCommentGitlabEvent
-from packit_service.worker.jobs import SteveJobs
-from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.helpers.sync_release.propose_downstream import (
     ProposeDownstreamJobHelper,
 )
+from packit_service.worker.jobs import SteveJobs
+from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.tasks import run_propose_downstream_handler
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
@@ -178,30 +179,31 @@ def test_issue_comment_propose_downstream_handler(
     flexmock(IssueModel).should_receive("get_or_create").and_return(trigger)
 
     run_model = flexmock(PipelineModel)
-    propose_downstream_model = flexmock(propose_downstream_targets=[])
-    flexmock(ProposeDownstreamModel).should_receive("create_with_new_run").with_args(
-        status=ProposeDownstreamStatus.running,
+    propose_downstream_model = flexmock(sync_release_targets=[])
+    flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
+        status=SyncReleaseStatus.running,
         trigger_model=trigger,
+        job_type=SyncReleaseJobType.propose_downstream,
     ).and_return(propose_downstream_model, run_model).once()
 
     model = flexmock(status="queued", id=1234, branch="main")
-    flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
-        status=ProposeDownstreamTargetStatus.queued, branch="main"
+    flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
+        status=SyncReleaseTargetStatus.queued, branch="main"
     ).and_return(model).once()
     flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.running
+        status=SyncReleaseTargetStatus.running
     ).once()
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="https://xyz"
     ).once()
     flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.submitted
+        status=SyncReleaseTargetStatus.submitted
     ).once()
     flexmock(model).should_receive("set_start_time").once()
     flexmock(model).should_receive("set_finished_time").once()
     flexmock(model).should_receive("set_logs").once()
     flexmock(propose_downstream_model).should_receive("set_status").with_args(
-        status=ProposeDownstreamStatus.finished
+        status=SyncReleaseStatus.finished
     ).once()
 
     flexmock(Signature).should_receive("apply_async").once()

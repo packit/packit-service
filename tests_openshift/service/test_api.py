@@ -6,8 +6,8 @@ from flask import url_for
 from packit_service.models import (
     TestingFarmResult,
     PipelineModel,
-    ProposeDownstreamStatus,
-    ProposeDownstreamTargetStatus,
+    SyncReleaseStatus,
+    SyncReleaseTargetStatus,
 )
 from packit_service.service.api.runs import process_runs
 from tests_openshift.conftest import SampleValues
@@ -479,19 +479,19 @@ def test_propose_downstream_list_releases(
 
     # the order is reversed
     response_dict.reverse()
-    assert response_dict[0]["status"] == ProposeDownstreamStatus.running
-    assert response_dict[1]["status"] == ProposeDownstreamStatus.error
+    assert response_dict[0]["status"] == SyncReleaseStatus.running
+    assert response_dict[1]["status"] == SyncReleaseStatus.error
     assert response_dict[0]["submitted_time"] is not None
     assert response_dict[0]["release"] == SampleValues.tag_name
     assert response_dict[2]["release"] == SampleValues.different_tag_name
 
     assert (
         response_dict[0]["status_per_downstream_pr"][SampleValues.different_branch]
-        == ProposeDownstreamTargetStatus.queued
+        == SyncReleaseTargetStatus.queued
     )
     assert (
         response_dict[0]["status_per_downstream_pr"][SampleValues.branch]
-        == ProposeDownstreamTargetStatus.running
+        == SyncReleaseTargetStatus.running
     )
 
     assert response_dict[0]["repo_namespace"] == SampleValues.repo_namespace
@@ -511,19 +511,19 @@ def test_propose_downstream_list_issues(
 
     # the order is reversed
     response_dict.reverse()
-    assert response_dict[0]["status"] == ProposeDownstreamStatus.running
-    assert response_dict[3]["status"] == ProposeDownstreamStatus.finished
+    assert response_dict[0]["status"] == SyncReleaseStatus.running
+    assert response_dict[3]["status"] == SyncReleaseStatus.finished
     assert response_dict[0]["submitted_time"] is not None
     assert response_dict[0]["issue_id"] == SampleValues.issue_id
     assert response_dict[3]["issue_id"] == SampleValues.different_issue_id
 
     assert (
         response_dict[0]["status_per_downstream_pr"][SampleValues.branch]
-        == ProposeDownstreamTargetStatus.retry
+        == SyncReleaseTargetStatus.retry
     )
     assert (
         response_dict[0]["status_per_downstream_pr"][SampleValues.different_branch]
-        == ProposeDownstreamTargetStatus.error
+        == SyncReleaseTargetStatus.error
     )
 
     assert response_dict[0]["repo_namespace"] == SampleValues.repo_namespace
@@ -544,7 +544,7 @@ def test_detailed_propose_info_release(
     )
     response_dict = response.json
 
-    assert response_dict["status"] == ProposeDownstreamTargetStatus.submitted
+    assert response_dict["status"] == SyncReleaseTargetStatus.submitted
     assert response_dict["branch"] == SampleValues.branch
     assert response_dict["downstream_pr_url"] == SampleValues.downstream_pr_url
     assert response_dict["submitted_time"] is not None
