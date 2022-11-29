@@ -158,43 +158,52 @@ def test_koji_permissions(success, event, is_scratch, can_merge_pr, trigger):
             [
                 flexmock(
                     project_name="knx-stack",
+                    owner="mmassari",
                     target="fedora-36-x86_64",
                     status="success",
                 ),
             ],
             None,
-            id="A successfull copr build for project found",
+            id="A successful Copr build for project found",
         ),
         pytest.param(
             False,
             [
                 flexmock(
-                    project_name="knx-stack", target="fedora-36-x86_64", status="failed"
+                    project_name="knx-stack",
+                    owner="mmassari",
+                    target="fedora-36-x86_64",
+                    status="failed",
+                    built_packages=[],
                 ),
             ],
             (
-                "No successfull COPR build found for project knx-stack"
-                " and chroot (target) fedora-36-x86_64"
+                "No successful Copr build found for project mmassari/knx-stack"
+                " commit 1 and chroot (target) fedora-36-x86_64"
             ),
-            id="Not successfull copr build for project found",
+            id="No successful copr build for project found",
         ),
         pytest.param(
             False,
             [
                 flexmock(
-                    project_name="knx-stack", target="fedora-38-arm_32", status="failed"
+                    project_name="knx-stack",
+                    owner="mmassari",
+                    target="fedora-38-arm_32",
+                    status="failed",
+                    built_packages=[],
                 ),
             ],
             (
-                "No successfull COPR build found for project knx-stack"
-                " and chroot (target) fedora-38-arm_32"
+                "No successful Copr build found for project mmassari/knx-stack"
+                " commit 1 and chroot (target) fedora-36-x86_64"
             ),
             id="No copr build for target found",
         ),
         pytest.param(
             False,
             [],
-            "No Copr build found for commit sha None",
+            "No Copr build found for commit sha 1",
             id="No copr build found",
         ),
     ),
@@ -211,7 +220,7 @@ def test_vm_image_is_copr_build_ok_for_chroot(
     checker = IsCoprBuildForChrootOk(
         package_config,
         job_config,
-        {"event_type": PullRequestCommentGithubEvent.__name__},
+        {"event_type": PullRequestCommentGithubEvent.__name__, "commit_sha": "1"},
     )
 
     if error_msg:
