@@ -94,7 +94,21 @@ def test_vm_image_build(github_vm_image_build_comment):
     )
     flexmock(Signature).should_receive("apply_async").times(1)
     flexmock(VMImageBuildHandler).should_receive("vm_image_builder").and_return(
-        flexmock().should_receive("create_image").mock()
+        flexmock()
+        .should_receive("create_image")
+        .with_args(
+            "fedora-36",
+            "mmassari/knx-stack/21",
+            {
+                "architecture": "x86_64",
+                "image_type": "aws",
+                "upload_request": {"type": "aws", "options": {}},
+            },
+            {"packages": ["python-knx-stack"]},
+            "https://download.copr.fedorainfracloud.org/"
+            "results/mmassari/knx-stack/fedora-36-x86_64/",
+        )
+        .mock()
     )
     flexmock(VMImageBuildHandler).should_receive("report_status")
     flexmock(PipelineModel).should_receive("create").and_return(flexmock())
