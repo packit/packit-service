@@ -82,16 +82,25 @@ class IsCoprBuildForChrootOk(Checker, GetVMImageBuildReporterFromJobHelperMixin)
             return False
 
         for build in copr_builds:
-            if build.project_name in self.job_config.packages:
-                job_config = self.job_config.packages[build.project_name]
+            # make sure that the build is done in the configured Copr project
+            if (
+                build.project_name == self.job_config.project
+                and build.owner == self.job_config.owner
+            ):
+                # we trust the user has correctly selected the binary RPM to be installed
+                # we cannot check for that as we don't know what exactly is user trying to do
+                # they can easily install multiple packages that are built from multiple projects
+                # let's just make sure that the build from the current commit is already done
                 if (
-                    build.target == job_config.copr_chroot
+                    build.target == self.job_config.copr_chroot
                     and build.status == BuildStatus.success
                 ):
                     return True
         msg = (
-            f"No successfull COPR build found for project {build.project_name}"
-            f" and chroot (target) {build.target}"
+            "No successful Copr build found for project "
+            f"{self.job_config.owner}/{self.job_config.project} "
+            f"commit {self.data.commit_sha} "
+            f"and chroot (target) {self.job_config.copr_chroot}"
         )
         logger.debug(msg)
         self.report_pre_check_failure(msg)

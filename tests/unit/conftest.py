@@ -28,19 +28,20 @@ def fake_package_config_job_config_project_db_trigger():
     job_config = flexmock(
         type=JobType.vm_image_build,
         trigger=JobConfigTriggerType.pull_request,
+        copr_chroot="fedora-36-x86_64",
+        owner="mmassari",
+        project="knx-stack",
+        image_customizations={"packages": ["python-knx-stack"]},
+        image_distribution="fedora-36",
+        image_request={
+            "architecture": "x86_64",
+            "image_type": "aws",
+            "upload_request": {"type": "aws", "options": {}},
+        },
+        identifier="",
         packages={
             "knx-stack": flexmock(
-                copr_chroot="fedora-36-x86_64",
-                owner="mmassari",
-                project="knx-stack",
-                image_customizations={"packages": ["python-knx-stack"]},
-                image_distribution="fedora-36",
-                image_request={
-                    "architecture": "x86_64",
-                    "image_type": "aws",
-                    "upload_request": {"type": "aws", "options": {}},
-                },
-                identifier="",
+                specfile_path="knx-stack.spec", copr_chroot="fedora-36-x86_64"
             )
         },
     )

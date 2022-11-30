@@ -307,47 +307,38 @@ class GetVMImageDataMixin(Config):
     job_config: JobConfig
 
     @property
-    def package_job_config(self):
-        if self.project.repo in self.job_config.packages:
-            return self.job_config.packages[self.project.repo]
-        else:
-            logging.debug(f"No job config found for package {self.project.repo}")
-            return None
-
-    @property
     def chroot(self) -> str:
-        return self.package_job_config.copr_chroot
+        return self.job_config.copr_chroot
 
     @property
     def identifier(self) -> str:
-        return self.package_job_config.identifier
+        return self.job_config.identifier
 
     @property
     def owner(self) -> str:
-        return self.package_job_config.owner
+        return self.job_config.owner
 
     @property
     def project_name(self) -> str:
-        return self.package_job_config.project
+        return self.job_config.project
 
     @property
     def image_name(self) -> str:
         return (
-            f"{self.package_job_config.owner}/"
-            f"{self.package_job_config.project}/{self.data.pr_id}"
+            f"{self.job_config.owner}/" f"{self.job_config.project}/{self.data.pr_id}"
         )
 
     @property
     def image_distribution(self) -> str:
-        return self.package_job_config.image_distribution
+        return self.job_config.image_distribution
 
     @property
     def image_request(self) -> dict:
-        return self.package_job_config.image_request
+        return self.job_config.image_request
 
     @property
     def image_customizations(self) -> dict:
-        return self.package_job_config.image_customizations
+        return self.job_config.image_customizations
 
 
 class GetReporter(Protocol):
