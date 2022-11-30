@@ -2568,24 +2568,21 @@ def test_get_job_config_index(package_config, job_config, result):
 
 
 @pytest.mark.parametrize(
-    "is_custom_copr_project,is_project_allowed_in_copr_by_config,copr_server_raise_exc,buildopts",
+    "is_custom_copr_project,copr_server_raise_exc,buildopts",
     [
-        (True, True, False, {"chroots": [], "enable_net": True}),
-        (False, True, False, {"chroots": [], "enable_net": True}),
+        (True, True, {"chroots": [], "enable_net": True}),
+        (False, True, {"chroots": [], "enable_net": True}),
         (
             True,
             False,
-            False,
             {"chroots": [], "enable_net": True, "packit_forge_project": ""},
         ),
-        (False, False, False, {"chroots": [], "enable_net": True}),
-        (False, False, True, {"chroots": [], "enable_net": True}),
+        (False, False, {"chroots": [], "enable_net": True}),
     ],
 )
 def test_submit_copr_build(
     github_pr_event,
     is_custom_copr_project,
-    is_project_allowed_in_copr_by_config,
     copr_server_raise_exc,
     buildopts,
 ):
@@ -2594,9 +2591,6 @@ def test_submit_copr_build(
     flexmock(helper).should_receive("is_custom_copr_project_defined").and_return(
         is_custom_copr_project
     )
-    flexmock(helper).should_receive(
-        "is_forge_project_allowed_to_build_in_copr_by_config"
-    ).and_return(is_project_allowed_in_copr_by_config)
     flexmock(helper).should_receive("job_project").and_return("")
     flexmock(helper).should_receive("srpm_path").and_return("")
     flexmock(helper).should_receive("forge_project").and_return("")
