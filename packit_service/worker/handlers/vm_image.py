@@ -72,12 +72,17 @@ class VMImageBuildHandler(
                 },
             )
 
+        repo_url = self.packit_api.copr_helper.get_repo_download_url(
+            owner=self.job_config.owner,
+            project=self.job_config.project,
+            chroot=self.job_config.copr_chroot,
+        )
         image_id = self.vm_image_builder.create_image(
             self.image_distribution,
             self.image_name,
             self.image_request,
             self.image_customizations,
-            self.project_url,
+            repo_url,
         )
 
         run_model = PipelineModel.create(
