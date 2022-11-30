@@ -52,7 +52,7 @@ from packit_service.service.urls import (
     get_copr_build_info_url,
     get_srpm_build_info_url,
 )
-from packit_service.utils import get_package_nvrs, elapsed_seconds
+from packit_service.utils import elapsed_seconds
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.helpers.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.events import EventData
@@ -413,41 +413,20 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 reason=reason
             ).observe(time)
 
-    def get_packit_copr_download_urls(self) -> List[str]:
+    def get_packit_copr(self) -> str:
         """
-        Get packit package download urls for latest succeeded build in Copr project for the given
-        environment (for production packit/packit-stable, else packit/packit-dev,
-        e.g https://download.copr.fedorainfracloud.org/results/packit/
-        packit-stable/fedora-35-x86_64/03247833-packit/
-        packit-0.44.1.dev4+g5ec2bd1-1.20220124144110935127.stable.4.g5ec2bd1.fc35.noarch.rpm)
+        Get a Copr repo with dependencies for custom SRPM method in Copr.
 
-        Returns: list of urls
+        Returns:
+            Repo that contains appropriate version of Packit.
         """
-        try:
-            latest_successful_build_id = (
-                self.api.copr_helper.copr_client.package_proxy.get(
-                    ownername="packit",
-                    projectname="packit-stable"
-                    if self.service_config.deployment == Deployment.prod
-                    else "packit-dev",
-                    packagename="packit",
-                    with_latest_succeeded_build=True,
-                ).builds["latest_succeeded"]["id"]
+        return "copr://packit/{project}".format(
+            project=(
+                "packit-stable"
+                if self.service_config.deployment == Deployment.prod
+                else "packit-dev"
             )
-            result_url = self.api.copr_helper.copr_client.build_chroot_proxy.get(
-                latest_successful_build_id, self.get_latest_fedora_stable_chroot()
-            ).result_url
-            package_nvrs = self.get_built_packages(
-                latest_successful_build_id, self.get_latest_fedora_stable_chroot()
-            )
-            built_packages = get_package_nvrs(package_nvrs)
-            return [f"{result_url}{package}.rpm" for package in built_packages]
-        except Exception as ex:
-            logger.debug(
-                f"Getting download urls for latest packit/packit-stable "
-                f"build was not successful: {ex}"
-            )
-            raise ex
+        )
 
     def get_job_config_index(self) -> int:
         """
@@ -536,8 +515,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                     projectname=self.job_project,
                     script=script,
                     # use the latest stable chroot
+                    script_repos=self.get_packit_copr(),
                     script_chroot=self.get_latest_fedora_stable_chroot(),
-                    script_builddeps=self.get_packit_copr_download_urls()
+                    script_builddeps=["packit"]
                     + (self.job_config.srpm_build_deps or []),
                     buildopts=buildopts,
                 )
