@@ -127,7 +127,8 @@ def test_vm_image_build_handler(fake_package_config_job_config_project_db_trigge
                 "upload_request": {"type": "aws", "options": {}},
             },
             {"packages": ["python-knx-stack"]},
-            "https://github.com/majamassarini/knx-stack",
+            "https://download.copr.fedorainfracloud.org/"
+            "results/mmassari/knx-stack/fedora-36-x86_64/",
         )
         .mock()
     )
