@@ -141,7 +141,8 @@ def check_pending_copr_builds() -> None:
     pending_copr_builds = CoprBuildTargetModel.get_all_by_status(BuildStatus.pending)
     builds_grouped_by_id = collections.defaultdict(list)
     for build in pending_copr_builds:
-        builds_grouped_by_id[build.build_id].append(build)
+        # our DB uses str(build_id) but our code expects int(build_id)
+        builds_grouped_by_id[int(build.build_id)].append(build)
 
     for build_id, builds in builds_grouped_by_id.items():
         update_copr_builds(build_id, builds)
@@ -257,7 +258,9 @@ def update_copr_build_state(
         return
     event = event_kls(
         topic=FedmsgTopic.copr_build_finished.value,
-        build_id=build.build_id,
+        build_id=int(
+            build.build_id
+        ),  # we expect int there even though we have str in DB
         build=build,
         chroot=build.target,
         status=(
