@@ -21,7 +21,7 @@ beat_schedule = {
     },
     "update-pending-vm-image-builds": {
         "task": "packit_service.worker.tasks.babysit_pending_vm_image_builds",
-        "schedule": 3.0,
+        "schedule": 3600.0,
         "options": {"queue": "long-running"},
     },
     "database-maintenance": {
