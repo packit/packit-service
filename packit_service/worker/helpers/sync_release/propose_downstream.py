@@ -40,6 +40,33 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
             branches_override=branches_override,
         )
 
+    @property
+    def default_dg_branch(self) -> str:
+        if not self._default_dg_branch:
+            git_project = self.service_config.get_project(
+                url=self.package_config.dist_git_package_url
+            )
+            self._default_dg_branch = git_project.default_branch
+        return self._default_dg_branch
+
+    def report_status_for_branch(
+        self,
+        branch: str,
+        description: str,
+        state: BaseCommitStatus,
+        url: str = "",
+        markdown_content: str = None,
+    ):
+        if self.job and branch in self.branches:
+            cs = self.get_check(branch)
+            self._report(
+                description=description,
+                state=state,
+                url=url,
+                check_names=cs,
+                markdown_content=markdown_content,
+            )
+
     @classmethod
     def get_check_cls(cls, branch: str = None, identifier: Optional[str] = None) -> str:
         """
@@ -81,24 +108,6 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
                 state=state,
                 url=url,
                 check_names=self.check_names,
-                markdown_content=markdown_content,
-            )
-
-    def report_status_to_branch(
-        self,
-        branch: str,
-        description: str,
-        state: BaseCommitStatus,
-        url: str = "",
-        markdown_content: str = None,
-    ):
-        if self.job and branch in self.branches:
-            cs = self.get_check(branch)
-            self._report(
-                description=description,
-                state=state,
-                url=url,
-                check_names=cs,
                 markdown_content=markdown_content,
             )
 

@@ -49,3 +49,6 @@ class PullFromUpstreamHelper(SyncReleaseHelper):
             )
             self._default_dg_branch = git_project.default_branch
         return self._default_dg_branch
+
+    def report_status_for_branch(self, branch, description, state, url):
+        pass

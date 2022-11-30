@@ -167,7 +167,7 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
 
     url = get_propose_downstream_info_url(model.id)
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_to_branch"
+        "report_status_for_branch"
     ).with_args(
         branch="main",
         description="Starting propose downstream...",
@@ -176,7 +176,7 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
     ).once()
 
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_to_branch"
+        "report_status_for_branch"
     ).with_args(
         branch="main",
         description="Propose downstream finished successfully.",
@@ -273,7 +273,7 @@ def test_dist_git_push_release_handle_multiple_branches(
     url = get_propose_downstream_info_url(model.id)
     for branch in fedora_branches:
         flexmock(ProposeDownstreamJobHelper).should_receive(
-            "report_status_to_branch"
+            "report_status_for_branch"
         ).with_args(
             branch=branch,
             description="Starting propose downstream...",
@@ -283,7 +283,7 @@ def test_dist_git_push_release_handle_multiple_branches(
 
     for branch in fedora_branches:
         flexmock(ProposeDownstreamJobHelper).should_receive(
-            "report_status_to_branch"
+            "report_status_for_branch"
         ).with_args(
             branch=branch,
             description="Propose downstream finished successfully.",
@@ -400,7 +400,7 @@ def test_dist_git_push_release_handle_one_failed(
 
     for branch in fedora_branches:
         flexmock(ProposeDownstreamJobHelper).should_receive(
-            "report_status_to_branch"
+            "report_status_for_branch"
         ).with_args(
             branch=branch,
             description="Starting propose downstream...",
@@ -411,7 +411,7 @@ def test_dist_git_push_release_handle_one_failed(
     for i in range(len(fedora_branches)):
         if i == 1:
             flexmock(ProposeDownstreamJobHelper).should_receive(
-                "report_status_to_branch"
+                "report_status_for_branch"
             ).with_args(
                 branch=fedora_branches[i],
                 description=f"Propose downstream failed: Failed {fedora_branches[i]}",
@@ -420,7 +420,7 @@ def test_dist_git_push_release_handle_one_failed(
             ).once()
         else:
             flexmock(ProposeDownstreamJobHelper).should_receive(
-                "report_status_to_branch"
+                "report_status_for_branch"
             ).with_args(
                 branch=fedora_branches[i],
                 description="Propose downstream finished successfully.",
@@ -537,7 +537,7 @@ def test_dist_git_push_release_handle_all_failed(
 
     for branch in fedora_branches:
         flexmock(ProposeDownstreamJobHelper).should_receive(
-            "report_status_to_branch"
+            "report_status_for_branch"
         ).with_args(
             branch=branch,
             description="Starting propose downstream...",
@@ -547,7 +547,7 @@ def test_dist_git_push_release_handle_all_failed(
 
     for branch in fedora_branches:
         flexmock(ProposeDownstreamJobHelper).should_receive(
-            "report_status_to_branch"
+            "report_status_for_branch"
         ).with_args(
             branch=branch,
             description="Propose downstream failed: Failed",
@@ -644,7 +644,7 @@ def test_retry_propose_downstream_task(
 
     url = get_propose_downstream_info_url(model.id)
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_to_branch"
+        "report_status_for_branch"
     ).with_args(
         branch="main",
         description="Starting propose downstream...",
@@ -652,7 +652,7 @@ def test_retry_propose_downstream_task(
         url=url,
     ).once()
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_to_branch"
+        "report_status_for_branch"
     ).with_args(
         branch="main",
         description="Propose downstream is being retried because "
@@ -757,7 +757,7 @@ def test_dont_retry_propose_downstream_task(
 
     url = get_propose_downstream_info_url(model.id)
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_to_branch"
+        "report_status_for_branch"
     ).with_args(
         branch="main",
         description="Starting propose downstream...",
@@ -765,7 +765,7 @@ def test_dont_retry_propose_downstream_task(
         url=url,
     ).once()
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_to_branch"
+        "report_status_for_branch"
     ).with_args(
         branch="main",
         description="Propose downstream failed: Failed to download source from example.com",

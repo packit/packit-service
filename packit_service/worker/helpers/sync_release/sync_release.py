@@ -49,12 +49,7 @@ class SyncReleaseHelper(BaseJobHelper):
         """
         Get the default branch of the distgit project.
         """
-        if not self._default_dg_branch:
-            git_project = self.service_config.get_project(
-                url=self.package_config.dist_git_package_url
-            )
-            self._default_dg_branch = git_project.default_branch
-        return self._default_dg_branch
+        raise NotImplementedError("Use subclass.")
 
     @property
     def branches(self) -> Set[str]:
@@ -86,5 +81,5 @@ class SyncReleaseHelper(BaseJobHelper):
                     break
         return self._job
 
-    def report_status_to_branch(self, branch, description, state, url):
-        pass
+    def report_status_for_branch(self, branch, description, state, url):
+        raise NotImplementedError("Use subclass")

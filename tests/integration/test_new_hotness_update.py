@@ -37,7 +37,7 @@ def fedora_branches():
 
 
 @pytest.fixture
-def propose_downstream_model():
+def sync_release_model():
     trigger = flexmock(
         job_trigger_model_type=JobTriggerModelType.release,
         id=12,
@@ -51,18 +51,18 @@ def propose_downstream_model():
         project_url="https://github.com/packit-service/hello-world",
         commit_hash=None,
     ).and_return(trigger)
-    propose_downstream_model = flexmock(id=123, sync_release_targets=[])
+    sync_release_model = flexmock(id=123, sync_release_targets=[])
     flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
         status=SyncReleaseStatus.running,
         trigger_model=trigger,
         job_type=SyncReleaseJobType.pull_from_upstream,
-    ).and_return(propose_downstream_model, run_model).once()
+    ).and_return(sync_release_model, run_model).once()
 
-    yield propose_downstream_model
+    yield sync_release_model
 
 
 @pytest.fixture
-def propose_downstream_target_models(fedora_branches):
+def sync_release_target_models(fedora_branches):
     models = []
     for branch in fedora_branches:
         model = flexmock(status="queued", id=1234, branch=branch)
@@ -73,7 +73,7 @@ def propose_downstream_target_models(fedora_branches):
     yield models
 
 
-def test_new_hotness_update(new_hotness_update, propose_downstream_model):
+def test_new_hotness_update(new_hotness_update, sync_release_model):
     model = flexmock(status="queued", id=1234, branch="main")
     flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
         status=SyncReleaseTargetStatus.queued, branch="main"
@@ -145,7 +145,7 @@ def test_new_hotness_update(new_hotness_update, propose_downstream_model):
     flexmock(model).should_receive("set_start_time").once()
     flexmock(model).should_receive("set_finished_time").once()
     flexmock(model).should_receive("set_logs").once()
-    flexmock(propose_downstream_model).should_receive("set_status").with_args(
+    flexmock(sync_release_model).should_receive("set_status").with_args(
         status=SyncReleaseStatus.finished
     ).once()
 
@@ -207,7 +207,7 @@ def test_new_hotness_update_pre_check_fail(new_hotness_update):
     ).with_args(
         issue_repository="https://github.com/packit/issue_repository",
         service_config=service_config,
-        title="Pull from upstream could not be run for tag 7.0.3",
+        title="Pull from upstream could not be run for update 7.0.3",
         message=msg,
         comment_to_existing=msg,
     )

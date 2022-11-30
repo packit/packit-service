@@ -220,7 +220,7 @@ def test_issue_comment_propose_downstream_handler(
 
     url = get_propose_downstream_info_url(model.id)
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_to_branch"
+        "report_status_for_branch"
     ).with_args(
         branch="main",
         description="Starting propose downstream...",
@@ -229,7 +229,7 @@ def test_issue_comment_propose_downstream_handler(
     )
 
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_to_branch"
+        "report_status_for_branch"
     ).with_args(
         branch="main",
         description="Propose downstream finished successfully.",

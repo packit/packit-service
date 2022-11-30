@@ -88,7 +88,8 @@ class ValidInformationForPullFromUpstream(Checker):
 
         if not self.package_config.upstream_project_url:
             msg_to_report = (
-                "upstream_project_url is not set in the package configuration."
+                "`upstream_project_url` is not set in "
+                "the dist-git package configuration."
             )
             valid = False
 
@@ -112,7 +113,8 @@ class ValidInformationForPullFromUpstream(Checker):
             report_in_issue_repository(
                 issue_repository=self.job_config.issue_repository,
                 service_config=self.service_config,
-                title=f"Pull from upstream could not be run for tag {self.data.tag_name}",
+                title=f"Pull from upstream could not be run for update "
+                f"{self.data.event_dict.get('version')}",
                 message=msg_to_report,
                 comment_to_existing=msg_to_report,
             )

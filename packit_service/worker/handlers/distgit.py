@@ -6,10 +6,10 @@ This file defines classes for job handlers specific for distgit
 """
 import logging
 import shutil
-from celery import Task
 from datetime import datetime
-from typing import Optional, Dict, Tuple, Type
+from typing import Optional, Tuple, Type
 
+from celery import Task
 from ogr.abstract import PullRequest
 
 from packit.config import JobConfig, JobType
@@ -122,6 +122,7 @@ class AbstractSyncReleaseHandler(
 ):
     helper_kls: type[SyncReleaseHelper]
     sync_release_job_type: SyncReleaseJobType
+    job_name_for_reporting: str
 
     def __init__(
         self,
@@ -248,9 +249,9 @@ class AbstractSyncReleaseHandler(
 
                 try:
                     model.set_start_time(start_time=datetime.utcnow())
-                    self.sync_release_helper.report_status_to_branch(
+                    self.sync_release_helper.report_status_for_branch(
                         branch=branch,
-                        description="Starting propose downstream...",
+                        description=f"Starting {self.job_name_for_reporting}...",
                         state=BaseCommitStatus.running,
                         url=url,
                     )
@@ -260,9 +261,10 @@ class AbstractSyncReleaseHandler(
                     logger.debug("Downstream PR created successfully.")
                     model.set_downstream_pr_url(downstream_pr_url=downstream_pr.url)
                     model.set_status(status=SyncReleaseTargetStatus.submitted)
-                    self.sync_release_helper.report_status_to_branch(
+                    self.sync_release_helper.report_status_for_branch(
                         branch=branch,
-                        description="Propose downstream finished successfully.",
+                        description=f"{self.job_name_for_reporting.capitalize()} "
+                        f"finished successfully.",
                         state=BaseCommitStatus.success,
                         url=url,
                     )
@@ -272,9 +274,10 @@ class AbstractSyncReleaseHandler(
                         "we were not able yet to download the archive. "
                     )
                     model.set_status(status=SyncReleaseTargetStatus.retry)
-                    self.sync_release_helper.report_status_to_branch(
+                    self.sync_release_helper.report_status_for_branch(
                         branch=branch,
-                        description="Propose downstream is being retried because "
+                        description=f"{self.job_name_for_reporting.capitalize()} is "
+                        f"being retried because "
                         "we were not able yet to download the archive. ",
                         state=BaseCommitStatus.pending,
                         url=url,
@@ -289,9 +292,9 @@ class AbstractSyncReleaseHandler(
                     logger.debug(f"{self.sync_release_job_type} failed: {ex}")
                     # eat the exception and continue with the execution
                     model.set_status(status=SyncReleaseTargetStatus.error)
-                    self.sync_release_helper.report_status_to_branch(
+                    self.sync_release_helper.report_status_for_branch(
                         branch=branch,
-                        description=f"Propose downstream failed: {ex}",
+                        description=f"{self.job_name_for_reporting.capitalize()} failed: {ex}",
                         state=BaseCommitStatus.failure,
                         url=url,
                     )
@@ -309,7 +312,19 @@ class AbstractSyncReleaseHandler(
             shutil.rmtree(self.packit_api.dg.local_project.working_dir)
 
         if errors:
-            self._report_errors_for_each_branch(errors)
+            branch_errors = ""
+            for branch, err in sorted(
+                errors.items(), key=lambda branch_error: branch_error[0]
+            ):
+                err_without_new_lines = err.replace("\n", " ")
+                branch_errors += f"| `{branch}` | `{err_without_new_lines}` |\n"
+            body_msg = (
+                f"Packit failed on creating pull-requests in dist-git:\n\n"
+                f"| dist-git branch | error |\n"
+                f"| --------------- | ----- |\n"
+                f"{branch_errors}\n\n"
+            )
+            self._report_errors_for_each_branch(body_msg)
             sync_release_run_model.set_status(status=SyncReleaseStatus.error)
             return TaskResults(
                 success=False,
@@ -322,7 +337,7 @@ class AbstractSyncReleaseHandler(
         sync_release_run_model.set_status(status=SyncReleaseStatus.finished)
         return TaskResults(success=True, details={})
 
-    def _report_errors_for_each_branch(self, errors):
+    def _report_errors_for_each_branch(self, message: str):
         raise NotImplementedError("Use subclass.")
 
 
@@ -343,6 +358,7 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
     task_name = TaskName.propose_downstream
     helper_kls = ProposeDownstreamJobHelper
     sync_release_job_type = SyncReleaseJobType.propose_downstream
+    job_name_for_reporting = "propose downstream"
 
     def __init__(
         self,
@@ -360,31 +376,19 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
             sync_release_run_id=sync_release_run_id,
         )
 
-    def _report_errors_for_each_branch(self, errors: Dict[str, str]) -> None:
-        branch_errors = ""
-        for branch, err in sorted(
-            errors.items(), key=lambda branch_error: branch_error[0]
-        ):
-            err_without_new_lines = err.replace("\n", " ")
-            branch_errors += f"| `{branch}` | `{err_without_new_lines}` |\n"
-
+    def _report_errors_for_each_branch(self, message: str) -> None:
         msg_retrigger = MSG_RETRIGGER.format(
             job="update",
             command="propose-downstream",
             place="issue",
             packit_comment_command_prefix=self.service_config.comment_command_prefix,
         )
-        body_msg = (
-            f"Packit failed on creating pull-requests in dist-git:\n\n"
-            f"| dist-git branch | error |\n"
-            f"| --------------- | ----- |\n"
-            f"{branch_errors}\n\n"
-            f"{msg_retrigger}\n"
-        )
+        body_msg = f"{message}{msg_retrigger}\n"
 
         PackageConfigGetter.create_issue_if_needed(
             project=self.project,
-            title=f"Propose downstream failed for release {self.data.tag_name}",
+            title=f"{self.job_name_for_reporting.capitalize()} failed for "
+            f"release {self.data.tag_name}",
             message=body_msg,
             comment_to_existing=body_msg,
         )
@@ -396,6 +400,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
     task_name = TaskName.pull_from_upstream
     helper_kls = PullFromUpstreamHelper
     sync_release_job_type = SyncReleaseJobType.pull_from_upstream
+    job_name_for_reporting = "Pull from upstream"
 
     def __init__(
         self,
@@ -417,27 +422,15 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
     def get_checkers() -> Tuple[Type[Checker], ...]:
         return (ValidInformationForPullFromUpstream,)
 
-    def _report_errors_for_each_branch(self, errors: Dict[str, str]) -> None:
-        branch_errors = ""
-        for branch, err in sorted(
-            errors.items(), key=lambda branch_error: branch_error[0]
-        ):
-            err_without_new_lines = err.replace("\n", " ")
-            branch_errors += f"| `{branch}` | `{err_without_new_lines}` |\n"
-        body_msg = (
-            f"Packit failed on creating pull-requests in dist-git:\n\n"
-            f"| dist-git branch | error |\n"
-            f"| --------------- | ----- |\n"
-            f"{branch_errors}\n\n"
-        )
+    def _report_errors_for_each_branch(self, message: str) -> None:
 
         report_in_issue_repository(
             issue_repository=self.job_config.issue_repository,
             service_config=self.service_config,
             title=f"Pull from upstream failed for release {self.data.tag_name}",
-            message=body_msg
+            message=message
             + f"\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
-            comment_to_existing=body_msg,
+            comment_to_existing=message,
         )
 
 

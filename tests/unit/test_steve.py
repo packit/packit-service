@@ -173,7 +173,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     url = get_propose_downstream_info_url(model.id)
 
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_to_branch"
+        "report_status_for_branch"
     ).with_args(
         branch="main",
         description="Starting propose downstream...",
@@ -183,7 +183,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         1 if success else 0
     )
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_to_branch"
+        "report_status_for_branch"
     ).with_args(
         branch="main",
         description="Propose downstream finished successfully.",
