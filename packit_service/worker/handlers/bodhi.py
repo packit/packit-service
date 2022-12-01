@@ -18,12 +18,15 @@ from packit_service.constants import (
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.bodhi import (
-    HasAuthorWriteAccess,
     IsAuthorAPackager,
+    HasIssueCommenterRetriggeringPermissions,
     IsKojiBuildCompleteAndBranchConfiguredCheckEvent,
     IsKojiBuildCompleteAndBranchConfiguredCheckService,
 )
-from packit_service.worker.events import PullRequestCommentPagureEvent
+from packit_service.worker.events import (
+    PullRequestCommentPagureEvent,
+    IssueCommentEvent,
+)
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
     TaskName,
@@ -167,6 +170,7 @@ class CreateBodhiUpdateHandler(
 
 @configured_as(job_type=JobType.bodhi_update)
 @reacts_to(event=PullRequestCommentPagureEvent)
+@reacts_to(event=IssueCommentEvent)
 @run_for_comment(command="create-update")
 class RetriggerBodhiUpdateHandler(
     BodhiUpdateHandler, GetKojiBuildDataFromKojiServiceMixin
@@ -184,7 +188,7 @@ class RetriggerBodhiUpdateHandler(
         """
         logger.debug("Bodhi update will be re-triggered via dist-git PR comment.")
         return (
-            HasAuthorWriteAccess,
             IsAuthorAPackager,
+            HasIssueCommenterRetriggeringPermissions,
             IsKojiBuildCompleteAndBranchConfiguredCheckService,
         )

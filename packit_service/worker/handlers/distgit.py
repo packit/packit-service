@@ -35,7 +35,8 @@ from packit_service.worker.checker.distgit import (
     IsProjectOk,
     PermissionOnDistgit,
     ValidInformationForPullFromUpstream,
-)
+    HasIssueCommenterRetriggeringPermissions,
+    )
 from packit_service.worker.events import (
     PushPagureEvent,
     ReleaseEvent,
@@ -43,6 +44,7 @@ from packit_service.worker.events import (
     AbstractIssueCommentEvent,
     CheckRerunReleaseEvent,
     PullRequestCommentPagureEvent,
+    IssueCommentEvent,
 )
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.handlers.abstract import (
@@ -443,6 +445,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
 @configured_as(job_type=JobType.koji_build)
 @run_for_comment(command="koji-build")
 @reacts_to(event=PushPagureEvent)
+@reacts_to(event=IssueCommentEvent)
 @reacts_to(event=PullRequestCommentPagureEvent)
 class DownstreamKojiBuildHandler(
     RetriableJobHandler,
@@ -476,7 +479,7 @@ class DownstreamKojiBuildHandler(
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
-        return (PermissionOnDistgit,)
+        return (PermissionOnDistgit, HasIssueCommenterRetriggeringPermissions)
 
     def run(self) -> TaskResults:
         branch = (

@@ -489,6 +489,19 @@ class SteveJobs:
                     # A koji_build job with comment trigger
                     # can be re-triggered by a Pagure comment in a PR
                     matching_jobs.append(job)
+        elif isinstance(self.event, IssueCommentEvent):
+            for job in self.event.package_config.jobs:
+                if (
+                    job.type in (JobType.koji_build, JobType.bodhi_update)
+                    and job.trigger == JobConfigTriggerType.commit
+                    and self.event.job_config_trigger_type
+                    == JobConfigTriggerType.release
+                ):
+                    # A koji_build/bodhi_update can be re-triggered by a
+                    # GitHub comment in an issue
+                    # after a failed release event
+                    # (which has created the issue)
+                    matching_jobs.append(job)
 
         return matching_jobs
 

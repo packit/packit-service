@@ -5,9 +5,10 @@ import logging
 
 from packit.config.aliases import get_branches
 
-from packit_service.worker.checker.abstract import Checker
+from packit_service.worker.checker.abstract import Checker, ActorChecker
 from packit_service.worker.events import (
     PushPagureEvent,
+    IssueCommentEvent,
 )
 from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
@@ -66,6 +67,32 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
                     f"done by {commenter} which is not a packager."
                 )
                 return False
+
+        return True
+
+
+class HasIssueCommenterRetriggeringPermissions(ActorChecker):
+    """To be able to retrigger a koji-build the issue commenter should
+    have write permission on the project.
+    """
+
+    def _pre_check(self) -> bool:
+        if self.data.event_type in (IssueCommentEvent.__name__,):
+            logger.debug(
+                f"Re-triggering downstream koji-build through comment in "
+                f"repo {self.project.repo} and issue {self.data.issue_id} "
+                f"by {self.actor}."
+            )
+            if not self.project.has_write_access(user=self.actor):
+                logger.warning(
+                    f"Re-triggering downstream koji-build through comment in "
+                    f"repo {self.project.repo} and issue {self.data.issue_id} "
+                    f"done by {self.actor} which has not write permissions "
+                    "on the project."
+                )
+                return False
+
+            return True
 
         return True
 
