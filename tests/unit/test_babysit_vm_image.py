@@ -59,7 +59,19 @@ def test_check_no_pending_vm_image_builds():
         pytest.param(
             True,
             "success",
-            {"image_status": {"status": "success", "error": ""}},
+            {
+                "image_status": {
+                    "status": "success",
+                    "error": "",
+                    "upload_status": {
+                        "type": "aws",
+                        "options": {
+                            "ami": "ami-0c830793775595d4b",
+                            "region": "eu-west-1",
+                        },
+                    },
+                }
+            },
             id="Successfull build",
         ),
         pytest.param(

@@ -3,6 +3,7 @@
 
 import collections
 import logging
+from enum import Enum
 from requests import HTTPError
 from datetime import datetime, timezone
 from typing import Iterable, Type, Any
@@ -301,6 +302,40 @@ class UpdateImageBuildHelper(ConfigFromUrlMixin, GetVMImageBuilderMixin):
         self._project_url = project_url
 
 
+class ImageBuildUploadType(str, Enum):
+    aws = "aws"
+    awss3 = "aws.s3"
+    azure = "azure"
+    gcp = "gcp"
+
+
+def get_message_for_successful_build(image_status_body):
+    message = (
+        "Congratulations! Your image was successfully built.\n"
+        "You will find it shared with your cloud provider account.\n"
+    )
+    upload_status = image_status_body["upload_status"]
+    upload_status_type = upload_status["type"]
+    if upload_status_type == ImageBuildUploadType.aws:
+        region = upload_status["options"]["region"]
+        ami = upload_status["options"]["ami"]
+        message += (
+            f"https://console.aws.amazon.com/ec2/v2/home?"
+            f"region={region}"
+            f"#LaunchInstanceWizard:ami={ami}"
+        )
+    if upload_status_type == ImageBuildUploadType.awss3:
+        message += upload_status["options"]["url"]
+    if upload_status_type == ImageBuildUploadType.azure:
+        image_name = upload_status["options"]["image_name"]
+        message += f"The image name is {image_name}"
+    if upload_status_type == ImageBuildUploadType.gcp:
+        image_name = upload_status["options"]["image_name"]
+        project_id = upload_status["options"]["project_id"]
+        message += f"The image name is {image_name} for project id {project_id}"
+    return message
+
+
 def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
     """
     Updates the state of a vm image build if ended.
@@ -315,6 +350,7 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
     helper = UpdateImageBuildHelper(build.project_url)
 
     status = None
+    response = None
     try:
         response = helper.vm_image_builder.image_builder_request(
             "GET", f"composes/{build_id}"
@@ -322,7 +358,8 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
         body = response.json()
         status = body["image_status"]["status"]
     except HTTPError as ex:
-        logger.error(f"No response for vm image build {build_id}: {ex}")
+        message = f"No response for VM Image Build {build_id}: {ex}"
+        logger.error(message)
         status = VMImageBuildStatus.error
 
     if status in (
@@ -335,7 +372,12 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
 
     if status == VMImageBuildStatus.failure:
         error = body["image_status"]["error"]
-        logger.error(f"VM image build {build.build_id} failed: {error}")
+        message = f"VM image build {build.build_id} failed: {error}"
+        logger.error(message)
+
+    if status == VMImageBuildStatus.success:
+        message = get_message_for_successful_build(body["image_status"])
+        logger.debug(message)
 
     event = VMImageBuildResultEvent(
         build.build_id,
@@ -345,6 +387,7 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
         build.commit_sha,
         build.project_url,
         status,
+        message,
         str(datetime.utcnow()),
     )
 
