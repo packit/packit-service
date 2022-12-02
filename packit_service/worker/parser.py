@@ -1488,7 +1488,8 @@ class Parser:
         actor = event.get("actor")
         commit_sha = event.get("commit_sha")
         project_url = event.get("project_url")
-        result = event.get("result")
+        status = event.get("status")
+        message = event.get("message")
         created_at = event.get("created_at")
 
         return VMImageBuildResultEvent(
@@ -1498,6 +1499,7 @@ class Parser:
             actor,
             commit_sha,
             project_url,
-            result,
+            status,
+            message,
             created_at,
         )

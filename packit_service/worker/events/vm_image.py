@@ -22,6 +22,7 @@ class VMImageBuildResultEvent(AbstractForgeIndependentEvent):
         commit_sha: str,
         project_url: str,
         status: VMImageBuildStatus,
+        message: str,
         created_at: Union[int, float, str],
     ):
         super().__init__(created_at, project_url, pr_id, actor)
@@ -29,6 +30,7 @@ class VMImageBuildResultEvent(AbstractForgeIndependentEvent):
         self.copr_chroot = copr_chroot
         self.commit_sha = commit_sha
         self.status = status
+        self.message = message
 
         self.topic = "vm-image-build-state-change"
 

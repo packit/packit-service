@@ -135,7 +135,7 @@ class VMImageBuildResultHandler(
             self.data._db_trigger = model.runs[0].get_trigger_object()
             status = self.data.event_dict["status"]
             model.set_status(status)
-            self.report_status(status, "")
+            self.report_status(status, self.data.event_dict["message"])
             return TaskResults(
                 success=True,
                 details={},

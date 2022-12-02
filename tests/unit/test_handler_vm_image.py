@@ -167,6 +167,7 @@ def test_vm_image_build_result_handler_ok(
             "event_type": VMImageBuildResultEvent.__name__,
             "build_id": 1,
             "status": "error",
+            "message": "Build failed bla bla bla",
         },
     )
     handler._project = project
