@@ -144,7 +144,10 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     ).times(1 if success else 0)
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="main", tag="1.2.3", create_pr=True
+        dist_git_branch="main",
+        tag="1.2.3",
+        create_pr=True,
+        local_pr_branch_suffix="update-propose_downstream",
     ).and_return(flexmock(url="some_url")).times(1 if success else 0)
     flexmock(shutil).should_receive("rmtree").with_args("")
 

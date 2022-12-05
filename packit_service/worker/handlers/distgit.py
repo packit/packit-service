@@ -159,8 +159,12 @@ class AbstractSyncReleaseHandler(
         self, branch: str, model: SyncReleaseModel
     ) -> Optional[PullRequest]:
         try:
+            branch_suffix = f"update-{self.sync_release_job_type.value}"
             downstream_pr = self.packit_api.sync_release(
-                dist_git_branch=branch, tag=self.data.tag_name, create_pr=True
+                dist_git_branch=branch,
+                tag=self.data.tag_name,
+                create_pr=True,
+                local_pr_branch_suffix=branch_suffix,
             )
         except PackitDownloadFailedException as ex:
             # the archive has not been uploaded to PyPI yet
