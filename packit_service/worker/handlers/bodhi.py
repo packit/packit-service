@@ -10,11 +10,8 @@ from typing import Tuple, Type
 from celery import Task
 from fedora.client import AuthError
 
-from packit.exceptions import PackitException
-
-
 from packit.config import JobConfig, JobType, PackageConfig
-from packit_service.config import PackageConfigGetter
+from packit.exceptions import PackitException
 from packit_service.constants import (
     CONTACTS_URL,
     RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED,
@@ -44,6 +41,7 @@ from packit_service.worker.handlers.mixin import (
 from packit_service.worker.mixin import (
     PackitAPIWithDownstreamMixin,
 )
+from packit_service.worker.reporting import report_in_issue_repository
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -52,7 +50,6 @@ logger = logging.getLogger(__name__)
 class BodhiUpdateHandler(
     RetriableJobHandler, PackitAPIWithDownstreamMixin, GetKojiBuildData
 ):
-
     topic = "org.fedoraproject.prod.buildsys.build.state.change"
 
     def __init__(
@@ -95,7 +92,14 @@ class BodhiUpdateHandler(
                 known_error = False
 
             if notify:
-                self.notify_user_about_failure(body)
+                report_in_issue_repository(
+                    issue_repository=self.job_config.issue_repository,
+                    service_config=self.service_config,
+                    title="Fedora Bodhi update failed to be created",
+                    message=body
+                    + f"\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
+                    comment_to_existing=body,
+                )
             else:
                 logger.debug("User will not be notified about the failure.")
 
@@ -136,41 +140,6 @@ class BodhiUpdateHandler(
             body += "*"
 
         return body
-
-    def notify_user_about_failure(self, body: str) -> None:
-        """
-        If user configures `issue_repository`,
-        Packit will create there an issue with the details.
-        If the issue already exists and is opened, comment will be added
-        instead of creating a new issue.
-
-        The issue will be a place where to re-trigger the job.
-
-        :param body: content sent to the user
-            (comment or issue description;
-             for issue description a contact footer is added)
-        """
-        if not self.job_config.issue_repository:
-            logger.debug(
-                "No issue repository configured. User will not be notified about the failure."
-            )
-            return
-
-        logger.debug(
-            f"Issue repository configured. We will create "
-            f"a new issue in {self.job_config.issue_repository}"
-            "or update the existing one."
-        )
-        issue_repo = self.service_config.get_project(
-            url=self.job_config.issue_repository
-        )
-        PackageConfigGetter.create_issue_if_needed(
-            project=issue_repo,
-            title="Fedora Bodhi update failed to be created",
-            message=body
-            + f"\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
-            comment_to_existing=body,
-        )
 
 
 @configured_as(job_type=JobType.bodhi_update)

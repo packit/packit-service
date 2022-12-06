@@ -36,7 +36,9 @@ from packit_service.worker.helpers.build import (
     copr_build,
     koji_build,
 )
-from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
+from packit_service.worker.helpers.sync_release.propose_downstream import (
+    ProposeDownstreamJobHelper,
+)
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway

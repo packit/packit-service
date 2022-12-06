@@ -7,8 +7,8 @@ from logging import getLogger
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
-    ProposeDownstreamTargetModel,
-    ProposeDownstreamModel,
+    SyncReleaseTargetModel,
+    SyncReleaseModel,
     optional_timestamp,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
@@ -28,7 +28,10 @@ class ProposeDownstreamList(Resource):
 
         result = []
         first, last = indices()
-        for propose_downstream_results in ProposeDownstreamModel.get_range(first, last):
+        for propose_downstream_results in SyncReleaseModel.get_range_propose_downstream(
+            first, last
+        ):
+
             result_dict = {
                 "packit_id": propose_downstream_results.id,
                 "status": propose_downstream_results.status,
@@ -37,11 +40,11 @@ class ProposeDownstreamList(Resource):
                 ),
                 "status_per_downstream_pr": {
                     pr.branch: pr.status
-                    for pr in propose_downstream_results.propose_downstream_targets
+                    for pr in propose_downstream_results.sync_release_targets
                 },
                 "packit_id_per_downstream_pr": {
                     pr.branch: pr.id
-                    for pr in propose_downstream_results.propose_downstream_targets
+                    for pr in propose_downstream_results.sync_release_targets
                 },
                 "pr_id": propose_downstream_results.get_pr_id(),
                 "issue_id": propose_downstream_results.get_issue_id(),
@@ -72,7 +75,7 @@ class ProposeResult(Resource):
     )
     def get(self, id):
         """A specific propose-downstream job details"""
-        dowstream_pr = ProposeDownstreamTargetModel.get_by_id(id_=int(id))
+        dowstream_pr = SyncReleaseTargetModel.get_by_id(id_=int(id))
 
         if not dowstream_pr:
             return response_maker(
@@ -90,7 +93,5 @@ class ProposeResult(Resource):
             "logs": dowstream_pr.logs,
         }
 
-        job_result_dict.update(
-            get_project_info_from_build(dowstream_pr.propose_downstream)
-        )
+        job_result_dict.update(get_project_info_from_build(dowstream_pr.sync_release))
         return response_maker(job_result_dict)

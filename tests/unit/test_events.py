@@ -1553,7 +1553,7 @@ class TestEvents:
         assert event_object.actor == "lbarcziova"
 
     @pytest.mark.parametrize(
-        "upstream_project_url, upstream_tag_template, pre_check_result, "
+        "upstream_project_url, upstream_tag_template, create_db_trigger, "
         "tag_name, repo_namespace, repo_name",
         [
             (
@@ -1603,7 +1603,7 @@ class TestEvents:
         new_hotness_update,
         upstream_project_url,
         upstream_tag_template,
-        pre_check_result,
+        create_db_trigger,
         tag_name,
         repo_namespace,
         repo_name,
@@ -1636,13 +1636,16 @@ class TestEvents:
         assert isinstance(event_object, NewHotnessUpdateEvent)
         assert isinstance(event_object.project, PagureProject)
         assert event_object.package_name == "redis"
-        assert event_object.upstream_repo_namespace == repo_namespace
-        assert event_object.upstream_repo_name == repo_name
-        assert event_object.project_url == "https://src.fedoraproject.org/rpms/redis"
+        assert event_object.repo_namespace == repo_namespace
+        assert event_object.repo_name == repo_name
+        assert (
+            event_object.distgit_project_url
+            == "https://src.fedoraproject.org/rpms/redis"
+        )
         assert event_object.tag_name == tag_name
         assert event_object.package_config
-        assert event_object.pre_check() is pre_check_result
-        if pre_check_result:
+
+        if create_db_trigger:
             assert event_object.db_trigger
 
     def test_get_submitted_time_from_model(self):

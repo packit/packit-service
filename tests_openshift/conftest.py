@@ -36,12 +36,13 @@ from packit_service.models import (
     TestingFarmResult,
     GithubInstallationModel,
     ProjectAuthenticationIssueModel,
-    ProposeDownstreamTargetModel,
-    ProposeDownstreamTargetStatus,
-    ProposeDownstreamModel,
-    ProposeDownstreamStatus,
+    SyncReleaseTargetModel,
+    SyncReleaseTargetStatus,
+    SyncReleaseModel,
+    SyncReleaseStatus,
     SourceGitPRDistGitPRModel,
     BuildStatus,
+    SyncReleaseJobType,
 )
 from packit_service.worker.events import InstallationEvent
 
@@ -166,8 +167,8 @@ def clean_db():
         session.query(CoprBuildTargetModel).delete()
         session.query(KojiBuildTargetModel).delete()
         session.query(SRPMBuildModel).delete()
-        session.query(ProposeDownstreamTargetModel).delete()
-        session.query(ProposeDownstreamModel).delete()
+        session.query(SyncReleaseTargetModel).delete()
+        session.query(SyncReleaseModel).delete()
 
         session.query(GitBranchModel).delete()
         session.query(ProjectReleaseModel).delete()
@@ -269,33 +270,35 @@ def branch_model_gitlab():
 
 @pytest.fixture()
 def propose_model():
-    yield ProposeDownstreamTargetModel.create(
-        status=ProposeDownstreamTargetStatus.running, branch=SampleValues.branch
+    yield SyncReleaseTargetModel.create(
+        status=SyncReleaseTargetStatus.running, branch=SampleValues.branch
     )
 
 
 @pytest.fixture()
 def propose_downstream_model_release(release_model):
-    propose_downstream_model, _ = ProposeDownstreamModel.create_with_new_run(
-        status=ProposeDownstreamStatus.running,
+    propose_downstream_model, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.running,
         trigger_model=release_model,
+        job_type=SyncReleaseJobType.propose_downstream,
     )
     yield propose_downstream_model
 
 
 @pytest.fixture()
 def propose_downstream_model_issue(an_issue_model):
-    propose_downstream_model, _ = ProposeDownstreamModel.create_with_new_run(
-        status=ProposeDownstreamStatus.running,
+    propose_downstream_model, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.running,
         trigger_model=an_issue_model,
+        job_type=SyncReleaseJobType.propose_downstream,
     )
     yield propose_downstream_model
 
 
 @pytest.fixture()
 def propose_model_submitted():
-    propose_downstream_target = ProposeDownstreamTargetModel.create(
-        status=ProposeDownstreamTargetStatus.submitted, branch=SampleValues.branch
+    propose_downstream_target = SyncReleaseTargetModel.create(
+        status=SyncReleaseTargetStatus.submitted, branch=SampleValues.branch
     )
     propose_downstream_target.set_downstream_pr_url(
         downstream_pr_url=SampleValues.downstream_pr_url
@@ -314,7 +317,7 @@ def propose_model_submitted_release(
 ):
     propose_downstream = propose_downstream_model_release
     propose_downstream_target = propose_model_submitted
-    propose_downstream.propose_downstream_targets.append(propose_downstream_target)
+    propose_downstream.sync_release_targets.append(propose_downstream_target)
     yield propose_downstream_target
 
 
@@ -324,7 +327,7 @@ def propose_model_submitted_issue(
 ):
     propose_downstream = propose_downstream_model_issue
     propose_downstream_target = propose_model_submitted
-    propose_downstream.propose_downstream_targets.append(propose_downstream_target)
+    propose_downstream.sync_release_targets.append(propose_downstream_target)
     yield propose_downstream_target
 
 
@@ -887,21 +890,25 @@ def multiple_new_test_runs(pr_model, different_pr_model):
 def multiple_propose_downstream_runs_release_trigger(
     release_model, different_release_model
 ):
-    propose_downstream_model1, _ = ProposeDownstreamModel.create_with_new_run(
-        status=ProposeDownstreamStatus.running,
+    propose_downstream_model1, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.running,
         trigger_model=release_model,
+        job_type=SyncReleaseJobType.propose_downstream,
     )
-    propose_downstream_model2, _ = ProposeDownstreamModel.create_with_new_run(
-        status=ProposeDownstreamStatus.error,
+    propose_downstream_model2, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.error,
         trigger_model=release_model,
+        job_type=SyncReleaseJobType.propose_downstream,
     )
-    propose_downstream_model3, _ = ProposeDownstreamModel.create_with_new_run(
-        status=ProposeDownstreamStatus.running,
+    propose_downstream_model3, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.running,
         trigger_model=different_release_model,
+        job_type=SyncReleaseJobType.propose_downstream,
     )
-    propose_downstream_model4, _ = ProposeDownstreamModel.create_with_new_run(
-        status=ProposeDownstreamStatus.finished,
+    propose_downstream_model4, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.finished,
         trigger_model=different_release_model,
+        job_type=SyncReleaseJobType.propose_downstream,
     )
 
     yield [
@@ -916,21 +923,25 @@ def multiple_propose_downstream_runs_release_trigger(
 def multiple_propose_downstream_runs_issue_trigger(
     an_issue_model, different_issue_model
 ):
-    propose_downstream_model1, _ = ProposeDownstreamModel.create_with_new_run(
-        status=ProposeDownstreamStatus.running,
+    propose_downstream_model1, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.running,
         trigger_model=an_issue_model,
+        job_type=SyncReleaseJobType.propose_downstream,
     )
-    propose_downstream_model2, _ = ProposeDownstreamModel.create_with_new_run(
-        status=ProposeDownstreamStatus.error,
+    propose_downstream_model2, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.error,
         trigger_model=an_issue_model,
+        job_type=SyncReleaseJobType.propose_downstream,
     )
-    propose_downstream_model3, _ = ProposeDownstreamModel.create_with_new_run(
-        status=ProposeDownstreamStatus.running,
+    propose_downstream_model3, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.running,
         trigger_model=different_issue_model,
+        job_type=SyncReleaseJobType.propose_downstream,
     )
-    propose_downstream_model4, _ = ProposeDownstreamModel.create_with_new_run(
-        status=ProposeDownstreamStatus.finished,
+    propose_downstream_model4, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.finished,
         trigger_model=different_issue_model,
+        job_type=SyncReleaseJobType.propose_downstream,
     )
 
     yield [
@@ -946,17 +957,17 @@ def multiple_propose_downstream_runs_with_propose_downstream_targets_release_tri
     multiple_propose_downstream_runs_release_trigger,
 ):
     propose_downstream_models_release = multiple_propose_downstream_runs_release_trigger
-    propose_downstream_models_release[0].propose_downstream_targets.append(
-        ProposeDownstreamTargetModel.create(
-            status=ProposeDownstreamTargetStatus.queued,
+    propose_downstream_models_release[0].sync_release_targets.append(
+        SyncReleaseTargetModel.create(
+            status=SyncReleaseTargetStatus.queued,
             branch=SampleValues.different_branch,
         )
     )
 
-    propose_downstream_target = ProposeDownstreamTargetModel.create(
-        status=ProposeDownstreamTargetStatus.running, branch=SampleValues.branch
+    propose_downstream_target = SyncReleaseTargetModel.create(
+        status=SyncReleaseTargetStatus.running, branch=SampleValues.branch
     )
-    propose_downstream_models_release[0].propose_downstream_targets.append(
+    propose_downstream_models_release[0].sync_release_targets.append(
         propose_downstream_target
     )
 
@@ -973,17 +984,17 @@ def multiple_propose_downstream_runs_with_propose_downstream_targets_issue_trigg
     multiple_propose_downstream_runs_issue_trigger,
 ):
     propose_downstream_models_issue = multiple_propose_downstream_runs_issue_trigger
-    propose_downstream_target = ProposeDownstreamTargetModel.create(
-        status=ProposeDownstreamTargetStatus.retry, branch=SampleValues.branch
+    propose_downstream_target = SyncReleaseTargetModel.create(
+        status=SyncReleaseTargetStatus.retry, branch=SampleValues.branch
     )
-    propose_downstream_models_issue[0].propose_downstream_targets.append(
+    propose_downstream_models_issue[0].sync_release_targets.append(
         propose_downstream_target
     )
 
-    propose_downstream_target = ProposeDownstreamTargetModel.create(
-        status=ProposeDownstreamTargetStatus.error, branch=SampleValues.different_branch
+    propose_downstream_target = SyncReleaseTargetModel.create(
+        status=SyncReleaseTargetStatus.error, branch=SampleValues.different_branch
     )
-    propose_downstream_models_issue[0].propose_downstream_targets.append(
+    propose_downstream_models_issue[0].sync_release_targets.append(
         propose_downstream_target
     )
 

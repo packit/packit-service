@@ -53,7 +53,9 @@ from packit_service.worker.helpers.build import (
     KojiBuildJobHelper,
     BaseBuildJobHelper,
 )
-from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
+from packit_service.worker.helpers.sync_release.propose_downstream import (
+    ProposeDownstreamJobHelper,
+)
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.parser import Parser
@@ -576,6 +578,8 @@ class SteveJobs:
                 f"We did not find any handler for a following event:\n{self.event.__class__}"
             )
 
+        logger.debug(f"Matching handlers: {matching_handlers}")
+
         return matching_handlers
 
     def is_handler_matching_the_event(
@@ -644,6 +648,8 @@ class SteveJobs:
                 f"We did not find any config for {handler_kls} and a following event:\n"
                 f"{self.event.__class__}"
             )
+
+        logger.debug(f"Jobs matching {handler_kls}: {matching_jobs}")
 
         return matching_jobs
 

@@ -12,9 +12,9 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
-
 from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
+
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.distgit import DistGit
@@ -25,15 +25,18 @@ from packit_service.models import (
     JobTriggerModelType,
     PipelineModel,
     ProjectReleaseModel,
-    ProposeDownstreamModel,
-    ProposeDownstreamStatus,
-    ProposeDownstreamTargetModel,
-    ProposeDownstreamTargetStatus,
+    SyncReleaseModel,
+    SyncReleaseStatus,
+    SyncReleaseTargetModel,
+    SyncReleaseTargetStatus,
+    SyncReleaseJobType,
 )
 from packit_service.service.db_triggers import AddReleaseDbTrigger
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
-from packit_service.worker.helpers.propose_downstream import ProposeDownstreamJobHelper
+from packit_service.worker.helpers.sync_release.propose_downstream import (
+    ProposeDownstreamJobHelper,
+)
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus
@@ -113,34 +116,38 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         project_url="https://github.com/the-namespace/the-repo",
         commit_hash="12345",
     ).and_return(trigger).times(1 if success else 0)
-    propose_downstream_model = flexmock(propose_downstream_targets=[])
-    flexmock(ProposeDownstreamModel).should_receive("create_with_new_run").with_args(
-        status=ProposeDownstreamStatus.running,
+    propose_downstream_model = flexmock(sync_release_targets=[])
+    flexmock(SyncReleaseModel).should_receive("create_with_new_run").with_args(
+        status=SyncReleaseStatus.running,
         trigger_model=trigger,
+        job_type=SyncReleaseJobType.propose_downstream,
     ).and_return(propose_downstream_model, run_model).times(1 if success else 0)
 
     model = flexmock(status="queued", id=1234, branch="main")
-    flexmock(ProposeDownstreamTargetModel).should_receive("create").with_args(
-        status=ProposeDownstreamTargetStatus.queued, branch="main"
+    flexmock(SyncReleaseTargetModel).should_receive("create").with_args(
+        status=SyncReleaseTargetStatus.queued, branch="main"
     ).and_return(model).times(1 if success else 0)
     flexmock(model).should_receive("set_downstream_pr_url").with_args(
         downstream_pr_url="some_url"
     ).times(1 if success else 0)
     flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.running
+        status=SyncReleaseTargetStatus.running
     ).times(1 if success else 0)
     flexmock(model).should_receive("set_start_time").times(1 if success else 0)
     flexmock(model).should_receive("set_finished_time").times(1 if success else 0)
     flexmock(model).should_receive("set_logs").times(1 if success else 0)
     flexmock(model).should_receive("set_status").with_args(
-        status=ProposeDownstreamTargetStatus.submitted
+        status=SyncReleaseTargetStatus.submitted
     ).times(1 if success else 0)
     flexmock(propose_downstream_model).should_receive("set_status").with_args(
-        status=ProposeDownstreamStatus.finished
+        status=SyncReleaseStatus.finished
     ).times(1 if success else 0)
 
     flexmock(PackitAPI).should_receive("sync_release").with_args(
-        dist_git_branch="main", tag="1.2.3", create_pr=True
+        dist_git_branch="main",
+        tag="1.2.3",
+        create_pr=True,
+        local_pr_branch_suffix="update-propose_downstream",
     ).and_return(flexmock(url="some_url")).times(1 if success else 0)
     flexmock(shutil).should_receive("rmtree").with_args("")
 
@@ -169,7 +176,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
     url = get_propose_downstream_info_url(model.id)
 
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_to_branch"
+        "report_status_for_branch"
     ).with_args(
         branch="main",
         description="Starting propose downstream...",
@@ -179,7 +186,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         1 if success else 0
     )
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_to_branch"
+        "report_status_for_branch"
     ).with_args(
         branch="main",
         description="Propose downstream finished successfully.",

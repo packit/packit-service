@@ -11,7 +11,7 @@ from packit_service.models import (
     CoprBuildTargetModel,
     KojiBuildTargetModel,
     PipelineModel,
-    ProposeDownstreamModel,
+    SyncReleaseModel,
     SRPMBuildModel,
     TFTTestRunTargetModel,
     optional_timestamp,
@@ -28,10 +28,10 @@ logger = getLogger("packit_service")
 ns = Namespace("runs", description="Pipelines")
 
 
-def _add_propose_downstream(run: ProposeDownstreamModel, response_dict: Dict):
-    targets = response_dict["propose_downstream"]
+def _add_sync_release(run: SyncReleaseModel, response_dict: Dict):
+    targets = response_dict[run.job_type.value]
 
-    for target in run.propose_downstream_targets:
+    for target in run.sync_release_targets:
         targets.append(
             {
                 "packit_id": target.id,
@@ -70,6 +70,7 @@ def process_runs(runs):
             "koji": [],
             "test_run": [],
             "propose_downstream": [],
+            "pull_from_upstream": [],
         }
 
         if srpm_build := SRPMBuildModel.get_by_id(pipeline.srpm_build_id):
@@ -107,12 +108,10 @@ def process_runs(runs):
                     response_dict["time_submitted"] = optional_timestamp(submitted_time)
                     response_dict["trigger"] = get_project_info_from_build(row)
 
-        # handle propose-downstream
-        if propose_downstream := list(
-            flatten_and_remove_none(pipeline.propose_downstream_run_id)
-        ):
-            _add_propose_downstream(
-                ProposeDownstreamModel.get_by_id(propose_downstream[0]),
+        # handle propose-downstream and pull-from-upstream
+        if sync_release := list(flatten_and_remove_none(pipeline.sync_release_run_id)):
+            _add_sync_release(
+                SyncReleaseModel.get_by_id(sync_release[0]),
                 response_dict,
             )
 
@@ -168,7 +167,7 @@ class Run(Resource):
         result = {
             "run_id": run.id,
             "trigger": get_project_info_from_build(
-                run.srpm_build or run.propose_downstream_run
+                run.srpm_build or run.sync_release_run
             ),
             "srpm_build_id": run.srpm_build_id,
             "copr_build_id": run.copr_build_id,
