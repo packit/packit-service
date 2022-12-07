@@ -11,7 +11,11 @@ from flask_restx import Namespace, Resource, fields
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
 from packit_service.constants import CELERY_DEFAULT_MAIN_TASK_NAME
-from packit_service.models import TFTTestRunTargetModel, optional_timestamp
+from packit_service.models import (
+    TFTTestRunTargetModel,
+    optional_timestamp,
+    TFTTestRunGroupModel,
+)
 from packit_service.service.api.errors import ValidationFailed
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import get_project_info_from_build, response_maker
@@ -157,9 +161,36 @@ class TestingFarmResult(Resource):
             "commit_sha": test_run_model.commit_sha,
             "web_url": test_run_model.web_url,
             "copr_build_ids": [build.id for build in test_run_model.copr_builds],
-            "run_ids": sorted(run.id for run in test_run_model.runs),
+            "run_ids": sorted(run.id for run in test_run_model.group_of_targets.runs),
             "submitted_time": optional_timestamp(test_run_model.submitted_time),
         }
 
         test_result_dict.update(get_project_info_from_build(test_run_model))
         return response_maker(test_result_dict)
+
+
+@ns.route("/groups/<int:id>")
+@ns.param("id", "Packit id of the test run group")
+class TestingFarmGroup(Resource):
+    @ns.response(HTTPStatus.OK, "OK, test run group details follow")
+    @ns.response(
+        HTTPStatus.NOT_FOUND.value, "No info about test run group stored in DB"
+    )
+    def get(self, id):
+        """A specific test run details."""
+        group_model = TFTTestRunGroupModel.get_by_id(int(id))
+
+        if not group_model:
+            return response_maker(
+                {"error": "No info about group stored in DB"},
+                status=HTTPStatus.NOT_FOUND,
+            )
+
+        group_dict = {
+            "submitted_time": optional_timestamp(group_model.submitted_time),
+            "run_ids": sorted(run.id for run in group_model.runs),
+            "test_target_ids": sorted(test.id for test in group_model.grouped_targets),
+        }
+
+        group_dict.update(get_project_info_from_build(group_model))
+        return response_maker(group_dict)

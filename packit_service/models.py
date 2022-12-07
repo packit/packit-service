@@ -1581,6 +1581,10 @@ class KojiBuildGroupModel(ProjectAndTriggersConnector, GroupModel, Base):
         )
 
     @classmethod
+    def get_by_id(cls, id_: int) -> Optional["KojiBuildGroupModel"]:
+        return sa_session().query(KojiBuildGroupModel).filter_by(id=id_).first()
+
+    @classmethod
     def create(cls, run_model: "PipelineModel") -> "KojiBuildGroupModel":
         with sa_session_transaction() as session:
             build_group = cls()
