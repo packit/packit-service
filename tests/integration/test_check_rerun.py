@@ -227,7 +227,7 @@ def test_check_rerun_pr_testing_farm_handler(
     mock_pr_functionality, check_rerun_event_testing_farm
 ):
 
-    run = flexmock()
+    run = flexmock(test_run_group=None)
     build = flexmock(status=BuildStatus.success, group_of_targets=flexmock(runs=[run]))
     test = flexmock(
         copr_builds=[build],
@@ -424,7 +424,7 @@ def test_check_rerun_push_testing_farm_handler(
     mock_push_functionality, check_rerun_event_testing_farm
 ):
 
-    run = flexmock()
+    run = flexmock(test_run_group=None)
     build = flexmock(status=BuildStatus.success, group_of_targets=flexmock(runs=[run]))
     test = flexmock(
         copr_builds=[build],

@@ -178,6 +178,7 @@ def copr_build_model(
 
     runs = []
     srpm_build = flexmock(logs="asdsdf", url=None, runs=runs)
+    copr_group = flexmock(runs=runs)
     copr_build = flexmock(
         id=1,
         build_id="1",
@@ -187,7 +188,7 @@ def copr_build_model(
         web_url="https://some-url",
         target="some-target",
         status="some-status",
-        group_of_targets=flexmock(runs=runs),
+        group_of_targets=copr_group,
         set_status=lambda x: None,
         set_built_packages=lambda x: None,
         built_packages=[
@@ -220,7 +221,11 @@ def copr_build_model(
     copr_build.get_srpm_build = lambda: srpm_build
 
     run_model = flexmock(
-        id=3, job_trigger=trigger_model, srpm_build=srpm_build, copr_build=copr_build
+        id=3,
+        job_trigger=trigger_model,
+        srpm_build=srpm_build,
+        copr_build_group=copr_group,
+        test_run_group=None,
     )
     runs.append(run_model)
 

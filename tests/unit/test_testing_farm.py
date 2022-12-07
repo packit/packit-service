@@ -931,7 +931,7 @@ def test_get_request_details():
             flexmock(
                 commit_sha="1111111111111111111111111111111111111111",
                 status=BuildStatus.success,
-                group_of_targets=flexmock(runs=[flexmock()]),
+                group_of_targets=flexmock(runs=[flexmock(test_run_group=None)]),
             ),
             False,
             False,
@@ -941,7 +941,7 @@ def test_get_request_details():
                 id=1,
                 commit_sha="1111111111111111111111111111111111111111",
                 status=BuildStatus.pending,
-                group_of_targets=flexmock(runs=[flexmock()]),
+                group_of_targets=flexmock(runs=[flexmock(test_run_group=None)]),
             ),
             False,
             True,

@@ -558,7 +558,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     flexmock(CoprHelper).should_receive("get_valid_build_targets").times(5).and_return(
         {"test-target"}
     )
-    run = flexmock()
+    run = flexmock(test_run_group=None)
     test_run = flexmock(
         id=1,
         status=TestingFarmResult.new,
@@ -660,7 +660,7 @@ def test_pr_test_command_handler_identifiers(pr_embedded_command_comment_event):
     flexmock(CoprHelper).should_receive("get_valid_build_targets").times(5).and_return(
         {"test-target"}
     )
-    run = flexmock()
+    run = flexmock(test_run_group=None)
     test_run = flexmock(
         id=1,
         status=TestingFarmResult.new,
@@ -956,7 +956,9 @@ def test_pr_test_command_handler_retries(
         flexmock(TFTTestRunTargetModel).should_receive("create").never()
         flexmock(TFTTestRunGroupModel).should_receive("get_by_id").and_return(group)
     else:
-        flexmock(PipelineModel).should_receive("create").and_return(flexmock())
+        flexmock(PipelineModel).should_receive("create").and_return(
+            flexmock(test_run_group=None)
+        )
         flexmock(TFTTestRunGroupModel).should_receive("create").and_return(group)
         flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
 
@@ -1161,7 +1163,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     tft_test_run_model = flexmock(
         id=5, status=TestingFarmResult.new, target="fedora-rawhide-x86_64"
     )
-    run_model = flexmock()
+    run_model = flexmock(test_run_group=None)
     flexmock(PipelineModel).should_receive("create").and_return(run_model)
     group = flexmock(grouped_targets=[tft_test_run_model])
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
@@ -1258,7 +1260,7 @@ def test_pr_test_command_handler_compose_not_present(
         trigger
     )
 
-    run_model = flexmock()
+    run_model = flexmock(test_run_group=None)
     test_run = flexmock(
         id=1,
         status=TestingFarmResult.new,
@@ -1398,7 +1400,7 @@ def test_pr_test_command_handler_composes_not_available(
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
         trigger
     )
-    run_model = flexmock()
+    run_model = flexmock(test_run_group=None)
     test_run = flexmock(
         id=1,
         status=TestingFarmResult.new,
@@ -1537,20 +1539,21 @@ def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"test-target", "test-target-without-build"}
     )
-    run_model = flexmock()
+    run_model = flexmock(test_run_group=None)
     test_run = flexmock(
         id=1,
         status=TestingFarmResult.new,
         copr_builds=[flexmock(status=BuildStatus.success)],
         target="test-target",
     )
-    flexmock(PipelineModel).should_receive("create").and_return(run_model)
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
         [run_model]
     ).and_return(flexmock(grouped_targets=[test_run]))
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=BuildStatus.success)
+        flexmock(
+            status=BuildStatus.success, group_of_targets=flexmock(runs=[run_model])
+        )
     ).and_return()
 
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("owner")
@@ -1639,14 +1642,13 @@ def test_pr_test_command_handler_missing_build_trigger_with_build_job_config(
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
         type=JobTriggerModelType.pull_request, trigger_id=9
     ).and_return(trigger)
-    run_model = flexmock()
+    run_model = flexmock(test_run_group=None)
     test_run = flexmock(
         id=1,
         status=TestingFarmResult.new,
         copr_builds=[flexmock(status=BuildStatus.success)],
         target="test-target",
     )
-    flexmock(PipelineModel).should_receive("create").and_return(run_model)
     flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
         [run_model]
@@ -1660,7 +1662,9 @@ def test_pr_test_command_handler_missing_build_trigger_with_build_job_config(
         {"test-target", "test-target-without-build"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=BuildStatus.success)
+        flexmock(
+            status=BuildStatus.success, group_of_targets=flexmock(runs=[run_model])
+        )
     ).and_return()
 
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("owner")
@@ -2045,7 +2049,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64"}
     )
-    run_model = flexmock()
+    run_model = flexmock(test_run_group=None)
     test_run = flexmock(
         id=1, target="fedora-rawhide-x86_64", status=TestingFarmResult.new
     )
@@ -2245,7 +2249,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         {"fedora-rawhide-x86_64", "fedora-35-x86_64"}
     )
 
-    run_model = flexmock(PipelineModel)
+    run_model = flexmock(test_run_group=None)
 
     build = flexmock(
         build_id="123456",
@@ -2431,7 +2435,6 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         runs=[run_model],
         grouped_targets=[tft_test_run_model_rawhide, tft_test_run_model_35],
     )
-    run_model = flexmock(run_model, test_run_group=group)
     flexmock(TFTTestRunGroupModel).should_receive("create").and_return(group)
     for t, model in (
         ("fedora-35-x86_64", tft_test_run_model_35),
