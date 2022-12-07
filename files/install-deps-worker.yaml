@@ -36,9 +36,7 @@
           - postgresql # pg_dump
           - python3-boto3 # AWS (S3)
           - python3-fasjson-client
-          # remove if we decide not to use concurrency
-          - python3-eventlet
-          - python3-gevent
+          - python3-gevent # concurrency pool, see run_worker.sh
           # v6 = bodhi-client, v5 = python3-bodhi{,-client}
           - bodhi-client
         # needed when installing from koji - there are no GPG-signed packages
