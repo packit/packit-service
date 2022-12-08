@@ -8,11 +8,11 @@ from typing import Iterable, List, Optional, Set, Tuple
 
 from copr.v3 import CoprAuthException, CoprRequestException
 from copr.v3.exceptions import CoprTimeoutException
-
 from ogr.abstract import GitProject
+from ogr.exceptions import GitForgeInternalError, OgrNetworkError
 from ogr.parsing import parse_git_repo
 from ogr.services.github import GithubProject
-from ogr.exceptions import GitForgeInternalError, OgrNetworkError
+
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.aliases import get_aliases, get_valid_build_targets
 from packit.config.common_package_config import Deployment
@@ -30,7 +30,6 @@ from packit_service.constants import (
     COPR_CHROOT_CHANGE_MSG,
     CUSTOM_COPR_PROJECT_NOT_ALLOWED_CONTENT,
     CUSTOM_COPR_PROJECT_NOT_ALLOWED_STATUS,
-    CUSTOM_COPR_PROJECT_ALLOWED_IN_PACKIT_CONFIG,
     DEFAULT_MAPPING_INTERNAL_TF,
     DEFAULT_MAPPING_TF,
     GIT_FORGE_PROJECT_NOT_ALLOWED_TO_BUILD_IN_COPR,
@@ -54,10 +53,10 @@ from packit_service.service.urls import (
 )
 from packit_service.utils import elapsed_seconds
 from packit_service.worker.celery_task import CeleryTask
-from packit_service.worker.helpers.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.events import EventData
+from packit_service.worker.helpers.build.build_helper import BaseBuildJobHelper
 from packit_service.worker.monitoring import Pushgateway
-from packit_service.worker.reporting import BaseCommitStatus, DuplicateCheckMode
+from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
@@ -334,25 +333,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             )
         return allowed
 
-    def is_forge_project_allowed_to_build_in_copr_by_config(self) -> bool:
-        """Is this forge project allowed to build in COPR project?
-        Check into packit configuration if the forge project has been granted permissions.
-
-        TODO: This method should be removed in the future!
-
-        Returns:
-            bool: True if the forge project is allowed to build in COPR project.
-        """
-        allowed = False
-        allowed_projects = (
-            self.service_config.allowed_forge_projects_for_copr_project.get(
-                self.configured_copr_project, []
-            )
-        )
-        if self.forge_project in allowed_projects:
-            allowed = True
-        return allowed
-
     def check_if_custom_copr_can_be_used_and_report(self) -> bool:
         """
         Check if the git-forge project can build in the configured Copr project.
@@ -364,19 +344,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         :return: True if the matching is configured.
         """
         if self.is_forge_project_allowed_to_build_in_copr():
-            return True
-
-        # TODO: to be removed in the future (if statement)
-        if self.is_forge_project_allowed_to_build_in_copr_by_config():
-            markdown_content = CUSTOM_COPR_PROJECT_ALLOWED_IN_PACKIT_CONFIG.format(
-                copr_project=self.configured_copr_project,
-                forge_project=self.forge_project,
-                copr_settings_url=self.copr_settings_url,
-            )
-            self.status_reporter.comment(
-                body=markdown_content,
-                duplicate_check=DuplicateCheckMode.check_all_comments,
-            )
             return True
 
         self.report_status_to_build(
@@ -493,13 +460,11 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         owner = self.create_copr_project_if_not_exists()
         try:
-            # TODO: the second check is to be removed in future
             buildopts = (
                 {
                     "packit_forge_project": self.forge_project,
                 }
                 if self.is_custom_copr_project_defined()
-                and not self.is_forge_project_allowed_to_build_in_copr_by_config()
                 else {}
             )
             buildopts.update(

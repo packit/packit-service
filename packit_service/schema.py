@@ -80,9 +80,6 @@ class ServiceConfigSchema(UserConfigSchema):
     koji_web_url = fields.String()
     enabled_projects_for_srpm_in_copr = fields.List(fields.String())
     comment_command_prefix = fields.String()
-    allowed_forge_projects_for_copr_project = fields.Dict(
-        keys=fields.String(), values=fields.List(fields.String())
-    )
 
     @post_load
     def make_instance(self, data, **kwargs):
