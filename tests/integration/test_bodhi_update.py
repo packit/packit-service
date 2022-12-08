@@ -6,6 +6,7 @@ import json
 import pytest
 from celery import Task
 from celery.canvas import Signature
+from celery.exceptions import Retry
 from fedora.client import AuthError
 from flexmock import flexmock
 
@@ -25,6 +26,7 @@ from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import (
     run_bodhi_update,
+    BodhiHandlerTaskWithRetry,
 )
 from tests.spellbook import first_dict_value, get_parameters_from_results
 
@@ -249,7 +251,10 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
             job_config=load_job_config(job_config),
             event=event_dict,
             # Needs to be the last try to inform user
-            celery_task=flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
+            celery_task=flexmock(
+                request=flexmock(retries=DEFAULT_RETRY_LIMIT),
+                max_retries=DEFAULT_RETRY_LIMIT,
+            ),
         ).run_job()
 
 
@@ -338,8 +343,107 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
             job_config=load_job_config(job_config),
             event=event_dict,
             # Needs to be the last try to inform user
-            celery_task=flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
+            celery_task=flexmock(
+                request=flexmock(
+                    retries=BodhiHandlerTaskWithRetry.retry_kwargs["max_retries"]
+                ),
+                max_retries=DEFAULT_RETRY_LIMIT,
+            ),
         ).run_job()
+
+
+def test_bodhi_update_build_not_tagged_yet(
+    koji_build_completed_old_format,
+):
+    """the usual use case: the build is not tagged yet so we need to retry a few times"""
+
+    packit_yaml = (
+        "{'specfile_path': 'packit.spec',"
+        "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update',"
+        "'metadata': {'dist_git_branches': ['rawhide']}}],"
+        "'downstream_package_name': 'packit',"
+        "'issue_repository': 'https://github.com/namespace/project'}"
+    )
+    pagure_project_mock = flexmock(
+        PagureProject,
+        full_repo_name="rpms/packit",
+        get_web_url=lambda: "https://src.fedoraproject.org/rpms/packit",
+        default_branch="main",
+    )
+    pagure_project_mock.should_receive("get_files").with_args(
+        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
+    ).and_return(["packit.spec"])
+    pagure_project_mock.should_receive("get_file_content").with_args(
+        path=".distro/source-git.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
+    ).and_raise(FileNotFoundError, "Not found.")
+    pagure_project_mock.should_receive("get_file_content").with_args(
+        path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
+    ).and_return(packit_yaml)
+
+    flexmock(LocalProject, refresh_the_arguments=lambda: None)
+    # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
+    flexmock(Signature).should_receive("apply_async").times(2)
+    flexmock(PackitAPI).should_receive("create_update").with_args(
+        dist_git_branch="rawhide",
+        update_type="enhancement",
+        koji_builds=["packit-0.43.0-1.fc36"],
+    ).and_raise(PackitException, "build not tagged")
+
+    # no reporting should be done as the update is created on the second run
+    issue_project_mock = flexmock(GithubProject)
+    issue_project_mock.should_receive("get_issue_list").times(0)
+    issue_project_mock.should_receive("create_issue").times(0)
+
+    # Database structure
+    run_model_flexmock = flexmock()
+    git_branch_model_flexmock = flexmock(
+        id=1, job_config_trigger_type=JobConfigTriggerType.commit
+    )
+    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
+        build_id=1864700
+    ).and_return(
+        flexmock(
+            get_trigger_object=lambda: flexmock(
+                id=1, job_config_trigger_type=JobConfigTriggerType.commit
+            )
+        )
+    )
+    flexmock(GitBranchModel).should_receive("get_or_create").and_return(
+        git_branch_model_flexmock
+    )
+    flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
+
+    flexmock(Task).should_receive("retry").and_raise(Retry).once()
+    flexmock(Pushgateway).should_receive("push").once().and_return()
+
+    processing_results = SteveJobs().process_message(koji_build_completed_old_format)
+    # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
+    assert len(processing_results) == 2
+    processing_results.pop()
+    event_dict, job, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    celery_task = flexmock(CeleryTask)
+    celery_task.should_receive("is_last_try").and_return(False)
+    with pytest.raises(Retry):
+        run_bodhi_update(
+            package_config=package_config,
+            event=event_dict,
+            job_config=job_config,
+        )
+    flexmock(PackitAPI).should_receive("create_update").with_args(
+        dist_git_branch="rawhide",
+        update_type="enhancement",
+        koji_builds=["packit-0.43.0-1.fc36"],
+    ).and_return(
+        None
+    )  # tagged now
+    results = run_bodhi_update(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+    assert first_dict_value(results["job"])["success"]
 
 
 def test_bodhi_update_auth_error(
@@ -374,6 +478,7 @@ def test_bodhi_update_auth_error(
     flexmock(Signature).should_receive("apply_async").times(2)
     flexmock(Pushgateway).should_receive("push").once().and_return()
 
+    # Packit doesn't have permissions to create an update, hence the AuthError
     bodhi_exception = PackitException("packit exception")
     bodhi_exception.__cause__ = AuthError("auth error")
     flexmock(PackitAPI).should_receive("create_update").with_args(
@@ -390,7 +495,7 @@ def test_bodhi_update_auth_error(
         "because of the missing permissions.\n\n"
         "Please, give packit user `commit` rights "
         "in the [dist-git settings](https://src.fedoraproject.org/rpms/packit/adduser).\n\n"
-        "*Try 1/3: Task will be retried in 10 minutes.*\n\n"
+        "*Try 1/6: Task will be retried in 10 minutes.*\n\n"
         "---\n\n"
         "*Get in [touch with us](https://packit.dev/#contact) if you need some help.*",
     ).and_return(

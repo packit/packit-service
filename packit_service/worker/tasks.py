@@ -100,10 +100,15 @@ def setup_loggers(logger, *args, **kwargs):
 
 class HandlerTaskWithRetry(Task):
     autoretry_for = (Exception,)
-    retry_kwargs = {
-        "max_retries": int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT))
-    }
+    max_retries = int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT))
+    retry_kwargs = {"max_retries": max_retries}
     retry_backoff = int(getenv("CELERY_RETRY_BACKOFF", DEFAULT_RETRY_BACKOFF))
+
+
+class BodhiHandlerTaskWithRetry(HandlerTaskWithRetry):
+    # hardcode for creating bodhi updates to account for the tagging race condition
+    max_retries = 5
+    retry_kwargs = {"max_retries": max_retries}
 
 
 @celery_app.task(
@@ -337,7 +342,7 @@ def run_downstream_koji_build_report(
 @celery_app.task(
     bind=True,
     name=TaskName.bodhi_update,
-    base=HandlerTaskWithRetry,
+    base=BodhiHandlerTaskWithRetry,
     queue="long-running",
 )
 def run_bodhi_update(self, event: dict, package_config: dict, job_config: dict):

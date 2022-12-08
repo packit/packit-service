@@ -307,7 +307,11 @@ def test_copr_build_copr_outage_retry(
         _targets=["bright-future-x86_64"],
         owner="packit",
         db_trigger=trigger,
-        task=CeleryTask(flexmock(request=flexmock(retries=retry_number))),
+        task=CeleryTask(
+            flexmock(
+                request=flexmock(retries=retry_number), max_retries=DEFAULT_RETRY_LIMIT
+            )
+        ),
     )
     # we need to make sure that pr_id is set
     # so we can check it out and add it to spec's release field
@@ -786,7 +790,7 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
             mock_chroot_proxy=flexmock()
             .should_receive("get_list")
             .and_return({"bright-future-x86_64": "", "bright-future-aarch64": ""})
-            .mock,
+            .mock(),
         )
     )
 
@@ -1289,7 +1293,10 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
         ),
     )
     helper.celery_task = CeleryTask(
-        flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT))
+        flexmock(
+            request=flexmock(retries=DEFAULT_RETRY_LIMIT),
+            max_retries=DEFAULT_RETRY_LIMIT,
+        )
     )
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
         type=JobTriggerModelType.pull_request, trigger_id=123
@@ -2388,7 +2395,12 @@ def test_run_copr_build_from_source_script_github_outage_retry(
             id=123,
             job_trigger_model_type=JobTriggerModelType.pull_request,
         ),
-        task=CeleryTask(flexmock(request=flexmock(retries=retry_number))),
+        task=CeleryTask(
+            flexmock(
+                request=flexmock(retries=retry_number, kwargs={}),
+                max_retries=DEFAULT_RETRY_LIMIT,
+            )
+        ),
     )
     helper.job_config.srpm_build_deps = ["make", "findutils"]
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(

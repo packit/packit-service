@@ -1122,7 +1122,10 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     event_dict["tests_targets_override"] = ["fedora-rawhide-x86_64"]
     task = run_testing_farm_handler.__wrapped__.__func__
     task(
-        flexmock(request=flexmock(retries=DEFAULT_RETRY_LIMIT)),
+        flexmock(
+            request=flexmock(retries=DEFAULT_RETRY_LIMIT),
+            max_retries=DEFAULT_RETRY_LIMIT,
+        ),
         package_config=package_config,
         event=event_dict,
         job_config=job_config,

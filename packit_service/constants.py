@@ -72,11 +72,14 @@ COPR_FAILED_STATE = "failed"
 COPR_API_SUCC_STATE = 1
 COPR_API_FAIL_STATE = 2
 
+# Retry 2 times
 DEFAULT_RETRY_LIMIT = 2
 # Retry more times for outages
 DEFAULT_RETRY_LIMIT_OUTAGE = 5
-# retry in 3s, 6s
-DEFAULT_RETRY_BACKOFF = 3
+# retry in 0-7s, 0-14s, 0-28s, 0-48s, 0-96s
+# because jitter is enabled by default, celery makes these retries random:
+# https://docs.celeryq.dev/en/latest/userguide/tasks.html#Task.retry_jitter
+DEFAULT_RETRY_BACKOFF = 7
 RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED = 10
 BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES = 1
 BASE_RETRY_INTERVAL_IN_SECONDS_FOR_INTERNAL_ERRORS = 10

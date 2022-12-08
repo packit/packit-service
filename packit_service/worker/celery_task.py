@@ -1,10 +1,8 @@
 import logging
-from os import getenv
 from typing import Optional
 
 from celery import Task
 
-from packit_service.constants import DEFAULT_RETRY_LIMIT
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +17,9 @@ class CeleryTask:
 
     @property
     def retries(self):
+        """
+        This is the retry number:
+        """
         return self.task.request.retries
 
     def is_last_try(self) -> bool:
@@ -31,11 +32,10 @@ class CeleryTask:
 
     def get_retry_limit(self) -> int:
         """
-        Returns the limit of the celery task retries.
-        (Packit uses this env.var. in HandlerTaskWithRetry base class
-        to set `max_retries` in `retry_kwargs`.)
+        Returns the limit of the celery task retries. These are configured
+        in task.py in the specific Task definitions
         """
-        return int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT))
+        return self.task.max_retries
 
     def retry(
         self,
