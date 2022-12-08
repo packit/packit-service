@@ -165,6 +165,8 @@ class AbstractSyncReleaseHandler(
                 tag=self.data.tag_name,
                 create_pr=True,
                 local_pr_branch_suffix=branch_suffix,
+                use_downstream_specfile=self.sync_release_job_type
+                == SyncReleaseJobType.pull_from_upstream,
             )
         except PackitDownloadFailedException as ex:
             # the archive has not been uploaded to PyPI yet

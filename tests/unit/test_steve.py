@@ -148,6 +148,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         tag="1.2.3",
         create_pr=True,
         local_pr_branch_suffix="update-propose_downstream",
+        use_downstream_specfile=False,
     ).and_return(flexmock(url="some_url")).times(1 if success else 0)
     flexmock(shutil).should_receive("rmtree").with_args("")
 
