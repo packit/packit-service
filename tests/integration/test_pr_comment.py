@@ -29,6 +29,7 @@ from packit_service.constants import (
     DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,
     DOCS_HOW_TO_CONFIGURE_URL,
     TASK_ACCEPTED,
+    DEFAULT_RETRY_LIMIT,
 )
 from packit_service.models import (
     CoprBuildTargetModel,
@@ -1191,7 +1192,9 @@ def test_pr_test_command_handler_retries(
     assert json.dumps(event_dict)
     task = run_testing_farm_handler.__wrapped__.__func__
     task(
-        flexmock(request=flexmock(retries=retry_number)),
+        flexmock(
+            request=flexmock(retries=retry_number), max_retries=DEFAULT_RETRY_LIMIT
+        ),
         package_config=package_config,
         event=event_dict,
         job_config=job_config,

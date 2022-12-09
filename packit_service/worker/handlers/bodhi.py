@@ -172,7 +172,7 @@ class RetriggerBodhiUpdateHandler(
     BodhiUpdateHandler, GetKojiBuildDataFromKojiServiceMixin
 ):
     """
-    This handler can re-trigger a bodhi update if any successfull Koji build.
+    This handler can re-trigger a bodhi update if any successful Koji build.
     """
 
     task_name = TaskName.retrigger_bodhi_update
