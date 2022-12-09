@@ -38,7 +38,7 @@ elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     CONCURRENCY="${CONCURRENCY:-$DEFAULT_CONCURRENCY}"
     export CONCURRENCY
 
-    # Options: prefork | eventlet | gevent | solo
+    # Options: solo | gevent
     # https://www.distributedpython.com/2018/10/26/celery-execution-pool/
     DEFAULT_POOL="solo"
     DEFAULT_CONCURRENCY_POOL="gevent"

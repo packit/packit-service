@@ -21,7 +21,7 @@ jobs:
             image: packit-service-tests
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Extract branch name and set tag
         shell: bash
@@ -36,9 +36,9 @@ jobs:
                   tag="prod"
                   ;;
           esac
-          echo "::set-output name=branch::${branch}"
+          echo "branch=${branch}" >> $GITHUB_OUTPUT
           unique_tag="${branch}-${GITHUB_SHA::7}-$(date +%s)"
-          echo "::set-output name=tag::${tag} ${unique_tag}"
+          echo "tag=${tag} ${unique_tag}" >> $GITHUB_OUTPUT
         id: branch_tag
 
       - name: Build Image
