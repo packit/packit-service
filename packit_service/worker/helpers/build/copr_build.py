@@ -195,7 +195,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
     @property
     def additional_repos(self) -> Optional[List[str]]:
         """
-        Additional repos that will be enable for copr build.
+        Additional repos that will be enabled for copr build.
         """
         return self.job_build.additional_repos if self.job_build else None
 
@@ -535,6 +535,18 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         Run copr build using SRPM built by us.
         """
+        self._report(
+            state=BaseCommitStatus.error,
+            description="`srpm_build_deps` not defined",
+            url="https://packit.dev/posts/copr-srpms/#deployment-phases",
+            check_names="srpm_build_deps-not-defined",
+            markdown_content="All SRPMs will be built in Copr since January 2023. "
+            "Please use [srpm_build_deps]"
+            "(https://packit.dev/docs/configuration/#srpm_build_deps) "
+            "to be sure that we don't break your workflow once we switch "
+            "to building all SRPMs in Copr.",
+        )
+
         self.report_status_to_all(
             description="Building SRPM ...",
             state=BaseCommitStatus.running,

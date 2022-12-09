@@ -223,7 +223,7 @@ class SteveJobs:
 
         if handler_kls == ProposeDownstreamHandler:
             propose_downstream_helper = ProposeDownstreamJobHelper
-            params.update({"branches_override": self.event.branches_override})
+            params["branches_override"] = self.event.branches_override
             return propose_downstream_helper(**params)
 
         helper_kls: Type[
