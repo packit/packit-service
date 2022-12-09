@@ -138,6 +138,7 @@ def test_dist_git_push_release_handle(github_release_webhook, propose_downstream
         tag="0.3.0",
         create_pr=True,
         local_pr_branch_suffix="update-propose_downstream",
+        use_downstream_specfile=False,
     ).and_return(flexmock(url="some_url")).once()
     flexmock(PackitAPI).should_receive("clean")
 
@@ -246,6 +247,7 @@ def test_dist_git_push_release_handle_multiple_branches(
             tag="0.3.0",
             create_pr=True,
             local_pr_branch_suffix="update-propose_downstream",
+            use_downstream_specfile=False,
         ).and_return(flexmock(url="some_url")).once()
     for model in propose_downstream_target_models:
         flexmock(model).should_receive("set_status").with_args(
@@ -364,6 +366,7 @@ def test_dist_git_push_release_handle_one_failed(
                 tag="0.3.0",
                 create_pr=True,
                 local_pr_branch_suffix="update-propose_downstream",
+                use_downstream_specfile=False,
             ).and_raise(Exception, f"Failed {branch}").once()
         else:
             flexmock(PackitAPI).should_receive("sync_release").with_args(
@@ -371,6 +374,7 @@ def test_dist_git_push_release_handle_one_failed(
                 tag="0.3.0",
                 create_pr=True,
                 local_pr_branch_suffix="update-propose_downstream",
+                use_downstream_specfile=False,
             ).and_return(flexmock(url="some_url")).once()
     for model in propose_downstream_target_models:
         url = get_propose_downstream_info_url(model.id)
@@ -639,6 +643,7 @@ def test_retry_propose_downstream_task(
         tag="0.3.0",
         create_pr=True,
         local_pr_branch_suffix="update-propose_downstream",
+        use_downstream_specfile=False,
     ).and_raise(
         PackitDownloadFailedException, "Failed to download source from example.com"
     ).once()
@@ -741,6 +746,7 @@ def test_dont_retry_propose_downstream_task(
         tag="0.3.0",
         create_pr=True,
         local_pr_branch_suffix="update-propose_downstream",
+        use_downstream_specfile=False,
     ).and_raise(
         PackitDownloadFailedException, "Failed to download source from example.com"
     ).once()
