@@ -411,7 +411,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             Task results if job is done because of merge conflicts, `None`
         otherwise.
         """
-        # we want to get packit logs from the SRPM creation process
+        # We want to get packit logs from the SRPM creation process,
         # so we stuff them into a StringIO buffer
         stream = StringIO()
         handler = logging.StreamHandler(stream)

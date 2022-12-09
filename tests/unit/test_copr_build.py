@@ -203,6 +203,18 @@ def test_copr_build_check_names(github_pr_event):
         "https://test.url"
     )
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
+        state=BaseCommitStatus.error,
+        description="`srpm_build_deps` not defined",
+        check_name="srpm_build_deps-not-defined",
+        url="https://packit.dev/posts/copr-srpms/#deployment-phases",
+        links_to_external_services=None,
+        markdown_content="All SRPMs will be built in Copr since January 2023. "
+        "Please use [srpm_build_deps]"
+        "(https://packit.dev/docs/configuration/#srpm_build_deps) "
+        "to be sure that we don't break your workflow once we switch "
+        "to building all SRPMs in Copr.",
+    ).and_return()
+    flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Building SRPM ...",
         check_name="rpm-build:bright-future-x86_64",
@@ -320,6 +332,18 @@ def test_copr_build_copr_outage_retry(
     flexmock(copr_build).should_receive("get_copr_build_info_url").and_return(
         "https://test.url"
     )
+    flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
+        state=BaseCommitStatus.error,
+        description="`srpm_build_deps` not defined",
+        check_name="srpm_build_deps-not-defined",
+        url="https://packit.dev/posts/copr-srpms/#deployment-phases",
+        links_to_external_services=None,
+        markdown_content="All SRPMs will be built in Copr since January 2023. "
+        "Please use [srpm_build_deps]"
+        "(https://packit.dev/docs/configuration/#srpm_build_deps) "
+        "to be sure that we don't break your workflow once we switch "
+        "to building all SRPMs in Copr.",
+    ).and_return()
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Building SRPM ...",
@@ -450,7 +474,18 @@ def test_copr_build_check_names_invalid_chroots(github_pr_event):
     flexmock(copr_build).should_receive("get_srpm_build_info_url").and_return(
         "https://test.url"
     )
-
+    flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
+        state=BaseCommitStatus.error,
+        description="`srpm_build_deps` not defined",
+        check_name="srpm_build_deps-not-defined",
+        url="https://packit.dev/posts/copr-srpms/#deployment-phases",
+        links_to_external_services=None,
+        markdown_content="All SRPMs will be built in Copr since January 2023. "
+        "Please use [srpm_build_deps]"
+        "(https://packit.dev/docs/configuration/#srpm_build_deps) "
+        "to be sure that we don't break your workflow once we switch "
+        "to building all SRPMs in Copr.",
+    ).and_return()
     for target in build_targets:
         flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
             state=BaseCommitStatus.running,
@@ -616,6 +651,18 @@ def test_copr_build_check_names_multiple_jobs(github_pr_event):
         "https://test.url"
     )
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
+        state=BaseCommitStatus.error,
+        description="`srpm_build_deps` not defined",
+        check_name="srpm_build_deps-not-defined",
+        url="https://packit.dev/posts/copr-srpms/#deployment-phases",
+        links_to_external_services=None,
+        markdown_content="All SRPMs will be built in Copr since January 2023. "
+        "Please use [srpm_build_deps]"
+        "(https://packit.dev/docs/configuration/#srpm_build_deps) "
+        "to be sure that we don't break your workflow once we switch "
+        "to building all SRPMs in Copr.",
+    ).and_return()
+    flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Building SRPM ...",
         check_name="rpm-build:fedora-32-x86_64",
@@ -718,6 +765,18 @@ def test_copr_build_check_names_custom_owner(github_pr_event):
     flexmock(copr_build).should_receive("get_copr_build_info_url").and_return(
         "https://test.url"
     )
+    flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
+        state=BaseCommitStatus.error,
+        description="`srpm_build_deps` not defined",
+        check_name="srpm_build_deps-not-defined",
+        url="https://packit.dev/posts/copr-srpms/#deployment-phases",
+        links_to_external_services=None,
+        markdown_content="All SRPMs will be built in Copr since January 2023. "
+        "Please use [srpm_build_deps]"
+        "(https://packit.dev/docs/configuration/#srpm_build_deps) "
+        "to be sure that we don't break your workflow once we switch "
+        "to building all SRPMs in Copr.",
+    ).and_return()
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Building SRPM ...",
@@ -826,7 +885,7 @@ def test_copr_build_success_set_test_check(github_pr_event):
         event=github_pr_event,
         db_trigger=trigger,
     )
-    flexmock(GithubProject).should_receive("create_check_run").and_return().times(4)
+    flexmock(GithubProject).should_receive("create_check_run").and_return().times(5)
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
@@ -911,7 +970,7 @@ def test_copr_build_for_branch(branch_push_event):
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
-    flexmock(GithubProject).should_receive("create_check_run").and_return().times(8)
+    flexmock(GithubProject).should_receive("create_check_run").and_return().times(9)
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
             flexmock(status="success")
@@ -994,7 +1053,7 @@ def test_copr_build_for_branch_failed(branch_push_event):
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
-    flexmock(GithubProject).should_receive("create_check_run").and_return().times(8)
+    flexmock(GithubProject).should_receive("create_check_run").and_return().times(9)
     flexmock(GithubProject).should_receive("commit_comment").and_return(flexmock())
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
@@ -1078,7 +1137,7 @@ def test_copr_build_for_release(release_event):
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
-    flexmock(GithubProject).should_receive("create_check_run").and_return().times(8)
+    flexmock(GithubProject).should_receive("create_check_run").and_return().times(9)
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
             flexmock(status="success")
@@ -1146,7 +1205,7 @@ def test_copr_build_success(github_pr_event):
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
         type=JobTriggerModelType.pull_request, trigger_id=123
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
-    flexmock(GithubProject).should_receive("create_check_run").and_return().times(8)
+    flexmock(GithubProject).should_receive("create_check_run").and_return().times(9)
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
@@ -1223,6 +1282,26 @@ def test_copr_build_fails_in_packit(github_pr_event):
     flexmock(copr_build).should_receive("get_srpm_build_info_url").and_return(
         "https://test.url"
     )
+    flexmock(GithubProject).should_receive("create_check_run").with_args(
+        name="srpm_build_deps-not-defined",
+        commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
+        url="https://packit.dev/posts/copr-srpms/#deployment-phases",
+        external_id="2",
+        status=GithubCheckRunStatus.completed,
+        conclusion=GithubCheckRunResult.failure,
+        output=create_github_check_run_output(
+            "`srpm_build_deps` not defined",
+            create_table_content(
+                url="https://packit.dev/posts/copr-srpms/#deployment-phases",
+                links_to_external_services=None,
+            )
+            + "All SRPMs will be built in Copr since January 2023. "
+            "Please use [srpm_build_deps]"
+            "(https://packit.dev/docs/configuration/#srpm_build_deps) "
+            "to be sure that we don't break your workflow once we switch "
+            "to building all SRPMs in Copr.",
+        ),
+    ).and_return().once()
     for v in ["31", "rawhide"]:
         flexmock(GithubProject).should_receive("create_check_run").with_args(
             name=templ.format(ver=v),
@@ -1308,6 +1387,26 @@ def test_copr_build_fails_to_update_copr_project(github_pr_event):
     flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
         "get_valid_build_targets"
     ).and_return({"fedora-31-x86_64", "fedora-rawhide-x86_64"})
+    flexmock(GithubProject).should_receive("create_check_run").with_args(
+        name="srpm_build_deps-not-defined",
+        commit_sha="528b803be6f93e19ca4130bf4976f2800a3004c4",
+        url="https://packit.dev/posts/copr-srpms/#deployment-phases",
+        external_id="2",
+        status=GithubCheckRunStatus.completed,
+        conclusion=GithubCheckRunResult.failure,
+        output=create_github_check_run_output(
+            "`srpm_build_deps` not defined",
+            create_table_content(
+                url="https://packit.dev/posts/copr-srpms/#deployment-phases",
+                links_to_external_services=None,
+            )
+            + "All SRPMs will be built in Copr since January 2023. "
+            "Please use [srpm_build_deps]"
+            "(https://packit.dev/docs/configuration/#srpm_build_deps) "
+            "to be sure that we don't break your workflow once we switch "
+            "to building all SRPMs in Copr.",
+        ),
+    ).and_return().once()
     for v in ["31", "rawhide"]:
         flexmock(GithubProject).should_receive("create_check_run").with_args(
             name=templ.format(ver=v),
@@ -1506,7 +1605,7 @@ def test_copr_build_no_targets(github_pr_event):
     flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
         {"fedora-32-x86_64", "fedora-31-x86_64"}
     )
-    flexmock(GithubProject).should_receive("create_check_run").and_return().times(4)
+    flexmock(GithubProject).should_receive("create_check_run").and_return().times(5)
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
@@ -1585,7 +1684,18 @@ def test_copr_build_check_names_gitlab(gitlab_mr_event):
     flexmock(copr_build).should_receive("get_copr_build_info_url").and_return(
         "https://test.url"
     )
-
+    flexmock(StatusReporterGitlab).should_receive("set_status").with_args(
+        state=BaseCommitStatus.error,
+        description="`srpm_build_deps` not defined",
+        check_name="srpm_build_deps-not-defined",
+        url="https://packit.dev/posts/copr-srpms/#deployment-phases",
+        links_to_external_services=None,
+        markdown_content="All SRPMs will be built in Copr since January 2023. "
+        "Please use [srpm_build_deps]"
+        "(https://packit.dev/docs/configuration/#srpm_build_deps) "
+        "to be sure that we don't break your workflow once we switch "
+        "to building all SRPMs in Copr.",
+    ).and_return()
     flexmock(StatusReporterGitlab).should_receive("set_status").with_args(
         state=BaseCommitStatus.running,
         description="Building SRPM ...",
@@ -1709,7 +1819,7 @@ def test_copr_build_success_set_test_check_gitlab(gitlab_mr_event):
     mr = flexmock(source_project=flexmock())
     flexmock(GitlabProject).should_receive("get_pr").and_return(mr)
     flexmock(mr.source_project).should_receive("set_commit_status").and_return().times(
-        4
+        5
     )
 
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
@@ -1792,7 +1902,7 @@ def test_copr_build_for_branch_gitlab(branch_push_event_gitlab):
         db_trigger=trigger,
         project_type=GitlabProject,
     )
-    flexmock(GitlabProject).should_receive("set_commit_status").and_return().times(8)
+    flexmock(GitlabProject).should_receive("set_commit_status").and_return().times(9)
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
             flexmock(status="success")
@@ -1866,7 +1976,7 @@ def test_copr_build_success_gitlab(gitlab_mr_event):
     mr = flexmock(source_project=flexmock())
     flexmock(GitlabProject).should_receive("get_pr").and_return(mr)
     flexmock(mr.source_project).should_receive("set_commit_status").and_return().times(
-        8
+        9
     )
 
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
@@ -1952,6 +2062,14 @@ def test_copr_build_fails_in_packit_gitlab(gitlab_mr_event):
     mr = flexmock(source_project=flexmock())
     flexmock(GitlabProject).should_receive("get_pr").and_return(mr)
 
+    flexmock(mr.source_project).should_receive("set_commit_status").with_args(
+        "1f6a716aa7a618a9ffe56970d77177d99d100022",
+        CommitStatus.failure,
+        "https://packit.dev/posts/copr-srpms/#deployment-phases",
+        "`srpm_build_deps` not defined",
+        "srpm_build_deps-not-defined",
+        trim=True,
+    ).and_return().once()
     for v in ["31", "rawhide"]:
         flexmock(mr.source_project).should_receive("set_commit_status").with_args(
             "1f6a716aa7a618a9ffe56970d77177d99d100022",
@@ -2120,7 +2238,7 @@ def test_copr_build_no_targets_gitlab(gitlab_mr_event):
     mr = flexmock(source_project=flexmock())
     flexmock(GitlabProject).should_receive("get_pr").and_return(mr)
     flexmock(mr.source_project).should_receive("set_commit_status").and_return().times(
-        4
+        5
     )
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
@@ -2205,7 +2323,7 @@ def test_copr_build_targets_override(github_pr_event):
         db_trigger=trigger,
         build_targets_override={"bright-future-x86_64"},
     )
-    flexmock(GithubProject).should_receive("create_check_run").and_return().times(2)
+    flexmock(GithubProject).should_receive("create_check_run").and_return().times(3)
     flexmock(GithubProject).should_receive("get_pr").and_return(
         flexmock(source_project=flexmock())
     )
