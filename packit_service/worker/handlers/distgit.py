@@ -36,7 +36,7 @@ from packit_service.worker.checker.distgit import (
     PermissionOnDistgit,
     ValidInformationForPullFromUpstream,
     HasIssueCommenterRetriggeringPermissions,
-    )
+)
 from packit_service.worker.events import (
     PushPagureEvent,
     ReleaseEvent,
