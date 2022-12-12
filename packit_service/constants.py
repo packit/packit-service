@@ -26,6 +26,10 @@ TESTING_FARM_API_URL = "https://api.dev.testing-farm.io/v0.1/"
 TESTING_FARM_INSTALLABILITY_TEST_URL = "https://gitlab.com/testing-farm/tests"
 TESTING_FARM_INSTALLABILITY_TEST_REF = "main"
 
+MSG_GET_IN_TOUCH = (
+    f"\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*"
+)
+
 MSG_RETRIGGER = (
     "You can retrigger the {job} by adding a comment (`{packit_comment_command_prefix} {command}`) "
     "into this {place}."

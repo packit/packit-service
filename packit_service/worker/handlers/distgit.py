@@ -45,6 +45,7 @@ from packit_service.worker.events import (
     CheckRerunReleaseEvent,
     PullRequestCommentPagureEvent,
     IssueCommentEvent,
+    IssueCommentGitlabEvent,
 )
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.handlers.abstract import (
@@ -446,6 +447,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
 @run_for_comment(command="koji-build")
 @reacts_to(event=PushPagureEvent)
 @reacts_to(event=IssueCommentEvent)
+@reacts_to(event=IssueCommentGitlabEvent)
 @reacts_to(event=PullRequestCommentPagureEvent)
 class DownstreamKojiBuildHandler(
     RetriableJobHandler,

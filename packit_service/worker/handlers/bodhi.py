@@ -26,6 +26,7 @@ from packit_service.worker.checker.bodhi import (
 from packit_service.worker.events import (
     PullRequestCommentPagureEvent,
     IssueCommentEvent,
+    IssueCommentGitlabEvent,
 )
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
@@ -171,6 +172,7 @@ class CreateBodhiUpdateHandler(
 @configured_as(job_type=JobType.bodhi_update)
 @reacts_to(event=PullRequestCommentPagureEvent)
 @reacts_to(event=IssueCommentEvent)
+@reacts_to(event=IssueCommentGitlabEvent)
 @run_for_comment(command="create-update")
 class RetriggerBodhiUpdateHandler(
     BodhiUpdateHandler, GetKojiBuildDataFromKojiServiceMixin

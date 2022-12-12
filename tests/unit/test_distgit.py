@@ -12,6 +12,7 @@ from packit_service.worker.handlers.distgit import (
     DownstreamKojiBuildHandler,
 )
 from packit_service.worker.events.event import EventData
+from packit_service.config import PackageConfigGetter
 
 
 def test_create_one_issue_for_pr():
@@ -84,5 +85,13 @@ def test_retrigger_downstream_koji_build_pre_check(user_groups, data, check_pass
         "list_user_groups"
     ).and_return(lambda username: user_groups)
 
-    result = DownstreamKojiBuildHandler.pre_check(None, None, data_dict)
+    flexmock(DownstreamKojiBuildHandler).should_receive("service_config").and_return(
+        flexmock()
+    )
+    if not check_passed:
+        flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").once()
+
+    result = DownstreamKojiBuildHandler.pre_check(
+        None, flexmock(issue_repository=flexmock()), data_dict
+    )
     assert result == check_passed

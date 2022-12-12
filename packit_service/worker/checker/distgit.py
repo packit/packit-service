@@ -5,10 +5,13 @@ import logging
 
 from packit.config.aliases import get_branches
 
+from packit_service.constants import MSG_GET_IN_TOUCH
+
 from packit_service.worker.checker.abstract import Checker, ActorChecker
 from packit_service.worker.events import (
     PushPagureEvent,
     IssueCommentEvent,
+    IssueCommentGitlabEvent,
 )
 from packit_service.worker.events.pagure import PullRequestCommentPagureEvent
 from packit_service.worker.handlers.mixin import GetProjectToSyncMixin
@@ -62,9 +65,22 @@ class PermissionOnDistgit(Checker, GetPagurePullRequestMixin):
                 f"Triggering downstream koji build through comment by: {commenter}"
             )
             if not self.is_packager(commenter):
-                logger.info(
-                    f"koji-build retrigger comment event on PR identifier {self.data.pr_id} "
+                msg = (
+                    f"koji-build retriggering through comment "
+                    f"on PR identifier {self.data.pr_id} "
+                    f"and project {self.data.project_url} "
                     f"done by {commenter} which is not a packager."
+                )
+                logger.info(msg)
+                report_in_issue_repository(
+                    issue_repository=self.job_config.issue_repository,
+                    service_config=self.service_config,
+                    title=(
+                        "Re-triggering downstream koji build "
+                        "through comment in dist-git PR failed"
+                    ),
+                    message=msg + MSG_GET_IN_TOUCH,
+                    comment_to_existing=msg,
                 )
                 return False
 
@@ -77,19 +93,32 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker):
     """
 
     def _pre_check(self) -> bool:
-        if self.data.event_type in (IssueCommentEvent.__name__,):
+        if self.data.event_type in (
+            IssueCommentEvent.__name__,
+            IssueCommentGitlabEvent.__name__,
+        ):
             logger.debug(
                 f"Re-triggering downstream koji-build through comment in "
                 f"repo {self.project.repo} and issue {self.data.issue_id} "
                 f"by {self.actor}."
             )
             if not self.project.has_write_access(user=self.actor):
-                logger.warning(
+                msg = (
                     f"Re-triggering downstream koji-build through comment in "
-                    f"repo {self.project.repo} and issue {self.data.issue_id} "
-                    f"done by {self.actor} which has not write permissions "
-                    "on the project."
+                    f"repo **{self.project_url}** and issue **{self.data.issue_id}** "
+                    f"is not allowed for the user *{self.actor}* "
+                    f"which has not write permissions on the project."
                 )
+                logger.info(msg)
+                issue = self.project.get_issue(self.data.issue_id)
+                report_in_issue_repository(
+                    issue_repository=self.job_config.issue_repository,
+                    service_config=self.service_config,
+                    title=issue.title,
+                    message=msg + MSG_GET_IN_TOUCH,
+                    comment_to_existing=msg,
+                )
+
                 return False
 
             return True
