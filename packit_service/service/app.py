@@ -5,15 +5,22 @@ import logging
 from os import getenv
 
 from flask import Flask
+
+# Mypy errors out with Module 'flask' has no attribute '__version__'.
+# Python can find flask's version but mypy cannot.
+# So we use "type: ignore" to cause mypy to ignore that line.
+from flask import __version__ as flask_version  # type: ignore
+from flask_restx import __version__ as restx_version
 from lazy_object_proxy import Proxy
 from prometheus_client import make_wsgi_app as prometheus_app
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
 from packit.utils import set_logging
+from packit_service import __version__ as ps_version
 from packit_service.config import ServiceConfig
-from packit_service.log_versions import log_service_versions
 from packit_service.sentry_integration import configure_sentry
 from packit_service.service.api import blueprint
+from packit_service.utils import log_package_versions
 
 set_logging(logger_name="packit_service", level=logging.DEBUG)
 
@@ -40,7 +47,14 @@ def get_flask_application():
     logger.info(
         f"server name = {service_config.server_name}, all HTTP requests need to use this URL!"
     )
-    log_service_versions()
+
+    package_versions = [
+        ("Flask", flask_version),
+        ("Flask RestX", restx_version),
+        ("Packit Service", ps_version),
+    ]
+    log_package_versions(package_versions)
+
     # no need to thank me, just buy me a beer
     logger.debug(f"URL map = {app.url_map}")
     return app

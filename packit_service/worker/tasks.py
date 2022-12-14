@@ -8,17 +8,25 @@ from typing import List, Optional
 
 from celery import Task
 from celery.signals import after_setup_logger
+from ogr import __version__ as ogr_version
+from sqlalchemy import __version__ as sqlal_version
 from syslog_rfc5424_formatter import RFC5424Formatter
 
-from packit_service.models import VMImageBuildTargetModel
+from packit import __version__ as packit_version
+from packit.exceptions import PackitException
+from packit_service import __version__ as ps_version
 from packit_service.celerizer import celery_app
 from packit_service.constants import (
     DEFAULT_RETRY_LIMIT,
     DEFAULT_RETRY_BACKOFF,
     CELERY_DEFAULT_MAIN_TASK_NAME,
 )
-from packit_service.log_versions import log_worker_versions
-from packit_service.utils import load_job_config, load_package_config
+from packit_service.models import VMImageBuildTargetModel
+from packit_service.utils import (
+    load_job_config,
+    load_package_config,
+    log_package_versions,
+)
 from packit_service.worker.database import discard_old_srpm_build_logs, backup
 from packit_service.worker.handlers import (
     CoprBuildEndHandler,
@@ -54,7 +62,6 @@ from packit_service.worker.helpers.build.babysit import (
 )
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.result import TaskResults
-from packit.exceptions import PackitException
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +102,13 @@ def setup_loggers(logger, *args, **kwargs):
         handler.setFormatter(RFC5424Formatter(msgid=project))
         logger.addHandler(handler)
 
-    log_worker_versions()
+    package_versions = [
+        ("OGR", ogr_version),
+        ("Packit", packit_version),
+        ("Packit Service", ps_version),
+        ("SQL Alchemy", sqlal_version),
+    ]
+    log_package_versions(package_versions)
 
 
 class HandlerTaskWithRetry(Task):

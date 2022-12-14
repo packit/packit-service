@@ -74,6 +74,19 @@ def get_package_nvrs(built_packages: List[dict]) -> List[str]:
     return packages
 
 
+def log_package_versions(package_versions: List[Tuple[str, str]]):
+    """
+    It does the actual logging.
+
+    Args:
+        package_versions: List of tuples having pkg name and version.
+    """
+    log_string = "\nPackage Versions:"
+    for name, version in package_versions:
+        log_string += f"\n* {name} {version}"
+    logger.info(log_string)
+
+
 # https://stackoverflow.com/a/41215655/14294700
 def gather_packit_logs_to_buffer(
     logging_level: LoggingLevel,
