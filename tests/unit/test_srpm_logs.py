@@ -139,6 +139,6 @@ def test_build_srpm_log_format(github_pr_event):
         .mock()
     )
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
-        (srpm_model_mock, None)
+        (srpm_model_mock(), None)
     )
     helper._create_srpm()
