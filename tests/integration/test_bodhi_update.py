@@ -723,7 +723,7 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f35):
     """(Known build scenario.)"""
     packit_yaml = (
         "{'specfile_path': 'python-ogr.spec', 'synced_files': [],"
-        "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update'}],"
+        "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update', 'dist_git_branches': ['f35']}],"
         "'downstream_package_name': 'python-ogr'}"
     )
     pagure_project = flexmock(
