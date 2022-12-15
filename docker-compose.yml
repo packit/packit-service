@@ -122,6 +122,7 @@ services:
       - ./secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
       - ./secrets/packit/dev/fullchain.pem:/secrets/fullchain.pem:ro,z
       - ./secrets/packit/dev/privkey.pem:/secrets/privkey.pem:ro,z
+      - ./files/run_httpd.sh:/usr/bin/run_httpd.sh:ro,z
     user: "1024"
 
   fedora-messaging:
