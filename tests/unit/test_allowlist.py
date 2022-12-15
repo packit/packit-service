@@ -605,7 +605,7 @@ def test_strip_protocol_and_add_git(url: str, expected_url: str) -> None:
         ("me", "me-fas", {"github_username": "me"}, None, True),
         ("you", "you", {"github_username": None}, None, False),
         ("she", "she", {"github_username": "me"}, None, False),
-        ("they", "they", {}, APIError, False),
+        ("they", "they", {}, (APIError, "Failure", 42), False),
     ],
 )
 def test_is_github_username_from_fas_account_matching(
@@ -628,7 +628,7 @@ def test_is_github_username_from_fas_account_matching(
     if person_object is not None:
         fas.and_return(flexmock(result=person_object))
     if raises is not None:
-        fas.and_raise(raises)
+        fas.and_raise(*raises)
 
     assert (
         Allowlist(
