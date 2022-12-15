@@ -26,7 +26,6 @@
           - python3-celery # unfortunately, the probes don't work with this
           - python3-redis # celery[redis]
           - python3-lazy-object-proxy
-          - python3-flask-restx
           - dnf-utils
           - make
           # for pip-installing sandcastle from git repo
