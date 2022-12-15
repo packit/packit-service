@@ -266,7 +266,7 @@ def test_vm_image_has_author_write_access(
     flexmock(ServiceConfig).should_receive("get_project").with_args(
         url=project_url
     ).and_return(
-        flexmock(repo="a repo")
+        flexmock(repo="repo", namespace="ns")
         .should_receive("has_write_access")
         .with_args(user=actor)
         .and_return(has_write_access)

@@ -113,8 +113,9 @@ class HasAuthorWriteAccess(
     def _pre_check(self) -> bool:
         if not self.project.has_write_access(user=self.actor):
             msg = (
-                f"User {self.actor} is not allowed to build a VM Image"
-                f"for PR#{self.data.pr_id} and project {self.project.repo}."
+                f"User {self.actor} is not allowed to build a VM Image "
+                f"for PR#{self.data.pr_id} and "
+                f"project {self.project.namespace}/{self.project.repo}."
             )
             logger.info(msg)
             self.report_pre_check_failure(msg)
