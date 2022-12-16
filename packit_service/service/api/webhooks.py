@@ -56,9 +56,11 @@ github_webhook_calls = Counter(
 @ns.route("/github")
 class GithubWebhook(Resource):
     @ns.response(HTTPStatus.OK.value, "Webhook accepted, returning reply")
-    @ns.response(HTTPStatus.ACCEPTED, "Webhook accepted, request is being processed")
-    @ns.response(HTTPStatus.BAD_REQUEST, "Bad request data")
-    @ns.response(HTTPStatus.UNAUTHORIZED, "X-Hub-Signature validation failed")
+    @ns.response(
+        HTTPStatus.ACCEPTED.value, "Webhook accepted, request is being processed"
+    )
+    @ns.response(HTTPStatus.BAD_REQUEST.value, "Bad request data")
+    @ns.response(HTTPStatus.UNAUTHORIZED.value, "X-Hub-Signature validation failed")
     # Just to be able to specify some payload in Swagger UI
     @ns.expect(ping_payload)
     def post(self):
@@ -163,9 +165,11 @@ class GithubWebhook(Resource):
 @ns.route("/gitlab")
 class GitlabWebhook(Resource):
     @ns.response(HTTPStatus.OK.value, "Webhook accepted, returning reply")
-    @ns.response(HTTPStatus.ACCEPTED, "Webhook accepted, request is being processed")
-    @ns.response(HTTPStatus.BAD_REQUEST, "Bad request data")
-    @ns.response(HTTPStatus.UNAUTHORIZED, "X-Gitlab-Token validation failed")
+    @ns.response(
+        HTTPStatus.ACCEPTED.value, "Webhook accepted, request is being processed"
+    )
+    @ns.response(HTTPStatus.BAD_REQUEST.value, "Bad request data")
+    @ns.response(HTTPStatus.UNAUTHORIZED.value, "X-Gitlab-Token validation failed")
     # Just to be able to specify some payload in Swagger UI
     @ns.expect(ping_payload_gitlab)
     def post(self):
