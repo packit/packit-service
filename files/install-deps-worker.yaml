@@ -14,11 +14,6 @@
           - python3-ipdb # for easy debugging
           - nss_wrapper # openshift anyuid passwd madness
           - redis # redis-cli for debugging
-          - origin-clients # for sandcastle
-          # we can't install kube from Fedora because kubernetes client API
-          # changes b/w major versions and we want to pin to the specific
-          # version to be sure it works well - it's 12.0.1 for now
-          # - python3-kubernetes  # for sandcastle
           - python3-requests
           - python3-alembic
           - python3-prometheus_client
@@ -38,8 +33,6 @@
           - python3-gevent # concurrency pool, see run_worker.sh
           # v6 = bodhi-client, v5 = python3-bodhi{,-client}
           - bodhi-client
-        # needed when installing from koji - there are no GPG-signed packages
-        disable_gpg_check: true
         state: present
     - name: Install pip deps
       pip:
@@ -58,3 +51,8 @@
           - python3-specfile
           - packit
         state: latest
+    - name: Install OKD CLI (oc) # sandcastle
+      ansible.builtin.unarchive:
+        src: https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz
+        remote_src: true
+        dest: /usr/bin/
