@@ -35,9 +35,9 @@ payload = ns.model(
 
 @ns.route("/results")
 class TestingFarmResults(Resource):
-    @ns.response(HTTPStatus.OK, "Notification has been accepted")
-    @ns.response(HTTPStatus.BAD_REQUEST, "Bad request data")
-    @ns.response(HTTPStatus.UNAUTHORIZED, "Testing farm secret validation failed")
+    @ns.response(HTTPStatus.OK.value, "Notification has been accepted")
+    @ns.response(HTTPStatus.BAD_REQUEST.value, "Bad request data")
+    @ns.response(HTTPStatus.UNAUTHORIZED.value, "Testing farm secret validation failed")
     @ns.expect(payload)
     def post(self):
         """
@@ -138,7 +138,7 @@ class TestingFarmResults(Resource):
 @ns.route("/<int:id>")
 @ns.param("id", "Packit id of the test run")
 class TestingFarmResult(Resource):
-    @ns.response(HTTPStatus.OK, "OK, test run details follow")
+    @ns.response(HTTPStatus.OK.value, "OK, test run details follow")
     @ns.response(HTTPStatus.NOT_FOUND.value, "No info about test run stored in DB")
     def get(self, id):
         """A specific test run details."""
