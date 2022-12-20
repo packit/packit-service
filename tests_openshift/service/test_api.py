@@ -1,7 +1,8 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-
+import pytest
 from flask import url_for
+from packit.utils import nested_get
 
 from packit_service.models import (
     TestingFarmResult,
@@ -569,3 +570,103 @@ def test_detailed_propose_info_issue(
     response_dict = response.json
 
     assert response_dict["issue_id"] == SampleValues.issue_id
+
+
+@pytest.mark.parametrize(
+    "key_to_check",
+    [
+        "active_projects",
+        "active_projects/project_count",
+        "active_projects/top_projects_by_events_handled",
+        "active_projects/instances",
+        "active_projects/instances/github.com",
+        "all_projects/project_count",
+        "all_projects/instances/github.com",
+        "events/pull_request/events_handled",
+        "events/pull_request/top_projects",
+        "events/release/events_handled",
+        "jobs/srpm_builds/job_runs",
+        "jobs/srpm_builds/top_projects_by_job_runs",
+        "jobs/copr_build_targets/job_runs",
+        "jobs/copr_build_targets/top_projects_by_job_runs",
+        "jobs/copr_build_targets/per_event/pull_request/job_runs",
+        "jobs/copr_build_targets/per_event/pull_request/top_projects_by_job_runs",
+    ],
+)
+def test_usage_info_structure(
+    client,
+    clean_before_and_after,
+    full_database,
+    key_to_check,
+):
+    response = client.get(url_for("api.usage_usage"))
+    response_dict = response.json
+
+    assert nested_get(response_dict, *key_to_check.split("/")) is not None
+
+
+def test_usage_info_datetime(client, clean_before_and_after, full_database):
+    response = client.get(url_for("api.usage_usage") + "?to=2022-12-12")
+    response_dict = response.json
+
+    assert response_dict["active_projects"]["project_count"] == 0
+
+
+def test_usage_info_top(client, clean_before_and_after, full_database):
+    response = client.get(url_for("api.usage_usage") + "?top=0")
+    response_dict = response.json
+
+    assert len(response_dict["active_projects"]["top_projects_by_events_handled"]) == 0
+
+
+@pytest.mark.parametrize(
+    "key_to_check, expected_value",
+    [
+        ("active_projects/project_count", 1),
+        (
+            "active_projects/top_projects_by_events_handled",
+            {"https://github.com/the-namespace/the-repo-name": 7},
+        ),
+        ("active_projects/instances", {"github.com": 1}),
+        ("all_projects/project_count", 6),
+        (
+            "all_projects/instances",
+            {"git.stg.centos.org": 1, "github.com": 4, "gitlab.com": 1},
+        ),
+        ("events/pull_request/events_handled", 2),
+        (
+            "events/pull_request/top_projects",
+            {"https://github.com/the-namespace/the-repo-name": 2},
+        ),
+        ("events/release/events_handled", 2),
+        ("jobs/srpm_builds/job_runs", 13),
+        (
+            "jobs/srpm_builds/top_projects_by_job_runs",
+            {"https://github.com/the-namespace/the-repo-name": 13},
+        ),
+        ("jobs/copr_build_targets/job_runs", 14),
+        (
+            "jobs/copr_build_targets/top_projects_by_job_runs",
+            {"https://github.com/the-namespace/the-repo-name": 14},
+        ),
+        (
+            "jobs/copr_build_targets/per_event/pull_request/job_runs",
+            10,
+        ),
+        (
+            "jobs/copr_build_targets/per_event/pull_request/top_projects_by_job_runs",
+            {"https://github.com/the-namespace/the-repo-name": 10},
+        ),
+    ],
+)
+def test_usage_info_values(
+    client,
+    clean_before_and_after,
+    full_database,
+    key_to_check,
+    expected_value,
+):
+    response = client.get(url_for("api.usage_usage"))
+    response_dict = response.json
+
+    assert nested_get(response_dict, *key_to_check.split("/")) == expected_value
