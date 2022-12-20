@@ -488,7 +488,8 @@ def test_dist_git_push_release_handle_all_failed(
         .should_receive("create_issue")
         .with_args(
             title="[packit] Propose downstream failed for release 0.3.0",
-            body="Packit failed on creating pull-requests in dist-git:\n\n"
+            body="Packit failed on creating pull-requests in dist-git "
+            "(https://src.fedoraproject.org/rpms/hello-world.git):\n\n"
             "| dist-git branch | error |\n"
             "| --------------- | ----- |\n"
             f"{table_content}\n\n"
@@ -502,6 +503,7 @@ def test_dist_git_push_release_handle_all_failed(
     project.should_receive("get_issue_list").and_return([])
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
     lp.git_project = project
+    lp.git_url = "https://src.fedoraproject.org/rpms/hello-world.git"
     lp.working_dir = ""
     flexmock(DistGit).should_receive("local_project").and_return(lp)
     # reset of the upstream repo
@@ -726,6 +728,7 @@ def test_dont_retry_propose_downstream_task(
 
     lp = flexmock(LocalProject, refresh_the_arguments=lambda: None)
     lp.git_project = project
+    lp.git_url = "https://src.fedoraproject.org/rpms/hello-world.git"
     lp.working_dir = ""
     flexmock(DistGit).should_receive("local_project").and_return(lp)
 

@@ -328,7 +328,8 @@ class AbstractSyncReleaseHandler(
                 err_without_new_lines = err.replace("\n", " ")
                 branch_errors += f"| `{branch}` | `{err_without_new_lines}` |\n"
             body_msg = (
-                f"Packit failed on creating pull-requests in dist-git:\n\n"
+                f"Packit failed on creating pull-requests in dist-git "
+                f"({self.packit_api.dg.local_project.git_url}):\n\n"
                 f"| dist-git branch | error |\n"
                 f"| --------------- | ----- |\n"
                 f"{branch_errors}\n\n"
