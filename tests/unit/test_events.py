@@ -1142,8 +1142,8 @@ class TestEvents:
 
         assert event_object.package_config
 
-    def test_parse_koji_build_event_start_f35(self, koji_build_start_f35, mock_config):
-        event_object = Parser.parse_event(koji_build_start_f35)
+    def test_parse_koji_build_event_start_f36(self, koji_build_start_f36, mock_config):
+        event_object = Parser.parse_event(koji_build_start_f36)
 
         assert isinstance(event_object, KojiBuildEvent)
         assert event_object.build_id == 1874070
@@ -1152,12 +1152,12 @@ class TestEvents:
         assert event_object.rpm_build_task_id == 80860789
         assert event_object.package_name == "python-ogr"
         assert event_object.commit_sha == "51b57ec04f5e6e9066ac859a1408cfbf1ead307e"
-        assert event_object.branch_name == "f35"
-        assert event_object.git_ref == "f35"
+        assert event_object.branch_name == "f36"
+        assert event_object.git_ref == "f36"
         assert event_object.epoch is None
         assert event_object.version == "0.34.0"
-        assert event_object.release == "1.fc35"
-        assert event_object.nvr == "python-ogr-0.34.0-1.fc35"
+        assert event_object.release == "1.fc36"
+        assert event_object.nvr == "python-ogr-0.34.0-1.fc36"
         assert (
             event_object.project_url == "https://src.fedoraproject.org/rpms/python-ogr"
         )
@@ -1297,10 +1297,10 @@ class TestEvents:
 
         assert event_object.package_config
 
-    def test_parse_koji_build_event_completed_f35(
-        self, koji_build_completed_f35, mock_config
+    def test_parse_koji_build_event_completed_f36(
+        self, koji_build_completed_f36, mock_config
     ):
-        event_object = Parser.parse_event(koji_build_completed_f35)
+        event_object = Parser.parse_event(koji_build_completed_f36)
 
         assert isinstance(event_object, KojiBuildEvent)
         assert event_object.build_id == 1874070
@@ -1309,12 +1309,12 @@ class TestEvents:
         assert event_object.rpm_build_task_id == 80860789
         assert event_object.package_name == "python-ogr"
         assert event_object.commit_sha == "51b57ec04f5e6e9066ac859a1408cfbf1ead307e"
-        assert event_object.branch_name == "f35"
-        assert event_object.git_ref == "f35"
+        assert event_object.branch_name == "f36"
+        assert event_object.git_ref == "f36"
         assert event_object.epoch is None
         assert event_object.version == "0.34.0"
-        assert event_object.release == "1.fc35"
-        assert event_object.nvr == "python-ogr-0.34.0-1.fc35"
+        assert event_object.release == "1.fc36"
+        assert event_object.nvr == "python-ogr-0.34.0-1.fc36"
         assert (
             event_object.project_url == "https://src.fedoraproject.org/rpms/python-ogr"
         )

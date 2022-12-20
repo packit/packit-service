@@ -719,11 +719,11 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
     assert len(processing_results)
 
 
-def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f35):
+def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
     """(Known build scenario.)"""
     packit_yaml = (
         "{'specfile_path': 'python-ogr.spec', 'synced_files': [],"
-        "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update', 'dist_git_branches': ['f35']}],"
+        "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update', 'dist_git_branches': ['f36']}],"
         "'downstream_package_name': 'python-ogr'}"
     )
     pagure_project = flexmock(
@@ -747,9 +747,9 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f35):
     flexmock(Signature).should_receive("apply_async").times(2)
     flexmock(Pushgateway).should_receive("push").once().and_return()
     flexmock(PackitAPI).should_receive("create_update").with_args(
-        dist_git_branch="f35",
+        dist_git_branch="f36",
         update_type="enhancement",
-        koji_builds=["python-ogr-0.34.0-1.fc35"],
+        koji_builds=["python-ogr-0.34.0-1.fc36"],
     ).once()
 
     # Database not touched
@@ -757,7 +757,7 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f35):
         build_id=1874070
     ).times(0)
 
-    processing_results = SteveJobs().process_message(koji_build_completed_f35)
+    processing_results = SteveJobs().process_message(koji_build_completed_f36)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     assert len(processing_results) == 2
     processing_results.pop()

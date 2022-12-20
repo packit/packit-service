@@ -385,8 +385,8 @@ def koji_build_start_rawhide():
 
 
 @pytest.fixture()
-def koji_build_start_f35():
-    with open(DATA_DIR / "fedmsg" / "koji_build_start_f35.json") as outfile:
+def koji_build_start_f36():
+    with open(DATA_DIR / "fedmsg" / "koji_build_start_f36.json") as outfile:
         return load_the_message_from_file(outfile)
 
 
@@ -409,8 +409,8 @@ def koji_build_completed_rawhide():
 
 
 @pytest.fixture()
-def koji_build_completed_f35():
-    with open(DATA_DIR / "fedmsg" / "koji_build_completed_f35.json") as outfile:
+def koji_build_completed_f36():
+    with open(DATA_DIR / "fedmsg" / "koji_build_completed_f36.json") as outfile:
         return load_the_message_from_file(outfile)
 
 
