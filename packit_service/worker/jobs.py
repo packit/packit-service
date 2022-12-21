@@ -8,13 +8,14 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Optional, Union
 from typing import List, Set, Type
+from re import match
 
 import celery
 
 from ogr.exceptions import GithubAppNotInstalledError
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import DEPRECATED_JOB_TYPES
-from packit_service.config import ServiceConfig
+from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
     DOCS_CONFIGURATION_URL,
     TASK_ACCEPTED,
@@ -309,19 +310,32 @@ class SteveJobs:
 
         return True
 
+    def search_config_in_distgit(self):
+        issue = self.event.project.get_issue(self.event.issue_id)
+        if m := match(r"[\w\s-]+dist-git \((\S+)\):", issue.description):
+            project = self.service_config.get_project(url=m[1])
+            package_config = PackageConfigGetter.get_package_config_from_repo(
+                project=project,
+                fail_when_missing=False,
+            )
+            return package_config
+
     def process_jobs(self) -> List[TaskResults]:
         """
         Create Celery tasks for a job handler (if trigger matches) for every job defined in config.
         """
         if not self.is_packit_config_present():
-            return [
-                TaskResults.create_from(
-                    success=True,
-                    msg="No packit config found in the repository.",
-                    job_config=None,
-                    event=self.event,
-                )
-            ]
+            if dist_git_package_config := self.search_config_in_distgit():
+                self.event._package_config = dist_git_package_config
+            else:
+                return [
+                    TaskResults.create_from(
+                        success=True,
+                        msg="No packit config found in the repository.",
+                        job_config=None,
+                        event=self.event,
+                    )
+                ]
 
         handler_classes = self.get_handlers_for_event()
 
