@@ -19,6 +19,7 @@ from packit_service.constants import (
     KojiBuildState,
 )
 from packit_service.constants import KojiTaskState
+from packit_service.worker.mixin import ConfigFromEventMixin
 from packit_service.models import AbstractTriggerDbType, KojiBuildTargetModel
 from packit_service.service.urls import (
     get_koji_build_info_url,
@@ -99,7 +100,7 @@ class KojiBuildHandler(JobHandler, GetKojiBuildJobHelperMixin):
 @configured_as(job_type=JobType.production_build)
 @configured_as(job_type=JobType.upstream_koji_build)
 @reacts_to(event=KojiTaskEvent)
-class KojiTaskReportHandler(JobHandler):
+class KojiTaskReportHandler(JobHandler, ConfigFromEventMixin):
     task_name = TaskName.upstream_koji_build_report
 
     def __init__(
@@ -219,7 +220,7 @@ class KojiTaskReportHandler(JobHandler):
 @configured_as(job_type=JobType.koji_build)
 @configured_as(job_type=JobType.bodhi_update)
 @reacts_to(event=KojiBuildEvent)
-class KojiBuildReportHandler(JobHandler):
+class KojiBuildReportHandler(JobHandler, ConfigFromEventMixin):
     task_name = TaskName.downstream_koji_build_report
 
     def __init__(

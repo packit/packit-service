@@ -6,8 +6,9 @@ This file defines classes for job handlers specific for distgit
 """
 import logging
 import shutil
+import abc
 from datetime import datetime
-from typing import Optional, Tuple, Type
+from typing import Optional, Tuple, Type, List
 
 from celery import Task
 from ogr.abstract import PullRequest
@@ -67,9 +68,12 @@ from packit_service.worker.helpers.sync_release.pull_from_upstream import (
 from packit_service.worker.helpers.sync_release.sync_release import SyncReleaseHelper
 from packit_service.worker.mixin import (
     LocalProjectMixin,
+    ConfigFromEventMixin,
+    GetBranchesFromIssueMixin,
+    ConfigFromDistGitUrlMixin,
+    GetPagurePullRequestMixin,
     PackitAPIWithUpstreamMixin,
     PackitAPIWithDownstreamMixin,
-    GetPagurePullRequestMixin,
 )
 from packit_service.worker.reporting import BaseCommitStatus, report_in_issue_repository
 from packit_service.worker.result import TaskResults
@@ -80,7 +84,11 @@ logger = logging.getLogger(__name__)
 @configured_as(job_type=JobType.sync_from_downstream)
 @reacts_to(event=PushPagureEvent)
 class SyncFromDownstream(
-    JobHandler, GetProjectToSyncMixin, LocalProjectMixin, PackitAPIWithUpstreamMixin
+    JobHandler,
+    GetProjectToSyncMixin,
+    ConfigFromEventMixin,
+    LocalProjectMixin,
+    PackitAPIWithUpstreamMixin,
 ):
     """Sync new specfile changes to upstream after a new git push in the dist-git."""
 
@@ -121,7 +129,10 @@ class SyncFromDownstream(
 
 
 class AbstractSyncReleaseHandler(
-    PackitAPIWithUpstreamMixin, LocalProjectMixin, RetriableJobHandler
+    RetriableJobHandler,
+    ConfigFromEventMixin,
+    PackitAPIWithUpstreamMixin,
+    LocalProjectMixin,
 ):
     helper_kls: type[SyncReleaseHelper]
     sync_release_job_type: SyncReleaseJobType
@@ -444,17 +455,9 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         )
 
 
-@configured_as(job_type=JobType.koji_build)
-@run_for_comment(command="koji-build")
-@reacts_to(event=PushPagureEvent)
-@reacts_to(event=IssueCommentEvent)
-@reacts_to(event=IssueCommentGitlabEvent)
-@reacts_to(event=PullRequestCommentPagureEvent)
-class DownstreamKojiBuildHandler(
+class AbstractDownstreamKojiBuildHandler(
+    abc.ABC,
     RetriableJobHandler,
-    LocalProjectMixin,
-    PackitAPIWithDownstreamMixin,
-    GetPagurePullRequestMixin,
 ):
     """
     This handler can submit a build in Koji from a dist-git.
@@ -484,19 +487,20 @@ class DownstreamKojiBuildHandler(
     def get_checkers() -> Tuple[Type[Checker], ...]:
         return (PermissionOnDistgit, HasIssueCommenterRetriggeringPermissions)
 
+    @abc.abstractmethod
+    def get_branches(self) -> List[str]:
+        """Get a list of branch (names) to be built in koji"""
+
     def run(self) -> TaskResults:
-        branch = (
-            self.project.get_pr(self.data.pr_id).target_branch
-            if self.data.event_type in (PullRequestCommentPagureEvent.__name__,)
-            else self.dg_branch
-        )
+        branch = None
         try:
-            self.packit_api.build(
-                dist_git_branch=branch,
-                scratch=self.job_config.scratch,
-                nowait=True,
-                from_upstream=False,
-            )
+            for branch in self.get_branches():
+                self.packit_api.build(
+                    dist_git_branch=branch,
+                    scratch=self.job_config.scratch,
+                    nowait=True,
+                    from_upstream=False,
+                )
         except PackitException as ex:
             if self.celery_task and not self.celery_task.is_last_try():
                 logger.debug(
@@ -518,3 +522,42 @@ class DownstreamKojiBuildHandler(
             raise ex
 
         return TaskResults(success=True, details={})
+
+
+@configured_as(job_type=JobType.koji_build)
+@run_for_comment(command="koji-build")
+@reacts_to(event=PushPagureEvent)
+@reacts_to(event=PullRequestCommentPagureEvent)
+class DownstreamKojiBuildHandler(
+    AbstractDownstreamKojiBuildHandler,
+    ConfigFromEventMixin,
+    LocalProjectMixin,
+    PackitAPIWithDownstreamMixin,
+    GetPagurePullRequestMixin,
+):
+    task_name = TaskName.downstream_koji_build
+
+    def get_branches(self) -> List[str]:
+        branch = (
+            self.project.get_pr(self.data.pr_id).target_branch
+            if self.data.event_type in (PullRequestCommentPagureEvent.__name__,)
+            else self.dg_branch
+        )
+        return [branch]
+
+
+@configured_as(job_type=JobType.koji_build)
+@run_for_comment(command="koji-build")
+@reacts_to(event=IssueCommentEvent)
+@reacts_to(event=IssueCommentGitlabEvent)
+class RetriggerDownstreamKojiBuildHandler(
+    AbstractDownstreamKojiBuildHandler,
+    ConfigFromDistGitUrlMixin,
+    LocalProjectMixin,
+    PackitAPIWithDownstreamMixin,
+    GetBranchesFromIssueMixin,
+):
+    task_name = TaskName.retrigger_downstream_koji_build
+
+    def get_branches(self) -> List[str]:
+        return self.branches

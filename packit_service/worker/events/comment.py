@@ -130,6 +130,7 @@ class AbstractIssueCommentEvent(AddIssueDbTrigger, AbstractCommentEvent):
         comment_id: int,
         tag_name: str = "",
         comment_object: Optional[Comment] = None,
+        dist_git_project_url=None,
     ) -> None:
         super().__init__(
             project_url=project_url,
@@ -140,6 +141,9 @@ class AbstractIssueCommentEvent(AddIssueDbTrigger, AbstractCommentEvent):
         self.issue_id = issue_id
         self.repo_namespace = repo_namespace
         self.repo_name = repo_name
+
+        # issue description link to dist-git
+        self.dist_git_project_url = dist_git_project_url
 
         # Lazy properties
         self._tag_name = tag_name

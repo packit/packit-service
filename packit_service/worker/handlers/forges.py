@@ -13,6 +13,7 @@ from packit.config import (
     Deployment,
 )
 from packit.config.package_config import PackageConfig
+from packit_service.worker.mixin import ConfigFromEventMixin
 from packit_service.constants import CONTACTS_URL, DOCS_APPROVAL_URL, NOTIFICATION_REPO
 from packit_service.models import (
     GithubInstallationModel,
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 @reacts_to(event=InstallationEvent)
-class GithubAppInstallationHandler(JobHandler):
+class GithubAppInstallationHandler(JobHandler, ConfigFromEventMixin):
     task_name = TaskName.installation
 
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28

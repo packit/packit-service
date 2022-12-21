@@ -37,12 +37,16 @@ from packit_service.worker.handlers.abstract import (
     run_for_comment,
 )
 from packit_service.worker.handlers.mixin import (
-    GetKojiBuildData,
+    GetKojiBuildDataFromKojiServiceMultipleBranches,
     GetKojiBuildDataFromKojiBuildEventMixin,
     GetKojiBuildDataFromKojiServiceMixin,
     GetKojiBuildEventMixin,
+    GetKojiBuildData,
+    KojiBuildData,
 )
 from packit_service.worker.mixin import (
+    ConfigFromDistGitUrlMixin,
+    GetBranchesFromIssueMixin,
     PackitAPIWithDownstreamMixin,
 )
 from packit_service.worker.reporting import report_in_issue_repository
@@ -72,21 +76,28 @@ class BodhiUpdateHandler(
 
     def run(self) -> TaskResults:
         try:
-            self.packit_api.create_update(
-                dist_git_branch=self.dist_git_branch,
-                update_type="enhancement",
-                koji_builds=[self.nvr],  # it accepts NVRs, not build IDs
-            )
+            branches = []
+            for koji_build_data in self:
+                branches.append(koji_build_data.dist_git_branch)
+                logger.debug(
+                    f"Create update for dist-git branch: {koji_build_data.dist_git_branch}"
+                )
+                self.packit_api.create_update(
+                    dist_git_branch=koji_build_data.dist_git_branch,
+                    update_type="enhancement",
+                    koji_builds=[koji_build_data.nvr],  # it accepts NVRs, not build IDs
+                )
+            logger.debug(f"Iterated over all dist-git branches: {branches}")
         except PackitException as ex:
             logger.debug(f"Bodhi update failed to be created: {ex}")
 
             if isinstance(ex.__cause__, AuthError):
-                body = self._error_message_for_auth_error(ex)
+                body = self._error_message_for_auth_error(ex, koji_build_data)
                 notify = True
                 known_error = True
             else:
                 body = (
-                    f"Bodhi update creation failed for `{self.nvr}`:\n"
+                    f"Bodhi update creation failed for `{koji_build_data.nvr}`:\n"
                     "```\n"
                     f"{ex}\n"
                     "```"
@@ -116,9 +127,11 @@ class BodhiUpdateHandler(
         # Sentry issue will be created otherwise.
         return TaskResults(success=True, details={})
 
-    def _error_message_for_auth_error(self, ex: PackitException) -> str:
+    def _error_message_for_auth_error(
+        self, ex: PackitException, koji_build_data: KojiBuildData
+    ) -> str:
         body = (
-            f"Bodhi update creation failed for `{self.nvr}` "
+            f"Bodhi update creation failed for `{koji_build_data.nvr}` "
             f"because of the missing permissions.\n\n"
             f"Please, give {self.service_config.fas_user} user `commit` rights in the "
             f"[dist-git settings]({self.data.project_url}/adduser).\n\n"
@@ -171,8 +184,6 @@ class CreateBodhiUpdateHandler(
 
 @configured_as(job_type=JobType.bodhi_update)
 @reacts_to(event=PullRequestCommentPagureEvent)
-@reacts_to(event=IssueCommentEvent)
-@reacts_to(event=IssueCommentGitlabEvent)
 @run_for_comment(command="create-update")
 class RetriggerBodhiUpdateHandler(
     BodhiUpdateHandler, GetKojiBuildDataFromKojiServiceMixin
@@ -194,3 +205,28 @@ class RetriggerBodhiUpdateHandler(
             HasIssueCommenterRetriggeringPermissions,
             IsKojiBuildCompleteAndBranchConfiguredCheckService,
         )
+
+
+@configured_as(job_type=JobType.bodhi_update)
+@reacts_to(event=IssueCommentEvent)
+@reacts_to(event=IssueCommentGitlabEvent)
+@run_for_comment(command="create-update")
+class IssueCommentRetriggerBodhiUpdateHandler(
+    BodhiUpdateHandler,
+    ConfigFromDistGitUrlMixin,
+    GetBranchesFromIssueMixin,
+    GetKojiBuildDataFromKojiServiceMultipleBranches,
+):
+    """
+    This handler can re-trigger a bodhi update if any successful Koji build.
+    """
+
+    task_name = TaskName.issue_comment_retrigger_bodhi_update
+
+    @staticmethod
+    def get_checkers() -> Tuple[Type[Checker], ...]:
+        """We react only on finished builds (=KojiBuildState.complete)
+        and configured branches.
+        """
+        logger.debug("Bodhi update will be re-triggered via dist-git PR comment.")
+        return (HasIssueCommenterRetriggeringPermissions,)

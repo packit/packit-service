@@ -45,25 +45,26 @@ class IsKojiBuildCompleteAndBranchConfigured(Checker, GetKojiBuildData):
             PullRequestCommentPagureEvent.__name__,
             KojiBuildEvent.__name__,
         ):
-            if self.state != KojiBuildState.complete:
-                logger.debug(
-                    f"Skipping build '{self.build_id}' "
-                    f"on '{self.dist_git_branch}'. "
-                    f"Build not finished yet."
-                )
-                return False
+            for koji_build_data in self:
+                if koji_build_data.state != KojiBuildState.complete:
+                    logger.debug(
+                        f"Skipping build '{koji_build_data.build_id}' "
+                        f"on '{koji_build_data.dist_git_branch}'. "
+                        f"Build not finished yet."
+                    )
+                    return False
 
-            if self.dist_git_branch not in (
-                configured_branches := get_branches(
-                    *(self.job_config.dist_git_branches or {"fedora-stable"}),
-                    default_dg_branch="rawhide",  # Koji calls it rawhide, not main
-                )
-            ):
-                logger.info(
-                    f"Skipping build on '{self.dist_git_branch}'. "
-                    f"Bodhi update configured only for '{configured_branches}'."
-                )
-                return False
+                if koji_build_data.dist_git_branch not in (
+                    configured_branches := get_branches(
+                        *(self.job_config.dist_git_branches or {"fedora-stable"}),
+                        default_dg_branch="rawhide",  # Koji calls it rawhide, not main
+                    )
+                ):
+                    logger.info(
+                        f"Skipping build on '{koji_build_data.dist_git_branch}'. "
+                        f"Bodhi update configured only for '{configured_branches}'."
+                    )
+                    return False
 
         return True
 

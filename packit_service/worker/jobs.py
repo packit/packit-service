@@ -287,6 +287,17 @@ class SteveJobs:
             task_accepted_time, handler_kls, number_of_build_targets
         )
 
+    def search_distgit_config_in_issue(self):
+        issue = self.event.project.get_issue(self.event.issue_id)
+        if m := match(r"[\w\s-]+dist-git \((\S+)\):", issue.description):
+            url = m[1]
+            project = self.service_config.get_project(url=url)
+            package_config = PackageConfigGetter.get_package_config_from_repo(
+                project=project,
+                fail_when_missing=False,
+            )
+            return url, package_config
+
     def is_packit_config_present(self) -> bool:
         """
         Set fail_when_config_file_missing if we handle comment events so that
@@ -301,7 +312,18 @@ class SteveJobs:
             packit_comment_command_prefix=self.service_config.comment_command_prefix,
         ):
             # we require packit config file when event is triggered by /packit command
-            self.event.fail_when_config_file_missing = True
+            # but not when it is triggered through an issue in the issues repository
+            dist_git_package_config = None
+            if isinstance(self.event, AbstractIssueCommentEvent):
+                if dist_git_package_config := self.search_distgit_config_in_issue():
+                    (
+                        self.event.dist_git_project_url,
+                        self.event._package_config,
+                    ) = dist_git_package_config
+                    return True
+
+            if not dist_git_package_config:
+                self.event.fail_when_config_file_missing = True
 
         if not self.event.package_config:
             # this happens when service receives events for repos which don't have packit config
@@ -310,32 +332,19 @@ class SteveJobs:
 
         return True
 
-    def search_config_in_distgit(self):
-        issue = self.event.project.get_issue(self.event.issue_id)
-        if m := match(r"[\w\s-]+dist-git \((\S+)\):", issue.description):
-            project = self.service_config.get_project(url=m[1])
-            package_config = PackageConfigGetter.get_package_config_from_repo(
-                project=project,
-                fail_when_missing=False,
-            )
-            return package_config
-
     def process_jobs(self) -> List[TaskResults]:
         """
         Create Celery tasks for a job handler (if trigger matches) for every job defined in config.
         """
         if not self.is_packit_config_present():
-            if dist_git_package_config := self.search_config_in_distgit():
-                self.event._package_config = dist_git_package_config
-            else:
-                return [
-                    TaskResults.create_from(
-                        success=True,
-                        msg="No packit config found in the repository.",
-                        job_config=None,
-                        event=self.event,
-                    )
-                ]
+            return [
+                TaskResults.create_from(
+                    success=True,
+                    msg="No packit config found in the repository.",
+                    job_config=None,
+                    event=self.event,
+                )
+            ]
 
         handler_classes = self.get_handlers_for_event()
 

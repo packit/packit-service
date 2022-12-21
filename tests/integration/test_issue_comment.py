@@ -87,7 +87,7 @@ jobs:
         .with_args(author)
         .and_return(True)
     )
-    issue = flexmock()
+    issue = flexmock(description="")
     flexmock(project_class).should_receive("get_issue").and_return(issue)
     comment = flexmock()
     flexmock(issue).should_receive("get_comment").and_return(comment)

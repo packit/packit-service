@@ -3,7 +3,8 @@
 
 import logging
 from abc import abstractmethod
-from typing import Any, Optional, Protocol
+from typing import Any, Optional, Protocol, Iterator
+from dataclasses import dataclass
 from packit.exceptions import PackitException
 from packit.config import PackageConfig, JobConfig
 from packit.utils.koji_helper import KojiHelper
@@ -25,7 +26,7 @@ from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 
-from packit_service.worker.mixin import ConfigFromEventMixin
+from packit_service.worker.mixin import Config, ConfigFromEventMixin, GetBranches
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.monitoring import Pushgateway
 
@@ -82,7 +83,53 @@ class GetKojiBuildJobHelperMixin(GetKojiBuildJobHelper, ConfigFromEventMixin):
         return self._koji_build_helper
 
 
-class GetKojiBuildData(Protocol):
+@dataclass
+class KojiBuildData:
+    """Koji build data associated with
+    a selected dist-git branch.
+    """
+
+    dist_git_branch: str
+    build_id: int
+    nvr: str
+    state: KojiBuildState
+
+
+class GetKojiBuildData(Iterator, Protocol):
+    """Get the Koji build data associated with
+    the selected dist-git branch.
+    """
+
+    _branch_index: int = 0
+
+    def __iter__(self) -> Iterator[KojiBuildData]:
+        self._branch_index = 0
+        return self
+
+    @property
+    @abstractmethod
+    def num_of_branches(self):
+        ...
+
+    def __next__(self) -> KojiBuildData:
+        """Iterate over all available dist-git branches.
+        Change internal pointer to the next dist-git branch.
+
+        Returns:
+            A new set of Koji Build Data associated
+            with the next available dist_git_branch
+        """
+        if self._branch_index < self.num_of_branches:
+            koji_build_data = KojiBuildData(
+                dist_git_branch=self.dist_git_branch,
+                build_id=self.build_id,
+                nvr=self.nvr,
+                state=self.state,
+            )
+            self._branch_index += 1
+            return koji_build_data
+        raise StopIteration
+
     @property
     @abstractmethod
     def nvr(self) -> str:
@@ -121,8 +168,12 @@ class GetKojiBuildDataFromKojiBuildEventMixin(GetKojiBuildData, GetKojiBuildEven
     def state(self) -> KojiBuildState:
         return self.koji_build_event.state
 
+    @property
+    def num_of_branches(self):
+        return 1  # just a branch in the event
 
-class GetKojiBuildDataFromKojiServiceMixin(ConfigFromEventMixin, GetKojiBuildData):
+
+class GetKojiBuildDataFromKojiService(Config, GetKojiBuildData):
     """See https://koji.fedoraproject.org/koji/api method listBuilds
     for a detailed description of a Koji build map.
     """
@@ -158,12 +209,32 @@ class GetKojiBuildDataFromKojiServiceMixin(ConfigFromEventMixin, GetKojiBuildDat
         return self.build["build_id"]
 
     @property
+    def state(self) -> KojiBuildState:
+        return KojiBuildState.from_number(self.build["state"])
+
+
+class GetKojiBuildDataFromKojiServiceMixin(
+    ConfigFromEventMixin, GetKojiBuildDataFromKojiService
+):
+    @property
     def dist_git_branch(self) -> str:
         return self.project.get_pr(self.data.pr_id).target_branch
 
     @property
-    def state(self) -> KojiBuildState:
-        return KojiBuildState.from_number(self.build["state"])
+    def num_of_branches(self):
+        return 1  # just a branch in the event
+
+
+class GetKojiBuildDataFromKojiServiceMultipleBranches(
+    GetKojiBuildDataFromKojiService, GetBranches
+):
+    @property
+    def dist_git_branch(self) -> str:
+        return self.branches[self._branch_index]
+
+    @property
+    def num_of_branches(self):
+        return len(self.branches)
 
 
 class GetCoprBuildEvent(Protocol):
