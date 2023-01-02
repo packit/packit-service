@@ -1,6 +1,5 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
-import datetime
 from enum import Enum
 
 CONTACTS_URL = "https://packit.dev/#contact"
@@ -91,16 +90,6 @@ DEFAULT_JOB_TIMEOUT = 7 * 24 * 3600
 # SRPM builds older than this number of days are considered
 # outdated and their logs can be discarded.
 SRPMBUILDS_OUTDATED_AFTER_DAYS = 30
-
-DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR = datetime.datetime(
-    year=2022,
-    month=9,
-    day=6,
-    hour=6,
-    minute=0,
-    microsecond=0,
-    tzinfo=datetime.timezone.utc,
-)
 
 ALLOWLIST_CONSTANTS = {
     "approved_automatically": "approved_automatically",

@@ -531,51 +531,6 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         return build.id, self.api.copr_helper.copr_web_build_url(build)
 
-    def run_copr_build(self) -> TaskResults:
-        """
-        Run copr build using SRPM built by us.
-        """
-        self._report(
-            state=BaseCommitStatus.error,
-            description="`srpm_build_deps` not defined",
-            url="https://packit.dev/posts/copr-srpms/#deployment-phases",
-            check_names="srpm_build_deps-not-defined",
-            markdown_content="All SRPMs will be built in Copr since January 2023. "
-            "Please use [srpm_build_deps]"
-            "(https://packit.dev/docs/configuration/#srpm_build_deps) "
-            "to be sure that we don't break your workflow once we switch "
-            "to building all SRPMs in Copr.",
-        )
-
-        self.report_status_to_all(
-            description="Building SRPM ...",
-            state=BaseCommitStatus.running,
-            # pagure requires "valid url"
-            url="",
-        )
-        if results := self.create_srpm_if_needed():
-            return results
-
-        if self.srpm_model.status != BuildStatus.success:
-            msg = "SRPM build failed, check the logs for details."
-            self.report_status_to_all(
-                state=BaseCommitStatus.failure,
-                description=msg,
-                url=get_srpm_build_info_url(self.srpm_model.id),
-            )
-            self.monitor_not_submitted_copr_builds(
-                len(self.build_targets), "srpm_failure"
-            )
-            return TaskResults(success=False, details={"msg": msg})
-
-        try:
-            build_id, web_url = self.submit_copr_build()
-        except Exception as ex:
-            return self.handle_build_submit_error(ex)
-
-        self.handle_rpm_build_start(build_id, web_url)
-        return TaskResults(success=True, details={})
-
     def handle_build_submit_error(self, ex) -> TaskResults:
         """
         Handle errors when submitting Copr build.

@@ -3,27 +3,31 @@
 
 import logging
 from datetime import datetime, timezone
-from typing import Optional, Tuple, Type
+from typing import Tuple, Type
 
 from celery import signature, Task
 from ogr.services.github import GithubProject
 from ogr.services.gitlab import GitlabProject
+
 from packit.config import (
     JobConfig,
     JobType,
 )
 from packit.config import JobConfigTriggerType
 from packit.config.package_config import PackageConfig
-
 from packit_service.constants import (
     COPR_API_SUCC_STATE,
     COPR_SRPM_CHROOT,
-    DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,
 )
 from packit_service.models import (
     CoprBuildTargetModel,
-    GithubInstallationModel,
     BuildStatus,
+)
+from packit_service.service.urls import get_copr_build_info_url, get_srpm_build_info_url
+from packit_service.utils import (
+    dump_job_config,
+    dump_package_config,
+    elapsed_seconds,
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.copr import (
@@ -45,18 +49,6 @@ from packit_service.worker.events import (
     CheckRerunReleaseEvent,
     AbstractPRCommentEvent,
 )
-from packit_service.service.urls import get_copr_build_info_url, get_srpm_build_info_url
-from packit_service.utils import (
-    dump_job_config,
-    dump_package_config,
-    get_timezone_aware_datetime,
-    elapsed_seconds,
-)
-from packit_service.worker.handlers.mixin import (
-    GetCoprBuildEventMixin,
-    GetCoprBuildJobHelperForIdMixin,
-    GetCoprBuildJobHelperMixin,
-)
 from packit_service.worker.handlers.abstract import (
     JobHandler,
     TaskName,
@@ -66,6 +58,11 @@ from packit_service.worker.handlers.abstract import (
     run_for_comment,
     run_for_check_rerun,
     RetriableJobHandler,
+)
+from packit_service.worker.handlers.mixin import (
+    GetCoprBuildEventMixin,
+    GetCoprBuildJobHelperForIdMixin,
+    GetCoprBuildJobHelperMixin,
 )
 from packit_service.worker.reporting import BaseCommitStatus, DuplicateCheckMode
 from packit_service.worker.result import TaskResults
@@ -107,26 +104,10 @@ class CoprBuildHandler(RetriableJobHandler, GetCoprBuildJobHelperMixin):
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
-        return (IsGitForgeProjectAndEventOk, CanActorRunTestsJob)
-
-    def get_packit_github_installation_time(self) -> Optional[datetime]:
-        if isinstance(self.project, GithubProject) and (
-            installation := GithubInstallationModel.get_by_account_login(
-                account_login=self.project.namespace
-            )
-        ):
-            return installation.created_at
-        return None
+        return IsGitForgeProjectAndEventOk, CanActorRunTestsJob
 
     def run(self) -> TaskResults:
-        installed_at = self.get_packit_github_installation_time()
-        if installed_at:
-            installed_at = get_timezone_aware_datetime(installed_at)
-        if self.job_config.srpm_build_deps is not None or (
-            installed_at and installed_at > DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR
-        ):
-            return self.copr_build_helper.run_copr_build_from_source_script()
-        return self.copr_build_helper.run_copr_build()
+        return self.copr_build_helper.run_copr_build_from_source_script()
 
 
 class AbstractCoprBuildReportHandler(
