@@ -8,33 +8,29 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 from github import Github
+from ogr.services.github import GithubProject
+from ogr.services.pagure import PagureProject
+from ogr.utils import RequestResponse
 
 import packit_service.models
 import packit_service.service.urls as urls
-
-from ogr.utils import RequestResponse
-from ogr.services.pagure import PagureProject
-from ogr.services.github import GithubProject
 from packit.api import PackitAPI
 from packit.config import (
     JobConfigTriggerType,
 )
 from packit.exceptions import PackitConfigException
-from packit.utils.koji_helper import KojiHelper
 from packit.local_project import LocalProject
+from packit.utils.koji_helper import KojiHelper
 from packit_service.config import ServiceConfig
 from packit_service.constants import (
     COMMENT_REACTION,
     CONTACTS_URL,
-    DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,
     DOCS_HOW_TO_CONFIGURE_URL,
     TASK_ACCEPTED,
     DEFAULT_RETRY_LIMIT,
 )
 from packit_service.models import (
     CoprBuildTargetModel,
-    GithubInstallationModel,
-    GitProjectModel,
     JobTriggerModel,
     JobTriggerModelType,
     PipelineModel,
@@ -64,7 +60,6 @@ from packit_service.worker.reporting import BaseCommitStatus, StatusReporterGith
 from packit_service.worker.reporting import StatusReporter
 from packit_service.worker.result import TaskResults
 from packit_service.worker.tasks import (
-    run_copr_build_handler,
     run_koji_build_handler,
     run_retrigger_bodhi_update,
     run_testing_farm_handler,
@@ -173,157 +168,6 @@ def one_job_finished_with_msg(results: List[TaskResults], msg: str):
             [
                 {
                     "trigger": "pull_request",
-                    "job": "copr_build",
-                    "metadata": {"targets": "fedora-rawhide-x86_64"},
-                }
-            ]
-        ]
-    ),
-    indirect=True,
-)
-def test_pr_comment_copr_build_handler(
-    mock_pr_comment_functionality, pr_copr_build_comment_event
-):
-    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
-        pr_id=9,
-        namespace="packit-service",
-        repo_name="hello-world",
-        project_url="https://github.com/packit-service/hello-world",
-    ).and_return(
-        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
-    )
-    flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
-        account_login="packit-service"
-    ).and_return(
-        flexmock(
-            created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
-            repositories=[flexmock(repo_name="hello-world")],
-        )
-    )
-    flexmock(GitProjectModel).should_receive("get_by_id").and_return(
-        flexmock(repo_name="hello-world")
-    )
-    flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
-        TaskResults(success=True, details={})
-    ).once()
-    flexmock(CoprBuildJobHelper).should_receive(
-        "is_custom_copr_project_defined"
-    ).and_return(False).once()
-    flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
-    flexmock(GithubProject).should_receive("get_web_url").and_return(
-        "https://github.com/the-namespace/the-repo"
-    )
-    flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
-        description=TASK_ACCEPTED,
-        state=BaseCommitStatus.pending,
-        url="",
-        markdown_content=None,
-    ).once()
-    flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
-    pr = flexmock(head_commit="12345")
-    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
-    comment = flexmock()
-    flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
-
-    processing_results = SteveJobs().process_message(pr_copr_build_comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
-    )
-    assert json.dumps(event_dict)
-
-    results = run_copr_build_handler(
-        package_config=package_config,
-        event=event_dict,
-        job_config=job_config,
-    )
-    assert first_dict_value(results["job"])["success"]
-
-
-@pytest.mark.parametrize(
-    "mock_pr_comment_functionality",
-    (
-        [
-            [
-                {
-                    "trigger": "pull_request",
-                    "job": "copr_build",
-                    "metadata": {"targets": "fedora-rawhide-x86_64"},
-                }
-            ]
-        ]
-    ),
-    indirect=True,
-)
-def test_pr_comment_build_handler(
-    mock_pr_comment_functionality, pr_build_comment_event
-):
-    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
-        pr_id=9,
-        namespace="packit-service",
-        repo_name="hello-world",
-        project_url="https://github.com/packit-service/hello-world",
-    ).and_return(
-        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
-    )
-    flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
-        account_login="packit-service"
-    ).and_return(
-        flexmock(
-            created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
-            repositories=[flexmock(repo_name="hello-world")],
-        )
-    )
-    flexmock(GitProjectModel).should_receive("get_by_id").and_return(
-        flexmock(repo_name="hello-world")
-    )
-    flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
-        TaskResults(success=True, details={})
-    )
-    flexmock(CoprBuildJobHelper).should_receive(
-        "is_custom_copr_project_defined"
-    ).and_return(False).once()
-    flexmock(GithubProject, get_files="foo.spec")
-    flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
-        description=TASK_ACCEPTED,
-        state=BaseCommitStatus.pending,
-        url="",
-        markdown_content=None,
-    ).once()
-    flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
-    pr = flexmock(head_commit="12345")
-    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
-    comment = flexmock()
-    flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
-
-    processing_results = SteveJobs().process_message(pr_build_comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
-    )
-    assert json.dumps(event_dict)
-
-    results = run_copr_build_handler(
-        package_config=package_config,
-        event=event_dict,
-        job_config=job_config,
-    )
-    assert first_dict_value(results["job"])["success"]
-
-
-@pytest.mark.parametrize(
-    "mock_pr_comment_functionality",
-    (
-        [
-            [
-                {
-                    "trigger": "pull_request",
                     "job": "tests",
                     "metadata": {"targets": "fedora-rawhide-x86_64"},
                 }
@@ -342,9 +186,6 @@ def test_pr_comment_build_test_handler(
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(
         flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
-    )
-    flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
-        TaskResults(success=True, details={})
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
@@ -580,99 +421,6 @@ def test_pr_comment_invalid_with_command_set(comment, command):
         comment, packit_comment_command_prefix=command
     )
     assert len(commands) == 0
-
-
-@pytest.mark.parametrize(
-    "comments_list, command",
-    (
-        ("/packit build", "/packit"),
-        ("/packit-stg build", "/packit-stg"),
-        ("/packit build ", "/packit"),
-        ("/packit  build ", "/packit"),
-        (" /packit build", "/packit"),
-        (" /packit build ", "/packit"),
-        ("asd\n/packit build\n", "/packit"),
-        ("asd\n /packit build \n", "/packit"),
-        ("Should be fixed now, let's\n /packit build\n it.", "/packit"),
-    ),
-)
-@pytest.mark.parametrize(
-    "mock_pr_comment_functionality",
-    (
-        [
-            [
-                {
-                    "trigger": "pull_request",
-                    "job": "copr_build",
-                    "metadata": {"targets": "fedora-rawhide-x86_64"},
-                }
-            ]
-        ]
-    ),
-    indirect=True,
-)
-def test_pr_embedded_command_handler(
-    mock_pr_comment_functionality,
-    pr_embedded_command_comment_event,
-    comments_list,
-    command,
-):
-    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
-        pr_id=9,
-        namespace="packit-service",
-        repo_name="hello-world",
-        project_url="https://github.com/packit-service/hello-world",
-    ).and_return(
-        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
-    )
-    flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
-        account_login="packit-service"
-    ).and_return(
-        flexmock(
-            created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
-            repositories=[flexmock(repo_name="hello-world")],
-        )
-    )
-    flexmock(GitProjectModel).should_receive("get_by_id").and_return(
-        flexmock(repo_name="hello-world")
-    )
-    ServiceConfig.get_service_config().comment_command_prefix = command
-    pr_embedded_command_comment_event["comment"]["body"] = comments_list
-    flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
-        TaskResults(success=True, details={})
-    )
-    flexmock(CoprBuildJobHelper).should_receive(
-        "is_custom_copr_project_defined"
-    ).and_return(False).once()
-    flexmock(GithubProject, get_files="foo.spec")
-    flexmock(GithubProject).should_receive("is_private").and_return(False)
-    pr = flexmock(head_commit="12345")
-    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
-    comment = flexmock()
-    flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
-        description=TASK_ACCEPTED,
-        state=BaseCommitStatus.pending,
-        url="",
-        markdown_content=None,
-    ).once()
-    flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
-
-    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
-    )
-    assert json.dumps(event_dict)
-
-    results = run_copr_build_handler(
-        package_config=package_config,
-        event=event_dict,
-        job_config=job_config,
-    )
-    assert first_dict_value(results["job"])["success"]
 
 
 @pytest.mark.parametrize(
@@ -2008,103 +1756,6 @@ def test_trigger_packit_command_without_config(
     with pytest.raises(PackitConfigException) as exc:
         SteveJobs().process_message(pr_embedded_command_comment_event)
         assert "No config file found in " in exc.value
-
-
-@pytest.mark.parametrize(
-    "mock_pr_comment_functionality",
-    (
-        [
-            [
-                {
-                    "trigger": "pull_request",
-                    "job": "copr_build",
-                    "metadata": {"targets": "fedora-rawhide-x86_64"},
-                }
-            ]
-        ]
-    ),
-    indirect=True,
-)
-def test_rebuild_failed(
-    mock_pr_comment_functionality, pr_embedded_command_comment_event
-):
-    flexmock(PullRequestModel).should_receive("get_or_create").with_args(
-        pr_id=9,
-        namespace="packit-service",
-        repo_name="hello-world",
-        project_url="https://github.com/packit-service/hello-world",
-    ).and_return(
-        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
-    )
-    flexmock(GithubInstallationModel).should_receive("get_by_account_login").with_args(
-        account_login="packit-service"
-    ).and_return(
-        flexmock(
-            created_at=DATE_OF_DEFAULT_SRPM_BUILD_IN_COPR,  # = old behaviour
-            repositories=[flexmock(repo_name="hello-world")],
-        )
-    )
-    flexmock(GitProjectModel).should_receive("get_by_id").and_return(
-        flexmock(repo_name="hello-world")
-    )
-
-    pr_embedded_command_comment_event["comment"]["body"] = "/packit rebuild-failed"
-    flexmock(CoprBuildJobHelper).should_receive("run_copr_build").and_return(
-        TaskResults(success=True, details={})
-    )
-    flexmock(CoprBuildJobHelper).should_receive(
-        "is_custom_copr_project_defined"
-    ).and_return(False).once()
-    flexmock(GithubProject, get_files="foo.spec")
-    flexmock(GithubProject).should_receive("is_private").and_return(False)
-    pr = flexmock(head_commit="12345")
-    flexmock(GithubProject).should_receive("get_pr").and_return(pr)
-    comment = flexmock()
-    flexmock(pr).should_receive("get_comment").and_return(comment)
-    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
-
-    model = flexmock(
-        CoprBuildTargetModel, status=BuildStatus.failure, target="some_target"
-    )
-    flexmock(model).should_receive("get_all_by_commit").with_args(
-        commit_sha="12345"
-    ).and_return(model)
-    flexmock(AbstractForgeIndependentEvent).should_receive(
-        "get_all_build_targets_by_status"
-    ).with_args(statuses_to_filter_with=[BuildStatus.failure]).and_return(
-        {"some_target"}
-    )
-    flexmock(packit_service.models).should_receive(
-        "filter_most_recent_target_names_by_status"
-    ).with_args(
-        models=[model], statuses_to_filter_with=[BuildStatus.failure]
-    ).and_return(
-        {"some_target"}
-    )
-
-    flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
-        description=TASK_ACCEPTED,
-        state=BaseCommitStatus.pending,
-        url="",
-        markdown_content=None,
-    ).once()
-    flexmock(Signature).should_receive("apply_async").once()
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
-
-    processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
-    event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
-    )
-    assert event_dict["build_targets_override"] == ["some_target"]
-    assert json.dumps(event_dict)
-
-    results = run_copr_build_handler(
-        package_config=package_config,
-        event=event_dict,
-        job_config=job_config,
-    )
-    assert first_dict_value(results["job"])["success"]
 
 
 @pytest.mark.parametrize(
