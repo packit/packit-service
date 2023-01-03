@@ -58,6 +58,212 @@ class ProjectUsage(Resource):
 
 
 def get_usage_data(datetime_from=None, datetime_to=None, top=10):
+    """
+    Get usage data.
+
+    Example:
+    ```
+    >>> safe_dump(get_usage_data(top=3))
+    active_projects:
+      instances:
+        github.com: 279
+        gitlab.com: 3
+        gitlab.freedesktop.org: 3
+        gitlab.gnome.org: 2
+      project_count: 287
+      top_projects_by_events_handled:
+        https://github.com/avocado-framework/avocado: 1327
+        https://github.com/cockpit-project/cockpit: 1829
+        https://github.com/systemd/systemd: 4960
+    all_projects:
+      instances:
+        git.centos.org: 25
+        github.com: 7855
+        gitlab.com: 8
+        gitlab.freedesktop.org: 4
+        gitlab.gnome.org: 2
+        src.fedoraproject.org: 22175
+      project_count: 30069
+    events:
+      branch_push:
+        events_handled: 115
+        top_projects:
+          https://github.com/packit/ogr: 3
+          https://github.com/packit/packit: 3
+          https://github.com/rhinstaller/anaconda: 3
+      issue:
+        events_handled: 18
+        top_projects:
+          https://github.com/martinpitt/python-dbusmock: 2
+          https://github.com/packit/packit: 3
+          https://github.com/packit/specfile: 3
+      pull_request:
+        events_handled: 26605
+        top_projects:
+          https://github.com/avocado-framework/avocado: 1327
+          https://github.com/cockpit-project/cockpit: 1808
+          https://github.com/systemd/systemd: 4960
+      release:
+        events_handled: 425
+        top_projects:
+          https://github.com/facebook/folly: 40
+          https://github.com/packit/ogr: 33
+          https://github.com/packit/packit: 57
+    jobs:
+      copr_build_targets:
+        job_runs: 530955
+        per_event:
+          branch_push:
+            job_runs: 48160
+            top_projects_by_job_runs:
+              https://github.com/osandov/drgn: 5812
+              https://github.com/osbuild/osbuild: 7078
+              https://github.com/osbuild/osbuild-composer: 12847
+          issue:
+            job_runs: 0
+            top_projects_by_job_runs: {}
+          pull_request:
+            job_runs: 481561
+            top_projects_by_job_runs:
+              https://github.com/osbuild/osbuild: 31108
+              https://github.com/osbuild/osbuild-composer: 93939
+              https://github.com/systemd/systemd: 60158
+          release:
+            job_runs: 1234
+            top_projects_by_job_runs:
+              https://github.com/facebook/folly: 340
+              https://github.com/packit/ogr: 104
+              https://github.com/packit/packit: 174
+        top_projects_by_job_runs:
+          https://github.com/osbuild/osbuild: 38186
+          https://github.com/osbuild/osbuild-composer: 106786
+          https://github.com/systemd/systemd: 60158
+      koji_build_targets:
+        job_runs: 1466
+        per_event:
+          branch_push:
+            job_runs: 56
+            top_projects_by_job_runs:
+              https://github.com/besser82/libxcrypt: 46
+              https://github.com/ostreedev/ostree: 10
+          issue:
+            job_runs: 0
+            top_projects_by_job_runs: {}
+          pull_request:
+            job_runs: 1410
+            top_projects_by_job_runs:
+              https://github.com/containers/podman: 297
+              https://github.com/packit/ogr: 509
+              https://github.com/rear/rear: 267
+          release:
+            job_runs: 0
+            top_projects_by_job_runs: {}
+        top_projects_by_job_runs:
+          https://github.com/containers/podman: 297
+          https://github.com/packit/ogr: 509
+          https://github.com/rear/rear: 267
+      srpm_builds:
+        job_runs: 103695
+        per_event:
+          branch_push:
+            job_runs: 7084
+            top_projects_by_job_runs:
+              https://github.com/osbuild/osbuild-composer: 646
+              https://github.com/packit/packit: 549
+              https://github.com/rhinstaller/anaconda: 1015
+          issue:
+            job_runs: 0
+            top_projects_by_job_runs: {}
+          pull_request:
+            job_runs: 96305
+            top_projects_by_job_runs:
+              https://github.com/cockpit-project/cockpit: 6915
+              https://github.com/packit/hello-world: 10401
+              https://github.com/systemd/systemd: 14489
+          release:
+            job_runs: 306
+            top_projects_by_job_runs:
+              https://github.com/facebook/folly: 40
+              https://github.com/packit/ogr: 34
+              https://github.com/packit/packit: 54
+        top_projects_by_job_runs:
+          https://github.com/cockpit-project/cockpit: 6937
+          https://github.com/packit/hello-world: 10409
+          https://github.com/systemd/systemd: 14489
+      sync_release_runs:
+        job_runs: 419
+        per_event:
+          branch_push:
+            job_runs: 0
+            top_projects_by_job_runs: {}
+          issue:
+            job_runs: 22
+            top_projects_by_job_runs:
+              https://github.com/martinpitt/python-dbusmock: 3
+              https://github.com/packit/packit: 3
+              https://github.com/packit/specfile: 6
+          pull_request:
+            job_runs: 0
+            top_projects_by_job_runs: {}
+          release:
+            job_runs: 397
+            top_projects_by_job_runs:
+              https://github.com/martinpitt/python-dbusmock: 35
+              https://github.com/packit/packit: 35
+              https://github.com/rhinstaller/anaconda: 34
+        top_projects_by_job_runs:
+          https://github.com/martinpitt/python-dbusmock: 38
+          https://github.com/packit/packit: 38
+          https://github.com/rhinstaller/anaconda: 34
+      tft_test_run_targets:
+        job_runs: 150525
+        per_event:
+          branch_push:
+            job_runs: 441
+            top_projects_by_job_runs:
+              https://github.com/oamg/convert2rhel: 209
+              https://github.com/packit-service/packit: 50
+              https://github.com/python-bugzilla/python-bugzilla: 88
+          issue:
+            job_runs: 0
+            top_projects_by_job_runs: {}
+          pull_request:
+            job_runs: 150026
+            top_projects_by_job_runs:
+              https://github.com/cockpit-project/cockpit: 21157
+              https://github.com/oamg/convert2rhel: 15297
+              https://github.com/teemtee/tmt: 22136
+          release:
+            job_runs: 58
+            top_projects_by_job_runs:
+              https://github.com/fedora-infra/fedora-messaging: 8
+              https://github.com/fedora-iot/zezere: 8
+              https://github.com/psss/tmt: 21
+        top_projects_by_job_runs:
+          https://github.com/cockpit-project/cockpit: 21157
+          https://github.com/oamg/convert2rhel: 15506
+          https://github.com/teemtee/tmt: 22136
+      vm_image_build_targets:
+        job_runs: 2
+        per_event:
+          branch_push:
+            job_runs: 0
+            top_projects_by_job_runs: {}
+          issue:
+            job_runs: 0
+            top_projects_by_job_runs: {}
+          pull_request:
+            job_runs: 2
+            top_projects_by_job_runs:
+              https://github.com/packit/ogr: 2
+          release:
+            job_runs: 0
+            top_projects_by_job_runs: {}
+        top_projects_by_job_runs:
+          https://github.com/packit/ogr: 2
+
+    ```
+    """
     jobs = {}
     for job_model in [
         SRPMBuildModel,
@@ -140,6 +346,127 @@ def get_usage_data(datetime_from=None, datetime_to=None, top=10):
 
 
 def get_project_usage_data(project: str, datetime_from=None, datetime_to=None):
+    """
+    Return usage data for a given project:
+
+    Example:
+    ```
+    >>> safe_dump(get_project_usage_data("https://github.com/packit/ogr"))
+    events_handled:
+      events_handled: 270
+      per_event:
+        branch_push:
+          events_handled: 3
+          position: 2
+        issue:
+          events_handled: 2
+          position: 4
+        pull_request:
+          events_handled: 232
+          position: 24
+        release:
+          events_handled: 33
+          position: 3
+      position: 21
+    jobs:
+      copr_build_targets:
+        job_runs: 3413
+        per_event:
+          branch_push:
+            job_runs: 515
+            position: 17
+          issue:
+            job_runs: null
+            position: null
+          pull_request:
+            job_runs: 2794
+            position: 28
+          release:
+            job_runs: 104
+            position: 3
+        position: 27
+      koji_build_targets:
+        job_runs: 509
+        per_event:
+          branch_push:
+            job_runs: null
+            position: null
+          issue:
+            job_runs: null
+            position: null
+          pull_request:
+            job_runs: 509
+            position: 1
+          release:
+            job_runs: null
+            position: null
+        position: 1
+      srpm_builds:
+        job_runs: 1196
+        per_event:
+          branch_push:
+            job_runs: 147
+            position: 14
+          issue:
+            job_runs: null
+            position: null
+          pull_request:
+            job_runs: 1015
+            position: 19
+          release:
+            job_runs: 34
+            position: 3
+        position: 19
+      sync_release_runs:
+        job_runs: 16
+        per_event:
+          branch_push:
+            job_runs: null
+            position: null
+          issue:
+            job_runs: 2
+            position: 4
+          pull_request:
+            job_runs: null
+            position: null
+          release:
+            job_runs: 14
+            position: 11
+        position: 9
+      tft_test_run_targets:
+        job_runs: 2755
+        per_event:
+          branch_push:
+            job_runs: 3
+            position: 12
+          issue:
+            job_runs: null
+            position: null
+          pull_request:
+            job_runs: 2748
+            position: 12
+          release:
+            job_runs: 4
+            position: 5
+        position: 12
+      vm_image_build_targets:
+        job_runs: 2
+        per_event:
+          branch_push:
+            job_runs: null
+            position: null
+          issue:
+            job_runs: null
+            position: null
+          pull_request:
+            job_runs: 2
+            position: 1
+          release:
+            job_runs: null
+            position: null
+        position: 1
+    ```
+    """
     jobs: dict[str, Any] = {}
     for job_model in [
         SRPMBuildModel,
