@@ -670,3 +670,63 @@ def test_usage_info_values(
     response_dict = response.json
 
     assert nested_get(response_dict, *key_to_check.split("/")) == expected_value
+
+
+def test_project_usage_info(
+    client,
+    clean_before_and_after,
+    full_database,
+):
+    response = client.get(
+        url_for(
+            "api.usage_project_usage",
+            forge="github.com",
+            namespace="the-namespace",
+            repo_name="the-repo-name",
+        )
+    )
+    response_dict = response.json
+
+    assert nested_get(response_dict, "events_handled", "events_handled") == 7
+    assert nested_get(response_dict, "events_handled", "position") == 1
+    assert (
+        nested_get(
+            response_dict,
+            "events_handled",
+            "per_event",
+            "branch_push",
+            "events_handled",
+        )
+        == 1
+    )
+    assert nested_get(response_dict, "jobs", "srpm_builds", "job_runs") == 13
+    assert (
+        nested_get(
+            response_dict, "jobs", "srpm_builds", "per_event", "release", "job_runs"
+        )
+        == 1
+    )
+    assert nested_get(response_dict, "jobs", "tft_test_run_targets", "job_runs") == 6
+    assert nested_get(response_dict, "jobs", "tft_test_run_targets", "position") == 1
+    assert (
+        nested_get(
+            response_dict,
+            "jobs",
+            "tft_test_run_targets",
+            "per_event",
+            "pull_request",
+            "job_runs",
+        )
+        == 5
+    )
+    assert (
+        nested_get(
+            response_dict,
+            "jobs",
+            "tft_test_run_targets",
+            "per_event",
+            "pull_request",
+            "position",
+        )
+        == 1
+    )
