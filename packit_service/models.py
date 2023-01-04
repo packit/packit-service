@@ -26,6 +26,7 @@ from typing import (
 )
 from urllib.parse import urlparse
 
+from cachetools.func import ttl_cache
 from sqlalchemy import (
     Boolean,
     Column,
@@ -59,6 +60,9 @@ from packit.exceptions import PackitException
 from packit_service.constants import ALLOWLIST_CONSTANTS
 
 logger = logging.getLogger(__name__)
+
+_CACHE_MAXSIZE = 100
+_CACHE_TTL = timedelta(hours=1).seconds
 
 
 def get_pg_url() -> str:
@@ -522,6 +526,7 @@ class GitProjectModel(Base):
     # ACTIVE PROJECTS
 
     @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
     def get_active_projects(
         cls, top: Optional[int] = None, datetime_from=None, datetime_to=None
     ) -> list[str]:
@@ -536,6 +541,7 @@ class GitProjectModel(Base):
         )
 
     @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
     def get_active_projects_count(cls, datetime_from=None, datetime_to=None) -> int:
         """
         Active project is the one with at least one activity (=one pipeline)
@@ -548,6 +554,7 @@ class GitProjectModel(Base):
         )
 
     @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
     def get_active_projects_usage_numbers(
         cls, top: Optional[int] = 10, datetime_from=None, datetime_to=None
     ) -> dict[str, int]:
@@ -571,6 +578,7 @@ class GitProjectModel(Base):
     # ALL PROJECTS
 
     @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
     def get_project_count(
         cls,
     ) -> list[str]:
@@ -580,6 +588,7 @@ class GitProjectModel(Base):
         return sa_session().query(GitProjectModel).count()
 
     @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
     def get_instance_numbers(cls) -> Dict[str, int]:
         """
         Get the number of projects per each GIT instances.
@@ -595,6 +604,7 @@ class GitProjectModel(Base):
         )
 
     @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
     def get_instance_numbers_for_active_projects(
         cls, datetime_from=None, datetime_to=None
     ) -> Dict[str, int]:
@@ -635,6 +645,7 @@ class GitProjectModel(Base):
         }
 
     @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
     def get_trigger_usage_count(
         cls, trigger_type: JobTriggerModelType, datetime_from=None, datetime_to=None
     ):
@@ -653,6 +664,7 @@ class GitProjectModel(Base):
         )
 
     @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
     def get_trigger_usage_numbers(
         cls, trigger_type, datetime_from=None, datetime_to=None, top=None
     ) -> dict[str, int]:
@@ -699,6 +711,7 @@ class GitProjectModel(Base):
         return dict(query.all())
 
     @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
     def get_job_usage_numbers_count(
         cls,
         job_result_model,
@@ -721,6 +734,7 @@ class GitProjectModel(Base):
         )
 
     @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
     def get_job_usage_numbers_count_all_triggers(
         cls,
         job_result_model,
@@ -741,6 +755,7 @@ class GitProjectModel(Base):
         )
 
     @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
     def get_job_usage_numbers(
         cls,
         job_result_model,
@@ -801,6 +816,7 @@ class GitProjectModel(Base):
         )
 
     @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
     def get_job_usage_numbers_all_triggers(
         cls,
         job_result_model,

@@ -55,6 +55,7 @@ repos:
             types-requests,
             types-Flask,
             types-PyYAML,
+            types-cachetools,
           ]
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.8.0.4
