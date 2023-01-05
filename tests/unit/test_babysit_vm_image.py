@@ -7,6 +7,7 @@ from requests import HTTPError
 from flexmock import flexmock
 from flexmock import Mock
 from packit.config.job_config import JobConfigTriggerType, JobType
+from packit_service.config import ServiceConfig
 from packit_service.models import (
     VMImageBuildTargetModel,
     VMImageBuildStatus,
@@ -19,6 +20,7 @@ from packit_service.worker.helpers.build.babysit import (
 )
 from packit_service.worker.events import VMImageBuildResultEvent
 from packit_service.worker.handlers import VMImageBuildResultHandler
+from packit_service.worker.monitoring import Pushgateway
 
 
 def test_check_pending_vm_image_builds():
@@ -139,6 +141,9 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
     )
 
     flexmock(VMImageBuildResultHandler).should_receive("report_status")
+    flexmock(ServiceConfig).should_receive("get_project").and_return()
+    if stop_babysitting:
+        flexmock(Pushgateway).should_receive("push").once().and_return()
     assert (
         update_vm_image_build(
             1,

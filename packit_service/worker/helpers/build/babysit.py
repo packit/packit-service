@@ -134,7 +134,7 @@ def check_pending_testing_farm_runs() -> None:
             )
             # check for identifiers equality
             if handler.pre_check(package_config, job_config, event_dict):
-                handler.run()
+                handler.run_job()
 
 
 def check_pending_copr_builds() -> None:
@@ -294,7 +294,7 @@ def update_copr_build_state(
             event=event_dict,
         )
         if handler.pre_check(package_config, job_config, event_dict):
-            handler.run()
+            handler.run_job()
 
 
 class UpdateImageBuildHelper(ConfigFromUrlMixin, GetVMImageBuilderMixin):
@@ -413,7 +413,7 @@ def update_vm_image_build(build_id: int, build: "VMImageBuildTargetModel"):
         )
 
     if handler.pre_check(package_config, job_config, event_dict):
-        handler.run()
+        handler.run_job()
         return True
 
     build.set_status(status)
