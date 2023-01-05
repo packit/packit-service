@@ -217,6 +217,22 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         )
         self.build.set_end_time(end_time)
 
+    def measure_time_after_reporting(self):
+        reported_time = datetime.now(timezone.utc)
+        build_ended_on = self.copr_build_helper.get_build_chroot(
+            int(self.build.build_id), self.build.target
+        ).ended_on
+
+        reported_after_time = elapsed_seconds(
+            begin=datetime.fromtimestamp(build_ended_on, timezone.utc),
+            end=reported_time,
+        )
+        logger.debug(
+            f"Copr build end reported after {reported_after_time / 60} minutes."
+        )
+
+        self.pushgateway.copr_build_end_reported_after_time.observe(reported_after_time)
+
     def run(self):
         if not self.build:
             # TODO: how could this happen?
@@ -264,10 +280,12 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
                 url=get_copr_build_info_url(self.build.id),
                 chroot=self.copr_event.chroot,
             )
+            self.measure_time_after_reporting()
             self.build.set_status(BuildStatus.failure)
             return TaskResults(success=False, details={"msg": failed_msg})
 
         self.report_successful_build()
+        self.measure_time_after_reporting()
         self.build.set_status(BuildStatus.success)
 
         built_packages = self.copr_build_helper.get_built_packages(

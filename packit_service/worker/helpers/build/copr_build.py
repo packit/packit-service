@@ -367,6 +367,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
     def get_build(self, build_id: int):
         return self.api.copr_helper.copr_client.build_proxy.get(build_id)
 
+    def get_build_chroot(self, build_id: int, chroot: str):
+        return self.api.copr_helper.copr_client.build_chroot_proxy.get(build_id, chroot)
+
     def monitor_not_submitted_copr_builds(self, number_of_builds: int, reason: str):
         """
         Measure the time it took to set the failed status in case of event (e.g. failed SRPM)

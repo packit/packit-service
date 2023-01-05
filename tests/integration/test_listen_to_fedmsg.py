@@ -323,6 +323,17 @@ def test_copr_build_end(
         .at_least()
         .once()
     )
+
+    (
+        flexmock(CoprBuildJobHelper)
+        .should_receive("get_build_chroot")
+        .with_args(1, "some-target")
+        .and_return(flexmock(ended_on=1666889710))
+        .at_least()
+        .once()
+    )
+
+    # fix SRPM url since it touches multiple classes
     flexmock(copr_build_pr._srpm_build_for_mocking).should_receive("set_url").with_args(
         "https://my.host/my.srpm"
     ).mock()
@@ -382,6 +393,15 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
 
+    (
+        flexmock(CoprBuildJobHelper)
+        .should_receive("get_build_chroot")
+        .with_args(1, "some-target")
+        .and_return(flexmock(ended_on=1666889710))
+        .at_least()
+        .once()
+    )
+
     flexmock(Pushgateway).should_receive("push").once().and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end)
@@ -433,6 +453,10 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
     ).once()
 
     flexmock(Signature).should_receive("apply_async").once()
+
+    flexmock(CoprBuildJobHelper).should_receive("get_build_chroot").with_args(
+        1, "some-target"
+    ).and_return(flexmock(ended_on=1666889710)).once()
 
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
@@ -646,6 +670,15 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
 
+    (
+        flexmock(CoprBuildJobHelper)
+        .should_receive("get_build_chroot")
+        .with_args(1, "some-target")
+        .and_return(flexmock(ended_on=1666889710))
+        .at_least()
+        .once()
+    )
+
     flexmock(Pushgateway).should_receive("push").twice().and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end)
@@ -803,6 +836,15 @@ def test_copr_build_end_report_multiple_testing_farm_jobs(
     # skip SRPM url since it touches multiple classes
     flexmock(CoprBuildEndHandler).should_receive("set_srpm_url").and_return(None)
 
+    (
+        flexmock(CoprBuildJobHelper)
+        .should_receive("get_build_chroot")
+        .with_args(1, "some-target")
+        .and_return(flexmock(ended_on=1666889710))
+        .at_least()
+        .once()
+    )
+
     flexmock(Pushgateway).should_receive("push").once().and_return()
 
     processing_results = SteveJobs().process_message(copr_build_end)
@@ -941,6 +983,16 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
     ).once()
 
     flexmock(Signature).should_receive("apply_async").twice()
+
+    (
+        flexmock(CoprBuildJobHelper)
+        .should_receive("get_build_chroot")
+        .with_args(1, "some-target")
+        .and_return(flexmock(ended_on=1666889710))
+        .at_least()
+        .once()
+    )
+
     flexmock(Pushgateway).should_receive("push").twice().and_return()
 
     # skip SRPM url since it touches multiple classes
@@ -1097,6 +1149,15 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     ).once()
 
     flexmock(Signature).should_receive("apply_async").twice()
+
+    (
+        flexmock(CoprBuildJobHelper)
+        .should_receive("get_build_chroot")
+        .with_args(1, "some-target")
+        .and_return(flexmock(ended_on=1666889710))
+        .at_least()
+        .once()
+    )
     flexmock(Pushgateway).should_receive("push").twice().and_return()
 
     # skip SRPM url since it touches multiple classes
@@ -1279,6 +1340,16 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
 
     flexmock(CoprBuildJobHelper).should_receive("get_built_packages").and_return([])
     flexmock(Signature).should_receive("apply_async").once()
+
+    (
+        flexmock(CoprBuildJobHelper)
+        .should_receive("get_build_chroot")
+        .with_args(1, "some-target")
+        .and_return(flexmock(ended_on=1666889710))
+        .at_least()
+        .once()
+    )
+
     flexmock(Pushgateway).should_receive("push").once().and_return()
 
     # skip SRPM url since it touches multiple classes
