@@ -167,7 +167,7 @@ def test_check_copr_build_updated(build_status):
             packages={"package": CommonPackageConfig()},
         )
     )
-    flexmock(CoprBuildEndHandler).should_receive("run").and_return().once()
+    flexmock(CoprBuildEndHandler).should_receive("run_job").and_return().once()
     assert check_copr_build(build_id=1)
 
 
@@ -251,7 +251,7 @@ def test_check_copr_build_waiting_started():
             packages={"package": CommonPackageConfig()},
         )
     )
-    flexmock(CoprBuildStartHandler).should_receive("run").and_return().once()
+    flexmock(CoprBuildStartHandler).should_receive("run_job").and_return().once()
     assert not check_copr_build(build_id=1)
 
 
@@ -335,7 +335,7 @@ def test_check_copr_build_waiting_already_started():
             packages={"package": CommonPackageConfig()},
         )
     )
-    flexmock(CoprBuildStartHandler).should_receive("run").and_return().never()
+    flexmock(CoprBuildStartHandler).should_receive("run_job").and_return().never()
     assert not check_copr_build(build_id=1)
 
 
@@ -496,7 +496,7 @@ def test_check_pending_testing_farm_runs(created):
             packages={"package": CommonPackageConfig()},
         )
     )
-    flexmock(TestingFarmResultsHandler).should_receive("run").and_return().once()
+    flexmock(TestingFarmResultsHandler).should_receive("run_job").and_return().once()
     check_pending_testing_farm_runs()
 
 
@@ -596,5 +596,5 @@ def test_check_pending_testing_farm_runs_identifiers(identifier):
             packages={"package": CommonPackageConfig()},
         )
     )
-    flexmock(TestingFarmResultsHandler).should_receive("run").and_return().once()
+    flexmock(TestingFarmResultsHandler).should_receive("run_job").and_return().once()
     check_pending_testing_farm_runs()

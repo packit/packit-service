@@ -23,6 +23,7 @@ from packit_service.models import (
 )
 from packit_service.worker.events import AbstractCoprBuildEvent
 from packit_service.worker.helpers.build.babysit import check_copr_build
+from packit_service.worker.monitoring import Pushgateway
 
 BUILD_ID = 1300329
 
@@ -211,6 +212,7 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
             "fedora-rawhide-x86_64",
         }
     )
+    flexmock(Pushgateway).should_receive("push").once().and_return()
 
     check_copr_build(BUILD_ID)
     assert packit_build_752.status == BuildStatus.success

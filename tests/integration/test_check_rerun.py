@@ -577,7 +577,7 @@ def test_check_rerun_release_koji_build_handler(
 def test_check_rerun_release_propose_downstream_handler(
     mock_release_functionality, check_rerun_event_propose_downstream
 ):
-    flexmock(ProposeDownstreamHandler).should_receive("run").and_return(
+    flexmock(ProposeDownstreamHandler).should_receive("run_job").and_return(
         TaskResults(success=True, details={})
     )
     flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
