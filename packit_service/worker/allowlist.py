@@ -329,7 +329,8 @@ class Allowlist:
             return True
 
         msg = (
-            f"Project {project_url} is not on our allowlist!"
+            f"Project {project_url} is not on our allowlist! "
+            "See https://packit.dev/docs/guide/#2-approval"
             if not namespace_approved
             else f"Account {actor_name} has no write access nor is author of PR!"
         )
@@ -395,7 +396,8 @@ class Allowlist:
             return True
 
         msg = (
-            f"Project {project_url} is not on our allowlist!"
+            f"Project {project_url} is not on our allowlist! "
+            "See https://packit.dev/docs/guide/#2-approval"
             if not namespace_approved
             else f"Account {actor_name} has no write access!"
         )
