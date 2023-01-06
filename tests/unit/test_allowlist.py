@@ -300,7 +300,8 @@ def test_check_and_report_calls_method(allowlist, event, mocked_model, approved)
     else:
         flexmock(gp).should_receive("get_pr").and_return(mocked_pr_or_issue)
     expectation = mocked_pr_or_issue.should_receive("comment").with_args(
-        "Project github.com/foo/bar.git is not on our allowlist!"
+        "Project github.com/foo/bar.git is not on our allowlist! "
+        "See https://packit.dev/docs/guide/#2-approval"
     )
     expectation.never() if approved else expectation.once()
 
