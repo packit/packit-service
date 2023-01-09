@@ -53,7 +53,6 @@ from packit_service.worker.events import (
     EventData,
 )
 from packit_service.worker.handlers import CoprBuildHandler
-from packit_service.worker.helpers.build import copr_build
 from packit_service.worker.helpers.build.copr_build import (
     BaseBuildJobHelper,
     CoprBuildJobHelper,
@@ -171,7 +170,7 @@ def test_copr_build_fails_chroot_update(github_pr_event):
     )
     # enforce that we are reporting on our own Copr project
     helper.job_build.owner = "packit"
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"f31", "f32"}
     )
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_raise(
@@ -411,9 +410,9 @@ def test_get_latest_fedora_stable_chroot(github_pr_event):
     flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
         "get_aliases"
     ).and_return({"fedora-stable": ["fedora-34", "fedora-35"]})
-    flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
-        "get_valid_build_targets"
-    ).with_args("fedora-35").and_return({"fedora-35-x86_64"})
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
+        "fedora-35"
+    ).and_return({"fedora-35-x86_64"})
     assert (
         build_helper(github_pr_event).get_latest_fedora_stable_chroot()
         == "fedora-35-x86_64"
@@ -597,7 +596,7 @@ def test_copr_build_invalid_copr_project_name(github_pr_event):
     )
     # enforce that we are reporting on our own Copr project
     helper.job_build.owner = "packit"
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"f31", "f32"}
     )
     flexmock(CoprHelper).should_receive("create_copr_project_if_not_exists").and_raise(

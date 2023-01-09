@@ -10,7 +10,6 @@ from celery.canvas import Signature
 from copr.v3 import Client
 from flexmock import flexmock
 
-import packit_service
 import packit_service.service.urls as urls
 from ogr.services.github import GithubProject
 from ogr.utils import RequestResponse
@@ -64,9 +63,7 @@ pytestmark = pytest.mark.usefixtures("mock_get_valid_build_targets")
 
 @pytest.fixture
 def mock_get_valid_build_targets():
-    flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
-        "get_valid_build_targets"
-    ).and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {
             "fedora-33-x86_64",
             "fedora-32-x86_64",

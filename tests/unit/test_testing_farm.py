@@ -3,8 +3,9 @@
 from datetime import datetime, timezone
 
 import pytest
-from celery import Signature
+from celery.canvas import Signature
 from flexmock import flexmock
+from packit.copr_helper import CoprHelper
 
 import packit_service.models
 import packit_service.service.urls as urls
@@ -33,7 +34,6 @@ from packit_service.worker.events import (
 )
 from packit_service.worker.handlers import TestingFarmHandler
 from packit_service.worker.handlers import TestingFarmResultsHandler as TFResultsHandler
-from packit_service.worker.helpers.build import copr_build as cb
 from packit_service.worker.helpers.testing_farm import (
     TestingFarmJobHelper as TFJobHelper,
 )
@@ -893,7 +893,7 @@ def test_trigger_build(copr_build, run_new_build, wait_for_build):
                 url="https://dashboard.localhost/results/copr-builds/1",
             )
 
-    flexmock(cb).should_receive("get_valid_build_targets").and_return(targets)
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(targets)
 
     tf_handler = TestingFarmHandler(
         package_config,
@@ -996,7 +996,7 @@ def test_get_additional_builds():
         project_url="https://github.com/my-namespace/my-repo",
     ).and_return(pr)
 
-    flexmock(cb).should_receive("get_valid_build_targets").and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"test-target", "another-test-target"}
     )
 
@@ -1088,7 +1088,7 @@ def test_get_additional_builds_builds_not_in_db():
         .and_return([])
         .mock()
     )
-    flexmock(cb).should_receive("get_valid_build_targets").and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"test-target", "another-test-target"}
     )
     additional_copr_builds = helper.get_copr_builds_from_other_pr()

@@ -18,7 +18,6 @@ from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
 from packit_service.config import ServiceConfig
 from packit_service.models import JobTriggerModelType
-from packit_service.worker.helpers.build import copr_build
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 
@@ -1087,22 +1086,22 @@ def test_build_targets_overrides(
         build_targets_override=build_targets_override,
         tests_targets_override=tests_targets_override,
     )
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "fedora-31", "fedora-32", default=None
     ).and_return(STABLE_CHROOTS)
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "fedora-32", "fedora-31", default=None
     ).and_return(STABLE_CHROOTS)
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         default=None
     ).and_return(set())
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "epel-7-x86_64", default=None
     ).and_return({"epel-7-x86_64"})
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "epel-7-ppc64le", default=None
     ).and_return({"epel-7-ppc64le"})
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "centos-stream-8", default=None
     ).and_return({"centos-stream-8-x86_64"})
     assert copr_build_helper.build_targets == build_targets
@@ -1309,22 +1308,22 @@ def test_tests_targets_overrides(
         build_targets_override=build_targets_override,
         tests_targets_override=tests_targets_override,
     )
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "fedora-31", "fedora-32", default=None
     ).and_return(STABLE_CHROOTS)
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "fedora-32", "fedora-31", default=None
     ).and_return(STABLE_CHROOTS)
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         default=None
     ).and_return(set())
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "epel-7-x86_64", default=None
     ).and_return({"epel-7-x86_64"})
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "epel-7-ppc64le", default=None
     ).and_return({"epel-7-ppc64le"})
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "centos-stream-8", default=None
     ).and_return({"centos-stream-8-x86_64"})
     assert testing_farm_helper.tests_targets == test_targets
@@ -1409,7 +1408,7 @@ def test_copr_build_target2test_targets(
         metadata=flexmock(pr_id=None),
         db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
     )
-    flexmock(copr_build, get_valid_build_targets=get_build_targets)
+    flexmock(CoprHelper, get_valid_build_targets=get_build_targets)
     assert (
         copr_build_helper.build_target2test_targets_for_test_job(build_target, jobs[0])
         == test_targets
@@ -1440,7 +1439,7 @@ def test_copr_build_and_test_targets_both_jobs_defined():
             },
         ),
     ]
-    flexmock(copr_build, get_valid_build_targets=get_build_targets)
+    flexmock(CoprHelper, get_valid_build_targets=get_build_targets)
     for i in [0, 1]:
         helper = (
             CoprBuildJobHelper
@@ -1663,16 +1662,16 @@ def test_copr_test_target2build_target(job_config, test_target, build_target):
         metadata=flexmock(pr_id=None),
         db_trigger=flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
     )
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "fedora-31", "fedora-32", default=None
     ).and_return(STABLE_CHROOTS)
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "fedora-32", "fedora-31", default=None
     ).and_return(STABLE_CHROOTS)
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "centos-stream-9-x86_64", default=None
     ).and_return({"centos-stream-9-x86_64"})
-    flexmock(copr_build).should_receive("get_valid_build_targets").with_args(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").with_args(
         "epel-7-x86_64", default=None
     ).and_return({"epel-7-x86_64"})
     assert testing_farm_helper.test_target2build_target(test_target) == build_target
