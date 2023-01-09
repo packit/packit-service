@@ -734,6 +734,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 preserve_project=self.preserve_project if overwrite_booleans else None,
                 additional_repos=self.additional_repos,
                 request_admin_if_needed=True,
+                targets_dict=self.job_config.targets_dict,
             )
         except PackitCoprSettingsException as ex:
             # notify user first, PR if exists, commit comment otherwise
