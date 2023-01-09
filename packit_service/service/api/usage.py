@@ -29,7 +29,14 @@ usage_ns = Namespace("usage", description="Data about Packit usage")
 class Usage(Resource):
     @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
     def get(self):
-        """List all SRPM builds."""
+        """
+        Show a usage statistics for the service.
+
+        You can use `from` and `to` arguments to specify a time range
+        (e.g. `/api/usage?from=2022-01-30`).
+        Also, you can use `top` argument to specify number of project
+        in the top_projects_by_something parts of the response.
+        """
 
         top = int(request.args.get("top")) if "top" in request.args else None
         datetime_from = request.args.get("from")
@@ -47,7 +54,12 @@ class Usage(Resource):
 class ProjectUsage(Resource):
     @usage_ns.response(HTTPStatus.OK, "Providing data about Packit usage")
     def get(self, forge, namespace, repo_name):
-        """List all SRPM builds."""
+        """
+        Show a usage statistics for a given project.
+
+        You can use `from` and `to` arguments to specify a time range
+        (e.g. `api/usage/project/github.com/packit/ogr?from=2022-01-30`).
+        """
 
         datetime_from = request.args.get("from")
         datetime_to = request.args.get("to")
