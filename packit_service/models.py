@@ -8,6 +8,7 @@ Data layer on top of PSQL using sqlalch
 import enum
 import logging
 import os
+from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from os import getenv
@@ -25,6 +26,7 @@ from typing import (
 )
 from urllib.parse import urlparse
 
+from cachetools.func import ttl_cache
 from sqlalchemy import (
     Boolean,
     Column,
@@ -50,6 +52,7 @@ from sqlalchemy.orm import (
     scoped_session,
     sessionmaker,
 )
+from sqlalchemy.sql.functions import count
 from sqlalchemy.types import ARRAY
 
 from packit.config import JobConfigTriggerType
@@ -57,6 +60,9 @@ from packit.exceptions import PackitException
 from packit_service.constants import ALLOWLIST_CONSTANTS
 
 logger = logging.getLogger(__name__)
+
+_CACHE_MAXSIZE = 100
+_CACHE_TTL = timedelta(hours=1).seconds
 
 
 def get_pg_url() -> str:
@@ -515,6 +521,325 @@ class GitProjectModel(Base):
                 GitProjectModel.namespace == namespace,
                 GitProjectModel.repo_name == repo_name,
             )
+        )
+
+    # ACTIVE PROJECTS
+
+    @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
+    def get_active_projects(
+        cls, top: Optional[int] = None, datetime_from=None, datetime_to=None
+    ) -> list[str]:
+        """
+        Active project is the one with at least one activity (=one pipeline)
+        during the given period.
+        """
+        return list(
+            cls.get_active_projects_usage_numbers(
+                top=top, datetime_from=datetime_from, datetime_to=datetime_to
+            ).keys()
+        )
+
+    @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
+    def get_active_projects_count(cls, datetime_from=None, datetime_to=None) -> int:
+        """
+        Active project is the one with at least one activity (=one pipeline)
+        during the given period.
+        """
+        return len(
+            cls.get_active_projects_usage_numbers(
+                top=None, datetime_from=datetime_from, datetime_to=datetime_to
+            )
+        )
+
+    @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
+    def get_active_projects_usage_numbers(
+        cls, top: Optional[int] = 10, datetime_from=None, datetime_to=None
+    ) -> dict[str, int]:
+        """
+        Get the most active projects sorted by the number of related pipelines.
+        """
+        all_usage_numbers: dict[str, int] = Counter()
+        for trigger_type in JobTriggerModelType:
+            all_usage_numbers.update(
+                cls.get_trigger_usage_numbers(
+                    datetime_from=datetime_from,
+                    datetime_to=datetime_to,
+                    top=None,
+                    trigger_type=trigger_type,
+                )
+            )
+        return dict(
+            sorted(all_usage_numbers.items(), key=lambda x: x[1], reverse=True)[:top]
+        )
+
+    # ALL PROJECTS
+
+    @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
+    def get_project_count(
+        cls,
+    ) -> list[str]:
+        """
+        Number of project models in the database.
+        """
+        return sa_session().query(GitProjectModel).count()
+
+    @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
+    def get_instance_numbers(cls) -> Dict[str, int]:
+        """
+        Get the number of projects per each GIT instances.
+        """
+        return dict(
+            sa_session()
+            .query(
+                GitProjectModel.instance_url,
+                func.count(GitProjectModel.instance_url),
+            )
+            .group_by(GitProjectModel.instance_url)
+            .all()
+        )
+
+    @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
+    def get_instance_numbers_for_active_projects(
+        cls, datetime_from=None, datetime_to=None
+    ) -> Dict[str, int]:
+        """
+        Get the number of projects (at least one pipeline during the time period)
+        per each GIT instances.
+        """
+        projects_per_instance: dict[str, set[str]] = {}
+
+        for trigger_type in JobTriggerModelType:
+            trigger_model = MODEL_FOR_TRIGGER[trigger_type]
+            query = (
+                sa_session()
+                .query(
+                    GitProjectModel.instance_url,
+                    GitProjectModel.project_url,
+                )
+                .join(trigger_model, GitProjectModel.id == trigger_model.project_id)
+                .join(JobTriggerModel, JobTriggerModel.trigger_id == trigger_model.id)
+                .join(PipelineModel, PipelineModel.job_trigger_id == JobTriggerModel.id)
+                .filter(JobTriggerModel.type == trigger_type)
+            )
+            if datetime_from:
+                query = query.filter(PipelineModel.datetime >= datetime_from)
+            if datetime_to:
+                query = query.filter(PipelineModel.datetime <= datetime_to)
+
+            query = query.group_by(
+                GitProjectModel.project_url, GitProjectModel.instance_url
+            )
+            for instance, project in query.all():
+                projects_per_instance.setdefault(instance, set())
+                projects_per_instance[instance].add(project)
+
+        return {
+            instance: len(projects)
+            for instance, projects in projects_per_instance.items()
+        }
+
+    @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
+    def get_trigger_usage_count(
+        cls, trigger_type: JobTriggerModelType, datetime_from=None, datetime_to=None
+    ):
+        """
+        Get the number of triggers of a given type with at least one pipeline from the given period.
+        """
+        # TODO: share the computation with _get_trigger_usage_numbers
+        #       (one query with top and one without)
+        return sum(
+            cls.get_trigger_usage_numbers(
+                datetime_from=datetime_from,
+                datetime_to=datetime_to,
+                trigger_type=trigger_type,
+                top=None,
+            ).values()
+        )
+
+    @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
+    def get_trigger_usage_numbers(
+        cls, trigger_type, datetime_from=None, datetime_to=None, top=None
+    ) -> dict[str, int]:
+        """
+        For each project, get the number of triggers of a given type with at least one pipeline
+        from the given period.
+
+        Order from the highest numbers.
+        All if `top` not set, the first `top` projects returned otherwise.
+        """
+        trigger_model = MODEL_FOR_TRIGGER[trigger_type]
+        query = (
+            sa_session()
+            .query(
+                GitProjectModel.project_url,
+                count(trigger_model.id).over(partition_by=GitProjectModel.project_url),
+            )
+            .join(trigger_model, GitProjectModel.id == trigger_model.project_id)
+            .join(JobTriggerModel, JobTriggerModel.trigger_id == trigger_model.id)
+            .join(PipelineModel, PipelineModel.job_trigger_id == JobTriggerModel.id)
+            .filter(JobTriggerModel.type == trigger_type)
+            .filter(GitProjectModel.instance_url != "src.fedoraproject.org")
+        )
+        if datetime_from:
+            query = query.filter(PipelineModel.datetime >= datetime_from)
+        if datetime_to:
+            query = query.filter(PipelineModel.datetime <= datetime_to)
+
+        query = (
+            query.group_by(GitProjectModel.project_url, trigger_model.id)
+            .distinct()
+            .order_by(
+                desc(
+                    count(trigger_model.id).over(
+                        partition_by=GitProjectModel.project_url
+                    )
+                )
+            )
+        )
+
+        if top:
+            query = query.limit(top)
+
+        return dict(query.all())
+
+    @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
+    def get_job_usage_numbers_count(
+        cls,
+        job_result_model,
+        trigger_type,
+        datetime_from=None,
+        datetime_to=None,
+    ) -> int:
+        """
+        Get the number of jobs of a given type with at least one pipeline
+        from the given period and given trigger.
+        """
+        return sum(
+            cls.get_job_usage_numbers(
+                datetime_from=datetime_from,
+                datetime_to=datetime_to,
+                job_result_model=job_result_model,
+                top=None,
+                trigger_type=trigger_type,
+            ).values()
+        )
+
+    @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
+    def get_job_usage_numbers_count_all_triggers(
+        cls,
+        job_result_model,
+        datetime_from=None,
+        datetime_to=None,
+    ) -> int:
+        """
+        Get the number of all the jobs of a given type with at least one pipeline
+        from the given period.
+        """
+        return sum(
+            cls.get_job_usage_numbers_all_triggers(
+                datetime_from=datetime_from,
+                datetime_to=datetime_to,
+                job_result_model=job_result_model,
+                top=None,
+            ).values()
+        )
+
+    @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
+    def get_job_usage_numbers(
+        cls,
+        job_result_model,
+        trigger_type,
+        datetime_from=None,
+        datetime_to=None,
+        top: Optional[int] = 10,
+    ) -> dict[str, int]:
+        """
+        For each project, get the number of jobs of a given type with at least one pipeline
+        from the given period.
+
+        Order from the highest numbers.
+        All if `top` not set, the first `top` projects returned otherwise.
+        """
+        trigger_model = MODEL_FOR_TRIGGER[trigger_type]
+        pipeline_attribute = {
+            SRPMBuildModel: PipelineModel.srpm_build_id,
+            CoprBuildTargetModel: PipelineModel.copr_build_id,
+            KojiBuildTargetModel: PipelineModel.koji_build_id,
+            VMImageBuildTargetModel: PipelineModel.vm_image_build_id,
+            TFTTestRunTargetModel: PipelineModel.test_run_id,
+            SyncReleaseModel: PipelineModel.sync_release_run_id,
+        }[job_result_model]
+
+        query = (
+            sa_session()
+            .query(
+                GitProjectModel.project_url,
+                count(job_result_model.id).over(
+                    partition_by=GitProjectModel.project_url
+                ),
+            )
+            .join(trigger_model, GitProjectModel.id == trigger_model.project_id)
+            .join(JobTriggerModel, JobTriggerModel.trigger_id == trigger_model.id)
+            .join(PipelineModel, PipelineModel.job_trigger_id == JobTriggerModel.id)
+            .join(job_result_model, job_result_model.id == pipeline_attribute)
+            .filter(JobTriggerModel.type == trigger_type)
+            # We have all the dist git projects in because of how we parse the events.
+            .filter(GitProjectModel.instance_url != "src.fedoraproject.org")
+        )
+        if datetime_from:
+            query = query.filter(PipelineModel.datetime >= datetime_from)
+        if datetime_to:
+            query = query.filter(PipelineModel.datetime <= datetime_to)
+        return dict(
+            query.group_by(GitProjectModel.project_url, job_result_model.id)
+            .distinct()
+            .order_by(
+                desc(
+                    count(job_result_model.id).over(
+                        partition_by=GitProjectModel.project_url
+                    )
+                )
+            )
+            .limit(top)
+            .all()
+        )
+
+    @classmethod
+    @ttl_cache(maxsize=_CACHE_MAXSIZE, ttl=_CACHE_TTL)
+    def get_job_usage_numbers_all_triggers(
+        cls,
+        job_result_model,
+        datetime_from=None,
+        datetime_to=None,
+        top: Optional[int] = None,
+    ) -> dict[str, int]:
+        """
+        For each job, get the per-project number of jobs from the given period.
+        """
+        all_usage_numbers: dict[str, int] = Counter()
+        for trigger_type in JobTriggerModelType:
+            all_usage_numbers.update(
+                cls.get_job_usage_numbers(
+                    datetime_from=datetime_from,
+                    datetime_to=datetime_to,
+                    top=None,
+                    job_result_model=job_result_model,
+                    trigger_type=trigger_type,
+                )
+            )
+        return dict(
+            sorted(all_usage_numbers.items(), key=lambda x: x[1], reverse=True)[:top]
         )
 
     def __repr__(self):

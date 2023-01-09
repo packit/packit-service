@@ -1098,6 +1098,31 @@ def multiple_forge_projects():
 
 
 @pytest.fixture()
+def full_database(
+    multiple_forge_projects,
+    a_copr_build_for_pr,
+    a_copr_build_for_branch_push,
+    a_copr_build_for_release,
+    a_copr_build_waiting_for_srpm,
+    multiple_copr_builds,
+    copr_builds_with_different_triggers,
+    multiple_koji_builds,
+    a_koji_build_for_pr,
+    a_koji_build_for_release,
+    a_koji_build_for_branch_push,
+    a_new_test_run_pr,
+    a_new_test_run_branch_push,
+    multiple_new_test_runs,
+    multiple_propose_downstream_runs_release_trigger,
+    multiple_propose_downstream_runs_issue_trigger,
+    multiple_propose_downstream_runs_with_propose_downstream_targets_release_trigger,
+    multiple_allowlist_entries,
+    multiple_installation_entries,
+):
+    yield
+
+
+@pytest.fixture()
 def release_event_dict():
     """
     Cleared version of the release webhook content.
