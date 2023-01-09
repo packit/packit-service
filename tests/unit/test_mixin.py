@@ -1,12 +1,24 @@
 # Copyright Contributors to the Packit project.
 # SPDX-License-Identifier: MIT
 
+import pytest
+
+from flexmock import flexmock
+from typing import Optional
+
 from packit.vm_image_build import ImageBuilder
+from ogr.abstract import GitProject
+from packit_service.config import ServiceConfig
 from packit_service.worker.mixin import (
+    GetBranchesFromIssueMixin,
+    ConfigFromDistGitUrlMixin,
     GetVMImageBuilderMixin,
     ConfigFromEventMixin,
     GetVMImageDataMixin,
 )
+
+from packit_service.worker.events import EventData
+from packit_service.worker.events.comment import AbstractIssueCommentEvent
 
 
 def test_GetVMImageBuilderMixin():
@@ -43,3 +55,77 @@ def test_GetVMImageDataMixin(fake_package_config_job_config_project_db_trigger):
         "upload_request": {"type": "aws", "options": {}},
     }
     assert mixin.image_customizations == {"packages": ["python-knx-stack"]}
+
+
+@pytest.mark.parametrize(
+    "desc,branches",
+    [
+        (
+            """
+        | dist-git branch | error |
+        | --------------- | ----- |
+        | `f37` | `` |
+        | `f38` | `` |
+            """,
+            ["f37", "f38"],
+        ),
+        (
+            """
+| dist-git branch | error |
+| --------------- | ----- |
+| `f37` | `` |
+| `f38` | `` |
+            """,
+            ["f37", "f38"],
+        ),
+        (
+            "",
+            [],
+        ),
+    ],
+)
+def test_GetBranchesFromIssueMixin(desc, branches):
+    class Test(GetBranchesFromIssueMixin):
+        def __init__(self) -> None:
+            project = (
+                flexmock()
+                .should_receive("get_issue")
+                .and_return(flexmock(description=desc))
+                .mock()
+            )
+            self.data = flexmock(project=project, issue_id=1)
+
+        @property
+        def service_config(self) -> ServiceConfig:
+            return flexmock(ServiceConfig)
+
+        @property
+        def project(self) -> Optional[GitProject]:
+            return None
+
+        @property
+        def project_url(self) -> str:
+            return ""
+
+    mixin = Test()
+    assert mixin.branches == branches
+
+
+def test_ConfigFromDistGitUrlMixin():
+    class Test(ConfigFromDistGitUrlMixin):
+        def __init__(self) -> None:
+            event = AbstractIssueCommentEvent(
+                issue_id=1,
+                repo_namespace="a namespace",
+                repo_name="a repo name",
+                project_url="upstream project url",
+                comment="probably an issue opened by the propose downstream",
+                comment_id=1,
+            )
+            event.dist_git_project_url = "url to distgit"
+            self.data = EventData.from_event_dict(
+                flexmock(event, tag_name="a tag", commit_sha="aebdf").get_dict()
+            )
+
+    mixin = Test()
+    assert mixin.project_url == "url to distgit"

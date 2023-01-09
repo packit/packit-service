@@ -121,10 +121,10 @@ class GetKojiBuildData(Iterator, Protocol):
         """
         if self._branch_index < self.num_of_branches:
             koji_build_data = KojiBuildData(
-                dist_git_branch=self.dist_git_branch,
-                build_id=self.build_id,
-                nvr=self.nvr,
-                state=self.state,
+                dist_git_branch=self._dist_git_branch,
+                build_id=self._build_id,
+                nvr=self._nvr,
+                state=self._state,
             )
             self._branch_index += 1
             return koji_build_data
@@ -132,40 +132,40 @@ class GetKojiBuildData(Iterator, Protocol):
 
     @property
     @abstractmethod
-    def nvr(self) -> str:
+    def _nvr(self) -> str:
         ...
 
     @property
     @abstractmethod
-    def build_id(self) -> int:
+    def _build_id(self) -> int:
         ...
 
     @property
     @abstractmethod
-    def dist_git_branch(self) -> str:
+    def _dist_git_branch(self) -> str:
         ...
 
     @property
     @abstractmethod
-    def state(self) -> KojiBuildState:
+    def _state(self) -> KojiBuildState:
         ...
 
 
 class GetKojiBuildDataFromKojiBuildEventMixin(GetKojiBuildData, GetKojiBuildEvent):
     @property
-    def nvr(self) -> str:
+    def _nvr(self) -> str:
         return self.koji_build_event.nvr
 
     @property
-    def build_id(self) -> int:
+    def _build_id(self) -> int:
         return self.koji_build_event.build_id
 
     @property
-    def dist_git_branch(self) -> str:
+    def _dist_git_branch(self) -> str:
         return self.koji_build_event.git_ref
 
     @property
-    def state(self) -> KojiBuildState:
+    def _state(self) -> KojiBuildState:
         return self.koji_build_event.state
 
     @property
@@ -192,7 +192,7 @@ class GetKojiBuildDataFromKojiService(Config, GetKojiBuildData):
         if not self._build:
             self._build = self.koji_helper.get_latest_build_in_tag(
                 package=self.project.repo,
-                tag=self.dist_git_branch,
+                tag=self._dist_git_branch,
             )
             if not self._build:
                 raise PackitException(
@@ -201,15 +201,15 @@ class GetKojiBuildDataFromKojiService(Config, GetKojiBuildData):
         return self._build
 
     @property
-    def nvr(self) -> str:
+    def _nvr(self) -> str:
         return self.build["nvr"]
 
     @property
-    def build_id(self) -> int:
+    def _build_id(self) -> int:
         return self.build["build_id"]
 
     @property
-    def state(self) -> KojiBuildState:
+    def _state(self) -> KojiBuildState:
         return KojiBuildState.from_number(self.build["state"])
 
 
@@ -217,7 +217,7 @@ class GetKojiBuildDataFromKojiServiceMixin(
     ConfigFromEventMixin, GetKojiBuildDataFromKojiService
 ):
     @property
-    def dist_git_branch(self) -> str:
+    def _dist_git_branch(self) -> str:
         return self.project.get_pr(self.data.pr_id).target_branch
 
     @property
@@ -229,7 +229,7 @@ class GetKojiBuildDataFromKojiServiceMultipleBranches(
     GetKojiBuildDataFromKojiService, GetBranches
 ):
     @property
-    def dist_git_branch(self) -> str:
+    def _dist_git_branch(self) -> str:
         return self.branches[self._branch_index]
 
     @property

@@ -291,7 +291,7 @@ class GetBranchesFromIssueMixin(Config, GetBranches):
         branches = []
         issue = self.data.project.get_issue(self.data.issue_id)
         for line in issue.description.splitlines():
-            if m := re.match(r"\| `(\S+)` \|", line):
+            if m := re.match(r"\s*\| `(\S+)` \|", line):
                 branches.append(m[1])
         return branches
 
