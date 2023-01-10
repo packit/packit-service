@@ -233,6 +233,19 @@ class GetKojiBuildDataFromKojiServiceMultipleBranches(
         return self.branches[self._branch_index]
 
     @property
+    def build(self):
+        # call it every time since dist_git_branch reference can change
+        build = self.koji_helper.get_latest_build_in_tag(
+            package=self.project.repo,
+            tag=self._dist_git_branch,
+        )
+        if not build:
+            raise PackitException(
+                f"No build found for package={self.project.repo} and tag={self.dist_git_branch}"
+            )
+        return build
+
+    @property
     def num_of_branches(self):
         return len(self.branches)
 
