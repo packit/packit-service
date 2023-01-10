@@ -11,7 +11,6 @@ from flexmock import flexmock
 from ogr.abstract import GitProject, GitService
 from ogr.services.github import GithubProject, GithubService
 
-import packit_service
 from packit.api import PackitAPI
 from packit.config import CommonPackageConfig, JobType, JobConfig, JobConfigTriggerType
 from packit.copr_helper import CoprHelper
@@ -566,9 +565,7 @@ def test_check_and_report(
                     f"[in our onboarding guide]({DOCS_APPROVAL_URL})."
                 ),
             ).once()
-        flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
-            "get_valid_build_targets"
-        ).and_return(
+        flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
             {
                 "fedora-rawhide-x86_64",
             }

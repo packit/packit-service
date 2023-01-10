@@ -14,7 +14,7 @@ from ogr.parsing import parse_git_repo
 from ogr.services.github import GithubProject
 
 from packit.config import JobConfig, JobType, JobConfigTriggerType
-from packit.config.aliases import get_aliases, get_valid_build_targets
+from packit.config.aliases import get_aliases
 from packit.config.common_package_config import Deployment
 from packit.config.package_config import PackageConfig
 from packit.exceptions import (
@@ -204,10 +204,12 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         Return all valid Copr build targets/chroots from config.
         """
-        return get_valid_build_targets(*self.configured_build_targets, default=None)
+        return self.api.copr_helper.get_valid_build_targets(
+            *self.configured_build_targets, default=None
+        )
 
     def build_targets_for_test_job_all(self, job: JobConfig):
-        return get_valid_build_targets(
+        return self.api.copr_helper.get_valid_build_targets(
             *self.configured_targets_for_tests_job(job), default=None
         )
 
@@ -444,15 +446,16 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         return TaskResults(success=True, details={})
 
-    @staticmethod
-    def get_latest_fedora_stable_chroot() -> str:
+    def get_latest_fedora_stable_chroot(self) -> str:
         """
         Get the latest stable Fedora chroot.
 
         This is used as a chroot where the Copr source script will be run.
         """
         latest_fedora_stable_chroot = get_aliases().get("fedora-stable")[-1]
-        return list(get_valid_build_targets(latest_fedora_stable_chroot))[0]
+        return list(
+            self.api.copr_helper.get_valid_build_targets(latest_fedora_stable_chroot)
+        )[0]
 
     def submit_copr_build(self, script: Optional[str] = None) -> Tuple[int, str]:
         """

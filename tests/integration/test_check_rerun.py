@@ -10,6 +10,7 @@ from github import Github
 from ogr.services.github import GithubProject
 
 from packit.config import JobConfigTriggerType
+from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 from packit_service.constants import (
     TASK_ACCEPTED,
@@ -29,7 +30,6 @@ from packit_service.service.db_triggers import (
 from packit_service.worker.handlers import ProposeDownstreamHandler
 from packit_service.worker.helpers.build import (
     KojiBuildJobHelper,
-    copr_build,
     koji_build,
 )
 from packit_service.worker.helpers.sync_release.propose_downstream import (
@@ -235,7 +235,7 @@ def test_check_rerun_pr_testing_farm_handler(
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
         flexmock(status=BuildStatus.success)
     )
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64", "fedora-34-x86_64"}
     )
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
@@ -421,7 +421,7 @@ def test_check_rerun_push_testing_farm_handler(
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
         flexmock(status=BuildStatus.success)
     )
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64", "fedora-34-x86_64"}
     )
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
@@ -585,7 +585,7 @@ def test_check_rerun_release_propose_downstream_handler(
         "https://github.com/the-namespace/the-repo"
     )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64", "fedora-34-x86_64"}
     )
     flexmock(ProposeDownstreamJobHelper).should_receive(

@@ -11,6 +11,7 @@ from github import Github
 from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
 from ogr.utils import RequestResponse
+from packit.copr_helper import CoprHelper
 
 import packit_service.models
 import packit_service.service.urls as urls
@@ -50,7 +51,6 @@ from packit_service.worker.events.event import AbstractForgeIndependentEvent
 from packit_service.worker.handlers.bodhi import (
     RetriggerBodhiUpdateHandler,
 )
-from packit_service.worker.helpers.build import copr_build
 from packit_service.worker.helpers.build.copr_build import CoprBuildJobHelper
 from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
@@ -189,7 +189,7 @@ def test_pr_comment_build_test_handler(
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(set())
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -254,7 +254,7 @@ def test_pr_comment_build_build_and_test_handler(
     )
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(set())
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(set())
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
@@ -554,7 +554,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(copr_build).should_receive("get_valid_build_targets").times(5).and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").times(5).and_return(
         {"test-target"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
@@ -644,7 +644,7 @@ def test_pr_test_command_handler_identifiers(pr_embedded_command_comment_event):
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(copr_build).should_receive("get_valid_build_targets").times(5).and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").times(5).and_return(
         {"test-target"}
     )
     flexmock(CoprBuildTargetModel).should_receive("get_all_by").with_args(
@@ -835,7 +835,7 @@ def test_pr_test_command_handler_retries(
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
@@ -1018,7 +1018,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
@@ -1211,7 +1211,7 @@ def test_pr_test_command_handler_compose_not_present(
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
@@ -1339,7 +1339,7 @@ def test_pr_test_command_handler_composes_not_available(
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
@@ -1444,7 +1444,7 @@ def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").twice()
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"test-target", "test-target-without-build"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
@@ -1542,7 +1542,7 @@ def test_pr_test_command_handler_missing_build_trigger_with_build_job_config(
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").twice()
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"test-target", "test-target-without-build"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
@@ -1795,7 +1795,7 @@ def test_retest_failed(
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()
-    flexmock(copr_build).should_receive("get_valid_build_targets").times(3).and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").times(3).and_return(
         {"test-target"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
@@ -1919,7 +1919,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
@@ -2108,7 +2108,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(copr_build).should_receive("get_valid_build_targets").and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64", "fedora-35-x86_64"}
     )
 

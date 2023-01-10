@@ -5,8 +5,8 @@ import pytest
 from copr.v3 import Client, BuildProxy, BuildChrootProxy
 from flexmock import flexmock
 from munch import Munch
+from packit.copr_helper import CoprHelper
 
-import packit_service
 from ogr.services.github import GithubProject
 from packit.config import (
     CommonPackageConfig,
@@ -202,9 +202,7 @@ def test_check_copr_build(clean_before_and_after, packit_build_752):
     flexmock(GithubProject).should_receive("get_git_urls").and_return(
         {"git": "https://github.com/packit-service/packit.git"}
     )
-    flexmock(packit_service.worker.helpers.build.copr_build).should_receive(
-        "get_valid_build_targets"
-    ).and_return(
+    flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {
             "fedora-33-x86_64",
             "fedora-32-x86_64",
