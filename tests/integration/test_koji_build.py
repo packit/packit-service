@@ -7,13 +7,27 @@ import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 
+from ogr.services.github import GithubProject
 from ogr.services.pagure import PagureProject
+from packit.exceptions import PackitException
 from packit.config import JobConfigTriggerType
+from packit_service.config import PackageConfigGetter
 from packit_service.models import GitBranchModel, KojiBuildTargetModel, PipelineModel
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
+from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.tasks import (
+    run_downstream_koji_build,
     run_downstream_koji_build_report,
+)
+from packit_service.worker.handlers.distgit import (
+    DownstreamKojiBuildHandler,
+)
+from packit_service.models import (
+    JobTriggerModelType,
+)
+from packit_service.worker.events.pagure import (
+    PushPagureEvent,
 )
 from tests.conftest import koji_build_completed_rawhide, koji_build_start_rawhide
 from tests.spellbook import first_dict_value, get_parameters_from_results
@@ -179,3 +193,57 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
     )
 
     assert first_dict_value(results["job"])["success"]
+
+
+def test_koji_build_error_msg(distgit_push_packit):
+    db_trigger = flexmock(
+        id=123,
+        job_config_trigger_type=JobConfigTriggerType.commit,
+        job_trigger_model_type=JobTriggerModelType.release,
+    )
+    flexmock(PushPagureEvent).should_receive("db_trigger").and_return(db_trigger)
+    flexmock(DownstreamKojiBuildHandler).should_receive("pre_check").and_return(True)
+    flexmock(Signature).should_receive("apply_async").once()
+
+    processing_results = SteveJobs().process_message(distgit_push_packit)
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    flexmock(CeleryTask).should_receive("is_last_try").and_return(True)
+    error_msg = "error abc"
+    dg = flexmock(local_project=flexmock(git_url="an url"))
+    packit_api = (
+        flexmock(dg=dg)
+        .should_receive("build")
+        .and_raise(PackitException, error_msg)
+        .mock()
+    )
+    flexmock(DownstreamKojiBuildHandler).should_receive("packit_api").and_return(
+        packit_api
+    )
+    msg = (
+        "Packit failed on creating Koji build in dist-git (an url):"
+        "\n\n| dist-git branch | error |\n| --------------- | ----- |"
+        "\n| `f36` | ```error abc``` |\n\n"
+        "Fedora Koji build was triggered by push "
+        "with sha ad0c308af91da45cf40b253cd82f07f63ea9cbbf."
+        "\n\nYou can retrigger the build by adding a comment "
+        "(`/packit koji-build`) into this issue."
+        "\n\n---\n\n*Get in [touch with us]"
+        "(https://packit.dev/#contact) if you need some help.*\n"
+    )
+    flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").with_args(
+        project=GithubProject,
+        title=("Fedora Koji build failed to be triggered"),
+        message=msg,
+        comment_to_existing=msg,
+    ).once()
+
+    with pytest.raises(PackitException):
+        run_downstream_koji_build(
+            package_config=package_config,
+            event=event_dict,
+            job_config=job_config,
+        )

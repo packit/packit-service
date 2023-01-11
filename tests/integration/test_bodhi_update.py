@@ -205,6 +205,8 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(2)
+    dg = flexmock(local_project=flexmock(git_url="an url"))
+    flexmock(PackitAPI).should_receive("dg").and_return(dg)
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="rawhide",
         update_type="enhancement",
@@ -288,6 +290,8 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
     flexmock(Signature).should_receive("apply_async").times(2)
+    dg = flexmock(local_project=flexmock(git_url="an url"))
+    flexmock(PackitAPI).should_receive("dg").and_return(dg)
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="rawhide",
         update_type="enhancement",
@@ -486,18 +490,27 @@ def test_bodhi_update_auth_error(
         update_type="enhancement",
         koji_builds=["packit-0.43.0-1.fc36"],
     ).and_raise(bodhi_exception)
+    dg = flexmock(local_project=flexmock(git_url="https://src.fedoraproject.org/rpms"))
+    flexmock(PackitAPI).should_receive("dg").and_return(dg)
 
     issue_project_mock = flexmock(GithubProject)
     issue_project_mock.should_receive("get_issue_list").and_return([]).once()
     issue_project_mock.should_receive("create_issue").with_args(
         title="[packit] Fedora Bodhi update failed to be created",
-        body="Bodhi update creation failed for `packit-0.43.0-1.fc36` "
-        "because of the missing permissions.\n\n"
-        "Please, give packit user `commit` rights "
-        "in the [dist-git settings](https://src.fedoraproject.org/rpms/packit/adduser).\n\n"
-        "*Try 1/6: Task will be retried in 10 minutes.*\n\n"
-        "---\n\n"
-        "*Get in [touch with us](https://packit.dev/#contact) if you need some help.*",
+        body=(
+            "Packit failed on creating Bodhi update in dist-git "
+            "(https://src.fedoraproject.org/rpms):\n\n"
+            "| dist-git branch | error |\n| --------------- | ----- |\n"
+            "| `rawhide` | Bodhi update creation failed for `packit-0.43.0-1.fc36` "
+            "because of the missing permissions. "
+            "Please, give packit user `commit` rights in the [dist-git settings]"
+            "(https://src.fedoraproject.org/rpms/packit/adduser). *Try 1/6. "
+            "Task will be retried in 10 minutes.* |\n\n"
+            "Fedora Bodhi update was triggered by Koji build packit-0.43.0-1.fc36.\n\n"
+            "You can retrigger the update by adding a comment (`/packit create-update`) "
+            "into this issue.\n\n---\n\n*"
+            "Get in [touch with us](https://packit.dev/#contact) if you need some help.*\n"
+        ),
     ).and_return(
         flexmock(id=3, url="https://github.com/namespace/project/issues/3")
     ).once()
