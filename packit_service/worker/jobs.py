@@ -7,7 +7,7 @@ We love you, Steve Jobs.
 import logging
 from datetime import datetime, timezone
 from typing import Any, Optional, Union
-from typing import List, Set, Type
+from typing import List, Set, Type, Tuple
 from re import match
 
 import celery
@@ -15,7 +15,7 @@ import celery
 from ogr.exceptions import GithubAppNotInstalledError
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import DEPRECATED_JOB_TYPES
-from packit_service.config import PackageConfigGetter, ServiceConfig
+from packit_service.config import PackageConfig, PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
     DOCS_CONFIGURATION_URL,
     TASK_ACCEPTED,
@@ -287,16 +287,32 @@ class SteveJobs:
             task_accepted_time, handler_kls, number_of_build_targets
         )
 
-    def search_distgit_config_in_issue(self):
-        issue = self.event.project.get_issue(self.event.issue_id)
-        if m := match(r"[\w\s-]+dist-git \((\S+)\):", issue.description):
-            url = m[1]
-            project = self.service_config.get_project(url=url)
-            package_config = PackageConfigGetter.get_package_config_from_repo(
-                project=project,
-                fail_when_missing=False,
-            )
-            return url, package_config
+    def search_distgit_config_in_issue(self) -> Optional[Tuple[str, PackageConfig]]:
+        """Get a tuple (dist-git repo url, package config loaded from dist-git yaml file).
+        Look up for a dist-git repo url inside
+        the issue description for the issue comment event.
+        The issue description should have a format like the following:
+
+        Packit failed on creating pull-requests in dist-git (https://src.fedoraproject.org/rpms/python-teamcity-messages): # noqa
+        | dist-git branch | error |
+        | --------------- | ----- |
+        | `f37` | `` |
+        You can retrigger the update by adding a comment (`/packit propose-downstream`) into this issue.
+
+        Returns:
+            A tuple (dist_git_repo_url, dist_git_package_config) or None
+        """
+        if isinstance(self.event, AbstractIssueCommentEvent):
+            issue = self.event.project.get_issue(self.event.issue_id)
+            if m := match(r"[\w\s-]+dist-git \((\S+)\):", issue.description):
+                url = m[1]
+                project = self.service_config.get_project(url=url)
+                package_config = PackageConfigGetter.get_package_config_from_repo(
+                    project=project,
+                    fail_when_missing=False,
+                )
+                return url, package_config
+        return None
 
     def is_packit_config_present(self) -> bool:
         """
