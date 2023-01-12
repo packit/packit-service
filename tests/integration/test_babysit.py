@@ -85,13 +85,14 @@ def test_check_copr_build_already_successful():
 
 
 @pytest.mark.parametrize(
-    "build_status",
+    "build_status, build_ended_on",
     [
-        BuildStatus.pending,
-        BuildStatus.waiting_for_srpm,
+        (BuildStatus.pending, "timestamp"),
+        (BuildStatus.pending, None),
+        (BuildStatus.waiting_for_srpm, None),
     ],
 )
-def test_check_copr_build_updated(build_status):
+def test_check_copr_build_updated(build_status, build_ended_on):
     db_build = (
         flexmock(
             build_id="55",
@@ -139,7 +140,8 @@ def test_check_copr_build_updated(build_status):
             .with_args(1)
             .and_return(
                 flexmock(
-                    ended_on=True,
+                    ended_on=build_ended_on,
+                    started_on="timestamp",
                     state="completed",
                     source_package={
                         "name": "source_package_name",
@@ -168,7 +170,7 @@ def test_check_copr_build_updated(build_status):
         )
     )
     flexmock(CoprBuildEndHandler).should_receive("run_job").and_return().once()
-    assert check_copr_build(build_id=1)
+    assert check_copr_build(build_id=1) is bool(build_ended_on)
 
 
 def test_check_copr_build_waiting_started():
