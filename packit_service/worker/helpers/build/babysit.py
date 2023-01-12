@@ -246,7 +246,7 @@ def update_copr_build_state(
     """
     event_kls: Type[AbstractCoprBuildEvent]
     handler_kls: Type[AbstractCoprBuildReportHandler]
-    if build_copr.ended_on:
+    if chroot_build_copr.ended_on:
         event_kls = CoprBuildEndEvent
         handler_kls = CoprBuildEndHandler
         timestamp = chroot_build_copr.ended_on
