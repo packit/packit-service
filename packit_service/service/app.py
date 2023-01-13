@@ -3,6 +3,7 @@
 
 import logging
 from os import getenv
+from socket import gaierror
 
 from flask import Flask
 
@@ -13,6 +14,7 @@ from flask import __version__ as flask_version  # type: ignore
 from flask_restx import __version__ as restx_version
 from lazy_object_proxy import Proxy
 from prometheus_client import make_wsgi_app as prometheus_app
+from syslog_rfc5424_formatter import RFC5424Formatter
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
 from packit.utils import set_logging
@@ -44,6 +46,20 @@ def get_flask_application():
 
     app.logger.setLevel(logging.DEBUG)
     logger = logging.getLogger("packit_service")
+
+    syslog_host = getenv("SYSLOG_HOST", "fluentd")
+    syslog_port = int(getenv("SYSLOG_PORT", 5140))
+    logger.info(f"Setup logging to syslog -> {syslog_host}:{syslog_port}")
+    try:
+        handler = logging.handlers.SysLogHandler(address=(syslog_host, syslog_port))
+    except (ConnectionRefusedError, gaierror):
+        logger.info(f"{syslog_host}:{syslog_port} not available")
+    else:
+        handler.setLevel(logging.DEBUG)
+        project = getenv("PROJECT", "packit")
+        handler.setFormatter(RFC5424Formatter(msgid=project))
+        logger.addHandler(handler)
+
     logger.info(
         f"server name = {service_config.server_name}, all HTTP requests need to use this URL!"
     )

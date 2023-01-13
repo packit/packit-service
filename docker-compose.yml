@@ -90,6 +90,7 @@ services:
       - 5140:5140/udp
     volumes:
       - ./secrets/packit/dev/fluentd-config:/fluentd/etc/fluent.conf:ro,Z
+    #       - ./logs:/var/log/packit:rw,Z
     user: "1024"
 
   service:
