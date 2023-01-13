@@ -4,7 +4,7 @@
 import hmac
 import json
 import os
-from hashlib import sha1
+from hashlib import sha256
 from http import HTTPStatus
 from logging import getLogger
 from os import getenv
@@ -124,9 +124,9 @@ class GithubWebhook(Resource):
         https://developer.github.com/webhooks/securing/#validating-payloads-from-github
         https://developer.github.com/webhooks/#delivery-headers
         """
-        if "X-Hub-Signature" not in request.headers:
+        if "X-Hub-Signature-256" not in request.headers:
             if config.validate_webhooks:
-                msg = "X-Hub-Signature not in request.headers"
+                msg = "X-Hub-Signature-256 not in request.headers"
                 logger.warning(msg)
                 raise ValidationFailed(msg)
             else:
@@ -134,24 +134,19 @@ class GithubWebhook(Resource):
                 logger.debug("Ain't validating signatures.")
                 return
 
-        sig = request.headers["X-Hub-Signature"]
-        if not sig.startswith("sha1="):
-            msg = f"Digest mode in X-Hub-Signature {sig!r} is not sha1."
-            logger.warning(msg)
-            raise ValidationFailed(msg)
-
-        webhook_secret = config.webhook_secret.encode()
-        if not webhook_secret:
+        if not (webhook_secret := config.webhook_secret.encode()):
             msg = "'webhook_secret' not specified in the config."
             logger.error(msg)
             raise ValidationFailed(msg)
 
-        signature = sig.split("=")[1]
-        mac = hmac.new(webhook_secret, msg=request.get_data(), digestmod=sha1)
-        if not hmac.compare_digest(signature, mac.hexdigest()):
+        signature = request.headers["X-Hub-Signature-256"].split("=")[1]
+        data_hmac = hmac.new(webhook_secret, msg=request.get_data(), digestmod=sha256)
+        if not hmac.compare_digest(signature, data_hmac.hexdigest()):
             msg = "Payload signature validation failed."
             logger.warning(msg)
-            logger.debug(f"X-Hub-Signature: {sig!r} != computed: {mac.hexdigest()}")
+            logger.debug(
+                f"X-Hub-Signature-256: {signature!r} != computed: {data_hmac.hexdigest()}"
+            )
             raise ValidationFailed(msg)
 
 
