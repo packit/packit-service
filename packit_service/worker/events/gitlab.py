@@ -222,6 +222,11 @@ class ReleaseGitlabEvent(AddReleaseDbTrigger, AbstractGitlabEvent):
     def commit_sha(self):
         return self._commit_sha
 
+    def get_dict(self, default_dict: Optional[dict] = None) -> dict:
+        result = super().get_dict()
+        result["commit_sha"] = self.commit_sha
+        return result
+
 
 class TagPushGitlabEvent(AddBranchPushDbTrigger, AbstractGitlabEvent):
     def __init__(
