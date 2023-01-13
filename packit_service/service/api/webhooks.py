@@ -12,9 +12,9 @@ from os import getenv
 import jwt
 from flask import request
 from flask_restx import Namespace, Resource, fields
+from ogr.parsing import parse_git_repo
 from prometheus_client import Counter
 
-from ogr.parsing import parse_git_repo
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
 from packit_service.constants import CELERY_DEFAULT_MAIN_TASK_NAME, GITLAB_ISSUE
@@ -48,7 +48,7 @@ ping_payload_gitlab = ns.model(
 github_webhook_calls = Counter(
     "github_webhook_calls",
     "Number of times the GitHub webhook is called",
-    # process_id = label the metric with respective process ID so we can aggregate
+    # process_id = label the metric with respective process ID, so we can aggregate
     ["result", "process_id"],
 )
 
@@ -152,10 +152,7 @@ class GithubWebhook(Resource):
 
         signature = sig.split("=")[1]
         mac = hmac.new(webhook_secret, msg=request.get_data(), digestmod=sha1)
-        digest_is_valid = hmac.compare_digest(signature, mac.hexdigest())
-        if digest_is_valid:
-            logger.debug("Payload signature OK.")
-        else:
+        if not hmac.compare_digest(signature, mac.hexdigest()):
             msg = "Payload signature validation failed."
             logger.warning(msg)
             logger.debug(f"X-Hub-Signature: {sig!r} != computed: {mac.hexdigest()}")
