@@ -184,6 +184,7 @@ class EventData:
 
             elif self.event_type in {
                 "ReleaseEvent",
+                "ReleaseGitlabEvent",
                 "CheckRerunReleaseEvent",
                 "NewHotnessUpdateEvent",
             }:
