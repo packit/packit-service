@@ -110,16 +110,12 @@ class GithubWebhook(Resource):
              `False` if we are not interested in this kind of event
         """
         event_type = request.headers.get("X-GitHub-Event")
-        # we want to prefilter only check runs
-        if event_type != "check_run":
-            return True
-
         uuid = request.headers.get("X-GitHub-Delivery")
+        action = request.json.get("action")
+
         # we don't care about created or completed check runs
-        _interested = request.json.get("action") == "rerequested"
-        logger.debug(
-            f"{event_type} {uuid}{' (not interested)' if not _interested else ''}"
-        )
+        _interested = event_type != "check_run" or action == "rerequested"
+        logger.debug(f"{event_type} {uuid}{'' if _interested else ' (not interested)'}")
         return _interested
 
     @staticmethod
