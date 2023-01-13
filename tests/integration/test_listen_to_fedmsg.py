@@ -570,7 +570,13 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
 
     payload = {
         "api_key": "secret token",
-        "test": {"fmf": {"url": "https://github.com/source/bar", "ref": "0011223344"}},
+        "test": {
+            "fmf": {
+                "url": "https://github.com/source/bar",
+                "ref": "0011223344",
+                "merge_sha": "deadbeef",
+            }
+        },
         "environments": [
             {
                 "arch": "x86_64",

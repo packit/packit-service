@@ -117,6 +117,10 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return self.job_config.skip_build
 
     @property
+    def custom_fmf(self) -> bool:
+        return bool(self.job_config.fmf_url)
+
+    @property
     def fmf_url(self) -> str:
         return (
             self.job_config.fmf_url
@@ -131,7 +135,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     @property
     def fmf_ref(self) -> str:
-        if self.job_config.fmf_url:
+        if self.custom_fmf:
             return self.job_config.fmf_ref
 
         return self.metadata.commit_sha
@@ -290,6 +294,26 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         payload_["notification"]["webhook"].pop("token")
         return payload_
 
+    def _construct_fmf_payload(self) -> dict:
+        fmf = {"url": self.fmf_url}
+        if self.fmf_ref:
+            fmf["ref"] = self.fmf_ref
+
+            # We assign a commit hash for merging only if:
+            # • there are no custom fmf tests set
+            # • we merge and have a PR
+            if (
+                not self.custom_fmf
+                and self.job_config.merge_pr_in_ci
+                and self.target_branch_sha
+            ):
+                fmf["merge_sha"] = self.target_branch_sha
+
+        if self.tmt_plan:
+            fmf["name"] = self.tmt_plan
+
+        return fmf
+
     def _payload(
         self,
         target: str,
@@ -312,12 +336,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             build: The related copr build.
         """
         distro, arch = target.rsplit("-", 1)
-        fmf = {"url": self.fmf_url}
-        if self.fmf_ref:
-            fmf["ref"] = self.fmf_ref
-
-        if self.tmt_plan:
-            fmf["name"] = self.tmt_plan
+        fmf = self._construct_fmf_payload()
 
         if build is not None:
             build_log_url = build.build_logs_url
@@ -463,7 +482,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         Check whether `fmf_url` is configured in the test job
         or `.fmf/version` file exists in the particular ref.
         """
-        if self.job_config.fmf_url is not None:
+        if self.custom_fmf:
             return True
 
         try:

@@ -847,6 +847,7 @@ def test_pr_test_command_handler_retries(
             "fmf": {
                 "url": "https://github.com/someone/hello-world",
                 "ref": "0011223344",
+                "merge_sha": "deadbeef",
             }
         },
         "environments": [
@@ -1036,6 +1037,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
             "fmf": {
                 "url": "https://github.com/someone/hello-world",
                 "ref": "0011223344",
+                "merge_sha": "deadbeef",
             }
         },
         "environments": [
@@ -2150,6 +2152,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
             "fmf": {
                 "url": "https://github.com/someone/hello-world",
                 "ref": "0011223344",
+                "merge_sha": "deadbeef",
             }
         },
         "environments": [
