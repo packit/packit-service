@@ -40,6 +40,7 @@ from packit_service.worker.events import (
     TestingFarmResultsEvent,
     CheckRerunEvent,
 )
+from packit_service.worker.events.gitlab import ReleaseGitlabEvent
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.helpers.build import CoprBuildJobHelper
@@ -435,6 +436,7 @@ class Allowlist:
             ): self._check_unchecked_event,
             (
                 ReleaseEvent,
+                ReleaseGitlabEvent,
                 PushGitHubEvent,
                 PushGitlabEvent,
             ): self._check_release_push_event,
