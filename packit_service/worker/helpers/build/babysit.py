@@ -200,10 +200,10 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
         return True
 
     if not build_copr.ended_on and not build_copr.started_on:
-        logger.info("The copr build has not started yet.")
+        logger.info(f"The copr build {build_id} has not started yet.")
         return False
 
-    logger.info(f"The status is {build_copr.state!r}.")
+    logger.info(f"The status of {build_id} is {build_copr.state!r}.")
 
     current_time = datetime.now(timezone.utc)
     for build in builds:
@@ -218,7 +218,7 @@ def update_copr_builds(build_id: int, builds: Iterable["CoprBuildTargetModel"]) 
             continue
         if build.status not in (BuildStatus.pending, BuildStatus.waiting_for_srpm):
             logger.info(
-                f"DB state says {build.status!r}, "
+                f"DB state of {build_id} says {build.status!r}, "
                 "things were taken care of already, skipping."
             )
             continue

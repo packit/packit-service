@@ -431,17 +431,19 @@ class BaseBuildJobHelper(BaseJobHelper):
         )
         self._srpm_model.set_start_time(datetime.datetime.utcnow())
 
-        bump_version = (
-            self.job_config.release_suffix != ""
-            and self.job_config.trigger
-            != JobConfigTriggerType.release  # do not modify version for release
-        )
+        if (
+            self.job_config.release_suffix == ""  # TODO remove eventually
+            or self.job_config.trigger == JobConfigTriggerType.release
+        ):
+            update_release = False  # do not modify version/release
+        else:
+            update_release = None  # take the value from config (defaults to True)
 
         try:
             self._srpm_path = Path(
                 self.api.create_srpm(
                     srpm_dir=self.api.up.local_project.working_dir,
-                    bump_version=bump_version,
+                    update_release=update_release,
                     release_suffix=self.job_config.release_suffix,
                 )
             )
