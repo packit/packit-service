@@ -26,6 +26,7 @@ COPY .git/ .git/
 COPY packit_service/ packit_service/
 
 COPY files/recipe-worker.yaml files/setup_env_in_openshift.sh files/gitconfig files/run_worker.sh ./files/
+COPY files/scripts/ ./files/scripts/
 RUN git rev-parse HEAD >/.packit-service.git.commit.hash \
     && git show --quiet --format=%B HEAD >/.packit-service.git.commit.message \
     && ansible-playbook -vv -c local -i localhost, files/recipe-worker.yaml \

@@ -30,4 +30,8 @@
         dest: /usr/bin/
         mode: 0777
       with_fileglob:
-        - scripts/*.py
+        - "{{ playbook_dir }}/scripts/*.py"
+    - name: Make sure allowlist.py is present
+      file:
+        state: file
+        path: /usr/bin/allowlist.py
