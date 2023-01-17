@@ -5,6 +5,7 @@
 This file defines classes for job handlers related to Bodhi
 """
 import logging
+import abc
 from typing import Tuple, Type
 
 from celery import Task
@@ -13,17 +14,23 @@ from fedora.client import AuthError
 from packit.config import JobConfig, JobType, PackageConfig
 from packit.exceptions import PackitException
 from packit_service.constants import (
-    CONTACTS_URL,
+    MSG_RETRIGGER,
+    MSG_GET_IN_TOUCH,
+    MSG_DOWNSTREAM_JOB_ERROR_HEADER,
     RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED,
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.bodhi import (
-    HasAuthorWriteAccess,
     IsAuthorAPackager,
+    HasIssueCommenterRetriggeringPermissions,
     IsKojiBuildCompleteAndBranchConfiguredCheckEvent,
     IsKojiBuildCompleteAndBranchConfiguredCheckService,
 )
-from packit_service.worker.events import PullRequestCommentPagureEvent
+from packit_service.worker.events import (
+    PullRequestCommentPagureEvent,
+    IssueCommentEvent,
+    IssueCommentGitlabEvent,
+)
 from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.handlers.abstract import (
     TaskName,
@@ -33,12 +40,16 @@ from packit_service.worker.handlers.abstract import (
     run_for_comment,
 )
 from packit_service.worker.handlers.mixin import (
-    GetKojiBuildData,
+    GetKojiBuildDataFromKojiServiceMultipleBranches,
     GetKojiBuildDataFromKojiBuildEventMixin,
     GetKojiBuildDataFromKojiServiceMixin,
     GetKojiBuildEventMixin,
+    GetKojiBuildData,
+    KojiBuildData,
 )
 from packit_service.worker.mixin import (
+    ConfigFromDistGitUrlMixin,
+    GetBranchesFromIssueMixin,
     PackitAPIWithDownstreamMixin,
 )
 from packit_service.worker.reporting import report_in_issue_repository
@@ -68,37 +79,33 @@ class BodhiUpdateHandler(
 
     def run(self) -> TaskResults:
         try:
-            self.packit_api.create_update(
-                dist_git_branch=self.dist_git_branch,
-                update_type="enhancement",
-                koji_builds=[self.nvr],  # it accepts NVRs, not build IDs
-            )
+            koji_build_data = None
+            for koji_build_data in self:
+                logger.debug(
+                    f"Create update for dist-git branch: {koji_build_data.dist_git_branch} "
+                    f"and nvr: {koji_build_data.nvr}."
+                )
+                self.packit_api.create_update(
+                    dist_git_branch=koji_build_data.dist_git_branch,
+                    update_type="enhancement",
+                    koji_builds=[koji_build_data.nvr],  # it accepts NVRs, not build IDs
+                )
         except PackitException as ex:
             logger.debug(f"Bodhi update failed to be created: {ex}")
 
             if isinstance(ex.__cause__, AuthError):
-                body = self._error_message_for_auth_error(ex)
+                body = self._error_message_for_auth_error(ex, koji_build_data)
                 notify = True
                 known_error = True
             else:
-                body = (
-                    f"Bodhi update creation failed for `{self.nvr}`:\n"
-                    "```\n"
-                    f"{ex}\n"
-                    "```"
-                )
+                body = f"``` {ex} ```"
                 # Notify user just on the last run.
                 notify = self.celery_task.is_last_try()
                 known_error = False
 
             if notify:
-                report_in_issue_repository(
-                    issue_repository=self.job_config.issue_repository,
-                    service_config=self.service_config,
-                    title="Fedora Bodhi update failed to be created",
-                    message=body
-                    + f"\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
-                    comment_to_existing=body,
+                self.report_in_issue_repository(
+                    koji_build_data=koji_build_data, error=body
                 )
             else:
                 logger.debug("User will not be notified about the failure.")
@@ -112,24 +119,66 @@ class BodhiUpdateHandler(
         # Sentry issue will be created otherwise.
         return TaskResults(success=True, details={})
 
-    def _error_message_for_auth_error(self, ex: PackitException) -> str:
+    @abc.abstractmethod
+    def get_trigger_type_description(self, koji_build_data: KojiBuildData) -> str:
+        """Describe the user's action which triggered the Bodhi update
+
+        Args:
+            koji_build_data: koji build data associated with the
+            retriggered Bodhi update
+        """
+
+    def report_in_issue_repository(
+        self, koji_build_data: KojiBuildData, error: str
+    ) -> None:
+
+        body = MSG_DOWNSTREAM_JOB_ERROR_HEADER.format(
+            object="Bodhi update", dist_git_url=self.packit_api.dg.local_project.git_url
+        )
+        if koji_build_data:
+            body += f"| `{koji_build_data.dist_git_branch}` | {error} |\n"
+        else:
+            body += f"| | {error} |\n"
+
+        msg_retrigger = MSG_RETRIGGER.format(
+            job="update",
+            command="create-update",
+            place="issue",
+            packit_comment_command_prefix=self.service_config.comment_command_prefix,
+        )
+        trigger_type_description = self.get_trigger_type_description(koji_build_data)
+        body_msg = (
+            f"{body}\n{trigger_type_description}\n\n{msg_retrigger}{MSG_GET_IN_TOUCH}\n"
+        )
+
+        report_in_issue_repository(
+            issue_repository=self.job_config.issue_repository,
+            service_config=self.service_config,
+            title="Fedora Bodhi update failed to be created",
+            message=body_msg,
+            comment_to_existing=body_msg,
+        )
+
+    def _error_message_for_auth_error(
+        self, ex: PackitException, koji_build_data: KojiBuildData
+    ) -> str:
         body = (
-            f"Bodhi update creation failed for `{self.nvr}` "
-            f"because of the missing permissions.\n\n"
+            f"Bodhi update creation failed for `{koji_build_data.nvr}` "
+            f"because of the missing permissions. "
             f"Please, give {self.service_config.fas_user} user `commit` rights in the "
-            f"[dist-git settings]({self.data.project_url}/adduser).\n\n"
+            f"[dist-git settings]({self.data.project_url}/adduser). "
         )
 
         body += (
             f"*Try {self.celery_task.retries + 1}/"
-            f"{self.celery_task.get_retry_limit() + 1}"
+            f"{self.celery_task.get_retry_limit() + 1}."
         )
 
         # Notify user on each task run and set a more generous retry interval
         # to let the user fix this issue in the meantime.
         if not self.celery_task.is_last_try():
             body += (
-                f": Task will be retried in "
+                f" Task will be retried in "
                 f"{RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED} minutes.*"
             )
             self.celery_task.retry(
@@ -164,6 +213,12 @@ class CreateBodhiUpdateHandler(
         logger.debug("Bodhi update will be re-triggered via dist-git PR comment.")
         return (IsKojiBuildCompleteAndBranchConfiguredCheckEvent,)
 
+    def get_trigger_type_description(self, koji_build_data: KojiBuildData) -> str:
+        return (
+            f"Fedora Bodhi update was triggered by "
+            f"Koji build {koji_build_data.nvr}."
+        )
+
 
 @configured_as(job_type=JobType.bodhi_update)
 @reacts_to(event=PullRequestCommentPagureEvent)
@@ -184,7 +239,44 @@ class RetriggerBodhiUpdateHandler(
         """
         logger.debug("Bodhi update will be re-triggered via dist-git PR comment.")
         return (
-            HasAuthorWriteAccess,
             IsAuthorAPackager,
+            HasIssueCommenterRetriggeringPermissions,
             IsKojiBuildCompleteAndBranchConfiguredCheckService,
+        )
+
+    def get_trigger_type_description(self, _: KojiBuildData) -> str:
+        return (
+            f"Fedora Bodhi update was re-triggered "
+            f"by comment in dist-git PR with id {self.data.pr_id}."
+        )
+
+
+@configured_as(job_type=JobType.bodhi_update)
+@reacts_to(event=IssueCommentEvent)
+@reacts_to(event=IssueCommentGitlabEvent)
+@run_for_comment(command="create-update")
+class IssueCommentRetriggerBodhiUpdateHandler(
+    BodhiUpdateHandler,
+    ConfigFromDistGitUrlMixin,
+    GetBranchesFromIssueMixin,
+    GetKojiBuildDataFromKojiServiceMultipleBranches,
+):
+    """
+    This handler can re-trigger a bodhi update if any successful Koji build.
+    """
+
+    task_name = TaskName.issue_comment_retrigger_bodhi_update
+
+    @staticmethod
+    def get_checkers() -> Tuple[Type[Checker], ...]:
+        """We react only on finished builds (=KojiBuildState.complete)
+        and configured branches.
+        """
+        logger.debug("Bodhi update will be re-triggered via dist-git PR comment.")
+        return (HasIssueCommenterRetriggeringPermissions,)
+
+    def get_trigger_type_description(self, _: KojiBuildData) -> str:
+        return (
+            f"Fedora Bodhi update was re-triggered by "
+            f"comment in issue {self.data.issue_id}."
         )

@@ -32,7 +32,7 @@ from packit_service.worker.result import TaskResults
 from packit_service.worker.checker.abstract import Checker
 
 from packit_service.worker.mixin import (
-    ConfigFromEventMixin,
+    Config,
     PackitAPIWithDownstreamMixin,
 )
 
@@ -205,19 +205,21 @@ class TaskName(str, enum.Enum):
     upstream_koji_build = "task.run_koji_build_handler"
     upstream_koji_build_report = "task.run_koji_build_report_handler"
     downstream_koji_build = "task.run_downstream_koji_build_handler"
+    retrigger_downstream_koji_build = "task.run_retrigger_downstream_koji_build_handler"
     downstream_koji_build_report = "task.run_downstream_koji_build_report_handler"
     # Fedora notification is ok for now
     # downstream_koji_build_report = "task.run_downstream_koji_build_report_handler"
     sync_from_downstream = "task.run_sync_from_downstream_handler"
     bodhi_update = "task.bodhi_update"
     retrigger_bodhi_update = "task.retrigger_bodhi_update"
+    issue_comment_retrigger_bodhi_update = "task.issue_comment_retrigger_bodhi_update"
     github_fas_verification = "task.github_fas_verification"
     vm_image_build = "task.run_vm_image_build_handler"
     vm_image_build_result = "task.run_vm_image_build_result_handler"
     pull_from_upstream = "pull_from_upstream"
 
 
-class Handler(ConfigFromEventMixin, PackitAPIWithDownstreamMixin):
+class Handler(PackitAPIWithDownstreamMixin, Config):
     def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")
 

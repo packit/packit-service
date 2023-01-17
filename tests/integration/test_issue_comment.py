@@ -17,7 +17,10 @@ from ogr.services.gitlab import GitlabProject, GitlabRelease
 from packit.api import PackitAPI
 from packit.config import JobConfigTriggerType
 from packit.distgit import DistGit
+from packit.exceptions import PackitException
 from packit.local_project import LocalProject
+from packit.utils.koji_helper import KojiHelper
+from packit_service.config import ServiceConfig
 from packit_service.constants import COMMENT_REACTION, TASK_ACCEPTED
 from packit_service.models import (
     IssueModel,
@@ -31,14 +34,23 @@ from packit_service.models import (
 )
 from packit_service.service.urls import get_propose_downstream_info_url
 from packit_service.worker.allowlist import Allowlist
+from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.events import IssueCommentEvent, IssueCommentGitlabEvent
 from packit_service.worker.helpers.sync_release.propose_downstream import (
     ProposeDownstreamJobHelper,
 )
+from packit_service.worker.handlers import distgit
+from packit_service.worker.handlers.distgit import (
+    RetriggerDownstreamKojiBuildHandler,
+)
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.reporting import BaseCommitStatus
-from packit_service.worker.tasks import run_propose_downstream_handler
+from packit_service.worker.tasks import (
+    run_propose_downstream_handler,
+    run_retrigger_downstream_koji_build,
+    run_issue_comment_retrigger_bodhi_update,
+)
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
@@ -87,7 +99,7 @@ jobs:
         .with_args(author)
         .and_return(True)
     )
-    issue = flexmock()
+    issue = flexmock(description="")
     flexmock(project_class).should_receive("get_issue").and_return(issue)
     comment = flexmock()
     flexmock(issue).should_receive("get_comment").and_return(comment)
@@ -250,3 +262,188 @@ def test_issue_comment_propose_downstream_handler(
     )
 
     assert first_dict_value(results["job"])["success"]
+
+
+@pytest.fixture()
+def mock_repository_issue_retriggering():
+    flexmock(GithubProject).should_receive("is_private").and_return(False)
+
+    issue = flexmock(
+        description="""
+Packit failed on creating pull-requests in dist-git (https://src.fedoraproject.org/rpms/python-teamcity-messages): # noqa
+| dist-git branch | error |
+| --------------- | ----- |
+| `f37` | `` |
+| `f38` | `` |
+You can retrigger the update by adding a comment (`/packit propose-downstream`) into this issue.
+    """
+    )
+    project = (
+        flexmock(GithubProject).should_receive("get_issue").and_return(issue).mock()
+    )
+    project.should_receive("get_latest_release").and_return(flexmock(tag_name="123"))
+    project.should_receive("get_sha_from_tag").and_return("abcdef")
+    project.should_receive("has_write_access").and_return(True)
+    db_trigger = flexmock(
+        id=123,
+        job_config_trigger_type=JobConfigTriggerType.release,
+        job_trigger_model_type=JobTriggerModelType.issue,
+    )
+    flexmock(IssueCommentEvent).should_receive("db_trigger").and_return(db_trigger)
+    comment = flexmock()
+    flexmock(issue).should_receive("get_comment").and_return(comment)
+    flexmock(comment).should_receive("add_reaction").with_args(COMMENT_REACTION).once()
+    flexmock(Allowlist, check_and_report=True)
+    flexmock(Signature).should_receive("apply_async").once()
+    flexmock(Pushgateway).should_receive("push").and_return()
+
+
+@pytest.fixture()
+def github_repository_issue_comment_retrigger_bodhi_update():
+    return json.loads(
+        (
+            DATA_DIR
+            / "webhooks"
+            / "github"
+            / "repository_issue_comment_retrigger_bodhi_update.json"
+        ).read_text()
+    )
+
+
+def test_issue_comment_retrigger_bodhi_update_handler(
+    mock_repository_issue_retriggering,
+    github_repository_issue_comment_retrigger_bodhi_update,
+):
+    processing_results = SteveJobs().process_message(
+        github_repository_issue_comment_retrigger_bodhi_update
+    )
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    flexmock(PackitAPI).should_receive("create_update").with_args(
+        dist_git_branch="f38",
+        update_type="enhancement",
+        koji_builds=["python-teamcity-messages.f38"],
+    )
+    flexmock(KojiHelper).should_receive("get_latest_build_in_tag").with_args(
+        package="python-teamcity-messages", tag="f38"
+    ).and_return({"nvr": "python-teamcity-messages.f38", "build_id": 2, "state": 1})
+    flexmock(PackitAPI).should_receive("create_update").with_args(
+        dist_git_branch="f37",
+        update_type="enhancement",
+        koji_builds=["python-teamcity-messages.f37"],
+    )
+    flexmock(KojiHelper).should_receive("get_latest_build_in_tag").with_args(
+        package="python-teamcity-messages", tag="f37"
+    ).and_return({"nvr": "python-teamcity-messages.f37", "build_id": 1, "state": 1})
+
+    results = run_issue_comment_retrigger_bodhi_update(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+
+@pytest.fixture()
+def github_repository_issue_comment_retrigger_koji_build():
+    return json.loads(
+        (
+            DATA_DIR
+            / "webhooks"
+            / "github"
+            / "repository_issue_comment_retrigger_koji_build.json"
+        ).read_text()
+    )
+
+
+def test_issue_comment_retrigger_koji_build_handler(
+    mock_repository_issue_retriggering,
+    github_repository_issue_comment_retrigger_koji_build,
+):
+    processing_results = SteveJobs().process_message(
+        github_repository_issue_comment_retrigger_koji_build
+    )
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    flexmock(PackitAPI).should_receive("build").with_args(
+        dist_git_branch="f37",
+        scratch=False,
+        nowait=True,
+        from_upstream=False,
+    )
+    flexmock(PackitAPI).should_receive("build").with_args(
+        dist_git_branch="f38",
+        scratch=False,
+        nowait=True,
+        from_upstream=False,
+    )
+    flexmock(RetriggerDownstreamKojiBuildHandler).should_receive(
+        "local_project"
+    ).and_return(flexmock())
+
+    results = run_retrigger_downstream_koji_build(
+        package_config=package_config,
+        event=event_dict,
+        job_config=job_config,
+    )
+
+    assert first_dict_value(results["job"])["success"]
+
+
+def test_issue_comment_retrigger_koji_build_error_msg(
+    mock_repository_issue_retriggering,
+    github_repository_issue_comment_retrigger_koji_build,
+):
+    processing_results = SteveJobs().process_message(
+        github_repository_issue_comment_retrigger_koji_build
+    )
+    event_dict, _, job_config, package_config = get_parameters_from_results(
+        processing_results
+    )
+    assert json.dumps(event_dict)
+
+    flexmock(CeleryTask).should_receive("is_last_try").and_return(True)
+    error_msg = "error abc"
+    dg = flexmock(local_project=flexmock(git_url="an url"))
+    packit_api = (
+        flexmock(dg=dg)
+        .should_receive("build")
+        .and_raise(PackitException, error_msg)
+        .mock()
+    )
+    # flexmock(JobConfig).should_receive("issue_repository").and_return(
+    #  "a repo"
+    # )
+    flexmock(RetriggerDownstreamKojiBuildHandler).should_receive(
+        "packit_api"
+    ).and_return(packit_api)
+    msg = (
+        "Packit failed on creating Koji build in dist-git (an url):"
+        "\n\n| dist-git branch | error |\n| --------------- | ----- |\n"
+        "| `f37` | ```error abc``` |\n\n"
+        "Fedora Koji build was re-triggered by comment in issue 1.\n\n"
+        "You can retrigger the build by adding a comment "
+        "(`/packit koji-build`) into this issue.\n\n"
+        "---\n\n*Get in [touch with us](https://packit.dev/#contact) if you need some help.*\n"
+    )
+    flexmock(distgit).should_receive("report_in_issue_repository").with_args(
+        issue_repository=None,
+        service_config=ServiceConfig,
+        title=("Fedora Koji build failed to be triggered"),
+        message=msg,
+        comment_to_existing=msg,
+    ).once()
+
+    with pytest.raises(PackitException):
+        run_retrigger_downstream_koji_build(
+            package_config=package_config,
+            event=event_dict,
+            job_config=job_config,
+        )

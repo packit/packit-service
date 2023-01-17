@@ -2985,6 +2985,44 @@ def test_handler_doesnt_match_to_job(
             ],
             {},
         ),
+        pytest.param(
+            IssueCommentEvent,
+            JobConfigTriggerType.release,
+            [
+                JobConfig(
+                    type=JobType.koji_build,
+                    trigger=JobConfigTriggerType.commit,
+                    packages={"package": CommonPackageConfig()},
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.koji_build,
+                    trigger=JobConfigTriggerType.commit,
+                    packages={"package": CommonPackageConfig()},
+                ),
+            ],
+            {"issue_id": 1},
+        ),
+        pytest.param(
+            IssueCommentEvent,
+            JobConfigTriggerType.release,
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.commit,
+                    packages={"package": CommonPackageConfig()},
+                ),
+            ],
+            [
+                JobConfig(
+                    type=JobType.bodhi_update,
+                    trigger=JobConfigTriggerType.commit,
+                    packages={"package": CommonPackageConfig()},
+                ),
+            ],
+            {"issue_id": 1},
+        ),
     ],
 )
 def test_get_jobs_matching_trigger(

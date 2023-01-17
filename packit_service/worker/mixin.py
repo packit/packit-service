@@ -3,7 +3,8 @@
 
 from abc import abstractmethod
 import logging
-from typing import Optional, Protocol, Union
+import re
+from typing import Optional, Protocol, Union, List
 
 from fasjson_client import Client
 from fasjson_client.errors import APIError
@@ -94,6 +95,29 @@ class ConfigFromUrlMixin(Config):
         return self._project_url
 
 
+class ConfigFromDistGitUrlMixin(Config):
+    _project: Optional[GitProject] = None
+    _service_config: Optional[ServiceConfig] = None
+    _project_url: str
+    data: EventData
+
+    @property
+    def service_config(self) -> ServiceConfig:
+        if not self._service_config:
+            self._service_config = ServiceConfig.get_service_config()
+        return self._service_config
+
+    @property
+    def project(self) -> Optional[GitProject]:
+        if not self._project and self.data.event_dict["dist_git_project_url"]:
+            self._project = self.service_config.get_project(url=self.project_url)
+        return self._project
+
+    @property
+    def project_url(self) -> str:
+        return self.data.event_dict["dist_git_project_url"]
+
+
 class PackitAPIProtocol(Config):
     local_project: Optional[LocalProject] = None
 
@@ -171,7 +195,7 @@ class PackitAPIWithUpstreamMixin(PackitAPIProtocol):
             self._packit_api.clean()
 
 
-class LocalProjectMixin(ConfigFromEventMixin):
+class LocalProjectMixin(Config):
     _local_project: Optional[LocalProject] = None
 
     @property
@@ -240,6 +264,36 @@ class GetIssueMixin(GetIssue, ConfigFromEventMixin):
         if not self._issue:
             self._issue = self.project.get_issue(self.data.issue_id)
         return self._issue
+
+
+class GetBranches(Protocol):
+    @property
+    @abstractmethod
+    def branches(self) -> List[str]:
+        ...
+
+
+class GetBranchesFromIssueMixin(Config, GetBranches):
+    @property
+    def branches(self) -> List[str]:
+        """Get branches names from an issue comment like the following:
+
+
+        Packit failed on creating pull-requests in dist-git (https://src.fedoraproject.org/rpms/python-teamcity-messages): # noqa
+
+        | dist-git branch | error |
+        | --------------- | ----- |
+        | `f37` | `` |
+
+
+        You can retrigger the update by adding a comment (`/packit propose-downstream`) into this issue.
+        """
+        branches = []
+        issue = self.data.project.get_issue(self.data.issue_id)
+        for line in issue.description.splitlines():
+            if m := re.match(r"\s*\| `(\S+)` \|", line):
+                branches.append(m[1])
+        return branches
 
 
 class GetVMImageBuilder(Protocol):

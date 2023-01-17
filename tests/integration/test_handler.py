@@ -22,6 +22,7 @@ from packit_service.models import (
     JobTriggerModel,
     JobTriggerModelType,
 )
+from packit_service.worker.mixin import ConfigFromEventMixin
 from packit_service.worker.handlers import (
     JobHandler,
     CoprBuildHandler,
@@ -39,6 +40,9 @@ def trick_p_s_with_k8s():
 
 
 def test_handler_cleanup(tmp_path, trick_p_s_with_k8s):
+    class TestJobHandler(JobHandler, ConfigFromEventMixin):
+        pass
+
     tmp_path.joinpath("a").mkdir()
     tmp_path.joinpath("b").write_text("a")
     tmp_path.joinpath("c").symlink_to("b")
@@ -56,7 +60,7 @@ def test_handler_cleanup(tmp_path, trick_p_s_with_k8s):
         trigger=JobConfigTriggerType.pull_request,
         packages={"package": CommonPackageConfig()},
     )
-    j = JobHandler(
+    j = TestJobHandler(
         package_config=pc,
         job_config=jc,
         event={},

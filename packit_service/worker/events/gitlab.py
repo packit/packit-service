@@ -157,6 +157,7 @@ class IssueCommentGitlabEvent(AbstractIssueCommentEvent, AbstractGitlabEvent):
         comment_id: int,
         tag_name: str = "",
         comment_object: Optional[Comment] = None,
+        dist_git_project_url=None,
     ):
         super().__init__(
             issue_id=issue_id,
@@ -167,6 +168,7 @@ class IssueCommentGitlabEvent(AbstractIssueCommentEvent, AbstractGitlabEvent):
             comment_id=comment_id,
             tag_name=tag_name,
             comment_object=comment_object,
+            dist_git_project_url=dist_git_project_url,
         )
         self.action = action
         self.actor = actor

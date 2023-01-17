@@ -6,8 +6,9 @@ This file defines classes for job handlers specific for distgit
 """
 import logging
 import shutil
+import abc
 from datetime import datetime
-from typing import Optional, Tuple, Type
+from typing import Optional, Tuple, Type, List
 
 from celery import Task
 from ogr.abstract import PullRequest
@@ -20,6 +21,8 @@ from packit_service.config import PackageConfigGetter
 from packit_service.constants import (
     CONTACTS_URL,
     MSG_RETRIGGER,
+    MSG_GET_IN_TOUCH,
+    MSG_DOWNSTREAM_JOB_ERROR_HEADER,
 )
 from packit_service.models import (
     SyncReleaseTargetStatus,
@@ -35,6 +38,7 @@ from packit_service.worker.checker.distgit import (
     IsProjectOk,
     PermissionOnDistgit,
     ValidInformationForPullFromUpstream,
+    HasIssueCommenterRetriggeringPermissions,
 )
 from packit_service.worker.events import (
     PushPagureEvent,
@@ -43,6 +47,8 @@ from packit_service.worker.events import (
     AbstractIssueCommentEvent,
     CheckRerunReleaseEvent,
     PullRequestCommentPagureEvent,
+    IssueCommentEvent,
+    IssueCommentGitlabEvent,
 )
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.handlers.abstract import (
@@ -64,9 +70,12 @@ from packit_service.worker.helpers.sync_release.pull_from_upstream import (
 from packit_service.worker.helpers.sync_release.sync_release import SyncReleaseHelper
 from packit_service.worker.mixin import (
     LocalProjectMixin,
+    ConfigFromEventMixin,
+    GetBranchesFromIssueMixin,
+    ConfigFromDistGitUrlMixin,
+    GetPagurePullRequestMixin,
     PackitAPIWithUpstreamMixin,
     PackitAPIWithDownstreamMixin,
-    GetPagurePullRequestMixin,
 )
 from packit_service.worker.reporting import BaseCommitStatus, report_in_issue_repository
 from packit_service.worker.result import TaskResults
@@ -77,7 +86,11 @@ logger = logging.getLogger(__name__)
 @configured_as(job_type=JobType.sync_from_downstream)
 @reacts_to(event=PushPagureEvent)
 class SyncFromDownstream(
-    JobHandler, GetProjectToSyncMixin, LocalProjectMixin, PackitAPIWithUpstreamMixin
+    JobHandler,
+    GetProjectToSyncMixin,
+    ConfigFromEventMixin,
+    LocalProjectMixin,
+    PackitAPIWithUpstreamMixin,
 ):
     """Sync new specfile changes to upstream after a new git push in the dist-git."""
 
@@ -118,7 +131,10 @@ class SyncFromDownstream(
 
 
 class AbstractSyncReleaseHandler(
-    PackitAPIWithUpstreamMixin, LocalProjectMixin, RetriableJobHandler
+    RetriableJobHandler,
+    ConfigFromEventMixin,
+    PackitAPIWithUpstreamMixin,
+    LocalProjectMixin,
 ):
     helper_kls: type[SyncReleaseHelper]
     sync_release_job_type: SyncReleaseJobType
@@ -324,12 +340,11 @@ class AbstractSyncReleaseHandler(
             ):
                 err_without_new_lines = err.replace("\n", " ")
                 branch_errors += f"| `{branch}` | `{err_without_new_lines}` |\n"
-            body_msg = (
-                f"Packit failed on creating pull-requests in dist-git:\n\n"
-                f"| dist-git branch | error |\n"
-                f"| --------------- | ----- |\n"
-                f"{branch_errors}\n\n"
+            body_msg = MSG_DOWNSTREAM_JOB_ERROR_HEADER.format(
+                object="pull-requests",
+                dist_git_url=self.packit_api.dg.local_project.git_url,
             )
+            body_msg += f"{branch_errors}\n\n"
             self._report_errors_for_each_branch(body_msg)
             sync_release_run_model.set_status(status=SyncReleaseStatus.error)
             return TaskResults(
@@ -440,15 +455,9 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         )
 
 
-@configured_as(job_type=JobType.koji_build)
-@run_for_comment(command="koji-build")
-@reacts_to(event=PushPagureEvent)
-@reacts_to(event=PullRequestCommentPagureEvent)
-class DownstreamKojiBuildHandler(
+class AbstractDownstreamKojiBuildHandler(
+    abc.ABC,
     RetriableJobHandler,
-    LocalProjectMixin,
-    PackitAPIWithDownstreamMixin,
-    GetPagurePullRequestMixin,
 ):
     """
     This handler can submit a build in Koji from a dist-git.
@@ -476,21 +485,22 @@ class DownstreamKojiBuildHandler(
 
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
-        return (PermissionOnDistgit,)
+        return (PermissionOnDistgit, HasIssueCommenterRetriggeringPermissions)
+
+    @abc.abstractmethod
+    def get_branches(self) -> List[str]:
+        """Get a list of branch (names) to be built in koji"""
 
     def run(self) -> TaskResults:
-        branch = (
-            self.project.get_pr(self.data.pr_id).target_branch
-            if self.data.event_type in (PullRequestCommentPagureEvent.__name__,)
-            else self.dg_branch
-        )
         try:
-            self.packit_api.build(
-                dist_git_branch=branch,
-                scratch=self.job_config.scratch,
-                nowait=True,
-                from_upstream=False,
-            )
+            branch = None
+            for branch in self.get_branches():
+                self.packit_api.build(
+                    dist_git_branch=branch,
+                    scratch=self.job_config.scratch,
+                    nowait=True,
+                    from_upstream=False,
+                )
         except PackitException as ex:
             if self.celery_task and not self.celery_task.is_last_try():
                 logger.debug(
@@ -498,17 +508,97 @@ class DownstreamKojiBuildHandler(
                 )
                 raise ex
 
-            body = f"Koji build on `{branch}` branch failed:\n" "```\n" f"{ex}\n" "```"
-
-            report_in_issue_repository(
-                issue_repository=self.job_config.issue_repository,
-                service_config=self.service_config,
-                title="Fedora Koji build failed to be triggered",
-                message=body
-                + f"\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
-                comment_to_existing=body,
-            )
-
+            self.report_in_issue_repository(branch, ex)
             raise ex
 
         return TaskResults(success=True, details={})
+
+    @abc.abstractmethod
+    def get_trigger_type_description(self) -> str:
+        """Describe the user's action which triggered the Koji build"""
+
+    def report_in_issue_repository(self, branch: str, ex: PackitException) -> None:
+
+        body = MSG_DOWNSTREAM_JOB_ERROR_HEADER.format(
+            object="Koji build", dist_git_url=self.packit_api.dg.local_project.git_url
+        )
+        body += f"| `{branch}` | ```{ex}``` |\n"
+
+        msg_retrigger = MSG_RETRIGGER.format(
+            job="build",
+            command="koji-build",
+            place="issue",
+            packit_comment_command_prefix=self.service_config.comment_command_prefix,
+        )
+
+        trigger_type_description = self.get_trigger_type_description()
+        body_msg = (
+            f"{body}\n{trigger_type_description}\n\n{msg_retrigger}{MSG_GET_IN_TOUCH}\n"
+        )
+
+        report_in_issue_repository(
+            issue_repository=self.job_config.issue_repository,
+            service_config=self.service_config,
+            title="Fedora Koji build failed to be triggered",
+            message=body_msg,
+            comment_to_existing=body_msg,
+        )
+
+
+@configured_as(job_type=JobType.koji_build)
+@run_for_comment(command="koji-build")
+@reacts_to(event=PushPagureEvent)
+@reacts_to(event=PullRequestCommentPagureEvent)
+class DownstreamKojiBuildHandler(
+    AbstractDownstreamKojiBuildHandler,
+    ConfigFromEventMixin,
+    LocalProjectMixin,
+    PackitAPIWithDownstreamMixin,
+    GetPagurePullRequestMixin,
+):
+    task_name = TaskName.downstream_koji_build
+
+    def get_branches(self) -> List[str]:
+        branch = (
+            self.project.get_pr(self.data.pr_id).target_branch
+            if self.data.event_type in (PullRequestCommentPagureEvent.__name__,)
+            else self.dg_branch
+        )
+        return [branch]
+
+    def get_trigger_type_description(self) -> str:
+        trigger_type_description = ""
+        if self.data.event_type == PullRequestCommentPagureEvent.__name__:
+            trigger_type_description += (
+                f"Fedora Koji build was re-triggered "
+                f"by comment in dist-git PR id {self.data.pr_id}."
+            )
+        elif self.data.event_type == PushPagureEvent.__name__:
+            trigger_type_description += (
+                f"Fedora Koji build was triggered "
+                f"by push with sha {self.data.commit_sha}."
+            )
+        return trigger_type_description
+
+
+@configured_as(job_type=JobType.koji_build)
+@run_for_comment(command="koji-build")
+@reacts_to(event=IssueCommentEvent)
+@reacts_to(event=IssueCommentGitlabEvent)
+class RetriggerDownstreamKojiBuildHandler(
+    AbstractDownstreamKojiBuildHandler,
+    ConfigFromDistGitUrlMixin,
+    LocalProjectMixin,
+    PackitAPIWithDownstreamMixin,
+    GetBranchesFromIssueMixin,
+):
+    task_name = TaskName.retrigger_downstream_koji_build
+
+    def get_branches(self) -> List[str]:
+        return self.branches
+
+    def get_trigger_type_description(self) -> str:
+        return (
+            f"Fedora Koji build was re-triggered "
+            f"by comment in issue {self.data.issue_id}."
+        )

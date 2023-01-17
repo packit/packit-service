@@ -179,6 +179,7 @@ class IssueCommentEvent(AbstractIssueCommentEvent, AbstractGithubEvent):
             str
         ] = "master",  # default is master when working with issues
         comment_object: Optional[Comment] = None,
+        dist_git_project_url=None,
     ) -> None:
         super().__init__(
             issue_id=issue_id,
@@ -189,6 +190,7 @@ class IssueCommentEvent(AbstractIssueCommentEvent, AbstractGithubEvent):
             comment_id=comment_id,
             tag_name=tag_name,
             comment_object=comment_object,
+            dist_git_project_url=dist_git_project_url,
         )
         self.action = action
         self.actor = actor

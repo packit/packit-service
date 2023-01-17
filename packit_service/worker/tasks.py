@@ -46,9 +46,11 @@ from packit_service.worker.handlers.abstract import TaskName
 from packit_service.worker.handlers.bodhi import (
     CreateBodhiUpdateHandler,
     RetriggerBodhiUpdateHandler,
+    IssueCommentRetriggerBodhiUpdateHandler,
 )
 from packit_service.worker.handlers.distgit import (
     DownstreamKojiBuildHandler,
+    RetriggerDownstreamKojiBuildHandler,
     PullFromUpstreamHandler,
 )
 from packit_service.worker.handlers.forges import GithubFasVerificationHandler
@@ -340,6 +342,24 @@ def run_downstream_koji_build(
     return get_handlers_task_results(handler.run_job(), event)
 
 
+@celery_app.task(
+    bind=True,
+    name=TaskName.retrigger_downstream_koji_build,
+    base=HandlerTaskWithRetry,
+    queue="long-running",
+)
+def run_retrigger_downstream_koji_build(
+    self, event: dict, package_config: dict, job_config: dict
+):
+    handler = RetriggerDownstreamKojiBuildHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+        celery_task=self,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
 @celery_app.task(name=TaskName.downstream_koji_build_report, base=HandlerTaskWithRetry)
 def run_downstream_koji_build_report(
     event: dict, package_config: dict, job_config: dict
@@ -378,6 +398,24 @@ def run_retrigger_bodhi_update(
     self, event: dict, package_config: dict, job_config: dict
 ):
     handler = RetriggerBodhiUpdateHandler(
+        package_config=load_package_config(package_config),
+        job_config=load_job_config(job_config),
+        event=event,
+        celery_task=self,
+    )
+    return get_handlers_task_results(handler.run_job(), event)
+
+
+@celery_app.task(
+    bind=True,
+    name=TaskName.issue_comment_retrigger_bodhi_update,
+    base=HandlerTaskWithRetry,
+    queue="long-running",
+)
+def run_issue_comment_retrigger_bodhi_update(
+    self, event: dict, package_config: dict, job_config: dict
+):
+    handler = IssueCommentRetriggerBodhiUpdateHandler(
         package_config=load_package_config(package_config),
         job_config=load_job_config(job_config),
         event=event,

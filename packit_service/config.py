@@ -279,17 +279,17 @@ class PackageConfigGetter:
     ) -> Optional[Issue]:
         # TODO: Improve filtering
         issues = project.get_issue_list()
-        title = f"[packit] {title}"
+        packit_title = f"[packit] {title}"
 
         for issue in issues:
-            if title in issue.title:
+            if packit_title in issue.title or title in issue.title:
                 if comment_to_existing:
                     issue.comment(body=comment_to_existing)
                     logger.debug(f"Issue #{issue.id} updated: {issue.url}")
                 return None
 
         # TODO: store in DB
-        issue = project.create_issue(title=title, body=message)
+        issue = project.create_issue(title=packit_title, body=message)
         logger.debug(f"Issue #{issue.id} created: {issue.url}")
         return issue
 

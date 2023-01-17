@@ -2,7 +2,10 @@ import pytest
 
 from flexmock import flexmock
 
-from packit_service.worker.checker.bodhi import HasAuthorWriteAccess, IsAuthorAPackager
+from packit_service.worker.checker.bodhi import (
+    HasIssueCommenterRetriggeringPermissions,
+    IsAuthorAPackager,
+)
 from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit.config import (
     JobConfig,
@@ -73,7 +76,7 @@ def test_check_has_author_write_access(
         repo="playground-for-pencils",
     )
 
-    checker = HasAuthorWriteAccess(package_config, job_config, data)
+    checker = HasIssueCommenterRetriggeringPermissions(package_config, job_config, data)
     checker._project = project
     assert checker.pre_check() == result
 

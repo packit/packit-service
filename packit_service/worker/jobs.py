@@ -7,14 +7,15 @@ We love you, Steve Jobs.
 import logging
 from datetime import datetime, timezone
 from typing import Any, Optional, Union
-from typing import List, Set, Type
+from typing import List, Set, Type, Tuple
+from re import match
 
 import celery
 
 from ogr.exceptions import GithubAppNotInstalledError
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.job_config import DEPRECATED_JOB_TYPES
-from packit_service.config import ServiceConfig
+from packit_service.config import PackageConfig, PackageConfigGetter, ServiceConfig
 from packit_service.constants import (
     DOCS_CONFIGURATION_URL,
     TASK_ACCEPTED,
@@ -31,7 +32,10 @@ from packit_service.worker.events import (
     CheckRerunEvent,
     IssueCommentEvent,
 )
-from packit_service.worker.events.comment import AbstractCommentEvent
+from packit_service.worker.events.comment import (
+    AbstractCommentEvent,
+    AbstractIssueCommentEvent,
+)
 from packit_service.worker.handlers import (
     CoprBuildHandler,
     GithubAppInstallationHandler,
@@ -283,6 +287,33 @@ class SteveJobs:
             task_accepted_time, handler_kls, number_of_build_targets
         )
 
+    def search_distgit_config_in_issue(self) -> Optional[Tuple[str, PackageConfig]]:
+        """Get a tuple (dist-git repo url, package config loaded from dist-git yaml file).
+        Look up for a dist-git repo url inside
+        the issue description for the issue comment event.
+        The issue description should have a format like the following:
+
+        Packit failed on creating pull-requests in dist-git (https://src.fedoraproject.org/rpms/python-teamcity-messages): # noqa
+        | dist-git branch | error |
+        | --------------- | ----- |
+        | `f37` | `` |
+        You can retrigger the update by adding a comment (`/packit propose-downstream`) into this issue.
+
+        Returns:
+            A tuple (dist_git_repo_url, dist_git_package_config) or None
+        """
+        if isinstance(self.event, AbstractIssueCommentEvent):
+            issue = self.event.project.get_issue(self.event.issue_id)
+            if m := match(r"[\w\s-]+dist-git \((\S+)\):", issue.description):
+                url = m[1]
+                project = self.service_config.get_project(url=url)
+                package_config = PackageConfigGetter.get_package_config_from_repo(
+                    project=project,
+                    fail_when_missing=False,
+                )
+                return url, package_config
+        return None
+
     def is_packit_config_present(self) -> bool:
         """
         Set fail_when_config_file_missing if we handle comment events so that
@@ -297,7 +328,18 @@ class SteveJobs:
             packit_comment_command_prefix=self.service_config.comment_command_prefix,
         ):
             # we require packit config file when event is triggered by /packit command
-            self.event.fail_when_config_file_missing = True
+            # but not when it is triggered through an issue in the issues repository
+            dist_git_package_config = None
+            if isinstance(self.event, AbstractIssueCommentEvent):
+                if dist_git_package_config := self.search_distgit_config_in_issue():
+                    (
+                        self.event.dist_git_project_url,
+                        self.event._package_config,
+                    ) = dist_git_package_config
+                    return True
+
+            if not dist_git_package_config:
+                self.event.fail_when_config_file_missing = True
 
         if not self.event.package_config:
             # this happens when service receives events for repos which don't have packit config
@@ -488,6 +530,19 @@ class SteveJobs:
                 ):
                     # A koji_build job with comment trigger
                     # can be re-triggered by a Pagure comment in a PR
+                    matching_jobs.append(job)
+        elif isinstance(self.event, AbstractIssueCommentEvent):
+            for job in self.event.package_config.jobs:
+                if (
+                    job.type in (JobType.koji_build, JobType.bodhi_update)
+                    and job.trigger == JobConfigTriggerType.commit
+                    and self.event.job_config_trigger_type
+                    == JobConfigTriggerType.release
+                ):
+                    # A koji_build/bodhi_update can be re-triggered by a
+                    # comment in a issue in the repository issues
+                    # after a failed release event
+                    # (which has created the issue)
                     matching_jobs.append(job)
 
         return matching_jobs

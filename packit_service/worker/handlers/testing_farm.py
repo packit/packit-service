@@ -25,6 +25,7 @@ from packit_service.service.urls import (
     get_testing_farm_info_url,
     get_copr_build_info_url,
 )
+from packit_service.worker.mixin import ConfigFromEventMixin
 from packit_service.utils import dump_job_config, dump_package_config, elapsed_seconds
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.testing_farm import (
@@ -260,7 +261,7 @@ class TestingFarmHandler(
 
 @configured_as(job_type=JobType.tests)
 @reacts_to(event=TestingFarmResultsEvent)
-class TestingFarmResultsHandler(JobHandler):
+class TestingFarmResultsHandler(JobHandler, ConfigFromEventMixin):
     __test__ = False
     task_name = TaskName.testing_farm_results
 
