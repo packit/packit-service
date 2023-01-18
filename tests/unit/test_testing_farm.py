@@ -319,6 +319,7 @@ def test_artifact(
         "artifacts,"
         "tmt_plan,"
         "tf_post_install_script,"
+        "tf_extra_params,"
         "copr_rpms"
     ),
     [
@@ -341,6 +342,7 @@ def test_artifact(
             "Fedora-Rawhide",
             "x86_64",
             [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
+            None,
             None,
             None,
             None,
@@ -367,6 +369,7 @@ def test_artifact(
             None,
             None,
             None,
+            None,
         ),
         (
             "https://api.dev.testing-farm.io/v0.1/",
@@ -387,6 +390,7 @@ def test_artifact(
             "Fedora-Rawhide",
             "x86_64",
             [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
+            None,
             None,
             None,
             None,
@@ -419,6 +423,7 @@ def test_artifact(
             ],
             None,
             None,
+            None,
             "cool-project-0:0.1.0-2.el8.x86_64",
         ),
         # Test tmt_plan and tf_post_install_script
@@ -443,6 +448,7 @@ def test_artifact(
             [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
             "^packit",
             "echo 'hi packit'",
+            None,
             None,
         ),
         # Testing built_packages for more builds (additional build from other PR)
@@ -475,6 +481,7 @@ def test_artifact(
                     "packages": ["not-cool-project-0:0.1.0-2.el8.x86_64"],
                 },
             ],
+            None,
             None,
             None,
             "not-cool-project-0:0.1.0-2.el8.x86_64",
@@ -518,8 +525,37 @@ def test_artifact(
             ],
             None,
             None,
+            None,
             "cool-project-0:0.1.0-2.el8.x86_64 cool-project-2-0:0.1.0-2.el8.x86_64 "
             "not-cool-project-0:0.1.0-2.el8.x86_64 not-cool-project-2-0:0.1.0-2.el8.x86_64",
+        ),
+        # Test that API key and notifications is not overriden by extra-params
+        (
+            "https://api.dev.testing-farm.io/v0.1/",
+            "very-secret",
+            "",  # without internal TF configured
+            False,
+            "test",
+            "packit",
+            "packit-service",
+            "feb41e5",
+            "https://github.com/source/packit",
+            "master",
+            "me",
+            "cool-project",
+            "123456",
+            "centos-stream-x86_64",
+            "centos-stream",
+            "Fedora-Rawhide",
+            "x86_64",
+            [{"id": "123456:centos-stream-x86_64", "type": "fedora-copr-build"}],
+            None,
+            None,
+            {
+                "api_key": "foo",
+                "notification": {"webhook": {"url": "https://malicious.net"}},
+            },
+            None,
         ),
     ],
 )
@@ -544,6 +580,7 @@ def test_payload(
     artifacts,
     tmt_plan,
     tf_post_install_script,
+    tf_extra_params,
     copr_rpms,
 ):
     service_config = ServiceConfig.get_service_config()
@@ -592,6 +629,7 @@ def test_payload(
                     use_internal_tf=use_internal_tf,
                     tmt_plan=tmt_plan,
                     tf_post_install_script=tf_post_install_script,
+                    tf_extra_params=tf_extra_params,
                 )
             },
         ),
@@ -676,6 +714,42 @@ def test_payload(
 
     assert payload["environments"] == expected_environments
     assert payload["notification"]["webhook"]["url"].endswith("/testing-farm/results")
+    if tf_extra_params:
+        assert payload["api_key"] == tf_token
+        assert payload["notification"]["webhook"]["url"] != "https://malicious.net"
+
+
+@pytest.mark.parametrize(
+    ("payload", "params", "result"),
+    [
+        (
+            {"foo": "bar", "bar": "baz"},
+            {"foo": "baz"},
+            {"foo": "baz", "bar": "baz"},
+        ),
+        (
+            [{"tmt": {"context": {"how": "full"}}}],
+            [{"pool": "new-pool"}],
+            [{"pool": "new-pool", "tmt": {"context": {"how": "full"}}}],
+        ),
+        (
+            [{"tmt": {"context": {"how": "full"}}}],
+            [{"tmt": {"context": {"how": "not-full", "foo": "bar"}}}],
+            [{"tmt": {"context": {"how": "not-full", "foo": "bar"}}}],
+        ),
+        (
+            [{"tmt": {"context": {"how": "full"}}}],
+            [
+                {},
+                {"pool": "new-pool"},
+            ],
+            [{"tmt": {"context": {"how": "full"}}}],
+        ),
+    ],
+)
+def test_merge_payload_with_extra_params(payload, params, result):
+    TFJobHelper._merge_payload_with_extra_params(payload, params)
+    assert payload == result
 
 
 @pytest.mark.parametrize(

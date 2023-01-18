@@ -25,6 +25,11 @@ CONFIG_FILE_NAME = "packit-service.yaml"
 TESTING_FARM_API_URL = "https://api.dev.testing-farm.io/v0.1/"
 TESTING_FARM_INSTALLABILITY_TEST_URL = "https://gitlab.com/testing-farm/tests"
 TESTING_FARM_INSTALLABILITY_TEST_REF = "main"
+TESTING_FARM_EXTRA_PARAM_MERGED_SUBTREES = (
+    "environments",
+    "test",
+    "settings",
+)
 
 MSG_DOWNSTREAM_JOB_ERROR_HEADER = (
     "Packit failed on creating {object} in dist-git "
