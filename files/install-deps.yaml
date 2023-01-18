@@ -31,11 +31,12 @@
           - bodhi-client
         state: present
         # needed when installing from koji - there are no GPG-signed packages
-        disable_gpg_check: true
+    #         disable_gpg_check: true
     - name: Install pip deps
       pip:
         name:
           - sentry-sdk[flask]
+          - syslog-rfc5424-formatter
         executable: pip3
     - name: Check if all pip packages have all dependencies installed
       command: pip check

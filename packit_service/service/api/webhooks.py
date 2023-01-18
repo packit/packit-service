@@ -4,7 +4,7 @@
 import hmac
 import json
 import os
-from hashlib import sha1
+from hashlib import sha256
 from http import HTTPStatus
 from logging import getLogger
 from os import getenv
@@ -12,9 +12,9 @@ from os import getenv
 import jwt
 from flask import request
 from flask_restx import Namespace, Resource, fields
+from ogr.parsing import parse_git_repo
 from prometheus_client import Counter
 
-from ogr.parsing import parse_git_repo
 from packit_service.celerizer import celery_app
 from packit_service.config import ServiceConfig
 from packit_service.constants import CELERY_DEFAULT_MAIN_TASK_NAME, GITLAB_ISSUE
@@ -48,7 +48,7 @@ ping_payload_gitlab = ns.model(
 github_webhook_calls = Counter(
     "github_webhook_calls",
     "Number of times the GitHub webhook is called",
-    # process_id = label the metric with respective process ID so we can aggregate
+    # process_id = label the metric with respective process ID, so we can aggregate
     ["result", "process_id"],
 )
 
@@ -110,16 +110,12 @@ class GithubWebhook(Resource):
              `False` if we are not interested in this kind of event
         """
         event_type = request.headers.get("X-GitHub-Event")
-        # we want to prefilter only check runs
-        if event_type != "check_run":
-            return True
-
         uuid = request.headers.get("X-GitHub-Delivery")
+        action = request.json.get("action")
+
         # we don't care about created or completed check runs
-        _interested = request.json.get("action") == "rerequested"
-        logger.debug(
-            f"{event_type} {uuid}{' (not interested)' if not _interested else ''}"
-        )
+        _interested = event_type != "check_run" or action == "rerequested"
+        logger.debug(f"{event_type} {uuid}{'' if _interested else ' (not interested)'}")
         return _interested
 
     @staticmethod
@@ -128,9 +124,9 @@ class GithubWebhook(Resource):
         https://developer.github.com/webhooks/securing/#validating-payloads-from-github
         https://developer.github.com/webhooks/#delivery-headers
         """
-        if "X-Hub-Signature" not in request.headers:
+        if "X-Hub-Signature-256" not in request.headers:
             if config.validate_webhooks:
-                msg = "X-Hub-Signature not in request.headers"
+                msg = "X-Hub-Signature-256 not in request.headers"
                 logger.warning(msg)
                 raise ValidationFailed(msg)
             else:
@@ -138,27 +134,19 @@ class GithubWebhook(Resource):
                 logger.debug("Ain't validating signatures.")
                 return
 
-        sig = request.headers["X-Hub-Signature"]
-        if not sig.startswith("sha1="):
-            msg = f"Digest mode in X-Hub-Signature {sig!r} is not sha1."
-            logger.warning(msg)
-            raise ValidationFailed(msg)
-
-        webhook_secret = config.webhook_secret.encode()
-        if not webhook_secret:
+        if not (webhook_secret := config.webhook_secret.encode()):
             msg = "'webhook_secret' not specified in the config."
             logger.error(msg)
             raise ValidationFailed(msg)
 
-        signature = sig.split("=")[1]
-        mac = hmac.new(webhook_secret, msg=request.get_data(), digestmod=sha1)
-        digest_is_valid = hmac.compare_digest(signature, mac.hexdigest())
-        if digest_is_valid:
-            logger.debug("Payload signature OK.")
-        else:
+        signature = request.headers["X-Hub-Signature-256"].split("=")[1]
+        data_hmac = hmac.new(webhook_secret, msg=request.get_data(), digestmod=sha256)
+        if not hmac.compare_digest(signature, data_hmac.hexdigest()):
             msg = "Payload signature validation failed."
             logger.warning(msg)
-            logger.debug(f"X-Hub-Signature: {sig!r} != computed: {mac.hexdigest()}")
+            logger.debug(
+                f"X-Hub-Signature-256: {signature!r} != computed: {data_hmac.hexdigest()}"
+            )
             raise ValidationFailed(msg)
 
 

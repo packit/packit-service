@@ -22,9 +22,21 @@ def mock_config():
 @pytest.mark.parametrize(
     "headers, is_good",
     [
-        # hmac.new(webhook_secret, msg=payload, digestmod=hashlib.sha1).hexdigest()
-        ({"X-Hub-Signature": "sha1=4e0281ef362383a2ab30c9dde79167da3b300b58"}, True),
-        ({"X-Hub-Signature": "sha1=abcdefghijklmnopqrstuvqxyz"}, False),
+        # hmac.new(webhook_secret, msg=payload, digestmod=hashlib.sha256).hexdigest()
+        (
+            {
+                "X-Hub-Signature-256": "sha256="
+                "7884c9fc5f880c17920b2066e85aae7b57489505a16aa9b56806a924df78f846"
+            },
+            True,
+        ),
+        (
+            {
+                "X-Hub-Signature-256": "sha256="
+                "feedfacecafebeef920b2066e85aae7b57489505a16aa9b56806a924df78f666"
+            },
+            False,
+        ),
         ({}, False),
     ],
 )
