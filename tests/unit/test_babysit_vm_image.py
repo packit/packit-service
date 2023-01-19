@@ -127,12 +127,13 @@ def test_update_vm_image_build(stop_babysitting, build_status, vm_image_builder_
     ).and_return(
         [
             flexmock(
+                status=None,
                 runs=[
                     flexmock()
                     .should_receive("get_trigger_object")
                     .and_return(db_trigger)
                     .mock()
-                ]
+                ],
             )
             .should_receive("set_status")
             .with_args(build_status)

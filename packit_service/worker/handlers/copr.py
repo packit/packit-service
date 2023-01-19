@@ -155,7 +155,12 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
             logger.warning(msg)
             return TaskResults(success=False, details={"msg": msg})
 
-        self.set_start_time()
+        if self.build.build_start_time is not None:
+            logger.debug(
+                f"Copr build start for {self.copr_event.build_id} is already"
+                f" processed."
+            )
+
         self.set_logs_url()
 
         if self.copr_event.chroot == COPR_SRPM_CHROOT:
@@ -166,6 +171,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
                 url=url,
             )
             msg = "SRPM build in Copr has started..."
+            self.set_start_time()
             return TaskResults(success=True, details={"msg": msg})
 
         self.pushgateway.copr_builds_started.inc()
@@ -179,6 +185,7 @@ class CoprBuildStartHandler(AbstractCoprBuildReportHandler):
             chroot=self.copr_event.chroot,
         )
         msg = f"Build on {self.copr_event.chroot} in copr has started..."
+        self.set_start_time()
         return TaskResults(success=True, details={"msg": msg})
 
 
@@ -233,6 +240,16 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
 
         self.pushgateway.copr_build_end_reported_after_time.observe(reported_after_time)
 
+    def set_built_packages(self):
+        if self.build.built_packages:
+            # packages have been already set
+            return
+
+        built_packages = self.copr_build_helper.get_built_packages(
+            int(self.build.build_id), self.build.target
+        )
+        self.build.set_built_packages(built_packages)
+
     def run(self):
         if not self.build:
             # TODO: how could this happen?
@@ -286,13 +303,10 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
 
         self.report_successful_build()
         self.measure_time_after_reporting()
-        self.build.set_status(BuildStatus.success)
 
-        built_packages = self.copr_build_helper.get_built_packages(
-            int(self.build.build_id), self.build.target
-        )
-        self.build.set_built_packages(built_packages)
+        self.set_built_packages()
         self.handle_testing_farm()
+        self.build.set_status(BuildStatus.success)
 
         return TaskResults(success=True, details={})
 

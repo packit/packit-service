@@ -2,21 +2,21 @@
 # SPDX-License-Identifier: MIT
 
 import json
-import pytest
 
+import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
 
-from ogr.services.github import GithubProject
-from packit_service.config import ServiceConfig
+from packit_service.config import ServiceConfig, PackageConfigGetter
 from packit_service.constants import SANDCASTLE_WORK_DIR
 from packit_service.models import (
     GithubInstallationModel,
+    AllowlistModel,
 )
+from packit_service.worker.allowlist import Allowlist
 from packit_service.worker.jobs import SteveJobs
 from packit_service.worker.monitoring import Pushgateway
 from packit_service.worker.tasks import run_installation_handler
-from packit_service.worker.allowlist import Allowlist
 from tests.spellbook import DATA_DIR, first_dict_value, get_parameters_from_results
 
 
@@ -34,10 +34,14 @@ def test_installation():
         "get_by_account_login"
     ).and_return()
     flexmock(GithubInstallationModel).should_receive("create_or_update").once()
-    flexmock(Allowlist).should_receive("add_namespace").with_args(
-        "github.com/packit-service", "jpopelka"
-    ).and_return(False)
-    flexmock(GithubProject).should_receive("create_issue").once()
+    flexmock(AllowlistModel).should_receive("get_namespace").with_args(
+        "github.com/packit-service"
+    ).and_return(None)
+    flexmock(Allowlist).should_receive(
+        "is_github_username_from_fas_account_matching"
+    ).with_args(fas_account="jpopelka", sender_login="jpopelka").and_return(False)
+    flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").once()
+    flexmock(AllowlistModel).should_receive("add_namespace")
 
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()
@@ -64,13 +68,13 @@ def test_reinstallation_already_approved_namespace():
         flexmock(sender_login="jpopelka")
     )
     flexmock(GithubInstallationModel).should_receive("create_or_update").once()
-    flexmock(Allowlist).should_receive("add_namespace").with_args(
-        "github.com/packit-service", "jpopelka"
-    ).and_return(True)
+    flexmock(AllowlistModel).should_receive("get_namespace").with_args(
+        "github.com/packit-service"
+    ).and_return(flexmock())
     flexmock(Allowlist).should_receive("is_approved").with_args(
         "github.com/packit-service"
     ).and_return(True)
-    flexmock(GithubProject).should_receive("create_issue").never()
+    flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").never()
 
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()
@@ -90,26 +94,30 @@ def test_reinstallation_already_approved_namespace():
 
 
 @pytest.mark.parametrize(
-    "sender_login, create_issue", [("jpopelka", False), ("flachman", True)]
+    "previous_sender_login, create_issue", [("jpopelka", False), ("flachman", True)]
 )
-def test_reinstallation_not_approved_namespace(sender_login, create_issue):
+def test_reinstallation_not_approved_namespace(previous_sender_login, create_issue):
     config = ServiceConfig()
     config.command_handler_work_dir = SANDCASTLE_WORK_DIR
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(config)
     flexmock(GithubInstallationModel).should_receive("get_by_account_login").and_return(
-        flexmock(sender_login=sender_login)
+        flexmock(sender_login=previous_sender_login)
     )
     flexmock(GithubInstallationModel).should_receive("create_or_update").once()
-    flexmock(Allowlist).should_receive("add_namespace").with_args(
-        "github.com/packit-service", "jpopelka"
-    ).and_return(True)
+    flexmock(AllowlistModel).should_receive("get_namespace").with_args(
+        "github.com/packit-service"
+    ).and_return(flexmock())
     flexmock(Allowlist).should_receive("is_approved").with_args(
         "github.com/packit-service"
     ).and_return(False)
     if create_issue:
-        flexmock(GithubProject).should_receive("create_issue").once()
+        flexmock(Allowlist).should_receive(
+            "is_github_username_from_fas_account_matching"
+        ).with_args(fas_account="jpopelka", sender_login="jpopelka").and_return(False)
+        flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").once()
+        flexmock(AllowlistModel).should_receive("add_namespace").once()
     else:
-        flexmock(GithubProject).should_receive("create_issue").never()
+        flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").never()
 
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()

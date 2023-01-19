@@ -131,11 +131,22 @@ class VMImageBuildResultHandler(
     def run(self) -> TaskResults:
         build_id = self.data.event_dict["build_id"]
         models = VMImageBuildTargetModel.get_all_by_build_id(build_id)
+        status = self.data.event_dict["status"]
+
         for model in models:
+            if model.status == status:
+                logger.debug(
+                    "Status was already processed (status in the DB is the same "
+                    "as the one about to report)"
+                )
+                return TaskResults(
+                    success=True,
+                    details={"msg": "State change already processed"},
+                )
+
             self.data._db_trigger = model.runs[0].get_trigger_object()
-            status = self.data.event_dict["status"]
-            model.set_status(status)
             self.report_status(status, self.data.event_dict["message"])
+            model.set_status(status)
             return TaskResults(
                 success=True,
                 details={},

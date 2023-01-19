@@ -276,20 +276,24 @@ class PackageConfigGetter:
         title: str,
         message: str,
         comment_to_existing: Optional[str] = None,
+        add_packit_prefix: Optional[bool] = True,
     ) -> Optional[Issue]:
         # TODO: Improve filtering
         issues = project.get_issue_list()
         packit_title = f"[packit] {title}"
 
         for issue in issues:
-            if packit_title in issue.title or title in issue.title:
+            if title in issue.title:
+                logger.debug(f"Title of issue {issue.id} matches.")
                 if comment_to_existing:
                     issue.comment(body=comment_to_existing)
                     logger.debug(f"Issue #{issue.id} updated: {issue.url}")
                 return None
 
         # TODO: store in DB
-        issue = project.create_issue(title=packit_title, body=message)
+        issue = project.create_issue(
+            title=packit_title if add_packit_prefix else title, body=message
+        )
         logger.debug(f"Issue #{issue.id} created: {issue.url}")
         return issue
 

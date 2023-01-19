@@ -190,6 +190,15 @@ class KojiTaskReportHandler(JobHandler, ConfigFromEventMixin):
             logger.debug(
                 f"We don't react to this koji build state change: {self.koji_task_event.state}"
             )
+        elif new_commit_status.value == build.status:
+            logger.debug(
+                "Status was already processed (status in the DB is the "
+                "same as the one about to report)"
+            )
+            return TaskResults(
+                success=True, details={"msg": "State change already processed"}
+            )
+
         else:
             build.set_status(new_commit_status.value)
             build_job_helper.report_status_to_all_for_chroot(
