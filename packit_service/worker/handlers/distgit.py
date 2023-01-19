@@ -333,13 +333,17 @@ class AbstractSyncReleaseHandler(
             # 3. it's not being cleaned up and it wastes pod's filesystem space
             shutil.rmtree(self.packit_api.dg.local_project.working_dir)
 
-        if errors:
+        models_with_errors = [
+            target
+            for target in sync_release_run_model.sync_release_targets
+            if target.status == SyncReleaseTargetStatus.error
+        ]
+
+        if models_with_errors:
             branch_errors = ""
-            for branch, err in sorted(
-                errors.items(), key=lambda branch_error: branch_error[0]
-            ):
-                err_without_new_lines = err.replace("\n", " ")
-                branch_errors += f"| `{branch}` | `{err_without_new_lines}` |\n"
+            for model in sorted(models_with_errors, key=lambda model: model.branch):
+                dashboard_url = get_propose_downstream_info_url(model.id)
+                branch_errors += f"| `{model.branch}` | See {dashboard_url} |\n"
             body_msg = MSG_DOWNSTREAM_JOB_ERROR_HEADER.format(
                 object="pull-requests",
                 dist_git_url=self.packit_api.dg.local_project.git_url,
