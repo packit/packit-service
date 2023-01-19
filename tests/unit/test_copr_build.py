@@ -517,14 +517,14 @@ def test_get_job_config_index(package_config, job_config, result):
 @pytest.mark.parametrize(
     "is_custom_copr_project,copr_server_raise_exc,buildopts",
     [
-        (True, True, {"chroots": [], "enable_net": True}),
-        (False, True, {"chroots": [], "enable_net": True}),
+        (True, True, {"chroots": [], "enable_net": False}),
+        (False, True, {"chroots": [], "enable_net": False}),
         (
             True,
             False,
-            {"chroots": [], "enable_net": True, "packit_forge_project": ""},
+            {"chroots": [], "enable_net": False, "packit_forge_project": ""},
         ),
-        (False, False, {"chroots": [], "enable_net": True}),
+        (False, False, {"chroots": [], "enable_net": False}),
     ],
 )
 def test_submit_copr_build(
