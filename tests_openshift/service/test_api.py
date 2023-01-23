@@ -587,10 +587,10 @@ def test_detailed_propose_info_issue(
         "events/release/events_handled",
         "jobs/srpm_builds/job_runs",
         "jobs/srpm_builds/top_projects_by_job_runs",
-        "jobs/copr_build_targets/job_runs",
-        "jobs/copr_build_targets/top_projects_by_job_runs",
-        "jobs/copr_build_targets/per_event/pull_request/job_runs",
-        "jobs/copr_build_targets/per_event/pull_request/top_projects_by_job_runs",
+        "jobs/copr_build_groups/job_runs",
+        "jobs/copr_build_groups/top_projects_by_job_runs",
+        "jobs/copr_build_groups/per_event/pull_request/job_runs",
+        "jobs/copr_build_groups/per_event/pull_request/top_projects_by_job_runs",
     ],
 )
 def test_usage_info_structure(
@@ -644,18 +644,18 @@ def test_usage_info_top(client, clean_before_and_after, full_database):
             "jobs/srpm_builds/top_projects_by_job_runs",
             {"https://github.com/the-namespace/the-repo-name": 13},
         ),
-        ("jobs/copr_build_targets/job_runs", 14),
+        ("jobs/copr_build_groups/job_runs", 13),
         (
-            "jobs/copr_build_targets/top_projects_by_job_runs",
-            {"https://github.com/the-namespace/the-repo-name": 14},
+            "jobs/copr_build_groups/top_projects_by_job_runs",
+            {"https://github.com/the-namespace/the-repo-name": 13},
         ),
         (
-            "jobs/copr_build_targets/per_event/pull_request/job_runs",
-            10,
+            "jobs/copr_build_groups/per_event/pull_request/job_runs",
+            9,
         ),
         (
-            "jobs/copr_build_targets/per_event/pull_request/top_projects_by_job_runs",
-            {"https://github.com/the-namespace/the-repo-name": 10},
+            "jobs/copr_build_groups/per_event/pull_request/top_projects_by_job_runs",
+            {"https://github.com/the-namespace/the-repo-name": 9},
         ),
     ],
 )
@@ -706,24 +706,24 @@ def test_project_usage_info(
         )
         == 1
     )
-    assert nested_get(response_dict, "jobs", "tft_test_run_targets", "job_runs") == 6
-    assert nested_get(response_dict, "jobs", "tft_test_run_targets", "position") == 1
+    assert nested_get(response_dict, "jobs", "tft_test_run_groups", "job_runs") == 5
+    assert nested_get(response_dict, "jobs", "tft_test_run_groups", "position") == 1
     assert (
         nested_get(
             response_dict,
             "jobs",
-            "tft_test_run_targets",
+            "tft_test_run_groups",
             "per_event",
             "pull_request",
             "job_runs",
         )
-        == 5
+        == 4
     )
     assert (
         nested_get(
             response_dict,
             "jobs",
-            "tft_test_run_targets",
+            "tft_test_run_groups",
             "per_event",
             "pull_request",
             "position",
