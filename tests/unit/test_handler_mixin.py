@@ -23,8 +23,11 @@ def test_GetKojiBuildDataFromKojiServiceMixin():
             )
             self.data = flexmock(pr_id="123")
 
+    flexmock(KojiHelper).should_receive("get_candidate_tag").with_args(
+        "a_branch"
+    ).and_return("a_tag")
     flexmock(KojiHelper).should_receive("get_latest_build_in_tag").with_args(
-        package="a_repo", tag="a_branch"
+        package="a_repo", tag="a_tag"
     ).and_return({"nvr": "1.0.0", "state": 1, "build_id": 123})
     mixin = Test()
     data = []
@@ -82,11 +85,17 @@ def test_GetKojiBuildDataFromKojiServiceMultipleBranches():
         def branches(self):
             return ["f37", "f38"]
 
+    flexmock(KojiHelper).should_receive("get_candidate_tag").with_args(
+        "f37"
+    ).and_return("f37-updates-candidate")
     flexmock(KojiHelper).should_receive("get_latest_build_in_tag").with_args(
-        package="a repo", tag="f37"
+        package="a repo", tag="f37-updates-candidate"
     ).and_return({"nvr": "1.0.1", "state": 1, "build_id": 123})
+    flexmock(KojiHelper).should_receive("get_candidate_tag").with_args(
+        "f38"
+    ).and_return("f38-updates-candidate")
     flexmock(KojiHelper).should_receive("get_latest_build_in_tag").with_args(
-        package="a repo", tag="f38"
+        package="a repo", tag="f38-updates-candidate"
     ).and_return({"nvr": "1.0.2", "state": 1, "build_id": 1234})
 
     mixin = Test()
