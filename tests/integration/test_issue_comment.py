@@ -325,19 +325,25 @@ def test_issue_comment_retrigger_bodhi_update_handler(
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="f38",
         update_type="enhancement",
-        koji_builds=["python-teamcity-messages.f38"],
+        koji_builds=["python-teamcity-messages.fc38"],
     )
+    flexmock(KojiHelper).should_receive("get_candidate_tag").with_args(
+        "f38"
+    ).and_return("f38-updates-candidate")
     flexmock(KojiHelper).should_receive("get_latest_build_in_tag").with_args(
-        package="python-teamcity-messages", tag="f38"
-    ).and_return({"nvr": "python-teamcity-messages.f38", "build_id": 2, "state": 1})
+        package="python-teamcity-messages", tag="f38-updates-candidate"
+    ).and_return({"nvr": "python-teamcity-messages.fc38", "build_id": 2, "state": 1})
     flexmock(PackitAPI).should_receive("create_update").with_args(
         dist_git_branch="f37",
         update_type="enhancement",
-        koji_builds=["python-teamcity-messages.f37"],
+        koji_builds=["python-teamcity-messages.fc37"],
     )
+    flexmock(KojiHelper).should_receive("get_candidate_tag").with_args(
+        "f37"
+    ).and_return("f37-updates-candidate")
     flexmock(KojiHelper).should_receive("get_latest_build_in_tag").with_args(
-        package="python-teamcity-messages", tag="f37"
-    ).and_return({"nvr": "python-teamcity-messages.f37", "build_id": 1, "state": 1})
+        package="python-teamcity-messages", tag="f37-updates-candidate"
+    ).and_return({"nvr": "python-teamcity-messages.fc37", "build_id": 1, "state": 1})
 
     results = run_issue_comment_retrigger_bodhi_update(
         package_config=package_config,

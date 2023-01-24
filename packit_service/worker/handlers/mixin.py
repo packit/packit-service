@@ -192,7 +192,7 @@ class GetKojiBuildDataFromKojiService(Config, GetKojiBuildData):
         if not self._build:
             self._build = self.koji_helper.get_latest_build_in_tag(
                 package=self.project.repo,
-                tag=self._dist_git_branch,
+                tag=self.koji_helper.get_candidate_tag(self._dist_git_branch),
             )
             if not self._build:
                 raise PackitException(
@@ -237,7 +237,7 @@ class GetKojiBuildDataFromKojiServiceMultipleBranches(
         # call it every time since dist_git_branch reference can change
         build = self.koji_helper.get_latest_build_in_tag(
             package=self.project.repo,
-            tag=self._dist_git_branch,
+            tag=self.koji_helper.get_candidate_tag(self._dist_git_branch),
         )
         if not build:
             raise PackitException(
