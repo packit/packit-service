@@ -288,12 +288,17 @@ class GetBranchesFromIssueMixin(Config, GetBranches):
 
         You can retrigger the update by adding a comment (`/packit propose-downstream`) into this issue.
         """
-        branches = []
+        branches = set()
+        branch_regex = re.compile(r"\s*\| `(\S+)` \|")
         issue = self.data.project.get_issue(self.data.issue_id)
         for line in issue.description.splitlines():
-            if m := re.match(r"\s*\| `(\S+)` \|", line):
-                branches.append(m[1])
-        return branches
+            if m := branch_regex.match(line):
+                branches.add(m[1])
+        for comment in issue.get_comments():
+            for line in comment.body.splitlines():
+                if m := branch_regex.match(line):
+                    branches.add(m[1])
+        return list(branches)
 
 
 class GetVMImageBuilder(Protocol):
