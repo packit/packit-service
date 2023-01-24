@@ -193,6 +193,13 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         return self.job_build.list_on_homepage if self.job_build else None
 
     @property
+    def module_hotfixes(self) -> Optional[bool]:
+        """
+        If the project will generate repo files with module_hotfixes=1.
+        """
+        return self.job_build.module_hotfixes if self.job_build else None
+
+    @property
     def additional_repos(self) -> Optional[List[str]]:
         """
         Additional repos that will be enabled for copr build.
@@ -738,6 +745,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 additional_repos=self.additional_repos,
                 request_admin_if_needed=True,
                 targets_dict=self.job_config.targets_dict,
+                module_hotfixes=self.module_hotfixes if overwrite_booleans else None,
             )
         except PackitCoprSettingsException as ex:
             # notify user first, PR if exists, commit comment otherwise
