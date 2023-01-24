@@ -174,7 +174,7 @@ check-db: build-test-image compose-for-db-up
 		-v $(CURDIR)/secrets/packit/dev/privkey.pem:/secrets/privkey.pem:ro,z \
 		-w /src \
 		--network packit-service_default \
-		$(TEST_IMAGE) make check "TEST_TARGET=tests_openshift/database"
+		$(TEST_IMAGE) make check "TEST_TARGET=tests_openshift/database tests_openshift/service"
 		$(COMPOSE) down
 
 .PHONY: build-revdep-test-image
