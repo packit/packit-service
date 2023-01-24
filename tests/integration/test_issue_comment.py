@@ -276,7 +276,8 @@ Packit failed on creating pull-requests in dist-git (https://src.fedoraproject.o
 | `f37` | `` |
 | `f38` | `` |
 You can retrigger the update by adding a comment (`/packit propose-downstream`) into this issue.
-    """
+        """,
+        get_comments=lambda: [],
     )
     project = (
         flexmock(GithubProject).should_receive("get_issue").and_return(issue).mock()

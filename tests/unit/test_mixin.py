@@ -58,7 +58,7 @@ def test_GetVMImageDataMixin(fake_package_config_job_config_project_db_trigger):
 
 
 @pytest.mark.parametrize(
-    "desc,branches",
+    "desc,comments,branches",
     [
         (
             """
@@ -67,6 +67,7 @@ def test_GetVMImageDataMixin(fake_package_config_job_config_project_db_trigger):
         | `f37` | `` |
         | `f38` | `` |
             """,
+            [],
             ["f37", "f38"],
         ),
         (
@@ -76,21 +77,44 @@ def test_GetVMImageDataMixin(fake_package_config_job_config_project_db_trigger):
 | `f37` | `` |
 | `f38` | `` |
             """,
+            [],
+            ["f37", "f38"],
+        ),
+        (
+            """
+        | dist-git branch | error |
+        | --------------- | ----- |
+        | `f37` | `` |
+            """,
+            [
+                """
+    | dist-git branch | error |
+    | --------------- | ----- |
+    | `f38` | `` |
+                """,
+                "random comment",
+            ],
             ["f37", "f38"],
         ),
         (
             "",
             [],
+            [],
         ),
     ],
 )
-def test_GetBranchesFromIssueMixin(desc, branches):
+def test_GetBranchesFromIssueMixin(desc, comments, branches):
     class Test(GetBranchesFromIssueMixin):
         def __init__(self) -> None:
             project = (
                 flexmock()
                 .should_receive("get_issue")
-                .and_return(flexmock(description=desc))
+                .and_return(
+                    flexmock(
+                        description=desc,
+                        get_comments=lambda: [flexmock(body=c) for c in comments],
+                    )
+                )
                 .mock()
             )
             self.data = flexmock(project=project, issue_id=1)
@@ -108,7 +132,7 @@ def test_GetBranchesFromIssueMixin(desc, branches):
             return ""
 
     mixin = Test()
-    assert mixin.branches == branches
+    assert set(mixin.branches) == set(branches)
 
 
 def test_ConfigFromDistGitUrlMixin():
