@@ -146,54 +146,6 @@ class Allowlist:
         logger.debug("github_username not set.")
         return False
 
-    def add_namespace(self, namespace: str, sender_login: str) -> bool:
-        """
-        Add namespace to the allowlist with `waiting` status if it is not in there already.
-
-        Args:
-            namespace (str): Namespace to be added in format of: `github.com/namespace`
-                or `github.com/namespace/repo.git`.
-
-            sender_login: Login of the user that will be checked for be match
-                            against info from FAS.
-
-        Returns:
-            `True` if account is already in our allowlist or the automatic check
-             for match was successful. `False` otherwise.
-        """
-        if AllowlistModel.get_namespace(namespace):
-            return True
-
-        AllowlistModel.add_namespace(namespace, AllowlistStatus.waiting.value)
-
-        return self.verify_fas(
-            namespace=namespace, sender_login=sender_login, fas_account=sender_login
-        )
-
-    def verify_fas(self, namespace: str, sender_login: str, fas_account: str) -> bool:
-        """
-        Verify that github_username in FAS account matches the sender_login.
-
-        Args:
-                namespace: namespace to be approved if the check succeeds
-                sender_login: Login of the user that will be checked for be match
-                            against info from FAS.
-                fas_account: FAS account from which we will get the info.
-
-        Returns:
-             Whether the check was successful and a match was found.
-        """
-        if self.is_github_username_from_fas_account_matching(
-            fas_account=fas_account, sender_login=sender_login
-        ):
-            # store the fas account in the DB for the namespace
-            AllowlistModel.add_namespace(
-                namespace, AllowlistStatus.approved_automatically.value, fas_account
-            )
-            return True
-
-        return False
-
     @staticmethod
     def approve_namespace(namespace: str):
         """

@@ -13,10 +13,13 @@ from packit.config import (
     Deployment,
 )
 from packit.config.package_config import PackageConfig
+from packit_service.config import PackageConfigGetter
 from packit_service.worker.mixin import ConfigFromEventMixin
 from packit_service.constants import CONTACTS_URL, DOCS_APPROVAL_URL, NOTIFICATION_REPO
 from packit_service.models import (
     GithubInstallationModel,
+    AllowlistModel,
+    AllowlistStatus,
 )
 from packit_service.utils import get_packit_commands_from_comment
 from packit_service.worker.allowlist import Allowlist
@@ -84,15 +87,29 @@ class GithubAppInstallationHandler(JobHandler, ConfigFromEventMixin):
         # if the namespace was not on our allowlist (in any state) or
         # the app was reinstalled by someone else than previously
         # and the namespace was not approved, create an issue in notifications repo
-        if not allowlist.add_namespace(namespace, self.sender_login) or (
+        existing_allowlist_entry = AllowlistModel.get_namespace(namespace)
+        if not existing_allowlist_entry or (
             previous_installation is not None
             and not allowlist.is_approved(namespace)
             and previous_sender_login != self.sender_login
         ):
+            if allowlist.is_github_username_from_fas_account_matching(
+                fas_account=self.sender_login, sender_login=self.sender_login
+            ):
+                AllowlistModel.add_namespace(
+                    namespace,
+                    AllowlistStatus.approved_automatically.value,
+                    self.sender_login,
+                )
+                msg = f"Account {self.account_login} approved automatically."
+                logger.debug(msg)
+                return TaskResults(success=True, details={"msg": msg})
+
             # Create an issue in our repository, so we are notified when someone install the app
-            self.project.create_issue(
+            PackageConfigGetter.create_issue_if_needed(
+                project=self.project,
                 title=f"{self.account_type} {self.account_login} needs to be approved.",
-                body=(
+                message=(
                     f"Hi @{self.sender_login}, we need to approve you in "
                     f"order to start using Packit-as-a-Service"
                     f"{'-stg' if self.service_config.deployment == Deployment.stg else ''}. "
@@ -114,8 +131,10 @@ class GithubAppInstallationHandler(JobHandler, ConfigFromEventMixin):
                     "For more info, please check out the documentation: "
                     f"{DOCS_APPROVAL_URL}"
                 ),
+                add_packit_prefix=False,
             )
             msg = f"{self.account_type} {self.account_login} needs to be approved manually!"
+            AllowlistModel.add_namespace(namespace, AllowlistStatus.waiting.value)
         else:
             msg = (
                 f"{self.account_type} {self.account_login} is already on our allowlist."
@@ -204,8 +223,8 @@ class GithubFasVerificationHandler(JobHandler, GetIssueMixin):
             self.issue.close()
             return TaskResults(success=True, details={"msg": msg})
 
-        if allowlist.verify_fas(
-            namespace=namespace, sender_login=self.sender_login, fas_account=fas_account
+        if allowlist.is_github_username_from_fas_account_matching(
+            fas_account=fas_account, sender_login=self.sender_login
         ):
             msg = (
                 f"Namespace `{namespace}` approved successfully "
@@ -214,6 +233,11 @@ class GithubFasVerificationHandler(JobHandler, GetIssueMixin):
             logger.debug(msg)
             self.issue.comment(msg)
             self.issue.close()
+
+            # store the fas account in the DB for the namespace
+            AllowlistModel.add_namespace(
+                namespace, AllowlistStatus.approved_automatically.value, fas_account
+            )
 
         else:
             logger.debug(

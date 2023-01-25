@@ -264,7 +264,7 @@ def test_get_package_config_from_repo_not_found_exception_create_issue():
         (
             [
                 flexmock(title="Some random issue"),
-                flexmock(title="[packit] I was here"),
+                flexmock(id=3, title="[packit] I was here"),
                 flexmock(title="Many issues"),
             ],
             False,

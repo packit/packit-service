@@ -177,12 +177,13 @@ def test_vm_image_build_result_handler_ok(
     ).and_return(
         [
             flexmock(
+                status=None,
                 runs=[
                     flexmock()
                     .should_receive("get_trigger_object")
                     .and_return(db_trigger)
                     .mock()
-                ]
+                ],
             )
             .should_receive("set_status")
             .with_args("error")

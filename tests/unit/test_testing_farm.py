@@ -136,6 +136,7 @@ def test_testing_farm_response(
             job_trigger_model_type=JobTriggerModelType.pull_request,
         ),
         target="fedora-rawhide-x86_64",
+        status=None,
     )
     tft_test_run_model.should_receive("set_status").with_args(
         tests_result, created=created_dt

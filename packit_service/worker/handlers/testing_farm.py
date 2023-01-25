@@ -310,7 +310,14 @@ class TestingFarmResultsHandler(JobHandler, ConfigFromEventMixin):
             logger.warning(msg)
             return TaskResults(success=False, details={"msg": msg})
 
-        test_run_model.set_status(self.result, created=self.created)
+        if test_run_model.status == self.result:
+            logger.debug(
+                "Testing farm results already processed "
+                "(state in the DB is the same as the one about to report)."
+            )
+            return TaskResults(
+                success=True, details={"msg": "Testing farm results already processed"}
+            )
 
         if self.result == TestingFarmResult.running:
             status = BaseCommitStatus.running
@@ -358,5 +365,7 @@ class TestingFarmResultsHandler(JobHandler, ConfigFromEventMixin):
                 test_run_model.target, identifier=self.job_config.identifier
             ),
         )
+
+        test_run_model.set_status(self.result, created=self.created)
 
         return TaskResults(success=True, details={})
