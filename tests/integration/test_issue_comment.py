@@ -419,12 +419,13 @@ def test_issue_comment_retrigger_koji_build_error_msg(
     flexmock(CeleryTask).should_receive("is_last_try").and_return(True)
     error_msg = "error abc"
     dg = flexmock(local_project=flexmock(git_url="an url"))
-    packit_api = (
-        flexmock(dg=dg)
-        .should_receive("build")
-        .and_raise(PackitException, error_msg)
-        .mock()
-    )
+    packit_api = flexmock(dg=dg)
+    packit_api.should_receive("build").with_args(
+        dist_git_branch="f38", scratch=False, nowait=True, from_upstream=False
+    ).and_return()
+    packit_api.should_receive("build").with_args(
+        dist_git_branch="f37", scratch=False, nowait=True, from_upstream=False
+    ).and_raise(PackitException, error_msg)
     # flexmock(JobConfig).should_receive("issue_repository").and_return(
     #  "a repo"
     # )
