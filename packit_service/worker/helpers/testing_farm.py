@@ -16,6 +16,7 @@ from packit_service.constants import (
     CONTACTS_URL,
     TESTING_FARM_INSTALLABILITY_TEST_URL,
     TESTING_FARM_INSTALLABILITY_TEST_REF,
+    TESTING_FARM_EXTRA_PARAM_MERGED_SUBTREES,
     BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
 )
 from packit_service.models import (
@@ -314,6 +315,26 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         return fmf
 
+    @classmethod
+    def _merge_payload_with_extra_params(cls, payload: Any, params: Any):
+        def is_final(v):
+            return not isinstance(v, list) and not isinstance(v, dict)
+
+        if type(payload) != type(params):
+            # Incompatible types, no way to merge this
+            return
+
+        if isinstance(params, dict):
+            for key, value in params.items():
+                if key not in payload or is_final(value):
+                    payload[key] = value
+                elif not is_final(value):
+                    cls._merge_payload_with_extra_params(payload[key], params[key])
+
+        elif isinstance(params, list):
+            for payload_el, params_el in zip(payload, params):
+                cls._merge_payload_with_extra_params(payload_el, params_el)
+
     def _payload(
         self,
         target: str,
@@ -409,7 +430,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 "provisioning": {"post_install_script": self.tf_post_install_script}
             }
 
-        return {
+        payload = {
             "api_key": self.tft_token,
             "test": {
                 "fmf": fmf,
@@ -426,6 +447,23 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 },
             },
         }
+
+        if hasattr(self.job_config, "tf_extra_params"):
+            extra_params = self.job_config.tf_extra_params
+        else:
+            extra_params = {}
+        # Merge only some subtrees, we do not want the user to override notification or api_key!
+        for subtree in TESTING_FARM_EXTRA_PARAM_MERGED_SUBTREES:
+            if subtree not in extra_params:
+                continue
+            if subtree not in payload:
+                payload[subtree] = extra_params[subtree]
+            else:
+                self._merge_payload_with_extra_params(
+                    payload[subtree], extra_params[subtree]
+                )
+
+        return payload
 
     def _payload_install_test(self, build_id: int, target: str, compose: str) -> dict:
         """
