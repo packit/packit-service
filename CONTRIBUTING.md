@@ -123,7 +123,9 @@ Pull request changes are only supported right now. For more info:
 
 We use PostgreSQL as a persistent data store.
 
-Take a look at [alembic](https://alembic.sqlalchemy.org/en/latest/cookbook.html#building-uptodate),
+### Database migrations (Alembic)
+
+Take a look at [Alembic](https://alembic.sqlalchemy.org/en/latest/cookbook.html#building-uptodate),
 the project which handles migrations and schema versioning for SQLAlchemy.
 
 To generate a migration script for your recent change you can use docker or
@@ -220,6 +222,17 @@ Look inside a table
     ----+-----------+-----------
     (0 rows)
 
+### ER Diagram
+
+![ER Diagram](./files/ERDiagram.png)
+Beware, it might be outdated because it was generated manually
+([download DBeaver](https://dbeaver.io/download),
+[install](https://github.com/dbeaver/dbeaver/wiki/Installation),
+[connect to (local) postgres](https://github.com/dbeaver/dbeaver/wiki/Create-Connection),
+[see ER Diagram (tab) and export it](https://github.com/dbeaver/dbeaver/wiki/ER-Diagrams#diagram-export))
+and it's not automatically re-generated.
+For actual state see the [SQLAlchemy mappings (models)](packit_service/models.py).
+
 ### Using live data locally
 
 Here is a list of commands to run if you need a local database with real data from stg or prod:
@@ -266,10 +279,10 @@ We have multiple test categories within packit-service:
 - With these, we are making sure that tools we use run well inside [the non-standard OpenShift environment](.https://developers.redhat.com/blog/2016/10/21/understanding-openshift-security-context-constraints/)
 - [requre](https://github.com/packit/requre) and/or
   [flexmock](https://flexmock.readthedocs.io/en/latest/) is supposed to be
-  used to handle remote interactions and secrets so we don't touch production
+  used to handle remote interactions and secrets, so we don't touch production
   systems while running tests in CI
 
-4. End To End tests (so far we have none of these):
+4. End-To-End tests (so far we have none of these):
 
 - These tests run against a real deployment of packit-service.
 - It's expected to send real inputs inside the service and get actual results
@@ -296,9 +309,8 @@ Database tests can be run using a dedicated target.
 
     make check-db
 
-To run them you need docker-compose.
-Otherwise you can run the same using _Openshift_ and following
-the instructions below.
+To run them you need docker-compose. Otherwise, you can run the same
+using _Openshift_ and following the instructions below.
 
 ### Running "reverse-dep" tests locally
 
@@ -316,7 +328,7 @@ Once the image is built, run the tests in a container as usual:
 
 ### Openshift tests using requre
 
-This testsuite uses [requre project](https://github.com/packit/requre) project to
+This testsuite uses [requre project](https://github.com/packit/requre)
 to store and replay data for tests.
 
 #### General requirements
