@@ -10,6 +10,7 @@ from packit.api import PackitAPI
 from packit_service.worker.handlers.distgit import (
     ProposeDownstreamHandler,
     DownstreamKojiBuildHandler,
+    AbstractSyncReleaseHandler,
 )
 from packit_service.worker.events.event import EventData
 from packit_service.config import PackageConfigGetter
@@ -95,3 +96,21 @@ def test_retrigger_downstream_koji_build_pre_check(user_groups, data, check_pass
         None, flexmock(issue_repository=flexmock()), data_dict
     )
     assert result == check_passed
+
+
+def test_downstream_handler_init_order():
+    class Test(AbstractSyncReleaseHandler):
+        pass
+
+    handler = Test(None, None, {"event_type": "unknown"}, None)
+    assert handler.local_project
+
+
+def test_upstream_local_project_is_used():
+    class Test(AbstractSyncReleaseHandler):
+        pass
+
+    handler = Test(None, None, {"event_type": "unknown"}, None)
+    assert handler.packit_api
+    assert not handler.packit_api.downstream_local_project
+    assert handler.packit_api.upstream_local_project

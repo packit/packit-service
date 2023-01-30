@@ -50,6 +50,7 @@ from packit_service.worker.handlers.abstract import (
 from packit_service.worker.reporting import BaseCommitStatus
 from packit_service.worker.result import TaskResults
 from packit_service.worker.checker.koji import PermissionOnKoji
+from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.handlers.mixin import GetKojiBuildJobHelperMixin
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,9 @@ logger = logging.getLogger(__name__)
 @reacts_to(CheckRerunPullRequestEvent)
 @reacts_to(CheckRerunCommitEvent)
 @reacts_to(CheckRerunReleaseEvent)
-class KojiBuildHandler(JobHandler, GetKojiBuildJobHelperMixin):
+class KojiBuildHandler(
+    JobHandler, PackitAPIWithDownstreamMixin, GetKojiBuildJobHelperMixin
+):
     task_name = TaskName.upstream_koji_build
 
     def __init__(
@@ -100,7 +103,9 @@ class KojiBuildHandler(JobHandler, GetKojiBuildJobHelperMixin):
 @configured_as(job_type=JobType.production_build)
 @configured_as(job_type=JobType.upstream_koji_build)
 @reacts_to(event=KojiTaskEvent)
-class KojiTaskReportHandler(JobHandler, ConfigFromEventMixin):
+class KojiTaskReportHandler(
+    JobHandler, PackitAPIWithDownstreamMixin, ConfigFromEventMixin
+):
     task_name = TaskName.upstream_koji_build_report
 
     def __init__(
@@ -229,7 +234,9 @@ class KojiTaskReportHandler(JobHandler, ConfigFromEventMixin):
 @configured_as(job_type=JobType.koji_build)
 @configured_as(job_type=JobType.bodhi_update)
 @reacts_to(event=KojiBuildEvent)
-class KojiBuildReportHandler(JobHandler, ConfigFromEventMixin):
+class KojiBuildReportHandler(
+    JobHandler, PackitAPIWithDownstreamMixin, ConfigFromEventMixin
+):
     task_name = TaskName.downstream_koji_build_report
 
     def __init__(

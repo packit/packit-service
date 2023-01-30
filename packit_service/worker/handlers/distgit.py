@@ -133,8 +133,8 @@ class SyncFromDownstream(
 class AbstractSyncReleaseHandler(
     RetriableJobHandler,
     ConfigFromEventMixin,
-    PackitAPIWithUpstreamMixin,
     LocalProjectMixin,
+    PackitAPIWithUpstreamMixin,
 ):
     helper_kls: type[SyncReleaseHelper]
     sync_release_job_type: SyncReleaseJobType

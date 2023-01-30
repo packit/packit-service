@@ -59,6 +59,7 @@ from packit_service.worker.handlers.abstract import (
     run_for_check_rerun,
     RetriableJobHandler,
 )
+from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.handlers.mixin import (
     GetCoprBuildEventMixin,
     GetCoprBuildJobHelperForIdMixin,
@@ -85,7 +86,9 @@ logger = logging.getLogger(__name__)
 @reacts_to(CheckRerunPullRequestEvent)
 @reacts_to(CheckRerunCommitEvent)
 @reacts_to(CheckRerunReleaseEvent)
-class CoprBuildHandler(RetriableJobHandler, GetCoprBuildJobHelperMixin):
+class CoprBuildHandler(
+    RetriableJobHandler, PackitAPIWithDownstreamMixin, GetCoprBuildJobHelperMixin
+):
     task_name = TaskName.copr_build
 
     def __init__(
@@ -111,7 +114,10 @@ class CoprBuildHandler(RetriableJobHandler, GetCoprBuildJobHelperMixin):
 
 
 class AbstractCoprBuildReportHandler(
-    JobHandler, GetCoprBuildJobHelperForIdMixin, GetCoprBuildEventMixin
+    JobHandler,
+    PackitAPIWithDownstreamMixin,
+    GetCoprBuildJobHelperForIdMixin,
+    GetCoprBuildEventMixin,
 ):
     @staticmethod
     def get_checkers() -> Tuple[Type[Checker], ...]:
