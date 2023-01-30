@@ -35,7 +35,7 @@ e.g.
     docker-compose build --build-arg SOURCE_BRANCH=stable
 
 If SOURCE_BRANCH is empty build will fail.
-If SOURCE_BRANCH is not empty and is not main or stable than main value will be used.
+If SOURCE_BRANCH is not empty and is not `main` or `stable` then `main` value will be used.
 
 ## Running packit-service locally
 
@@ -224,15 +224,16 @@ Look inside a table
 
 Here is a list of commands to run if you need a local database with real data from stg or prod:
 
-1. Obtain a DB dump: `oc rsh $POSTGRES_POD pg_dump packit >dump-$ENV-$DATE.sql`
+1. Obtain a DB dump, either:
 
-2. Load them into your local postgres instance:
+- `oc rsh $POSTGRES_POD pg_dump packit >dump-$ENV-$DATE.sql` or
+- from backups in [AWS](https://auth.redhat.com/auth/realms/EmployeeIDP/protocol/saml/clients/itaws), `arr-packit-[prod|stg]` S3 bucket
+
+2. Load it into your local postgres instance:
 
    1. Create a database named packit and owned by the packit user: `postgres=# create database packit owner=packit;`
-
    2. Copy the dump file into the database container: `podman cp ./dump-$ENV-$DATE.sql postgres:/tmp`
       This is a more reliable option than a direct load from your local filesystem.
-
    3. Load the dump as a packit user `psql -U packit -d packit < /tmp/dump-$ENV-$DATE.sql`
       It's important to do this as a packit user because that's how worker and service pods connect.
 
