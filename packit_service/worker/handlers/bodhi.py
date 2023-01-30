@@ -9,7 +9,6 @@ import abc
 from typing import Tuple, Type
 
 from celery import Task
-from fedora.client import AuthError
 
 from packit.config import JobConfig, JobType, PackageConfig
 from packit.exceptions import PackitException
@@ -17,7 +16,6 @@ from packit_service.constants import (
     MSG_RETRIGGER,
     MSG_GET_IN_TOUCH,
     MSG_DOWNSTREAM_JOB_ERROR_HEADER,
-    RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED,
 )
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.bodhi import (
@@ -93,15 +91,9 @@ class BodhiUpdateHandler(
         except PackitException as ex:
             logger.debug(f"Bodhi update failed to be created: {ex}")
 
-            if isinstance(ex.__cause__, AuthError):
-                body = self._error_message_for_auth_error(ex, koji_build_data)
-                notify = True
-                known_error = True
-            else:
-                body = f"``` {ex} ```"
-                # Notify user just on the last run.
-                notify = self.celery_task.is_last_try()
-                known_error = False
+            body = f"``` {ex} ```"
+            # Notify user just on the last run.
+            notify = self.celery_task.is_last_try()
 
             if notify:
                 self.report_in_issue_repository(
@@ -110,9 +102,8 @@ class BodhiUpdateHandler(
             else:
                 logger.debug("User will not be notified about the failure.")
 
-            if not known_error:
-                # This will cause `autoretry_for` mechanism to re-trigger the celery task.
-                raise ex
+            # This will cause `autoretry_for` mechanism to re-trigger the celery task.
+            raise ex
 
         # `success=True` for all known errors
         # (=The task was correctly processed.)
@@ -158,37 +149,6 @@ class BodhiUpdateHandler(
             message=body_msg,
             comment_to_existing=body_msg,
         )
-
-    def _error_message_for_auth_error(
-        self, ex: PackitException, koji_build_data: KojiBuildData
-    ) -> str:
-        body = (
-            f"Bodhi update creation failed for `{koji_build_data.nvr}` "
-            f"because of the missing permissions. "
-            f"Please, give {self.service_config.fas_user} user `commit` rights in the "
-            f"[dist-git settings]({self.data.project_url}/adduser). "
-        )
-
-        body += (
-            f"*Try {self.celery_task.retries + 1}/"
-            f"{self.celery_task.get_retry_limit() + 1}."
-        )
-
-        # Notify user on each task run and set a more generous retry interval
-        # to let the user fix this issue in the meantime.
-        if not self.celery_task.is_last_try():
-            body += (
-                f" Task will be retried in "
-                f"{RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED} minutes.*"
-            )
-            self.celery_task.retry(
-                delay=RETRY_INTERVAL_IN_MINUTES_WHEN_USER_ACTION_IS_NEEDED * 60,
-                ex=ex,
-            )
-        else:
-            body += "*"
-
-        return body
 
 
 @configured_as(job_type=JobType.bodhi_update)
