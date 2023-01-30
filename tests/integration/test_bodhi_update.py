@@ -7,7 +7,6 @@ import pytest
 from celery import Task
 from celery.canvas import Signature
 from celery.exceptions import Retry
-from fedora.client import AuthError
 from flexmock import flexmock
 
 from ogr.services.github import GithubProject
@@ -447,113 +446,6 @@ def test_bodhi_update_build_not_tagged_yet(
         event=event_dict,
         job_config=job_config,
     )
-    assert first_dict_value(results["job"])["success"]
-
-
-def test_bodhi_update_auth_error(
-    koji_build_completed_old_format,
-):
-
-    packit_yaml = (
-        "{'specfile_path': 'packit.spec',"
-        "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update',"
-        "'metadata': {'dist_git_branches': ['rawhide']}}],"
-        "'downstream_package_name': 'packit',"
-        "'issue_repository': 'https://github.com/namespace/project'}"
-    )
-    pagure_project_mock = flexmock(
-        PagureProject,
-        full_repo_name="rpms/packit",
-        get_web_url=lambda: "https://src.fedoraproject.org/rpms/packit",
-        default_branch="main",
-    )
-    pagure_project_mock.should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
-    ).and_return(["packit.spec"])
-    pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
-    ).and_return(packit_yaml)
-
-    flexmock(LocalProject, refresh_the_arguments=lambda: None)
-    # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
-    flexmock(Signature).should_receive("apply_async").times(2)
-    flexmock(Pushgateway).should_receive("push").once().and_return()
-
-    # Packit doesn't have permissions to create an update, hence the AuthError
-    bodhi_exception = PackitException("packit exception")
-    bodhi_exception.__cause__ = AuthError("auth error")
-    flexmock(PackitAPI).should_receive("create_update").with_args(
-        dist_git_branch="rawhide",
-        update_type="enhancement",
-        koji_builds=["packit-0.43.0-1.fc36"],
-    ).and_raise(bodhi_exception)
-    dg = flexmock(local_project=flexmock(git_url="https://src.fedoraproject.org/rpms"))
-    flexmock(PackitAPI).should_receive("dg").and_return(dg)
-
-    issue_project_mock = flexmock(GithubProject)
-    issue_project_mock.should_receive("get_issue_list").and_return([]).once()
-    issue_project_mock.should_receive("create_issue").with_args(
-        title="[packit] Fedora Bodhi update failed to be created",
-        body=(
-            "Packit failed on creating Bodhi update in dist-git "
-            "(https://src.fedoraproject.org/rpms):\n\n"
-            "| dist-git branch | error |\n| --------------- | ----- |\n"
-            "| `rawhide` | Bodhi update creation failed for `packit-0.43.0-1.fc36` "
-            "because of the missing permissions. "
-            "Please, give packit user `commit` rights in the [dist-git settings]"
-            "(https://src.fedoraproject.org/rpms/packit/adduser). *Try 1/6. "
-            "Task will be retried in 10 minutes.* |\n\n"
-            "Fedora Bodhi update was triggered by Koji build packit-0.43.0-1.fc36.\n\n"
-            "You can retrigger the update by adding a comment (`/packit create-update`) "
-            "into this issue.\n\n---\n\n*"
-            "Get in [touch with us](https://packit.dev/#contact) if you need some help.*\n"
-        ),
-    ).and_return(
-        flexmock(id=3, url="https://github.com/namespace/project/issues/3")
-    ).once()
-
-    # Database structure
-    run_model_flexmock = flexmock()
-    git_branch_model_flexmock = flexmock(
-        id=1, job_config_trigger_type=JobConfigTriggerType.commit
-    )
-    flexmock(KojiBuildTargetModel).should_receive("get_by_build_id").with_args(
-        build_id=1864700
-    ).and_return(None)
-    flexmock(GitBranchModel).should_receive("get_or_create").and_return(
-        git_branch_model_flexmock
-    )
-    flexmock(PipelineModel).should_receive("create").and_return(run_model_flexmock)
-    flexmock(KojiBuildTargetModel).should_receive("create").with_args(
-        build_id="1864700",
-        commit_sha="0eb3e12005cb18f15d3054020f7ac934c01eae08",
-        web_url="https://koji.fedoraproject.org/koji/taskinfo?taskID=79721403",
-        target="noarch",
-        status="COMPLETE",
-        run_model=run_model_flexmock,
-    ).and_return(flexmock(get_trigger_object=lambda: git_branch_model_flexmock))
-
-    flexmock(Task).should_receive("retry").and_return().once()
-    flexmock(CeleryTask).should_call("retry").with_args(
-        ex=bodhi_exception, delay=600
-    ).once()
-
-    processing_results = SteveJobs().process_message(koji_build_completed_old_format)
-    # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
-    assert len(processing_results) == 2
-    processing_results.pop()
-    event_dict, job, job_config, package_config = get_parameters_from_results(
-        processing_results
-    )
-    results = run_bodhi_update(
-        package_config=package_config,
-        event=event_dict,
-        job_config=job_config,
-    )
-
     assert first_dict_value(results["job"])["success"]
 
 
