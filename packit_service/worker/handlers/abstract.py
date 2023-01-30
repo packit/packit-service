@@ -33,7 +33,7 @@ from packit_service.worker.checker.abstract import Checker
 
 from packit_service.worker.mixin import (
     Config,
-    PackitAPIWithDownstreamMixin,
+    PackitAPIProtocol,
 )
 
 logger = logging.getLogger(__name__)
@@ -219,7 +219,7 @@ class TaskName(str, enum.Enum):
     pull_from_upstream = "pull_from_upstream"
 
 
-class Handler(PackitAPIWithDownstreamMixin, Config):
+class Handler(PackitAPIProtocol, Config):
     def run(self) -> TaskResults:
         raise NotImplementedError("This should have been implemented.")
 

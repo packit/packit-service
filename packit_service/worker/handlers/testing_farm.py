@@ -59,6 +59,7 @@ from packit_service.worker.handlers.mixin import (
     GetCoprBuildMixin,
     GetTestingFarmJobHelperMixin,
 )
+from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.handlers.mixin import GetGithubCommentEventMixin
 
 logger = logging.getLogger(__name__)
@@ -79,6 +80,7 @@ logger = logging.getLogger(__name__)
 @configured_as(job_type=JobType.tests)
 class TestingFarmHandler(
     RetriableJobHandler,
+    PackitAPIWithDownstreamMixin,
     GetTestingFarmJobHelperMixin,
     GetCoprBuildMixin,
     GetGithubCommentEventMixin,
@@ -261,7 +263,9 @@ class TestingFarmHandler(
 
 @configured_as(job_type=JobType.tests)
 @reacts_to(event=TestingFarmResultsEvent)
-class TestingFarmResultsHandler(JobHandler, ConfigFromEventMixin):
+class TestingFarmResultsHandler(
+    JobHandler, ConfigFromEventMixin, PackitAPIWithDownstreamMixin
+):
     __test__ = False
     task_name = TaskName.testing_farm_results
 

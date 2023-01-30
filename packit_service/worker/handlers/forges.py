@@ -34,14 +34,16 @@ from packit_service.worker.handlers.abstract import (
     TaskName,
     reacts_to,
 )
-from packit_service.worker.mixin import GetIssueMixin
+from packit_service.worker.mixin import GetIssueMixin, PackitAPIWithDownstreamMixin
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 
 
 @reacts_to(event=InstallationEvent)
-class GithubAppInstallationHandler(JobHandler, ConfigFromEventMixin):
+class GithubAppInstallationHandler(
+    JobHandler, ConfigFromEventMixin, PackitAPIWithDownstreamMixin
+):
     task_name = TaskName.installation
 
     # https://developer.github.com/v3/activity/events/types/#events-api-payload-28
@@ -145,7 +147,9 @@ class GithubAppInstallationHandler(JobHandler, ConfigFromEventMixin):
 
 
 @reacts_to(event=IssueCommentEvent)
-class GithubFasVerificationHandler(JobHandler, GetIssueMixin):
+class GithubFasVerificationHandler(
+    JobHandler, PackitAPIWithDownstreamMixin, GetIssueMixin
+):
     task_name = TaskName.github_fas_verification
 
     def __init__(
