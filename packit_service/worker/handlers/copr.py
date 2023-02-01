@@ -311,8 +311,8 @@ class CoprBuildEndHandler(AbstractCoprBuildReportHandler):
         self.measure_time_after_reporting()
 
         self.set_built_packages()
-        self.handle_testing_farm()
         self.build.set_status(BuildStatus.success)
+        self.handle_testing_farm()
 
         return TaskResults(success=True, details={})
 
