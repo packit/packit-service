@@ -34,3 +34,6 @@ beat_schedule = {
 # http://mher.github.io/flower/prometheus-integration.html#set-up-your-celery-application
 worker_send_task_events = True
 task_send_sent_event = True
+
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#std-setting-task_time_limit
+task_time_limit = 900  # 15 min
