@@ -421,6 +421,10 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         Run copr build using custom source method.
         """
+        self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
+            commit_sha=self.metadata.commit_sha,
+            trigger_model=self.db_trigger,
+        )
         group = self._get_or_create_build_group(True)
         try:
             pr_id = self.metadata.pr_id
@@ -439,13 +443,9 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             build_id, web_url = self.submit_copr_build(script=script)
         except Exception as ex:
             return self.handle_build_submit_error(group, ex)
-
-        self._srpm_model, self.run_model = SRPMBuildModel.create_with_new_run(
-            copr_build_id=str(build_id),
-            commit_sha=self.metadata.commit_sha,
-            trigger_model=self.db_trigger,
-            copr_web_url=web_url,
-        )
+        else:
+            self._srpm_model.set_copr_build_id(str(build_id))
+            self._srpm_model.set_copr_web_url(web_url)
 
         self.report_status_to_all(
             description="SRPM build in Copr was submitted...",

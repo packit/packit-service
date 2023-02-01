@@ -263,7 +263,11 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
     )
     flexmock(SRPMBuildModel).should_receive("create_with_new_run").and_return(
         (
-            flexmock(status="success", id=1),
+            flexmock(status="success", id=1)
+            .should_receive("set_copr_build_id")
+            .mock()
+            .should_receive("set_copr_web_url")
+            .mock(),
             flexmock(),
         )
     )
