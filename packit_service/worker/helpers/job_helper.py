@@ -166,8 +166,11 @@ class BaseJobHelper:
             self.request_project_access()
             description = (
                 f"{description}\n\n---\n*Packit-User does not have access to the "
-                "source project. We have requested access to be able to set "
-                "commit statuses / pipelines instead of the comments.*"
+                "source project (=usually author's fork of the project). "
+                "We have requested access to be able to set "
+                "commit statuses / pipelines instead of the comments. "
+                "(This is only about the representation of the results. "
+                "Packit is still able to do its job without having the permissions.)*"
             )
 
             final_commit_states = (
