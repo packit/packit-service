@@ -30,6 +30,7 @@ from packit_service.models import (
     KojiBuildTargetModel,
     SRPMBuildModel,
     TFTTestRunTargetModel,
+    TFTTestRunGroupModel,
     TestingFarmResult,
     BuildStatus,
 )
@@ -649,15 +650,31 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         "https://github.com/foo/bar"
     )
 
-    tft_test_run_model = flexmock(id=5)
+    tft_test_run_model = (
+        flexmock(
+            id=5,
+            copr_builds=[copr_build_pr],
+            status=TestingFarmResult.new,
+            target="fedora-rawhide-x86_64",
+        )
+        .should_receive("set_pipeline_id")
+        .with_args(pipeline_id)
+        .once()
+        .mock()
+    )
+    group = flexmock(grouped_targets=[tft_test_run_model])
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [copr_build_pr.group_of_targets.runs[-1]]
+    ).and_return(group)
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
-        pipeline_id=pipeline_id,
+        pipeline_id=None,
         identifier=None,
         commit_sha="0011223344",
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
         web_url=None,
-        run_models=[copr_build_pr.runs[0]],
+        test_run_group=group,
+        copr_build_targets=[copr_build_pr],
         data={"base_project_url": "https://github.com/foo/bar"},
     ).and_return(tft_test_run_model)
 
@@ -955,6 +972,20 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         markdown_content=None,
     ).once()
 
+    test = (
+        flexmock(
+            status=TestingFarmResult.new,
+            copr_builds=[copr_build_pr],
+            target="fedora-rawhide-x86_64",
+        )
+        .should_receive("set_status")
+        .with_args(TestingFarmResult.error)
+        .mock()
+    )
+    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test)
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [copr_build_pr.group_of_targets.runs[-1]]
+    ).and_return(flexmock(grouped_targets=[test]))
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
     flexmock(TestingFarmJobHelper).should_receive("distro2compose").with_args(
         "fedora-rawhide-x86_64"
@@ -1117,6 +1148,22 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         markdown_content=None,
     ).once()
 
+    test = (
+        flexmock(
+            status=TestingFarmResult.new,
+            copr_builds=[copr_build_pr],
+            target="fedora-rawhide-x86_64",
+        )
+        .should_receive("set_status")
+        .with_args(TestingFarmResult.error)
+        .mock()
+    )
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [copr_build_pr.group_of_targets.runs[-1]]
+    ).and_return(flexmock(grouped_targets=[test]))
+    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(
+        flexmock(status=test)
+    )
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
     flexmock(TestingFarmJobHelper).should_receive("distro2compose").with_args(
         "fedora-rawhide-x86_64"

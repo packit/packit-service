@@ -6,7 +6,12 @@ from logging import getLogger
 
 from flask_restx import Namespace, Resource
 
-from packit_service.models import CoprBuildTargetModel, optional_timestamp, BuildStatus
+from packit_service.models import (
+    CoprBuildTargetModel,
+    optional_timestamp,
+    BuildStatus,
+    CoprBuildGroupModel,
+)
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import get_project_info_from_build, response_maker
 
@@ -95,9 +100,38 @@ class CoprBuildItem(Resource):
             "copr_project": build.project_name,
             "copr_owner": build.owner,
             "srpm_build_id": build.get_srpm_build().id,
-            "run_ids": sorted(run.id for run in build.runs),
+            "run_ids": sorted(run.id for run in build.group_of_targets.runs),
             "built_packages": build.built_packages,
         }
 
         build_dict.update(get_project_info_from_build(build))
         return response_maker(build_dict)
+
+
+@ns.route("/groups/<int:id>")
+@ns.param("id", "Packit id of the copr build group")
+class CoprBuildGroup(Resource):
+    @ns.response(HTTPStatus.OK, "OK, copr build group details follow")
+    @ns.response(
+        HTTPStatus.NOT_FOUND.value, "No info about koji build group stored in DB"
+    )
+    def get(self, id):
+        """A specific test run details."""
+        group_model = CoprBuildGroupModel.get_by_id(int(id))
+
+        if not group_model:
+            return response_maker(
+                {"error": "No info about group stored in DB"},
+                status=HTTPStatus.NOT_FOUND,
+            )
+
+        group_dict = {
+            "submitted_time": optional_timestamp(group_model.submitted_time),
+            "run_ids": sorted(run.id for run in group_model.runs),
+            "build_target_ids": sorted(
+                build.id for build in group_model.grouped_targets
+            ),
+        }
+
+        group_dict.update(get_project_info_from_build(group_model))
+        return response_maker(group_dict)

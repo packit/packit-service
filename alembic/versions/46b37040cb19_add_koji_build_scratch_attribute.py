@@ -5,16 +5,68 @@ Revises: 855bc0b691c2
 Create Date: 2022-03-21 09:34:53.526691
 
 """
+from typing import TYPE_CHECKING
+from datetime import datetime
+
 from alembic import op
 import sqlalchemy as sa
-from packit_service.models import KojiBuildTargetModel
+from sqlalchemy import Column, String, DateTime, Integer, JSON, Boolean, ForeignKey
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.declarative import declarative_base
 
+from packit_service.models import ProjectAndTriggersConnector
 
 # revision identifiers, used by Alembic.
 revision = "46b37040cb19"
 down_revision = "855bc0b691c2"
 branch_labels = None
 depends_on = None
+
+
+if TYPE_CHECKING:
+    Base = object
+else:
+    Base = declarative_base()
+
+
+class PipelineModel(Base):
+    __tablename__ = "pipelines"
+    id = Column(Integer, primary_key=True)  # our database PK
+    datetime = Column(DateTime, default=datetime.utcnow)
+
+    koji_build_id = Column(Integer, ForeignKey("koji_build_targets.id"), index=True)
+    koji_build = relationship("KojiBuildTargetModel", back_populates="runs")
+
+
+class KojiBuildTargetModel(ProjectAndTriggersConnector, Base):
+    __tablename__ = "koji_build_targets"
+    id = Column(Integer, primary_key=True)
+    build_id = Column(String, index=True)  # koji build id
+
+    # commit sha of the PR (or a branch, release) we used for a build
+    commit_sha = Column(String)
+    # what's the build status?
+    status = Column(String)
+    # chroot, but we use the word target in our docs
+    target = Column(String)
+    # URL to koji web ui for the particular build
+    web_url = Column(String)
+    # url to koji build logs
+    build_logs_url = Column(String)
+    # datetime.utcnow instead of datetime.utcnow() because its an argument to the function
+    # so it will run when the koji build is initiated, not when the table is made
+    build_submitted_time = Column(DateTime, default=datetime.utcnow)
+    build_start_time = Column(DateTime)
+    build_finished_time = Column(DateTime)
+
+    # metadata for the build which didn't make it to schema yet
+    # metadata is reserved to sqlalch
+    data = Column(JSON)
+
+    # it is a scratch build?
+    scratch = Column(Boolean)
+
+    runs = relationship("PipelineModel", back_populates="koji_build")
 
 
 def upgrade():

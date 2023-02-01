@@ -132,6 +132,15 @@ more easily, with rootless podman, you can use our make target.
 Both expect that the `alembic upgrade head` is run in [run_httpd.sh](files/run_httpd.sh)
 during (packit-)service pod/container start.
 
+When modifying the migration manually, do not forget to update the downgrade
+path as well. You can test that downgrade of the last migration passes by
+running `alembic downgrade -1` in the service pod/container.
+Make sure that the migration is self-sufficient and does not rely on models in
+the `models.py` module. Otherwise, if the models change in the future, it would
+not be possible to run the migrations in the correct order.
+To satisfy this, add the state of models required by your migration to the
+migration itself (i.e. copy the model from `models.py`)
+
 #### with docker:
 
     $ docker-compose up service
@@ -161,6 +170,10 @@ ERROR [alembic.util.messaging] Target database is not up to date.
 Chances are that the _packit service pod_ is not properly started or
 for some reasons it is not running the
 `alembic upgrade head` command.
+It could also mean that your changes are too complicated for alembic
+to autogenerate a migration. In such case, run the `alembic revision`
+command without `--autogenerate` to create just the template and
+write the migration commands manually.
 
 ### How to check what's inside postgres?
 

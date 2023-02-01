@@ -13,7 +13,7 @@ from packit.exceptions import PackitCommandFailedError
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
 from packit_service.constants import MSG_RETRIGGER
-from packit_service.models import KojiBuildTargetModel, BuildStatus
+from packit_service.models import KojiBuildTargetModel, BuildStatus, KojiBuildGroupModel
 from packit_service.worker.events import EventData
 from packit_service.service.urls import (
     get_koji_build_info_url,
@@ -114,6 +114,7 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
             return TaskResults(success=False, details={"msg": msg})
 
         errors: Dict[str, str] = {}
+        build_group = KojiBuildGroupModel.create(run_model=self.run_model)
         for target in self.build_targets:
 
             if target not in self.supported_koji_targets:
@@ -127,6 +128,15 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                 errors[target] = msg
                 continue
 
+            koji_build = KojiBuildTargetModel.create(
+                build_id=None,
+                commit_sha=self.metadata.commit_sha,
+                web_url=None,
+                target=target,
+                status="pending",
+                scratch=self.is_scratch,
+                koji_build_group=build_group,
+            )
             try:
                 build_id, web_url = self.run_build(target=target)
             except Exception as ex:
@@ -139,25 +149,19 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
                     url=get_srpm_build_info_url(self.srpm_model.id),
                     chroot=target,
                 )
+                koji_build.set_status("error")
                 errors[target] = str(ex)
                 continue
-
-            koji_build = KojiBuildTargetModel.create(
-                build_id=str(build_id),
-                commit_sha=self.metadata.commit_sha,
-                web_url=web_url,
-                target=target,
-                status="pending",
-                scratch=self.is_scratch,
-                run_model=self.run_model,
-            )
-            url = get_koji_build_info_url(id_=koji_build.id)
-            self.report_status_to_all_for_chroot(
-                state=BaseCommitStatus.running,
-                description="Building RPM ...",
-                url=url,
-                chroot=target,
-            )
+            else:
+                koji_build.set_build_id(str(build_id))
+                koji_build.set_web_url(web_url)
+                url = get_koji_build_info_url(id_=koji_build.id)
+                self.report_status_to_all_for_chroot(
+                    state=BaseCommitStatus.running,
+                    description="Building RPM ...",
+                    url=url,
+                    chroot=target,
+                )
 
         if errors:
             return TaskResults(

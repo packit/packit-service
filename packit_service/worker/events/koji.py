@@ -13,6 +13,7 @@ from packit_service.models import (
     AbstractTriggerDbType,
     JobTriggerModelType,
     KojiBuildTargetModel,
+    KojiBuildGroupModel,
     PullRequestModel,
     ProjectReleaseModel,
     GitBranchModel,
@@ -122,13 +123,7 @@ class KojiBuildEvent(AbstractKojiEvent):
     @property
     def build_model(self) -> Optional[KojiBuildTargetModel]:
         if not super().build_model:
-            self._build_model = KojiBuildTargetModel.create(
-                build_id=str(self.build_id),
-                commit_sha=self._commit_sha,
-                web_url=self.web_url,
-                target="noarch",  # TODO: where to get this info from?
-                status=self.state.value,
-                scratch=True,  # used by the event for scratch builds
+            group = KojiBuildGroupModel.create(
                 run_model=PipelineModel.create(
                     type=JobTriggerModelType.branch_push,
                     trigger_id=GitBranchModel.get_or_create(
@@ -138,6 +133,15 @@ class KojiBuildEvent(AbstractKojiEvent):
                         project_url=self.project_url,
                     ).id,
                 ),
+            )
+            self._build_model = KojiBuildTargetModel.create(
+                build_id=str(self.build_id),
+                commit_sha=self._commit_sha,
+                web_url=self.web_url,
+                target="noarch",  # TODO: where to get this info from?
+                status=self.state.value,
+                scratch=True,  # used by the event for scratch builds
+                koji_build_group=group,
             )
         return self._build_model
 

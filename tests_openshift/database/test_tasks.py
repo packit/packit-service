@@ -17,6 +17,7 @@ from packit.config import (
 )
 from packit_service.models import (
     CoprBuildTargetModel,
+    CoprBuildGroupModel,
     SRPMBuildModel,
     PullRequestModel,
     BuildStatus,
@@ -65,6 +66,7 @@ def packit_build_752():
     srpm_build, run_model = SRPMBuildModel.create_with_new_run(
         trigger_model=pr_model, commit_sha="687abc76d67d"
     )
+    group = CoprBuildGroupModel.create(run_model)
     srpm_build.set_logs("asd\nqwe\n")
     srpm_build.set_status("success")
     yield CoprBuildTargetModel.create(
@@ -78,7 +80,7 @@ def packit_build_752():
         ),
         target="fedora-rawhide-x86_64",
         status=BuildStatus.pending,
-        run_model=run_model,
+        copr_build_group=group,
     )
 
 

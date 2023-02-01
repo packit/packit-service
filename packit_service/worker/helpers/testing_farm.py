@@ -23,7 +23,6 @@ from packit_service.models import (
     CoprBuildTargetModel,
     TFTTestRunTargetModel,
     TestingFarmResult,
-    PipelineModel,
     PullRequestModel,
     filter_most_recent_target_models_by_status,
     BuildStatus,
@@ -687,20 +686,24 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return artifacts
 
     def run_testing_farm(
-        self, target: str, build: Optional["CoprBuildTargetModel"]
+        self,
+        test_run: TFTTestRunTargetModel,
+        build: Optional["CoprBuildTargetModel"],
     ) -> TaskResults:
-        if target not in self.tests_targets_for_test_job(self.job_config):
+        if test_run.target not in self.tests_targets_for_test_job(self.job_config):
             # Leaving here just to be sure that we will discover this situation if it occurs.
             # Currently not possible to trigger this situation.
-            msg = f"Target '{target}' not defined for tests but triggered."
+            msg = f"Target '{test_run.target}' not defined for tests but triggered."
             logger.error(msg)
             send_to_sentry(PackitConfigException(msg))
             return TaskResults(
                 success=False,
                 details={"msg": msg},
             )
-        chroot = self.test_target2build_target(target)
-        logger.debug(f"Running testing farm for target {target}, chroot={chroot}.")
+        chroot = self.test_target2build_target(test_run.target)
+        logger.debug(
+            f"Running testing farm for target {test_run.target}, chroot={chroot}."
+        )
 
         if not self.skip_build and chroot not in self.build_targets:
             self.report_missing_build_chroot(chroot)
@@ -720,7 +723,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             self.report_status_to_tests_for_test_target(
                 state=BaseCommitStatus.neutral,
                 description="Internal TF not allowed for this project. Let us know.",
-                target=target,
+                target=test_run.target,
                 url=CONTACTS_URL,
             )
             return TaskResults(
@@ -735,7 +738,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             self.report_status_to_tests_for_test_target(
                 state=BaseCommitStatus.failure,
                 description="No latest successful Copr build from the other PR found.",
-                target=target,
+                target=test_run.target,
                 url="",
             )
             return TaskResults(
@@ -749,18 +752,21 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             state=BaseCommitStatus.running,
             description=f"{'Build succeeded. ' if not self.skip_build else ''}"
             f"Submitting the tests ...",
-            target=target,
+            target=test_run.target,
         )
 
         return self.prepare_and_send_tf_request(
-            target=target, chroot=chroot, build=build, additional_build=additional_build
+            test_run=test_run,
+            chroot=chroot,
+            build=build,
+            additional_build=additional_build,
         )
 
     def prepare_and_send_tf_request(
         self,
-        target: str,
+        test_run: TFTTestRunTargetModel,
         chroot: str,
-        build: CoprBuildTargetModel,
+        build: Optional[CoprBuildTargetModel],
         additional_build: Optional[CoprBuildTargetModel],
     ) -> TaskResults:
         """
@@ -770,7 +776,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """
         logger.info("Preparing testing farm request...")
 
-        compose = self.distro2compose(target)
+        compose = self.distro2compose(test_run.target)
 
         if not compose:
             msg = "We were not able to map distro to TF compose."
@@ -778,21 +784,21 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
         if self.is_fmf_configured():
             payload = self._payload(
-                target=target,
+                target=test_run.target,
                 compose=compose,
                 artifacts=self._get_artifacts(chroot, build, additional_build),
                 build=build,
             )
         elif not self.is_fmf_configured() and not self.skip_build:
             payload = self._payload_install_test(
-                build_id=int(build.build_id), target=target, compose=compose
+                build_id=int(build.build_id), target=test_run.target, compose=compose
             )
         else:
             self.report_status_to_tests_for_test_target(
                 state=BaseCommitStatus.neutral,
                 description="No FMF metadata found. Please, initialize the metadata tree "
                 "with `fmf init`.",
-                target=target,
+                target=test_run.target,
             )
             return TaskResults(success=True, details={"msg": "No FMF metadata found."})
 
@@ -805,17 +811,18 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         )
 
         if not response:
-            return self._handle_tf_submit_no_response(target=target, payload=payload)
+            return self._handle_tf_submit_no_response(
+                test_run=test_run, target=test_run.target, payload=payload
+            )
 
         if response.status_code != 200:
             return self._handle_tf_submit_failure(
-                response=response, target=target, payload=payload
+                test_run=test_run, response=response, payload=payload
             )
 
         return self._handle_tf_submit_successful(
+            test_run=test_run,
             response=response,
-            target=target,
-            build=build,
             additional_build=additional_build,
         )
 
@@ -891,9 +898,8 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
 
     def _handle_tf_submit_successful(
         self,
+        test_run: TFTTestRunTargetModel,
         response: RequestResponse,
-        target: str,
-        build: CoprBuildTargetModel,
         additional_build: Optional[CoprBuildTargetModel],
     ):
         """
@@ -902,48 +908,29 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         """
         pipeline_id = response.json()["id"]
         logger.info(f"Request {pipeline_id} submitted to testing farm.")
-
-        run_models = [
-            PipelineModel.create(
-                type=self.db_trigger.job_trigger_model_type,
-                trigger_id=self.db_trigger.id,
-            )
-            if self.skip_build
-            else build.runs[-1]
-        ]
+        test_run.set_pipeline_id(pipeline_id)
 
         if additional_build:
-            run_models.append(additional_build.runs[-1])
-
-        created_model = TFTTestRunTargetModel.create(
-            pipeline_id=pipeline_id,
-            identifier=self.job_config.identifier,
-            commit_sha=self.metadata.commit_sha,
-            status=TestingFarmResult.new,
-            target=target,
-            web_url=None,
-            run_models=run_models,
-            # In _payload() we ask TF to test commit_sha of fork (PR's source).
-            # Store original url. If this proves to work, make it a separate column.
-            data={"base_project_url": self.project.get_web_url()},
-        )
+            test_run.add_copr_build(additional_build)
 
         self.report_status_to_tests_for_test_target(
             state=BaseCommitStatus.running,
             description="Tests have been submitted ...",
-            url=get_testing_farm_info_url(created_model.id),
-            target=target,
+            url=get_testing_farm_info_url(test_run.id),
+            target=test_run.target,
         )
 
         return TaskResults(success=True, details={})
 
-    def _handle_tf_submit_no_response(self, target: str, payload: dict):
+    def _handle_tf_submit_no_response(
+        self, test_run: TFTTestRunTargetModel, target: str, payload: dict
+    ):
         """
         Retry the task and report it to user or report the error state to user.
         """
         msg = "Failed to post request to testing farm API."
         if not self.celery_task.is_last_try():
-            return self._retry_on_submit_failure(msg)
+            return self._retry_on_submit_failure(test_run, msg)
 
         logger.error(f"{msg} {self._payload_without_token(payload)}")
         self.report_status_to_tests_for_test_target(
@@ -954,7 +941,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return TaskResults(success=False, details={"msg": msg})
 
     def _handle_tf_submit_failure(
-        self, response: RequestResponse, target: str, payload: dict
+        self, test_run: TFTTestRunTargetModel, response: RequestResponse, payload: dict
     ) -> TaskResults:
         """
         Retry the task and report it to user or report the failure state to user.
@@ -968,23 +955,27 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         else:
             msg = f"Failed to submit tests: {response.reason}."
             if not self.celery_task.is_last_try():
-                return self._retry_on_submit_failure(response.reason)
+                return self._retry_on_submit_failure(test_run, response.reason)
 
+        test_run.set_status(TestingFarmResult.error)
         logger.error(f"{msg}, {self._payload_without_token(payload)}")
         self.report_status_to_tests_for_test_target(
             state=BaseCommitStatus.failure,
             description=msg,
-            target=target,
+            target=test_run.target,
         )
         return TaskResults(success=False, details={"msg": msg})
 
-    def _retry_on_submit_failure(self, message: str) -> TaskResults:
+    def _retry_on_submit_failure(
+        self, test_run: TFTTestRunTargetModel, message: str
+    ) -> TaskResults:
         """
         Retry when there was a failure when submitting TF tests.
 
         Args:
             message: message to report to the user
         """
+        test_run.set_status(TestingFarmResult.retry)
         interval = (
             BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES * 2**self.celery_task.retries
         )
@@ -995,7 +986,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             f" retried in {interval} {'minute' if interval == 1 else 'minutes'}.",
             markdown_content=message,
         )
-        self.celery_task.retry(delay=interval * 60)
+        kargs = self.celery_task.task.request.kwargs.copy()
+        kargs["testing_farm_group_id"] = test_run.group_of_targets.id
+        self.celery_task.retry(delay=interval * 60, kargs=kargs)
         return TaskResults(
             success=True,
             details={

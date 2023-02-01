@@ -37,6 +37,7 @@ from packit_service.models import (
     PipelineModel,
     PullRequestModel,
     TFTTestRunTargetModel,
+    TFTTestRunGroupModel,
     TestingFarmResult,
     BuildStatus,
 )
@@ -557,8 +558,20 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
     flexmock(CoprHelper).should_receive("get_valid_build_targets").times(5).and_return(
         {"test-target"}
     )
+    run = flexmock(test_run_group=None)
+    test_run = flexmock(
+        id=1,
+        status=TestingFarmResult.new,
+        copr_builds=[flexmock(status=BuildStatus.success)],
+        target="fedora-rawhide-x86_64",
+    )
+    flexmock(PipelineModel).should_receive("create").and_return(run)
+    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args([run]).and_return(
+        flexmock(grouped_targets=[test_run])
+    )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=BuildStatus.success)
+        flexmock(status=BuildStatus.success, group_of_targets=flexmock(runs=[run]))
     )
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})
@@ -647,12 +660,26 @@ def test_pr_test_command_handler_identifiers(pr_embedded_command_comment_event):
     flexmock(CoprHelper).should_receive("get_valid_build_targets").times(5).and_return(
         {"test-target"}
     )
+    run = flexmock(test_run_group=None)
+    test_run = flexmock(
+        id=1,
+        status=TestingFarmResult.new,
+        copr_builds=[flexmock(status=BuildStatus.success)],
+        target="fedora-rawhide-x86_64",
+    )
+    flexmock(PipelineModel).should_receive("create").and_return(run)
+    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args([run]).and_return(
+        flexmock(grouped_targets=[test_run])
+    )
     flexmock(CoprBuildTargetModel).should_receive("get_all_by").with_args(
         project_name="packit-service-hello-world-9",
         commit_sha="12345",
         owner=None,
         target="test-target",
-    ).and_return([flexmock(status=BuildStatus.success)])
+    ).and_return(
+        [flexmock(status=BuildStatus.success, group_of_targets=flexmock(runs=[run]))]
+    )
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})
     )
@@ -917,8 +944,32 @@ def test_pr_test_command_handler_retries(
         "https://github.com/packit-service/hello-world"
     )
 
-    flexmock(PipelineModel).should_receive("create").never()
-    flexmock(TFTTestRunTargetModel).should_receive("create").never()
+    # On first run, we create the model, afterwards, we should get it from the DB
+    test_run = flexmock(
+        id=1, target="fedora-rawhide-x86_64", status=TestingFarmResult.new
+    )
+    group = flexmock(id=1, grouped_targets=[test_run])
+    test_run.group_of_targets = group
+    if retry_number > 0:
+        flexmock(PipelineModel).should_receive("create").never()
+        flexmock(TFTTestRunGroupModel).should_receive("create").never()
+        flexmock(TFTTestRunTargetModel).should_receive("create").never()
+        flexmock(TFTTestRunGroupModel).should_receive("get_by_id").and_return(group)
+    else:
+        flexmock(PipelineModel).should_receive("create").and_return(
+            flexmock(test_run_group=None)
+        )
+        flexmock(TFTTestRunGroupModel).should_receive("create").and_return(group)
+        flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
+
+    if retry_number == 2:
+        flexmock(test_run).should_receive("set_status").with_args(
+            TestingFarmResult.error
+        )
+    else:
+        flexmock(test_run).should_receive("set_status").with_args(
+            TestingFarmResult.retry
+        )
 
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=status,
@@ -936,17 +987,21 @@ def test_pr_test_command_handler_retries(
     )
 
     if delay is not None:
-        flexmock(CeleryTask).should_receive("retry").with_args(delay=delay).once()
+        flexmock(CeleryTask).should_receive("retry").with_args(
+            delay=delay, kargs={"testing_farm_group_id": group.id}
+        ).once()
 
     assert json.dumps(event_dict)
     task = run_testing_farm_handler.__wrapped__.__func__
     task(
         flexmock(
-            request=flexmock(retries=retry_number), max_retries=DEFAULT_RETRY_LIMIT
+            request=flexmock(retries=retry_number, kwargs={}),
+            max_retries=DEFAULT_RETRY_LIMIT,
         ),
         package_config=package_config,
         event=event_dict,
         job_config=job_config,
+        testing_farm_group_id=None if retry_number == 0 else group.id,
     )
 
 
@@ -1105,19 +1160,29 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         "https://github.com/packit-service/hello-world"
     )
 
-    tft_test_run_model = flexmock(id=5)
-    run_model = flexmock()
+    tft_test_run_model = flexmock(
+        id=5, status=TestingFarmResult.new, target="fedora-rawhide-x86_64"
+    )
+    run_model = flexmock(test_run_group=None)
     flexmock(PipelineModel).should_receive("create").and_return(run_model)
+    group = flexmock(grouped_targets=[tft_test_run_model])
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [run_model]
+    ).and_return(group)
     flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
-        pipeline_id=pipeline_id,
+        pipeline_id=None,
         identifier=None,
         commit_sha="0011223344",
         status=TestingFarmResult.new,
         target="fedora-rawhide-x86_64",
         web_url=None,
-        run_models=[run_model],
+        test_run_group=group,
+        copr_build_targets=[],
         data={"base_project_url": "https://github.com/packit-service/hello-world"},
     ).and_return(tft_test_run_model)
+    flexmock(tft_test_run_model).should_receive("set_pipeline_id").with_args(
+        pipeline_id
+    ).once()
 
     urls.DASHBOARD_URL = "https://dashboard.localhost"
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -1194,6 +1259,19 @@ def test_pr_test_command_handler_compose_not_present(
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
         trigger
     )
+
+    run_model = flexmock(test_run_group=None)
+    test_run = flexmock(
+        id=1,
+        status=TestingFarmResult.new,
+        copr_builds=[flexmock(status=BuildStatus.success)],
+        target="fedora-rawhide-x86_64",
+    )
+    flexmock(PipelineModel).should_receive("create").and_return(run_model)
+    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [run_model]
+    ).and_return(flexmock(grouped_targets=[test_run]))
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
     pr_model = flexmock(
@@ -1322,6 +1400,18 @@ def test_pr_test_command_handler_composes_not_available(
     flexmock(PullRequestModel).should_receive("get_by_id").with_args(123).and_return(
         trigger
     )
+    run_model = flexmock(test_run_group=None)
+    test_run = flexmock(
+        id=1,
+        status=TestingFarmResult.new,
+        copr_builds=[flexmock(status=BuildStatus.success)],
+        target="fedora-rawhide-x86_64",
+    )
+    flexmock(PipelineModel).should_receive("create").and_return(run_model)
+    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [run_model]
+    ).and_return(flexmock(grouped_targets=[test_run]))
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     flexmock(Allowlist, check_and_report=True)
     pr_model = flexmock(
@@ -1449,8 +1539,21 @@ def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"test-target", "test-target-without-build"}
     )
+    run_model = flexmock(test_run_group=None)
+    test_run = flexmock(
+        id=1,
+        status=TestingFarmResult.new,
+        copr_builds=[flexmock(status=BuildStatus.success)],
+        target="test-target",
+    )
+    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [run_model]
+    ).and_return(flexmock(grouped_targets=[test_run]))
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=BuildStatus.success)
+        flexmock(
+            status=BuildStatus.success, group_of_targets=flexmock(runs=[run_model])
+        )
     ).and_return()
 
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("owner")
@@ -1539,6 +1642,17 @@ def test_pr_test_command_handler_missing_build_trigger_with_build_job_config(
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
         type=JobTriggerModelType.pull_request, trigger_id=9
     ).and_return(trigger)
+    run_model = flexmock(test_run_group=None)
+    test_run = flexmock(
+        id=1,
+        status=TestingFarmResult.new,
+        copr_builds=[flexmock(status=BuildStatus.success)],
+        target="test-target",
+    )
+    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [run_model]
+    ).and_return(flexmock(grouped_targets=[test_run]))
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
     flexmock(GithubProject, get_files="foo.spec")
@@ -1548,7 +1662,9 @@ def test_pr_test_command_handler_missing_build_trigger_with_build_job_config(
         {"test-target", "test-target-without-build"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").and_return(
-        flexmock(status=BuildStatus.success)
+        flexmock(
+            status=BuildStatus.success, group_of_targets=flexmock(runs=[run_model])
+        )
     ).and_return()
 
     flexmock(TestingFarmJobHelper).should_receive("job_owner").and_return("owner")
@@ -1790,8 +1906,17 @@ def test_retest_failed(
         repo_name="hello-world",
         project_url="https://github.com/packit-service/hello-world",
     ).and_return(
-        flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
+        flexmock(
+            id=9,
+            job_config_trigger_type=JobConfigTriggerType.pull_request,
+            job_trigger_model_type=JobTriggerModelType.pull_request,
+        )
     )
+    run_model = flexmock()
+    flexmock(PipelineModel).should_receive("create").and_return(run_model)
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [run_model]
+    ).and_return(flexmock())
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit retest-failed"
     flexmock(GithubProject, get_files="foo.spec")
@@ -1924,6 +2049,16 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64"}
     )
+    run_model = flexmock(test_run_group=None)
+    test_run = flexmock(
+        id=1, target="fedora-rawhide-x86_64", status=TestingFarmResult.new
+    )
+    flexmock(PipelineModel).should_receive("create").and_return(run_model)
+    group_model = flexmock(grouped_targets=[test_run])
+    flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
+        [run_model]
+    ).and_return(group_model)
+    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test_run)
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
@@ -2114,7 +2249,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         {"fedora-rawhide-x86_64", "fedora-35-x86_64"}
     )
 
-    run_model = flexmock(PipelineModel)
+    run_model = flexmock(test_run_group=None)
 
     build = flexmock(
         build_id="123456",
@@ -2131,7 +2266,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         owner="mf",
         project_name="tree",
         status=BuildStatus.success,
-        runs=[run_model],
+        group_of_targets=flexmock(runs=[run_model]),
     )
     build.should_receive("get_srpm_build").and_return(flexmock(url=None))
 
@@ -2243,7 +2378,18 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         "https://github.com/packit-service/hello-world"
     )
 
-    tft_test_run_model = flexmock(id=5)
+    tft_test_run_model_rawhide = flexmock(
+        id=5,
+        copr_builds=[build],
+        status=TestingFarmResult.new,
+        target="fedora-rawhide-x86_64",
+    )
+    tft_test_run_model_35 = flexmock(
+        id=6,
+        copr_builds=[build],
+        status=TestingFarmResult.new,
+        target="fedora-35-x86_64",
+    )
 
     run_model2 = flexmock(PipelineModel)
     additional_copr_build = flexmock(
@@ -2284,16 +2430,33 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         2
     )
 
-    flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
-        pipeline_id=pipeline_id,
-        identifier=None,
-        commit_sha="0011223344",
-        status=TestingFarmResult.new,
-        target="fedora-rawhide-x86_64",
-        web_url=None,
-        run_models=[run_model, run_model2],
-        data={"base_project_url": "https://github.com/packit-service/hello-world"},
-    ).and_return(tft_test_run_model)
+    group = flexmock(
+        id=1,
+        runs=[run_model],
+        grouped_targets=[tft_test_run_model_rawhide, tft_test_run_model_35],
+    )
+    flexmock(TFTTestRunGroupModel).should_receive("create").and_return(group)
+    for t, model in (
+        ("fedora-35-x86_64", tft_test_run_model_35),
+        ("fedora-rawhide-x86_64", tft_test_run_model_rawhide),
+    ):
+        flexmock(TFTTestRunTargetModel).should_receive("create").with_args(
+            pipeline_id=None,
+            identifier=None,
+            commit_sha="0011223344",
+            status=TestingFarmResult.new,
+            target=t,
+            web_url=None,
+            test_run_group=group,
+            copr_build_targets=[build],
+            data={"base_project_url": "https://github.com/packit-service/hello-world"},
+        ).and_return(model)
+    flexmock(tft_test_run_model_rawhide).should_receive("add_copr_build").with_args(
+        additional_copr_build
+    )
+    flexmock(tft_test_run_model_rawhide).should_receive("set_pipeline_id").with_args(
+        pipeline_id
+    )
 
     urls.DASHBOARD_URL = "https://dashboard.localhost"
     flexmock(StatusReporter).should_receive("report").with_args(

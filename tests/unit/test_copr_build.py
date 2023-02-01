@@ -37,12 +37,14 @@ from packit_service.constants import (
 )
 from packit_service.models import (
     CoprBuildTargetModel,
+    CoprBuildGroupModel,
     GithubInstallationModel,
     GitProjectModel,
     JobTriggerModel,
     JobTriggerModelType,
     SRPMBuildModel,
     PullRequestModel,
+    BuildStatus,
 )
 from packit_service.worker.celery_task import CeleryTask
 from packit_service.worker.checker.copr import IsGitForgeProjectAndEventOk
@@ -102,6 +104,7 @@ def build_helper(
     project_type: Type[GitProject] = GithubProject,
     build_targets_override=None,
     task: Optional[CeleryTask] = None,
+    copr_build_group_id: Optional[int] = None,
 ) -> CoprBuildJobHelper:
     if jobs and (_targets or owner):
         raise Exception("Only one job description can be used.")
@@ -152,6 +155,7 @@ def build_helper(
         build_targets_override=build_targets_override,
         pushgateway=Pushgateway(),
         celery_task=task,
+        copr_build_group_id=copr_build_group_id,
     )
     helper._api = PackitAPI(ServiceConfig(), pkg_conf)
     return helper
@@ -263,9 +267,14 @@ def test_run_copr_build_from_source_script(github_pr_event, srpm_build_deps):
             flexmock(),
         )
     )
-    flexmock(CoprBuildTargetModel).should_receive("create").and_return(
-        flexmock(id=1)
-    ).times(4)
+
+    build = flexmock(id=1, status=BuildStatus.waiting_for_srpm)
+    flexmock(build).should_receive("set_build_id")
+    flexmock(build).should_receive("set_web_url")
+    group = flexmock(id=1, grouped_targets=4 * [build])
+    flexmock(CoprBuildTargetModel).should_receive("create").and_return(build)
+    flexmock(CoprBuildGroupModel).should_receive("create").and_return(group)
+    flexmock(CoprBuildTargetModel).should_receive("create").and_return(build).times(4)
     flexmock(PullRequestGithubEvent).should_receive("db_trigger").and_return(flexmock())
 
     # copr build
@@ -336,6 +345,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
                 max_retries=DEFAULT_RETRY_LIMIT,
             )
         ),
+        copr_build_group_id=1 if retry_number > 0 else None,
     )
     helper.job_config.srpm_build_deps = ["make", "findutils"]
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
@@ -376,6 +386,19 @@ def test_run_copr_build_from_source_script_github_outage_retry(
             .mock(),
         )
     )
+    build = flexmock(id=1)
+    group = flexmock(id=1, grouped_targets=[build])
+    if retry_number > 0:
+        flexmock(CoprBuildGroupModel).should_receive("get_by_id").and_return(group)
+        flexmock(CoprBuildTargetModel).should_receive("create").never()
+        flexmock(CoprBuildGroupModel).should_receive("create").never()
+        # We set it to pending
+        flexmock(build).should_receive("set_status").with_args(
+            BuildStatus.waiting_for_srpm
+        )
+    else:
+        flexmock(CoprBuildGroupModel).should_receive("create").and_return(group)
+
     if retry:
         flexmock(CeleryTask).should_receive("retry").with_args(
             ex=exc,
@@ -393,6 +416,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
             links_to_external_services=None,
             markdown_content=None,
         ).and_return()
+        flexmock(build).should_receive("set_status").with_args(BuildStatus.retry)
     else:
         flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
             state=BaseCommitStatus.error,
@@ -402,6 +426,7 @@ def test_run_copr_build_from_source_script_github_outage_retry(
             links_to_external_services=None,
             markdown_content=None,
         ).and_return()
+        flexmock(build).should_receive("set_status").with_args(BuildStatus.error)
 
     assert helper.run_copr_build_from_source_script()["success"] is retry
 

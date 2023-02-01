@@ -8,17 +8,20 @@ from sqlalchemy.exc import ProgrammingError, IntegrityError
 
 from packit_service.models import (
     CoprBuildTargetModel,
+    CoprBuildGroupModel,
     GitBranchModel,
     GitProjectModel,
     GithubInstallationModel,
     JobTriggerModelType,
     KojiBuildTargetModel,
+    KojiBuildGroupModel,
     ProjectAuthenticationIssueModel,
     ProjectReleaseModel,
     PullRequestModel,
     SRPMBuildModel,
     SourceGitPRDistGitPRModel,
     TFTTestRunTargetModel,
+    TFTTestRunGroupModel,
     TestingFarmResult,
     sa_session_transaction,
     PipelineModel,
@@ -120,7 +123,8 @@ def test_get_merged_chroots(clean_before_and_after, too_many_copr_builds):
     )
 
     assert builds_list[1].status[0][0] == "success"
-    assert builds_list[2].target[0][0] == "fedora-42-x86_64"
+    assert ["fedora-42-x86_64"] in builds_list[2].target
+    assert ["fedora-43-x86_64"] in builds_list[2].target
 
 
 def test_get_copr_build(clean_before_and_after, a_copr_build_for_pr):
@@ -284,9 +288,9 @@ def test_get_all_builds(clean_before_and_after, multiple_copr_builds):
     builds_list = list(CoprBuildTargetModel.get_all())
     assert len({builds_list[i].id for i in range(4)})
     # All builds has to have exactly one PipelineModel connected
-    assert all(len(build.runs) == 1 for build in builds_list)
-    # All builds has to have a different PipelineModel connected.
-    assert len({build.runs[0] for build in builds_list}) == 4
+    assert all(len(build.group_of_targets.runs) == 1 for build in builds_list)
+    # All build groups must have a different PipelineModel connected.
+    assert len({build.group_of_targets.runs[0] for build in builds_list}) == 3
 
 
 def test_get_all_build_id(clean_before_and_after, multiple_copr_builds):
@@ -412,12 +416,14 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
     srpm_build_for_copr, run_model_for_copr = SRPMBuildModel.create_with_new_run(
         trigger_model=pr1, commit_sha="687abc76d67d"
     )
+    copr_group = CoprBuildGroupModel.create(run_model_for_copr)
     srpm_build_for_copr.set_logs("asd\nqwe\n")
     srpm_build_for_copr.set_status(BuildStatus.success)
 
     srpm_build_for_koji, run_model_for_koji = SRPMBuildModel.create_with_new_run(
         trigger_model=pr1, commit_sha="687abc76d67d"
     )
+    koji_group = KojiBuildGroupModel.create(run_model_for_koji)
     srpm_build_for_copr.set_logs("asd\nqwe\n")
     srpm_build_for_copr.set_status(BuildStatus.success)
 
@@ -429,7 +435,7 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
         web_url="https://copr.something.somewhere/123456",
         target=SampleValues.target,
         status=BuildStatus.pending,
-        run_model=run_model_for_copr,
+        copr_build_group=copr_group,
     )
     koji_build = KojiBuildTargetModel.create(
         build_id="987654",
@@ -438,7 +444,7 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
         target=SampleValues.target,
         status="pending",
         scratch=True,
-        run_model=run_model_for_koji,
+        koji_build_group=koji_group,
     )
 
     assert copr_build in pr1.get_copr_builds()
@@ -454,10 +460,10 @@ def test_copr_and_koji_build_for_one_trigger(clean_before_and_after):
     assert copr_build.get_trigger_object() == pr1
     assert koji_build.get_trigger_object() == pr1
 
-    assert len(koji_build.runs) == 1
-    assert koji_build.runs[0] == run_model_for_koji
-    assert len(copr_build.runs) == 1
-    assert copr_build.runs[0] == run_model_for_copr
+    assert len(koji_build.group_of_targets.runs) == 1
+    assert koji_build.group_of_targets.runs[0] == run_model_for_koji
+    assert len(copr_build.group_of_targets.runs) == 1
+    assert copr_build.group_of_targets.runs[0] == run_model_for_copr
 
 
 def test_tmt_test_run(clean_before_and_after, a_new_test_run_pr):
@@ -482,10 +488,10 @@ def test_tmt_test_multiple_runs(clean_before_and_after, multiple_new_test_runs):
 
     test_runs = Session().query(TFTTestRunTargetModel).all()
     assert len(test_runs) == 4
-    # Separate PipelineModel for each TFTTestRunTargetModel
-    assert len({m.runs[0] for m in multiple_new_test_runs}) == 4
+    # Separate PipelineModel for each TFTTestRunGroupModel
+    assert len({m.group_of_targets.runs[0] for m in multiple_new_test_runs}) == 3
     # Exactly one PipelineModel for each TFTTestRunTargetModel
-    assert all(len(m.runs) == 1 for m in multiple_new_test_runs)
+    assert all(len(m.group_of_targets.runs) == 1 for m in multiple_new_test_runs)
     # Two JobTriggerModels:
     assert len({m.get_trigger_object() for m in multiple_new_test_runs}) == 2
 
@@ -509,8 +515,11 @@ def test_tmt_test_run_get_project(clean_before_and_after, a_new_test_run_pr):
 def test_tmt_test_run_get_copr_build(
     clean_before_and_after, a_copr_build_for_pr, a_new_test_run_pr
 ):
-    assert len(a_new_test_run_pr.runs) == 1
-    assert a_new_test_run_pr.runs[0].copr_build == a_copr_build_for_pr
+    assert len(a_new_test_run_pr.group_of_targets.runs) == 1
+    assert (
+        a_new_test_run_pr.group_of_targets.runs[0].copr_build_group.grouped_targets[0]
+        == a_copr_build_for_pr
+    )
 
 
 def test_tmt_test_run_get_pr_id(clean_before_and_after, a_new_test_run_pr):
@@ -522,12 +531,13 @@ def test_tmt_test_run_set_web_url(
     clean_before_and_after, srpm_build_model_with_new_run_for_pr
 ):
     _, run_model = srpm_build_model_with_new_run_for_pr
+    group = TFTTestRunGroupModel.create(run_models=[run_model])
     test_run_model = TFTTestRunTargetModel.create(
         pipeline_id="123456",
         commit_sha="687abc76d67d",
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_models=[run_model],
+        test_run_group=group,
     )
     assert not test_run_model.web_url
     new_url = (
@@ -548,12 +558,13 @@ def test_tmt_test_get_by_pipeline_id_pr(
     clean_before_and_after, pr_model, srpm_build_model_with_new_run_for_pr
 ):
     _, run_model = srpm_build_model_with_new_run_for_pr
+    group = TFTTestRunGroupModel.create(run_models=[run_model])
     test_run_model = TFTTestRunTargetModel.create(
         pipeline_id="123456",
         commit_sha="687abc76d67d",
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_models=[run_model],
+        test_run_group=group,
     )
 
     test_run_for_pipeline_id = TFTTestRunTargetModel.get_by_pipeline_id(
@@ -572,16 +583,16 @@ def test_tmt_test_get_range(clean_before_and_after, multiple_new_test_runs):
 def test_tmt_test_get_by_pipeline_id_branch_push(
     clean_before_and_after,
     branch_model,
-    srpm_build_model_with_new_run_for_branch,
+    srpm_build_model_with_new_run_and_tf_for_branch,
     a_copr_build_for_branch_push,
 ):
-    _, run_model = srpm_build_model_with_new_run_for_branch
+    _, tf_group_model, run_model = srpm_build_model_with_new_run_and_tf_for_branch
     test_run_model = TFTTestRunTargetModel.create(
         pipeline_id="123456",
         commit_sha="687abc76d67d",
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_models=[run_model],
+        test_run_group=tf_group_model,
     )
 
     test_run = TFTTestRunTargetModel.get_by_pipeline_id(test_run_model.pipeline_id)
@@ -592,16 +603,16 @@ def test_tmt_test_get_by_pipeline_id_branch_push(
 def test_tmt_test_get_by_pipeline_id_release(
     clean_before_and_after,
     release_model,
-    srpm_build_model_with_new_run_for_release,
+    srpm_build_model_with_new_run_and_tf_for_release,
     a_copr_build_for_release,
 ):
-    _, run_model = srpm_build_model_with_new_run_for_release
+    _, tf_group_model, run_model = srpm_build_model_with_new_run_and_tf_for_release
     test_run_model = TFTTestRunTargetModel.create(
         pipeline_id="123456",
         commit_sha="687abc76d67d",
         target=SampleValues.target,
         status=TestingFarmResult.new,
-        run_models=[run_model],
+        test_run_group=tf_group_model,
     )
 
     test_run = TFTTestRunTargetModel.get_by_pipeline_id(test_run_model.pipeline_id)
@@ -793,18 +804,17 @@ def test_merged_runs(clean_before_and_after, few_runs):
         merged_run = PipelineModel.get_merged_run(run_id)
         srpm_build_id = merged_run.srpm_build_id
 
-        # for different_pr (i=1) there are Copr builds twice, since the second
-        # run of TFT from the same Copr build produces new row with same SRPM
-        # and Copr IDs, but different Testing Farm IDs
-        # ^ handled in API by iterating over set of IDs instead of list
-        assert len(merged_run.copr_build_id) == 2 * i
+        # Since the introduction of build groups, the builds are grouped
+        assert len(merged_run.copr_build_group_id) == 1
+        assert len(merged_run.copr_build_group_id[0]) == 1
+        build_group = CoprBuildGroupModel.get_by_id(
+            merged_run.copr_build_group_id[0][0]
+        )
 
-        for copr_build in map(
-            lambda ids: CoprBuildTargetModel.get_by_id(ids[0]), merged_run.copr_build_id
-        ):
+        for copr_build in build_group.grouped_targets:
             assert copr_build.get_srpm_build().id == srpm_build_id
 
-        assert len(merged_run.test_run_id) == 2 * i
+        assert len(merged_run.test_run_group_id) == 1
 
 
 def test_merged_chroots_on_tests_without_build(
@@ -813,7 +823,7 @@ def test_merged_chroots_on_tests_without_build(
     result = list(PipelineModel.get_merged_chroots(0, 10))
     assert len(result) == 2
     for item in result:
-        assert len(item.test_run_id[0]) == 1
+        assert len(item.test_run_group_id[0]) == 1
 
 
 def test_tf_get_all_by_commit_target(clean_before_and_after, multiple_new_test_runs):

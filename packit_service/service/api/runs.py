@@ -8,14 +8,15 @@ from typing import Dict
 from flask_restx import Namespace, Resource
 
 from packit_service.models import (
-    CoprBuildTargetModel,
-    KojiBuildTargetModel,
+    CoprBuildGroupModel,
+    KojiBuildGroupModel,
     PipelineModel,
     SyncReleaseModel,
     SRPMBuildModel,
     TFTTestRunTargetModel,
     optional_timestamp,
     BuildStatus,
+    TFTTestRunGroupModel,
 )
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import (
@@ -84,29 +85,32 @@ def process_runs(runs):
             response_dict["trigger"] = get_project_info_from_build(srpm_build)
 
         for model_type, Model, packit_ids in (
-            ("copr", CoprBuildTargetModel, pipeline.copr_build_id),
-            ("koji", KojiBuildTargetModel, pipeline.koji_build_id),
-            ("test_run", TFTTestRunTargetModel, pipeline.test_run_id),
+            ("copr", CoprBuildGroupModel, pipeline.copr_build_group_id),
+            ("koji", KojiBuildGroupModel, pipeline.koji_build_group_id),
+            ("test_run", TFTTestRunGroupModel, pipeline.test_run_group_id),
         ):
             for packit_id in set(flatten_and_remove_none(packit_ids)):
-                row = Model.get_by_id(packit_id)
-                if row.status == BuildStatus.waiting_for_srpm:
-                    continue
-                response_dict[model_type].append(
-                    {
-                        "packit_id": packit_id,
-                        "target": row.target,
-                        "status": row.status,
-                    }
-                )
-                if "trigger" not in response_dict:
-                    submitted_time = (
-                        row.submitted_time
-                        if isinstance(row, TFTTestRunTargetModel)
-                        else row.build_submitted_time
+                group_row = Model.get_by_id(packit_id)
+                for row in group_row.grouped_targets:
+                    if row.status == BuildStatus.waiting_for_srpm:
+                        continue
+                    response_dict[model_type].append(
+                        {
+                            "packit_id": packit_id,
+                            "target": row.target,
+                            "status": row.status,
+                        }
                     )
-                    response_dict["time_submitted"] = optional_timestamp(submitted_time)
-                    response_dict["trigger"] = get_project_info_from_build(row)
+                    if "trigger" not in response_dict:
+                        submitted_time = (
+                            row.submitted_time
+                            if isinstance(row, TFTTestRunTargetModel)
+                            else row.build_submitted_time
+                        )
+                        response_dict["time_submitted"] = optional_timestamp(
+                            submitted_time
+                        )
+                        response_dict["trigger"] = get_project_info_from_build(row)
 
         # handle propose-downstream and pull-from-upstream
         if sync_release := list(flatten_and_remove_none(pipeline.sync_release_run_id)):
@@ -170,8 +174,8 @@ class Run(Resource):
                 run.srpm_build or run.sync_release_run
             ),
             "srpm_build_id": run.srpm_build_id,
-            "copr_build_id": run.copr_build_id,
-            "koji_build_id": run.koji_build_id,
-            "test_run_id": run.test_run_id,
+            "copr_build_group_id": run.copr_build_group_id,
+            "koji_build_group_id": run.koji_build_group_id,
+            "test_run_group_id": run.test_run_group_id,
         }
         return response_maker(result)

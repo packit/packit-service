@@ -9,9 +9,12 @@ from flask import make_response
 
 from packit_service.models import (
     CoprBuildTargetModel,
+    CoprBuildGroupModel,
     KojiBuildTargetModel,
+    KojiBuildGroupModel,
     SRPMBuildModel,
     TFTTestRunTargetModel,
+    TFTTestRunGroupModel,
     SyncReleaseModel,
 )
 
@@ -28,8 +31,11 @@ def get_project_info_from_build(
     build: Union[
         SRPMBuildModel,
         CoprBuildTargetModel,
+        CoprBuildGroupModel,
         KojiBuildTargetModel,
+        KojiBuildGroupModel,
         TFTTestRunTargetModel,
+        TFTTestRunGroupModel,
         SyncReleaseModel,
     ]
 ) -> Dict[str, Any]:
