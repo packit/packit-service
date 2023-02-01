@@ -35,7 +35,7 @@ e.g.
     docker-compose build --build-arg SOURCE_BRANCH=stable
 
 If SOURCE_BRANCH is empty build will fail.
-If SOURCE_BRANCH is not empty and is not main or stable than main value will be used.
+If SOURCE_BRANCH is not empty and is not `main` or `stable` then `main` value will be used.
 
 ## Running packit-service locally
 
@@ -123,7 +123,9 @@ Pull request changes are only supported right now. For more info:
 
 We use PostgreSQL as a persistent data store.
 
-Take a look at [alembic](https://alembic.sqlalchemy.org/en/latest/cookbook.html#building-uptodate),
+### Database migrations (Alembic)
+
+Take a look at [Alembic](https://alembic.sqlalchemy.org/en/latest/cookbook.html#building-uptodate),
 the project which handles migrations and schema versioning for SQLAlchemy.
 
 To generate a migration script for your recent change you can use docker or
@@ -220,19 +222,31 @@ Look inside a table
     ----+-----------+-----------
     (0 rows)
 
+### ER Diagram
+
+![ER Diagram](./files/ERDiagram.png)
+Beware, it might be outdated because it was generated manually
+([download DBeaver](https://dbeaver.io/download),
+[install](https://github.com/dbeaver/dbeaver/wiki/Installation),
+[connect to (local) postgres](https://github.com/dbeaver/dbeaver/wiki/Create-Connection),
+[see ER Diagram (tab) and export it](https://github.com/dbeaver/dbeaver/wiki/ER-Diagrams#diagram-export))
+and it's not automatically re-generated.
+For actual state see the [SQLAlchemy mappings (models)](packit_service/models.py).
+
 ### Using live data locally
 
 Here is a list of commands to run if you need a local database with real data from stg or prod:
 
-1. Obtain a DB dump: `oc rsh $POSTGRES_POD pg_dump packit >dump-$ENV-$DATE.sql`
+1. Obtain a DB dump, either:
 
-2. Load them into your local postgres instance:
+- `oc rsh $POSTGRES_POD pg_dump packit >dump-$ENV-$DATE.sql` or
+- from backups in [AWS](https://auth.redhat.com/auth/realms/EmployeeIDP/protocol/saml/clients/itaws), `arr-packit-[prod|stg]` S3 bucket
+
+2. Load it into your local postgres instance:
 
    1. Create a database named packit and owned by the packit user: `postgres=# create database packit owner=packit;`
-
    2. Copy the dump file into the database container: `podman cp ./dump-$ENV-$DATE.sql postgres:/tmp`
       This is a more reliable option than a direct load from your local filesystem.
-
    3. Load the dump as a packit user `psql -U packit -d packit < /tmp/dump-$ENV-$DATE.sql`
       It's important to do this as a packit user because that's how worker and service pods connect.
 
@@ -265,10 +279,10 @@ We have multiple test categories within packit-service:
 - With these, we are making sure that tools we use run well inside [the non-standard OpenShift environment](.https://developers.redhat.com/blog/2016/10/21/understanding-openshift-security-context-constraints/)
 - [requre](https://github.com/packit/requre) and/or
   [flexmock](https://flexmock.readthedocs.io/en/latest/) is supposed to be
-  used to handle remote interactions and secrets so we don't touch production
+  used to handle remote interactions and secrets, so we don't touch production
   systems while running tests in CI
 
-4. End To End tests (so far we have none of these):
+4. End-To-End tests (so far we have none of these):
 
 - These tests run against a real deployment of packit-service.
 - It's expected to send real inputs inside the service and get actual results
@@ -295,9 +309,8 @@ Database tests can be run using a dedicated target.
 
     make check-db
 
-To run them you need docker-compose.
-Otherwise you can run the same using _Openshift_ and following
-the instructions below.
+To run them you need docker-compose. Otherwise, you can run the same
+using _Openshift_ and following the instructions below.
 
 ### Running "reverse-dep" tests locally
 
@@ -315,7 +328,7 @@ Once the image is built, run the tests in a container as usual:
 
 ### Openshift tests using requre
 
-This testsuite uses [requre project](https://github.com/packit/requre) project to
+This testsuite uses [requre project](https://github.com/packit/requre)
 to store and replay data for tests.
 
 #### General requirements
