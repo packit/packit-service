@@ -1894,6 +1894,16 @@ class SRPMBuildModel(ProjectAndTriggersConnector, Base):
             self.logs = null() if logs is None else logs
             session.add(self)
 
+    def set_copr_build_id(self, copr_build_id: str) -> None:
+        with sa_session_transaction() as session:
+            self.copr_build_id = copr_build_id
+            session.add(self)
+
+    def set_copr_web_url(self, copr_web_url: str) -> None:
+        with sa_session_transaction() as session:
+            self.copr_web_url = copr_web_url
+            session.add(self)
+
     def set_start_time(self, start_time: datetime) -> None:
         with sa_session_transaction() as session:
             self.build_start_time = start_time
