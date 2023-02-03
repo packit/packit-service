@@ -14,6 +14,7 @@ from ogr.services.github.check_run import (
 )
 from ogr.services.gitlab import GitlabProject
 from ogr.services.pagure import PagureProject
+from packit_service.worker import reporting
 
 from packit_service.worker.reporting import (
     StatusReporter,
@@ -217,6 +218,10 @@ def test_set_status_github_check(
     check_conclusion,
     trigger_id,
 ):
+    flexmock(reporting).should_receive("get_random_news_sentence").and_return(
+        "Interesting news."
+    )
+
     project = GithubProject(None, None, None)
     reporter = StatusReporter.get_instance(
         project=project,
@@ -234,7 +239,9 @@ def test_set_status_github_check(
         external_id=str(trigger_id),
         status=check_status,
         conclusion=check_conclusion,
-        output=create_github_check_run_output(title, summary),
+        output=create_github_check_run_output(
+            title, summary + "---\n*Interesting news.*"
+        ),
     ).once()
 
     reporter.set_status(state, title, check_name, url)
@@ -429,6 +436,10 @@ def test_status_instead_check(
     exception_type,
     trigger_id,
 ):
+    flexmock(reporting).should_receive("get_random_news_sentence").and_return(
+        "Interesting news."
+    )
+
     project = GithubProject(None, None, None)
     reporter = StatusReporter.get_instance(
         project=project,
@@ -446,7 +457,9 @@ def test_status_instead_check(
         external_id=str(trigger_id),
         status=check_status,
         conclusion=check_conclusion,
-        output=create_github_check_run_output(title, summary),
+        output=create_github_check_run_output(
+            title, summary + "---\n*Interesting news.*"
+        ),
     ).and_raise(exception_type).once()
 
     act_upon.should_receive("set_commit_status").with_args(

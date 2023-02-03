@@ -3,6 +3,7 @@
 
 import logging
 from enum import Enum, auto
+from random import choice
 from typing import Optional, Union, Dict
 
 from ogr.abstract import CommitStatus, GitProject
@@ -23,6 +24,27 @@ from packit_service.constants import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+NEWS_FOOTER = [
+    "Wondering what happened during the last year in Packit? "
+    "Take a look at [our blog post](https://packit.dev/posts/2022-features/).",
+    "Do you maintain a Fedora package and don't have access to the upstream repository? "
+    "Packit can help. "
+    "Take a look [here](https://packit.dev/posts/pull-from-upstream/) to know more.",
+    "Do you maintain a Fedora package and you think it's boring? Packit can help. "
+    "Take a look [here](https://packit.dev/posts/downstream-automation/) to know more.",
+    "Want to use a build from a different project when testing? "
+    "Take a look [here](https://packit.dev/posts/testing-farm-triggering/) to know more.",
+]
+
+
+def get_random_news_sentence() -> str:
+    """
+    A random sentence to show our users as a footer when adding a status.
+    (Will be visible at the very bottom of the markdown field.
+    """
+    return choice(NEWS_FOOTER)
 
 
 class BaseCommitStatus(Enum):
@@ -465,7 +487,11 @@ class StatusReporterGithubChecks(StatusReporterGithubStatuses):
             f" {description}"
         )
 
-        summary = self._create_table(url, links_to_external_services) + markdown_content
+        summary = (
+            self._create_table(url, links_to_external_services)
+            + markdown_content
+            + f"---\n*{get_random_news_sentence()}*"
+        )
 
         try:
             status = (
