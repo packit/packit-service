@@ -47,32 +47,31 @@ def test_vm_image_build(github_vm_image_build_comment):
         "    }"
         "}]}"
     )
-    project = GithubProject(
-        namespace="mmassari",
-        repo="knx-stack",
+    project = flexmock(
+        GithubProject,
+        full_repo_name="mmassari/knx-stack",
         default_branch="main",
-        service=flexmock(),
     )
-    flexmock(GithubProject).should_receive("is_private").and_return(False)
-    flexmock(GithubProject).should_receive("get_pr").and_return(
+    project.should_receive("is_private").and_return(False)
+    project.should_receive("get_pr").and_return(
         flexmock(
             head_commit="123456",
             comment=lambda _: None,
             get_comment=lambda _: flexmock(add_reaction=lambda _: None),
         )
     )
-    flexmock(GithubProject).should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="123456"
-    ).and_raise(FileNotFoundError, "Not found.")
-    flexmock(GithubProject).should_receive("get_file_content").with_args(
-        path=".packit.yaml", ref="123456"
-    ).and_return(packit_yaml)
-    flexmock(GithubProject).should_receive("has_write_access").with_args(
+    project.should_receive("has_write_access").with_args(
         user="majamassarini"
     ).and_return(True)
-    flexmock(project).should_receive("get_files").with_args(
-        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
+    project.should_receive("get_files").with_args(
+        ref="123456", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
+    project.should_receive("get_file_content").with_args(
+        path=".packit.yaml", ref="123456"
+    ).and_return(packit_yaml)
+    project.should_receive("get_files").with_args(
+        ref="123456", recursive=False
+    ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(
         flexmock(

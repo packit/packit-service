@@ -241,6 +241,9 @@ def test_check_rerun_pr_testing_farm_handler(
         TaskResults(success=True, details={})
     )
     flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
+    flexmock(GithubProject).should_receive("get_files").and_return(
+        ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/the-namespace/the-repo"
     )
@@ -298,6 +301,9 @@ def test_check_rerun_pr_koji_build_handler(
         TaskResults(success=True, details={})
     )
     flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
+    flexmock(GithubProject).should_receive("get_files").and_return(
+        ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/the-namespace/the-repo"
     )
@@ -353,6 +359,9 @@ def test_check_rerun_pr_koji_build_handler_old_job_name(
         TaskResults(success=True, details={})
     )
     flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
+    flexmock(GithubProject).should_receive("get_files").and_return(
+        ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/the-namespace/the-repo"
     )
@@ -437,6 +446,9 @@ def test_check_rerun_push_testing_farm_handler(
         TaskResults(success=True, details={})
     )
     flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
+    flexmock(GithubProject).should_receive("get_files").and_return(
+        ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/the-namespace/the-repo"
     )
@@ -494,6 +506,9 @@ def test_check_rerun_push_koji_build_handler(
         TaskResults(success=True, details={})
     )
     flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
+    flexmock(GithubProject).should_receive("get_files").and_return(
+        ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/the-namespace/the-repo"
     )
@@ -549,6 +564,9 @@ def test_check_rerun_release_koji_build_handler(
         TaskResults(success=True, details={})
     )
     flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
+    flexmock(GithubProject).should_receive("get_files").and_return(
+        ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/the-namespace/the-repo"
     )
@@ -604,6 +622,9 @@ def test_check_rerun_release_propose_downstream_handler(
         TaskResults(success=True, details={})
     )
     flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
+    flexmock(GithubProject).should_receive("get_files").and_return(
+        ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("get_web_url").and_return(
         "https://github.com/the-namespace/the-repo"
     )

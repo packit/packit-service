@@ -140,6 +140,9 @@ def mock_pr_comment_functionality(request):
         get_files=lambda ref, filter_regex: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
     )
+    flexmock(
+        GithubProject, get_files=lambda ref, recursive: ["foo.spec", "packit.yaml"]
+    )
     flexmock(Github, get_repo=lambda full_name_or_id: None)
 
     trigger = flexmock(
@@ -188,7 +191,6 @@ def test_pr_comment_build_test_handler(
     ).and_return(
         flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
     )
-    flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(set())
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
@@ -253,7 +255,6 @@ def test_pr_comment_build_build_and_test_handler(
     ).and_return(
         flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
     )
-    flexmock(GithubProject, get_files="foo.spec")
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(set())
     flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
@@ -351,7 +352,9 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
     flexmock(KojiBuildJobHelper).should_receive("run_koji_build").and_return(
         TaskResults(success=True, details={})
     )
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(
+        GithubProject, get_files=lambda ref, recursive: ["foo.spec", "packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(KojiBuildJobHelper).should_receive("report_status_to_build").with_args(
         description=TASK_ACCEPTED,
@@ -442,6 +445,9 @@ def test_pr_comment_invalid_with_command_set(comment, command):
 def test_pr_comment_empty_handler(
     mock_pr_comment_functionality, pr_empty_comment_event
 ):
+    flexmock(
+        GithubProject, get_files=lambda ref, recursive: ["foo.spec", "packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("can_merge_pr").and_return(True)
     pr = flexmock(head_commit="12345")
@@ -552,7 +558,10 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
         flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
     )
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(
+        GithubProject,
+        get_files=lambda ref, recursive: ["the-specfile.spec", "packit.yaml"],
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(CoprHelper).should_receive("get_valid_build_targets").times(5).and_return(
@@ -654,7 +663,10 @@ def test_pr_test_command_handler_identifiers(pr_embedded_command_comment_event):
         )
     )
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(
+        GithubProject,
+        get_files=lambda ref, recursive: ["the-specfile.spec", "packit.yaml"],
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(CoprHelper).should_receive("get_valid_build_targets").times(5).and_return(
@@ -860,7 +872,10 @@ def test_pr_test_command_handler_retries(
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(
+        GithubProject,
+        get_files=lambda ref, recursive: ["the-specfile.spec", "packit.yaml"],
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64"}
@@ -1072,7 +1087,9 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         type=JobTriggerModelType.pull_request, trigger_id=9
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(
+        GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64"}
@@ -1289,7 +1306,9 @@ def test_pr_test_command_handler_compose_not_present(
         type=JobTriggerModelType.pull_request, trigger_id=9
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(
+        GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64"}
@@ -1429,7 +1448,9 @@ def test_pr_test_command_handler_composes_not_available(
         type=JobTriggerModelType.pull_request, trigger_id=9
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(
+        GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64"}
@@ -1533,7 +1554,9 @@ def test_pr_test_command_handler_missing_build(pr_embedded_command_comment_event
     ).and_return(trigger)
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(
+        GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").twice()
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
@@ -1655,7 +1678,9 @@ def test_pr_test_command_handler_missing_build_trigger_with_build_job_config(
     ).and_return(flexmock(grouped_targets=[test_run]))
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(
+        GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").twice()
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
@@ -1744,7 +1769,9 @@ def test_pr_test_command_handler_not_allowed_external_contributor_on_internal_TF
         flexmock(id=9, job_config_trigger_type=JobConfigTriggerType.pull_request)
     ).twice()
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(
+        GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False).once()
     flexmock(Signature).should_receive("apply_async").times(0)
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").times(0)
@@ -1811,7 +1838,9 @@ def test_pr_build_command_handler_not_allowed_external_contributor_on_internal_T
         4
     )
     pr_embedded_command_comment_event["comment"]["body"] = "/packit build"
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(
+        GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False).once()
     flexmock(Signature).should_receive("apply_async").times(0)
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").times(0)
@@ -1851,9 +1880,7 @@ def test_trigger_packit_command_without_config(
     flexmock(
         GithubProject,
         full_repo_name="namespace/repo",
-        # just throwing an exception
-        get_file_content=lambda path, ref: (_ for _ in ()).throw(FileNotFoundError),
-        get_files=lambda ref, filter_regex: ["specfile.spec"],
+        get_files=lambda ref, recursive: ["specfile.spec"],
         get_web_url=lambda: "https://github.com/namespace/repo",
     )
 
@@ -1919,7 +1946,9 @@ def test_retest_failed(
     ).and_return(flexmock())
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit retest-failed"
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(
+        GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(CoprHelper).should_receive("get_valid_build_targets").times(3).and_return(
@@ -2044,7 +2073,9 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
 
     pr_embedded_command_comment_event["comment"]["body"] = "/packit test"
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(
+        GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64"}
@@ -2134,7 +2165,9 @@ def test_invalid_packit_command_with_config(
     pr_embedded_command_comment_event["comment"][
         "body"
     ] = "/packit i-hate-testing-with-flexmock"
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(
+        GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     pr = flexmock(head_commit="12345")
     flexmock(GithubProject).should_receive("get_pr").and_return(pr)
@@ -2149,10 +2182,8 @@ def test_invalid_packit_command_without_config(
     flexmock(
         GithubProject,
         full_repo_name="packit-service/hello-world",
-        get_file_content=lambda path, ref: (_ for _ in ()).throw(
-            FileNotFoundError
-        ),  # no config
-        get_files=lambda ref, filter_regex: ["the-specfile.spec"],
+        # no config
+        get_files=lambda ref, recursive: ["the-specfile.spec"],
         get_web_url=lambda: "https://github.com/the-namespace/the-repo",
     )
 
@@ -2243,7 +2274,9 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
         type=JobTriggerModelType.pull_request, trigger_id=9
     ).and_return(flexmock(id=2, type=JobTriggerModelType.pull_request))
-    flexmock(GithubProject, get_files="foo.spec")
+    flexmock(
+        GithubProject, get_files=lambda ref, recursive: ["foo.spec", ".packit.yaml"]
+    )
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
         {"fedora-rawhide-x86_64", "fedora-35-x86_64"}
@@ -2521,12 +2554,11 @@ def test_bodhi_update_retrigger_via_dist_git_pr_comment(pagure_pr_comment_added)
         ref="beaf90bcecc51968a46663f8d6f092bfdc92e682", filter_regex=r".+\.spec$"
     ).and_return(["jouduv-dort.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml",
-        ref="beaf90bcecc51968a46663f8d6f092bfdc92e682",
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="beaf90bcecc51968a46663f8d6f092bfdc92e682"
     ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="beaf90bcecc51968a46663f8d6f092bfdc92e682", recursive=False
+    ).and_return(["jouduv-dort.spec", ".packit.yaml"])
 
     flexmock(RetriggerBodhiUpdateHandler).should_receive("pre_check").and_return(True)
 
