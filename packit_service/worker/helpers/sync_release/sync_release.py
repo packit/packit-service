@@ -83,3 +83,12 @@ class SyncReleaseHelper(BaseJobHelper):
 
     def report_status_for_branch(self, branch, description, state, url):
         raise NotImplementedError("Use subclass")
+
+    def report_status_to_all(
+        self,
+        description,
+        state,
+        url="",
+        markdown_content=None,
+    ):
+        raise NotImplementedError("Use subclass")

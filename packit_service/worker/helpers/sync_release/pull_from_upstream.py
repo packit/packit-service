@@ -52,3 +52,6 @@ class PullFromUpstreamHelper(SyncReleaseHelper):
 
     def report_status_for_branch(self, branch, description, state, url):
         pass
+
+    def report_status_to_all(self, description, state, url="", markdown_content=None):
+        pass
