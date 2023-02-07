@@ -27,7 +27,6 @@ class SRPMBuildsList(Resource):
 
         first, last = indices()
         for build in SRPMBuildModel.get_range(first, last):
-
             build_dict = {
                 "srpm_build_id": build.id,
                 "status": build.status,

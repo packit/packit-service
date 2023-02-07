@@ -116,7 +116,6 @@ class KojiBuildJobHelper(BaseBuildJobHelper):
         errors: Dict[str, str] = {}
         build_group = KojiBuildGroupModel.create(run_model=self.run_model)
         for target in self.build_targets:
-
             if target not in self.supported_koji_targets:
                 msg = f"Target not supported: {target}"
                 self.report_status_to_all_for_chroot(

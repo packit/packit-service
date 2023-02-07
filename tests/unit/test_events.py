@@ -1420,7 +1420,6 @@ class TestEvents:
         assert event_object.commit_sha == "12345"
 
     def test_distgit_pagure_push(self, distgit_commit):
-
         event_object = Parser.parse_event(distgit_commit)
 
         assert isinstance(event_object, PushPagureEvent)

@@ -381,7 +381,7 @@ def upgrade():
             all_test_runs += 1
             test_runs[(test_run.commit_sha, test_run.target)].append(test_run)
 
-        for ((commit, target), test_group) in test_runs.items():
+        for (commit, target), test_group in test_runs.items():
             matching_builds = copr_builds[(commit, target)]
             if len(matching_builds) != len(test_group):
                 number_of_builds_and_tests_differ += 1
@@ -504,7 +504,6 @@ def upgrade():
     for run_model in session.query(RunModel).all():
         run_model_count += 1
         if not run_model.srpm_build:
-
             raise PackitException(
                 f"Run model does not have SRPM build set: {run_model}"
             )
@@ -540,7 +539,6 @@ def upgrade():
 
 
 def downgrade():
-
     # Recreated direct connections:
 
     op.add_column(

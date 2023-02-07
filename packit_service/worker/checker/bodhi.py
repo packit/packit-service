@@ -119,7 +119,6 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
 
             return True
         if self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
-
             logger.debug(
                 f"Re-triggering Bodhi update via dist-git comment in "
                 f"repo {self.project_url} and #PR {self.data.pr_id} "
@@ -150,7 +149,6 @@ class HasIssueCommenterRetriggeringPermissions(ActorChecker, ConfigFromEventMixi
 
 class IsAuthorAPackager(ActorChecker, PackitAPIWithDownstreamMixin):
     def _pre_check(self) -> bool:
-
         if self.data.event_type in (PullRequestCommentPagureEvent.__name__,):
             if not self.is_packager(user=self.actor):
                 title = (

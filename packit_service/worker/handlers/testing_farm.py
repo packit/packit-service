@@ -286,7 +286,6 @@ class TestingFarmHandler(
             failed[test_run.target] = result.get("details")
 
     def run(self) -> TaskResults:
-
         # TODO: once we turn handlers into respective celery tasks, we should iterate
         #       here over *all* matching jobs and do them all, not just the first one
         logger.debug(f"Test job config: {self.job_config}")

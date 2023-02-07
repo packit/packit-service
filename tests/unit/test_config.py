@@ -316,7 +316,6 @@ def test_create_issue_if_needed(
     project.should_receive("get_issue_list").and_return(issues).once()
 
     if create_new:
-
         issue_mock = flexmock(
             id=3, title="new issue", url="https://github.com/namespace/project/issues/3"
         )

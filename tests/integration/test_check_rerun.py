@@ -226,7 +226,6 @@ def mock_release_functionality(request):
 def test_check_rerun_pr_testing_farm_handler(
     mock_pr_functionality, check_rerun_event_testing_farm
 ):
-
     run = flexmock(test_run_group=None)
     build = flexmock(status=BuildStatus.success, group_of_targets=flexmock(runs=[run]))
     test = flexmock(
@@ -423,7 +422,6 @@ def test_check_rerun_pr_koji_build_handler_old_job_name(
 def test_check_rerun_push_testing_farm_handler(
     mock_push_functionality, check_rerun_event_testing_farm
 ):
-
     run = flexmock(test_run_group=None)
     build = flexmock(status=BuildStatus.success, group_of_targets=flexmock(runs=[run]))
     test = flexmock(
