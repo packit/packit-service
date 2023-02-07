@@ -946,6 +946,32 @@ def test_get_request_details():
             False,
             True,
         ),
+        (
+            flexmock(
+                id=1,
+                status=BuildStatus.success,
+                # run_testing_farm should not be called for the existing target
+                group_of_targets=flexmock(
+                    runs=[
+                        flexmock(
+                            test_run_group=flexmock(
+                                grouped_targets=[
+                                    flexmock(
+                                        target="foo",
+                                        status=TestingFarmResult.new,
+                                        copr_builds=[
+                                            flexmock(status=BuildStatus.success)
+                                        ],
+                                    )
+                                ]
+                            )
+                        )
+                    ]
+                ),
+            ),
+            False,
+            False,
+        ),
     ],
 )
 def test_trigger_build(copr_build, run_new_build, wait_for_build):
@@ -977,10 +1003,10 @@ def test_trigger_build(copr_build, run_new_build, wait_for_build):
         flexmock(TFJobHelper, job_owner="owner", job_project="project")
         flexmock(TFJobHelper).should_receive("report_status_to_tests_for_chroot")
         flexmock(Signature).should_receive("apply_async").once()
-    else:
+    elif copr_build and copr_build.status == BuildStatus.success:
         flexmock(TFJobHelper).should_receive("run_testing_farm").and_return(
             TaskResults(success=True, details={})
-        )
+        ).twice()
     targets = {"target-x86_64", "another-target-x86_64"}
     tests = []
     for target in targets:
@@ -996,7 +1022,9 @@ def test_trigger_build(copr_build, run_new_build, wait_for_build):
                 status=TestingFarmResult.new,
             )
         )
-    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(*tests)
+    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(
+        *tests
+    ).one_by_one()
     flexmock(PipelineModel).should_receive("create").and_return(flexmock())
     flexmock(TFTTestRunGroupModel).should_receive("create").and_return(
         flexmock(grouped_targets=tests)

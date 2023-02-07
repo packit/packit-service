@@ -986,7 +986,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             markdown_content=message,
         )
         kargs = self.celery_task.task.request.kwargs.copy()
-        kargs["testing_farm_group_id"] = test_run.group_of_targets.id
+        kargs["testing_farm_target_id"] = test_run.id
         self.celery_task.retry(delay=interval * 60, kargs=kargs)
         return TaskResults(
             success=True,

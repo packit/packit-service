@@ -1161,9 +1161,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
     flexmock(TFTTestRunGroupModel).should_receive("create").with_args(
         [copr_build_pr.group_of_targets.runs[-1]]
     ).and_return(flexmock(grouped_targets=[test]))
-    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(
-        flexmock(status=test)
-    )
+    flexmock(TFTTestRunTargetModel).should_receive("create").and_return(test)
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
     flexmock(TestingFarmJobHelper).should_receive("distro2compose").with_args(
         "fedora-rawhide-x86_64"

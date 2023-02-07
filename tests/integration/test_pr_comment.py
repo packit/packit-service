@@ -954,7 +954,7 @@ def test_pr_test_command_handler_retries(
         flexmock(PipelineModel).should_receive("create").never()
         flexmock(TFTTestRunGroupModel).should_receive("create").never()
         flexmock(TFTTestRunTargetModel).should_receive("create").never()
-        flexmock(TFTTestRunGroupModel).should_receive("get_by_id").and_return(group)
+        flexmock(TFTTestRunTargetModel).should_receive("get_by_id").and_return(test_run)
     else:
         flexmock(PipelineModel).should_receive("create").and_return(
             flexmock(test_run_group=None)
@@ -988,7 +988,7 @@ def test_pr_test_command_handler_retries(
 
     if delay is not None:
         flexmock(CeleryTask).should_receive("retry").with_args(
-            delay=delay, kargs={"testing_farm_group_id": group.id}
+            delay=delay, kargs={"testing_farm_target_id": test_run.id}
         ).once()
 
     assert json.dumps(event_dict)
@@ -1001,7 +1001,7 @@ def test_pr_test_command_handler_retries(
         package_config=package_config,
         event=event_dict,
         job_config=job_config,
-        testing_farm_group_id=None if retry_number == 0 else group.id,
+        testing_farm_target_id=None if retry_number == 0 else test_run.id,
     )
 
 

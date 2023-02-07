@@ -102,7 +102,7 @@ class TestingFarmHandler(
         job_config: JobConfig,
         event: dict,
         celery_task: Task,
-        testing_farm_group_id: Optional[int] = None,
+        testing_farm_target_id: Optional[int] = None,
         build_id: Optional[int] = None,
     ):
         super().__init__(
@@ -112,7 +112,7 @@ class TestingFarmHandler(
             celery_task=celery_task,
         )
         self.build_id = build_id
-        self._testing_farm_group_id = testing_farm_group_id
+        self._testing_farm_target_id = testing_farm_target_id
         self._testing_farm_job_helper: Optional[TestingFarmJobHelper] = None
 
     @staticmethod
@@ -124,7 +124,7 @@ class TestingFarmHandler(
 
     def _get_or_create_group(
         self, builds: Dict[str, CoprBuildTargetModel]
-    ) -> TFTTestRunGroupModel:
+    ) -> Tuple[TFTTestRunGroupModel, List[TFTTestRunTargetModel]]:
         """Creates a TFTTestRunGroup.
 
         If a group is already attached to this handler, it returns the
@@ -135,11 +135,13 @@ class TestingFarmHandler(
                 corresponding copr build.
 
         Returns:
-            The existing or created test run group.
+            The existing or created test run group and the test targets
+            to run the tests for.
 
         """
-        if self._testing_farm_group_id is not None:
-            return TFTTestRunGroupModel.get_by_id(self._testing_farm_group_id)
+        if self._testing_farm_target_id is not None:
+            target_model = TFTTestRunTargetModel.get_by_id(self._testing_farm_target_id)
+            return target_model.group_of_targets, [target_model]
 
         run_model = (
             PipelineModel.create(
@@ -156,23 +158,26 @@ class TestingFarmHandler(
             if not run_model.test_run_group
             else run_model.test_run_group
         )
+        runs = []
         for target, build in builds.items():
             test_builds = [build] if build else []
-            TFTTestRunTargetModel.create(
-                pipeline_id=None,
-                identifier=self.job_config.identifier,
-                commit_sha=self.data.commit_sha,
-                status=TestingFarmResult.new,
-                target=target,
-                web_url=None,
-                test_run_group=group,
-                copr_build_targets=test_builds,
-                # In _payload() we ask TF to test commit_sha of fork (PR's source).
-                # Store original url. If this proves to work, make it a separate column.
-                data={"base_project_url": self.project.get_web_url()},
+            runs.append(
+                TFTTestRunTargetModel.create(
+                    pipeline_id=None,
+                    identifier=self.job_config.identifier,
+                    commit_sha=self.data.commit_sha,
+                    status=TestingFarmResult.new,
+                    target=target,
+                    web_url=None,
+                    test_run_group=group,
+                    copr_build_targets=test_builds,
+                    # In _payload() we ask TF to test commit_sha of fork (PR's source).
+                    # Store original url. If this proves to work, make it a separate column.
+                    data={"base_project_url": self.project.get_web_url()},
+                )
             )
 
-        return group
+        return group, runs
 
     def run_copr_build_handler(self, event_data: dict, number_of_builds: int):
         for _ in range(number_of_builds):
@@ -233,8 +238,8 @@ class TestingFarmHandler(
         if not targets_with_builds:
             return
 
-        group = self._get_or_create_group(targets_with_builds)
-        for test_run in group.grouped_targets:
+        group, test_runs = self._get_or_create_group(targets_with_builds)
+        for test_run in test_runs:
             copr_build = test_run.copr_builds[0]
             if copr_build.status in (BuildStatus.failure, BuildStatus.error):
                 logger.info(
@@ -310,8 +315,10 @@ class TestingFarmHandler(
         failed: Dict[str, str] = {}
 
         if self.testing_farm_job_helper.skip_build:
-            group = self._get_or_create_group({target: None for target in targets})
-            for test_run in group.grouped_targets:
+            group, test_runs = self._get_or_create_group(
+                {target: None for target in targets}
+            )
+            for test_run in test_runs:
                 # Only retry what's needed
                 if test_run.status not in [
                     TestingFarmResult.new,
