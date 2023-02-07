@@ -96,7 +96,7 @@ def process_runs(runs):
                         continue
                     response_dict[model_type].append(
                         {
-                            "packit_id": packit_id,
+                            "packit_id": row.id,
                             "target": row.target,
                             "status": row.status,
                         }
