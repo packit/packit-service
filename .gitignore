@@ -8,4 +8,4 @@ secrets
 .vagrant/
 *.egg-info
 .mypy_cache/
-build/
+/build/
