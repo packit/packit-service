@@ -235,6 +235,88 @@ class AbstractSyncReleaseHandler(
 
         return sync_release_model
 
+    def run_for_target(
+        self, sync_release_run_model: SyncReleaseModel, model: SyncReleaseTargetModel
+    ) -> Optional[str]:
+        """
+        Run sync-release for the single target specified by the given model.
+
+        Args:
+            sync_release_run_model: Model for the whole sync release run.
+            model: Model for the single target that is to be executed.
+
+        Returns:
+            String representation of the exception, if occurs.
+
+        Raises:
+            AbortSyncRelease: In case the archives cannot be downloaded.
+        """
+        branch = model.branch
+
+        # skip submitting a branch if we already did that (even if it failed)
+        if model.status not in [
+            SyncReleaseTargetStatus.running,
+            SyncReleaseTargetStatus.retry,
+            SyncReleaseTargetStatus.queued,
+        ]:
+            logger.debug(
+                f"Skipping {self.sync_release_job_type} for branch {branch} "
+                f"that was already processed."
+            )
+            return None
+
+        logger.debug(f"Running {self.sync_release_job_type} for {branch}")
+        model.set_status(status=SyncReleaseTargetStatus.running)
+        # for now the url is used only for propose-downstream
+        # so it does not matter URL may not be valid for pull-from-upstream
+        url = get_propose_downstream_info_url(model.id)
+        buffer, handler = gather_packit_logs_to_buffer(logging_level=logging.DEBUG)
+
+        model.set_start_time(start_time=datetime.utcnow())
+        self.sync_release_helper.report_status_for_branch(
+            branch=branch,
+            description=f"Starting {self.job_name_for_reporting}...",
+            state=BaseCommitStatus.running,
+            url=url,
+        )
+
+        try:
+            downstream_pr = self.sync_branch(
+                branch=branch, model=sync_release_run_model
+            )
+            logger.debug("Downstream PR created successfully.")
+            model.set_downstream_pr_url(downstream_pr_url=downstream_pr.url)
+        except AbortSyncRelease:
+            raise
+        except Exception as ex:
+            logger.debug(f"{self.sync_release_job_type} failed: {ex}")
+            # eat the exception and continue with the execution
+            self.sync_release_helper.report_status_for_branch(
+                branch=branch,
+                description=f"{self.job_name_for_reporting.capitalize()} failed: {ex}",
+                state=BaseCommitStatus.failure,
+                url=url,
+            )
+            model.set_status(status=SyncReleaseTargetStatus.error)
+            sentry_integration.send_to_sentry(ex)
+
+            return str(ex)
+        finally:
+            model.set_finished_time(finished_time=datetime.utcnow())
+            model.set_logs(collect_packit_logs(buffer=buffer, handler=handler))
+
+        self.sync_release_helper.report_status_for_branch(
+            branch=branch,
+            description=f"{self.job_name_for_reporting.capitalize()} "
+            f"finished successfully.",
+            state=BaseCommitStatus.success,
+            url=url,
+        )
+        model.set_status(status=SyncReleaseTargetStatus.submitted)
+
+        # no error occurred
+        return None
+
     def run(self) -> TaskResults:
         """
         Sync the upstream release to dist-git as a pull request.
@@ -248,84 +330,29 @@ class AbstractSyncReleaseHandler(
 
         try:
             for model in sync_release_run_model.sync_release_targets:
-                branch = model.branch
-                # skip submitting a branch if we already did that (even if it failed)
-                if model.status not in [
-                    SyncReleaseTargetStatus.running,
-                    SyncReleaseTargetStatus.retry,
-                    SyncReleaseTargetStatus.queued,
-                ]:
-                    logger.debug(
-                        f"Skipping {self.sync_release_job_type} for branch {branch} "
-                        f"that was already processed."
-                    )
-                    continue
-                logger.debug(f"Running {self.sync_release_job_type} for {branch}")
-                model.set_status(status=SyncReleaseTargetStatus.running)
-                # for now the url is used only for propose-downstream
-                # so it does not matter URL may not be valid for pull-from-upstream
-                url = get_propose_downstream_info_url(model.id)
-                buffer, handler = gather_packit_logs_to_buffer(
-                    logging_level=logging.DEBUG
-                )
+                if error := self.run_for_target(sync_release_run_model, model):
+                    errors[model.branch] = error
+        except AbortSyncRelease:
+            logger.debug(
+                f"{self.sync_release_job_type} is being retried because "
+                "we were not able yet to download the archive. "
+            )
 
-                try:
-                    model.set_start_time(start_time=datetime.utcnow())
-                    self.sync_release_helper.report_status_for_branch(
-                        branch=branch,
-                        description=f"Starting {self.job_name_for_reporting}...",
-                        state=BaseCommitStatus.running,
-                        url=url,
-                    )
-                    downstream_pr = self.sync_branch(
-                        branch=branch, model=sync_release_run_model
-                    )
-                    logger.debug("Downstream PR created successfully.")
-                    model.set_downstream_pr_url(downstream_pr_url=downstream_pr.url)
-                    self.sync_release_helper.report_status_for_branch(
-                        branch=branch,
-                        description=f"{self.job_name_for_reporting.capitalize()} "
-                        f"finished successfully.",
-                        state=BaseCommitStatus.success,
-                        url=url,
-                    )
-                    model.set_status(status=SyncReleaseTargetStatus.submitted)
-                except AbortSyncRelease:
-                    logger.debug(
-                        f"{self.sync_release_job_type} is being retried because "
-                        "we were not able yet to download the archive. "
-                    )
-                    model.set_status(status=SyncReleaseTargetStatus.retry)
-                    self.sync_release_helper.report_status_for_branch(
-                        branch=branch,
-                        description=f"{self.job_name_for_reporting.capitalize()} is "
-                        f"being retried because "
-                        "we were not able yet to download the archive. ",
-                        state=BaseCommitStatus.pending,
-                        url=url,
-                    )
-                    return TaskResults(
-                        success=True,  # do not create a Sentry issue
-                        details={
-                            "msg": "Not able to download archive. Task will be retried."
-                        },
-                    )
-                except Exception as ex:
-                    logger.debug(f"{self.sync_release_job_type} failed: {ex}")
-                    # eat the exception and continue with the execution
-                    self.sync_release_helper.report_status_for_branch(
-                        branch=branch,
-                        description=f"{self.job_name_for_reporting.capitalize()} failed: {ex}",
-                        state=BaseCommitStatus.failure,
-                        url=url,
-                    )
-                    errors[branch] = str(ex)
-                    model.set_status(status=SyncReleaseTargetStatus.error)
-                    sentry_integration.send_to_sentry(ex)
-                finally:
-                    model.set_finished_time(finished_time=datetime.utcnow())
-                    model.set_logs(collect_packit_logs(buffer=buffer, handler=handler))
+            for model in sync_release_run_model.sync_release_targets:
+                model.set_status(status=SyncReleaseTargetStatus.retry)
 
+            self.sync_release_helper.report_status_to_all(
+                description=f"{self.job_name_for_reporting.capitalize()} is "
+                f"being retried because "
+                "we were not able yet to download the archive. ",
+                state=BaseCommitStatus.pending,
+                url="",
+            )
+
+            return TaskResults(
+                success=True,  # do not create a Sentry issue
+                details={"msg": "Not able to download archive. Task will be retried."},
+            )
         finally:
             # remove temporary dist-git clone after we're done here - context:
             # 1. the dist-git repo is cloned on worker, not sandbox

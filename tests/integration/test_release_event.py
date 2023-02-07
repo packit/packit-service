@@ -673,13 +673,12 @@ def test_retry_propose_downstream_task(
         url=url,
     ).once()
     flexmock(ProposeDownstreamJobHelper).should_receive(
-        "report_status_for_branch"
+        "report_status_to_all"
     ).with_args(
-        branch="main",
         description="Propose downstream is being retried because "
         "we were not able yet to download the archive. ",
         state=BaseCommitStatus.pending,
-        url=url,
+        url="",
     ).once()
 
     processing_results = SteveJobs().process_message(github_release_webhook)
