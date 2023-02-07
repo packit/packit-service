@@ -847,7 +847,6 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         params=None,
         data=None,
     ) -> RequestResponse:
-
         response = self.session.request(
             method=method,
             url=url,

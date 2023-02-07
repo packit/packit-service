@@ -92,6 +92,5 @@ def push_scope_to_sentry():
 
         yield SentryMocker()
     else:
-
         with sentry_sdk.push_scope() as scope:
             yield scope

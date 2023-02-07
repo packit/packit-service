@@ -88,7 +88,6 @@ def test_build_srpm_log_format(github_pr_event):
         return "my.srpm"
 
     def inspect_log_date_format(logs=None, **_):
-
         timestamp_reg = re.compile(
             r"[0-9]+-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]+\s.*"
         )

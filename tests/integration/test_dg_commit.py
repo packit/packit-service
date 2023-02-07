@@ -45,7 +45,6 @@ def distgit_commit_event():
 
 
 def test_sync_from_downstream():
-
     packit_yaml = (
         "{'specfile_path': 'buildah.spec', 'synced_files': [],"
         "'jobs': [{'trigger': 'commit', 'job': 'sync_from_downstream'}],"
@@ -115,7 +114,6 @@ def test_sync_from_downstream():
 
 
 def test_do_not_sync_from_downstream_on_a_different_branch():
-
     packit_yaml = (
         "{'specfile_path': 'buildah.spec', 'synced_files': [],"
         "'jobs': [{'trigger': 'commit', 'job': 'sync_from_downstream'}],"
@@ -169,7 +167,6 @@ def test_do_not_sync_from_downstream_on_a_different_branch():
 
 
 def test_downstream_koji_build():
-
     packit_yaml = (
         "{'specfile_path': 'buildah.spec', 'synced_files': [],"
         "'jobs': [{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers':"
@@ -223,7 +220,6 @@ def test_downstream_koji_build():
 
 
 def test_downstream_koji_build_failure_no_issue():
-
     packit_yaml = (
         "{'specfile_path': 'buildah.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers': "
@@ -279,7 +275,6 @@ def test_downstream_koji_build_failure_no_issue():
 
 
 def test_downstream_koji_build_failure_issue_created():
-
     packit_yaml = (
         "{'specfile_path': 'buildah.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers': "
@@ -344,7 +339,6 @@ def test_downstream_koji_build_failure_issue_created():
 
 
 def test_downstream_koji_build_failure_issue_comment():
-
     packit_yaml = (
         "{'specfile_path': 'buildah.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'koji_build', 'allowed_committers': "
@@ -418,7 +412,6 @@ def test_downstream_koji_build_failure_issue_comment():
 
 
 def test_downstream_koji_build_no_config():
-
     pagure_project = flexmock(
         PagureProject,
         full_repo_name="rpms/buildah",
@@ -492,7 +485,6 @@ def test_downstream_koji_build_no_config():
     ],
 )
 def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
-
     packit_yaml = (
         "{'specfile_path': 'buildah.spec', 'synced_files': [],"
         f"'jobs': {jobs_config},"
@@ -584,7 +576,6 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
     ],
 )
 def test_do_not_run_downstream_koji_build_for_a_different_branch(jobs_config):
-
     packit_yaml = (
         "{'specfile_path': 'buildah.spec', 'synced_files': [],"
         f"'jobs': {jobs_config},"

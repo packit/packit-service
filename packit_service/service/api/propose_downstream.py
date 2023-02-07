@@ -31,7 +31,6 @@ class ProposeDownstreamList(Resource):
         for propose_downstream_results in SyncReleaseModel.get_range_propose_downstream(
             first, last
         ):
-
             result_dict = {
                 "packit_id": propose_downstream_results.id,
                 "status": propose_downstream_results.status,

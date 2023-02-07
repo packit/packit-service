@@ -448,7 +448,6 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
         return (ValidInformationForPullFromUpstream,)
 
     def _report_errors_for_each_branch(self, message: str) -> None:
-
         report_in_issue_repository(
             issue_repository=self.job_config.issue_repository,
             service_config=self.service_config,
@@ -522,7 +521,6 @@ class AbstractDownstreamKojiBuildHandler(
         """Describe the user's action which triggered the Koji build"""
 
     def report_in_issue_repository(self, branch: str, ex: PackitException) -> None:
-
         body = MSG_DOWNSTREAM_JOB_ERROR_HEADER.format(
             object="Koji build", dist_git_url=self.packit_api.dg.local_project.git_url
         )

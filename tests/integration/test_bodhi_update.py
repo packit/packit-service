@@ -31,7 +31,6 @@ from tests.spellbook import first_dict_value, get_parameters_from_results
 
 
 def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
-
     packit_yaml = (
         "{'specfile_path': 'packit.spec', 'synced_files': [],"
         "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update',"
@@ -103,7 +102,6 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
 
 
 def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_format):
-
     packit_yaml = (
         "{'specfile_path': 'packit.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update',"
@@ -177,7 +175,6 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
 def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
     koji_build_completed_old_format,
 ):
-
     packit_yaml = (
         "{'specfile_path': 'packit.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update',"
@@ -262,7 +259,6 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
 def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
     koji_build_completed_old_format,
 ):
-
     packit_yaml = (
         "{'specfile_path': 'packit.spec',"
         "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update',"
@@ -452,7 +448,6 @@ def test_bodhi_update_build_not_tagged_yet(
 def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
     koji_build_start_old_format,
 ):
-
     packit_yaml = (
         "{'specfile_path': 'packit.spec', 'synced_files': [],"
         "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update',"
@@ -508,7 +503,6 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
 
 
 def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
-
     packit_yaml = (
         "{'specfile_path': 'packit.spec', 'synced_files': [],"
         "'jobs': [{'trigger': 'commit', 'job': 'bodhi_update',"

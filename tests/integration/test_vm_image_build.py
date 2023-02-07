@@ -29,7 +29,6 @@ from packit_service.worker.handlers.vm_image import VMImageBuildHandler
 
 
 def test_vm_image_build(github_vm_image_build_comment):
-
     packit_yaml = (
         "{'specfile_path': 'python-knx-stack.spec',"
         " 'synced_files': [],"

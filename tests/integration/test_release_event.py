@@ -230,7 +230,6 @@ def test_dist_git_push_release_handle_multiple_branches(
     propose_downstream_model,
     propose_downstream_target_models,
 ):
-
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, "
@@ -339,7 +338,6 @@ def test_dist_git_push_release_handle_one_failed(
     propose_downstream_model,
     propose_downstream_target_models,
 ):
-
     packit_yaml = (
         "{'specfile_path': 'hello-world.spec', 'synced_files': []"
         ", jobs: [{trigger: release, job: propose_downstream, "

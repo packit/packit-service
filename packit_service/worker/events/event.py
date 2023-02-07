@@ -150,7 +150,6 @@ class EventData:
     @property
     def db_trigger(self) -> Optional[AbstractTriggerDbType]:
         if not self._db_trigger:
-
             # TODO, do a better job
             # Probably, try to recreate original classes.
             if self.event_type in {

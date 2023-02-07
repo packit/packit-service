@@ -122,7 +122,6 @@ class BodhiUpdateHandler(
     def report_in_issue_repository(
         self, koji_build_data: KojiBuildData, error: str
     ) -> None:
-
         body = MSG_DOWNSTREAM_JOB_ERROR_HEADER.format(
             object="Bodhi update", dist_git_url=self.packit_api.dg.local_project.git_url
         )
