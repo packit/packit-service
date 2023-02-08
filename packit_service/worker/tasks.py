@@ -226,7 +226,7 @@ def run_testing_farm_handler(
     package_config: dict,
     job_config: dict,
     build_id: Optional[int] = None,
-    testing_farm_group_id: Optional[int] = None,
+    testing_farm_target_id: Optional[int] = None,
 ):
     handler = TestingFarmHandler(
         package_config=load_package_config(package_config),
@@ -234,7 +234,7 @@ def run_testing_farm_handler(
         event=event,
         build_id=build_id,
         celery_task=self,
-        testing_farm_group_id=testing_farm_group_id,
+        testing_farm_target_id=testing_farm_target_id,
     )
     return get_handlers_task_results(handler.run_job(), event)
 
