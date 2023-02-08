@@ -6,7 +6,7 @@ We love you, Steve Jobs.
 """
 import logging
 from datetime import datetime, timezone
-from typing import Any, Optional, Union
+from typing import Optional, Union
 from typing import List, Set, Type, Tuple
 from re import match
 
@@ -136,7 +136,7 @@ class SteveJobs:
         Returns:
             List of results of the processing tasks.
         """
-        event_object: Any = Parser.parse_event(event)
+        event_object: Optional[Event] = Parser.parse_event(event)
 
         if not (event_object and event_object.pre_check()):
             return []
