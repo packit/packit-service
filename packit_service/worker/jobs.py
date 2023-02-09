@@ -418,6 +418,9 @@ class SteveJobs:
             if self.should_task_be_created_for_job_config_and_handler(
                 job_config, handler_kls
             ):
+                self.report_task_accepted(
+                    handler_kls=handler_kls, job_config=job_config
+                )
                 signatures.append(
                     handler_kls.get_signature(event=self.event, job=job_config)
                 )
@@ -473,7 +476,6 @@ class SteveJobs:
                 "by the end of the year.",
             )
 
-        self.report_task_accepted(handler_kls=handler_kls, job_config=job_config)
         return True
 
     def is_project_public_or_enabled_private(self) -> bool:
