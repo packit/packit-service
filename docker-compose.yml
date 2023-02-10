@@ -1,6 +1,20 @@
 version: "2"
 
 services:
+  tokman:
+    image: quay.io/packit/tokman
+    container_name: tokman
+    ports:
+      - 8000:8000
+    environment:
+      LOG_LEVEL: debug
+      TOKMAN_CONFIG: /config/config.py
+      BIND_ADDR: 0.0.0.0:8000
+    volumes:
+      - ./secrets/packit/dev/tokman-files:/config:ro,z
+      - ./secrets/packit/dev/tokman-files:/access_tokens:ro,z
+      - ./secrets/packit/dev/:/secrets:ro,z
+
   redis:
     image: quay.io/sclorg/redis-6-c9s
     container_name: redis
@@ -53,6 +67,7 @@ services:
     image: quay.io/packit/packit-worker:dev
     command: /usr/bin/run_worker.sh
     depends_on:
+      - tokman
       - redis
       - postgres
     environment:
@@ -68,6 +83,7 @@ services:
       PUSHGATEWAY_ADDRESS: ""
       AWS_ACCESS_KEY_ID: ""
       AWS_SECRET_ACCESS_KEY: ""
+      GIT_SSH_COMMAND: "ssh -F /home/packit/.ssh/config"
     volumes:
       - ../packit/packit:/usr/local/lib/python3.11/site-packages/packit:ro,z
       - ./packit_service:/usr/local/lib/python3.11/site-packages/packit_service:ro,z
