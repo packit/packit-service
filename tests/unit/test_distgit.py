@@ -6,11 +6,13 @@ import pytest
 from flexmock import flexmock
 from fasjson_client import Client
 
+from ogr.services.github import GithubService
 from packit.api import PackitAPI
 from packit_service.worker.handlers.distgit import (
     ProposeDownstreamHandler,
     DownstreamKojiBuildHandler,
     AbstractSyncReleaseHandler,
+    PullFromUpstreamHandler,
 )
 from packit_service.worker.events.event import EventData
 from packit_service.config import PackageConfigGetter
@@ -114,3 +116,14 @@ def test_upstream_local_project_is_used():
     assert handler.packit_api
     assert not handler.packit_api.downstream_local_project
     assert handler.packit_api.upstream_local_project
+
+
+def test_pull_from_upstream_auth_method():
+    class Test(PullFromUpstreamHandler):
+        pass
+
+    handler = Test(None, None, {"event_type": "unknown"}, None)
+    flexmock(GithubService).should_receive("set_auth_method").once()
+    flexmock(AbstractSyncReleaseHandler).should_receive("run").once()
+    flexmock(GithubService).should_receive("reset_auth_method").once()
+    handler.run()

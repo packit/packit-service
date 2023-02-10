@@ -11,7 +11,8 @@ from datetime import datetime
 from typing import Optional, Tuple, Type, List
 
 from celery import Task
-from ogr.abstract import PullRequest
+from ogr.abstract import PullRequest, AuthMethod
+from ogr.services.github import GithubService
 
 from packit.config import JobConfig, JobType
 from packit.config.package_config import PackageConfig
@@ -69,6 +70,7 @@ from packit_service.worker.helpers.sync_release.pull_from_upstream import (
 )
 from packit_service.worker.helpers.sync_release.sync_release import SyncReleaseHelper
 from packit_service.worker.mixin import (
+    Config,
     LocalProjectMixin,
     ConfigFromEventMixin,
     GetBranchesFromIssueMixin,
@@ -81,6 +83,32 @@ from packit_service.worker.reporting import BaseCommitStatus, report_in_issue_re
 from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
+
+
+class ChoosenGithubAuthMethod:
+    """Change the preferred auth method for every Github Service.
+    Restore the default auth method after having used the preferred one.
+
+    Args:
+        config_mixin: each class which has access to the git services
+            through a service_config object
+        auth_method: the name of the preferred auth method for the
+            following calls to the GitHub service
+    """
+
+    def __init__(self, config_mixin: Config, auth_method: AuthMethod) -> None:
+        self._config_mixin = config_mixin
+        for service in config_mixin.service_config.services:
+            if isinstance(service, GithubService):
+                service.set_auth_method(auth_method)
+
+    def __enter__(self):
+        return self._config_mixin
+
+    def __exit__(self, type, value, traceback):
+        for service in self._config_mixin.service_config.services:
+            if isinstance(service, GithubService):
+                service.reset_auth_method()
 
 
 @configured_as(job_type=JobType.sync_from_downstream)
@@ -486,6 +514,10 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
             + f"\n\n---\n\n*Get in [touch with us]({CONTACTS_URL}) if you need some help.*",
             comment_to_existing=message,
         )
+
+    def run(self) -> TaskResults:
+        with ChoosenGithubAuthMethod(self, AuthMethod.token):
+            return super().run()
 
 
 class AbstractDownstreamKojiBuildHandler(
