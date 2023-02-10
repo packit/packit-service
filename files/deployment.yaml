@@ -13,7 +13,7 @@
       ansible.builtin.package:
         name:
           - git
-          - ansible
+          #           - ansible
           - python-openshift
           - python-pip
           - make
