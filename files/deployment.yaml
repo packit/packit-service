@@ -40,12 +40,10 @@
       when: zuul is not defined
 
     - name: Generate secrets
-      ansible.builtin.command: make generate-local-secrets
+      ansible.builtin.import_playbook: "{{ deployment_dir }}/playbooks/generate-local-secrets.yml"
       environment:
         DEPLOYMENT: dev
         ANSIBLE_STDOUT_CALLBACK: debug
-      args:
-        chdir: "{{ deployment_dir }}"
       become: "{{ as_root }}"
       when: path_to_secrets is not defined
 
@@ -91,10 +89,8 @@
         dest: "{{ deployment_dir }}/vars/packit/dev.yml"
 
     - name: Actually deploy
-      command: make deploy
+      ansible.builtin.import_playbook: "{{ deployment_dir }}/playbooks/deploy.yml"
       environment:
         DEPLOYMENT: dev
         ANSIBLE_STDOUT_CALLBACK: debug
-      args:
-        chdir: "{{ deployment_dir }}"
       become: "{{ as_root }}"

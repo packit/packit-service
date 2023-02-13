@@ -9,10 +9,8 @@
     as_root: true # needs to run as root in zuul
   tasks:
     - name: Check deployment
-      command: make check
+      ansible.builtin.import_playbook: "{{ deployment_dir }}/playbooks/check.yml"
       environment:
         DEPLOYMENT: dev
         ANSIBLE_STDOUT_CALLBACK: debug
-      args:
-        chdir: "{{ deployment_dir }}"
       become: "{{ as_root }}"
