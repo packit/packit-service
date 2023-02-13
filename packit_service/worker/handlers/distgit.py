@@ -176,13 +176,16 @@ class AbstractSyncReleaseHandler(
     ) -> Optional[PullRequest]:
         try:
             branch_suffix = f"update-{self.sync_release_job_type.value}"
+            is_pull_from_upstream_job = (
+                self.sync_release_job_type == SyncReleaseJobType.pull_from_upstream
+            )
             downstream_pr = self.packit_api.sync_release(
                 dist_git_branch=branch,
                 tag=self.data.tag_name,
                 create_pr=True,
                 local_pr_branch_suffix=branch_suffix,
-                use_downstream_specfile=self.sync_release_job_type
-                == SyncReleaseJobType.pull_from_upstream,
+                use_downstream_specfile=is_pull_from_upstream_job,
+                sync_default_files=not is_pull_from_upstream_job,
             )
         except PackitDownloadFailedException as ex:
             # the archive has not been uploaded to PyPI yet
