@@ -6,7 +6,7 @@ We love you, Steve Jobs.
 """
 import logging
 from datetime import datetime, timezone
-from typing import Any, Optional, Union
+from typing import Optional, Union
 from typing import List, Set, Type, Tuple
 from re import match
 
@@ -136,7 +136,7 @@ class SteveJobs:
         Returns:
             List of results of the processing tasks.
         """
-        event_object: Any = Parser.parse_event(event)
+        event_object: Optional[Event] = Parser.parse_event(event)
 
         if not (event_object and event_object.pre_check()):
             return []
@@ -418,6 +418,9 @@ class SteveJobs:
             if self.should_task_be_created_for_job_config_and_handler(
                 job_config, handler_kls
             ):
+                self.report_task_accepted(
+                    handler_kls=handler_kls, job_config=job_config
+                )
                 signatures.append(
                     handler_kls.get_signature(event=self.event, job=job_config)
                 )
@@ -473,7 +476,6 @@ class SteveJobs:
                 "by the end of the year.",
             )
 
-        self.report_task_accepted(handler_kls=handler_kls, job_config=job_config)
         return True
 
     def is_project_public_or_enabled_private(self) -> bool:
