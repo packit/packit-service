@@ -71,6 +71,7 @@ services:
     volumes:
       - ../packit/packit:/usr/local/lib/python3.11/site-packages/packit:ro,z
       - ./packit_service:/usr/local/lib/python3.11/site-packages/packit_service:ro,z
+      - ./files/run_worker.sh:/usr/bin/run_worker.sh:ro,Z
       - ./secrets/packit/dev/packit-service.yaml:/home/packit/.config/packit-service.yaml:ro,z
       - ./secrets/packit/dev/copr:/home/packit/.config/copr:ro,z
       - ./secrets/packit/dev/ssh_config:/packit-ssh/config:ro,z
