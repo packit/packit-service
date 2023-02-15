@@ -26,7 +26,7 @@ from packit_service.worker.helpers.build.koji_build import KojiBuildJobHelper
 from packit_service.worker.mixin import ConfigFromEventMixin
 
 
-def construct_dict(event, action=None, git_ref=None):
+def construct_dict(event, action=None, git_ref="random-non-configured-branch"):
     return {
         "event_type": event,
         "actor": "bfu",
@@ -277,3 +277,38 @@ def test_vm_image_has_author_write_access(
         flexmock(checker).should_receive("report_pre_check_failure").once()
 
     assert checker.pre_check() == result
+
+
+def test_koji_permissions_merge_queue():
+    """
+    Check that specifying regex for GitHub merge queue temporary branch where the
+    CI must be green passes the check.
+    """
+    package_config = flexmock(jobs=[])
+    job_config = flexmock(
+        type=JobType.upstream_koji_build,
+        scratch=True,
+        trigger=JobConfigTriggerType.commit,
+        targets={"fedora-37"},
+        branch="gh-readonly-queue/.*",
+    )
+
+    event = construct_dict(
+        event=PushGitHubEvent.__name__,
+        git_ref="gh-readonly-queue/main/pr-767-0203dd99c3d003cbfd912cec946cc5b46f695b10",
+    )
+
+    git_project = flexmock(
+        namespace="packit",
+        repo="ogr",
+        default_branch="main",
+    )
+    git_project.should_receive("can_merge_pr").and_return(True)
+    flexmock(ConfigFromEventMixin).should_receive("project").and_return(git_project)
+
+    db_trigger = flexmock(job_config_trigger_type=JobConfigTriggerType.commit)
+    flexmock(EventData).should_receive("db_trigger").and_return(db_trigger)
+
+    checker = PermissionOnKoji(package_config, job_config, event)
+
+    assert checker.pre_check()

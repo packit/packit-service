@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import re
 
 from packit_service.worker.checker.abstract import ActorChecker, Checker
 from packit_service.worker.events.enums import GitlabEventAction
@@ -41,7 +42,7 @@ class IsGitForgeProjectAndEventOk(Checker, GetCoprBuildJobHelperMixin):
             PushPagureEvent.__name__,
         ):
             configured_branch = self.copr_build_helper.job_build_branch
-            if self.data.git_ref != configured_branch:
+            if not re.match(configured_branch, self.data.git_ref):
                 logger.info(
                     f"Skipping build on '{self.data.git_ref}'. "
                     f"Push configured only for '{configured_branch}'."
