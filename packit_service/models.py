@@ -7,7 +7,6 @@ Data layer on top of PSQL using sqlalch
 
 import enum
 import logging
-import os
 from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -69,14 +68,21 @@ _CACHE_TTL = timedelta(hours=1).seconds
 def get_pg_url() -> str:
     """create postgresql connection string"""
     return (
-        f"postgresql+psycopg2://{os.getenv('POSTGRESQL_USER')}"
-        f":{os.getenv('POSTGRESQL_PASSWORD')}@{os.getenv('POSTGRESQL_HOST', 'postgres')}"
-        f":{os.getenv('POSTGRESQL_PORT', '5432')}/{os.getenv('POSTGRESQL_DATABASE')}"
+        f"postgresql+psycopg2://{getenv('POSTGRESQL_USER')}"
+        f":{getenv('POSTGRESQL_PASSWORD')}@{getenv('POSTGRESQL_HOST', 'postgres')}"
+        f":{getenv('POSTGRESQL_PORT', '5432')}/{getenv('POSTGRESQL_DATABASE')}"
     )
 
 
-# To log SQL statements, set echo=True
-engine = create_engine(get_pg_url(), echo=False)
+# To log SQL statements, set SQLALCHEMY_ECHO env. var. to True|T|Yes|Y|1
+sqlalchemy_echo = getenv("SQLALCHEMY_ECHO", "False").lower() in (
+    "true",
+    "t",
+    "yes",
+    "y",
+    "1",
+)
+engine = create_engine(get_pg_url(), echo=sqlalchemy_echo)
 Session = sessionmaker(bind=engine)
 
 
