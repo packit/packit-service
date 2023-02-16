@@ -10,6 +10,7 @@ from os import getenv
 from typing import Optional, Type, Union, Dict, Any, Tuple
 
 from ogr.parsing import parse_git_repo
+from packit.config import JobConfigTriggerType
 
 from packit.constants import PROD_DISTGIT_URL
 from packit.utils import nested_get
@@ -815,18 +816,50 @@ class Parser:
             logger.warning(f"Check run created by {app} and not us.")
             return None
 
-        check_name_job, check_name_target = None, None
+        external_id = nested_get(event, "check_run", "external_id")
+
+        if not external_id:
+            logger.warning("No external_id to identify the original trigger provided.")
+            return None
+
+        job_trigger = JobTriggerModel.get_by_id(int(external_id))
+        if not job_trigger:
+            logger.warning(f"Job trigger with ID {external_id} not found.")
+            return None
+
+        db_trigger = job_trigger.get_trigger_object()
+        logger.info(f"Original trigger: {db_trigger}")
+
+        check_name_job, check_name_target, check_name_identifier = None, None, None
         if ":" in check_name:
             # e.g. "rpm-build:fedora-34-x86_64"
             #   or "rpm-build:fedora-34-x86_64:identifier"
+            #   or "rpm-build:main:fedora-34-x86_64:identifier"
             #   or "propose-downstream:f35
-            check_name_parts = check_name.split(":", maxsplit=2)
+            check_name_parts = check_name.split(":", maxsplit=3)
             if len(check_name_parts) == 2:
                 check_name_job, check_name_target = check_name_parts
-                check_name_identifier = None
             elif len(check_name_parts) == 3:
+                if db_trigger.job_config_trigger_type in (
+                    JobConfigTriggerType.commit,
+                    JobConfigTriggerType.release,
+                ):
+                    (
+                        check_name_job,
+                        # we have this info in the DB
+                        _,
+                        check_name_target,
+                    ) = check_name_parts
+                else:
+                    (
+                        check_name_job,
+                        check_name_target,
+                        check_name_identifier,
+                    ) = check_name_parts
+            elif len(check_name_parts) == 4:
                 (
                     check_name_job,
+                    _,
                     check_name_target,
                     check_name_identifier,
                 ) = check_name_parts
@@ -859,6 +892,10 @@ class Parser:
             )
             return None
 
+        logger.info(
+            f"Check name job: {check_name_job}, check name target: {check_name_target}"
+        )
+
         repo_namespace = nested_get(event, "repository", "owner", "login")
         repo_name = nested_get(event, "repository", "name")
         actor = nested_get(event, "sender", "login")
@@ -870,19 +907,6 @@ class Parser:
         https_url = event["repository"]["html_url"]
 
         commit_sha = nested_get(event, "check_run", "head_sha")
-        external_id = nested_get(event, "check_run", "external_id")
-
-        if not external_id:
-            logger.warning("No external_id to identify the original trigger provided.")
-            return None
-
-        job_trigger = JobTriggerModel.get_by_id(int(external_id))
-        if not job_trigger:
-            logger.warning(f"Job trigger with ID {external_id} not found.")
-            return None
-
-        db_trigger = job_trigger.get_trigger_object()
-        logger.info(f"Original trigger: {db_trigger}")
 
         event = None
         if isinstance(db_trigger, PullRequestModel):

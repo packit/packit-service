@@ -161,19 +161,19 @@ def copr_build_model(
         namespace=repo_namespace,
         project_url=f"https://{forge_instance}/{repo_namespace}/{repo_name}",
     )
-    pr_model = flexmock(
+    trigger_object_model = flexmock(
         id=1,
-        pr_id=24,
         project=project_model,
         job_config_trigger_type=job_config_trigger_type,
-        job_trigger_model_type=JobTriggerModelType.pull_request,
+        job_trigger_model_type=job_trigger_model_type,
         **trigger_model_kwargs,
     )
+
     trigger_model = flexmock(
         id=2,
         type=job_trigger_model_type,
         trigger_id=1,
-        get_trigger_object=lambda: pr_model,
+        get_trigger_object=lambda: trigger_object_model,
     )
 
     runs = []
@@ -206,7 +206,8 @@ def copr_build_model(
     )
 
     flexmock(JobTriggerModel).should_receive("get_or_create").with_args(
-        type=pr_model.job_trigger_model_type, trigger_id=pr_model.id
+        type=trigger_object_model.job_trigger_model_type,
+        trigger_id=trigger_object_model.id,
     ).and_return(trigger_model)
 
     def mock_set_status(status):
@@ -217,7 +218,7 @@ def copr_build_model(
 
     copr_build.set_status = mock_set_status
     copr_build._srpm_build_for_mocking = srpm_build
-    copr_build.get_trigger_object = lambda: pr_model
+    copr_build.get_trigger_object = lambda: trigger_object_model
     copr_build.get_srpm_build = lambda: srpm_build
 
     run_model = flexmock(
@@ -234,7 +235,12 @@ def copr_build_model(
 
 @pytest.fixture()
 def copr_build_pr():
-    return copr_build_model()
+    return copr_build_model(
+        job_config_trigger_type=JobConfigTriggerType.pull_request,
+        job_trigger_model_type=JobTriggerModelType.pull_request,
+        pr_id=24,
+        task_accepted_time=datetime.now(),
+    )
 
 
 @pytest.fixture()

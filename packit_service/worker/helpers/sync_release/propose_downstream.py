@@ -68,14 +68,20 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
             )
 
     @classmethod
-    def get_check_cls(cls, branch: str = None, identifier: Optional[str] = None) -> str:
+    def get_check_cls(
+        cls,
+        branch: str = None,
+        trigger_identifier: Optional[str] = None,
+        identifier: Optional[str] = None,
+    ) -> str:
         """
         Get name of the commit status for propose-downstream job for the given branch
         and identifier.
         """
         branch_str = f":{branch}" if branch else ""
+        trigger_str = f":{trigger_identifier}" if trigger_identifier else ""
         optional_suffix = f":{identifier}" if identifier else ""
-        return f"{cls.status_name}{branch_str}{optional_suffix}"
+        return f"{cls.status_name}{trigger_str}{branch_str}{optional_suffix}"
 
     def get_check(self, branch: str = None) -> str:
         return self.get_check_cls(branch, identifier=self.job_config.identifier)

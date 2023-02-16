@@ -5,9 +5,9 @@ import logging
 from typing import Dict, Any, Optional, Set, List, Union, Tuple
 
 import requests
+
 from ogr.abstract import GitProject, PullRequest
 from ogr.utils import RequestResponse
-
 from packit.config import JobConfig, PackageConfig
 from packit.exceptions import PackitConfigException, PackitException
 from packit.utils import nested_get
@@ -1126,7 +1126,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return self.tests_targets_for_test_job(self.job_config)
 
     def get_test_check(self, chroot: str = None) -> str:
-        return self.get_test_check_cls(chroot, self.job_config.identifier)
+        return self.get_test_check_cls(
+            chroot, self.trigger_identifier_for_status, self.job_config.identifier
+        )
 
     @property
     def test_check_names(self) -> List[str]:

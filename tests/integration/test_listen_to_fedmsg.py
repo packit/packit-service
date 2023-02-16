@@ -85,6 +85,16 @@ def copr_build_end():
 
 
 @pytest.fixture(scope="module")
+def copr_build_end_push():
+    return json.loads((DATA_DIR / "fedmsg" / "copr_build_end_push.json").read_text())
+
+
+@pytest.fixture(scope="module")
+def copr_build_end_release():
+    return json.loads((DATA_DIR / "fedmsg" / "copr_build_end_release.json").read_text())
+
+
+@pytest.fixture(scope="module")
 def srpm_build_start():
     return json.loads((DATA_DIR / "fedmsg" / "srpm_build_start.json").read_text())
 
@@ -353,7 +363,9 @@ def test_copr_build_end(
     )
 
 
-def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_push):
+def test_copr_build_end_push(
+    copr_build_end_push, pc_build_push, copr_build_branch_push
+):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
         # we cannot comment for branch push events
@@ -382,7 +394,10 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
         state=BaseCommitStatus.success,
         description="RPMs were built successfully.",
         url=url,
-        check_names=CoprBuildJobHelper.get_build_check_cls(copr_build_end["chroot"]),
+        check_names=CoprBuildJobHelper.get_build_check_cls(
+            copr_build_end_push["chroot"],
+            trigger_identifier=copr_build_branch_push.get_trigger_object().name,
+        ),
         markdown_content=None,
     ).once()
 
@@ -402,7 +417,7 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
 
     flexmock(Pushgateway).should_receive("push").once().and_return()
 
-    processing_results = SteveJobs().process_message(copr_build_end)
+    processing_results = SteveJobs().process_message(copr_build_end_push)
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
@@ -417,7 +432,9 @@ def test_copr_build_end_push(copr_build_end, pc_build_push, copr_build_branch_pu
     )
 
 
-def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_release):
+def test_copr_build_end_release(
+    copr_build_end_release, pc_build_release, copr_build_release
+):
     flexmock(GithubProject).should_receive("is_private").and_return(False)
     flexmock(GithubProject).should_receive("get_pr").and_return(
         # we cannot comment for branch push events
@@ -446,7 +463,10 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
         state=BaseCommitStatus.success,
         description="RPMs were built successfully.",
         url=url,
-        check_names=CoprBuildJobHelper.get_build_check_cls(copr_build_end["chroot"]),
+        check_names=CoprBuildJobHelper.get_build_check_cls(
+            copr_build_end_release["chroot"],
+            trigger_identifier=copr_build_release.get_trigger_object().tag_name,
+        ),
         markdown_content=None,
     ).once()
 
@@ -461,7 +481,7 @@ def test_copr_build_end_release(copr_build_end, pc_build_release, copr_build_rel
 
     flexmock(Pushgateway).should_receive("push").once().and_return()
 
-    processing_results = SteveJobs().process_message(copr_build_end)
+    processing_results = SteveJobs().process_message(copr_build_end_release)
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )

@@ -7,9 +7,9 @@ from pathlib import Path
 from typing import List, Optional, Set, Tuple
 
 from kubernetes.client.rest import ApiException
-from ogr.abstract import GitProject
 from sandcastle import SandcastleTimeoutReached
 
+from ogr.abstract import GitProject
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.aliases import DEFAULT_VERSION
 from packit.config.package_config import PackageConfig
@@ -17,7 +17,11 @@ from packit.exceptions import PackitMergeException
 from packit.utils import PackitFormatter
 from packit_service import sentry_integration
 from packit_service.config import ServiceConfig
-from packit_service.models import PipelineModel, SRPMBuildModel, BuildStatus
+from packit_service.models import (
+    PipelineModel,
+    SRPMBuildModel,
+    BuildStatus,
+)
 from packit_service.service.urls import get_srpm_build_info_url
 from packit_service.trigger_mapping import are_job_types_same
 from packit_service.worker.events import EventData
@@ -351,25 +355,58 @@ class BaseBuildJobHelper(BaseJobHelper):
         return self._srpm_path
 
     @classmethod
-    def get_build_check_cls(
-        cls, chroot: str = None, identifier: Optional[str] = None
-    ) -> str:
+    def get_check_cls(
+        cls,
+        job_name: str = None,
+        chroot: str = None,
+        trigger_identifier: Optional[str] = None,
+        identifier: Optional[str] = None,
+    ):
         chroot_str = f":{chroot}" if chroot else ""
+        trigger_str = f":{trigger_identifier}" if trigger_identifier else ""
         optional_suffix = f":{identifier}" if identifier else ""
-        return f"{cls.status_name_build}{chroot_str}{optional_suffix}"
+        return f"{job_name}{trigger_str}{chroot_str}{optional_suffix}"
 
-    def get_build_check(self, chroot: str = None) -> str:
-        return self.get_build_check_cls(
-            chroot, identifier=self.job_build_or_job_config.identifier
+    @classmethod
+    def get_build_check_cls(
+        cls,
+        chroot: str = None,
+        trigger_identifier: Optional[str] = None,
+        identifier: Optional[str] = None,
+    ):
+        return cls.get_check_cls(
+            cls.status_name_build, chroot, trigger_identifier, identifier
         )
 
     @classmethod
     def get_test_check_cls(
-        cls, chroot: str = None, identifier: Optional[str] = None
-    ) -> str:
-        chroot_str = f":{chroot}" if chroot else ""
-        optional_suffix = f":{identifier}" if identifier else ""
-        return f"{cls.status_name_test}{chroot_str}{optional_suffix}"
+        cls,
+        chroot: str = None,
+        trigger_identifier: Optional[str] = None,
+        identifier: Optional[str] = None,
+    ):
+        return cls.get_check_cls(
+            cls.status_name_test, chroot, trigger_identifier, identifier
+        )
+
+    @property
+    def trigger_identifier_for_status(self):
+        # for commit and release triggers, we add the identifier to
+        # the status name (branch name in case of commit trigger,
+        # tag name in case of release trigger)
+        return (
+            self.metadata.identifier
+            if self.db_trigger.job_config_trigger_type
+            in (JobConfigTriggerType.commit, JobConfigTriggerType.release)
+            else None
+        )
+
+    def get_build_check(self, chroot: str = None) -> str:
+        return self.get_build_check_cls(
+            chroot,
+            self.trigger_identifier_for_status,
+            self.job_build_or_job_config.identifier,
+        )
 
     def test_check_names_for_test_job(self, test_job_config: JobConfig) -> List[str]:
         """
@@ -378,7 +415,9 @@ class BaseBuildJobHelper(BaseJobHelper):
         e.g. ["testing-farm:fedora-rawhide-x86_64"]
         """
         return [
-            self.get_test_check_cls(target, test_job_config.identifier)
+            self.get_test_check_cls(
+                target, self.trigger_identifier_for_status, test_job_config.identifier
+            )
             for target in self.tests_targets_for_test_job(test_job_config)
         ]
 
@@ -589,7 +628,9 @@ class BaseBuildJobHelper(BaseJobHelper):
                         state=state,
                         url=url,
                         check_names=self.get_test_check_cls(
-                            target, test_job.identifier
+                            target,
+                            self.trigger_identifier_for_status,
+                            test_job.identifier,
                         ),
                         markdown_content=markdown_content,
                     )

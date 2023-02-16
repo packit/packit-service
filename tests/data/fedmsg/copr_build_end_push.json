@@ -1,0 +1,15 @@
+{
+  "topic": "org.fedoraproject.prod.copr.build.end",
+  "status": 1,
+  "what": "build end: user:packit copr:packit-service-hello-world-build-branch build:1044215 pkg:hello version:0.7.0.3.ga593893-1.fc30 ip:172.25.90.82 pid:21266 status:1",
+  "chroot": "fedora-rawhide-x86_64",
+  "ip": "172.25.90.82",
+  "user": "packit",
+  "who": "backend.worker-5605-PC",
+  "pid": 21266,
+  "copr": "packit-service-hello-world-build-branch",
+  "version": "0.7.0.3.ga593893-1.fc30",
+  "build": 1044215,
+  "owner": "packit",
+  "pkg": "hello"
+}
