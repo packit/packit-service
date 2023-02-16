@@ -831,59 +831,46 @@ class Parser:
         logger.info(f"Original trigger: {db_trigger}")
 
         check_name_job, check_name_target, check_name_identifier = None, None, None
-        if ":" in check_name:
-            # e.g. "rpm-build:fedora-34-x86_64"
-            #   or "rpm-build:fedora-34-x86_64:identifier"
-            #   or "rpm-build:main:fedora-34-x86_64:identifier"
-            #   or "propose-downstream:f35
-            check_name_parts = check_name.split(":", maxsplit=3)
-            if len(check_name_parts) == 2:
-                check_name_job, check_name_target = check_name_parts
-            elif len(check_name_parts) == 3:
-                if db_trigger.job_config_trigger_type in (
-                    JobConfigTriggerType.commit,
-                    JobConfigTriggerType.release,
-                ):
-                    (
-                        check_name_job,
-                        # we have this info in the DB
-                        _,
-                        check_name_target,
-                    ) = check_name_parts
-                else:
-                    (
-                        check_name_job,
-                        check_name_target,
-                        check_name_identifier,
-                    ) = check_name_parts
-            elif len(check_name_parts) == 4:
+        # e.g. "rpm-build:fedora-34-x86_64"
+        #   or "rpm-build:fedora-34-x86_64:identifier"
+        #   or "rpm-build:main:fedora-34-x86_64:identifier"
+        #   or "propose-downstream:f35
+        check_name_parts = check_name.split(":", maxsplit=3)
+        if len(check_name_parts) == 2:
+            check_name_job, check_name_target = check_name_parts
+        elif len(check_name_parts) == 3:
+            if db_trigger.job_config_trigger_type in (
+                JobConfigTriggerType.commit,
+                JobConfigTriggerType.release,
+            ):
                 (
                     check_name_job,
+                    # we have this info in the DB
                     _,
+                    check_name_target,
+                ) = check_name_parts
+            else:
+                (
+                    check_name_job,
                     check_name_target,
                     check_name_identifier,
                 ) = check_name_parts
-            else:
-                logger.warning(f"{check_name_job} cannot be parsed")
-                check_name_job = None
+        elif len(check_name_parts) == 4:
+            (
+                check_name_job,
+                _,
+                check_name_target,
+                check_name_identifier,
+            ) = check_name_parts
+        else:
+            logger.warning(f"{check_name_job} cannot be parsed")
+            check_name_job = None
 
-            if check_name_job not in MAP_CHECK_PREFIX_TO_HANDLER:
-                logger.warning(
-                    f"{check_name_job} not in {list(MAP_CHECK_PREFIX_TO_HANDLER.keys())}"
-                )
-                check_name_job = None
-        elif "/" in check_name:
-            # for backward compatibility, e.g. packit/rpm-build-fedora-34-x86_64
-            # TODO: remove this (whole elif) after some time
-            _, _, check_name_job_info = check_name.partition("/")
-            for job_name in MAP_CHECK_PREFIX_TO_HANDLER.keys():
-                if check_name_job_info.startswith(job_name):
-                    check_name_job = job_name
-                    # e.g. [rpm-build-]fedora-34-x86_64
-                    check_name_target = check_name_job_info[
-                        (len(job_name) + 1) :  # noqa
-                    ]
-                    break
+        if check_name_job not in MAP_CHECK_PREFIX_TO_HANDLER:
+            logger.warning(
+                f"{check_name_job} not in {list(MAP_CHECK_PREFIX_TO_HANDLER.keys())}"
+            )
+            check_name_job = None
 
         if not (check_name_job and check_name_target):
             logger.warning(
