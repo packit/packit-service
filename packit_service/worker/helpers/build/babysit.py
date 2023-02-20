@@ -322,7 +322,7 @@ def get_message_for_successful_build(image_status_body):
         message += (
             f"https://console.aws.amazon.com/ec2/v2/home?"
             f"region={region}"
-            f"#LaunchInstanceWizard:ami={ami}"
+            f"#LaunchInstanceWizard:ami={ami}\n\n"
         )
     if upload_status_type == ImageBuildUploadType.awss3:
         message += upload_status["options"]["url"]
