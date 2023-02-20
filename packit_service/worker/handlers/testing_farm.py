@@ -19,7 +19,6 @@ from packit_service.models import (
     CoprBuildTargetModel,
     BuildStatus,
     TestingFarmResult,
-    JobTriggerModel,
     PipelineModel,
     TFTTestRunGroupModel,
 )
@@ -27,7 +26,6 @@ from packit_service.service.urls import (
     get_testing_farm_info_url,
     get_copr_build_info_url,
 )
-from packit_service.worker.mixin import ConfigFromEventMixin
 from packit_service.utils import dump_job_config, dump_package_config, elapsed_seconds
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.testing_farm import (
@@ -54,15 +52,15 @@ from packit_service.worker.handlers.abstract import (
     run_for_check_rerun,
     RetriableJobHandler,
 )
-from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
-from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
-from packit_service.worker.result import TaskResults
 from packit_service.worker.handlers.mixin import (
     GetCoprBuildMixin,
     GetTestingFarmJobHelperMixin,
 )
-from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
 from packit_service.worker.handlers.mixin import GetGithubCommentEventMixin
+from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
+from packit_service.worker.mixin import PackitAPIWithDownstreamMixin
+from packit_service.worker.reporting import BaseCommitStatus
+from packit_service.worker.result import TaskResults
 
 logger = logging.getLogger(__name__)
 
@@ -342,7 +340,9 @@ class TestingFarmHandler(
 @configured_as(job_type=JobType.tests)
 @reacts_to(event=TestingFarmResultsEvent)
 class TestingFarmResultsHandler(
-    JobHandler, ConfigFromEventMixin, PackitAPIWithDownstreamMixin
+    JobHandler,
+    PackitAPIWithDownstreamMixin,
+    GetTestingFarmJobHelperMixin,
 ):
     __test__ = False
     task_name = TaskName.testing_farm_results
@@ -425,27 +425,14 @@ class TestingFarmResultsHandler(
 
         test_run_model.set_web_url(self.log_url)
 
-        trigger = JobTriggerModel.get_or_create(
-            type=self.db_trigger.job_trigger_model_type,
-            trigger_id=self.db_trigger.id,
-        )
-        status_reporter = StatusReporter.get_instance(
-            project=self.project,
-            commit_sha=self.data.commit_sha,
-            packit_user=self.service_config.get_github_account_name(),
-            trigger_id=trigger.id if trigger else None,
-            pr_id=self.data.pr_id,
-        )
-        status_reporter.report(
+        self.testing_farm_job_helper.report_status_to_tests_for_test_target(
             state=status,
             description=summary,
+            target=test_run_model.target,
             url=get_testing_farm_info_url(test_run_model.id)
             if test_run_model
             else self.log_url,
             links_to_external_services={"Testing Farm": self.log_url},
-            check_names=TestingFarmJobHelper.get_test_check_cls(
-                test_run_model.target, identifier=self.job_config.identifier
-            ),
         )
 
         test_run_model.set_status(self.result, created=self.created)

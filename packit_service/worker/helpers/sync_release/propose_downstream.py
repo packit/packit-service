@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Optional, List, Set
+from typing import Optional, List, Set, Dict
 
 from ogr.abstract import GitProject
 
@@ -107,6 +107,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         state: BaseCommitStatus,
         url: str = "",
         markdown_content: str = None,
+        links_to_external_services: Optional[Dict[str, str]] = None,
     ) -> None:
         if self.job_type:
             self._report(
@@ -115,6 +116,7 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
                 url=url,
                 check_names=self.check_names,
                 markdown_content=markdown_content,
+                links_to_external_services=links_to_external_services,
             )
 
     def report_status_to_configured_job(
@@ -123,10 +125,12 @@ class ProposeDownstreamJobHelper(SyncReleaseHelper):
         state: BaseCommitStatus,
         url: str = "",
         markdown_content: str = None,
+        links_to_external_services: Optional[Dict[str, str]] = None,
     ):
         self.report_status_to_all(
             description=description,
             state=state,
             url=url,
             markdown_content=markdown_content,
+            links_to_external_services=links_to_external_services,
         )

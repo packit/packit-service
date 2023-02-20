@@ -315,6 +315,7 @@ def test_copr_build_end(
         url=url,
         check_names=CoprBuildJobHelper.get_build_check_cls(copr_build_end["chroot"]),
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     # no test job defined => testing farm should be skipped
@@ -399,6 +400,7 @@ def test_copr_build_end_push(
             trigger_identifier=copr_build_branch_push.get_trigger_object().name,
         ),
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(Signature).should_receive("apply_async").once()
@@ -468,6 +470,7 @@ def test_copr_build_end_release(
             trigger_identifier=copr_build_release.get_trigger_object().tag_name,
         ),
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(Signature).should_receive("apply_async").once()
@@ -579,6 +582,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -587,6 +591,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         url=url,
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     payload = {
@@ -664,6 +669,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(GithubProject).should_receive("get_web_url").and_return(
@@ -704,6 +710,7 @@ def test_copr_build_end_testing_farm(copr_build_end, copr_build_pr):
         url="https://dashboard.localhost/results/testing-farm/5",
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").twice()
 
@@ -847,6 +854,7 @@ def test_copr_build_end_report_multiple_testing_farm_jobs(
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -855,6 +863,7 @@ def test_copr_build_end_report_multiple_testing_farm_jobs(
         url=url,
         check_names="testing-farm:fedora-rawhide-x86_64:test1",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -863,6 +872,7 @@ def test_copr_build_end_report_multiple_testing_farm_jobs(
         url=url,
         check_names="testing-farm:fedora-rawhide-x86_64:test2",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive("prepare_and_send_tf_request")
@@ -982,6 +992,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -990,6 +1001,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         url=url,
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     test = (
@@ -1027,6 +1039,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
     flexmock(StatusReporter).should_receive("report").with_args(
         state=BaseCommitStatus.failure,
@@ -1034,6 +1047,7 @@ def test_copr_build_end_failed_testing_farm(copr_build_end, copr_build_pr):
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(Signature).should_receive("apply_async").twice()
@@ -1158,6 +1172,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -1166,6 +1181,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         url=url,
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     test = (
@@ -1207,6 +1223,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
     flexmock(StatusReporter).should_receive("report").with_args(
         state=BaseCommitStatus.failure,
@@ -1214,6 +1231,7 @@ def test_copr_build_end_failed_testing_farm_no_json(copr_build_end, copr_build_p
         check_names=EXPECTED_TESTING_FARM_CHECK_NAME,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(Signature).should_receive("apply_async").twice()
@@ -1295,6 +1313,7 @@ def test_copr_build_start(copr_build_start, pc_build_pr, copr_build_pr):
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(Signature).should_receive("apply_async").once()
@@ -1348,6 +1367,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
         url=url,
         check_names=EXPECTED_BUILD_CHECK_NAME,
         markdown_content=None,
+        links_to_external_services=None,
     ).never()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -1356,6 +1376,7 @@ def test_copr_build_just_tests_defined(copr_build_start, pc_tests, copr_build_pr
         url=url,
         check_names=TestingFarmJobHelper.get_test_check(copr_build_start["chroot"]),
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()
@@ -1404,6 +1425,7 @@ def test_copr_build_not_comment_on_success(copr_build_end, pc_build_pr, copr_bui
         url=url,
         check_names=CoprBuildJobHelper.get_build_check_cls(copr_build_end["chroot"]),
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(CoprBuildJobHelper).should_receive("get_built_packages").and_return([])
@@ -1463,6 +1485,7 @@ def test_koji_build_start(koji_build_scratch_start, pc_koji_build_pr, koji_build
         url=url,
         check_names="koji-build:rawhide",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()
@@ -1525,6 +1548,7 @@ def test_koji_build_end(koji_build_scratch_end, pc_koji_build_pr, koji_build_pr)
         url=url,
         check_names="koji-build:rawhide",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()
@@ -1585,6 +1609,7 @@ def test_srpm_build_end(srpm_build_end, pc_build_pr, srpm_build_model):
         url=url,
         check_names=["rpm-build:fedora-33-x86_64"],
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(Signature).should_receive("apply_async").once()
@@ -1646,6 +1671,7 @@ def test_srpm_build_end_failure(srpm_build_end, pc_build_pr, srpm_build_model):
         url=url,
         check_names=["rpm-build:fedora-33-x86_64"],
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(Signature).should_receive("apply_async").once()
@@ -1697,6 +1723,7 @@ def test_srpm_build_start(srpm_build_start, pc_build_pr, srpm_build_model):
         url=url,
         check_names=["rpm-build:fedora-33-x86_64"],
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(Signature).should_receive("apply_async").once()

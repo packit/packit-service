@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 import pytest
 from celery.canvas import Signature
 from flexmock import flexmock
-from packit.copr_helper import CoprHelper
 
 import packit_service.models
 import packit_service.service.urls as urls
@@ -16,6 +15,7 @@ from packit.config import (
     JobType,
     PackageConfig,
 )
+from packit.copr_helper import CoprHelper
 from packit.local_project import LocalProject
 from packit_service.config import PackageConfigGetter, ServiceConfig
 from packit_service.models import JobTriggerModel, JobTriggerModelType, BuildStatus
@@ -83,25 +83,39 @@ def test_testing_farm_response(
     status_status,
     status_message,
 ):
+    package_config = flexmock(
+        jobs=[
+            JobConfig(
+                type=JobType.copr_build,
+                trigger=JobConfigTriggerType.pull_request,
+                packages={"package": CommonPackageConfig()},
+            ),
+            JobConfig(
+                type=JobType.tests,
+                trigger=JobConfigTriggerType.pull_request,
+                packages={
+                    "package": CommonPackageConfig(
+                        identifier=None, _targets=["fedora-rawhide"]
+                    )
+                },
+            ),
+        ],
+    )
     flexmock(PackageConfigGetter).should_receive(
         "get_package_config_from_repo"
-    ).and_return(
-        flexmock(
-            jobs=[
-                JobConfig(
-                    type=JobType.copr_build,
-                    trigger=JobConfigTriggerType.pull_request,
-                    packages={"package": CommonPackageConfig()},
-                )
-            ],
-        )
-    )
+    ).and_return(package_config)
     config = flexmock(command_handler_work_dir=flexmock())
     flexmock(TFResultsHandler).should_receive("service_config").and_return(config)
     flexmock(TFResultsEvent).should_receive("db_trigger").and_return(None)
     config.should_receive("get_project").with_args(
         url="https://github.com/packit/ogr"
-    ).and_return()
+    ).and_return(
+        flexmock(
+            service=flexmock(instance_url="https://github.com"),
+            namespace="packit",
+            repo="ogr",
+        )
+    )
     config.should_receive("get_github_account_name").and_return("packit-as-a-service")
     created_dt = datetime.now(timezone.utc)
     event_dict = TFResultsEvent(
@@ -117,17 +131,26 @@ def test_testing_farm_response(
         created=created_dt,
     ).get_dict()
     test_farm_handler = TFResultsHandler(
-        package_config=flexmock(),
-        job_config=flexmock(identifier=None),
+        package_config=package_config,
+        job_config=JobConfig(
+            type=JobType.tests,
+            trigger=JobConfigTriggerType.pull_request,
+            packages={
+                "package": CommonPackageConfig(
+                    identifier=None,
+                )
+            },
+        ),
         event=event_dict,
     )
     flexmock(StatusReporter).should_receive("report").with_args(
-        state=status_status,
         description=status_message,
-        links_to_external_services={"Testing Farm": "some url"},
+        state=status_status,
         url="https://dashboard.localhost/results/testing-farm/123",
         check_names="testing-farm:fedora-rawhide-x86_64",
-    )
+        markdown_content=None,
+        links_to_external_services={"Testing Farm": "some url"},
+    ).once()
 
     urls.DASHBOARD_URL = "https://dashboard.localhost"
     tft_test_run_model = flexmock(

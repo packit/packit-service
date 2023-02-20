@@ -171,6 +171,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         state=BaseCommitStatus.pending,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).times(
         1 if success else 0
     )

@@ -1165,6 +1165,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         url: str = "",
         chroot: str = "",
         markdown_content: str = None,
+        links_to_external_services: Optional[Dict[str, str]] = None,
     ) -> None:
         if chroot in self.build_targets_for_tests:
             test_targets = self.build_target2test_targets_for_test_job(
@@ -1177,6 +1178,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                     url=url,
                     check_names=self.get_test_check(target),
                     markdown_content=markdown_content,
+                    links_to_external_services=links_to_external_services,
                 )
 
     def report_status_to_tests_for_test_target(
@@ -1186,6 +1188,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         url: str = "",
         target: str = "",
         markdown_content: str = None,
+        links_to_external_services: Optional[Dict[str, str]] = None,
     ) -> None:
         if target in self.tests_targets:
             self._report(
@@ -1194,10 +1197,16 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 url=url,
                 check_names=self.get_test_check(target),
                 markdown_content=markdown_content,
+                links_to_external_services=links_to_external_services,
             )
 
     def report_status_to_tests(
-        self, description, state, url: str = "", markdown_content: str = None
+        self,
+        description,
+        state,
+        url: str = "",
+        markdown_content: str = None,
+        links_to_external_services: Optional[Dict[str, str]] = None,
     ) -> None:
         self._report(
             description=description,
@@ -1205,6 +1214,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             url=url,
             check_names=self.test_check_names,
             markdown_content=markdown_content,
+            links_to_external_services=links_to_external_services,
         )
 
     def report_status_to_configured_job(
@@ -1213,10 +1223,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         state: BaseCommitStatus,
         url: str = "",
         markdown_content: str = None,
+        links_to_external_services: Optional[Dict[str, str]] = None,
     ):
         self.report_status_to_tests(
             description=description,
             state=state,
             url=url,
             markdown_content=markdown_content,
+            links_to_external_services=links_to_external_services,
         )
