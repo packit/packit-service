@@ -108,6 +108,7 @@ class ServiceConfig(Config):
         enabled_projects_for_srpm_in_copr: Union[Set[str], List[str]] = None,
         comment_command_prefix: str = "/packit",
         redhat_api_refresh_token: str = None,
+        package_config_path_override: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -168,6 +169,10 @@ class ServiceConfig(Config):
         # https://access.redhat.com/management/api
         self.redhat_api_refresh_token = redhat_api_refresh_token
 
+        # Package config path to use, instead of searching for the
+        # default names.
+        self.package_config_path_override = package_config_path_override
+
     service_config = None
 
     def __repr__(self):
@@ -194,8 +199,9 @@ class ServiceConfig(Config):
             f"koji_logs_url='{self.koji_logs_url}', "
             f"koji_web_url='{self.koji_web_url}', "
             f"enabled_projects_for_srpm_in_copr= '{self.enabled_projects_for_srpm_in_copr}', "
-            f"comment_command_prefix='{self.comment_command_prefix}')"
-            f"redhat_api_refresh_token='{hide(self.redhat_api_refresh_token)}')"
+            f"comment_command_prefix='{self.comment_command_prefix}', "
+            f"redhat_api_refresh_token='{hide(self.redhat_api_refresh_token)}', "
+            f"package_config_path_override='{self.package_config_path_override}')"
         )
 
     @classmethod
@@ -317,6 +323,7 @@ class PackageConfigGetter:
             package_config: PackageConfig = get_package_config_from_repo(
                 project=project_to_search_in,
                 ref=reference,
+                package_config_path=ServiceConfig.get_service_config().package_config_path_override,
             )
             if not package_config and fail_when_missing:
                 raise PackitMissingConfigException(
