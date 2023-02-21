@@ -47,11 +47,11 @@ def test_bodhi_update_for_unknown_koji_build(koji_build_completed_old_format):
         ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
     ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+    ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
@@ -118,11 +118,11 @@ def test_bodhi_update_for_unknown_koji_build_failed(koji_build_completed_old_for
         ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project_mock.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
     ).and_return(packit_yaml)
+    pagure_project_mock.should_receive("get_files").with_args(
+        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+    ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
@@ -192,11 +192,11 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_created(
         ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project_mock.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
     ).and_return(packit_yaml)
+    pagure_project_mock.should_receive("get_files").with_args(
+        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+    ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
@@ -276,11 +276,11 @@ def test_bodhi_update_for_unknown_koji_build_failed_issue_comment(
         ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project_mock.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
     ).and_return(packit_yaml)
+    pagure_project_mock.should_receive("get_files").with_args(
+        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+    ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
@@ -373,11 +373,11 @@ def test_bodhi_update_build_not_tagged_yet(
         ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project_mock.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
     ).and_return(packit_yaml)
+    pagure_project_mock.should_receive("get_files").with_args(
+        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+    ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
@@ -464,11 +464,11 @@ def test_bodhi_update_for_unknown_koji_build_not_for_unfinished(
         ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
     ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+    ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 0*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
@@ -519,11 +519,11 @@ def test_bodhi_update_for_known_koji_build(koji_build_completed_old_format):
         ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
     ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+    ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
@@ -580,11 +580,11 @@ def test_bodhi_update_for_not_configured_branch(koji_build_completed_old_format)
         ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="0eb3e12005cb18f15d3054020f7ac934c01eae08"
     ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="0eb3e12005cb18f15d3054020f7ac934c01eae08", recursive=False
+    ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 0*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler
@@ -635,11 +635,11 @@ def test_bodhi_update_fedora_stable_by_default(koji_build_completed_f36):
         ref="51b57ec04f5e6e9066ac859a1408cfbf1ead307e", filter_regex=r".+\.spec$"
     ).and_return(["packit.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="51b57ec04f5e6e9066ac859a1408cfbf1ead307e"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="51b57ec04f5e6e9066ac859a1408cfbf1ead307e"
     ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="51b57ec04f5e6e9066ac859a1408cfbf1ead307e", recursive=False
+    ).and_return(["packit.spec", ".packit.yaml"])
 
     flexmock(LocalProject, refresh_the_arguments=lambda: None)
     # 1*CreateBodhiUpdateHandler + 1*KojiBuildReportHandler

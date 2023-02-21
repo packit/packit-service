@@ -53,11 +53,11 @@ def test_downstream_koji_build_report_known_build(koji_build_fixture, request):
         ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da", filter_regex=r".+\.spec$"
     ).and_return(["python-ogr.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da"
     ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da", recursive=False
+    ).and_return(["python-ogr.spec", ".packit.yaml"])
 
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -125,11 +125,11 @@ def test_downstream_koji_build_report_unknown_build(koji_build_fixture, request)
         ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da", filter_regex=r".+\.spec$"
     ).and_return(["python-ogr.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da"
     ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="e029dd5250dde9a37a2cdddb6d822d973b09e5da", recursive=False
+    ).and_return(["python-ogr.spec", ".packit.yaml"])
 
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",

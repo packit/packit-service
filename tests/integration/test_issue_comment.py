@@ -161,7 +161,7 @@ def test_issue_comment_propose_downstream_handler(
     )
     flexmock(
         project_class,
-        get_files=lambda ref, filter_regex: [],
+        get_files=lambda ref, recursive: [".packit.yaml", "tox.ini"],
         is_private=lambda: False,
     )
 

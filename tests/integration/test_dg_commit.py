@@ -18,7 +18,6 @@ from packit.config import (
     JobType,
     PackageConfig,
 )
-from packit.constants import CONFIG_FILE_NAMES
 from packit.exceptions import PackitException
 from packit.local_project import LocalProject
 from packit.utils.repo import RepositoryCache
@@ -59,11 +58,11 @@ def test_sync_from_downstream():
         ref="abcd", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="abcd"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="abcd"
     ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="abcd", recursive=False
+    ).and_return(["buildah.spec", ".packit.yaml"])
 
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -128,11 +127,11 @@ def test_do_not_sync_from_downstream_on_a_different_branch():
         ref="abcd", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="abcd"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="abcd"
     ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="abcd", recursive=False
+    ).and_return(["buildah.spec", ".packit.yaml"])
 
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -183,11 +182,11 @@ def test_downstream_koji_build():
         ref="abcd", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="abcd"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="abcd"
     ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="abcd", recursive=False
+    ).and_return(["buildah.spec", ".packit.yaml"])
 
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -236,11 +235,11 @@ def test_downstream_koji_build_failure_no_issue():
         ref="abcd", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="abcd"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project_mock.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="abcd"
     ).and_return(packit_yaml)
+    pagure_project_mock.should_receive("get_files").with_args(
+        ref="abcd", recursive=False
+    ).and_return(["buildah.spec", ".packit.yaml"])
 
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -292,11 +291,11 @@ def test_downstream_koji_build_failure_issue_created():
         ref="abcd", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="abcd"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project_mock.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="abcd"
     ).and_return(packit_yaml)
+    pagure_project_mock.should_receive("get_files").with_args(
+        ref="abcd", recursive=False
+    ).and_return(["buildah.spec", ".packit.yaml"])
 
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -356,11 +355,11 @@ def test_downstream_koji_build_failure_issue_comment():
         ref="abcd", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project_mock.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="abcd"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project_mock.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="abcd"
     ).and_return(packit_yaml)
+    pagure_project_mock.should_receive("get_files").with_args(
+        ref="abcd", recursive=False
+    ).and_return(["buildah.spec", ".packit.yaml"])
 
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -421,10 +420,9 @@ def test_downstream_koji_build_no_config():
     pagure_project.should_receive("get_files").with_args(
         ref="abcd", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
-    for config_file_name in CONFIG_FILE_NAMES:
-        pagure_project.should_receive("get_file_content").with_args(
-            path=config_file_name, ref="abcd"
-        ).and_raise(FileNotFoundError, "Not found.")
+    pagure_project.should_receive("get_files").with_args(
+        ref="abcd", recursive=False
+    ).and_return(["buildah.spec", "Makefile"])
     flexmock(PackageConfigGetter).should_call("get_package_config_from_repo").once()
 
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
@@ -500,11 +498,11 @@ def test_downstream_koji_build_where_multiple_branches_defined(jobs_config):
         ref="abcd", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="abcd"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="abcd"
     ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="abcd", recursive=False
+    ).and_return(["buildah.spec", ".packit.yaml"])
 
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",
@@ -591,11 +589,11 @@ def test_do_not_run_downstream_koji_build_for_a_different_branch(jobs_config):
         ref="abcd", filter_regex=r".+\.spec$"
     ).and_return(["buildah.spec"])
     pagure_project.should_receive("get_file_content").with_args(
-        path=".distro/source-git.yaml", ref="abcd"
-    ).and_raise(FileNotFoundError, "Not found.")
-    pagure_project.should_receive("get_file_content").with_args(
         path=".packit.yaml", ref="abcd"
     ).and_return(packit_yaml)
+    pagure_project.should_receive("get_files").with_args(
+        ref="abcd", recursive=False
+    ).and_return(["buildah.spec", ".packit.yaml"])
 
     flexmock(GitBranchModel).should_receive("get_or_create").with_args(
         branch_name="main",

@@ -82,14 +82,20 @@ def test_parse_valid(service_config_valid):
         "gitlab.com/private/namespace",
         "github.com/other-private-namespace",
     }
+    assert config.package_config_path_override is None
 
 
 def test_parse_optional_values(service_config_valid):
     """When optional values are set, they are correctly parsed"""
     config = ServiceConfig.get_from_dict(
-        {**service_config_valid, "testing_farm_api_url": "https://other.url"}
+        {
+            **service_config_valid,
+            "testing_farm_api_url": "https://other.url",
+            "package_config_path_override": ".distro/source-git.yaml",
+        }
     )
     assert config.testing_farm_api_url == "https://other.url"
+    assert config.package_config_path_override == ".distro/source-git.yaml"
 
 
 @pytest.fixture(scope="module")
@@ -150,31 +156,35 @@ def test_config_opts(sc):
 
 
 @pytest.mark.parametrize(
-    "project,reference,base_project,ret",
+    "project,reference,base_project,ret,package_config_path",
     [
         (
             flexmock(repo="packit", namespace="packit"),
             None,
             None,
             flexmock(),
+            None,
         ),
         (
             flexmock(repo="ogr", namespace="packit"),
             "some-branch",
             None,
             flexmock(),
+            None,
         ),
         (
             flexmock(repo="ogr", namespace="fork"),
             "some-branch",
             flexmock(repo="ogr", namespace="packit"),
             flexmock(),
+            None,
         ),
         (
             None,
             "some-branch",
             flexmock(repo="ogr", namespace="packit"),
             flexmock(),
+            ".distro/source-git.yaml",
         ),
     ],
 )
@@ -183,9 +193,15 @@ def test_get_package_config_from_repo(
     reference,
     base_project,
     ret,
+    package_config_path,
 ):
+    flexmock(ServiceConfig).should_receive("get_service_config").and_return(
+        flexmock(package_config_path_override=package_config_path)
+    ).once()
     flexmock(config).should_receive("get_package_config_from_repo").with_args(
-        project=(base_project or project), ref=reference
+        project=(base_project or project),
+        ref=reference,
+        package_config_path=package_config_path,
     ).once().and_return(ret)
     PackageConfigGetter.get_package_config_from_repo(
         project=project,
@@ -208,7 +224,7 @@ def test_get_package_config_from_repo_not_found_exception_pr():
     """
     project = flexmock(full_repo_name="packit/packit")
     flexmock(config).should_receive("get_package_config_from_repo").with_args(
-        project=project, ref=None
+        project=project, ref=None, package_config_path=None
     ).once().and_return(None)
     pr = flexmock()
     project.should_receive("get_pr").with_args(2).once().and_return(pr)
@@ -239,7 +255,7 @@ def test_get_package_config_from_repo_not_found():
 def test_get_package_config_from_repo_not_found_exception_create_issue():
     project = flexmock(full_repo_name="packit/packit")
     flexmock(config).should_receive("get_package_config_from_repo").with_args(
-        project=project, ref=None
+        project=project, ref=None, package_config_path=None
     ).once().and_return(None)
     flexmock(PackageConfigGetter).should_receive("create_issue_if_needed").with_args(
         project, title=str, message=str
