@@ -50,9 +50,15 @@ You can also run only certain pieces of packit-service for local development
 (e.g. worker, database or service/httpd).
 You also need to populate `secrets/packit/dev/` manually, for instructions
 see [deployment repo](https://github.com/packit/deployment/tree/main/secrets).
+Be sure to copy the content you need from `extra-vars.yml` to `packit-service.yaml`
 
 When you are running service/httpd and making requests to it,
 make sure that `server_name` configuration file in `packit-service.yaml` is set.
+
+### tokman
+
+To make tokman work with docker-compose create a `config.py` file in `./secrets/packit/dev/tokman-files` using this [template](https://github.com/packit/tokman/blob/main/config.py.example).
+In `.secrets/packit/dev/packit-service.yaml` fix url to tokman from `http://tokman` to `http://tokman:8000`
 
 ### binding on localhost
 
