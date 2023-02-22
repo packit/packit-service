@@ -77,6 +77,15 @@ def check_rerun_event_koji_build():
 
 
 @pytest.fixture(scope="module")
+def check_rerun_event_koji_build_push():
+    event = json.loads(
+        (DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json").read_text()
+    )
+    event["check_run"]["name"] = "koji-build:main:f34"
+    return event
+
+
+@pytest.fixture(scope="module")
 def check_rerun_event_propose_downstream():
     event = json.loads(
         (DATA_DIR / "webhooks" / "github" / "checkrun_rerequested.json").read_text()
@@ -462,7 +471,7 @@ def test_check_rerun_push_testing_farm_handler(
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
         description=TASK_ACCEPTED,
-        check_name="testing-farm:fedora-rawhide-x86_64",
+        check_name="testing-farm:main:fedora-rawhide-x86_64",
         url="",
         links_to_external_services=None,
         markdown_content=None,
@@ -500,7 +509,7 @@ def test_check_rerun_push_testing_farm_handler(
     indirect=True,
 )
 def test_check_rerun_push_koji_build_handler(
-    mock_push_functionality, check_rerun_event_koji_build
+    mock_push_functionality, check_rerun_event_koji_build_push
 ):
     flexmock(KojiBuildJobHelper).should_receive("run_koji_build").and_return(
         TaskResults(success=True, details={})
@@ -519,7 +528,7 @@ def test_check_rerun_push_koji_build_handler(
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
         description=TASK_ACCEPTED,
-        check_name="koji-build:f34",
+        check_name="koji-build:main:f34",
         url="",
         links_to_external_services=None,
         markdown_content=None,
@@ -527,7 +536,7 @@ def test_check_rerun_push_koji_build_handler(
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
 
-    processing_results = SteveJobs().process_message(check_rerun_event_koji_build)
+    processing_results = SteveJobs().process_message(check_rerun_event_koji_build_push)
     event_dict, job, job_config, package_config = get_parameters_from_results(
         processing_results
     )
@@ -577,7 +586,7 @@ def test_check_rerun_release_koji_build_handler(
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
         state=BaseCommitStatus.pending,
         description=TASK_ACCEPTED,
-        check_name="koji-build:f34",
+        check_name="koji-build:0.1.0:f34",
         url="",
         links_to_external_services=None,
         markdown_content=None,
@@ -639,6 +648,7 @@ def test_check_rerun_release_propose_downstream_handler(
         state=BaseCommitStatus.pending,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").once().and_return()

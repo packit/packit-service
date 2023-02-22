@@ -76,6 +76,7 @@ def propose_downstream_model():
         state=BaseCommitStatus.pending,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
     yield propose_downstream_model
 

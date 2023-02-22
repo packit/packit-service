@@ -5,9 +5,9 @@ import logging
 from typing import Dict, Any, Optional, Set, List, Union, Tuple
 
 import requests
+
 from ogr.abstract import GitProject, PullRequest
 from ogr.utils import RequestResponse
-
 from packit.config import JobConfig, PackageConfig
 from packit.exceptions import PackitConfigException, PackitException
 from packit.utils import nested_get
@@ -1126,7 +1126,9 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         return self.tests_targets_for_test_job(self.job_config)
 
     def get_test_check(self, chroot: str = None) -> str:
-        return self.get_test_check_cls(chroot, self.job_config.identifier)
+        return self.get_test_check_cls(
+            chroot, self.trigger_identifier_for_status, self.job_config.identifier
+        )
 
     @property
     def test_check_names(self) -> List[str]:
@@ -1163,6 +1165,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         url: str = "",
         chroot: str = "",
         markdown_content: str = None,
+        links_to_external_services: Optional[Dict[str, str]] = None,
     ) -> None:
         if chroot in self.build_targets_for_tests:
             test_targets = self.build_target2test_targets_for_test_job(
@@ -1175,6 +1178,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                     url=url,
                     check_names=self.get_test_check(target),
                     markdown_content=markdown_content,
+                    links_to_external_services=links_to_external_services,
                 )
 
     def report_status_to_tests_for_test_target(
@@ -1184,6 +1188,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         url: str = "",
         target: str = "",
         markdown_content: str = None,
+        links_to_external_services: Optional[Dict[str, str]] = None,
     ) -> None:
         if target in self.tests_targets:
             self._report(
@@ -1192,10 +1197,16 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 url=url,
                 check_names=self.get_test_check(target),
                 markdown_content=markdown_content,
+                links_to_external_services=links_to_external_services,
             )
 
     def report_status_to_tests(
-        self, description, state, url: str = "", markdown_content: str = None
+        self,
+        description,
+        state,
+        url: str = "",
+        markdown_content: str = None,
+        links_to_external_services: Optional[Dict[str, str]] = None,
     ) -> None:
         self._report(
             description=description,
@@ -1203,6 +1214,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             url=url,
             check_names=self.test_check_names,
             markdown_content=markdown_content,
+            links_to_external_services=links_to_external_services,
         )
 
     def report_status_to_configured_job(
@@ -1211,10 +1223,12 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         state: BaseCommitStatus,
         url: str = "",
         markdown_content: str = None,
+        links_to_external_services: Optional[Dict[str, str]] = None,
     ):
         self.report_status_to_tests(
             description=description,
             state=state,
             url=url,
             markdown_content=markdown_content,
+            links_to_external_services=links_to_external_services,
         )

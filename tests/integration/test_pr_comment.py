@@ -198,6 +198,7 @@ def test_pr_comment_build_test_handler(
         state=BaseCommitStatus.pending,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").twice()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -262,12 +263,14 @@ def test_pr_comment_build_build_and_test_handler(
         state=BaseCommitStatus.pending,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
         state=BaseCommitStatus.pending,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
     flexmock(CoprBuildJobHelper).should_receive(
         "is_custom_copr_project_defined"
@@ -361,6 +364,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
         state=BaseCommitStatus.pending,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -591,6 +595,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
         state=BaseCommitStatus.pending,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
@@ -701,6 +706,7 @@ def test_pr_test_command_handler_identifiers(pr_embedded_command_comment_event):
         state=BaseCommitStatus.pending,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
@@ -942,8 +948,8 @@ def test_pr_test_command_handler_retries(
         description=TASK_ACCEPTED,
         check_name="testing-farm:fedora-rawhide-x86_64",
         url="",
-        links_to_external_services=None,
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(StatusReporterGithubChecks).should_receive("set_status").with_args(
@@ -951,8 +957,8 @@ def test_pr_test_command_handler_retries(
         description="Submitting the tests ...",
         check_name="testing-farm:fedora-rawhide-x86_64",
         url="",
-        links_to_external_services=None,
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(GithubProject).should_receive("get_web_url").and_return(
@@ -991,8 +997,8 @@ def test_pr_test_command_handler_retries(
         description=description,
         check_name="testing-farm:fedora-rawhide-x86_64",
         url="",
-        links_to_external_services=None,
         markdown_content=markdown_content,
+        links_to_external_services=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
 
@@ -1101,6 +1107,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         state=BaseCommitStatus.pending,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     payload = {
@@ -1171,6 +1178,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         check_names="testing-farm:fedora-rawhide-x86_64",
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(GithubProject).should_receive("get_web_url").and_return(
@@ -1208,6 +1216,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         url="https://dashboard.localhost/results/testing-farm/5",
         check_names="testing-farm:fedora-rawhide-x86_64",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
 
@@ -1320,6 +1329,7 @@ def test_pr_test_command_handler_compose_not_present(
         state=BaseCommitStatus.pending,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
@@ -1330,6 +1340,7 @@ def test_pr_test_command_handler_compose_not_present(
         check_names="testing-farm:fedora-rawhide-x86_64",
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     response = flexmock(
@@ -1350,6 +1361,7 @@ def test_pr_test_command_handler_compose_not_present(
         "{'some-other-compose'}. Please, check the targets defined in your test job configuration. "
         "If you think your configuration is correct, get "
         "in touch with [us](https://packit.dev/#contact).",
+        links_to_external_services=None,
     ).once()
 
     flexmock(Signature).should_receive("apply_async").once()
@@ -1462,6 +1474,7 @@ def test_pr_test_command_handler_composes_not_available(
         state=BaseCommitStatus.pending,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
@@ -1472,6 +1485,7 @@ def test_pr_test_command_handler_composes_not_available(
         check_names="testing-farm:fedora-rawhide-x86_64",
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive(
@@ -1484,6 +1498,7 @@ def test_pr_test_command_handler_composes_not_available(
         check_names="testing-farm:fedora-rawhide-x86_64",
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(Signature).should_receive("apply_async").once()
@@ -1986,6 +2001,7 @@ def test_retest_failed(
         state=BaseCommitStatus.pending,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
@@ -2097,6 +2113,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
         state=BaseCommitStatus.pending,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -2105,6 +2122,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
         check_names="testing-farm:fedora-rawhide-x86_64",
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(False)
@@ -2114,6 +2132,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
         check_names="testing-farm:fedora-rawhide-x86_64",
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(GithubProject).should_receive("get_web_url").and_return(
@@ -2312,6 +2331,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         state=BaseCommitStatus.pending,
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     payload = {
@@ -2397,6 +2417,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         check_names="testing-farm:fedora-rawhide-x86_64",
         url="",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -2405,6 +2426,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         url="",
         check_names="testing-farm:fedora-35-x86_64",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
 
     flexmock(GithubProject).should_receive("get_web_url").and_return(
@@ -2498,6 +2520,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         url="https://dashboard.localhost/results/testing-farm/5",
         check_names="testing-farm:fedora-rawhide-x86_64",
         markdown_content=None,
+        links_to_external_services=None,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
 

@@ -27,7 +27,7 @@ from packit_service.worker.mixin import ConfigFromEventMixin
 from packit_service.worker.reporting import StatusReporter, BaseCommitStatus
 
 
-def test_GetVMImageBuildReporterFromJobHelperMixin(
+def test_get_vm_image_build_reporter_from_job_helper_mixin(
     fake_package_config_job_config_project_db_trigger,
 ):
     class Test(ConfigFromEventMixin, GetVMImageBuildReporterFromJobHelperMixin):
@@ -53,6 +53,7 @@ def test_GetVMImageBuildReporterFromJobHelperMixin(
         url="",
         check_names=["vm-image-build-fedora-36-x86_64"],
         markdown_content="",
+        links_to_external_services=None,
     )
     mixin.report_status(VMImageBuildStatus.pending, "")
 
@@ -62,6 +63,7 @@ def test_GetVMImageBuildReporterFromJobHelperMixin(
         url="",
         check_names=["vm-image-build-fedora-36-x86_64"],
         markdown_content="",
+        links_to_external_services=None,
     )
     mixin.report_status(VMImageBuildStatus.error, "")
 
@@ -71,6 +73,7 @@ def test_GetVMImageBuildReporterFromJobHelperMixin(
         url="",
         check_names=["vm-image-build-fedora-36-x86_64"],
         markdown_content="",
+        links_to_external_services=None,
     )
     mixin.report_status(VMImageBuildStatus.failure, "")
 
@@ -80,6 +83,7 @@ def test_GetVMImageBuildReporterFromJobHelperMixin(
         url="",
         check_names=["vm-image-build-fedora-36-x86_64"],
         markdown_content="",
+        links_to_external_services=None,
     )
     mixin.report_status(VMImageBuildStatus.success, "")
 
@@ -89,6 +93,7 @@ def test_GetVMImageBuildReporterFromJobHelperMixin(
         url="https://packit.dev/docs/cli/build/in-image-builder/",
         check_names=["vm-image-build-fedora-36-x86_64"],
         markdown_content="",
+        links_to_external_services=None,
     )
     mixin.report_pre_check_failure("")
 

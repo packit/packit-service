@@ -10,6 +10,7 @@ from os import getenv
 from typing import Optional, Type, Union, Dict, Any, Tuple
 
 from ogr.parsing import parse_git_repo
+from packit.config import JobConfigTriggerType
 
 from packit.constants import PROD_DISTGIT_URL
 from packit.utils import nested_get
@@ -26,6 +27,7 @@ from packit_service.models import (
     GitBranchModel,
     PullRequestModel,
     JobTriggerModel,
+    AbstractTriggerDbType,
 )
 from packit_service.worker.events import (
     AbstractCoprBuildEvent,
@@ -63,6 +65,7 @@ from packit_service.worker.events.koji import KojiBuildEvent
 from packit_service.worker.events.new_hotness import NewHotnessUpdateEvent
 from packit_service.worker.events.pagure import PullRequestFlagPagureEvent
 from packit_service.worker.handlers.abstract import MAP_CHECK_PREFIX_TO_HANDLER
+from packit_service.worker.helpers.build import CoprBuildJobHelper, KojiBuildJobHelper
 from packit_service.worker.helpers.testing_farm import TestingFarmJobHelper
 
 logger = logging.getLogger(__name__)
@@ -792,6 +795,93 @@ class Parser:
         )
 
     @staticmethod
+    def parse_check_name(
+        check_name: str, db_trigger: AbstractTriggerDbType
+    ) -> Optional[Tuple[str, str, str]]:
+        """
+        Parse the given name of the check run.
+
+        Check name examples:
+        "rpm-build:fedora-34-x86_64"
+        "rpm-build:fedora-34-x86_64:identifier"
+        "rpm-build:main:fedora-34-x86_64:identifier"
+        "propose-downstream:f35"
+
+        For the build and test runs, if the trigger is release/commit, the branch
+        name or release name is included in the check name - it can be ignored,
+        since we are having the DB trigger (obtained via external ID of the check).
+
+        Returns:
+            tuple of job name (e.g. rpm-build), target and identifier obtained from check run
+            (or None if the name cannot be parsed)
+        """
+        check_name_parts = check_name.split(":", maxsplit=3)
+        if len(check_name_parts) < 1:
+            logger.warning(f"{check_name} cannot be parsed")
+            return None
+        check_name_job = check_name_parts[0]
+
+        if check_name_job not in MAP_CHECK_PREFIX_TO_HANDLER:
+            logger.warning(
+                f"{check_name_job} not in {list(MAP_CHECK_PREFIX_TO_HANDLER.keys())}"
+            )
+            return None
+
+        check_name_target, check_name_identifier = None, None
+
+        if len(check_name_parts) == 2:
+            _, check_name_target = check_name_parts
+        elif len(check_name_parts) == 3:
+            build_test_job_names = (
+                CoprBuildJobHelper.status_name_build,
+                CoprBuildJobHelper.status_name_test,
+                KojiBuildJobHelper.status_name_build,
+            )
+            if (
+                check_name_job in build_test_job_names
+                and db_trigger.job_config_trigger_type
+                in (
+                    JobConfigTriggerType.commit,
+                    JobConfigTriggerType.release,
+                )
+            ):
+                (
+                    _,
+                    _,
+                    check_name_target,
+                ) = check_name_parts
+            else:
+                (
+                    _,
+                    check_name_target,
+                    check_name_identifier,
+                ) = check_name_parts
+        elif len(check_name_parts) == 4:
+            (
+                _,
+                _,
+                check_name_target,
+                check_name_identifier,
+            ) = check_name_parts
+        else:
+            logger.warning(f"{check_name_job} cannot be parsed")
+            check_name_job = None
+
+        if not (check_name_job and check_name_target):
+            logger.warning(
+                f"We were not able to parse the job and target "
+                f"from the check run name {check_name}."
+            )
+            return None
+
+        logger.info(
+            f"Check name job: {check_name_job}, check name target: {check_name_target}, "
+            f"check name identifier: {check_name_identifier}"
+        )
+
+        return check_name_job, check_name_target, check_name_identifier
+
+    @staticmethod
     def parse_check_rerun_event(
         event,
     ) -> Optional[
@@ -815,61 +905,6 @@ class Parser:
             logger.warning(f"Check run created by {app} and not us.")
             return None
 
-        check_name_job, check_name_target = None, None
-        if ":" in check_name:
-            # e.g. "rpm-build:fedora-34-x86_64"
-            #   or "rpm-build:fedora-34-x86_64:identifier"
-            #   or "propose-downstream:f35
-            check_name_parts = check_name.split(":", maxsplit=2)
-            if len(check_name_parts) == 2:
-                check_name_job, check_name_target = check_name_parts
-                check_name_identifier = None
-            elif len(check_name_parts) == 3:
-                (
-                    check_name_job,
-                    check_name_target,
-                    check_name_identifier,
-                ) = check_name_parts
-            else:
-                logger.warning(f"{check_name_job} cannot be parsed")
-                check_name_job = None
-
-            if check_name_job not in MAP_CHECK_PREFIX_TO_HANDLER:
-                logger.warning(
-                    f"{check_name_job} not in {list(MAP_CHECK_PREFIX_TO_HANDLER.keys())}"
-                )
-                check_name_job = None
-        elif "/" in check_name:
-            # for backward compatibility, e.g. packit/rpm-build-fedora-34-x86_64
-            # TODO: remove this (whole elif) after some time
-            _, _, check_name_job_info = check_name.partition("/")
-            for job_name in MAP_CHECK_PREFIX_TO_HANDLER.keys():
-                if check_name_job_info.startswith(job_name):
-                    check_name_job = job_name
-                    # e.g. [rpm-build-]fedora-34-x86_64
-                    check_name_target = check_name_job_info[
-                        (len(job_name) + 1) :  # noqa
-                    ]
-                    break
-
-        if not (check_name_job and check_name_target):
-            logger.warning(
-                f"We were not able to parse the job and target "
-                f"from the check run name {check_name}."
-            )
-            return None
-
-        repo_namespace = nested_get(event, "repository", "owner", "login")
-        repo_name = nested_get(event, "repository", "name")
-        actor = nested_get(event, "sender", "login")
-
-        if not (repo_namespace and repo_name):
-            logger.warning("No full name of the repository.")
-            return None
-
-        https_url = event["repository"]["html_url"]
-
-        commit_sha = nested_get(event, "check_run", "head_sha")
         external_id = nested_get(event, "check_run", "external_id")
 
         if not external_id:
@@ -883,6 +918,24 @@ class Parser:
 
         db_trigger = job_trigger.get_trigger_object()
         logger.info(f"Original trigger: {db_trigger}")
+
+        parse_result = Parser.parse_check_name(check_name, db_trigger)
+        if parse_result is None:
+            return None
+
+        check_name_job, check_name_target, check_name_identifier = parse_result
+
+        repo_namespace = nested_get(event, "repository", "owner", "login")
+        repo_name = nested_get(event, "repository", "name")
+        actor = nested_get(event, "sender", "login")
+
+        if not (repo_namespace and repo_name):
+            logger.warning("No full name of the repository.")
+            return None
+
+        https_url = event["repository"]["html_url"]
+
+        commit_sha = nested_get(event, "check_run", "head_sha")
 
         event = None
         if isinstance(db_trigger, PullRequestModel):
