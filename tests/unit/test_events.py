@@ -14,6 +14,7 @@ from ogr.services.gitlab import GitlabProject, GitlabService
 from ogr.services.pagure import PagureProject
 
 from ogr import PagureService
+from packit.config import JobConfigTriggerType
 from packit_service.config import ServiceConfig, PackageConfigGetter
 from packit_service.constants import KojiBuildState, KojiTaskState
 from packit_service.models import (
@@ -1676,3 +1677,131 @@ class TestEvents:
         assert datetime.utcnow() - latest_tf_models[0].submitted_time < timedelta(
             seconds=2
         )
+
+    @pytest.mark.parametrize(
+        "check_name, db_trigger, result",
+        [
+            pytest.param(
+                "propose-downstream:f35",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                ("propose-downstream", "f35", None),
+                id="propose_downstream",
+            ),
+            pytest.param(
+                "propose-downstream:f35:first",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                ("propose-downstream", "f35", "first"),
+                id="propose_downstream_identifier",
+            ),
+            pytest.param(
+                "rpm-build:fedora-35-x86_64",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+                ("rpm-build", "fedora-35-x86_64", None),
+                id="rpm_build_pr",
+            ),
+            pytest.param(
+                "rpm-build:1.0.1:fedora-35-x86_64",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                ("rpm-build", "fedora-35-x86_64", None),
+                id="rpm_build_release",
+            ),
+            pytest.param(
+                "rpm-build:main:fedora-35-x86_64",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+                ("rpm-build", "fedora-35-x86_64", None),
+                id="rpm_build_commit",
+            ),
+            pytest.param(
+                "rpm-build:fedora-35-x86_64:first",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+                ("rpm-build", "fedora-35-x86_64", "first"),
+                id="rpm_build_pr_identifier",
+            ),
+            pytest.param(
+                "rpm-build:1.0.1:fedora-35-x86_64:first",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                ("rpm-build", "fedora-35-x86_64", "first"),
+                id="rpm_build_release_identifier",
+            ),
+            pytest.param(
+                "rpm-build:main:fedora-35-x86_64:first",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+                ("rpm-build", "fedora-35-x86_64", "first"),
+                id="rpm_build_commit_identifier",
+            ),
+            pytest.param(
+                "testing-farm:fedora-35-x86_64",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+                ("testing-farm", "fedora-35-x86_64", None),
+                id="testing_farm_pr",
+            ),
+            pytest.param(
+                "testing-farm:1.0.1:fedora-35-x86_64",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                ("testing-farm", "fedora-35-x86_64", None),
+                id="testing_farm_release",
+            ),
+            pytest.param(
+                "testing-farm:main:fedora-35-x86_64",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+                ("testing-farm", "fedora-35-x86_64", None),
+                id="testing_farm_commit",
+            ),
+            pytest.param(
+                "testing-farm:fedora-35-x86_64:first",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+                ("testing-farm", "fedora-35-x86_64", "first"),
+                id="testing_farm_pr_identifier",
+            ),
+            pytest.param(
+                "testing-farm:1.0.1:fedora-35-x86_64:first",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                ("testing-farm", "fedora-35-x86_64", "first"),
+                id="testing_farm_release_identifier",
+            ),
+            pytest.param(
+                "testing-farm:main:fedora-35-x86_64:first",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+                ("testing-farm", "fedora-35-x86_64", "first"),
+                id="testing_farm_commit_identifier",
+            ),
+            pytest.param(
+                "koji-build:fedora-35-x86_64",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+                ("koji-build", "fedora-35-x86_64", None),
+                id="koji_build_pr",
+            ),
+            pytest.param(
+                "koji-build:1.0.1:fedora-35-x86_64",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                ("koji-build", "fedora-35-x86_64", None),
+                id="koji_build_release",
+            ),
+            pytest.param(
+                "koji-build:main:fedora-35-x86_64",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+                ("koji-build", "fedora-35-x86_64", None),
+                id="koji_build_commit",
+            ),
+            pytest.param(
+                "koji-build:fedora-35-x86_64:first",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.pull_request),
+                ("koji-build", "fedora-35-x86_64", "first"),
+                id="koji_build_pr_identifier",
+            ),
+            pytest.param(
+                "koji-build:1.0.1:fedora-35-x86_64:first",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.release),
+                ("koji-build", "fedora-35-x86_64", "first"),
+                id="koji_build_release_identifier",
+            ),
+            pytest.param(
+                "koji-build:main:fedora-35-x86_64:first",
+                flexmock(job_config_trigger_type=JobConfigTriggerType.commit),
+                ("koji-build", "fedora-35-x86_64", "first"),
+                id="koji_build_commit_identifier",
+            ),
+        ],
+    )
+    def test_parse_check_name(self, check_name, db_trigger, result):
+        assert Parser.parse_check_name(check_name, db_trigger) == result
