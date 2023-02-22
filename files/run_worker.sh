@@ -36,12 +36,12 @@ elif [[ "${CELERY_COMMAND}" == "worker" ]]; then
     : "${CONCURRENCY:=1}"
     export CONCURRENCY
 
-    # Options: solo | gevent
+    # Options: solo | prefork |  gevent
     # https://www.distributedpython.com/2018/10/26/celery-execution-pool/
     if ((CONCURRENCY > 1)); then
       : "${POOL:=gevent}"
     else
-      : "${POOL:=solo}"
+      : "${POOL:=prefork}"
     fi
     export POOL
 
