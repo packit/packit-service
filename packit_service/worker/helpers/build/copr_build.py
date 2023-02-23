@@ -425,7 +425,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             commit_sha=self.metadata.commit_sha,
             trigger_model=self.db_trigger,
         )
-        group = self._get_or_create_build_group(True)
+        group = self._get_or_create_build_group()
         try:
             pr_id = self.metadata.pr_id
             script = create_source_script(
@@ -457,18 +457,12 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
 
         return TaskResults(success=True, details={})
 
-    def _get_or_create_build_group(
-        self, wait_for_srpm: bool = False
-    ) -> CoprBuildGroupModel:
+    def _get_or_create_build_group(self) -> CoprBuildGroupModel:
         if self._copr_build_group_id is not None:
             group = CoprBuildGroupModel.get_by_id(self._copr_build_group_id)
             # Update the status, we are retrying
             for target in group.grouped_targets:
-                target.set_status(
-                    BuildStatus.waiting_for_srpm
-                    if wait_for_srpm
-                    else BuildStatus.pending
-                )
+                target.set_status(BuildStatus.waiting_for_srpm)
             return group
 
         group = CoprBuildGroupModel.create(self.run_model)
@@ -492,9 +486,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
                 owner=self.job_owner,
                 web_url=None,
                 target=chroot,
-                status=BuildStatus.waiting_for_srpm
-                if wait_for_srpm
-                else BuildStatus.pending,
+                status=BuildStatus.waiting_for_srpm,
                 copr_build_group=group,
                 task_accepted_time=self.metadata.task_accepted_time,
             )
