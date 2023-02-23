@@ -363,7 +363,10 @@ class BaseBuildJobHelper(BaseJobHelper):
         identifier: Optional[str] = None,
     ):
         chroot_str = f":{chroot}" if chroot else ""
-        trigger_str = f":{trigger_identifier}" if trigger_identifier else ""
+        # replace ':' in the trigger identifier
+        trigger_str = (
+            f":{trigger_identifier.replace(':', '-')}" if trigger_identifier else ""
+        )
         optional_suffix = f":{identifier}" if identifier else ""
         return f"{job_name}{trigger_str}{chroot_str}{optional_suffix}"
 
