@@ -118,6 +118,9 @@ class HandlerTaskWithRetry(Task):
     max_retries = int(getenv("CELERY_RETRY_LIMIT", DEFAULT_RETRY_LIMIT))
     retry_kwargs = {"max_retries": max_retries}
     retry_backoff = int(getenv("CELERY_RETRY_BACKOFF", DEFAULT_RETRY_BACKOFF))
+    # https://docs.celeryq.dev/en/stable/userguide/tasks.html#Task.acks_late
+    # retry if worker gets obliterated during execution
+    acks_late = True
 
 
 class BodhiHandlerTaskWithRetry(HandlerTaskWithRetry):
