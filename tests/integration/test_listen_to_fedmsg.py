@@ -33,6 +33,8 @@ from packit_service.models import (
     TFTTestRunGroupModel,
     TestingFarmResult,
     BuildStatus,
+    ProjectReleaseModel,
+    GitBranchModel,
 )
 from packit_service.service.urls import (
     get_copr_build_info_url,
@@ -238,6 +240,7 @@ def copr_build_branch_push():
         job_trigger_model_type=JobTriggerModelType.branch_push,
         name="build-branch",
         task_accepted_time=datetime.now(),
+        trigger_kls=GitBranchModel,
     )
 
 
@@ -249,6 +252,7 @@ def copr_build_release():
         tag_name="v1.0.1",
         commit_hash="0011223344",
         task_accepted_time=datetime.now(),
+        trigger_kls=ProjectReleaseModel,
     )
 
 

@@ -21,6 +21,8 @@ from packit_service.models import (
     PipelineModel,
     SRPMBuildModel,
     BuildStatus,
+    ProjectReleaseModel,
+    GitBranchModel,
 )
 from packit_service.service.urls import get_srpm_build_info_url
 from packit_service.trigger_mapping import are_job_types_same
@@ -363,7 +365,10 @@ class BaseBuildJobHelper(BaseJobHelper):
         identifier: Optional[str] = None,
     ):
         chroot_str = f":{chroot}" if chroot else ""
-        trigger_str = f":{trigger_identifier}" if trigger_identifier else ""
+        # replace ':' in the trigger identifier
+        trigger_str = (
+            f":{trigger_identifier.replace(':', '-')}" if trigger_identifier else ""
+        )
         optional_suffix = f":{identifier}" if identifier else ""
         return f"{job_name}{trigger_str}{chroot_str}{optional_suffix}"
 
@@ -394,12 +399,14 @@ class BaseBuildJobHelper(BaseJobHelper):
         # for commit and release triggers, we add the identifier to
         # the status name (branch name in case of commit trigger,
         # tag name in case of release trigger)
-        return (
-            self.metadata.identifier
-            if self.db_trigger.job_config_trigger_type
-            in (JobConfigTriggerType.commit, JobConfigTriggerType.release)
-            else None
-        )
+        identifier = None
+
+        if isinstance(self.db_trigger, ProjectReleaseModel):
+            identifier = self.db_trigger.tag_name
+        elif isinstance(self.db_trigger, GitBranchModel):
+            identifier = self.db_trigger.name
+
+        return identifier
 
     def get_build_check(self, chroot: str = None) -> str:
         return self.get_build_check_cls(

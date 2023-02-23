@@ -13,7 +13,12 @@ from ogr import GithubService, GitlabService, PagureService
 from packit.config import JobConfigTriggerType, JobConfig, PackageConfig
 from packit.config.common_package_config import Deployment
 from packit_service.config import ServiceConfig
-from packit_service.models import JobTriggerModelType, JobTriggerModel, BuildStatus
+from packit_service.models import (
+    JobTriggerModelType,
+    JobTriggerModel,
+    BuildStatus,
+    PullRequestModel,
+)
 from packit_service.worker.events import (
     PullRequestGithubEvent,
     PushGitHubEvent,
@@ -152,6 +157,7 @@ def copr_build_model(
     repo_name="hello-world",
     repo_namespace="packit-service",
     forge_instance="github.com",
+    trigger_kls=PullRequestModel,
     job_config_trigger_type=JobConfigTriggerType.pull_request,
     job_trigger_model_type=JobTriggerModelType.pull_request,
     **trigger_model_kwargs,
@@ -161,7 +167,13 @@ def copr_build_model(
         namespace=repo_namespace,
         project_url=f"https://{forge_instance}/{repo_namespace}/{repo_name}",
     )
-    trigger_object_model = flexmock(
+
+    # so that isinstance works
+    class Trigger(trigger_kls):
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
+
+    trigger_object_model = Trigger(
         id=1,
         project=project_model,
         job_config_trigger_type=job_config_trigger_type,
