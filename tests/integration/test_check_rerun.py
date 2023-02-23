@@ -249,7 +249,6 @@ def test_check_rerun_pr_testing_farm_handler(
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})
     )
-    flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
     flexmock(GithubProject).should_receive("get_files").and_return(
         ["foo.spec", ".packit.yaml"]
     )
@@ -309,7 +308,6 @@ def test_check_rerun_pr_koji_build_handler(
     flexmock(KojiBuildJobHelper).should_receive("run_koji_build").and_return(
         TaskResults(success=True, details={})
     )
-    flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
     flexmock(GithubProject).should_receive("get_files").and_return(
         ["foo.spec", ".packit.yaml"]
     )
@@ -367,7 +365,6 @@ def test_check_rerun_pr_koji_build_handler_old_job_name(
     flexmock(KojiBuildJobHelper).should_receive("run_koji_build").and_return(
         TaskResults(success=True, details={})
     )
-    flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
     flexmock(GithubProject).should_receive("get_files").and_return(
         ["foo.spec", ".packit.yaml"]
     )
@@ -454,7 +451,6 @@ def test_check_rerun_push_testing_farm_handler(
     flexmock(TestingFarmJobHelper).should_receive("run_testing_farm").once().and_return(
         TaskResults(success=True, details={})
     )
-    flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
     flexmock(GithubProject).should_receive("get_files").and_return(
         ["foo.spec", ".packit.yaml"]
     )
@@ -514,7 +510,6 @@ def test_check_rerun_push_koji_build_handler(
     flexmock(KojiBuildJobHelper).should_receive("run_koji_build").and_return(
         TaskResults(success=True, details={})
     )
-    flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
     flexmock(GithubProject).should_receive("get_files").and_return(
         ["foo.spec", ".packit.yaml"]
     )
@@ -572,7 +567,6 @@ def test_check_rerun_release_koji_build_handler(
     flexmock(KojiBuildJobHelper).should_receive("run_koji_build").and_return(
         TaskResults(success=True, details={})
     )
-    flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
     flexmock(GithubProject).should_receive("get_files").and_return(
         ["foo.spec", ".packit.yaml"]
     )
@@ -630,7 +624,6 @@ def test_check_rerun_release_propose_downstream_handler(
     flexmock(ProposeDownstreamHandler).should_receive("run_job").and_return(
         TaskResults(success=True, details={})
     )
-    flexmock(GithubProject).should_receive("get_files").and_return(["foo.spec"])
     flexmock(GithubProject).should_receive("get_files").and_return(
         ["foo.spec", ".packit.yaml"]
     )
