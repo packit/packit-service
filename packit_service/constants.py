@@ -83,7 +83,6 @@ TASK_ACCEPTED = "The task was accepted."
 
 COPR_SRPM_CHROOT = "srpm-builds"
 COPR_SUCC_STATE = "succeeded"
-COPR_FAILED_STATE = "failed"
 COPR_API_SUCC_STATE = 1
 COPR_API_FAIL_STATE = 2
 
@@ -117,56 +116,7 @@ CELERY_TASK_DEFAULT_QUEUE = "short-running"
 
 CELERY_DEFAULT_MAIN_TASK_NAME = "task.steve_jobs.process_message"
 
-MSG_MORE_DETAILS = "You can find more details about the job [here]({url}).\n\n"
-
 MSG_TABLE_HEADER_WITH_DETAILS = "| Name/Job | URL |\n" "| --- | --- |\n"
-
-# https://github.com/packit/sandcastle/blob/3bd64e0812e3981b5462601e049471854eec433a/files/install-rpm-packages.yaml#L6
-SRPM_BUILD_DEPS = [
-    "python3-pip",
-    "python3-setuptools",
-    "python3-setuptools_scm",
-    "python3-setuptools_scm_git_archive",
-    "rsync",
-    "make",
-    "git-core",
-    "rpmdevtools",
-    "automake",
-    "autoconf",
-    "libtool",
-    "tito",
-    "cmake",
-    "meson",
-    "ninja-build",
-    "wget",
-    "curl",
-    "findutils",
-    "which",
-    "sed",
-    "gawk",
-    "python3-docutils",
-    "python3-wheel",
-    "json-c-devel",
-    "systemd-devel",
-    "libcurl-devel",
-    "python3-zanata-client",
-    "rust",
-    "cargo",
-    "rubygems",
-    "npm",
-    "selinux-policy",
-    "glib2-devel",
-    "gettext-devel",
-    "python3-polib",
-    "gobject-introspection-devel",
-    "glade-devel",
-    "libxklavier-devel",
-    "libarchive-devel",
-    "rpm-devel",
-    "audit-libs-devel",
-    "nss_wrapper",
-    "fmf",
-]
 
 DEFAULT_MAPPING_TF = {
     "epel-6": "centos-6",
