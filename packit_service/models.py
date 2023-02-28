@@ -2392,14 +2392,17 @@ class SyncReleaseModel(ProjectAndTriggersConnector, Base):
         return sa_session().query(SyncReleaseModel).filter_by(status=status)
 
     @classmethod
-    def get_range_propose_downstream(
-        cls, first: int, last: int
+    def get_range(
+        cls,
+        first: int,
+        last: int,
+        job_type: SyncReleaseJobType = SyncReleaseJobType.propose_downstream,
     ) -> Iterable["SyncReleaseModel"]:
         return (
             sa_session()
             .query(SyncReleaseModel)
             .order_by(desc(SyncReleaseModel.id))
-            .filter_by(job_type=SyncReleaseJobType.propose_downstream)
+            .filter_by(job_type=job_type)
             .slice(first, last)
         )
 

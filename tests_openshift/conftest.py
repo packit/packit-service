@@ -288,6 +288,25 @@ def propose_downstream_model_release(release_model):
 
 
 @pytest.fixture()
+def pull_from_upstream_target_model(release_model):
+    pull_from_upstream_model, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.running,
+        trigger_model=release_model,
+        job_type=SyncReleaseJobType.pull_from_upstream,
+    )
+
+    target_model = SyncReleaseTargetModel.create(
+        status=SyncReleaseTargetStatus.submitted, branch=SampleValues.branch
+    )
+    target_model.set_downstream_pr_url(downstream_pr_url=SampleValues.downstream_pr_url)
+    target_model.set_finished_time(finished_time=datetime.datetime.utcnow())
+    target_model.set_logs(logs="random logs")
+
+    pull_from_upstream_model.sync_release_targets.append(target_model)
+    yield target_model
+
+
+@pytest.fixture()
 def propose_downstream_model_issue(an_issue_model):
     propose_downstream_model, _ = SyncReleaseModel.create_with_new_run(
         status=SyncReleaseStatus.running,
@@ -980,6 +999,37 @@ def multiple_propose_downstream_runs_release_trigger(
 
 
 @pytest.fixture()
+def multiple_pull_from_upstream_runs(release_model, different_release_model):
+    pull_from_upstream_model1, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.running,
+        trigger_model=release_model,
+        job_type=SyncReleaseJobType.pull_from_upstream,
+    )
+    pull_from_upstream_model2, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.error,
+        trigger_model=release_model,
+        job_type=SyncReleaseJobType.pull_from_upstream,
+    )
+    pull_from_upstream_model3, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.running,
+        trigger_model=different_release_model,
+        job_type=SyncReleaseJobType.pull_from_upstream,
+    )
+    pull_from_upstream_model4, _ = SyncReleaseModel.create_with_new_run(
+        status=SyncReleaseStatus.finished,
+        trigger_model=different_release_model,
+        job_type=SyncReleaseJobType.pull_from_upstream,
+    )
+
+    yield [
+        pull_from_upstream_model1,
+        pull_from_upstream_model2,
+        pull_from_upstream_model3,
+        pull_from_upstream_model4,
+    ]
+
+
+@pytest.fixture()
 def multiple_propose_downstream_runs_issue_trigger(
     an_issue_model, different_issue_model
 ):
@@ -1036,6 +1086,31 @@ def multiple_propose_downstream_runs_with_propose_downstream_targets_release_tri
         propose_downstream_models_release[1],
         propose_downstream_models_release[2],
         propose_downstream_models_release[3],
+    ]
+
+
+@pytest.fixture()
+def multiple_pull_from_upstream_runs_with_targets_release_trigger(
+    multiple_pull_from_upstream_runs,
+):
+    pull_from_upstream_runs = multiple_pull_from_upstream_runs
+    pull_from_upstream_runs[0].sync_release_targets.append(
+        SyncReleaseTargetModel.create(
+            status=SyncReleaseTargetStatus.queued,
+            branch=SampleValues.different_branch,
+        )
+    )
+
+    propose_downstream_target = SyncReleaseTargetModel.create(
+        status=SyncReleaseTargetStatus.running, branch=SampleValues.branch
+    )
+    pull_from_upstream_runs[0].sync_release_targets.append(propose_downstream_target)
+
+    yield [
+        pull_from_upstream_runs[0],
+        pull_from_upstream_runs[1],
+        pull_from_upstream_runs[2],
+        pull_from_upstream_runs[3],
     ]
 
 

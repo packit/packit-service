@@ -14,55 +14,54 @@ from packit_service.models import (
 from packit_service.service.api.parsers import indices, pagination_arguments
 from packit_service.service.api.utils import (
     response_maker,
-    get_sync_release_info,
     get_sync_release_target_info,
+    get_sync_release_info,
 )
 
 logger = getLogger("packit_service")
 
-ns = Namespace("propose-downstream", description="Propose Downstream")
+ns = Namespace("pull-from-upstream", description="Pull from upstream")
 
 
 @ns.route("")
-class ProposeDownstreamList(Resource):
+class PullFromUpstreamList(Resource):
     @ns.expect(pagination_arguments)
-    @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "Propose Downstreams results follow")
+    @ns.response(HTTPStatus.PARTIAL_CONTENT.value, "Pull from upstream results follow")
     def get(self):
-        """List of all Propose Downstreams results."""
+        """List of all Pull from upstream results."""
 
         result = []
         first, last = indices()
-        for propose_downstream_results in SyncReleaseModel.get_range(
-            first, last, job_type=SyncReleaseJobType.propose_downstream
+        for pull_results in SyncReleaseModel.get_range(
+            first, last, job_type=SyncReleaseJobType.pull_from_upstream
         ):
-            result.append(get_sync_release_info(propose_downstream_results))
+            result.append(get_sync_release_info(pull_results))
 
         resp = response_maker(result, status=HTTPStatus.PARTIAL_CONTENT)
-        resp.headers["Content-Range"] = f"propose-downstreams {first + 1}-{last}/*"
+        resp.headers["Content-Range"] = f"pull-from-upstreams {first + 1}-{last}/*"
         return resp
 
 
 @ns.route("/<int:id>")
-@ns.param("id", "Packit id of the propose downstream run target")
-class ProposeResult(Resource):
+@ns.param("id", "Packit id of the pull from upstream run target")
+class PullResult(Resource):
     @ns.response(
-        HTTPStatus.OK.value, "OK, propose downstream target details will follow"
+        HTTPStatus.OK.value, "OK, pull from upstream target details will follow"
     )
     @ns.response(
         HTTPStatus.NOT_FOUND.value,
-        "No info about propose downstream target stored in DB",
+        "No info about pull from upstream target stored in DB",
     )
     def get(self, id):
-        """A specific propose-downstream job details"""
+        """A specific pull from upstream job details"""
         sync_release_target_model = SyncReleaseTargetModel.get_by_id(id_=int(id))
-
         if (
             not sync_release_target_model
             or sync_release_target_model.sync_release.job_type
-            != SyncReleaseJobType.propose_downstream
+            != SyncReleaseJobType.pull_from_upstream
         ):
             return response_maker(
-                {"error": "No info about propose downstream target stored in DB"},
+                {"error": "No info about pull from upstream target stored in DB"},
                 status=HTTPStatus.NOT_FOUND,
             )
 
