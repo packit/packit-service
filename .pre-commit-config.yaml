@@ -27,11 +27,11 @@ repos:
       - id: check-merge-conflict
       - id: check-symlinks
       - id: check-yaml
+        args: [--allow-multiple-documents]
       - id: detect-private-key
         exclude: tests/conftest.py
       - id: detect-aws-credentials
-        args:
-          - --allow-missing-credentials
+        args: [--allow-missing-credentials]
       - id: end-of-file-fixer
       - id: mixed-line-ending
       - id: trailing-whitespace

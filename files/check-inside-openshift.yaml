@@ -7,8 +7,8 @@
   vars:
     local_data_dir: "../tests_openshift/openshift_integration"
     remote_data_dir: "/tmp/test_data"
-    test_job_template_path: "./test-in-openshift.yaml"
-    get_data_template_path: "./test-in-openshift-get-data.yaml"
+    test_job_path: "./test-in-openshift.yaml"
+    get_data_path: "./test-in-openshift-get-data.yaml"
     tests_job_name: "packit-tests"
   tasks:
     - name: get kubeconfig token
@@ -99,7 +99,7 @@
     # Why k8s module can't be used here:
     # https://github.com/ansible/ansible/issues/55221#issuecomment-501792651
     - name: create test job in openshift
-      shell: oc process -f {{ test_job_template_path }} | oc create -f -
+      shell: oc create -f {{ test_job_path }}
     - name: Wait for tests to finish
       k8s:
         host: "{{ oc_server.stdout }}"
@@ -131,7 +131,7 @@
 
       # run a new pod, mount the PV with the recorded responses to the new pod
     - name: start pod which will gather the data
-      ansible.builtin.shell: oc process -f {{ get_data_template_path }} | oc create -f -
+      ansible.builtin.shell: oc create -f {{ get_data_path }}
     - name: wait for the pod to be in a running state so we can copy the files
       k8s:
         host: "{{ oc_server.stdout }}"
