@@ -16,6 +16,8 @@ from packit_service.models import (
     TFTTestRunTargetModel,
     TFTTestRunGroupModel,
     SyncReleaseModel,
+    SyncReleaseTargetModel,
+    optional_timestamp,
 )
 
 
@@ -51,3 +53,42 @@ def get_project_info_from_build(
         "branch_name": build.get_branch_name(),
         "release": build.get_release_tag(),
     }
+
+
+def get_sync_release_target_info(sync_release_model: SyncReleaseTargetModel):
+    job_result_dict = {
+        "status": sync_release_model.status,
+        "branch": sync_release_model.branch,
+        "downstream_pr_url": sync_release_model.downstream_pr_url,
+        "submitted_time": optional_timestamp(sync_release_model.submitted_time),
+        "start_time": optional_timestamp(sync_release_model.start_time),
+        "finished_time": optional_timestamp(sync_release_model.finished_time),
+        "logs": sync_release_model.logs,
+    }
+
+    job_result_dict.update(get_project_info_from_build(sync_release_model.sync_release))
+    return job_result_dict
+
+
+def get_sync_release_info(sync_release_model: SyncReleaseModel):
+    result_dict = {
+        "packit_id": sync_release_model.id,
+        "status": sync_release_model.status,
+        "submitted_time": optional_timestamp(sync_release_model.submitted_time),
+        "status_per_downstream_pr": {
+            pr.branch: pr.status for pr in sync_release_model.sync_release_targets
+        },
+        "packit_id_per_downstream_pr": {
+            pr.branch: pr.id for pr in sync_release_model.sync_release_targets
+        },
+        "pr_id": sync_release_model.get_pr_id(),
+        "issue_id": sync_release_model.get_issue_id(),
+        "release": sync_release_model.get_release_tag(),
+    }
+
+    project = sync_release_model.get_project()
+    result_dict["repo_namespace"] = project.namespace
+    result_dict["repo_name"] = project.repo_name
+    result_dict["project_url"] = project.project_url
+
+    return result_dict

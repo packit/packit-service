@@ -31,6 +31,7 @@ from packit_service.models import (
     SyncReleaseModel,
     Session,
     BuildStatus,
+    SyncReleaseJobType,
 )
 from tests_openshift.conftest import SampleValues
 
@@ -927,7 +928,9 @@ def test_get_propose_downstream_model_range(
     assert multiple_propose_downstream_runs_release_trigger
 
     propose_downstream_list = list(
-        SyncReleaseModel.get_range_propose_downstream(first=0, last=10)
+        SyncReleaseModel.get_range(
+            first=0, last=10, job_type=SyncReleaseJobType.propose_downstream
+        )
     )
     assert len(propose_downstream_list) == 4
 
