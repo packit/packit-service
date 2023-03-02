@@ -164,14 +164,14 @@ class BaseJobHelper:
         so we can extend it in subclasses easily.
         """
         if self.is_gitlab_instance and not self.is_reporting_allowed:
-            self.request_project_access()
             description = (
-                f"{description}\n\n---\n*Packit-User does not have access to the "
+                f"{description}\n\n---\nPackit-User does not have access to the "
                 "source project (=usually author's fork of the project). "
-                "We have requested access to be able to set "
-                "commit statuses / pipelines instead of the comments. "
                 "(This is only about the representation of the results. "
-                "Packit is still able to do its job without having the permissions.)*"
+                "Packit is still able to do its job without having the permissions.)\n\n"
+                "*In case you wish to receive commit statuses instead of comments, please "
+                "add login of the author of this comment to your fork with a role "
+                "`Reporter`.*"
             )
 
             final_commit_states = (
