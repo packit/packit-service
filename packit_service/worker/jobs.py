@@ -125,8 +125,8 @@ class SteveJobs:
             self._service_config = ServiceConfig.get_service_config()
         return self._service_config
 
-    @staticmethod
-    def process_message(event: dict) -> List[TaskResults]:
+    @classmethod
+    def process_message(cls, event: dict) -> List[TaskResults]:
         """
         Entrypoint for message processing.
 
@@ -141,7 +141,7 @@ class SteveJobs:
         if not (event_object and event_object.pre_check()):
             return []
 
-        return SteveJobs(event_object).process()
+        return cls(event_object).process()
 
     def process(self) -> List[TaskResults]:
         """
