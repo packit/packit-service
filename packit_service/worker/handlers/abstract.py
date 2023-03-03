@@ -325,12 +325,6 @@ class JobHandler(Handler):
         self._project: Optional[GitProject] = None
         self._clean_workplace()
 
-    @classmethod
-    def get_all_subclasses(cls) -> Set[Type["JobHandler"]]:
-        return set(cls.__subclasses__()).union(
-            [s for c in cls.__subclasses__() for s in c.get_all_subclasses()]
-        )
-
     def run_job(self):
         """
         If pre-check succeeds, run the job for the specific handler.
