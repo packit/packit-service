@@ -132,16 +132,15 @@ class BodhiHandlerTaskWithRetry(HandlerTaskWithRetry):
 @celery_app.task(
     name=getenv("CELERY_MAIN_TASK_NAME") or CELERY_DEFAULT_MAIN_TASK_NAME, bind=True
 )
-def process_message(
-    self, event: dict, topic: str = None, source: str = None
-) -> List[TaskResults]:
+def process_message(self, event: dict) -> List[TaskResults]:
     """
     Main celery task for processing messages.
 
-    :param event: event data
-    :param topic: event topic
-    :param source: event source
-    :return: dictionary containing task results
+    Args:
+        event: event data
+
+    Returns:
+        task results
     """
     return SteveJobs().process_message(event=event)
 
