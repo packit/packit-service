@@ -8,7 +8,7 @@ import logging
 import shutil
 import abc
 from datetime import datetime
-from typing import Optional, Tuple, Type, List
+from typing import Optional, Tuple, Type, List, Callable
 
 from celery import Task
 from ogr.abstract import PullRequest, AuthMethod
@@ -32,7 +32,10 @@ from packit_service.models import (
     SyncReleaseStatus,
     SyncReleaseJobType,
 )
-from packit_service.service.urls import get_propose_downstream_info_url
+from packit_service.service.urls import (
+    get_propose_downstream_info_url,
+    get_pull_from_upstream_info_url,
+)
 from packit_service.utils import gather_packit_logs_to_buffer, collect_packit_logs
 from packit_service.worker.checker.abstract import Checker
 from packit_service.worker.checker.distgit import (
@@ -167,6 +170,7 @@ class AbstractSyncReleaseHandler(
     helper_kls: type[SyncReleaseHelper]
     sync_release_job_type: SyncReleaseJobType
     job_name_for_reporting: str
+    get_dashboard_url: Callable[[int], str]
 
     def __init__(
         self,
@@ -400,7 +404,7 @@ class AbstractSyncReleaseHandler(
         if models_with_errors:
             branch_errors = ""
             for model in sorted(models_with_errors, key=lambda model: model.branch):
-                dashboard_url = get_propose_downstream_info_url(model.id)
+                dashboard_url = self.get_dashboard_url(model.id)
                 branch_errors += f"| `{model.branch}` | See {dashboard_url} |\n"
             body_msg = MSG_DOWNSTREAM_JOB_ERROR_HEADER.format(
                 object="pull-requests",
@@ -442,6 +446,7 @@ class ProposeDownstreamHandler(AbstractSyncReleaseHandler):
     helper_kls = ProposeDownstreamJobHelper
     sync_release_job_type = SyncReleaseJobType.propose_downstream
     job_name_for_reporting = "propose downstream"
+    get_dashboard_url = staticmethod(get_propose_downstream_info_url)
 
     def __init__(
         self,
@@ -484,6 +489,7 @@ class PullFromUpstreamHandler(AbstractSyncReleaseHandler):
     helper_kls = PullFromUpstreamHelper
     sync_release_job_type = SyncReleaseJobType.pull_from_upstream
     job_name_for_reporting = "Pull from upstream"
+    get_dashboard_url = staticmethod(get_pull_from_upstream_info_url)
 
     def __init__(
         self,
