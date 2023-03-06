@@ -42,6 +42,7 @@ from packit_service.worker.events.koji import KojiTaskEvent
 from packit_service.worker.events.pagure import (
     PullRequestPagureEvent,
     PullRequestCommentPagureEvent,
+    PullRequestFlagPagureEvent,
     PushPagureEvent,
     AbstractPagureEvent,
 )
@@ -84,4 +85,5 @@ __all__ = [
     AbstractForgeIndependentEvent.__name__,
     ReleaseGitlabEvent.__name__,
     TagPushGitlabEvent.__name__,
+    PullRequestFlagPagureEvent.__name__,
 ]
