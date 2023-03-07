@@ -1,70 +1,88 @@
 {
   "object_kind": "push",
-  "before": "95790bf891e76fee5e1747ab589903a6a1f80f22",
-  "after": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
-  "ref": "refs/heads/master",
-  "checkout_sha": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
-  "user_id": 4,
-  "user_name": "John Smith",
-  "user_username": "jsmith",
-  "user_email": "john@gitlab.com",
-  "user_avatar": "https://s.gravatar.com/avatar/d4c74594d841139328695756648b6bd6?s=8://s.gravatar.com/avatar/d4c74594d841139328695756648b6bd6?s=80",
-  "project_id": 15,
+  "event_name": "push",
+  "before": "8c349949521e5c3fcd5c1811d1acbc5a752b385e",
+  "after": "15af92227f9e965b392e85ba2f08a41a5aeb278a",
+  "ref": "refs/heads/c9s",
+  "checkout_sha": "15af92227f9e965b392e85ba2f08a41a5aeb278a",
+  "message": null,
+  "user_id": 2952463,
+  "user_name": "Jiri Popelka",
+  "user_username": "jpopelka",
+  "user_email": "",
+  "user_avatar": "https://gitlab.com/uploads/-/system/user/avatar/2952463/avatar.png",
+  "project_id": 28084873,
   "project": {
-    "id": 15,
-    "name": "Diaspora",
-    "description": "",
-    "web_url": "http://gitlab.com/mike/diaspora",
+    "id": 28084873,
+    "name": "open-vm-tools",
+    "description": "Copy of https://gitlab.com/redhat/centos-stream/rpms/open-vm-tools for testing purposes",
+    "web_url": "https://gitlab.com/packit-service/rpms/open-vm-tools",
     "avatar_url": null,
-    "git_ssh_url": "git@gitlab.com:mike/diaspora.git",
-    "git_http_url": "http://gitlab.com/mike/diaspora.git",
-    "namespace": "Mike",
-    "visibility_level": 0,
-    "path_with_namespace": "mike/diaspora",
-    "default_branch": "master",
-    "homepage": "http://gitlab.com/mike/diaspora",
-    "url": "git@gitlab.com:mike/diaspora.git",
-    "ssh_url": "git@gitlab.com:mike/diaspora.git",
-    "http_url": "http://gitlab.com/mike/diaspora.git"
-  },
-  "repository": {
-    "name": "Diaspora",
-    "url": "git@gitlab.com:mike/diaspora.git",
-    "description": "",
-    "homepage": "http://gitlab.com/mike/diaspora",
-    "git_http_url": "http://gitlab.com/mike/diaspora.git",
-    "git_ssh_url": "git@gitlab.com:mike/diaspora.git",
-    "visibility_level": 0
+    "git_ssh_url": "git@gitlab.com:packit-service/rpms/open-vm-tools.git",
+    "git_http_url": "https://gitlab.com/packit-service/rpms/open-vm-tools.git",
+    "namespace": "rpms",
+    "visibility_level": 20,
+    "path_with_namespace": "packit-service/rpms/open-vm-tools",
+    "default_branch": "c9s",
+    "ci_config_path": "",
+    "homepage": "https://gitlab.com/packit-service/rpms/open-vm-tools",
+    "url": "git@gitlab.com:packit-service/rpms/open-vm-tools.git",
+    "ssh_url": "git@gitlab.com:packit-service/rpms/open-vm-tools.git",
+    "http_url": "https://gitlab.com/packit-service/rpms/open-vm-tools.git"
   },
   "commits": [
     {
-      "id": "b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
-      "message": "Update Catalan translation to e38cb41.\n\nSee https://gitlab.com/gitlab-org/gitlab for more information",
-      "title": "Update Catalan translation to e38cb41.",
-      "timestamp": "2011-12-12T14:27:31+02:00",
-      "url": "http://gitlab.com/mike/diaspora/commit/b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327",
+      "id": "15af92227f9e965b392e85ba2f08a41a5aeb278a",
+      "message": "Add .gitlab-ci.yml\n",
+      "title": "Add .gitlab-ci.yml",
+      "timestamp": "2021-10-07T17:27:33+02:00",
+      "url": "https://gitlab.com/packit-service/rpms/open-vm-tools/-/commit/15af92227f9e965b392e85ba2f08a41a5aeb278a",
       "author": {
-        "name": "Jordi Mallach",
-        "email": "jordi@softcatala.org"
+        "name": "Jiri Popelka",
+        "email": "[REDACTED]"
       },
-      "added": ["CHANGELOG"],
-      "modified": ["app/controller/application.rb"],
+      "added": [".gitlab-ci.yml"],
+      "modified": [],
       "removed": []
     },
     {
-      "id": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
-      "message": "fixed readme",
-      "title": "fixed readme",
-      "timestamp": "2012-01-03T23:36:29+02:00",
-      "url": "http://gitlab.com/mike/diaspora/commit/da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+      "id": "83e47a3fc19f49723a5ad52f362521a9a6da949f",
+      "message": "Rebuilt for IMA sigs, glibc 2.34, aarch64 flags\n\nRelated: rhbz#1991688\n",
+      "title": "Rebuilt for IMA sigs, glibc 2.34, aarch64 flags",
+      "timestamp": "2021-08-09T22:44:57+00:00",
+      "url": "https://gitlab.com/packit-service/rpms/open-vm-tools/-/commit/83e47a3fc19f49723a5ad52f362521a9a6da949f",
       "author": {
-        "name": "GitLab dev user",
-        "email": "gitlabdev@dv6700.(none)"
+        "name": "Mohan Boddu",
+        "email": "[REDACTED]"
       },
-      "added": ["CHANGELOG"],
-      "modified": ["app/controller/application.rb"],
+      "added": [],
+      "modified": ["open-vm-tools.spec"],
+      "removed": []
+    },
+    {
+      "id": "8c349949521e5c3fcd5c1811d1acbc5a752b385e",
+      "message": "* Wed Jul 21 2021 Miroslav Rezanina <rezanin@redhat.com> - 11.3.0-1\n- Rebase to 11.3.0 [bz#1974471]\n",
+      "title": "* Wed Jul 21 2021 Miroslav Rezanina <rezanin@redhat.com> - 11.3.0-1",
+      "timestamp": "2021-07-21T03:07:22-04:00",
+      "url": "https://gitlab.com/packit-service/rpms/open-vm-tools/-/commit/8c349949521e5c3fcd5c1811d1acbc5a752b385e",
+      "author": {
+        "name": "Miroslav Rezanina",
+        "email": "[REDACTED]"
+      },
+      "added": [],
+      "modified": [".gitignore", "open-vm-tools.spec", "sources"],
       "removed": []
     }
   ],
-  "total_commits_count": 4
+  "total_commits_count": 3,
+  "push_options": {},
+  "repository": {
+    "name": "open-vm-tools",
+    "url": "git@gitlab.com:packit-service/rpms/open-vm-tools.git",
+    "description": "Copy of https://gitlab.com/redhat/centos-stream/rpms/open-vm-tools for testing purposes",
+    "homepage": "https://gitlab.com/packit-service/rpms/open-vm-tools",
+    "git_http_url": "https://gitlab.com/packit-service/rpms/open-vm-tools.git",
+    "git_ssh_url": "git@gitlab.com:packit-service/rpms/open-vm-tools.git",
+    "visibility_level": 20
+  }
 }
