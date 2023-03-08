@@ -366,47 +366,34 @@ class Parser:
         parsable in the same way.
 
         Returns:
-            a tuple like (actor, project_url, parsed_url, ref, head_commit, head_commit_sha)
+            a tuple like (actor, project_url, parsed_url, ref, head_commit)
         Raises:
             PackitParserException
         """
-        raw_ref = event.get("ref")
+        if not (raw_ref := event.get("ref")):
+            raise PackitParserException("No ref info from event.")
         before = event.get("before")
+        checkout_sha = event.get("checkout_sha")
         actor = event.get("user_username")
-
-        commits = event.get("commits")
+        commits = event.get("commits", [])
+        number_of_commits = event.get("total_commits_count")
 
         if not Parser.is_gitlab_push_a_create_event(event):
             raise PackitParserException(
                 "Event is not a push create event, stop parsing"
             )
 
-        number_of_commits = event.get("total_commits_count")
-
-        if not number_of_commits:
-            logger.warning("No number of commits info from event.")
-
-        raw_ref = raw_ref.split("/", maxsplit=2)
-
-        if not raw_ref:
-            logger.warning("No ref info from event.")
-
-        ref = raw_ref[-1]
-        head_commit = commits[-1]
-        head_commit_sha = head_commit["id"]
-
-        if not raw_ref:
-            logger.warning("No commit_id info from event.")
+        # The first item in the list should be the head (newest) commit,
+        # but rather not assume anything and select the "checkout_sha" one.
+        head_commit = next(c for c in commits if c["id"] == checkout_sha)
 
         logger.info(
-            f"Gitlab push event on '{raw_ref}': {before[:8]} -> {head_commit_sha[:8]} "
+            f"Gitlab push event on '{raw_ref}': {before[:8]} -> {checkout_sha[:8]} "
             f"by {actor} "
             f"({number_of_commits} {'commit' if number_of_commits == 1 else 'commits'})"
         )
 
-        project_url = nested_get(event, "project", "web_url")
-        if not project_url:
-            logger.warning("Target project url not found in the event.")
+        if not (project_url := nested_get(event, "project", "web_url")):
             raise PackitParserException(
                 "Target project url not found in the event, stop parsing"
             )
@@ -417,7 +404,9 @@ class Parser:
             f"namespace={parsed_url.namespace} "
             f"url={project_url}."
         )
-        return (actor, project_url, parsed_url, ref, head_commit, head_commit_sha)
+        ref = raw_ref.split("/", maxsplit=2)[-1]
+
+        return actor, project_url, parsed_url, ref, head_commit
 
     @staticmethod
     def parse_gitlab_tag_push_event(event) -> Optional[TagPushGitlabEvent]:
@@ -436,21 +425,13 @@ class Parser:
                 parsed_url,
                 ref,
                 head_commit,
-                head_commit_sha,
             ) = Parser.get_gitlab_push_common_data(event)
         except PackitParserException as e:
-            logger.debug(e)
+            logger.info(e)
             return None
 
-        if head_commit:
-            title = head_commit["title"]
-            message = head_commit["message"]
-        else:
-            title = None
-            message = None
-
         logger.info(
-            f"Gitlab tag push {ref} event with commit_sha {head_commit_sha} "
+            f"Gitlab tag push {ref} event with commit_sha {head_commit.get('id')} "
             f"by actor {actor} on Project: "
             f"repo={parsed_url.repo} "
             f"namespace={parsed_url.namespace} "
@@ -463,9 +444,9 @@ class Parser:
             actor=actor,
             git_ref=ref,
             project_url=project_url,
-            commit_sha=head_commit_sha,
-            title=title,
-            message=message,
+            commit_sha=head_commit.get("id"),
+            title=head_commit.get("title"),
+            message=head_commit.get("message"),
         )
 
     @staticmethod
@@ -484,11 +465,10 @@ class Parser:
                 project_url,
                 parsed_url,
                 ref,
-                _,
-                head_commit_sha,
+                head_commit,
             ) = Parser.get_gitlab_push_common_data(event)
         except PackitParserException as e:
-            logger.debug(e)
+            logger.info(e)
             return None
 
         return PushGitlabEvent(
@@ -496,7 +476,7 @@ class Parser:
             repo_name=parsed_url.repo,
             git_ref=ref,
             project_url=project_url,
-            commit_sha=head_commit_sha,
+            commit_sha=head_commit.get("id"),
         )
 
     @staticmethod

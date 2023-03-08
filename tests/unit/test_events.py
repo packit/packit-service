@@ -703,14 +703,19 @@ class TestEvents:
         event_object = Parser.parse_event(gitlab_push_many_commits)
 
         assert isinstance(event_object, PushGitlabEvent)
-        assert event_object.repo_namespace == "mike"
-        assert event_object.repo_name == "diaspora"
-        assert event_object.commit_sha == "da1560886d4f094c3e6c9ef40349f7d38b5d27d7"
-        assert event_object.project_url == "http://gitlab.com/mike/diaspora"
-        assert event_object.git_ref == "master"
+        assert event_object.repo_namespace == "packit-service/rpms"
+        assert event_object.repo_name == "open-vm-tools"
+        assert event_object.commit_sha == "15af92227f9e965b392e85ba2f08a41a5aeb278a"
+        assert (
+            event_object.project_url
+            == "https://gitlab.com/packit-service/rpms/open-vm-tools"
+        )
+        assert event_object.git_ref == "c9s"
 
         assert isinstance(event_object.project, GitlabProject)
-        assert event_object.project.full_repo_name == "mike/diaspora"
+        assert (
+            event_object.project.full_repo_name == "packit-service/rpms/open-vm-tools"
+        )
         assert not event_object.base_project
 
         flexmock(PackageConfigGetter).should_receive(
@@ -719,7 +724,7 @@ class TestEvents:
             base_project=event_object.base_project,
             project=event_object.project,
             pr_id=None,
-            reference="da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+            reference="15af92227f9e965b392e85ba2f08a41a5aeb278a",
             fail_when_missing=False,
         ).and_return(
             flexmock()
