@@ -51,9 +51,9 @@ class CoprBuildsList(Resource):
                 "ref": build_info.commit_sha,
                 "pr_id": build_info.get_pr_id(),
                 "branch_name": build_info.get_branch_name(),
-                "repo_namespace": project_info.namespace,
-                "repo_name": project_info.repo_name,
-                "project_url": project_info.project_url,
+                "repo_namespace": project_info.namespace if project_info else "",
+                "repo_name": project_info.repo_name if project_info else "",
+                "project_url": project_info.project_url if project_info else "",
             }
 
             for i, chroot in enumerate(build.target):
