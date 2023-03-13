@@ -87,8 +87,7 @@ def get_sync_release_info(sync_release_model: SyncReleaseModel):
     }
 
     project = sync_release_model.get_project()
-    result_dict["repo_namespace"] = project.namespace
-    result_dict["repo_name"] = project.repo_name
-    result_dict["project_url"] = project.project_url
-
+    result_dict["repo_namespace"] = project.namespace if project else ""
+    result_dict["repo_name"] = project.repo_name if project else ""
+    result_dict["project_url"] = project.project_url if project else ""
     return result_dict
