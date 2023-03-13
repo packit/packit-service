@@ -1371,7 +1371,9 @@ class CoprBuildTargetModel(GroupAndTargetModelConnector, Base):
     #   }
     # ]
     built_packages = Column(JSON)
-    copr_build_group_id = Column(Integer, ForeignKey("copr_build_groups.id"))
+    copr_build_group_id = Column(
+        Integer, ForeignKey("copr_build_groups.id"), index=True
+    )
 
     group_of_targets = relationship(
         "CoprBuildGroupModel", back_populates="copr_build_targets"
@@ -2257,7 +2259,7 @@ class SyncReleaseTargetModel(ProjectAndTriggersConnector, Base):
     start_time = Column(DateTime)
     finished_time = Column(DateTime)
     logs = Column(Text)
-    sync_release_id = Column(Integer, ForeignKey("sync_release_runs.id"))
+    sync_release_id = Column(Integer, ForeignKey("sync_release_runs.id"), index=True)
 
     sync_release = relationship(
         "SyncReleaseModel", back_populates="sync_release_targets"
