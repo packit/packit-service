@@ -10,13 +10,10 @@ steroids.
 
 ## Current status
 
-For the run-down of the planned work, please see the task-list below.
-
-- [x] Packit service reacts to Github webhooks.
-- [x] Packit service is scalable. (using celery and running on OpenShift)
-- [x] Packit service is secure. (by running things in a [sandbox](https://github.com/packit/sandcastle/))
-- [x] Packit Service GitHub app is placed in [GitHub marketplace](https://github.com/marketplace/packit-as-a-service).
-- [x] New upstream releases can be proposed as pull requests downstream.
+If you are interested in the status of the development,
+take a look at [our Kanban board](https://github.com/orgs/packit/projects/7).
+Bigger stories can be seen [here](https://github.com/orgs/packit/projects/7/views/18)
+and the ones that are being worked on this quarter are [here](https://github.com/orgs/packit/projects/7/views/25).
 
 ## More info
 
