@@ -16,7 +16,7 @@ For the run-down of the planned work, please see the task-list below.
 - [x] Packit service is scalable. (using celery and running on OpenShift)
 - [x] Packit service is secure. (by running things in a [sandbox](https://github.com/packit/sandcastle/))
 - [x] Packit Service GitHub app is placed in [GitHub marketplace](https://github.com/marketplace/packit-as-a-service).
-- [ ] New upstream releases can be proposed as pull requests downstream.
+- [x] New upstream releases can be proposed as pull requests downstream.
 
 ## More info
 
