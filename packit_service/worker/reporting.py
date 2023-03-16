@@ -241,6 +241,8 @@ class StatusReporter:
 
         if self.is_final_state(state):
             self.comment(body, DuplicateCheckMode.check_all_comments, to_commit=True)
+        else:
+            logger.debug(f"Ain't comment as {state!r} is not a final state")
 
     def report_status_by_comment(
         self,
@@ -311,6 +313,7 @@ class StatusReporter:
             to_commit: Add the comment to the commit even if PR is specified.
         """
         if self._has_identical_comment(body, duplicate_check, to_commit):
+            logger.debug("Identical comment already exists")
             return
 
         if to_commit or not self.pr_id:

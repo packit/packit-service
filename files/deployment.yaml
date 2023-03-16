@@ -86,8 +86,6 @@
           push_dev_images: true
           # https://github.com/packit/deployment/pull/296
           check_up_to_date: false
-          # we don't have tokman:dev
-          image_tokman: quay.io/packit/tokman:stg
         dest: "{{ deployment_dir }}/vars/packit/dev.yml"
 
     - name: Actually deploy

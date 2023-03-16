@@ -50,7 +50,8 @@ jobs:
           dockerfiles: ${{ matrix.dockerfile }}
           image: ${{ matrix.image }}
           tags: ${{ steps.branch_tag.outputs.tag }}
-          oci: true
+          # Uncomment once we stop using oc cluster up for tests
+          #           oci: true
           build-args: |
             SOURCE_BRANCH=${{ steps.branch_tag.outputs.branch }}
 
