@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+from datetime import datetime, timezone
 from enum import Enum, auto
 from random import choice
-from typing import Optional, Union, Dict
+from typing import Optional, Union, Dict, Callable
 
 from ogr.abstract import CommitStatus, GitProject
 from ogr.exceptions import GithubAPIException, GitlabAPIException
@@ -170,6 +171,7 @@ class StatusReporter:
         links_to_external_services: Optional[Dict[str, str]] = None,
         check_names: Union[str, list, None] = None,
         markdown_content: str = None,
+        update_feedback_time: Callable = None,
     ) -> None:
         """
         Set commit check status.
@@ -191,11 +193,12 @@ class StatusReporter:
 
                 Defaults to None
 
+            update_feedback_time: a callable which tells the caller when a check
+                status has been updated.
+
         Returns:
             None
-
         """
-
         if not check_names:
             logger.warning("No checks to set status for.")
             return
@@ -212,6 +215,9 @@ class StatusReporter:
                 links_to_external_services=links_to_external_services,
                 markdown_content=markdown_content,
             )
+
+            if update_feedback_time:
+                update_feedback_time(datetime.now(timezone.utc))
 
     @staticmethod
     def is_final_state(state: BaseCommitStatus) -> bool:

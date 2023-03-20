@@ -5,8 +5,8 @@
 We love you, Steve Jobs.
 """
 import logging
-from datetime import datetime, timezone
-from typing import Optional, Union
+from datetime import datetime
+from typing import Optional, Union, Callable
 from typing import List, Set, Type, Tuple
 from re import match
 
@@ -250,7 +250,10 @@ class SteveJobs:
         return helper_kls(**params)
 
     def report_task_accepted(
-        self, handler_kls: Type[JobHandler], job_config: JobConfig
+        self,
+        handler_kls: Type[JobHandler],
+        job_config: JobConfig,
+        update_feedback_time: Callable,
     ):
         """
         For the upstream events report the initial status "Task was accepted" to
@@ -260,6 +263,8 @@ class SteveJobs:
         Args:
             handler_kls: The class for the Handler that will be used.
             job_config: Job config that is being used.
+            update_feedback_time: a callable which tells the caller when a check
+                status has been updated.
         """
         number_of_build_targets = None
         if handler_kls not in (
@@ -276,16 +281,14 @@ class SteveJobs:
         if isinstance(job_helper, CoprBuildJobHelper):
             number_of_build_targets = len(job_helper.build_targets)
 
-        task_accepted_time = datetime.now(timezone.utc)
         job_helper.report_status_to_configured_job(
             description=TASK_ACCEPTED,
             state=BaseCommitStatus.pending,
             url="",
+            update_feedback_time=update_feedback_time,
         )
 
-        self.push_initial_metrics(
-            task_accepted_time, handler_kls, number_of_build_targets
-        )
+        self.push_copr_metrics(handler_kls, number_of_build_targets)
 
     def search_distgit_config_in_issue(self) -> Optional[Tuple[str, PackageConfig]]:
         """Get a tuple (dist-git repo url, package config loaded from dist-git yaml file).
@@ -413,13 +416,16 @@ class SteveJobs:
         """
         processing_results: List[TaskResults] = []
         signatures = []
+        statuses_check_feedback = []
         # we want to run handlers for all possible jobs, not just the first one
         for job_config in job_configs:
             if self.should_task_be_created_for_job_config_and_handler(
                 job_config, handler_kls
             ):
                 self.report_task_accepted(
-                    handler_kls=handler_kls, job_config=job_config
+                    handler_kls=handler_kls,
+                    job_config=job_config,
+                    update_feedback_time=lambda t: statuses_check_feedback.append(t),
                 )
                 signatures.append(
                     handler_kls.get_signature(event=self.event, job=job_config)
@@ -432,6 +438,7 @@ class SteveJobs:
                         event=self.event,
                     )
                 )
+        self.push_statuses_metrics(statuses_check_feedback)
         # https://docs.celeryq.dev/en/stable/userguide/canvas.html#groups
         celery.group(signatures).apply_async()
         return processing_results
@@ -710,38 +717,60 @@ class SteveJobs:
 
         return matching_jobs
 
-    def push_initial_metrics(
+    def push_statuses_metrics(
         self,
-        task_accepted_time: datetime,
+        statuses_check_feedback: List[datetime],
+    ):
+        """
+        Push the metrics about the time of setting initial statuses for the first and last check.
+
+        Args:
+            statuses_check_feedback: A list of times it takes to set every initial status check.
+        """
+        if statuses_check_feedback:
+            pushgateway = Pushgateway()
+            response_time = elapsed_seconds(
+                begin=self.event.created_at, end=statuses_check_feedback[0]
+            )
+            logger.debug(
+                f"Reporting first initial status check time: {response_time} seconds."
+            )
+            pushgateway.first_initial_status_time.observe(response_time)
+            if response_time > 15:
+                pushgateway.no_status_after_15_s.inc()
+                # https://github.com/packit/packit-service/issues/1728
+                # we need more info why this has happened
+                logger.debug(f"Event dict: {self.event}.")
+                logger.error(
+                    f"Event {self.event.__class__.__name__} took ({response_time}s) to process."
+                )
+            # set the time when the accepted status was set so that we
+            # can use it later for measurements
+            self.event.task_accepted_time = statuses_check_feedback[0]
+
+            response_time = elapsed_seconds(
+                begin=self.event.created_at, end=statuses_check_feedback[-1]
+            )
+            logger.debug(
+                f"Reporting last initial status check time: {response_time} seconds."
+            )
+            pushgateway.last_initial_status_time.observe(response_time)
+
+            pushgateway.push()
+
+    def push_copr_metrics(
+        self,
         handler_kls: Type[JobHandler],
         number_of_build_targets: Optional[int] = None,
     ):
         """
-        Push the metrics about the time of setting initial status and possibly number
-        of queued Copr builds.
+        Push metrics about queued Copr builds.
 
         Args:
-            task_accepted_time: Time when we put the initial status.
             handler_kls: The class for the Handler that will handle the job.
             number_of_build_targets: Number of build targets in case of CoprBuildHandler.
         """
         pushgateway = Pushgateway()
-        response_time = elapsed_seconds(
-            begin=self.event.created_at, end=task_accepted_time
-        )
-        logger.debug(f"Reporting initial status time: {response_time} seconds.")
-        pushgateway.initial_status_time.observe(response_time)
-        if response_time > 30:
-            pushgateway.no_status_after_30_s.inc()
-            # https://github.com/packit/packit-service/issues/1728
-            # we need more info why this has happened
-            logger.debug(f"Event dict: {self.event}.")
-            logger.error(
-                f"Event {self.event.__class__.__name__} took ({response_time}s) to process."
-            )
-
-        # set the time when the accepted status was set so that we can use it later for measurements
-        self.event.task_accepted_time = task_accepted_time
 
         if handler_kls == CoprBuildHandler and number_of_build_targets:
             for _ in range(number_of_build_targets):

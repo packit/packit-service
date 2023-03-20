@@ -77,6 +77,7 @@ def propose_downstream_model():
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
     yield propose_downstream_model
 

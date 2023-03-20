@@ -199,6 +199,7 @@ def test_pr_comment_build_test_handler(
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
     flexmock(Signature).should_receive("apply_async").twice()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -264,6 +265,7 @@ def test_pr_comment_build_build_and_test_handler(
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
     flexmock(TestingFarmJobHelper).should_receive("report_status_to_tests").with_args(
         description=TASK_ACCEPTED,
@@ -271,6 +273,7 @@ def test_pr_comment_build_build_and_test_handler(
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
     flexmock(CoprBuildJobHelper).should_receive(
         "is_custom_copr_project_defined"
@@ -365,6 +368,7 @@ def test_pr_comment_production_build_handler(pr_production_build_comment_event):
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
     flexmock(Pushgateway).should_receive("push").twice().and_return()
@@ -596,6 +600,7 @@ def test_pr_test_command_handler(pr_embedded_command_comment_event):
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
@@ -707,6 +712,7 @@ def test_pr_test_command_handler_identifiers(pr_embedded_command_comment_event):
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
@@ -887,7 +893,7 @@ def test_pr_test_command_handler_retries(
         {"fedora-rawhide-x86_64"}
     )
     flexmock(TestingFarmJobHelper).should_receive("get_latest_copr_build").never()
-    flexmock(Pushgateway).should_receive("push").twice().and_return()
+    flexmock(Pushgateway).should_receive("push").times(3).and_return()
 
     payload = {
         "api_key": "secret-token",
@@ -1108,6 +1114,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     payload = {
@@ -1179,6 +1186,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     flexmock(GithubProject).should_receive("get_web_url").and_return(
@@ -1217,6 +1225,7 @@ def test_pr_test_command_handler_skip_build_option(pr_embedded_command_comment_e
         check_names="testing-farm:fedora-rawhide-x86_64",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
 
@@ -1330,6 +1339,7 @@ def test_pr_test_command_handler_compose_not_present(
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
@@ -1341,6 +1351,7 @@ def test_pr_test_command_handler_compose_not_present(
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     response = flexmock(
@@ -1362,6 +1373,7 @@ def test_pr_test_command_handler_compose_not_present(
         "If you think your configuration is correct, get "
         "in touch with [us](https://packit.dev/#contact).",
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     flexmock(Signature).should_receive("apply_async").once()
@@ -1475,6 +1487,7 @@ def test_pr_test_command_handler_composes_not_available(
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(True)
@@ -1486,6 +1499,7 @@ def test_pr_test_command_handler_composes_not_available(
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive(
@@ -1499,6 +1513,7 @@ def test_pr_test_command_handler_composes_not_available(
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     flexmock(Signature).should_receive("apply_async").once()
@@ -2002,6 +2017,7 @@ def test_retest_failed(
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     processing_results = SteveJobs().process_message(pr_embedded_command_comment_event)
@@ -2114,6 +2130,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -2123,6 +2140,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     flexmock(TestingFarmJobHelper).should_receive("is_fmf_configured").and_return(False)
@@ -2133,6 +2151,7 @@ def test_pr_test_command_handler_skip_build_option_no_fmf_metadata(
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     flexmock(GithubProject).should_receive("get_web_url").and_return(
@@ -2332,6 +2351,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     payload = {
@@ -2418,6 +2438,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     flexmock(StatusReporter).should_receive("report").with_args(
@@ -2427,6 +2448,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         check_names="testing-farm:fedora-35-x86_64",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
 
     flexmock(GithubProject).should_receive("get_web_url").and_return(
@@ -2521,6 +2543,7 @@ def test_pr_test_command_handler_multiple_builds(pr_embedded_command_comment_eve
         check_names="testing-farm:fedora-rawhide-x86_64",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
     flexmock(Signature).should_receive("apply_async").once()
 

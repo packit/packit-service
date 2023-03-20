@@ -565,6 +565,7 @@ def test_check_and_report(
                     f"[in our onboarding guide]({DOCS_APPROVAL_URL})."
                 ),
                 links_to_external_services=None,
+                update_feedback_time=object,
             ).once()
         flexmock(CoprHelper).should_receive("get_valid_build_targets").and_return(
             {
