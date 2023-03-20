@@ -56,6 +56,17 @@ services:
       POSTGRESQL_DATABASE: packit
     ports:
       - 5432:5432
+    deploy:
+      resources:
+        limits:
+          memory: 4GB
+          #cpus: "0.3"
+        reservations:
+          memory: 2G
+    # volumes:
+    # a file with packit.conf content from
+    # https://github.com/packit/deployment/blob/main/openshift/postgres.yml.j2#L84
+    # - ./secrets/packit/dev/postgres-config:/opt/app-root/src/postgresql-cfg/packit.conf:ro,Z
 
   worker:
     container_name: worker
@@ -84,6 +95,7 @@ services:
       AWS_ACCESS_KEY_ID: ""
       AWS_SECRET_ACCESS_KEY: ""
       GIT_SSH_COMMAND: "ssh -F /home/packit/.ssh/config"
+      #SQLALCHEMY_ECHO: 1
     volumes:
       - ../packit/packit:/usr/local/lib/python3.11/site-packages/packit:ro,z
       - ./packit_service:/usr/local/lib/python3.11/site-packages/packit_service:ro,z
@@ -123,7 +135,11 @@ services:
       - redis
       - postgres
     ports:
-      - 8443:8443
+      # Port 443 is needed here because the certificate we have is bundled with it
+      # otherwise dashboard.localhost can not reach service.localhost/api
+      # docker-compose needs access to ports lower than 1024:
+      # echo "net.ipv4.ip_unprivileged_port_start=443" > /etc/sysctl.d/docker-compose.conf; sysctl --system
+      - 443:8443
     environment:
       DEPLOYMENT: dev
       REDIS_SERVICE_HOST: redis
@@ -131,6 +147,7 @@ services:
       POSTGRESQL_PASSWORD: secret-password
       POSTGRESQL_HOST: postgres
       POSTGRESQL_DATABASE: packit
+      #SQLALCHEMY_ECHO: 1
     volumes:
       - ./packit_service:/src/packit_service:ro,z
       - ./alembic:/src/alembic:rw,z
@@ -141,6 +158,38 @@ services:
       - ./secrets/packit/dev/fullchain.pem:/secrets/fullchain.pem:ro,z
       - ./secrets/packit/dev/privkey.pem:/secrets/privkey.pem:ro,z
       - ./files/run_httpd.sh:/usr/bin/run_httpd.sh:ro,z
+    user: "1024"
+
+  dashboard:
+    container_name: dashboard
+    # To use dashboard on localhost and to make it connect to service.localhost you need to:
+    #   1. change API_STG in packit/dashboard/Makefile
+    #        API_STG = "https://service.localhost/api"
+    #      change VITE_API_URL in packit/dashboard/Dockerfile
+    #        ARG VITE_API_URL=https://service.localhost/api
+    #   2. rebuild dashboard with `make build-stg`
+    #   3. in packit/packit-service/secrets/packit/dev/packit-service.yaml you need
+    #        server_name: service.localhost
+    #        dashboard_url: https://dashboard.localhost:8443
+    image: quay.io/packit/dashboard:stg
+    command: /usr/bin/run_httpd.sh
+    depends_on:
+      - service
+    ports:
+      - 8443:8443
+    environment:
+      DEPLOYMENT: dev
+      REDIS_SERVICE_HOST: redis
+      POSTGRESQL_USER: packit
+      POSTGRESQL_PASSWORD: secret-password
+      POSTGRESQL_HOST: postgres
+      POSTGRESQL_DATABASE: packit
+      #SQLALCHEMY_ECHO: 1
+    volumes:
+      - ./secrets/packit/dev/packit-service.yaml:/home/packit_dashboard/.config/packit-service.yaml:ro,z
+      - ./secrets/packit/dev/fedora.keytab:/secrets/fedora.keytab:ro,z
+      - ./secrets/packit/dev/fullchain.pem:/secrets/fullchain.pem:ro,z
+      - ./secrets/packit/dev/privkey.pem:/secrets/privkey.pem:ro,z
     user: "1024"
 
   fedora-messaging:
