@@ -486,10 +486,8 @@ def test_check_and_report(
             },
         )
     ]
-    flexmock(PullRequestGithubEvent).should_receive("get_package_config").and_return(
-        flexmock(
-            jobs=job_configs,
-        )
+    flexmock(PullRequestGithubEvent).should_receive("get_packages_config").and_return(
+        flexmock(jobs=job_configs, get_package_config_for=lambda job_config: flexmock())
     )
     flexmock(PullRequestModel).should_receive("get_or_create").and_return(
         flexmock(

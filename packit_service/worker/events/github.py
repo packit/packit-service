@@ -391,7 +391,7 @@ class InstallationEvent(Event):
         return result
 
     @property
-    def package_config(self):
+    def packages_config(self):
         return None
 
     @property

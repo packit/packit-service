@@ -70,13 +70,13 @@ class NewHotnessUpdateEvent(Event):
         )
 
     @property
-    def package_config(self):
+    def packages_config(self):
         if not self._package_config_searched and not self._package_config:
-            self._package_config = self.get_package_config()
+            self._package_config = self.get_packages_config()
             self._package_config_searched = True
         return self._package_config
 
-    def get_package_config(self) -> Optional[PackageConfig]:
+    def get_packages_config(self) -> Optional[PackageConfig]:
         logger.debug(f"Getting package_config:\n" f"\tproject: {self.project}\n")
 
         package_config = PackageConfigGetter.get_package_config_from_repo(
@@ -91,7 +91,9 @@ class NewHotnessUpdateEvent(Event):
 
     @property
     def project_url(self) -> Optional[str]:
-        return self.package_config.upstream_project_url if self.package_config else None
+        return (
+            self.packages_config.upstream_project_url if self.packages_config else None
+        )
 
     @property
     def repo_url(self) -> Optional[RepoUrl]:
@@ -109,10 +111,10 @@ class NewHotnessUpdateEvent(Event):
 
     @property
     def tag_name(self):
-        if not (self.package_config and self.package_config.upstream_tag_template):
+        if not (self.packages_config and self.packages_config.upstream_tag_template):
             return self.version
 
-        return self.package_config.upstream_tag_template.format(version=self.version)
+        return self.packages_config.upstream_tag_template.format(version=self.version)
 
     def get_dict(self, default_dict: Optional[Dict] = None) -> dict:
         d = self.__dict__

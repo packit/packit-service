@@ -948,8 +948,8 @@ def test_get_handlers_for_event(event_cls, db_trigger, jobs, result):
             return db_trigger
 
         @property
-        def package_config(self):
-            return flexmock(jobs=jobs)
+        def packages_config(self):
+            return flexmock(get_job_views=lambda: jobs)
 
     event = Event()
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
@@ -1180,8 +1180,8 @@ def test_get_handlers_for_comment_event(
             return db_trigger
 
         @property
-        def package_config(self):
-            return flexmock(jobs=jobs)
+        def packages_config(self):
+            return flexmock(get_job_views=lambda: jobs)
 
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
         ServiceConfig(comment_command_prefix=packit_comment_command_prefix)
@@ -1381,8 +1381,8 @@ def test_get_handlers_for_check_rerun_event(
             return db_trigger
 
         @property
-        def package_config(self):
-            return flexmock(jobs=jobs)
+        def packages_config(self):
+            return flexmock(get_job_views=lambda: jobs)
 
     flexmock(ServiceConfig).should_receive("get_service_config").and_return(
         ServiceConfig(packit_comment_command_prefix="/packit")
@@ -2611,8 +2611,8 @@ def test_get_config_for_handler_kls(
             return db_trigger
 
         @property
-        def package_config(self):
-            return flexmock(jobs=jobs)
+        def packages_config(self):
+            return flexmock(get_job_views=lambda: jobs)
 
     event = Event()
 
@@ -3045,8 +3045,8 @@ def test_get_jobs_matching_trigger(
             return job_config_trigger_type
 
         @property
-        def package_config(self):
-            return flexmock(jobs=jobs)
+        def packages_config(self):
+            return flexmock(get_job_views=lambda: jobs)
 
     event = Event(**kwargs)
     assert result == SteveJobs(event).get_jobs_matching_event()
@@ -3109,8 +3109,10 @@ def test_create_tasks_tf_identifier(
             self._db_trigger = None
 
         @property
-        def package_config(self):
-            return flexmock(jobs=jobs)
+        def packages_config(self):
+            return flexmock(
+                jobs=jobs, get_package_config_for=lambda job_config: flexmock()
+            )
 
         def get_dict(self, *args, **kwargs):
             return {"identifier": identifier}

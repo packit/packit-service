@@ -362,7 +362,11 @@ class JobHandler(Handler):
         return signature(
             cls.task_name.value,
             kwargs={
-                "package_config": dump_package_config(event.package_config),
+                "package_config": dump_package_config(
+                    event.packages_config.get_package_config_for(job)
+                    if event.packages_config
+                    else None
+                ),
                 "job_config": dump_job_config(job),
                 "event": event.get_dict(),
             },
