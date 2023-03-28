@@ -12,6 +12,7 @@ from ogr.abstract import GitProject
 from ogr.exceptions import GitForgeInternalError, OgrNetworkError
 from ogr.parsing import parse_git_repo
 from ogr.services.github import GithubProject
+from ogr.services.gitlab import GitlabProject
 
 from packit.config import JobConfig, JobType, JobConfigTriggerType
 from packit.config.aliases import get_aliases
@@ -39,6 +40,7 @@ from packit_service.constants import (
     BASE_RETRY_INTERVAL_IN_MINUTES_FOR_OUTAGES,
     BASE_RETRY_INTERVAL_IN_SECONDS_FOR_INTERNAL_ERRORS,
     DEFAULT_RETRY_LIMIT_OUTAGE,
+    DASHBOARD_JOBS_TESTING_FARM_PATH,
 )
 from packit_service.models import (
     AbstractTriggerDbType,
@@ -417,6 +419,36 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
         """
         return self.package_config.jobs.index(self.job_config)
 
+    def report_pending_build_and_test_on_build_submission(self, web_url: str):
+        """
+        Report the first pending status for build/test job considering the
+        issue in GitLab where we cannot overwrite the pending status
+        (https://github.com/packit/packit-service/issues/1914),
+        therefore differentiate the description and URL provided there.
+        Args:
+            web_url: URL for the particular Copr build
+        """
+        if isinstance(self.project, GitlabProject):
+            description = "Job is in progress..."
+            url_for_build = web_url
+            url_for_tests = (
+                f"{self.service_config.dashboard_url}{DASHBOARD_JOBS_TESTING_FARM_PATH}"
+            )
+        else:
+            description = "SRPM build in Copr was submitted..."
+            url_for_build = url_for_tests = get_srpm_build_info_url(self.srpm_model.id)
+
+        self.report_status_to_build(
+            description=description,
+            state=BaseCommitStatus.pending,
+            url=url_for_build,
+        )
+        self.report_status_to_all_test_jobs(
+            description=description,
+            state=BaseCommitStatus.pending,
+            url=url_for_tests,
+        )
+
     def run_copr_build_from_source_script(self) -> TaskResults:
         """
         Run copr build using custom source method.
@@ -447,12 +479,7 @@ class CoprBuildJobHelper(BaseBuildJobHelper):
             self._srpm_model.set_copr_build_id(str(build_id))
             self._srpm_model.set_copr_web_url(web_url)
 
-        self.report_status_to_all(
-            description="SRPM build in Copr was submitted...",
-            state=BaseCommitStatus.pending,
-            url=get_srpm_build_info_url(self.srpm_model.id),
-        )
-
+        self.report_pending_build_and_test_on_build_submission(web_url)
         self.handle_rpm_build_start(group, build_id, web_url)
 
         return TaskResults(success=True, details={})
