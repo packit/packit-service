@@ -17,6 +17,7 @@ from ogr.services.github import GithubProject
 
 import packit
 import packit_service
+from ogr.services.gitlab import GitlabProject
 from packit.api import PackitAPI
 from packit.config import (
     CommonPackageConfig,
@@ -34,6 +35,7 @@ from packit_service.config import ServiceConfig
 from packit_service.constants import (
     DEFAULT_RETRY_LIMIT,
     DEFAULT_RETRY_LIMIT_OUTAGE,
+    DASHBOARD_JOBS_TESTING_FARM_PATH,
 )
 from packit_service.models import (
     CoprBuildTargetModel,
@@ -433,6 +435,56 @@ def test_run_copr_build_from_source_script_github_outage_retry(
         flexmock(build).should_receive("set_status").with_args(BuildStatus.error)
 
     assert helper.run_copr_build_from_source_script()["success"] is retry
+
+
+@pytest.mark.parametrize(
+    "project, generic_statuses",
+    [
+        (GitlabProject(None, None, None), True),
+        (GithubProject(None, None, None), False),
+    ],
+)
+def test_report_pending_build_and_test_on_build_submission(
+    github_pr_event, project, generic_statuses
+):
+    helper = CoprBuildJobHelper(
+        package_config=None,
+        job_config=None,
+        service_config=ServiceConfig.get_service_config(),
+        project=project,
+        metadata=None,
+        db_trigger=None,
+    )
+    helper._srpm_model = flexmock(id=1)
+    web_url = "copr-url"
+    if generic_statuses:
+        flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
+            description="Job is in progress...",
+            state=BaseCommitStatus.pending,
+            url=web_url,
+        ).once()
+        flexmock(CoprBuildJobHelper).should_receive(
+            "report_status_to_all_test_jobs"
+        ).with_args(
+            description="Job is in progress...",
+            state=BaseCommitStatus.pending,
+            url=DASHBOARD_JOBS_TESTING_FARM_PATH,
+        ).once()
+    else:
+        flexmock(CoprBuildJobHelper).should_receive("report_status_to_build").with_args(
+            description="SRPM build in Copr was submitted...",
+            state=BaseCommitStatus.pending,
+            url="/results/srpm-builds/1",
+        ).once()
+        flexmock(CoprBuildJobHelper).should_receive(
+            "report_status_to_all_test_jobs"
+        ).with_args(
+            description="SRPM build in Copr was submitted...",
+            state=BaseCommitStatus.pending,
+            url="/results/srpm-builds/1",
+        ).once()
+
+    helper.report_pending_build_and_test_on_build_submission("copr-url")
 
 
 def test_get_latest_fedora_stable_chroot(github_pr_event):

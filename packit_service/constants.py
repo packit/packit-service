@@ -234,3 +234,5 @@ GITLAB_ISSUE = (
     "grant `{packit_user}` user `Developer` permissions on the `{namespace}/{repo}`"
     " repository. You can do so [here]({url}/-/project_members)."
 )
+
+DASHBOARD_JOBS_TESTING_FARM_PATH = "/jobs/testing-farm-runs"
