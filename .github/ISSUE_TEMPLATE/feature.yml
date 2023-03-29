@@ -1,0 +1,61 @@
+name: Feature Request
+description: Request a feature
+labels: kind/feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search existing issues to avoid creating duplicates.
+
+        You can also see our current priorities on our board: https://github.com/orgs/packit/projects/7/views/29
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefit
+    attributes:
+      label: Benefit
+      description: Please provide the benefits of this feature. Do you know if this could be beneficial for other users too?
+    validations:
+      required: false
+
+  - type: textarea
+    id: importance
+    attributes:
+      label: Importance
+      description: How important is this feature for you (or your team)? Is this something that is blocking you from using Packit Service?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: What is the impacted category (job)?
+      multiple: true
+      options:
+        - Copr builds
+        - Testing Farm tests
+        - Fedora release automation
+        - Other
+        - General
+    validations:
+      required: true
+
+  - type: checkboxes
+    attributes:
+      label: Workaround
+      options:
+        - label: There is an existing workaround that can be used until this feature is implemented.
+          required: false
+
+  - type: checkboxes
+    attributes:
+      label: Participation
+      options:
+        - label: I am willing to submit a pull request for this issue. (Packit team is happy to help!)
+          required: false

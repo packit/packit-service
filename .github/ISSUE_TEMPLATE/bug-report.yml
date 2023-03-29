@@ -1,0 +1,75 @@
+name: Bug Report
+description: Report a bug encountered while using Packit Service
+labels: kind/bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search existing issues to avoid creating duplicates.
+        You may also check our status page for incidents/outages: https://status.packit.dev/
+
+        You can also see our current priorities on our board: https://github.com/orgs/packit/projects/7/views/29
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened? What is the problem?
+      description: |
+        Please provide as much info as possible. Not doing so may result in your bug not being addressed in a timely manner.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expectation
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: false
+
+  - type: textarea
+    id: example-url
+    attributes:
+      label: Example URL(s)
+      description: Please provide URL(s) with example of the issue (Github PR/commit/release, dashboard link).
+    validations:
+      required: false
+
+  - type: textarea
+    id: reproducer
+    attributes:
+      label: Steps to reproduce
+      value: |
+        1.
+        2.
+        3.
+      render: bash
+    validations:
+      required: false
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: What is the impacted category (job)?
+      multiple: true
+      options:
+        - Copr builds
+        - Testing Farm tests
+        - Fedora release automation
+        - Other
+        - General
+    validations:
+      required: true
+
+  - type: checkboxes
+    attributes:
+      label: Workaround
+      options:
+        - label: There is an existing workaround that can be used until this issue is fixed.
+          required: false
+
+  - type: checkboxes
+    attributes:
+      label: Participation
+      options:
+        - label: I am willing to submit a pull request for this issue. (Packit team is happy to help!)
+          required: false
