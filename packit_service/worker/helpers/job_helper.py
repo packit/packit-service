@@ -3,7 +3,7 @@
 
 import logging
 from functools import partial
-from typing import Optional, Union, Dict
+from typing import Optional, Union, Dict, Callable
 
 from lazy_object_proxy import Proxy
 from ogr.abstract import GitProject
@@ -158,6 +158,7 @@ class BaseJobHelper:
         check_names: Union[str, list, None] = None,
         markdown_content: str = None,
         links_to_external_services: Optional[Dict[str, str]] = None,
+        update_feedback_time: Callable = None,
     ) -> None:
         """
         The status reporting should be done through this method
@@ -191,6 +192,7 @@ class BaseJobHelper:
             check_names=check_names,
             markdown_content=markdown_content,
             links_to_external_services=links_to_external_services,
+            update_feedback_time=update_feedback_time,
         )
 
     def report_status_to_configured_job(
@@ -200,6 +202,7 @@ class BaseJobHelper:
         url: str = "",
         markdown_content: str = None,
         links_to_external_services: Optional[Dict[str, str]] = None,
+        update_feedback_time: Callable = None,
     ):
         """
         Report status to the particular job from job_config attribute of the helper.

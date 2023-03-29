@@ -56,17 +56,24 @@ class Pushgateway:
             registry=self.registry,
         )
 
-        self.no_status_after_30_s = Counter(
-            "no_status_after_30_s",
-            "Number of PRs/commits with no commit status for more than 30s",
+        self.no_status_after_15_s = Counter(
+            "no_status_after_15_s",
+            "Number of PRs/commits with no commit status for more than 15s",
             registry=self.registry,
         )
 
-        self.initial_status_time = Histogram(
-            "initial_status_time",
-            "Time it takes to set the initial status",
+        self.first_initial_status_time = Histogram(
+            "first_initial_status_time",
+            "Time it takes to set the initial status for the first check in the first job",
             registry=self.registry,
             buckets=(5, 15, 30, float("inf")),
+        )
+
+        self.last_initial_status_time = Histogram(
+            "last_initial_status_time",
+            "Time it takes to set the initial status for the last check in the last job",
+            registry=self.registry,
+            buckets=(5, 15, 30, 60, 120, float("inf")),
         )
 
         self.copr_build_finished_time = Histogram(

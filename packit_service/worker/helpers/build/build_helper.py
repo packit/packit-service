@@ -4,7 +4,7 @@ import datetime
 import logging
 from io import StringIO
 from pathlib import Path
-from typing import List, Optional, Set, Tuple, Dict
+from typing import List, Optional, Set, Tuple, Dict, Callable
 
 from kubernetes.client.rest import ApiException
 from sandcastle import SandcastleTimeoutReached
@@ -556,6 +556,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         url: str = "",
         markdown_content: str = None,
         links_to_external_services: Optional[Dict[str, str]] = None,
+        update_feedback_time: Callable = None,
     ) -> None:
         self.report_status_to_build(
             description=description,
@@ -563,6 +564,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             url=url,
             markdown_content=markdown_content,
             links_to_external_services=links_to_external_services,
+            update_feedback_time=update_feedback_time,
         )
         self.report_status_to_all_test_jobs(
             description=description,
@@ -570,6 +572,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             url=url,
             markdown_content=markdown_content,
             links_to_external_services=links_to_external_services,
+            update_feedback_time=update_feedback_time,
         )
 
     def report_status_to_build(
@@ -579,6 +582,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         url: str = "",
         markdown_content: str = None,
         links_to_external_services: Optional[Dict[str, str]] = None,
+        update_feedback_time: Callable = None,
     ) -> None:
         if self.job_build:
             self._report(
@@ -588,6 +592,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                 check_names=self.build_check_names,
                 markdown_content=markdown_content,
                 links_to_external_services=links_to_external_services,
+                update_feedback_time=update_feedback_time,
             )
 
     def report_status_to_all_test_jobs(
@@ -597,6 +602,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         url: str = "",
         markdown_content: str = None,
         links_to_external_services: Optional[Dict[str, str]] = None,
+        update_feedback_time: Callable = None,
     ) -> None:
         for test_job in self.job_tests_all:
             if test_job.skip_build:
@@ -609,6 +615,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                 check_names=check_names,
                 markdown_content=markdown_content,
                 links_to_external_services=links_to_external_services,
+                update_feedback_time=update_feedback_time,
             )
 
     def report_status_to_build_for_chroot(
@@ -619,6 +626,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         chroot: str = "",
         markdown_content: str = None,
         links_to_external_services: Optional[Dict[str, str]] = None,
+        update_feedback_time: Callable = None,
     ) -> None:
         if self.job_build and chroot in self.build_targets:
             cs = self.get_build_check(chroot)
@@ -629,6 +637,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                 check_names=cs,
                 markdown_content=markdown_content,
                 links_to_external_services=links_to_external_services,
+                update_feedback_time=update_feedback_time,
             )
 
     def report_status_to_all_test_jobs_for_chroot(
@@ -639,6 +648,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         chroot: str = "",
         markdown_content: str = None,
         links_to_external_services: Optional[Dict[str, str]] = None,
+        update_feedback_time: Callable = None,
     ) -> None:
         for test_job in self.job_tests_all:
             if not test_job.skip_build and chroot in self.build_targets_for_test_job(
@@ -659,6 +669,7 @@ class BaseBuildJobHelper(BaseJobHelper):
                         ),
                         markdown_content=markdown_content,
                         links_to_external_services=links_to_external_services,
+                        update_feedback_time=update_feedback_time,
                     )
 
     def report_status_to_all_for_chroot(
@@ -669,6 +680,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         chroot: str = "",
         markdown_content: str = None,
         links_to_external_services: Optional[Dict[str, str]] = None,
+        update_feedback_time: Callable = None,
     ) -> None:
         self.report_status_to_build_for_chroot(
             description=description,
@@ -676,6 +688,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             url=url,
             chroot=chroot,
             markdown_content=markdown_content,
+            update_feedback_time=update_feedback_time,
         )
         self.report_status_to_all_test_jobs_for_chroot(
             description=description,
@@ -684,6 +697,7 @@ class BaseBuildJobHelper(BaseJobHelper):
             chroot=chroot,
             markdown_content=markdown_content,
             links_to_external_services=links_to_external_services,
+            update_feedback_time=update_feedback_time,
         )
 
     def run_build(
@@ -703,6 +717,7 @@ class BaseBuildJobHelper(BaseJobHelper):
         url: str = "",
         markdown_content: str = None,
         links_to_external_services: Optional[Dict[str, str]] = None,
+        update_feedback_time: Callable = None,
     ):
         self.report_status_to_build(
             description=description,
@@ -710,4 +725,5 @@ class BaseBuildJobHelper(BaseJobHelper):
             url=url,
             markdown_content=markdown_content,
             links_to_external_services=links_to_external_services,
+            update_feedback_time=update_feedback_time,
         )

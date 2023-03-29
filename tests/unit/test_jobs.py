@@ -3113,7 +3113,10 @@ def test_create_tasks_tf_identifier(
 
     event = Event()
     # Ignore remote reporting
-    flexmock(SteveJobs, report_task_accepted=lambda handler_kls, job_config: None)
+    flexmock(
+        SteveJobs,
+        report_task_accepted=lambda handler_kls, job_config, update_feedback_time: None,
+    )
     # We are testing the number of tasks, the exact signatures are not important
     flexmock(handler_kls).should_receive("get_signature").and_return(None)
     flexmock(TaskResults, create_from=lambda *args, **kwargs: object())

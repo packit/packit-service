@@ -150,6 +150,7 @@ def test_testing_farm_response(
         check_names="testing-farm:fedora-rawhide-x86_64",
         markdown_content=None,
         links_to_external_services={"Testing Farm": "some url"},
+        update_feedback_time=object,
     ).once()
 
     urls.DASHBOARD_URL = "https://dashboard.localhost"

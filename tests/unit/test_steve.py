@@ -172,6 +172,7 @@ def test_process_message(event, private, enabled_private_namespaces, success):
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).times(
         1 if success else 0
     )

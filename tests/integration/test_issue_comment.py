@@ -228,6 +228,7 @@ def test_issue_comment_propose_downstream_handler(
         url="",
         markdown_content=None,
         links_to_external_services=None,
+        update_feedback_time=object,
     ).once()
     flexmock(shutil).should_receive("rmtree").with_args("")
 

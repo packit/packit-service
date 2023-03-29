@@ -54,6 +54,7 @@ def test_get_vm_image_build_reporter_from_job_helper_mixin(
         check_names=["vm-image-build-fedora-36-x86_64"],
         markdown_content="",
         links_to_external_services=None,
+        update_feedback_time=None,
     )
     mixin.report_status(VMImageBuildStatus.pending, "")
 
@@ -64,6 +65,7 @@ def test_get_vm_image_build_reporter_from_job_helper_mixin(
         check_names=["vm-image-build-fedora-36-x86_64"],
         markdown_content="",
         links_to_external_services=None,
+        update_feedback_time=None,
     )
     mixin.report_status(VMImageBuildStatus.error, "")
 
@@ -74,6 +76,7 @@ def test_get_vm_image_build_reporter_from_job_helper_mixin(
         check_names=["vm-image-build-fedora-36-x86_64"],
         markdown_content="",
         links_to_external_services=None,
+        update_feedback_time=None,
     )
     mixin.report_status(VMImageBuildStatus.failure, "")
 
@@ -84,6 +87,7 @@ def test_get_vm_image_build_reporter_from_job_helper_mixin(
         check_names=["vm-image-build-fedora-36-x86_64"],
         markdown_content="",
         links_to_external_services=None,
+        update_feedback_time=None,
     )
     mixin.report_status(VMImageBuildStatus.success, "")
 
@@ -94,6 +98,7 @@ def test_get_vm_image_build_reporter_from_job_helper_mixin(
         check_names=["vm-image-build-fedora-36-x86_64"],
         markdown_content="",
         links_to_external_services=None,
+        update_feedback_time=None,
     )
     mixin.report_pre_check_failure("")
 

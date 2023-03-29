@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Dict, Any, Optional, Set, List, Union, Tuple
+from typing import Dict, Any, Optional, Set, List, Union, Tuple, Callable
 
 import requests
 
@@ -1166,6 +1166,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         chroot: str = "",
         markdown_content: str = None,
         links_to_external_services: Optional[Dict[str, str]] = None,
+        update_feedback_time: Callable = None,
     ) -> None:
         if chroot in self.build_targets_for_tests:
             test_targets = self.build_target2test_targets_for_test_job(
@@ -1179,6 +1180,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                     check_names=self.get_test_check(target),
                     markdown_content=markdown_content,
                     links_to_external_services=links_to_external_services,
+                    update_feedback_time=update_feedback_time,
                 )
 
     def report_status_to_tests_for_test_target(
@@ -1189,6 +1191,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         target: str = "",
         markdown_content: str = None,
         links_to_external_services: Optional[Dict[str, str]] = None,
+        update_feedback_time: Callable = None,
     ) -> None:
         if target in self.tests_targets:
             self._report(
@@ -1198,6 +1201,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
                 check_names=self.get_test_check(target),
                 markdown_content=markdown_content,
                 links_to_external_services=links_to_external_services,
+                update_feedback_time=update_feedback_time,
             )
 
     def report_status_to_tests(
@@ -1207,6 +1211,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         url: str = "",
         markdown_content: str = None,
         links_to_external_services: Optional[Dict[str, str]] = None,
+        update_feedback_time: Callable = None,
     ) -> None:
         self._report(
             description=description,
@@ -1215,6 +1220,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             check_names=self.test_check_names,
             markdown_content=markdown_content,
             links_to_external_services=links_to_external_services,
+            update_feedback_time=update_feedback_time,
         )
 
     def report_status_to_configured_job(
@@ -1224,6 +1230,7 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
         url: str = "",
         markdown_content: str = None,
         links_to_external_services: Optional[Dict[str, str]] = None,
+        update_feedback_time: Callable = None,
     ):
         self.report_status_to_tests(
             description=description,
@@ -1231,4 +1238,5 @@ class TestingFarmJobHelper(CoprBuildJobHelper):
             url=url,
             markdown_content=markdown_content,
             links_to_external_services=links_to_external_services,
+            update_feedback_time=update_feedback_time,
         )
